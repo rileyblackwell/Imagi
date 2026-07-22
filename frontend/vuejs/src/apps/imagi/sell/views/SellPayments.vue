@@ -50,7 +50,7 @@
             It's live at the <code class="font-mono">{{ installedNotice.route }}</code> page of your app.
             <router-link
               :to="{ name: 'builder-workspace', params: { projectName: route.params.projectName } }"
-              class="underline hover:no-underline"
+              class="rounded-sm underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
             >
               Open the Build workspace
             </router-link>
@@ -115,7 +115,7 @@
           <div class="w-11 h-11 text-lg" :class="ui.iconTile">
             <i class="fas fa-link"></i>
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full border border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-950/60 dark:text-white/60">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full border border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-950/60 dark:text-blue-100/60">
             No code
           </span>
         </div>

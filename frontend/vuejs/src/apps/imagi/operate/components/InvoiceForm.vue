@@ -74,7 +74,7 @@
           />
           <button
             type="button"
-            class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-blue-950/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 disabled:opacity-40"
+            class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16161a] disabled:opacity-40"
             :disabled="form.line_items.length === 1"
             :aria-label="`Remove line item ${index + 1}`"
             @click="removeItem(index)"

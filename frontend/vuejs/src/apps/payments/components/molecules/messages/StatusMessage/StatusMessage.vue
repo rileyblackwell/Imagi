@@ -48,35 +48,35 @@ const props = defineProps({
 const typeClasses = computed(() => {
   switch (props.type) {
     case 'success':
-      return 'bg-green-500/10 border-green-300/30 text-green-300 animate-pulse-slow';
+      return 'bg-emerald-50/80 border-emerald-200/70 dark:bg-emerald-400/[0.07] dark:border-emerald-300/[0.18]';
     case 'error':
-      return 'bg-red-500/10 border-red-300/30 text-red-300';
+      return 'bg-red-50/80 border-red-200/70 dark:bg-red-500/10 dark:border-red-400/25';
     case 'warning':
-      return 'bg-yellow-500/10 border-yellow-300/30 text-yellow-300';
+      return 'bg-amber-50/80 border-amber-200/70 dark:bg-amber-400/[0.08] dark:border-amber-300/[0.2]';
     case 'info':
-      return 'bg-blue-500/10 border-blue-300/30 text-blue-300';
+      return 'bg-blue-50/80 border-blue-200/70 dark:bg-blue-400/10 dark:border-blue-400/25';
     default:
-      return 'bg-green-500/10 border-green-300/30 text-green-300';
+      return 'bg-emerald-50/80 border-emerald-200/70 dark:bg-emerald-400/[0.07] dark:border-emerald-300/[0.18]';
   }
 });
 
 const glowClass = computed(() => {
   switch (props.type) {
-    case 'success': return 'bg-green-500/5';
+    case 'success': return 'bg-emerald-500/5';
     case 'error': return 'bg-red-500/5';
-    case 'warning': return 'bg-yellow-500/5';
+    case 'warning': return 'bg-amber-500/5';
     case 'info': return 'bg-blue-500/5';
-    default: return 'bg-green-500/5';
+    default: return 'bg-emerald-500/5';
   }
 });
 
 const borderGradientClass = computed(() => {
   switch (props.type) {
-    case 'success': return 'from-green-500/0 via-green-500/60 to-green-500/0';
-    case 'error': return 'from-red-500/0 via-red-500/60 to-red-500/0';
-    case 'warning': return 'from-yellow-500/0 via-yellow-500/60 to-yellow-500/0';
-    case 'info': return 'from-blue-500/0 via-blue-500/60 to-blue-500/0';
-    default: return 'from-green-500/0 via-green-500/60 to-green-500/0';
+    case 'success': return 'from-emerald-500/0 via-emerald-500/40 to-emerald-500/0 dark:via-emerald-400/40';
+    case 'error': return 'from-red-500/0 via-red-500/40 to-red-500/0 dark:via-red-400/40';
+    case 'warning': return 'from-amber-500/0 via-amber-500/40 to-amber-500/0 dark:via-amber-400/40';
+    case 'info': return 'from-blue-500/0 via-blue-500/40 to-blue-500/0 dark:via-blue-400/40';
+    default: return 'from-emerald-500/0 via-emerald-500/40 to-emerald-500/0 dark:via-emerald-400/40';
   }
 });
 
@@ -92,42 +92,33 @@ const iconClass = computed(() => {
 
 const iconBgClass = computed(() => {
   switch (props.type) {
-    case 'success': return 'bg-green-500/20';
-    case 'error': return 'bg-red-500/20';
-    case 'warning': return 'bg-yellow-500/20';
-    case 'info': return 'bg-blue-500/20';
-    default: return 'bg-green-500/20';
+    case 'success': return 'bg-emerald-100 dark:bg-emerald-400/[0.14] ring-1 ring-emerald-200/80 dark:ring-emerald-300/[0.18]';
+    case 'error': return 'bg-red-100 dark:bg-red-400/[0.14] ring-1 ring-red-200/80 dark:ring-red-300/[0.18]';
+    case 'warning': return 'bg-amber-100 dark:bg-amber-400/[0.14] ring-1 ring-amber-200/80 dark:ring-amber-300/[0.18]';
+    case 'info': return 'bg-blue-100 dark:bg-blue-400/[0.14] ring-1 ring-blue-200/80 dark:ring-blue-300/[0.18]';
+    default: return 'bg-emerald-100 dark:bg-emerald-400/[0.14] ring-1 ring-emerald-200/80 dark:ring-emerald-300/[0.18]';
   }
 });
 
 const iconColorClass = computed(() => {
   switch (props.type) {
-    case 'success': return 'text-green-400';
-    case 'error': return 'text-red-400';
-    case 'warning': return 'text-yellow-400';
-    case 'info': return 'text-blue-400';
-    default: return 'text-green-400';
+    case 'success': return 'text-emerald-600 dark:text-emerald-300';
+    case 'error': return 'text-red-600 dark:text-red-400';
+    case 'warning': return 'text-amber-600 dark:text-amber-300';
+    case 'info': return 'text-blue-600 dark:text-blue-300';
+    default: return 'text-emerald-600 dark:text-emerald-300';
   }
 });
 
 const textColorClass = computed(() => {
   switch (props.type) {
-    case 'success': return 'text-green-300';
-    case 'error': return 'text-red-300';
-    case 'warning': return 'text-yellow-300';
-    case 'info': return 'text-blue-300';
-    default: return 'text-green-300';
+    case 'success': return 'text-emerald-800 dark:text-emerald-200';
+    case 'error': return 'text-red-700 dark:text-red-300';
+    case 'warning': return 'text-amber-800 dark:text-amber-200';
+    case 'info': return 'text-blue-800 dark:text-blue-200';
+    default: return 'text-emerald-800 dark:text-emerald-200';
   }
 });
 </script>
 
-<style scoped>
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 1; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
-}
-</style> 
+ 

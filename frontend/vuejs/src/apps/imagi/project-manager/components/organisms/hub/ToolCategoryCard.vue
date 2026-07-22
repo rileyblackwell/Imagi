@@ -8,11 +8,11 @@
   <component
     :is="isBuildLocked ? 'div' : 'router-link'"
     :to="isBuildLocked ? undefined : target"
-    class="crisp-card group relative flex flex-col items-center text-center h-full px-6 pt-8 pb-6 rounded-2xl border transition-all duration-300"
+    class="crisp-card group relative flex flex-col items-center text-center h-full px-6 pt-8 pb-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
     :class="[
       isBuildLocked
-        ? 'building-card cursor-progress bg-white dark:bg-white/[0.05] border-blue-300/70 dark:border-blue-300/25'
-        : ['bg-white dark:bg-white/[0.05] hover:-translate-y-1', accent.cardBorder],
+        ? 'building-card cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
+        : ['bg-white/85 dark:bg-white/[0.045] hover:-translate-y-1', accent.cardBorder],
     ]"
     :title="isBuildLocked ? 'Imagi is building your app — this card unlocks the moment the build finishes' : tool.name"
     :aria-disabled="isBuildLocked ? 'true' : undefined"
@@ -43,7 +43,7 @@
         <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 tracking-tight">
           Building your app
         </h3>
-        <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-relaxed">
+        <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
           Imagi is turning your business description into a tailored first version. This usually takes a moment.
         </p>
         <!-- Indeterminate progress track -->
@@ -73,7 +73,7 @@
         <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 tracking-tight transition-colors duration-300">
           {{ tool.name }}
         </h3>
-        <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-relaxed transition-colors duration-300">
+        <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">
           {{ tool.tagline }}
         </p>
       </div>
@@ -231,8 +231,14 @@ const target = computed<RouteLocationRaw>(() => {
 @media (prefers-reduced-motion: reduce) {
   .building-card,
   .building-sheen::before,
-  .building-bar {
+  .building-bar,
+  .animate-ping {
     animation: none;
+  }
+
+  /* No hover lift for users who prefer reduced motion */
+  .crisp-card:hover {
+    transform: none;
   }
 }
 </style>

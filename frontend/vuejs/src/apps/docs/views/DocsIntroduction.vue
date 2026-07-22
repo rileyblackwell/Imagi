@@ -9,7 +9,7 @@
 
       <!-- What is Imagi -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
           What is Imagi?
         </h2>
         <div class="space-y-4 text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed transition-colors duration-300">
@@ -28,7 +28,7 @@
 
       <!-- Who is it for -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-8 tracking-tight transition-colors duration-300">
+        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-8 tracking-[-0.015em] transition-colors duration-300">
           Who is it for?
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -46,7 +46,7 @@
 
       <!-- How Does Imagi Work -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
           How Does Imagi Work?
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
@@ -75,7 +75,7 @@
 
       <!-- Why Choose Imagi -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
           Why Choose Imagi?
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
@@ -104,7 +104,7 @@
 
       <!-- Learn More Section -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
           Learn More
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">

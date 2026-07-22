@@ -12,9 +12,10 @@
     {
       "name": "backend-django",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh backend; pipenv run uvicorn imagi.asgi:application --reload --port 8000"],
+      "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh backend; pipenv run uvicorn imagi.asgi:application --reload --port ${PORT:-8000}"],
       "cwd": "backend/django",
-      "port": 8000
+      "port": 8000,
+      "autoPort": true
     }
   ]
 }

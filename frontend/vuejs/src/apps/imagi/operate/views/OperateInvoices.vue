@@ -7,7 +7,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row gap-3 mb-6">
       <div class="relative flex-1">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-white/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
         <input
           v-model="search"
           type="search"
@@ -36,7 +36,7 @@
 
     <!-- Loading -->
     <div v-if="store.invoicesLoading && !store.invoices.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-amber-200 dark:border-amber-300/30 border-t-amber-600 dark:border-t-amber-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
     </div>
 
     <!-- List -->
@@ -86,7 +86,7 @@
             <button
               v-if="invoice.status === 'draft' || invoice.status === 'sent'"
               type="button"
-              class="w-9 h-9 rounded-xl flex items-center justify-center border border-blue-200/70 dark:border-white/[0.12] text-blue-950/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200"
+              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
               :disabled="busyId === invoice.id"
               aria-label="Void invoice"
               title="Void invoice"
@@ -97,7 +97,7 @@
             <button
               v-if="invoice.status === 'draft' || invoice.status === 'void'"
               type="button"
-              class="w-9 h-9 rounded-xl flex items-center justify-center border border-blue-200/70 dark:border-white/[0.12] text-blue-950/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200"
+              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
               aria-label="Delete invoice"
               title="Delete invoice"
               @click="confirmDelete(invoice)"
@@ -109,7 +109,7 @@
 
         <!-- Line items -->
         <details v-if="invoice.line_items.length" class="mt-3">
-          <summary class="text-xs font-medium text-blue-950/50 dark:text-blue-100/50 cursor-pointer hover:text-blue-950 dark:hover:text-white transition-colors duration-200">
+          <summary class="rounded-md text-xs font-medium text-blue-950/50 dark:text-blue-100/50 cursor-pointer hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">
             {{ invoice.line_items.length }} line item{{ invoice.line_items.length === 1 ? '' : 's' }}
           </summary>
           <div class="mt-2 rounded-xl border border-blue-200/60 dark:border-white/[0.08] divide-y divide-blue-200/60 dark:divide-white/[0.08]">

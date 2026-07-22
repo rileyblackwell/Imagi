@@ -6,15 +6,15 @@
       <div>
         <!-- Clean section title -->
         <div class="mb-6 text-center md:text-left">
-          <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{{ title }}</span>
+          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300/70 transition-colors duration-300">{{ title }}</span>
         </div>
-        
+
         <!-- Custom Amount Input -->
         <div>
           <div class="mb-4">
             <div class="relative mt-1 rounded-xl shadow-sm">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <span class="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
+                <span class="text-blue-950/60 dark:text-blue-100/55 sm:text-sm">$</span>
               </div>
               <input
                 v-model.number="amount"
@@ -22,23 +22,23 @@
                 :min="minAmount"
                 :max="maxAmount"
                 :step="step"
-                class="no-focus-effect block w-full rounded-xl border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 py-3 pl-8 pr-28 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40"
+                class="block w-full rounded-xl border border-blue-950/[0.12] dark:border-white/[0.14] bg-white dark:bg-white/[0.05] py-3 pl-8 pr-28 text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
               />
               <div class="absolute inset-y-0 right-12 flex flex-col justify-center py-1 gap-0.5">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   @click="incrementAmount"
-                  class="flex items-center justify-center px-1 text-gray-500 dark:text-gray-400"
+                  class="flex items-center justify-center px-1 rounded text-blue-950/50 hover:text-blue-950 dark:text-blue-100/50 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
                   tabindex="-1"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
                     <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clip-rule="evenodd" />
                   </svg>
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   @click="decrementAmount"
-                  class="flex items-center justify-center px-1 text-gray-500 dark:text-gray-400"
+                  class="flex items-center justify-center px-1 rounded text-blue-950/50 hover:text-blue-950 dark:text-blue-100/50 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
                   tabindex="-1"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -47,19 +47,19 @@
                 </button>
               </div>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                <span class="text-gray-500 dark:text-gray-400 sm:text-sm">USD</span>
+                <span class="text-blue-950/60 dark:text-blue-100/55 sm:text-sm">USD</span>
               </div>
             </div>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ helpText }}</p>
+            <p class="mt-2 text-sm text-blue-950/60 dark:text-blue-100/55 transition-colors duration-300">{{ helpText }}</p>
           </div>
         </div>
       </div>
-      
+
       <!-- Payment Method Section (wider, 2 columns) -->
       <div class="md:col-span-2">
         <!-- Clean section title -->
         <div class="mb-6 text-center md:text-left">
-          <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{{ paymentSectionTitle }}</span>
+          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300/70 transition-colors duration-300">{{ paymentSectionTitle }}</span>
         </div>
         
         <!-- Payment Form -->
@@ -68,42 +68,39 @@
           <div class="mb-8">
             <!-- Credit Card Information -->
             <div class="mb-4">
-              <div 
-                id="card-element" 
+              <div
+                id="card-element"
                 ref="cardElement"
-                class="block w-full rounded-xl border border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 py-3 px-4 text-gray-900 dark:text-white transition-all duration-300 focus-within:border-gray-900 dark:focus-within:border-white/40 focus-within:ring-1 focus-within:ring-gray-900 dark:focus-within:ring-white/40 min-h-[45px]"
+                class="block w-full rounded-xl border border-blue-950/[0.12] dark:border-white/[0.14] bg-white dark:bg-white/[0.05] py-3 px-4 text-blue-950 dark:text-white transition-all duration-300 focus-within:border-blue-500/50 dark:focus-within:border-blue-300/50 focus-within:ring-2 focus-within:ring-blue-500/40 dark:focus-within:ring-blue-300/50 min-h-[45px]"
               ></div>
               <div id="card-errors" class="mt-2 text-sm text-red-600 dark:text-red-400"></div>
             </div>
           </div>
-          
+
           <!-- Order Summary -->
-          <div class="mb-8 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 overflow-hidden">
-            <div class="p-4 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
-              <h4 class="font-semibold text-gray-900 dark:text-white">{{ summaryTitle }}</h4>
-              <p class="text-sm text-gray-500 dark:text-gray-400">{{ summarySubtitle }}</p>
+          <div class="mb-8 rounded-xl border border-blue-950/[0.08] dark:border-white/[0.1] bg-white/70 dark:bg-white/[0.03] overflow-hidden transition-colors duration-300">
+            <div class="p-4 border-b border-blue-950/[0.08] dark:border-white/[0.1] bg-white/85 dark:bg-white/[0.045]">
+              <h4 class="font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300">{{ summaryTitle }}</h4>
+              <p class="text-sm text-blue-950/60 dark:text-blue-100/55 transition-colors duration-300">{{ summarySubtitle }}</p>
             </div>
             <div class="p-4">
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-white/10">
-                <span class="text-gray-600 dark:text-gray-400">{{ amountSummaryLabel }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">${{ formattedAmount }}</span>
+              <div class="flex justify-between py-2 border-b border-blue-950/[0.08] dark:border-white/[0.1]">
+                <span class="text-blue-950/60 dark:text-blue-100/55">{{ amountSummaryLabel }}</span>
+                <span class="font-medium tabular-nums text-blue-950 dark:text-white">${{ formattedAmount }}</span>
               </div>
               <div class="flex justify-between py-2">
-                <span class="text-gray-600 dark:text-gray-400">{{ totalLabel }}</span>
-                <span class="font-semibold text-gray-900 dark:text-white">${{ formattedAmount }}</span>
+                <span class="text-blue-950/60 dark:text-blue-100/55">{{ totalLabel }}</span>
+                <span class="font-semibold tabular-nums text-blue-950 dark:text-white">${{ formattedAmount }}</span>
               </div>
             </div>
           </div>
-          
-          <!-- Submit Button with clean styling -->
-          <button 
+
+          <!-- Submit Button with navy ink pill styling -->
+          <button
             type="submit"
             :disabled="!isValidAmount || isLoading || !cardComplete"
-            class="group relative w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none overflow-hidden"
+            class="group relative w-full inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           >
-            <!-- Subtle shine effect on hover -->
-            <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out"></span>
-            
             <span v-if="isLoading" class="relative flex items-center justify-center gap-2">
               <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -275,11 +272,11 @@ const initializeStripe = () => {
     const card = elements.create('card', {
       style: {
         base: {
-          color: isDarkMode ? '#FFFFFF' : '#111827',
+          color: isDarkMode ? '#FFFFFF' : '#172554',
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
           fontSize: '16px',
           '::placeholder': {
-            color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(107, 114, 128, 0.8)'
+            color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(23, 37, 84, 0.4)'
           }
         },
         invalid: {
@@ -422,28 +419,13 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Remove all focus effects */
-.no-focus-effect {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: inherit !important;
-}
-
-.no-focus-effect:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: rgb(209 213 219) !important; /* border-gray-300 */
-}
-
-.no-focus-effect:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: rgb(209 213 219) !important;
-}
-
-:root.dark .no-focus-effect:focus,
-:root.dark .no-focus-effect:focus-visible {
-  border-color: rgba(255, 255, 255, 0.2) !important; /* dark:border-white/20 */
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  button[type="submit"],
+  button[type="submit"]:hover,
+  button[type="submit"]:active {
+    transform: none;
+  }
 }
 
 /* Ensure Stripe element container is properly displayed */

@@ -1,15 +1,15 @@
 <template>
-  <button 
+  <button
     :type="type"
-    :disabled="disabled" 
+    :disabled="disabled"
     :class="[
-      'px-6 py-3 rounded-xl transition-all duration-300 transform font-medium',
-      variant === 'primary' ? 'bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02]' : '',
-      variant === 'secondary' ? 'bg-white/5 backdrop-blur-sm border border-white/20 text-white hover:bg-white/10 hover:scale-[1.02]' : '',
-      variant === 'danger' ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 hover:scale-[1.02]' : '',
-      variant === 'outline' ? 'bg-transparent border border-primary-500 text-primary-400 hover:bg-primary-500/10 hover:scale-[1.02]' : '',
-      variant === 'success' ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 hover:scale-[1.02]' : '',
-      disabled ? 'opacity-50 cursor-not-allowed transform-none hover:scale-100' : '',
+      'inline-flex items-center justify-center px-6 py-3 rounded-full transition-colors duration-200 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
+      variant === 'primary' ? 'bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)]' : '',
+      variant === 'secondary' ? 'border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06]' : '',
+      variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-500 dark:bg-red-500 dark:text-white dark:hover:bg-red-400 shadow-[0_1px_2px_rgba(127,29,29,0.2),0_3px_8px_-2px_rgba(127,29,29,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)]' : '',
+      variant === 'outline' ? 'bg-transparent border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06]' : '',
+      variant === 'success' ? 'bg-emerald-600 text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-white dark:hover:bg-emerald-400 shadow-[0_1px_2px_rgba(6,78,59,0.2),0_3px_8px_-2px_rgba(6,78,59,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)]' : '',
+      disabled ? 'opacity-50 cursor-not-allowed' : '',
       fullWidth ? 'w-full' : '',
       loading ? 'relative' : '',
       customClass
@@ -62,10 +62,11 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Spinner inherits the button's ink color so it reads in both themes */
 .spinner-sm {
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(128, 128, 128, 0.25);
   border-radius: 50%;
-  border-top: 2px solid #fff;
+  border-top: 2px solid currentColor;
   width: 16px;
   height: 16px;
   animation: spin 1s linear infinite;
@@ -74,17 +75,5 @@ export default defineComponent({
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-/* Gradient animation for buttons */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.bg-gradient-to-r {
-  background-size: 200% auto;
-  animation: gradient-shift 8s ease infinite;
 }
 </style> 

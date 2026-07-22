@@ -4,7 +4,7 @@
       'group relative rounded-lg border px-2.5 py-2 cursor-pointer transition-all duration-200',
       isActive
         ? 'instance-card--active border-blue-300/80 dark:border-blue-400/40'
-        : 'border-blue-100 dark:border-white/[0.06] bg-blue-50/40 hover:bg-blue-50 hover:border-blue-200/90 dark:bg-white/[0.02] dark:hover:bg-white/[0.05] dark:hover:border-white/[0.1]',
+        : 'border-blue-950/[0.08] dark:border-white/[0.1] bg-blue-50/40 hover:bg-blue-50 hover:border-blue-950/[0.16] dark:bg-white/[0.02] dark:hover:bg-white/[0.05] dark:hover:border-white/[0.18]',
       isArchived ? 'opacity-70 hover:opacity-100' : ''
     ]"
     @click="emit('select')"
@@ -17,7 +17,7 @@
           ref="titleInput"
           v-model="draftTitle"
           type="text"
-          class="w-full bg-transparent text-xs font-semibold text-blue-950 dark:text-white/90 border-b border-blue-400 outline-none"
+          class="w-full bg-transparent text-xs font-semibold text-blue-950 dark:text-white/90 border-b border-blue-400 dark:border-blue-300/60 outline-none"
           @click.stop
           @keydown.enter.prevent="commitRename"
           @keydown.escape="cancelRename"
@@ -29,12 +29,12 @@
             'text-xs truncate transition-colors duration-200',
             isActive
               ? 'font-semibold text-blue-950 dark:text-white'
-              : 'font-medium text-blue-950/80 dark:text-white/75 group-hover:text-blue-950 dark:group-hover:text-white/90'
+              : 'font-medium text-blue-950/80 dark:text-blue-100/75 group-hover:text-blue-950 dark:group-hover:text-white'
           ]"
         >
           {{ instance.title || 'Untitled instance' }}
         </div>
-        <div class="flex items-center gap-1.5 mt-1 text-[10px] text-blue-950/40 dark:text-white/40">
+        <div class="flex items-center gap-1.5 mt-1 text-[10px] text-blue-950/40 dark:text-blue-100/45">
           <span>{{ relativeTime(instance.updatedAt) }}</span>
           <!-- Conversation-wide token total; null means never captured, so
                nothing renders (unknown, not "0 tokens") -->
@@ -62,7 +62,7 @@
       <div ref="menuRef" class="relative shrink-0" @click.stop>
         <button
           :class="[
-            'w-6 h-6 flex items-center justify-center rounded-md transition-opacity hover:bg-blue-100 dark:hover:bg-white/[0.08] text-blue-950/50 dark:text-white/60 hover:text-blue-950/80 dark:hover:text-white/90',
+            'w-6 h-6 flex items-center justify-center rounded-md transition-opacity hover:bg-blue-100 dark:hover:bg-white/[0.08] text-blue-950/50 dark:text-blue-100/60 hover:text-blue-950/80 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
             menuOpen ? 'opacity-100 bg-blue-100 dark:bg-white/[0.08]' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
           ]"
           title="Options"
@@ -72,7 +72,7 @@
         </button>
         <div
           v-if="menuOpen"
-          class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-blue-100 dark:border-white/[0.1] bg-white/95 dark:bg-[#161616]/95 backdrop-blur-sm shadow-xl shadow-blue-950/10 dark:shadow-black/40 py-1"
+          class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-blue-950/[0.08] dark:border-white/[0.14] bg-white/95 dark:bg-[#161616]/95 backdrop-blur-sm shadow-xl shadow-blue-950/10 dark:shadow-black/40 py-1"
         >
           <button class="menu-item" @click.stop="onRename">
             <i class="fas fa-pen menu-item-icon"></i>
@@ -242,11 +242,21 @@ function relativeTime(iso: string): string {
 }
 
 .dark .menu-item {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(219, 234, 254, 0.8);
 }
 
 .dark .menu-item:hover {
   background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Canonical focus ring, inset against the menu surface */
+.menu-item:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.dark .menu-item:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(147, 197, 253, 0.5);
 }
 
 .menu-item--danger {
@@ -277,6 +287,6 @@ function relativeTime(iso: string): string {
 }
 
 .dark .menu-item-icon {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(219, 234, 254, 0.5);
 }
 </style>

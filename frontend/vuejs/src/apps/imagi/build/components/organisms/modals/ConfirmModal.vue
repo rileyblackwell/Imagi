@@ -37,7 +37,7 @@
               <!-- Close button -->
               <button
                 type="button"
-                class="text-blue-950/40 hover:text-blue-950/70 p-1 rounded-lg hover:bg-blue-50 transition-all flex-shrink-0"
+                class="text-blue-950/40 hover:text-blue-950/70 dark:text-blue-100/50 dark:hover:text-white p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#101014]"
                 @click="handleCancel"
                 aria-label="Close"
               >
@@ -47,20 +47,20 @@
           </div>
 
           <!-- Footer / Actions -->
-          <div class="px-6 py-4 bg-blue-50/60 flex items-center justify-end gap-3">
+          <div class="px-6 py-4 bg-blue-50/60 dark:bg-white/[0.03] flex items-center justify-end gap-3">
             <button
               type="button"
-              class="px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200"
+              class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#101014]"
               :class="cancelButtonClasses"
               @click="handleCancel"
               :disabled="isProcessing"
             >
               {{ options.cancelText || 'Cancel' }}
             </button>
-            
+
             <button
               type="button"
-              class="px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 min-w-[100px]"
+              class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 min-w-[100px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#101014]"
               :class="confirmButtonClasses"
               @click="handleConfirm"
               :disabled="isProcessing"
@@ -124,81 +124,81 @@ const defaultTitle = computed(() => {
 
 // Modal styling based on type
 const modalClasses = computed(() => {
-  const baseClasses = 'bg-white dark:bg-gray-50'
-  
+  const baseClasses = 'bg-white dark:bg-[#101014]'
+
   switch (props.options.type) {
     case 'danger':
-      return `${baseClasses} border-red-200 dark:border-red-300`
+      return `${baseClasses} border-red-200 dark:border-red-500/30`
     case 'warning':
-      return `${baseClasses} border-amber-200 dark:border-amber-300`
+      return `${baseClasses} border-amber-200 dark:border-amber-500/30`
     case 'success':
-      return `${baseClasses} border-green-200 dark:border-green-300`
+      return `${baseClasses} border-green-200 dark:border-green-500/30`
     default:
-      return `${baseClasses} border-blue-200 dark:border-blue-300`
+      return `${baseClasses} border-blue-200 dark:border-blue-300/[0.16]`
   }
 })
 
 const headerClasses = computed(() => {
   switch (props.options.type) {
     case 'danger':
-      return 'border-red-100 dark:border-red-200/50 bg-red-50/50 dark:bg-red-50/30'
+      return 'border-red-100 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/[0.06]'
     case 'warning':
-      return 'border-amber-100 dark:border-amber-200/50 bg-amber-50/50 dark:bg-amber-50/30'
+      return 'border-amber-100 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/[0.06]'
     case 'success':
-      return 'border-green-100 dark:border-green-200/50 bg-green-50/50 dark:bg-green-50/30'
+      return 'border-green-100 dark:border-green-500/20 bg-green-50/50 dark:bg-green-500/[0.06]'
     default:
-      return 'border-blue-100 dark:border-blue-200/50 bg-blue-50/50 dark:bg-blue-50/30'
+      return 'border-blue-100 dark:border-blue-400/20 bg-blue-50/50 dark:bg-blue-400/[0.06]'
   }
 })
 
 const iconContainerClasses = computed(() => {
   switch (props.options.type) {
     case 'danger':
-      return 'bg-red-100 dark:bg-red-100 border border-red-200 dark:border-red-300'
+      return 'bg-red-100 dark:bg-red-500/[0.12] border border-red-200 dark:border-red-500/30'
     case 'warning':
-      return 'bg-amber-100 dark:bg-amber-100 border border-amber-200 dark:border-amber-300'
+      return 'bg-amber-100 dark:bg-amber-500/[0.12] border border-amber-200 dark:border-amber-500/30'
     case 'success':
-      return 'bg-green-100 dark:bg-green-100 border border-green-200 dark:border-green-300'
+      return 'bg-green-100 dark:bg-green-500/[0.12] border border-green-200 dark:border-green-500/30'
     default:
-      return 'bg-blue-100 dark:bg-blue-100 border border-blue-200 dark:border-blue-300'
+      return 'bg-blue-100 dark:bg-blue-400/[0.12] border border-blue-200 dark:border-blue-400/30'
   }
 })
 
 const iconClasses = computed(() => {
   switch (props.options.type) {
     case 'danger':
-      return 'fas fa-exclamation-triangle text-red-600 dark:text-red-600'
+      return 'fas fa-exclamation-triangle text-red-600 dark:text-red-400'
     case 'warning':
-      return 'fas fa-exclamation-circle text-amber-600 dark:text-amber-600'
+      return 'fas fa-exclamation-circle text-amber-600 dark:text-amber-400'
     case 'success':
-      return 'fas fa-check-circle text-green-600 dark:text-green-600'
+      return 'fas fa-check-circle text-green-600 dark:text-green-400'
     default:
-      return 'fas fa-info-circle text-blue-600 dark:text-blue-600'
+      return 'fas fa-info-circle text-blue-600 dark:text-blue-300'
   }
 })
 
 const titleClasses = computed(() => {
-  return 'text-blue-950 dark:text-blue-950'
+  return 'text-blue-950 dark:text-white'
 })
 
 const messageClasses = computed(() => {
-  return 'text-blue-950/70 dark:text-blue-950/70'
+  return 'text-blue-950/70 dark:text-blue-100/70'
 })
 
 const cancelButtonClasses = computed(() => {
-  return 'bg-white dark:bg-white border-blue-200 dark:border-blue-200 text-blue-950/70 dark:text-blue-950/70 hover:bg-blue-50 dark:hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed'
+  return 'bg-white dark:bg-white/[0.03] border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed'
 })
 
 const confirmButtonClasses = computed(() => {
   switch (props.options.type) {
     case 'danger':
-      return 'bg-red-600 dark:bg-red-600 border-red-700 dark:border-red-700 text-white hover:bg-red-700 dark:hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-red-600 dark:bg-red-600 border-transparent text-white hover:bg-red-700 dark:hover:bg-red-500 shadow-[0_1px_2px_rgba(127,29,29,0.2),0_3px_8px_-2px_rgba(127,29,29,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
     case 'warning':
-      return 'bg-amber-600 dark:bg-amber-600 border-amber-700 dark:border-amber-700 text-white hover:bg-amber-700 dark:hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-amber-600 dark:bg-amber-600 border-transparent text-white hover:bg-amber-700 dark:hover:bg-amber-500 shadow-[0_1px_2px_rgba(120,53,15,0.2),0_3px_8px_-2px_rgba(120,53,15,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
     case 'success':
-      return 'bg-green-600 dark:bg-green-600 border-green-700 dark:border-green-700 text-white hover:bg-green-700 dark:hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-green-600 dark:bg-green-600 border-transparent text-white hover:bg-green-700 dark:hover:bg-green-500 shadow-[0_1px_2px_rgba(20,83,45,0.2),0_3px_8px_-2px_rgba(20,83,45,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
     default:
-      return 'bg-blue-600 dark:bg-blue-600 border-blue-700 dark:border-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-blue-950 dark:bg-[#f3ede2] border-transparent text-[#fdf9f2] dark:text-blue-950 hover:bg-blue-900 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
   }
 })
 
@@ -250,5 +250,19 @@ function handleCancel() {
 .modal-leave-from > div {
   transform: scale(1);
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter-active,
+  .modal-leave-active,
+  .modal-enter-active > div,
+  .modal-leave-active > div {
+    transition: none;
+  }
+
+  .modal-enter-from > div,
+  .modal-leave-to > div {
+    transform: none;
+  }
 }
 </style>

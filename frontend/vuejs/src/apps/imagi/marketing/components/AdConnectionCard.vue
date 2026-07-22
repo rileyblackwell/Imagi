@@ -20,7 +20,7 @@
     </div>
     <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
       {{ description }}
-      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-violet-700 dark:text-violet-300 hover:underline">Setup guide</a>.
+      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">Setup guide</a>.
     </p>
 
     <p v-if="connection?.account_name" class="text-xs text-blue-950/50 dark:text-blue-100/50 mb-4 -mt-2">
@@ -53,7 +53,7 @@
 
       <div class="flex flex-wrap items-center gap-3 pt-1">
         <button type="submit" :class="ui.primaryBtn" :disabled="saving">
-          <i v-if="saving" class="fas fa-circle-notch animate-spin"></i>
+          <i v-if="saving" class="fas fa-circle-notch animate-spin motion-reduce:animate-none"></i>
           Save
         </button>
         <button
@@ -62,7 +62,7 @@
           :disabled="verifying || !connection?.is_configured"
           @click="verify"
         >
-          <i :class="['fas', verifying ? 'fa-circle-notch animate-spin' : 'fa-plug-circle-bolt']" class="text-xs"></i>
+          <i :class="['fas', verifying ? 'fa-circle-notch animate-spin motion-reduce:animate-none' : 'fa-plug-circle-bolt']" class="text-xs"></i>
           Test connection
         </button>
         <button
@@ -72,7 +72,7 @@
           :disabled="disconnecting"
           @click="disconnect"
         >
-          <i :class="['fas', disconnecting ? 'fa-circle-notch animate-spin' : 'fa-link-slash']" class="text-xs"></i>
+          <i :class="['fas', disconnecting ? 'fa-circle-notch animate-spin motion-reduce:animate-none' : 'fa-link-slash']" class="text-xs"></i>
           Disconnect
         </button>
       </div>

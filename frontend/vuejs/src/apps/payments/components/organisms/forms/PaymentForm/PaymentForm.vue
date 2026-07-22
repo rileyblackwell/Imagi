@@ -8,36 +8,36 @@
     </div>
 
     <div class="payment-method mb-6">
-      <h3 class="text-lg font-medium text-white mb-4">Payment Method</h3>
-      
-      <div 
-        ref="cardElement" 
-        class="p-4 bg-dark-800 border border-gray-700 rounded-lg mb-4"
+      <h3 class="text-lg font-medium tracking-tight text-blue-950 dark:text-white mb-4 transition-colors duration-300">Payment Method</h3>
+
+      <div
+        ref="cardElement"
+        class="p-4 bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] rounded-xl mb-4 transition-colors duration-200"
       ></div>
-      
-      <div v-if="cardError" class="text-red-500 text-sm mb-4">
+
+      <div v-if="cardError" class="text-red-600 dark:text-red-400 text-sm mb-4">
         {{ cardError }}
       </div>
     </div>
 
     <div class="summary mb-6">
-      <h3 class="text-lg font-medium text-white mb-4">Summary</h3>
-      <div class="bg-dark-800 border border-gray-700 rounded-lg p-4">
-        <div class="flex justify-between py-2 border-b border-gray-700">
-          <span class="text-gray-400">Amount</span>
-          <span class="text-white">${{ amount.toFixed(2) }}</span>
+      <h3 class="text-lg font-medium tracking-tight text-blue-950 dark:text-white mb-4 transition-colors duration-300">Summary</h3>
+      <div class="bg-white/85 dark:bg-white/[0.045] border border-blue-950/[0.08] dark:border-white/[0.1] backdrop-blur-sm rounded-2xl p-4 transition-colors duration-300">
+        <div class="flex justify-between py-2 border-b border-blue-950/[0.08] dark:border-white/[0.1]">
+          <span class="text-blue-950/60 dark:text-blue-100/55">Amount</span>
+          <span class="tabular-nums text-blue-950 dark:text-white">${{ amount.toFixed(2) }}</span>
         </div>
         <div class="flex justify-between py-2">
-          <span class="text-gray-400">Total</span>
-          <span class="font-medium text-white">${{ amount.toFixed(2) }}</span>
+          <span class="text-blue-950/60 dark:text-blue-100/55">Total</span>
+          <span class="font-medium tabular-nums text-blue-950 dark:text-white">${{ amount.toFixed(2) }}</span>
         </div>
       </div>
     </div>
 
-    <button 
+    <button
       @click="submitPayment"
       :disabled="loading || !cardComplete"
-      class="w-full py-3 px-6 bg-primary-500 text-white font-medium rounded-lg transition-all duration-200 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      class="w-full inline-flex items-center justify-center py-3 px-6 bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white font-medium rounded-full transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
     >
       <span v-if="loading" class="flex items-center justify-center">
         <span class="mr-2">Processing</span>
@@ -90,15 +90,18 @@ export default {
         // Create elements with minimal configuration
         const elements = stripe.value.elements();
         
+        // Match the Stripe iframe text to the theme's ink color
+        const isDarkMode = document.documentElement.classList.contains('dark');
+
         // Create card element with simple styling
         card.value = elements.create('card', {
           style: {
             base: {
-              color: '#fff',
+              color: isDarkMode ? '#ffffff' : '#172554',
               fontFamily: '"Inter", sans-serif',
               fontSize: '16px',
               '::placeholder': {
-                color: '#6b7280'
+                color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(23, 37, 84, 0.4)'
               }
             },
             invalid: {

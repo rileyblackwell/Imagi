@@ -17,7 +17,7 @@
             :hasError="!!errorMessage && formSubmitCount > 0"
           />
           <transition name="fade-up">
-            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>{{ errorMessage }}</span>
             </div>
@@ -41,7 +41,7 @@
             :hasError="!!errorMessage && formSubmitCount > 0"
           />
           <transition name="fade-up">
-            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>{{ errorMessage }}</span>
             </div>
@@ -64,10 +64,10 @@
               :disabled="authStore.loading || isSubmitting"
               :hasError="!!errorMessage && formSubmitCount > 0"
             />
-            <!-- Password requirements with premium glass styling -->
+            <!-- Password requirements on a warm porcelain inset panel -->
             <div class="mt-4 p-4 rounded-xl
-                        border border-blue-200/70 dark:border-white/[0.08]
-                        bg-blue-50/50 dark:bg-white/[0.02]
+                        border border-blue-950/[0.08] dark:border-white/[0.1]
+                        bg-[#fdf9f2]/80 dark:bg-white/[0.03]
                         backdrop-blur-sm
                         transition-all duration-300">
               <PasswordRequirements 
@@ -93,7 +93,7 @@
               :hasError="!!errorMessage && formSubmitCount > 0"
             />
             <transition name="fade-up">
-              <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+              <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
                 <i class="fas fa-exclamation-circle text-xs"></i>
                 <span>{{ errorMessage }}</span>
               </div>
@@ -104,13 +104,13 @@
 
       <!-- Bottom section -->
       <div class="space-y-5 pt-2">
-        <!-- Terms checkbox with premium styling -->
+        <!-- Terms checkbox on a warm porcelain inset panel -->
         <div class="p-4 rounded-xl
-                    border border-blue-200/70 dark:border-white/[0.08]
-                    bg-blue-50/50 dark:bg-white/[0.02]
+                    border border-blue-950/[0.08] dark:border-white/[0.1]
+                    bg-[#fdf9f2]/80 dark:bg-white/[0.03]
                     backdrop-blur-sm
-                    hover:bg-blue-50 dark:hover:bg-white/[0.04]
-                    hover:border-blue-300/70 dark:hover:border-white/[0.12]
+                    hover:bg-[#fdf9f2] dark:hover:bg-white/[0.05]
+                    hover:border-blue-950/[0.16] dark:hover:border-white/[0.16]
                     transition-all duration-300">
           <Field name="agreeToTerms" :rules="{ required: { allowFalse: false } }" :validateOnBlur="false" v-slot="{ errorMessage }">
             <FormCheckbox 
@@ -119,15 +119,15 @@
               :showError="false"
             >
               I agree to the
-              <router-link to="/terms" class="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors duration-300 font-medium">
+              <router-link to="/terms" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors duration-300 font-medium">
+              <router-link to="/privacy" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">
                 Privacy Policy
               </router-link>
             </FormCheckbox>
-            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>You must accept the terms to continue</span>
             </div>
@@ -137,7 +137,7 @@
         <!-- Error message with premium styling -->
         <transition name="fade-up">
           <div v-if="serverError"
-               class="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
+               class="p-4 rounded-xl border border-red-500/20 dark:border-red-400/25 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 flex items-center justify-center flex-shrink-0 transition-colors duration-300">
                 <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-sm transition-colors duration-300"></i>
@@ -162,9 +162,9 @@
 
     <!-- Auth Links -->
     <div class="text-center pt-2">
-      <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">
+      <p class="text-blue-950/65 dark:text-blue-100/65 text-sm transition-colors duration-300">
         Already have an account?
-        <router-link to="/auth/signin" class="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 font-medium transition-colors duration-200 ml-1">
+        <router-link to="/auth/signin" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 ml-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">
           Sign in
         </router-link>
       </p>
@@ -281,5 +281,17 @@ const handleSubmit = async (values: RegisterFormValues) => {
 .fade-up-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up-enter-active,
+  .fade-up-leave-active {
+    transition: none;
+  }
+
+  .fade-up-enter-from,
+  .fade-up-leave-to {
+    transform: none;
+  }
 }
 </style>

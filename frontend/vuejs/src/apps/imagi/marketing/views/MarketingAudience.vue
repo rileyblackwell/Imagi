@@ -8,7 +8,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col lg:flex-row lg:items-center gap-3 mb-6">
       <div class="relative flex-1">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-white/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
         <input
           v-model="search"
           type="search"
@@ -41,7 +41,7 @@
 
     <!-- Loading -->
     <div v-if="store.contactsLoading && !store.contacts.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
     </div>
 
     <!-- Table -->
@@ -62,7 +62,7 @@
             <tr
               v-for="contact in store.contacts"
               :key="contact.id"
-              class="border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 hover:bg-violet-50/40 dark:hover:bg-violet-400/[0.05] transition-colors duration-150"
+              class="border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 hover:bg-blue-50/40 dark:hover:bg-blue-400/[0.05] transition-colors duration-150"
             >
               <td class="px-5 py-3.5">
                 <p class="font-medium text-blue-950 dark:text-white">{{ contact.display_name }}</p>
@@ -74,11 +74,11 @@
                   <span
                     v-for="tag in contact.tags"
                     :key="tag"
-                    class="px-2 py-0.5 rounded-full border border-violet-200/70 dark:border-violet-400/25 bg-violet-50/80 dark:bg-violet-400/10 text-[11px] font-medium text-violet-700 dark:text-violet-300"
+                    class="px-2 py-0.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-[11px] font-medium text-blue-700 dark:text-blue-300"
                   >
                     {{ tag }}
                   </span>
-                  <span v-if="!contact.tags.length" class="text-xs text-blue-950/40 dark:text-white/30">—</span>
+                  <span v-if="!contact.tags.length" class="text-xs text-blue-950/40 dark:text-blue-100/30">—</span>
                 </div>
               </td>
               <td class="px-5 py-3.5"><StatusBadge :status="contact.consent" /></td>
@@ -88,14 +88,14 @@
                   <router-link
                     v-if="contact.consent === 'subscribed'"
                     :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName }, query: { contact: contact.id } }"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-violet-700 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-400/10 transition-colors duration-150"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
                     title="Send a message"
                   >
                     <i class="fas fa-paper-plane text-xs"></i>
                   </router-link>
                   <button
                     type="button"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
                     title="Edit contact"
                     @click="openEdit(contact)"
                   >
@@ -103,7 +103,7 @@
                   </button>
                   <button
                     type="button"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-150"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
                     title="Delete contact"
                     @click="removeContact(contact)"
                   >
@@ -182,7 +182,7 @@
         </div>
         <div v-if="editingContact">
           <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-            <input v-model="form.subscribed" type="checkbox" class="accent-violet-600" />
+            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16161a]" />
             Subscribed to messages
           </label>
         </div>
@@ -195,7 +195,7 @@
         <div class="flex items-center justify-end gap-3 pt-1">
           <button type="button" :class="ui.secondaryBtn" @click="closeForm">Cancel</button>
           <button type="submit" :class="ui.primaryBtn" :disabled="formBusy || !form.phone_number.trim()">
-            <i v-if="formBusy" class="fas fa-circle-notch animate-spin"></i>
+            <i v-if="formBusy" class="fas fa-circle-notch animate-spin motion-reduce:animate-none"></i>
             {{ editingContact ? 'Save changes' : 'Add contact' }}
           </button>
         </div>
@@ -246,7 +246,7 @@
             :disabled="importBusy || !parsedImportRows.length"
             @click="runImport"
           >
-            <i v-if="importBusy" class="fas fa-circle-notch animate-spin"></i>
+            <i v-if="importBusy" class="fas fa-circle-notch animate-spin motion-reduce:animate-none"></i>
             Import {{ parsedImportRows.length || '' }} contact{{ parsedImportRows.length === 1 ? '' : 's' }}
           </button>
         </div>

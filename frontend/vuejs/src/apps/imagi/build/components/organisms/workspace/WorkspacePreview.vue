@@ -1,14 +1,14 @@
 <template>
   <div class="relative w-full h-full flex flex-col bg-white dark:bg-[#0a0a0a]">
     <!-- Toolbar -->
-    <div class="flex flex-col gap-2 px-3 py-1.5 border-b border-blue-200/60 dark:border-white/[0.08] bg-blue-50/50 dark:bg-white/[0.02]">
+    <div class="flex flex-col gap-2 px-3 py-1.5 border-b border-blue-950/[0.08] dark:border-white/[0.14] bg-blue-50/50 dark:bg-white/[0.02]">
       <div class="flex items-center gap-1.5 flex-wrap">
         <button
           type="button"
           @click="goBack"
           :disabled="!canGoBack || phase !== 'ready'"
           title="Back"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <i class="fas fa-arrow-left text-xs"></i>
         </button>
@@ -18,7 +18,7 @@
           @click="goForward"
           :disabled="!canGoForward || phase !== 'ready'"
           title="Forward"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <i class="fas fa-arrow-right text-xs"></i>
         </button>
@@ -27,7 +27,7 @@
           type="button"
           @click="reload"
           title="Refresh page"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <i class="fas fa-sync-alt text-xs" :class="{ 'fa-spin': phase === 'starting' }"></i>
         </button>
@@ -36,7 +36,7 @@
           type="button"
           @click="goHome"
           title="Go to home page"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <i class="fas fa-home text-xs"></i>
         </button>
@@ -47,16 +47,16 @@
             type="button"
             @click="onMenuToggle"
             :disabled="apps.length === 0"
-            class="group w-full flex items-center gap-2 h-8 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-white/[0.07] focus:border-blue-400 dark:focus:border-blue-300/40 focus:ring-2 focus:ring-blue-400/15 outline-none pl-3 pr-8 text-[13px] font-medium text-blue-950 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            class="group w-full flex items-center gap-2 h-8 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white/80 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-white/[0.07] hover:border-blue-950/30 dark:hover:border-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] pl-3 pr-8 text-[13px] font-medium text-blue-950 dark:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span class="truncate flex-1 text-left">{{ triggerLabel }}</span>
-            <span class="truncate max-w-[10rem] text-[11px] text-blue-950/35 dark:text-white/35 font-normal hidden sm:block">{{ currentPath }}</span>
-            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/40 dark:text-white/35 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
+            <span class="truncate max-w-[10rem] text-[11px] text-blue-950/35 dark:text-blue-100/45 font-normal hidden sm:block">{{ currentPath }}</span>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/40 dark:text-blue-100/45 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
           </button>
 
           <div
             v-if="menuOpen && apps.length > 0"
-            class="absolute z-20 mt-1.5 left-0 max-md:left-auto max-md:right-0 min-w-[14rem] max-md:max-w-[calc(100vw-1.5rem)] rounded-xl border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl py-1"
+            class="absolute z-20 mt-1.5 left-0 max-md:left-auto max-md:right-0 min-w-[14rem] max-md:max-w-[calc(100vw-1.5rem)] rounded-xl border border-blue-950/[0.08] dark:border-white/[0.14] bg-white dark:bg-[#0f0f0f] shadow-xl py-1"
           >
             <div
               v-for="app in apps"
@@ -68,20 +68,20 @@
               <button
                 type="button"
                 @click="hoveredApp = hoveredApp === app.name ? '' : app.name"
-                class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-blue-950 dark:text-white/90 hover:bg-blue-50 dark:hover:bg-white/[0.05]"
+                class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-blue-950 dark:text-white hover:bg-blue-50 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
               >
                 <span class="flex items-center gap-2 truncate">
                   {{ app.title }}
                 </span>
                 <i
-                  class="fas fa-chevron-right text-[10px] text-blue-950/40 dark:text-white/40 transition-transform duration-200"
+                  class="fas fa-chevron-right text-[10px] text-blue-950/40 dark:text-blue-100/45 transition-transform duration-200"
                   :class="{ 'max-md:rotate-90': hoveredApp === app.name }"
                 ></i>
               </button>
 
               <div
                 v-if="hoveredApp === app.name && app.pages.length"
-                class="py-1 md:absolute md:top-0 md:left-full md:ml-1 md:min-w-[14rem] md:rounded-lg md:border md:border-blue-200/60 md:dark:border-white/[0.08] md:bg-white md:dark:bg-[#0f0f0f] md:shadow-lg max-md:ml-4 max-md:mt-0.5 max-md:mb-1 max-md:border-l max-md:border-blue-100 max-md:dark:border-white/[0.08]"
+                class="py-1 md:absolute md:top-0 md:left-full md:ml-1 md:min-w-[14rem] md:rounded-lg md:border md:border-blue-950/[0.08] md:dark:border-white/[0.14] md:bg-white md:dark:bg-[#0f0f0f] md:shadow-lg max-md:ml-4 max-md:mt-0.5 max-md:mb-1 max-md:border-l max-md:border-blue-950/[0.08] max-md:dark:border-white/[0.14]"
                 @mouseenter="onAppEnter(app.name)"
                 @mouseleave="onAppLeave(app.name)"
               >
@@ -90,10 +90,10 @@
                   :key="page.path"
                   type="button"
                   @click="onSelectPage(page.path)"
-                  :class="['w-full flex items-center gap-2 px-3 py-2 text-sm text-left',
+                  :class="['w-full flex items-center gap-2 px-3 py-2 text-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50',
                            page.path === currentPath
                              ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
-                             : 'text-blue-950/70 dark:text-white/80 hover:bg-blue-50 dark:hover:bg-white/[0.05]']"
+                             : 'text-blue-950/70 dark:text-blue-100/80 hover:bg-blue-50 dark:hover:bg-white/[0.05]']"
                 >
                   <span class="truncate">{{ page.title }}</span>
                 </button>
@@ -173,11 +173,11 @@
       <!-- Starting overlay -->
       <div
         v-if="phase === 'starting'"
-        class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/90 dark:bg-[#0a0a0a]/90 text-blue-950/60 dark:text-white/60"
+        class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/90 dark:bg-[#0a0a0a]/90 text-blue-950/60 dark:text-blue-100/65"
       >
         <i class="fas fa-spinner fa-spin text-2xl"></i>
         <span class="text-sm font-medium">Starting preview…</span>
-        <span class="text-xs text-blue-950/40 dark:text-white/40 max-w-xs text-center">
+        <span class="text-xs text-blue-950/40 dark:text-blue-100/45 max-w-xs text-center">
           The first start can take a few minutes while your project's dependencies install.
         </span>
       </div>
@@ -190,10 +190,10 @@
         <div class="w-12 h-12 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl flex items-center justify-center">
           <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400"></i>
         </div>
-        <p class="text-sm text-blue-950/70 dark:text-white/70 max-w-md break-words">{{ error }}</p>
+        <p class="text-sm text-blue-950/70 dark:text-blue-100/70 max-w-md break-words">{{ error }}</p>
         <button
           @click="startPreview"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-sm font-medium text-blue-950/70 dark:text-white/70 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-sm font-medium text-blue-950/80 hover:text-blue-950 dark:text-blue-100/80 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <i class="fas fa-sync-alt text-xs"></i>
           Retry
@@ -205,13 +205,13 @@
         v-else-if="phase === 'stopped'"
         class="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center bg-white/95 dark:bg-[#0a0a0a]/95"
       >
-        <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.05] border border-blue-200/60 dark:border-white/[0.08] rounded-xl flex items-center justify-center">
+        <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.05] border border-blue-950/[0.08] dark:border-white/[0.14] rounded-xl flex items-center justify-center">
           <i class="fas fa-pause text-blue-600 dark:text-blue-300"></i>
         </div>
-        <p class="text-sm text-blue-950/70 dark:text-white/70 max-w-md">The preview session has stopped.</p>
+        <p class="text-sm text-blue-950/70 dark:text-blue-100/70 max-w-md">The preview session has stopped.</p>
         <button
           @click="startPreview"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-sm font-medium text-blue-950/70 dark:text-white/70 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-sm font-medium text-blue-950/80 hover:text-blue-950 dark:text-blue-100/80 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <i class="fas fa-play text-xs"></i>
           Start preview
