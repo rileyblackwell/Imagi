@@ -173,14 +173,14 @@ class Subscription(models.Model):
 
     Plan definitions (names, token limits) live in services/plans.py; this row
     stores only which plan the user is on. Users without a row are on the
-    default 'starter' plan.
+    default 'free' plan.
     """
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='subscription'
     )
-    plan = models.CharField(max_length=50, default='starter')
+    plan = models.CharField(max_length=50, default='free')
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
