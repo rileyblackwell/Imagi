@@ -11,6 +11,17 @@
         <p class="text-xs text-blue-950/45 dark:text-white/40 max-w-[230px] leading-relaxed">
           Describe a page, feature, or change and the agent will build it into your project.
         </p>
+        <div v-if="examples?.length" class="mt-4 flex flex-col items-stretch gap-1.5 w-full max-w-[240px]">
+          <button
+            v-for="example in examples"
+            :key="example"
+            type="button"
+            class="rounded-full border border-blue-100 dark:border-white/[0.08] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-blue-950/70 dark:text-white/65 hover:bg-blue-50 hover:text-blue-950 dark:hover:bg-white/[0.08] dark:hover:text-white transition-colors truncate"
+            @click="emit('use-example', example)"
+          >
+            {{ example }}
+          </button>
+        </div>
       </div>
       
       <template v-if="processedMessages.length > 0">
@@ -31,11 +42,39 @@
               class="msg-row assistant-response"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
+              <AgentActivityFeed
+                v-if="message.activity?.length"
+                :steps="message.activity"
+                :streaming="isStreamingMessage(index)"
+                class="mb-2.5"
+              />
+              <AgentPlanChecklist
+                v-if="message.plan?.length"
+                :steps="message.plan"
+                class="mb-2.5"
+              />
               <div
                 class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm"
                 v-if="message.content && message.content.trim().length > 0"
-                v-html="formatMessage(message.content)"
+                v-html="formatMessage(message, index)"
               />
+              <div v-if="message.filesChanged?.length" class="mt-2">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-blue-950/70 dark:text-white/60"
+                  :title="message.filesChanged.join('\n')"
+                >
+                  <i class="fas fa-file-pen text-[9px] text-blue-600/70 dark:text-blue-300/70"></i>
+                  {{ message.filesChanged.length }} {{ message.filesChanged.length === 1 ? 'file' : 'files' }} updated
+                </span>
+              </div>
+              <!-- Run cost: outside the memoized v-html, so its late arrival
+                   (on done) never needs a cache invalidation. -->
+              <p
+                v-if="typeof message.usage?.costUsd === 'number'"
+                class="mt-1.5 text-[10px] text-blue-950/35 dark:text-white/30"
+              >
+                {{ formatCostUsd(message.usage.costUsd) }}
+              </p>
             </div>
 
             <!-- System Message -->
@@ -72,8 +111,15 @@
 <script setup lang="ts">
 import { marked } from 'marked'
 import DOMPurify from 'isomorphic-dompurify'
-import { ref, onUpdated, nextTick, watch, onMounted, computed } from 'vue'
+import { ref, nextTick, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import type { AIMessage } from '@/apps/imagi/build/types/services'
+import AgentActivityFeed from '@/apps/imagi/build/components/molecules/chat/AgentActivityFeed.vue'
+import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/AgentPlanChecklist.vue'
+
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+})
 
 // Extended AIMessage interface to include isNew flag
 interface ProcessedMessage extends AIMessage {
@@ -86,6 +132,8 @@ const props = defineProps<{
   isProcessing?: boolean
   /** What the agent is doing right now; empty while its reply is streaming. */
   statusText?: string
+  /** Starter prompts offered in the empty state; clicking one emits use-example. */
+  examples?: string[]
 }>()
 
 /**
@@ -108,7 +156,6 @@ const emit = defineEmits<{
 
 // Refs and reactive state
 const messagesContainer = ref<HTMLElement | null>(null)
-const isTyping = ref(false)
 const previousMessageCount = ref(0)
 const disableAllAnimations = ref(false)
 
@@ -127,69 +174,84 @@ const processedMessages = computed<ProcessedMessage[]>(() => {
   });
 });
 
-// Update previousMessageCount after rendering
+/** The reply currently streaming in is the last message while a run is active. */
+function isStreamingMessage(index: number): boolean {
+  return !!props.isProcessing && index === props.messages.length - 1
+}
+
+// --- Autoscroll ---------------------------------------------------------
+// Only follow the conversation while the user is pinned near the bottom;
+// scrolling up to read pauses following until they return.
+const PIN_THRESHOLD_PX = 80
+const isPinnedToBottom = ref(true)
+
+function handleScroll() {
+  const el = messagesContainer.value
+  if (!el) return
+  isPinnedToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight <= PIN_THRESHOLD_PX
+}
+
+// rAF-throttled: at most one scroll per frame, measured after Vue has
+// patched the DOM (render flush happens in a microtask, before the frame).
+let scrollFrame: number | null = null
+function scheduleScrollToBottom(behavior: ScrollBehavior) {
+  if (scrollFrame !== null) return
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = null
+    const el = messagesContainer.value
+    if (!el) return
+    if (typeof el.scrollTo === 'function') {
+      el.scrollTo({ top: el.scrollHeight, behavior })
+    } else {
+      // jsdom (tests) has no Element#scrollTo
+      el.scrollTop = el.scrollHeight
+    }
+  })
+}
+
+function followConversation() {
+  if (isPinnedToBottom.value) {
+    // Instant jumps while streaming; smooth for one-off additions
+    scheduleScrollToBottom(props.isProcessing ? 'auto' : 'smooth')
+  }
+}
+
+// New messages: track the count for entry animations, then follow
 watch(() => props.messages.length, (newLength) => {
   // Only update the animation state after rendering is complete
   nextTick(() => {
-    // Keep track of previous length to identify new messages
-    previousMessageCount.value = newLength;
-    scrollToBottom();
-  });
-}, { immediate: true });
-
-// Also scroll on component update
-onUpdated(() => {
-  nextTick(() => {
-    scrollToBottom()
+    previousMessageCount.value = newLength
+    followConversation()
   })
-})
+}, { immediate: true })
 
-// Monitor message changes for content changes too (not just length)
-watch(() => JSON.stringify(props.messages), () => {
-  nextTick(() => {
-    scrollToBottom()
-  })
-}, { deep: true })
-
-// When the last message is from the user and there's no AI response yet, show typing indicator
-watch(() => props.messages, (messages) => {
-  if (messages.length > 0) {
-    const lastMessage = messages[messages.length - 1]
-    // Only show typing indicator if not currently processing
-    isTyping.value = lastMessage?.role === 'user' && !props.isProcessing
-  } else {
-    isTyping.value = false
-  }
-}, { immediate: true, deep: true })
-
-// Also watch processing state to update typing indicator
-watch(() => props.isProcessing, () => {
-  if (props.messages.length > 0) {
-    const lastMessage = props.messages[props.messages.length - 1]
-    // When processing starts, turn off normal typing indicator
-    isTyping.value = lastMessage?.role === 'user' && !props.isProcessing
-  }
+// Streaming deltas: watch the last message's size instead of deep-watching
+// (and re-serializing) the whole conversation on every SSE event. Activity
+// steps count too so the feed growing keeps the view pinned.
+watch(() => {
+  const last = props.messages[props.messages.length - 1]
+  return `${last?.content?.length ?? 0}:${last?.activity?.length ?? 0}`
+}, () => {
+  followConversation()
 })
 
 // Initial scroll when component is mounted
 onMounted(() => {
+  messagesContainer.value?.addEventListener('scroll', handleScroll, { passive: true })
   nextTick(() => {
     // Initialize previous message count
-    previousMessageCount.value = props.messages.length;
-    scrollToBottom()
+    previousMessageCount.value = props.messages.length
+    scheduleScrollToBottom('auto')
   })
 })
 
-function scrollToBottom() {
-  if (messagesContainer.value) {
-    const container = messagesContainer.value
-    // Force scroll to bottom with animation
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: 'smooth'
-    })
+onBeforeUnmount(() => {
+  messagesContainer.value?.removeEventListener('scroll', handleScroll)
+  if (scrollFrame !== null) {
+    cancelAnimationFrame(scrollFrame)
+    scrollFrame = null
   }
-}
+})
 
 // Utility functions
 const formatTimestamp = (timestamp: string | number) => {
@@ -203,31 +265,44 @@ const formatTimestamp = (timestamp: string | number) => {
   }
 }
 
-// Helper function to format markdown content
-const formatMessage = (content: string) => {
-  if (!content) {
-    return '';
-  }
-  
-  try {
-    // Remove any code blocks from the content before rendering
-    const contentWithoutCode = content.replace(/```[\s\S]*?```/g, '');
-    
-    // Configure marked options
-    marked.setOptions({
-      gfm: true,
-      breaks: true,
-    });
+// Rendered-HTML cache: markdown parsing + sanitization run once per
+// (message, size), so a streaming delta only re-renders the growing message
+// instead of the whole conversation. Never evicted — conversations are
+// bounded, and stale keys are just unused strings. The source content is
+// stored alongside the HTML and verified on hit: end-of-run reconciliation
+// rewrites a message wholesale, and the corrected text can collide with a
+// previously rendered prefix of the same length.
+const renderedHtmlCache = new Map<string, { content: string; html: string }>()
 
-    // Parse markdown with type assurance
-    const parsedContent = marked.parse(contentWithoutCode).toString();
-    
-    // Sanitize the content to prevent XSS
-    return DOMPurify.sanitize(parsedContent);
+const formatMessage = (message: AIMessage, index: number): string => {
+  const content = message.content || ''
+  if (!content) {
+    return ''
+  }
+
+  // Same identity fallback as the template's v-for key
+  const cacheKey = `${message.id || index}:${content.length}`
+  const cached = renderedHtmlCache.get(cacheKey)
+  if (cached !== undefined && cached.content === content) {
+    return cached.html
+  }
+
+  let html: string
+  try {
+    // Parse markdown (fenced code included) and sanitize to prevent XSS
+    html = DOMPurify.sanitize(marked.parse(content).toString())
   } catch (e) {
     console.error('Error parsing markdown:', e)
-    return content
+    html = DOMPurify.sanitize(content)
   }
+  renderedHtmlCache.set(cacheKey, { content, html })
+  return html
+}
+
+/** Tiny cost caption under a reply, e.g. "$0.14"; floors at "<$0.01". */
+const formatCostUsd = (costUsd: number): string => {
+  if (costUsd > 0 && costUsd < 0.01) return '<$0.01'
+  return `$${costUsd.toFixed(2)}`
 }
 
 const copyToClipboard = (code: string) => {
@@ -294,21 +369,28 @@ const copyToClipboard = (code: string) => {
   color: rgba(219, 234, 254, 0.85);
 }
 
-.prose pre {
-  background: theme('colors.slate.50');
-  border: 1px solid rgba(203, 213, 225, 0.6);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin: 1rem 0;
+/* Markdown children arrive via v-html and never get the scope attribute,
+   so anything targeting them needs :deep. Fenced code renders as a quiet
+   navy-ink chip that scrolls within its own box. */
+.prose :deep(pre) {
+  background: rgba(239, 246, 255, 0.6);
+  border: 1px solid theme('colors.blue.100');
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  margin: 0.75rem 0;
   overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: theme('colors.blue.950');
 }
 
-.dark .prose pre {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.dark .prose :deep(pre) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.prose code {
+.prose :deep(code) {
   color: theme('colors.orange.700');
   background: theme('colors.orange.50');
   padding: 0.125rem 0.375rem;
@@ -317,15 +399,34 @@ const copyToClipboard = (code: string) => {
   border: 1px solid rgba(254, 215, 170, 0.7);
 }
 
-.dark .prose code {
+.dark .prose :deep(code) {
   color: theme('colors.orange.300');
   background: rgba(251, 146, 60, 0.1);
-  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-color: rgba(251, 146, 60, 0.2);
+}
+
+/* The typography plugin wraps inline code in backticks — the chip already
+   says "code" */
+.prose :deep(code::before),
+.prose :deep(code::after) {
+  content: none;
+}
+
+/* Inside a fenced block the inline-code pill styling resets away */
+.prose :deep(pre code),
+.dark .prose :deep(pre code) {
+  display: block;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 /* Wide tables scroll within their own box; the container clips overflow, so
    without this their far columns would be cut off with no way to reach them. */
-.prose table {
+.prose :deep(table) {
   display: block;
   max-width: 100%;
   overflow-x: auto;

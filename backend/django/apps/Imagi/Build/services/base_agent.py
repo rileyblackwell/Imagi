@@ -10,11 +10,12 @@ compaction), the agent run loop, and extraction of structured run metadata
 import json
 import os
 import logging
+import time
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
 
-from agents import Agent, Runner, RunConfig
+from agents import Agent, MaxTurnsExceeded, Runner, RunConfig
 from asgiref.sync import sync_to_async
 
 try:  # ModelSettings location can vary across SDK versions
@@ -29,8 +30,10 @@ except ImportError:  # pragma: no cover - defensive fallback
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from ..models import AgentConversation, AgentMessage, SystemPrompt
+from .models_service import compute_cost_usd
 
 # Load environment variables
 load_dotenv()
@@ -52,6 +55,11 @@ DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-sol')
 # plan → search → read → edit → verify cycles without letting a confused
 # run spin forever.
 MAX_AGENT_TURNS = _BUILDER_SETTINGS.get('MAX_AGENT_TURNS', 30)
+
+# Refresh the running-run marker at most this often while stream events flow,
+# so the API's staleness window measures silence since the last event rather
+# than total run duration (legitimate runs can outlive the window).
+RUN_HEARTBEAT_INTERVAL = 60
 
 # Character budget for conversation history sent to the model. When exceeded,
 # older messages are compacted into a short summary (auto-compaction, like
@@ -121,6 +129,40 @@ def compact_history(messages: List[Dict[str, str]], max_chars: int = HISTORY_MAX
     return [{"role": "user", "content": summary}] + kept
 
 
+# Argument keys surfaced with tool_call SSE events so the workspace activity
+# feed can show what a tool touched. Allowlisted (rather than passing every
+# key through) so bulky values like file contents never ride the stream.
+_TOOL_ARG_KEYS = ('path', 'file_path', 'pattern', 'query', 'app_name', 'url')
+_TOOL_ARG_MAX_CHARS = 200
+
+
+def extract_tool_args(raw_item) -> Dict[str, str]:
+    """Pull a small display-safe subset of a tool call's arguments.
+
+    Defensive by design: raw arguments come straight from the model and may
+    be missing, non-JSON, or oddly shaped — a failure here must never break
+    the event stream, so any problem just yields {}.
+    """
+    try:
+        raw_args = getattr(raw_item, 'arguments', None)
+        if isinstance(raw_args, str):
+            parsed = json.loads(raw_args)
+        elif isinstance(raw_args, dict):
+            parsed = raw_args
+        else:
+            return {}
+        if not isinstance(parsed, dict):
+            return {}
+        args: Dict[str, str] = {}
+        for key in _TOOL_ARG_KEYS:
+            value = parsed.get(key)
+            if isinstance(value, (str, int, float, bool)):
+                args[key] = str(value)[:_TOOL_ARG_MAX_CHARS]
+        return args
+    except Exception:
+        return {}
+
+
 def extract_run_metadata(result) -> Dict[str, Any]:
     """Extract structured metadata from an Agents SDK run result.
 
@@ -152,6 +194,80 @@ def extract_run_metadata(result) -> Dict[str, Any]:
                 pass
 
     return {"tool_calls": tool_calls, "files_changed": files_changed}
+
+
+def extract_tool_call_records(result) -> List[Dict[str, Any]]:
+    """Collect [{name, args?}] for every tool call in a run result.
+
+    Richer than extract_run_metadata's name list: keeps the display-safe
+    argument subset (extract_tool_args) so persisted metadata can replay the
+    workspace activity feed after a reload.
+    """
+    records: List[Dict[str, Any]] = []
+    for item in getattr(result, 'new_items', []) or []:
+        if getattr(item, 'type', '') != 'tool_call_item':
+            continue
+        raw = getattr(item, 'raw_item', None)
+        name = getattr(raw, 'name', None)
+        if name:
+            record: Dict[str, Any] = {"name": name}
+            args = extract_tool_args(raw)
+            if args:
+                record["args"] = args
+            records.append(record)
+        elif 'web_search' in str(getattr(raw, 'type', '')):
+            # Hosted web-search calls carry no .name; use the same synthetic
+            # name the tool_call SSE events use.
+            records.append({"name": "web_search"})
+    return records
+
+
+def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
+    """Token usage (with cost when priceable) from an SDK run result, or None.
+
+    The SDK aggregates usage on the run's context wrapper. An all-zero
+    reading means nothing was tracked (a real run always spends input
+    tokens), so it is treated as unavailable rather than reported as free.
+    """
+    usage = getattr(getattr(result, 'context_wrapper', None), 'usage', None)
+    input_tokens = getattr(usage, 'input_tokens', None)
+    output_tokens = getattr(usage, 'output_tokens', None)
+    if not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
+        return None
+    if not input_tokens and not output_tokens:
+        return None
+    payload: Dict[str, Any] = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
+    cost = compute_cost_usd(model_id, input_tokens, output_tokens)
+    if cost is not None:
+        payload["cost_usd"] = cost
+    return payload
+
+
+def build_message_metadata(
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
+    files_changed: Optional[List[str]] = None,
+    plan: Optional[List[Dict[str, str]]] = None,
+    usage: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """Assemble AgentMessage.metadata from a run's artifacts.
+
+    Empty parts are dropped, and None is returned when nothing is worth
+    keeping, so plain conversational replies stay NULL rather than
+    accumulating empty {} rows.
+    """
+    metadata: Dict[str, Any] = {}
+    if tool_calls:
+        metadata["tool_calls"] = tool_calls
+    if files_changed:
+        metadata["files_changed"] = files_changed
+    if plan:
+        metadata["plan"] = plan
+    if usage:
+        metadata["usage"] = usage
+    return metadata or None
 
 
 @dataclass
@@ -264,12 +380,18 @@ class ImagiAgentService:
             conversation.save(update_fields=["updated_at"])
         return message
 
-    def add_assistant_message(self, conversation: AgentConversation, content: str) -> AgentMessage:
-        """Add an assistant message to the conversation."""
+    def add_assistant_message(
+        self,
+        conversation: AgentConversation,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> AgentMessage:
+        """Add an assistant message, with optional run metadata, to the conversation."""
         return AgentMessage.objects.create(
             conversation=conversation,
             role="assistant",
-            content=content
+            content=content,
+            metadata=metadata,
         )
 
     def build_conversation_history(self, conversation: AgentConversation) -> List[Dict[str, str]]:
@@ -341,12 +463,15 @@ class ImagiAgentService:
         current_file: Optional[Dict[str, Any]] = None,
         conversation_id: Optional[int] = None,
         reasoning_effort: Optional[str] = None,
+        run_state: Optional[Dict[str, Any]] = None,
     ):
         """Resolve the conversation, context and input messages for a run.
 
         Shared by the blocking and streaming paths. Every database access for a
         run happens here, so the streaming path can perform it in one hop off
-        the event loop.
+        the event loop. ``run_state`` (when given) is filled with the resolved
+        conversation before the run marker commits, so a caller whose await was
+        cancelled mid-prepare can still clear the marker in its cleanup.
         """
         model = model or self.model
         self._apply_reasoning_effort(reasoning_effort)
@@ -384,7 +509,41 @@ class ImagiAgentService:
         input_messages = list(conversation_history)
         input_messages.append({"role": "user", "content": user_input})
 
+        if run_state is not None:
+            run_state["conversation"] = conversation
+
+        # Mark the run in flight so conversation endpoints can report
+        # is_running; cleared by the caller when the run ends (readers apply
+        # a staleness guard in case a crashed worker never clears it).
+        # Deliberately the last work in this function: anything raising after
+        # this commit — but before the caller's cleanup owns the conversation —
+        # would leave the marker set and wedge the project's busy guard.
+        conversation.run_started_at = timezone.now()
+        conversation.save(update_fields=["run_started_at"])
+
         return conversation, context, input_messages
+
+    def _clear_run_started(self, conversation) -> None:
+        """Best-effort: mark the conversation's run as finished.
+
+        Runs from cleanup paths, so DB errors are swallowed — they must never
+        mask the failure (or success) of the run itself.
+        """
+        try:
+            conversation.run_started_at = None
+            conversation.save(update_fields=["run_started_at"])
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not clear run_started_at: {e}")
+
+    def _touch_run_started(self, conversation) -> None:
+        """Best-effort heartbeat: keep the run marker fresh during long runs,
+        so the staleness window can't declare a live run finished (which would
+        let a second concurrent run onto the project)."""
+        try:
+            conversation.run_started_at = timezone.now()
+            conversation.save(update_fields=["run_started_at"])
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not refresh run_started_at: {e}")
 
     async def process_stream(
         self,
@@ -408,8 +567,16 @@ class ImagiAgentService:
         message would leave the conversation out of step with the project.
         """
         conversation = None
+        context = None
+        result = None
         text_parts: List[str] = []
         persisted = False
+        # Filled by _prepare_run just before it commits run_started_at: if the
+        # awaiting task is cancelled (stop/tab close) while the worker thread
+        # is still inside _prepare_run, the tuple assignment below never runs
+        # but the marker may already be committed — cleanup resolves the
+        # conversation through this holder instead.
+        run_state: Dict[str, Any] = {}
 
         try:
             if not project_id:
@@ -427,6 +594,7 @@ class ImagiAgentService:
                 current_file=current_file,
                 conversation_id=conversation_id,
                 reasoning_effort=reasoning_effort,
+                run_state=run_state,
             )
 
             yield {"type": "start", "conversation_id": conversation.id}
@@ -442,7 +610,12 @@ class ImagiAgentService:
                 run_config=self._run_config(user),
             )
 
+            last_heartbeat = time.monotonic()
             async for event in result.stream_events():
+                if time.monotonic() - last_heartbeat >= RUN_HEARTBEAT_INTERVAL:
+                    last_heartbeat = time.monotonic()
+                    await sync_to_async(self._touch_run_started)(conversation)
+
                 if event.type == "raw_response_event":
                     data = getattr(event, 'data', None)
                     if getattr(data, 'type', '') == 'response.output_text.delta':
@@ -454,21 +627,40 @@ class ImagiAgentService:
                 elif event.type == "run_item_stream_event":
                     item = getattr(event, 'item', None)
                     if getattr(item, 'type', '') == 'tool_call_item':
-                        name = getattr(getattr(item, 'raw_item', None), 'name', None)
+                        raw_item = getattr(item, 'raw_item', None)
+                        name = getattr(raw_item, 'name', None)
                         if name:
-                            yield {"type": "tool_call", "name": name}
+                            tool_event = {"type": "tool_call", "name": name}
+                            args = extract_tool_args(raw_item)
+                            if args:
+                                tool_event["args"] = args
+                            yield tool_event
                             # The plan lives on the context and is rewritten in
                             # place, so re-send it whenever it may have changed.
                             if name == 'update_plan':
                                 yield {"type": "plan", "plan": list(context.plan)}
+                        elif 'web_search' in str(getattr(raw_item, 'type', '')):
+                            # Hosted web-search calls have no .name attribute;
+                            # surface them under a stable synthetic name.
+                            yield {"type": "tool_call", "name": "web_search"}
 
             response_content = result.final_output or "".join(text_parts)
             metadata = extract_run_metadata(result)
+            usage = extract_usage(result, model or self.model)
 
-            await sync_to_async(self.add_assistant_message)(conversation, response_content)
+            await sync_to_async(self.add_assistant_message)(
+                conversation,
+                response_content,
+                build_message_metadata(
+                    tool_calls=extract_tool_call_records(result),
+                    files_changed=metadata["files_changed"],
+                    plan=list(context.plan),
+                    usage=usage,
+                ),
+            )
             persisted = True
 
-            yield {
+            done_event = {
                 "type": "done",
                 "success": True,
                 "response": response_content,
@@ -478,7 +670,24 @@ class ImagiAgentService:
                 "plan": list(context.plan),
                 "single_message": True,
             }
+            if usage:
+                done_event["usage"] = usage
+            yield done_event
 
+        except MaxTurnsExceeded:
+            # The run was cut off by the turn cap, not a real failure: the
+            # code:'max_turns' lets the frontend offer a "Continue" action
+            # (the finally block below keeps the partial reply).
+            logger.warning(f"Agent run hit the turn limit ({MAX_AGENT_TURNS} turns)")
+            yield {
+                "type": "error",
+                "code": "max_turns",
+                "error": (
+                    "The agent reached its turn limit before finishing. "
+                    "Progress so far is saved — send a message to continue."
+                ),
+                "conversation_id": conversation.id if conversation else None,
+            }
         except Exception as e:
             logger.error(f"Error in imagi_agent stream: {str(e)}")
             import traceback
@@ -489,15 +698,33 @@ class ImagiAgentService:
                 "conversation_id": conversation.id if conversation else None,
             }
         finally:
+            # A cancel can land between _prepare_run's worker thread committing
+            # run_started_at and the awaiter resuming; the holder still knows
+            # the conversation in that case.
+            if conversation is None:
+                conversation = run_state.get("conversation")
             # Covers client disconnect (GeneratorExit) and mid-run failure:
             # keep whatever the agent already said rather than losing it.
             if conversation is not None and not persisted:
                 partial = "".join(text_parts).strip()
                 if partial:
                     try:
-                        await sync_to_async(self.add_assistant_message)(conversation, partial)
+                        # The streamed result has accumulated items even when
+                        # the run was cut short, so the partial reply keeps
+                        # its activity metadata too (usage would be stale
+                        # mid-stream, so it is deliberately omitted).
+                        partial_metadata = build_message_metadata(
+                            tool_calls=extract_tool_call_records(result),
+                            files_changed=extract_run_metadata(result)["files_changed"],
+                            plan=list(context.plan) if context is not None else None,
+                        )
+                        await sync_to_async(self.add_assistant_message)(
+                            conversation, partial, partial_metadata
+                        )
                     except Exception as e:  # pragma: no cover - best effort
                         logger.warning(f"Could not persist partial agent reply: {e}")
+            if conversation is not None:
+                await sync_to_async(self._clear_run_started)(conversation)
 
     def process(
         self,
@@ -521,6 +748,7 @@ class ImagiAgentService:
             return {"success": False, "error": "Project ID is required"}
 
         conversation = None
+        run_state: Dict[str, Any] = {}
         try:
             if not user_input:
                 return {"success": False, "error": "Message is required"}
@@ -533,6 +761,7 @@ class ImagiAgentService:
                 current_file=current_file,
                 conversation_id=conversation_id,
                 reasoning_effort=reasoning_effort,
+                run_state=run_state,
             )
 
             result = Runner.run_sync(
@@ -546,8 +775,17 @@ class ImagiAgentService:
             response_content = result.final_output or ""
             metadata = extract_run_metadata(result)
 
-            # Add assistant message to conversation
-            self.add_assistant_message(conversation, response_content)
+            # Add assistant message (with run metadata) to conversation
+            self.add_assistant_message(
+                conversation,
+                response_content,
+                build_message_metadata(
+                    tool_calls=extract_tool_call_records(result),
+                    files_changed=metadata["files_changed"],
+                    plan=list(context.plan),
+                    usage=extract_usage(result, model or self.model),
+                ),
+            )
 
             return {
                 "success": True,
@@ -568,6 +806,13 @@ class ImagiAgentService:
                 "error": str(e),
                 "conversation_id": conversation.id if conversation else None,
             }
+        finally:
+            # _prepare_run marked the run in flight; the blocking path ends
+            # here (the holder covers a raise between its commit and return).
+            if conversation is None:
+                conversation = run_state.get("conversation")
+            if conversation is not None:
+                self._clear_run_started(conversation)
 
 
 # Singleton instance

@@ -1,6 +1,7 @@
 import api, { getAuthToken } from '@/shared/services/api'
 import type {
   AIModel,
+  AgentActivityStep,
   AgentResponse,
   AgentPlanStep,
   VersionControlResponse,
@@ -20,8 +21,90 @@ export interface AgentStreamHandlers {
   onStart?: (conversationId: number) => void
   /** A chunk of the agent's reply. Chunks concatenate into the final text. */
   onDelta?: (text: string) => void
-  onToolCall?: (name: string) => void
+  /** args is a small allowlisted extract of the tool's arguments (path,
+   *  pattern, query, …) — values are backend-truncated strings. */
+  onToolCall?: (name: string, args?: Record<string, string>) => void
   onPlan?: (plan: AgentPlanStep[]) => void
+}
+
+/**
+ * A failed agent run. Carries the HTTP status for pre-stream rejections
+ * (409 agent_busy, 401, …) and the backend's error code for in-stream
+ * failures ('max_turns' when the run hit its turn cap).
+ */
+export class AgentStreamError extends Error {
+  status?: number
+  code?: string
+
+  constructor(message: string, opts: { status?: number; code?: string } = {}) {
+    super(message)
+    this.name = 'AgentStreamError'
+    this.status = opts.status
+    this.code = opts.code
+  }
+}
+
+/** Basename of the file a tool touched, from its display-safe args. */
+function toolFileName(args?: Record<string, string>): string {
+  const path = args?.path || args?.file_path || ''
+  return path.split('/').filter(Boolean).pop() || 'a file'
+}
+
+/**
+ * Founder-language label for a tool call. Shared by the live activity feed
+ * and persisted-metadata hydration so a replayed transcript reads exactly
+ * like it did while streaming.
+ */
+export function labelForTool(name: string, args?: Record<string, string>): string {
+  switch (name) {
+    case 'read_file': return `Read ${toolFileName(args)}`
+    case 'edit_file':
+    case 'update_file': return `Edited ${toolFileName(args)}`
+    case 'create_file': return `Created ${toolFileName(args)}`
+    case 'delete_file': return `Deleted ${toolFileName(args)}`
+    case 'grep_files':
+    case 'glob_files':
+    case 'get_project_tree':
+    case 'list_project_files': return 'Searched the project'
+    case 'update_plan': return 'Updated the plan'
+    case 'web_search':
+    case 'web_search_call': return 'Searched the web'
+    case 'create_app': return 'Created an app'
+    case 'create_directory':
+    case 'delete_directory': return 'Organized project folders'
+    default: return 'Worked on the project'
+  }
+}
+
+/** One activity-feed entry for a tool call (live event or persisted record). */
+export function toolCallToActivityStep(
+  name: string,
+  args?: Record<string, string>
+): AgentActivityStep {
+  const step: AgentActivityStep = { name, label: labelForTool(name, args) }
+  const detail = args?.path || args?.file_path || args?.pattern
+  if (detail) step.detail = detail
+  return step
+}
+
+/** AgentMessage.metadata as persisted by the backend (see contract shape). */
+interface PersistedMessageMetadata {
+  tool_calls?: Array<{ name: string; args?: Record<string, string> }>
+  files_changed?: string[]
+  plan?: AgentPlanStep[]
+  usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
+}
+
+/** One conversation message with its persisted telemetry hydrated. */
+export interface ConversationMessageDto {
+  id: number
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: string
+  plan?: AgentPlanStep[]
+  activity?: AgentActivityStep[]
+  filesChanged?: string[]
+  usage?: { costUsd?: number }
 }
 
 export const AgentService = {
@@ -86,12 +169,18 @@ export const AgentService = {
     })
 
     if (!response.ok || !response.body) {
-      // Errors before the stream opens are plain JSON, not SSE.
+      // Errors before the stream opens are plain JSON, not SSE. DRF-style
+      // rejections use "detail" (e.g. the 409 {"detail": "agent_busy"} when
+      // another run holds the project); our own errors use "error".
       let detail = ''
       try {
-        detail = (await response.json())?.error || ''
+        const body = await response.json()
+        detail = body?.error || body?.detail || ''
       } catch { /* non-JSON body */ }
-      throw new Error(detail || `Agent request failed (${response.status})`)
+      throw new AgentStreamError(
+        detail || `Agent request failed (${response.status})`,
+        { status: response.status }
+      )
     }
 
     const reader = response.body.getReader()
@@ -99,6 +188,7 @@ export const AgentService = {
     let buffer = ''
     let done: AgentResponse | null = null
     let streamError = ''
+    let streamErrorCode: string | undefined
     const text: string[] = []
     const toolCalls: string[] = []
     let plan: AgentPlanStep[] = []
@@ -116,7 +206,7 @@ export const AgentService = {
           break
         case 'tool_call':
           toolCalls.push(event.name)
-          handlers.onToolCall?.(event.name)
+          handlers.onToolCall?.(event.name, event.args)
           break
         case 'plan':
           plan = event.plan || []
@@ -129,11 +219,15 @@ export const AgentService = {
             files_changed: event.files_changed || [],
             tool_calls: event.tool_calls || toolCalls,
             plan: event.plan || plan,
+            // Usage (and its cost) is best-effort on the backend; absent
+            // means "unknown", never "free".
+            usage: event.usage,
             single_message: event.single_message ?? true,
           }
           break
         case 'error':
           streamError = event.error || 'Agent run failed'
+          streamErrorCode = event.code
           break
       }
     }
@@ -157,7 +251,7 @@ export const AgentService = {
       }
     }
 
-    if (streamError) throw new Error(streamError)
+    if (streamError) throw new AgentStreamError(streamError, { code: streamErrorCode })
     if (done) return done
 
     // Stream ended without a terminal event (server died, connection dropped).
@@ -219,7 +313,11 @@ export const AgentService = {
       return {
         success: false,
         versions: [],
-        error: this.formatError(error)
+        // Restores are refused while an agent run holds the project
+        // (agent_busy contract) — say so instead of a generic failure.
+        error: error?.response?.status === 409
+          ? 'Another agent is still working on this project — wait for it to finish or stop it.'
+          : this.formatError(error)
       }
     }
   },
@@ -313,6 +411,11 @@ export const AgentService = {
     return response.data as ConversationDto
   },
 
+  async getConversation(conversationId: number): Promise<ConversationDto> {
+    const response = await api.get(`/v1/agents/conversations/${conversationId}/`)
+    return response.data as ConversationDto
+  },
+
   async updateConversation(conversationId: number, patch: {
     title?: string
     model_name?: string
@@ -329,16 +432,45 @@ export const AgentService = {
     await api.delete(`/v1/agents/conversations/${conversationId}/`)
   },
 
-  async getConversationMessages(conversationId: number): Promise<Array<{
-    id: number
-    role: 'user' | 'assistant' | 'system'
-    content: string
-    timestamp: string
-  }>> {
+  /**
+   * Release a conversation's server-side running-run marker (clears
+   * is_running and lifts the project's agent_busy guard). Cannot halt a run
+   * driven by another tab's live stream — there is no server task handle.
+   */
+  async cancelConversationRun(conversationId: number): Promise<ConversationDto> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/cancel/`)
+    return response.data as ConversationDto
+  },
+
+  async getConversationMessages(conversationId: number): Promise<ConversationMessageDto[]> {
     const response = await api.get(
       `/v1/agents/conversations/${conversationId}/messages/`
     )
-    return response.data
+    // Hydrate persisted run metadata into the same shapes the live stream
+    // produces, so a reloaded transcript replays its activity feed verbatim.
+    return (response.data as any[]).map((m) => {
+      const dto: ConversationMessageDto = {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp,
+      }
+      const meta = m.metadata as PersistedMessageMetadata | null | undefined
+      if (!meta) return dto
+      if (Array.isArray(meta.tool_calls) && meta.tool_calls.length > 0) {
+        dto.activity = meta.tool_calls.map(tc => toolCallToActivityStep(tc.name, tc.args))
+      }
+      if (Array.isArray(meta.plan) && meta.plan.length > 0) {
+        dto.plan = meta.plan
+      }
+      if (Array.isArray(meta.files_changed) && meta.files_changed.length > 0) {
+        dto.filesChanged = meta.files_changed
+      }
+      if (typeof meta.usage?.cost_usd === 'number') {
+        dto.usage = { costUsd: meta.usage.cost_usd }
+      }
+      return dto
+    })
   }
 };
 

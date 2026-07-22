@@ -10,21 +10,27 @@ no OpenAI calls are made.
 import os
 import shutil
 import tempfile
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 
+from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
+from apps.Imagi.Build.api.views import _project_has_running_conversation
+from apps.Imagi.Build.models import AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
     AgentContext,
     ImagiAgentService,
     compact_history,
     extract_run_metadata,
 )
+from apps.Imagi.Build.services.models_service import compute_cost_usd
 from apps.Imagi.Build.services.coding_agent import (
     PROJECT_MEMORY_MAX_CHARS,
     load_project_memory,
@@ -345,11 +351,16 @@ class ProcessStreamTests(TestCase):
         conversation = SimpleNamespace(id=7)
         self.context = AgentContext(user_id=self.user.id, project_id=1)
         self.persisted = []
+        self.persisted_metadata = []
+
+        def record_assistant_message(conv, content, metadata=None):
+            self.persisted.append(content)
+            self.persisted_metadata.append(metadata)
 
         self.service._prepare_run = lambda **kwargs: (
             conversation, self.context, [{'role': 'user', 'content': kwargs['user_input']}]
         )
-        self.service.add_assistant_message = lambda conv, content: self.persisted.append(content)
+        self.service.add_assistant_message = record_assistant_message
 
     async def _collect(self, **overrides):
         kwargs = {'user_input': 'build me a page', 'user': self.user, 'project_id': 1}
@@ -424,6 +435,72 @@ class ProcessStreamTests(TestCase):
         self.assertIn('model exploded', events[-1]['error'])
         self.assertEqual(self.persisted, ['I started'])
 
+    def test_done_event_reports_usage_and_persists_metadata(self):
+        run = _FakeStreamedRun(
+            [_tool_call_event('edit_file')],
+            new_items=[
+                SimpleNamespace(
+                    type='tool_call_item',
+                    raw_item=SimpleNamespace(
+                        name='edit_file',
+                        arguments='{"path": "frontend/vuejs/src/App.vue"}',
+                    ),
+                ),
+                SimpleNamespace(
+                    type='tool_call_output_item',
+                    output='{"success": true, "path": "frontend/vuejs/src/App.vue"}',
+                ),
+            ],
+        )
+        run.context_wrapper = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=100_000)
+        )
+        self.context.plan = [{'step': 'edit the page', 'status': 'completed'}]
+
+        events = self._run(run)
+
+        done = events[-1]
+        self.assertEqual(done['type'], 'done')
+        self.assertEqual(done['usage']['input_tokens'], 1_000_000)
+        self.assertEqual(done['usage']['output_tokens'], 100_000)
+        self.assertEqual(
+            done['usage']['cost_usd'],
+            compute_cost_usd(self.service.model, 1_000_000, 100_000),
+        )
+
+        metadata = self.persisted_metadata[0]
+        self.assertEqual(
+            metadata['tool_calls'],
+            [{'name': 'edit_file', 'args': {'path': 'frontend/vuejs/src/App.vue'}}],
+        )
+        self.assertEqual(metadata['files_changed'], ['frontend/vuejs/src/App.vue'])
+        self.assertEqual(metadata['plan'], [{'step': 'edit the page', 'status': 'completed'}])
+        self.assertEqual(metadata['usage'], done['usage'])
+
+    def test_done_event_omits_usage_when_unavailable(self):
+        # The fake run exposes no context_wrapper, mirroring an SDK result
+        # without tracked usage: the field must be absent, not zeroed.
+        events = self._run(_FakeStreamedRun([_delta_event('hi')]))
+
+        self.assertNotIn('usage', events[-1])
+        # A plain reply with no run artifacts persists NULL metadata.
+        self.assertEqual(self.persisted_metadata, [None])
+
+    def test_max_turns_emits_error_code_and_persists_partial(self):
+        class HitsTurnCap(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('Working on it ')
+                raise MaxTurnsExceeded('Max turns (30) exceeded')
+
+        events = self._run(HitsTurnCap([]))
+
+        error = events[-1]
+        self.assertEqual(error['type'], 'error')
+        self.assertEqual(error['code'], 'max_turns')
+        # Friendlier than the SDK's raw message, so it can be shown as-is.
+        self.assertNotIn('Max turns (30) exceeded', error['error'])
+        self.assertEqual(self.persisted, ['Working on it'])
+
 
 class AgentStreamEndpointTests(TestCase):
     """Auth on the SSE endpoint, which cannot use DRF's sync-only decorators."""
@@ -462,6 +539,102 @@ class AgentStreamEndpointTests(TestCase):
         )
         self.assertEqual(resp.status_code, 400)
         self.assertIn('Message is required', resp.json()['error'])
+
+    def test_rejects_run_while_project_has_one_in_flight(self):
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=1,
+            run_started_at=timezone.now(),
+        )
+        token = Token.objects.create(user=self.user)
+        resp = self.client.post(
+            self.url, data='{"message": "hi", "project_id": 1}',
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.json()['detail'], 'agent_busy')
+
+
+class ProjectBusyGuardTests(TestCase):
+    """The one-run-per-project guard behind the stream endpoint's 409."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='busy', password='pw123456')
+
+    def _conversation(self, **kwargs):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=1, **kwargs
+        )
+
+    def test_fresh_run_in_project_blocks(self):
+        self._conversation(run_started_at=timezone.now())
+        self.assertTrue(_project_has_running_conversation(self.user, 1))
+
+    def test_stale_or_absent_run_does_not_block(self):
+        # A crashed worker never clears run_started_at; the staleness window
+        # keeps it from wedging the project forever.
+        self._conversation(run_started_at=timezone.now() - timedelta(minutes=11))
+        self._conversation()
+        self.assertFalse(_project_has_running_conversation(self.user, 1))
+
+    def test_conversation_being_started_is_excluded(self):
+        running = self._conversation(run_started_at=timezone.now())
+        self.assertFalse(
+            _project_has_running_conversation(
+                self.user, 1, exclude_conversation_id=running.id
+            )
+        )
+
+    def test_other_projects_and_users_do_not_block(self):
+        self._conversation(run_started_at=timezone.now())  # project 1
+        other = User.objects.create_user(username='busy2', password='pw123456')
+        AgentConversation.objects.create(
+            user=other, model_name='gpt-5.6-sol', project_id=2,
+            run_started_at=timezone.now(),
+        )
+        self.assertFalse(_project_has_running_conversation(self.user, 2))
+        self.assertFalse(_project_has_running_conversation(other, 1))
+
+
+class ConversationMessagesMetadataTests(TestCase):
+    """The messages endpoint returns persisted run metadata per message."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='msguser', password='pw123456')
+        self.client.force_login(self.user)
+
+    def test_messages_include_metadata(self):
+        conversation = ImagiAgentService().create_conversation(
+            self.user, 'gpt-5.6-sol', project_id=1
+        )
+        AgentMessage.objects.create(conversation=conversation, role='user', content='hi')
+        metadata = {
+            'tool_calls': [{'name': 'edit_file', 'args': {'path': 'src/App.vue'}}],
+            'files_changed': ['frontend/vuejs/src/App.vue'],
+            'usage': {'input_tokens': 100, 'output_tokens': 10, 'cost_usd': 0.0009},
+        }
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='done',
+            metadata=metadata,
+        )
+
+        resp = self.client.get(reverse('conversation_messages', args=[conversation.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        messages = resp.json()
+        self.assertIsNone(messages[0]['metadata'])
+        self.assertEqual(messages[1]['metadata'], metadata)
+
+
+class ComputeCostTests(SimpleTestCase):
+    def test_computes_from_suite_pricing(self):
+        # Sol: $6/M input + $30/M output
+        self.assertEqual(compute_cost_usd('gpt-5.6-sol', 1_000_000, 1_000_000), 36.0)
+        # Luna: $1/M input + $5/M output
+        self.assertEqual(compute_cost_usd('gpt-5.6-luna', 500_000, 200_000), 1.5)
+
+    def test_unknown_model_returns_none(self):
+        self.assertIsNone(compute_cost_usd('gpt-oops', 1000, 1000))
 
 
 class ProjectMemoryTests(SimpleTestCase):

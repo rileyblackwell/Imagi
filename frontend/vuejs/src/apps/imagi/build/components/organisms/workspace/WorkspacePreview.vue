@@ -109,7 +109,7 @@
     <div
       ref="screenRef"
       tabindex="0"
-      class="relative flex-1 min-h-0 bg-white outline-none overflow-hidden touch-none"
+      class="relative flex-1 min-h-0 bg-white dark:bg-[#0a0a0a] outline-none overflow-hidden touch-none"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
@@ -119,6 +119,11 @@
       @keyup="onKeyUp"
       @contextmenu.prevent
     >
+      <!-- contain, not fill: pane and remote viewport can briefly disagree
+           (resizes are debounced), and letterboxing against the container's
+           background reads better than stretched text. The translate3d carries
+           the optimistic local scroll (compositor-only, always present so the
+           img keeps its own layer); gaps it opens show the container bg. -->
       <img
         v-if="frameSrc"
         :src="frameSrc"
@@ -126,8 +131,44 @@
         draggable="false"
         decoding="async"
         class="w-full h-full select-none pointer-events-none"
-        style="object-fit: fill;"
+        :style="frameStyle"
       />
+
+      <!-- Console-error banner: recent JS errors reported by the previewed
+           page itself. Pointer events must not leak through to the screen's
+           input forwarding underneath. -->
+      <div
+        v-if="consoleBannerVisible && latestConsoleError"
+        class="absolute bottom-3 left-3 right-3 z-10 flex items-center gap-2.5 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white/95 dark:bg-[#0f0f0f]/95 backdrop-blur px-3 py-2 shadow-lg"
+        @pointerdown.stop
+        @pointermove.stop
+        @pointerup.stop
+        @wheel.stop
+      >
+        <div class="w-7 h-7 shrink-0 rounded-full bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 flex items-center justify-center">
+          <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-[10px]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[13px] font-medium text-blue-950 dark:text-white/90 leading-tight">Something broke in your app</p>
+          <p class="text-[11px] text-blue-950/50 dark:text-white/45 truncate">{{ latestConsoleError.text }}</p>
+        </div>
+        <button
+          type="button"
+          @click="onFixConsoleError"
+          class="shrink-0 inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[12px] font-medium bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-colors"
+        >
+          <i class="fas fa-wand-magic-sparkles text-[10px]"></i>
+          Fix it
+        </button>
+        <button
+          type="button"
+          @click="dismissConsoleBanner"
+          title="Dismiss"
+          class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-blue-950/40 dark:text-white/40 hover:bg-blue-50 dark:hover:bg-white/[0.06] hover:text-blue-950/70 dark:hover:text-white/70 transition-colors"
+        >
+          <i class="fas fa-times text-[11px]"></i>
+        </button>
+      </div>
 
       <!-- Starting overlay -->
       <div
@@ -186,12 +227,20 @@ import {
   PreviewService,
   PreviewNotRunningError,
   type PreviewApp,
+  type PreviewConsoleError,
   type PreviewFrame,
   type PreviewInputEvent,
 } from '../../../services/previewService'
 
 const props = defineProps<{
   projectId: string
+  /** Pane is hidden/backgrounded: keep the session warm but stop active work. */
+  paused?: boolean
+}>()
+
+const emit = defineEmits<{
+  /** "Fix it" pressed on the console-error banner; text is the raw error. */
+  (e: 'fix-error', text: string): void
 }>()
 
 type Phase = 'idle' | 'starting' | 'ready' | 'stopped' | 'error'
@@ -241,28 +290,83 @@ function paneSize(): { width: number; height: number } {
 let frameSeq = 0
 let shownFrameSeq = 0
 
-function showFrame(src: string) {
+function showFrame(src: string, onShown?: () => void) {
   const seq = ++frameSeq
   const img = new Image()
   img.src = src
   const show = () => {
-    if (disposed || seq <= shownFrameSeq) return
-    shownFrameSeq = seq
-    frameSrc.value = src
+    if (disposed) return
+    if (seq > shownFrameSeq) {
+      shownFrameSeq = seq
+      frameSrc.value = src
+    }
+    // Fires even when a newer frame superseded this one: the pixels on screen
+    // are at least as fresh as this frame, which is what callers care about.
+    onShown?.()
   }
   img.decode().then(show, show)
 }
 
-function applyFrame(f: PreviewFrame) {
+// onShown fires once this frame's content is on screen (or immediately when
+// the payload carried no bitmap — the pixels already shown are up to date).
+function applyFrame(f: PreviewFrame, onShown?: () => void) {
   if (f.frame) {
-    showFrame(`data:image/jpeg;base64,${f.frame}`)
+    showFrame(`data:image/jpeg;base64,${f.frame}`, onShown)
+  } else {
+    onShown?.()
   }
   if (f.etag) etag.value = f.etag
   if (typeof f.path === 'string') currentPath.value = f.path
   canGoBack.value = !!f.can_go_back
   canGoForward.value = !!f.can_go_forward
   if (f.viewport) viewport.value = f.viewport
+  // A full replacement list on every payload (empty array clears); guarded so
+  // a payload from an older backend without the field keeps the current list.
+  if (Array.isArray(f.console_errors)) consoleErrors.value = f.console_errors
   syncSelectionFromCurrent()
+}
+
+// ---------------------------------------------------------------------------
+// Console errors from the previewed page (backend contract: frame/status
+// payloads carry the last ~5 uncaught errors, deduped, cleared on navigation)
+// ---------------------------------------------------------------------------
+
+const consoleErrors = ref<PreviewConsoleError[]>([])
+// Key of the error the user dismissed; the banner stays hidden until a
+// different error shows up.
+const dismissedErrorKey = ref<string | null>(null)
+
+function consoleErrorKey(err: PreviewConsoleError): string {
+  // Text alone, no ts: the in-page collector bumps ts on every repeat of the
+  // same error, so a ts-based key would resurrect a dismissed banner on the
+  // next poll for any recurring error (the most common failure mode).
+  return err.text
+}
+
+const latestConsoleError = computed<PreviewConsoleError | null>(() => {
+  let latest: PreviewConsoleError | null = null
+  for (const err of consoleErrors.value) {
+    if (err?.text && (!latest || err.ts >= latest.ts)) latest = err
+  }
+  return latest
+})
+
+const consoleBannerVisible = computed(() =>
+  phase.value === 'ready' &&
+  latestConsoleError.value !== null &&
+  consoleErrorKey(latestConsoleError.value) !== dismissedErrorKey.value
+)
+
+function dismissConsoleBanner() {
+  if (latestConsoleError.value) dismissedErrorKey.value = consoleErrorKey(latestConsoleError.value)
+}
+
+function onFixConsoleError() {
+  const err = latestConsoleError.value
+  if (!err) return
+  emit('fix-error', err.text)
+  // The agent is on it; don't keep nagging about this same error.
+  dismissConsoleBanner()
 }
 
 async function startPreview() {
@@ -272,6 +376,7 @@ async function startPreview() {
   try {
     const result = await PreviewService.start(props.projectId, paneSize(), deviceScaleFactor)
     if (disposed) return
+    resetLocalScroll()
     applyFrame(result)
     phase.value = 'ready'
     schedulePoll(200)
@@ -295,11 +400,22 @@ async function startPreview() {
 
 function markSessionStopped() {
   phase.value = 'stopped'
+  stopInertia()
+  resetLocalScroll()
 }
+
+// While paused the frames aren't visible, so polling drops to a slow
+// keep-alive that stops the session from idling out — never the active
+// cadence, even when a caller asks for a short delay.
+const PAUSED_KEEPALIVE_MS = 20000
 
 function schedulePoll(delay?: number) {
   if (pollTimer) window.clearTimeout(pollTimer)
   if (disposed) return
+  if (props.paused) {
+    pollTimer = window.setTimeout(pollFrame, PAUSED_KEEPALIVE_MS)
+    return
+  }
   const active = Date.now() - lastActivityAt < 4000
   pollTimer = window.setTimeout(pollFrame, delay ?? (active ? 120 : 1500))
 }
@@ -326,6 +442,64 @@ async function pollFrame() {
     // Transient failure (network hiccup): keep polling.
   }
   schedulePoll()
+}
+
+// ---------------------------------------------------------------------------
+// Optimistic local scrolling
+//
+// A touch drag otherwise gives zero visual feedback until a server round trip
+// returns a frame (150–500ms on mobile). So while a drag or its inertia glide
+// is scrolling, the frame <img> is translated (compositor-only translate3d)
+// by the deltas the server hasn't shown yet.
+//
+// Reconciliation: the offset is kept as two buckets of client-px deltas —
+// `unsent` (wheel events still in inputQueue) and `inflight` (sent, response
+// pending). When an input batch's response frame is actually on screen, that
+// batch's share leaves the transform in the same paint that the bitmap takes
+// it over, so fast networks show mostly bitmap motion and slow networks show
+// mostly transform motion, without double-scroll in either. Known trade-offs,
+// accepted: (a) a poll frame racing an input batch can briefly double-count
+// that batch (rare — polling skips while input is in flight — and the input
+// response corrects it); (b) over-scroll past the page edge translates pixels
+// the server won't, then snaps back on ack — reads as a rubber-band.
+//
+// Vertical only: most previewed pages don't scroll horizontally, and a false
+// horizontal shift on a slightly-diagonal swipe looks worse than no feedback.
+// Horizontal wheel deltas still go to the server unchanged.
+// ---------------------------------------------------------------------------
+
+const localScrollY = ref(0)
+let unsentLocalY = 0
+let inflightLocalY = 0
+// Bumped on reset so in-flight reconciliation closures from before the reset
+// can't drive the buckets negative afterwards.
+let localScrollGen = 0
+
+const frameStyle = computed(() => ({
+  objectFit: 'contain' as const,
+  transform: `translate3d(0, ${localScrollY.value}px, 0)`,
+}))
+
+function updateLocalScroll() {
+  // Beyond a screenful the content has fully left the pane, so cap there
+  // (viewport height ≈ pane height; the two are kept in sync).
+  const limit = viewport.value[1]
+  localScrollY.value = Math.max(-limit, Math.min(unsentLocalY + inflightLocalY, limit))
+}
+
+function resetLocalScroll() {
+  localScrollGen++
+  unsentLocalY = 0
+  inflightLocalY = 0
+  localScrollY.value = 0
+}
+
+// Inertia deltas are produced in remote-page px; the transform wants client
+// px. Same axis convention as pageCoords, inverted.
+function pageToClientScaleY(): number {
+  const rect = screenRef.value?.getBoundingClientRect()
+  const vh = viewport.value[1]
+  return rect && rect.height > 0 && vh > 0 ? rect.height / vh : 1
 }
 
 // ---------------------------------------------------------------------------
@@ -358,8 +532,14 @@ function enqueue(event: PreviewInputEvent, immediate = false) {
   if (event.type === 'mouseMoved' && last?.type === 'mouseMoved') {
     inputQueue[inputQueue.length - 1] = event
   } else if (event.kind === 'wheel' && last?.kind === 'wheel') {
+    // Sum the deltas but take the newest coordinates/modifiers — the merged
+    // event must land where the pointer is now, or a scroll that crosses into
+    // a nested scroll container keeps scrolling the old one.
     last.deltaX = (last.deltaX || 0) + (event.deltaX || 0)
     last.deltaY = (last.deltaY || 0) + (event.deltaY || 0)
+    last.x = event.x
+    last.y = event.y
+    last.modifiers = event.modifiers
   } else {
     inputQueue.push(event)
   }
@@ -381,10 +561,27 @@ async function flushInput() {
   const batch = inputQueue
   inputQueue = []
   inputInFlight = true
+  // This batch's optimistic scroll stops being "unsent" now. `carried` (not a
+  // blanket zeroing) keeps the accounting right when this response's decode
+  // overlaps the next batch's flight.
+  const carried = unsentLocalY
+  const gen = localScrollGen
+  inflightLocalY += carried
+  unsentLocalY = 0
+  const settleCarried = () => {
+    if (gen !== localScrollGen) return
+    inflightLocalY -= carried
+    updateLocalScroll()
+  }
   try {
     const f = await PreviewService.sendInput(props.projectId, batch, etag.value)
-    applyFrame(f)
+    // The response reflects the whole batch (even as frame:null when pixels
+    // didn't change, e.g. scrolled at the page edge): retire this batch's
+    // share of the transform in the paint where the bitmap takes over.
+    applyFrame(f, settleCarried)
   } catch (e) {
+    // Batch never applied server-side; its optimistic scroll must not persist.
+    settleCarried()
     if (e instanceof PreviewNotRunningError) {
       markSessionStopped()
       return
@@ -415,6 +612,9 @@ let touchDrag: {
   startY: number
   lastX: number
   lastY: number
+  // Client-px position, tracked separately from the page coords above: the
+  // optimistic transform must follow the finger in screen pixels exactly.
+  lastClientY: number
   lastT: number
   vx: number
   vy: number
@@ -455,6 +655,9 @@ function startInertia(x: number, y: number, vx: number, vy: number) {
     if (Math.hypot(inertiaVx, inertiaVy) < INERTIA_MIN_SPEED) return
     // Same convention as a drag: wheel delta is opposite the finger travel.
     enqueue({ kind: 'wheel', x: inertiaX, y: inertiaY, deltaX: -inertiaVx * dt, deltaY: -inertiaVy * dt, modifiers: 0 })
+    // The glide moves the content optimistically too, same as the drag did.
+    unsentLocalY += inertiaVy * dt * pageToClientScaleY()
+    updateLocalScroll()
     inertiaRaf = requestAnimationFrame(step)
   }
   inertiaRaf = requestAnimationFrame(step)
@@ -471,6 +674,7 @@ function onPointerDown(e: PointerEvent) {
       pointerId: e.pointerId,
       startX: x, startY: y,
       lastX: x, lastY: y,
+      lastClientY: e.clientY,
       lastT: e.timeStamp,
       vx: 0, vy: 0,
       scrolling: false,
@@ -503,6 +707,9 @@ function onPointerMove(e: PointerEvent) {
     if (touchDrag.scrolling && (dx !== 0 || dy !== 0)) {
       // Wheel delta is opposite the finger travel: drag up -> scroll down.
       enqueue({ kind: 'wheel', x, y, deltaX: -dx, deltaY: -dy, modifiers: 0 })
+      // Optimistic feedback: the content follows the finger immediately.
+      unsentLocalY += e.clientY - touchDrag.lastClientY
+      updateLocalScroll()
       // Track a smoothed finger velocity (px/ms) to seed the release glide.
       const dt = Math.max(1, e.timeStamp - touchDrag.lastT)
       touchDrag.vx = touchDrag.vx * 0.7 + (dx / dt) * 0.3
@@ -510,6 +717,7 @@ function onPointerMove(e: PointerEvent) {
     }
     touchDrag.lastX = x
     touchDrag.lastY = y
+    touchDrag.lastClientY = e.clientY
     touchDrag.lastT = e.timeStamp
     return
   }
@@ -555,6 +763,8 @@ function onPointerCancel(e: PointerEvent) {
   if (touchDrag && e.pointerId === touchDrag.pointerId) {
     touchDrag = null
     try { screenRef.value?.releasePointerCapture(e.pointerId) } catch {}
+    // The gesture is void; snap the optimistic offset back to server truth.
+    resetLocalScroll()
   }
 }
 
@@ -603,6 +813,12 @@ function onKeyUp(e: KeyboardEvent) {
 async function doNavigate(action: 'goto' | 'back' | 'forward' | 'reload', path?: string) {
   if (phase.value !== 'ready') return
   lastActivityAt = Date.now()
+  // Any scroll offset (optimistic or gliding) belongs to the page being left.
+  stopInertia()
+  resetLocalScroll()
+  // Hard navigation clears the page's error buffer, so the same error text
+  // on the fresh document should notify again.
+  dismissedErrorKey.value = null
   try {
     const f = await PreviewService.navigate(props.projectId, action, path)
     applyFrame(f)
@@ -658,7 +874,17 @@ async function ensureViewportMatchesPane() {
   }
 }
 
+// Pane resizes that arrive while paused are remembered, not acted on — the
+// pane is often mid-layout-change (e.g. another pane going fullscreen) and
+// resizing the remote browser for sizes nobody sees is wasted work. The
+// single viewport check on unpause applies whatever size the pane settled at.
+let paneResizedWhilePaused = false
+
 function onPaneResized() {
+  if (props.paused) {
+    paneResizedWhilePaused = true
+    return
+  }
   if (resizeTimer) window.clearTimeout(resizeTimer)
   resizeTimer = window.setTimeout(() => void ensureViewportMatchesPane(), 350)
 }
@@ -793,6 +1019,10 @@ watch(
       etag.value = undefined
       phase.value = 'idle'
       apps.value = []
+      stopInertia()
+      resetLocalScroll()
+      consoleErrors.value = []
+      dismissedErrorKey.value = null
       void refreshPages()
       void startPreview()
     }
@@ -804,6 +1034,43 @@ watch(apps, () => {
     syncSelectionFromCurrent()
   }
 })
+
+watch(
+  () => props.paused,
+  (paused) => {
+    if (disposed) return
+    if (paused) {
+      // A resize debounce armed just before pausing must not resize the
+      // remote browser mid-pause; fold it into the deferred-resize marker.
+      if (resizeTimer) {
+        window.clearTimeout(resizeTimer)
+        resizeTimer = null
+        paneResizedWhilePaused = true
+      }
+      // Nobody can see the pane; a glide or half-reconciled optimistic offset
+      // must not keep running (or linger) into the background.
+      stopInertia()
+      resetLocalScroll()
+      // Likewise a poll timer set moments ago could still fire at the active
+      // cadence; rescheduling drops it to the keep-alive interval right away.
+      schedulePoll()
+      return
+    }
+    // Unpaused: fetch a frame immediately — the one on screen may be minutes
+    // old.
+    void pollFrame()
+    if (paneResizedWhilePaused) {
+      paneResizedWhilePaused = false
+      // The pane's geometry was in flux while paused (that's what set the
+      // flag), so measure after layout settles — the same reason startPreview
+      // re-asserts its first measurement in a rAF.
+      requestAnimationFrame(() => void ensureViewportMatchesPane())
+    } else {
+      // Nothing was deferred, but re-check anyway; it no-ops when in sync.
+      void ensureViewportMatchesPane()
+    }
+  }
+)
 
 // Kept for existing callers of this component's public API.
 const loadPreview = startPreview

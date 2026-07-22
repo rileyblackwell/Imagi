@@ -10,6 +10,7 @@ and Agents sub-apps.
 import json
 import logging
 import traceback
+from datetime import timedelta
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -248,46 +249,138 @@ class ProjectPagesView(BrowserPreviewBaseView):
         return Response({'apps': list_app_pages(project)})
 
 
-class PreviewFrameView(BrowserPreviewBaseView):
+# ---------------------------------------------------------------------------
+# Hot preview endpoints (async)
+# ---------------------------------------------------------------------------
+# Under ASGI, every sync view in the process shares ONE thread, so a frame
+# poll or scroll batch would queue behind whatever other sync view happens to
+# be running (file saves, version control, ...). These four endpoints carry
+# all of the preview's interactive traffic, so they are plain async views
+# that push the blocking CDP work onto the thread pool instead. The installed
+# DRF has no async APIView support, so they mirror agent_stream's pattern:
+# manual token-only auth, and csrf_exempt is safe for the same reason it is
+# there — only the Authorization header authenticates, and browsers never
+# send it cross-origin. Success and preview-error response shapes are
+# identical to the previous DRF views'.
+
+
+def _preview_project(user, project_id):
+    """The user's active project, or None.
+
+    select_related('user') matters: BrowserPreviewService's constructor
+    reads project.user.id, and the service runs on a non-thread-sensitive
+    pool thread where lazy ORM access would open a per-thread DB connection
+    that Django's request cleanup never closes.
+    """
+    return PMProject.objects.select_related('user').filter(
+        id=project_id, user=user, is_active=True
+    ).first()
+
+
+def _preview_json_body(request):
+    """The request body as a JSON object, or None if it is not one."""
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+async def _run_preview_call(request, project_id, call):
+    """Authenticate, resolve the project, then run ``call(service)``.
+
+    ORM work (token auth, project fetch) stays on sync_to_async's default
+    thread-sensitive executor — Django's managed sync thread and DB
+    connection. The preview call runs with thread_sensitive=False: it only
+    touches sockets, state files and psutil, never the ORM, and the CDP pool
+    serializes each browser's connection behind its per-entry lock, so
+    concurrent pool threads are safe.
+    """
+    user = await _authenticate_stream_request(request)
+    if user is None:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    project = await sync_to_async(_preview_project)(user, project_id)
+    if project is None:
+        return JsonResponse({'detail': 'Project not found'}, status=404)
+
+    try:
+        # The service is constructed inside the pool thread too: its
+        # constructor touches the filesystem, which must not block the loop.
+        payload = await sync_to_async(
+            lambda: call(BrowserPreviewService(project)), thread_sensitive=False
+        )()
+    except BrowserNotRunning as e:
+        # Session died (browser killed, container restarted): 409 tells the
+        # client to offer a restart rather than showing a hard failure.
+        return JsonResponse({'running': False, 'error': str(e)}, status=409)
+    except BrowserPreviewError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse(payload)
+
+
+@csrf_exempt
+@never_cache
+async def preview_frame(request, project_id):
     """Poll the latest screenshot; `etag` elides an unchanged frame."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    etag = request.GET.get('etag')
+    return await _run_preview_call(
+        request, project_id, lambda service: service.frame(etag=etag)
+    )
 
-    def get(self, request, project_id):
-        service = self.get_service(project_id)
-        return Response(service.frame(etag=request.query_params.get('etag')))
 
-
-class PreviewInputView(BrowserPreviewBaseView):
+@csrf_exempt
+@never_cache
+async def preview_input(request, project_id):
     """Forward a batch of mouse/keyboard/wheel events to the page."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    data = _preview_json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    return await _run_preview_call(
+        request, project_id,
+        lambda service: service.dispatch_input(
+            data.get('events') or [], etag=data.get('etag')
+        ),
+    )
 
-    def post(self, request, project_id):
-        service = self.get_service(project_id)
-        return Response(service.dispatch_input(
-            request.data.get('events') or [],
-            etag=request.data.get('etag'),
-        ))
 
-
-class PreviewNavigateView(BrowserPreviewBaseView):
+@csrf_exempt
+@never_cache
+async def preview_navigate(request, project_id):
     """Navigate the page: goto (path within the app), back, forward, reload."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    data = _preview_json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    return await _run_preview_call(
+        request, project_id,
+        lambda service: service.navigate(
+            data.get('action') or 'goto', path=data.get('path')
+        ),
+    )
 
-    def post(self, request, project_id):
-        service = self.get_service(project_id)
-        return Response(service.navigate(
-            request.data.get('action') or 'goto',
-            path=request.data.get('path'),
-        ))
 
-
-class PreviewResizeView(BrowserPreviewBaseView):
+@csrf_exempt
+@never_cache
+async def preview_resize(request, project_id):
     """Match the browser viewport to the client's preview pane size."""
-
-    def post(self, request, project_id):
-        service = self.get_service(project_id)
-        return Response(service.resize(
-            request.data.get('width'),
-            request.data.get('height'),
-            device_scale_factor=request.data.get('device_scale_factor'),
-        ))
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    data = _preview_json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    return await _run_preview_call(
+        request, project_id,
+        lambda service: service.resize(
+            data.get('width'), data.get('height'),
+            device_scale_factor=data.get('device_scale_factor'),
+        ),
+    )
 
 @method_decorator(never_cache, name='dispatch')
 class CreateFileView(APIView):
@@ -596,7 +689,14 @@ class VersionControlResetView(APIView):
                     'success': False,
                     'error': 'Commit hash is required'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
+            # The reset runs `git reset --hard` on the same working tree a
+            # live agent run's file tools write to; refuse while any of the
+            # project's conversations has a fresh run (same contract as the
+            # stream endpoint's agent_busy guard).
+            if _project_has_running_conversation(request.user, project_id):
+                return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+
             # Use VersionControlService to reset to version
             version_service = VersionControlService(project=project)
             result = version_service.reset_to_version(
@@ -992,6 +1092,16 @@ async def agent_stream(request):
     model = resolve_model(payload.get('model', DEFAULT_MODEL))
     reasoning_effort = payload.get('reasoning_effort')
 
+    # One agent run per project at a time. Best-effort guard, not a lock:
+    # two simultaneous submits may both pass, which is acceptable — this
+    # protects against a user launching runs that trample each other's file
+    # edits, not against a determined race.
+    busy = await sync_to_async(_project_has_running_conversation)(
+        user, project_id, exclude_conversation_id=conversation_id
+    )
+    if busy:
+        return JsonResponse({'detail': 'agent_busy'}, status=409)
+
     agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
     async def event_stream():
@@ -1026,6 +1136,36 @@ async def agent_stream(request):
 # Conversation (agent instance) CRUD
 # ---------------------------------------------------------------------------
 
+# A run whose marker hasn't been refreshed within this window is treated as
+# not running: a crashed worker never clears run_started_at. Long legitimate
+# runs stay fresh via the streaming loop's heartbeat (base_agent.py), so this
+# measures silence since the last event, not total run duration.
+RUN_STALENESS_WINDOW = timedelta(minutes=10)
+
+
+def _conversation_is_running(conversation):
+    started = conversation.run_started_at
+    return bool(started and timezone.now() - started < RUN_STALENESS_WINDOW)
+
+
+def _project_has_running_conversation(user, project_id, exclude_conversation_id=None):
+    """Does any conversation in this project have a fresh run in flight?
+
+    Backs the stream endpoint's 409 agent_busy guard. The staleness window
+    matches is_running, so a crashed worker that never cleared
+    run_started_at cannot wedge the project.
+    """
+    threshold = timezone.now() - RUN_STALENESS_WINDOW
+    qs = AgentConversation.objects.filter(
+        user=user,
+        project_id=project_id,
+        run_started_at__gt=threshold,
+    )
+    if exclude_conversation_id:
+        qs = qs.exclude(id=exclude_conversation_id)
+    return qs.exists()
+
+
 def _serialize_conversation(conversation):
     last_message = conversation.messages.order_by('-created_at').first()
     preview = ''
@@ -1040,6 +1180,7 @@ def _serialize_conversation(conversation):
         'created_at': conversation.created_at.isoformat(),
         'updated_at': conversation.updated_at.isoformat(),
         'last_message_preview': preview,
+        'is_running': _conversation_is_running(conversation),
     }
 
 
@@ -1118,6 +1259,26 @@ def conversation_detail(request, conversation_id):
     return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def conversation_cancel(request, conversation_id):
+    """Release a conversation's running-run marker.
+
+    Used by the Stop button when this tab has no live stream to abort
+    (restored after a reload, opened elsewhere, or a crashed worker). There
+    is no server-side task handle for a run driven by another tab's stream,
+    so this cannot halt the agent itself — it clears run_started_at so
+    is_running flips false and the project's agent_busy guard lifts.
+    """
+    conversation = get_object_or_404(
+        AgentConversation, id=conversation_id, user=request.user
+    )
+    if conversation.run_started_at is not None:
+        conversation.run_started_at = None
+        conversation.save(update_fields=['run_started_at'])
+    return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def conversation_messages(request, conversation_id):
@@ -1131,6 +1292,7 @@ def conversation_messages(request, conversation_id):
             'role': m.role,
             'content': m.content,
             'timestamp': m.created_at.isoformat(),
+            'metadata': m.metadata,
         }
         for m in conversation.messages.order_by('created_at')
     ]

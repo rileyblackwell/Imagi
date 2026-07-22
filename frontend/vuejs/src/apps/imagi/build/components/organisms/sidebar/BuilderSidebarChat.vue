@@ -1,7 +1,9 @@
 <template>
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-100 dark:border-white/[0.08] transition-colors duration-300">
-    <!-- Header: manager toggle + instance title -->
-    <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+    <!-- Header: manager toggle + instance title. Relative so the version
+         dropdown can anchor to the full header width — the sidebar clips
+         overflow, so a narrow panel can't fit it anchored to the button. -->
+    <div class="shrink-0 relative flex items-center gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
       <div v-if="!isManagerOpen" class="relative group max-md:hidden">
         <button
           class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
@@ -18,6 +20,78 @@
       <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-white/80 truncate">
         {{ activeInstance?.title || 'New instance' }}
       </div>
+
+      <!-- Version history toggle -->
+      <div ref="historyRoot" class="relative group shrink-0">
+        <button
+          :class="[
+            'flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200',
+            historyOpen
+              ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
+              : 'text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white'
+          ]"
+          @click="toggleHistory"
+        >
+          <i class="fas fa-clock-rotate-left text-sm"></i>
+        </button>
+        <div
+          v-if="!historyOpen"
+          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        >
+          Version history
+        </div>
+      </div>
+
+      <!-- Version history dropdown (anchored to the header, not the button:
+           the sidebar clips overflow, so it must fit the panel's width) -->
+      <div
+        v-if="historyOpen"
+        ref="historyDropdown"
+        class="absolute right-2 top-full mt-1 z-50 w-72 max-w-[calc(100%-1rem)] rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+      >
+        <div class="px-3 py-2 border-b border-blue-100 dark:border-white/[0.08] text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+          Version history
+        </div>
+        <div class="max-h-72 overflow-y-auto py-1">
+          <div
+            v-if="versionsLoading && !(versionHistory && versionHistory.length)"
+            class="flex items-center gap-2 px-3 py-4 text-xs text-blue-950/40 dark:text-white/40"
+          >
+            <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
+            <span>Loading versions…</span>
+          </div>
+          <div
+            v-else-if="!(versionHistory && versionHistory.length)"
+            class="px-3 py-4 text-xs text-blue-950/40 dark:text-white/40"
+          >
+            No versions yet — they appear as your app changes.
+          </div>
+          <div
+            v-for="version in versionHistory"
+            :key="version.hash"
+            class="flex items-center gap-2 px-3 py-2 hover:bg-blue-50/60 dark:hover:bg-white/[0.04] transition-colors"
+          >
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-blue-950/85 dark:text-white/85 truncate" :title="version.message">
+                {{ version.message || 'Project update' }}
+              </p>
+              <p class="text-[10px] text-blue-950/40 dark:text-white/35 truncate">
+                {{ version.relative_date || version.date || '' }}
+              </p>
+            </div>
+            <button
+              type="button"
+              :disabled="anyRunActive"
+              :title="anyRunActive ? 'Wait for the agent to finish (or stop it) before restoring' : undefined"
+              class="shrink-0 rounded-full border border-blue-200/70 dark:border-white/[0.12] px-2.5 py-1 text-[11px] font-medium text-blue-950/70 dark:text-white/70 hover:bg-blue-950 hover:border-blue-950 hover:text-[#fdf9f2] dark:hover:bg-[#f3ede2] dark:hover:border-[#f3ede2] dark:hover:text-blue-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-blue-200/70 dark:disabled:hover:border-white/[0.12] disabled:hover:text-blue-950/70 dark:disabled:hover:text-white/70"
+              @click="onRestoreVersion(version)"
+            >
+              Restore
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="onCollapseSidebar" class="relative group shrink-0 max-md:hidden">
         <button
           class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
@@ -35,10 +109,16 @@
 
     <!-- Conversation Area (scrollable) -->
     <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+      <!-- Keyed by instance so switching remounts the conversation: scroll
+           position and the pinned-to-bottom state belong to one transcript
+           and must not leak into another (a fresh mount lands at the latest
+           message). -->
       <ChatConversation
+        :key="activeInstance?.id || 'none'"
         :messages="ensureValidMessages(activeInstance?.conversation || [])"
         :is-processing="!!activeInstance?.isProcessing"
         :status-text="activeInstance?.statusText || ''"
+        :examples="promptExamples"
         @use-example="handleExamplePrompt"
         class="flex-1"
       />
@@ -47,6 +127,29 @@
     <!-- Chat Input Section (fixed at bottom) -->
     <div class="shrink-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div class="px-2 pt-1 pb-3">
+        <!-- Queued prompt: one message held while the agent works -->
+        <div
+          v-if="activeInstance?.queuedPrompt"
+          class="flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
+        >
+          <i class="fas fa-hourglass-half text-[10px] text-blue-950/40 dark:text-white/40 shrink-0"></i>
+          <div class="flex-1 min-w-0">
+            <p class="text-[11px] font-medium text-blue-950/75 dark:text-white/70 truncate" :title="activeInstance.queuedPrompt">
+              {{ activeInstance.queuedPrompt }}
+            </p>
+            <p class="text-[10px] text-blue-950/40 dark:text-white/35">Queued — sends when the agent finishes</p>
+          </div>
+          <button
+            type="button"
+            title="Cancel queued message"
+            aria-label="Cancel queued message"
+            class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-blue-950/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-blue-950/70 dark:hover:text-white/70 transition-colors"
+            @click="cancelQueuedPrompt"
+          >
+            <i class="fas fa-times text-[10px]"></i>
+          </button>
+        </div>
+
         <!-- Input shell: textarea on top, controls toolbar below -->
         <div class="chat-input-shell rounded-2xl bg-blue-50/40 dark:bg-white/[0.03] border border-blue-100 dark:border-white/[0.08] shadow-sm">
           <textarea
@@ -56,7 +159,7 @@
             @keydown.enter.exact.prevent="handlePrompt"
             @keydown.enter.shift.exact="() => {}"
             @input="autoResizeTextarea"
-            :disabled="!activeInstance || activeInstance.isProcessing"
+            :disabled="!activeInstance"
             rows="4"
             class="chat-textarea w-full bg-transparent text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-white/30 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
             style="min-height: 92px; max-height: 240px;"
@@ -106,18 +209,29 @@
               </div>
             </div>
 
+            <!-- Stop Button (replaces send while a run is in flight) -->
+            <button
+              v-if="activeInstance?.isProcessing"
+              @click="handleStopClick"
+              aria-label="Stop agent"
+              title="Stop agent"
+              class="btn-send btn-send--active flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300 text-[#fdf9f2] dark:text-blue-950"
+            >
+              <i class="fas fa-stop text-sm"></i>
+            </button>
+
             <!-- Send Button -->
             <button
+              v-else
               @click="handlePrompt"
-              :disabled="!prompt.trim() || !activeInstance || activeInstance.isProcessing"
+              :disabled="!prompt.trim() || !activeInstance"
               aria-label="Send message"
               class="btn-send flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
-              :class="prompt.trim() && activeInstance && !activeInstance.isProcessing
+              :class="prompt.trim() && activeInstance
                 ? 'btn-send--active text-[#fdf9f2] dark:text-blue-950'
                 : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
             >
-              <i v-if="activeInstance?.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
-              <i v-else class="fas fa-arrow-up text-sm"></i>
+              <i class="fas fa-arrow-up text-sm"></i>
             </button>
           </div>
         </div>
@@ -127,12 +241,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
+import { useConfirm } from '../../../composables/useConfirm'
 import { ChatConversation } from '../../organisms/chat'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
 import { REASONING_EFFORTS } from '../../../types/services'
+
+/** One commit from the project's version history (backend versions shape). */
+interface VersionEntry {
+  hash: string
+  message?: string
+  author?: string
+  date?: string
+  relative_date?: string
+}
 
 // Props
 const props = defineProps<{
@@ -144,16 +268,66 @@ const props = defineProps<{
   onCollapseSidebar?: () => void
   isCollapsed?: boolean
   isManagerOpen?: boolean
+  versionHistory?: VersionEntry[]
+  versionsLoading?: boolean
+  promptExamples?: string[]
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'toggleManager'): void
+  (e: 'stop'): void
+  (e: 'load-versions'): void
+  (e: 'restore-version', hash: string): void
 }>()
 
 const store = useAgentStore()
 const activeInstance = computed(() => store.activeInstance)
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
+
+// --- Version history dropdown ---
+
+const { confirm } = useConfirm()
+const historyOpen = ref(false)
+const historyRoot = ref<HTMLElement | null>(null)
+const historyDropdown = ref<HTMLElement | null>(null)
+
+// Restores git-reset the working tree that a live run's file tools write to,
+// so they stay disabled while ANY of the project's instances is mid-run (the
+// workspace and backend enforce the same rule as backstops).
+const anyRunActive = computed(() => store.instances.some(i => i.isProcessing))
+
+function toggleHistory() {
+  historyOpen.value = !historyOpen.value
+  // The list may be stale (the agent commits as it works); refresh on open.
+  if (historyOpen.value) emit('load-versions')
+}
+
+async function onRestoreVersion(version: VersionEntry) {
+  const confirmed = await confirm({
+    title: 'Restore This Version',
+    message: 'Restore your app to this version? Current work stays in history.',
+    confirmText: 'Restore',
+    cancelText: 'Cancel',
+    type: 'warning'
+  })
+  if (!confirmed) return
+  historyOpen.value = false
+  emit('restore-version', version.hash)
+}
+
+function onDocMousedown(e: MouseEvent) {
+  if (!historyOpen.value) return
+  const target = e.target as Node
+  // The toggle button counts as "inside": closing on its mousedown would make
+  // the follow-up click toggle the menu straight back open.
+  if (historyRoot.value?.contains(target)) return
+  if (historyDropdown.value?.contains(target)) return
+  historyOpen.value = false
+}
+
+onMounted(() => document.addEventListener('mousedown', onDocMousedown))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocMousedown))
 
 const modelOptions = computed<AIModel[]>(() => {
   const available = (store.availableModels || []).filter(model => model.id.startsWith('gpt-5.6'))
@@ -218,7 +392,13 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
         content: content,
         code: m.code || '',
         timestamp: m.timestamp || new Date().toISOString(),
-        id: messageId
+        id: messageId,
+        // Run telemetry rides along or the transcript loses its activity
+        // feed, plan, files-changed chip and cost caption.
+        plan: m.plan,
+        activity: m.activity,
+        filesChanged: m.filesChanged,
+        usage: m.usage
       }
     }) as AIMessage[]
   
@@ -234,17 +414,40 @@ function autoResizeTextarea() {
 }
 
 async function handlePrompt() {
-  if (!prompt.value.trim() || !activeInstance.value || activeInstance.value.isProcessing) return
-  
+  if (!prompt.value.trim() || !activeInstance.value) return
+
   const promptText = prompt.value
   prompt.value = '' // Clear immediately
-  
+
   // Reset textarea height
   if (promptTextarea.value) {
     promptTextarea.value.style.height = '92px'
   }
-  
+
+  if (activeInstance.value.isProcessing) {
+    // Mid-run: hold the message (one per instance — a second submit
+    // replaces it) and auto-send when the run finishes.
+    store.queuePrompt(activeInstance.value.id, promptText)
+    return
+  }
+
   await props.onPromptSubmit(promptText)
+}
+
+function cancelQueuedPrompt() {
+  if (activeInstance.value) store.clearQueuedPrompt(activeInstance.value.id)
+}
+
+function handleStopClick() {
+  const instance = activeInstance.value
+  // Stop means stop: a queued prompt must not fire into the aborted run's
+  // wake, but it shouldn't silently vanish either — hand it back to the
+  // input for the user to send or discard.
+  if (instance?.queuedPrompt) {
+    if (!prompt.value.trim()) prompt.value = instance.queuedPrompt
+    store.clearQueuedPrompt(instance.id)
+  }
+  emit('stop')
 }
 
 function handleExamplePrompt(exampleText: string) {

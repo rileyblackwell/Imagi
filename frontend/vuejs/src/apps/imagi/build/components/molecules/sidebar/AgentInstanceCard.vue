@@ -43,6 +43,13 @@
         </div>
       </div>
 
+      <!-- Unread dot: a run finished while this instance was off-screen -->
+      <span
+        v-if="instance.hasUnread"
+        class="shrink-0 w-1.5 h-1.5 mt-1.5 rounded-full bg-blue-950 dark:bg-[#f3ede2]"
+        title="Agent finished while you were away"
+      ></span>
+
       <!-- Actions -->
       <div ref="menuRef" class="relative shrink-0" @click.stop>
         <button

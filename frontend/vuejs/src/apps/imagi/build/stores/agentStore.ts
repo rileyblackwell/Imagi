@@ -1,5 +1,13 @@
 import { defineStore } from 'pinia'
-import type { AIModel, AIMessage, AgentInstance, ConversationDto, ReasoningEffort } from '../types/services'
+import type {
+  AIModel,
+  AIMessage,
+  AgentActivityStep,
+  AgentInstance,
+  AgentPlanStep,
+  ConversationDto,
+  ReasoningEffort
+} from '../types/services'
 import { DEFAULT_REASONING_EFFORT } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { ProjectFile } from '../types/components'
@@ -7,6 +15,23 @@ import { FileService } from '../services/fileService'
 import { AgentService } from '../services/agentService'
 
 const DEFAULT_MODEL_ID = 'gpt-5.6-sol'
+
+// Live stream controllers keyed by instance id. Module scope and non-reactive
+// on purpose: AbortController instances must never be wrapped in Pinia proxies.
+const abortControllers = new Map<string, AbortController>()
+
+// Instance ids whose current run was explicitly stopped by the user. Consulted
+// (and cleared) when processing flips false: a queued prompt must not auto-send
+// into a run the user just killed.
+const userAbortedRuns = new Set<string>()
+
+// Registered by the workspace so a queued prompt can be re-submitted through
+// its normal handlePrompt path when the blocking run finishes.
+let queuedPromptSender: ((instanceId: string, prompt: string) => void) | null = null
+
+// Single poller for server-side runs restored without a live stream.
+let resyncTimer: ReturnType<typeof setInterval> | null = null
+const RESYNC_INTERVAL_MS = 5000
 
 function newLocalId(): string {
   return `inst-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -21,12 +46,14 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     selectedEffort: DEFAULT_REASONING_EFFORT,
     selectedFile: null,
     conversation: [],
-    isProcessing: false,
-    statusText: '',
+    isProcessing: !!dto.is_running,
+    statusText: dto.is_running ? 'Working…' : '',
     archivedAt: dto.archived_at,
     updatedAt: dto.updated_at,
     lastMessagePreview: dto.last_message_preview || '',
     messagesLoaded: false,
+    hasUnread: false,
+    queuedPrompt: null,
   }
 }
 
@@ -116,9 +143,125 @@ export const useAgentStore = defineStore('agent', {
           this.activeInstanceId = picked.id
           await this.ensureMessagesLoaded(picked.id)
         }
+
+        // Restored instances may have runs still executing server-side.
+        this.resyncRunningInstances()
       } finally {
         this.instancesLoading = false
       }
+    },
+
+    // --- Run control (stop button / server-tracked runs) ---
+
+    registerAbortController(instanceId: string, controller: AbortController) {
+      abortControllers.set(instanceId, controller)
+      userAbortedRuns.delete(instanceId) // fresh run, stale stop marks don't apply
+    },
+
+    /** Stop this instance's run. Aborts the live stream when this tab owns
+     *  one; otherwise (restored after reload / opened elsewhere / crashed
+     *  worker) releases the server-side run marker and clears local state so
+     *  Stop is never a dead button. */
+    abortInstanceRun(instanceId: string) {
+      const controller = abortControllers.get(instanceId)
+      if (controller) {
+        abortControllers.delete(instanceId)
+        userAbortedRuns.add(instanceId)
+        controller.abort()
+        return
+      }
+      const instance = this._findInstance(instanceId)
+      if (!instance?.isProcessing) return
+      userAbortedRuns.add(instanceId)
+      if (instance.conversationId != null) {
+        // Best-effort: lifts the project's agent_busy guard. A run streaming
+        // into another tab keeps executing there; if it is genuinely still
+        // going, the next submit gets the backend's 409.
+        AgentService.cancelConversationRun(instance.conversationId)
+          .catch(e => console.error('Failed to release server-side run', e))
+      }
+      this.setInstanceProcessing(instanceId, false)
+    },
+
+    /** Abort every live stream (e.g. before rebuilding the instance list,
+     *  which would orphan in-flight runs on dead local ids). */
+    abortAllRuns() {
+      for (const instanceId of abortControllers.keys()) {
+        userAbortedRuns.add(instanceId)
+      }
+      for (const controller of abortControllers.values()) {
+        controller.abort()
+      }
+      abortControllers.clear()
+    },
+
+    // --- Queued prompts (one pending prompt per instance) ---
+
+    /** Register how a queued prompt gets submitted (the workspace's
+     *  handlePrompt). Pass null on teardown. */
+    setQueuedPromptSender(sender: ((instanceId: string, prompt: string) => void) | null) {
+      queuedPromptSender = sender
+    },
+
+    /** Hold one prompt to auto-send when this instance's run finishes.
+     *  Submitting again while still running replaces it. */
+    queuePrompt(instanceId: string, prompt: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.queuedPrompt = prompt
+    },
+
+    clearQueuedPrompt(instanceId: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.queuedPrompt = null
+    },
+
+    /**
+     * Poll conversations that are running server-side but have no live stream
+     * in this tab (restored after reload / opened elsewhere). When a run
+     * finishes, refetch its messages and flag it unread if not active.
+     */
+    resyncRunningInstances() {
+      if (resyncTimer !== null) {
+        clearInterval(resyncTimer)
+        resyncTimer = null
+      }
+
+      const restoredRunning = () => this.instances.filter(
+        i => i.isProcessing && i.conversationId != null && !abortControllers.has(i.id)
+      )
+      if (restoredRunning().length === 0) return
+
+      resyncTimer = setInterval(async () => {
+        const running = restoredRunning()
+        if (running.length === 0) {
+          if (resyncTimer !== null) {
+            clearInterval(resyncTimer)
+            resyncTimer = null
+          }
+          return
+        }
+        await Promise.all(running.map(async (instance) => {
+          try {
+            const dto = await AgentService.getConversation(instance.conversationId!)
+            if (dto.is_running) return
+            // Re-check after the await: a local run may have started (and
+            // registered its controller) while the fetch was in flight — its
+            // fresh transcript must not be wiped from under it.
+            if (!instance.isProcessing || abortControllers.has(instance.id)) return
+            // Run finished on the server: pull the authoritative transcript.
+            instance.messagesLoaded = false
+            instance.conversation = []
+            await this.ensureMessagesLoaded(instance.id)
+            instance.updatedAt = dto.updated_at
+            instance.lastMessagePreview = dto.last_message_preview || ''
+            this.setInstanceProcessing(instance.id, false)
+          } catch (e) {
+            console.error('Failed to resync running conversation', instance.conversationId, e)
+          }
+        }))
+      }, RESYNC_INTERVAL_MS)
     },
 
     async ensureMessagesLoaded(instanceId: string) {
@@ -131,6 +274,12 @@ export const useAgentStore = defineStore('agent', {
           content: m.content,
           timestamp: m.timestamp,
           id: `db-${m.id}`,
+          // Persisted run telemetry, already hydrated by the service into
+          // the same shapes the live stream writes.
+          plan: m.plan,
+          activity: m.activity,
+          filesChanged: m.filesChanged,
+          usage: m.usage,
         } as AIMessage))
         instance.messagesLoaded = true
       } catch (e) {
@@ -163,6 +312,7 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       this.activeInstanceId = instance.id
+      instance.hasUnread = false
       if (this.projectId && instance.conversationId != null) {
         localStorage.setItem(
           `activeAgentInstance_${this.projectId}`,
@@ -265,7 +415,25 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.isProcessing = value
-      if (!value) instance.statusText = ''
+      if (!value) {
+        // Read-and-clear: was this run ended by an explicit user stop?
+        const aborted = userAbortedRuns.delete(instanceId)
+        instance.statusText = ''
+        // The run is over — its stream controller (if any) is dead weight.
+        abortControllers.delete(instanceId)
+        // Completion signal: runs that finish off-screen get a dot.
+        if (instanceId !== this.activeInstanceId) instance.hasUnread = true
+        // A queued prompt fires now — unless the user just stopped the run,
+        // in which case it stays queued for them to send or cancel.
+        const queued = instance.queuedPrompt
+        if (queued && !aborted && queuedPromptSender) {
+          instance.queuedPrompt = null
+          const send = queuedPromptSender
+          // Deferred so the finishing run's call stack fully unwinds before
+          // the next run starts flipping processing back on.
+          queueMicrotask(() => send(instanceId, queued))
+        }
+      }
     },
 
     /**
@@ -308,6 +476,59 @@ export const useAgentStore = defineStore('agent', {
       message.content = content
       instance.updatedAt = new Date().toISOString()
       instance.lastMessagePreview = content.split('\n')[0]?.slice(0, 140) || ''
+    },
+
+    /**
+     * Merge streamed metadata (activity, plan, filesChanged) into an existing
+     * message. Content updates stay in setMessageContent, which also bumps
+     * updatedAt/preview — metadata patches deliberately do not.
+     */
+    patchMessage(instanceId: string, messageId: string, patch: Partial<AIMessage>) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      const message = instance.conversation.find(m => m.id === messageId)
+      if (!message) return
+      Object.assign(message, patch)
+    },
+
+    /** Append one live tool-call step to a message's activity feed. */
+    appendMessageActivity(instanceId: string, messageId: string, step: AgentActivityStep) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      const message = instance.conversation.find(m => m.id === messageId)
+      if (!message) return
+      if (!message.activity) message.activity = []
+      message.activity.push(step)
+    },
+
+    /** Replace a message's plan snapshot (rewritten whole on each update). */
+    setMessagePlan(instanceId: string, messageId: string, plan: AgentPlanStep[]) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      const message = instance.conversation.find(m => m.id === messageId)
+      if (!message) return
+      message.plan = [...plan]
+    },
+
+    /** Attach end-of-run metadata (changed files, cost) to a message. */
+    setMessageMeta(
+      instanceId: string,
+      messageId: string,
+      meta: { filesChanged?: string[]; usage?: { costUsd?: number } }
+    ) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      const message = instance.conversation.find(m => m.id === messageId)
+      if (!message) return
+      if (meta.filesChanged !== undefined) message.filesChanged = [...meta.filesChanged]
+      if (meta.usage !== undefined) message.usage = { ...meta.usage }
+    },
+
+    /** Drop a message (e.g. an assistant bubble whose run produced nothing). */
+    removeMessage(instanceId: string, messageId: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.conversation = instance.conversation.filter(m => m.id !== messageId)
     },
 
     updateInstanceConversationId(instanceId: string, conversationId: number) {

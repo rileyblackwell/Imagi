@@ -176,6 +176,8 @@ export interface ConversationDto {
   created_at: string;
   updated_at: string;
   last_message_preview: string;
+  /** True while a run is active server-side (staleness-guarded to 10 min) */
+  is_running: boolean;
 }
 
 export interface AgentInstance {
@@ -194,7 +196,17 @@ export interface AgentInstance {
   updatedAt: string;
   lastMessagePreview: string;
   messagesLoaded: boolean;
+  /** Client-only: a run finished while this instance was not active */
+  hasUnread?: boolean;
+  /** Client-only: one prompt submitted mid-run, auto-sent when the run ends
+   *  (unless the user explicitly stopped it). A second submit replaces it. */
+  queuedPrompt?: string | null;
 }
+
+/**
+ * One entry in the agent's live activity feed (a tool call surfaced to the UI)
+ */
+export type AgentActivityStep = { name: string; label: string; detail?: string };
 
 // AI-specific response types
 export interface AIMessage {
@@ -205,6 +217,14 @@ export interface AIMessage {
   id?: string;
   isStreaming?: boolean;  // Flag for streaming message
   isTyping?: boolean;     // Flag for typing animation
+  /** The agent's working-plan snapshot attached to this reply */
+  plan?: AgentPlanStep[];
+  /** Tool activity recorded while the agent produced this reply */
+  activity?: AgentActivityStep[];
+  /** Project files the agent changed during this reply */
+  filesChanged?: string[];
+  /** What this reply cost, when the backend reported run usage */
+  usage?: { costUsd?: number };
 }
 
 export interface AIGenerationResponse {
@@ -234,6 +254,8 @@ export interface AgentResponse {
   tool_calls?: string[];
   /** The agent's working plan for multi-step tasks */
   plan?: AgentPlanStep[];
+  /** Token usage for the run; omitted when the backend could not track it */
+  usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number };
   single_message?: boolean;
 }
 

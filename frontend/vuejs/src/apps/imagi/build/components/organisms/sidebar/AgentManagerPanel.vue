@@ -1,12 +1,7 @@
 <template>
   <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-100 dark:border-white/[0.08] transition-colors duration-300">
-    <!-- Confirm Modal (uses Teleport to body) -->
-    <ConfirmModal
-      :is-open="confirmModal.isModalOpen.value"
-      :options="confirmModal.modalOptions.value"
-      @confirm="confirmModal.handleConfirm"
-      @cancel="confirmModal.handleCancel"
-    />
+    <!-- Confirmations render through the workspace-level ConfirmModal
+         (useConfirm state is global; one host avoids duplicate modals). -->
     <!-- Header -->
     <div class="shrink-0 flex items-center gap-1 px-2 py-2 border-b border-blue-100 dark:border-white/[0.08]">
       <!-- Collapse (desktop only; mobile uses the navbar view switcher) -->
@@ -177,7 +172,6 @@ import type { AgentInstance } from '../../../types/services'
 import { useAgentStore } from '../../../stores/agentStore'
 import { useConfirm } from '../../../composables/useConfirm'
 import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
-import ConfirmModal from '../modals/ConfirmModal.vue'
 
 const emit = defineEmits<{
   (e: 'collapse'): void
@@ -185,8 +179,7 @@ const emit = defineEmits<{
 
 const store = useAgentStore()
 const showArchived = ref(false)
-const confirmModal = useConfirm()
-const { confirm } = confirmModal
+const { confirm } = useConfirm()
 
 const showSearch = ref(false)
 const searchQuery = ref('')
@@ -202,7 +195,13 @@ function filterBySearch(list: AgentInstance[]): AgentInstance[] {
   )
 }
 
-const activeInstances = computed(() => filterBySearch(store.activeInstances))
+// Most recently touched first, so an instance that just finished a run (or
+// received a message) surfaces at the top of the list.
+const activeInstances = computed(() =>
+  [...filterBySearch(store.activeInstances)].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
+)
 const archivedInstances = computed(() => filterBySearch(store.archivedInstances))
 const hasResults = computed(() => activeInstances.value.length > 0 || archivedInstances.value.length > 0)
 
@@ -240,14 +239,19 @@ async function handleUnarchive(id: string) {
 async function handleDelete(id: string) {
   const instance = store.instances.find(i => i.id === id)
   const name = instance?.title || 'this agent instance'
+  const isRunning = !!instance?.isProcessing
   const confirmed = await confirm({
     title: 'Delete Agent Instance',
-    message: `Are you sure you want to delete "${name}" and all its messages? This action cannot be undone.`,
+    message: isRunning
+      ? `"${name}" is still running. Deleting it disconnects the run (any work already in flight may still land) and permanently removes all its messages. This action cannot be undone.`
+      : `Are you sure you want to delete "${name}" and all its messages? This action cannot be undone.`,
     confirmText: 'Delete',
     cancelText: 'Cancel',
     type: 'danger'
   })
   if (!confirmed) return
+  // Cancel any in-flight stream before the instance disappears (no-op when idle).
+  store.abortInstanceRun(id)
   await store.deleteInstance(id)
 }
 

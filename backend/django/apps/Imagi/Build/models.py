@@ -100,6 +100,10 @@ class AgentConversation(models.Model):
     title = models.CharField(max_length=120, blank=True, default='')
     mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='agent')
     archived_at = models.DateTimeField(null=True, blank=True)
+    # Set when an agent run starts, cleared when it ends. Readers must treat
+    # old timestamps as "not running" (staleness guard) because a crashed
+    # worker never gets to clear this.
+    run_started_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'Agents_agentconversation'
@@ -145,6 +149,10 @@ class AgentMessage(models.Model):
     ])
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # Structured run metadata persisted with assistant replies:
+    # {tool_calls?, files_changed?, plan?, usage?} — see
+    # services.base_agent.build_message_metadata. NULL for plain replies.
+    metadata = models.JSONField(null=True, blank=True)
 
     class Meta:
         db_table = 'Agents_agentmessage'
