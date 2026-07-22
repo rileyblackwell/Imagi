@@ -2,26 +2,11 @@
   <div class="h-full flex flex-col relative z-10 transition-colors duration-300" :class="{'mode-transition': disableAllAnimations}">
     <!-- Messages Container -->
     <div ref="messagesContainer" class="flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
-      <!-- Empty state -->
-      <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-6 py-4 text-center min-h-0">
-        <div class="empty-icon flex items-center justify-center w-12 h-12 rounded-2xl mb-4">
-          <i class="fas fa-wand-magic-sparkles text-base"></i>
-        </div>
-        <h3 class="text-sm font-semibold text-blue-950 dark:text-white mb-1.5">What should we build?</h3>
+      <!-- Empty state: one quiet line, nothing to dismiss or click -->
+      <div v-if="!processedMessages.length" class="h-full flex items-center justify-center px-6 py-4 text-center min-h-0">
         <p class="text-xs text-blue-950/45 dark:text-blue-100/45 max-w-[230px] leading-relaxed">
-          Describe a page, feature, or change and the agent will build it into your project.
+          Describe a change and the agent will build it into your app.
         </p>
-        <div v-if="examples?.length" class="mt-4 flex flex-col items-stretch gap-1.5 w-full max-w-[240px]">
-          <button
-            v-for="example in examples"
-            :key="example"
-            type="button"
-            class="rounded-full border border-blue-100 dark:border-white/[0.08] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-blue-950/70 dark:text-white/65 hover:bg-blue-50 hover:text-blue-950 dark:hover:bg-white/[0.08] dark:hover:text-white transition-colors truncate"
-            @click="emit('use-example', example)"
-          >
-            {{ example }}
-          </button>
-        </div>
       </div>
       
       <template v-if="processedMessages.length > 0">
@@ -150,8 +135,6 @@ const props = defineProps<{
   isProcessing?: boolean
   /** What the agent is doing right now; empty while its reply is streaming. */
   statusText?: string
-  /** Starter prompts offered in the empty state; clicking one emits use-example. */
-  examples?: string[]
   /** Whether restore chips may show: false on task transcripts (their edits
    *  live in a worktree, not the canonical timeline) and while a
    *  canonical-tree run is live. Omitted = fall back to !isProcessing. */
@@ -177,7 +160,6 @@ const showActivityIndicator = computed(() => {
 
 const emit = defineEmits<{
   (e: 'apply-code', code: string): void
-  (e: 'use-example', example: string): void
   (e: 'restore-checkpoint', message: AIMessage): void
 }>()
 
@@ -673,24 +655,6 @@ const copyToClipboard = (code: string) => {
   .dark .status-shimmer {
     color: rgba(219, 234, 254, 0.65);
   }
-}
-
-/* Empty state icon: navy ink tile matching the site's primary button */
-.empty-icon {
-  color: #fdf9f2;
-  background: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.2),
-    0 6px 14px -4px rgba(23, 37, 84, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.dark .empty-icon {
-  color: theme('colors.blue.950');
-  background: #f3ede2;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 6px 14px -4px rgba(0, 0, 0, 0.45);
 }
 
 /* Prose styling for dark mode */
