@@ -1,1 +1,1 @@
-export { AccountBalanceDisplay } from './display'
+export { AccountBalanceDisplay, UsageLimitsDisplay } from './display'

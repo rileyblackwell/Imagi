@@ -18,43 +18,55 @@
     <BuilderLayout
       storage-key="builderWorkspaceSidebarCollapsed"
       :navigation-items="navigationItems"
-      :extra-wide="isManagerOpen"
     >
-      <!-- Sidebar Content: Agent Manager + Active Instance Chat -->
+      <!-- Sidebar Content: one pane at a time (the mobile pattern promoted
+           to desktop) — the agent manager (team view) OR the active
+           instance's chat. The preview lives in the main slot, so swapping
+           panes never unmounts it. -->
       <template #sidebar-content="{ collapsed, toggleSidebar }">
-        <div v-if="!collapsed" class="flex h-full">
-          <AgentManagerPanel
-            v-if="isManagerOpen || (isMobile && mobileView === 'manager')"
-            class="w-56 shrink-0"
-            :class="mobileView === 'manager' ? 'max-md:w-full' : 'max-md:hidden'"
-            @collapse="toggleManager"
-          />
-          <BuilderSidebarChat
-            ref="chatRef"
-            class="flex-1 min-w-0"
-            :class="mobileView === 'chat' ? 'max-md:w-full' : 'max-md:hidden'"
-            :selected-app="null"
-            :on-prompt-submit="handlePrompt"
-            :on-model-select="handleModelSelect"
-            :on-effort-select="handleEffortSelect"
-            :on-example-prompt="handleExamplePrompt"
-            :on-collapse-sidebar="() => collapseSidebar(toggleSidebar)"
-            :is-collapsed="false"
-            :is-manager-open="isManagerOpen"
-            :version-history="versionHistory"
-            :versions-loading="isLoadingVersions"
-            :prompt-examples="promptExamplesComputed"
-            @toggle-manager="toggleManager"
-            @stop="handleStop"
-            @load-versions="loadVersionHistory"
-            @restore-version="onVersionSelect"
-            @restore-checkpoint="onRestoreCheckpoint"
-          />
+        <div v-if="!collapsed" class="h-full overflow-hidden">
+          <!-- KeepAlive keeps the hidden pane's component state alive across
+               swaps — most importantly the composer's typed-but-unsent draft,
+               which a plain v-if unmount would silently destroy. -->
+          <Transition name="sidebar-view" mode="out-in">
+            <KeepAlive>
+              <AgentManagerPanel
+                v-if="activeSidebarPane === 'manager'"
+                key="manager"
+                class="h-full w-full"
+                :on-dispatch-task="handlePrompt"
+                @select="handleManagerSelect"
+                @collapse="setSidebarView('chat')"
+                @accepted="handleTaskAccepted"
+              />
+              <BuilderSidebarChat
+                v-else
+                key="chat"
+                ref="chatRef"
+                class="h-full w-full"
+                :selected-app="null"
+                :on-prompt-submit="handlePrompt"
+                :on-model-select="handleModelSelect"
+                :on-effort-select="handleEffortSelect"
+                :on-example-prompt="handleExamplePrompt"
+                :on-collapse-sidebar="() => collapseSidebar(toggleSidebar)"
+                :is-collapsed="false"
+                :version-history="versionHistory"
+                :versions-loading="isLoadingVersions"
+                :prompt-examples="promptExamplesComputed"
+                @toggle-manager="setSidebarView('manager')"
+                @stop="handleStop"
+                @load-versions="loadVersionHistory"
+                @restore-version="onVersionSelect"
+                @restore-checkpoint="onRestoreCheckpoint"
+              />
+            </KeepAlive>
+          </Transition>
         </div>
       </template>
 
       <!-- Mobile-only view switcher, centered in the navbar: the logo sits in
-           the top-left corner and the balance in the top-right, with this
+           the top-left corner and the usage card in the top-right, with this
            switcher (agent manager / instance / browser) centered between them.
            One view fills the screen at a time. -->
       <template #navbar-center="{ setSidebarCollapsed }">
@@ -85,10 +97,10 @@
         </div>
       </template>
 
-      <!-- Account balance display in navbar right -->
+      <!-- Plan + usage-window display in navbar right -->
       <template #navbar-right>
         <div class="flex items-center gap-3">
-          <AccountBalanceDisplay />
+          <UsageLimitsDisplay />
         </div>
       </template>
 
@@ -138,15 +150,14 @@ import { BuilderCreationService } from '../services/builderCreationService'
 import { VersionControlService } from '../services/versionControlService'
 import { RouterUpdateService } from '../services/routerUpdateService'
 import { useAuthStore } from '@/shared/stores/auth'
-import { usePaymentStore } from '@/apps/payments/stores/payments'
-import { useBalanceStore } from '@/shared/stores/balance'
+import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
 import { useWindowSize } from '@/shared/composables/useWindowSize'
 import { useConfirm } from '../composables/useConfirm'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/imagi/build/layouts'
-import { AccountBalanceDisplay } from '../components/molecules'
+import { UsageLimitsDisplay } from '../components/molecules'
 
 // Atomic Components
 import {
@@ -195,15 +206,19 @@ const fileTypes = {
   'md': 'Markdown'
 }
 
-// Agent manager open/closed (persisted)
-const MANAGER_STORAGE_KEY = 'builderAgentManagerOpen'
-const isManagerOpen = ref<boolean>(
-  (typeof localStorage !== 'undefined' && localStorage.getItem(MANAGER_STORAGE_KEY)) !== 'false'
+// Which pane fills the sidebar (persisted): the agent manager (team view)
+// or the active instance's chat — never both. Tolerates the old
+// 'builderAgentManagerOpen' key's absence; that key is no longer written.
+const SIDEBAR_VIEW_STORAGE_KEY = 'builderSidebarView'
+type SidebarView = 'manager' | 'chat'
+const sidebarView = ref<SidebarView>(
+  (typeof localStorage !== 'undefined' &&
+    localStorage.getItem(SIDEBAR_VIEW_STORAGE_KEY)) === 'manager' ? 'manager' : 'chat'
 )
-function toggleManager() {
-  isManagerOpen.value = !isManagerOpen.value
+function setSidebarView(view: SidebarView) {
+  sidebarView.value = view
   try {
-    localStorage.setItem(MANAGER_STORAGE_KEY, String(isManagerOpen.value))
+    localStorage.setItem(SIDEBAR_VIEW_STORAGE_KEY, view)
   } catch {}
 }
 
@@ -225,9 +240,37 @@ const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string 
 ]
 function selectMobileView(view: MobileView, setSidebarCollapsed?: (collapsed: boolean) => void) {
   mobileView.value = view
+  // Manager/chat are the same panes desktop toggles between; keep the
+  // persisted desktop view in step so a rotation doesn't swap panes.
+  if (view !== 'browser') setSidebarView(view)
   // The browser lives in the main content area, so it shows when the sidebar
   // (manager + chat) is collapsed off-screen; manager/chat show when it's open.
   setSidebarCollapsed?.(view === 'browser')
+}
+
+// The single pane the sidebar renders right now. Mobile keeps its own
+// three-way switcher ('browser' maps to a collapsed sidebar, which hides
+// both panes); desktop follows the persisted sidebarView.
+const activeSidebarPane = computed<SidebarView>(() =>
+  isMobile.value ? (mobileView.value === 'manager' ? 'manager' : 'chat') : sidebarView.value
+)
+
+/** An instance was clicked in the manager — open its conversation.
+ *  The 'select' emit is the ONLY path that flips the pane to chat: the
+ *  active instance also changes programmatically (archive/delete falling
+ *  back to the lead, loadInstances regenerating local ids), and those must
+ *  never yank the user out of the manager mid-triage. */
+function handleManagerSelect() {
+  setSidebarView('chat')
+  if (isMobile.value) mobileView.value = 'chat'
+}
+
+/** An accepted task's worktree just merged into the canonical tree —
+ *  refresh everything that mirrors it (same pattern as version restore). */
+async function handleTaskAccepted() {
+  await loadProjectFiles(true)
+  await loadVersionHistory()
+  previewRef.value?.reload()
 }
 
 // Collapsing the sidebar from the chat header reveals the browser pane; keep
@@ -276,11 +319,12 @@ function refreshVersionHistorySoon() {
 async function onVersionSelect(hash: string) {
   if (!hash || !projectId.value) return
   const { showNotification } = useNotification()
-  // Restoring runs `git reset --hard` on the same working tree the agent's
-  // file tools write to — never while any of this project's runs is live
-  // (any instance: every run edits the shared tree). The backend enforces
-  // the same rule with a 409 for runs started from other tabs.
-  if (store.instances.some(i => i.isProcessing)) {
+  // Restoring runs `git reset --hard` on the canonical working tree, which
+  // only canonical-tree (chat/lead) runs write to — kind='task' runs edit
+  // their own git worktrees, so they neither block a restore nor are
+  // affected by one. The backend enforces the same rule with a 409 for
+  // runs started from other tabs.
+  if (store.instances.some(i => i.kind !== 'task' && i.isProcessing)) {
     showNotification({
       type: 'info',
       message: 'The agent is still working — wait for it to finish (or stop it) before restoring a version.',
@@ -319,9 +363,10 @@ async function onRestoreCheckpoint(message: AIMessage) {
   const instance = store.activeInstance
   if (!instance || !message.dbId || !message.checkpoint) return
   const { showNotification } = useNotification()
-  // Same shared-working-tree rule as version restore: never rewrite files
-  // while any of this project's runs is live.
-  if (store.instances.some(i => i.isProcessing)) {
+  // Same canonical-tree rule as version restore: only chat/lead runs edit
+  // the canonical tree, so only they block the rewrite — parallel task runs
+  // are isolated in their own worktrees.
+  if (store.instances.some(i => i.kind !== 'task' && i.isProcessing)) {
     showNotification({
       type: 'info',
       message: 'The agent is still working — wait for it to finish (or stop it) before restoring.',
@@ -486,13 +531,14 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
 
   const instanceId = instance.id
   const conversationIdBefore = instance.conversationId
+  // Task runs edit their own git worktree, never the canonical tree — so
+  // none of the canonical post-run work (file refresh, auto-commit, version
+  // history) applies to them. Committing canonical here would snapshot a
+  // parallel lead run's half-finished edits under this task's prompt.
+  const isTaskRun = instance.kind === 'task'
 
   try {
     const timestamp = new Date().toISOString()
-
-    // Mark pending transaction for fresh balance data
-    const balanceStore = useBalanceStore()
-    balanceStore.beginTransaction()
 
     store.setInstanceProcessing(instanceId, true)
 
@@ -535,8 +581,11 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
     // disk (and the backend persisted its files_changed metadata) — without
     // this, those edits get no refresh, no commit, and no version-history
     // entry, then silently ride along in the next run's auto-commit.
+    // Canonical-tree runs only: a task's edits live in its worktree (the
+    // backend checkpoints them there) and reach the canonical tree solely
+    // through accept-merge.
     const finalizeInterruptedEdits = async (suffix: string) => {
-      if (!sawFileEdit) return
+      if (isTaskRun || !sawFileEdit) return
       try {
         store.setFiles(await FileService.getProjectFiles(projectId.value))
       } catch (refreshError) {
@@ -630,19 +679,29 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
       } else if (messageStarted) {
         // Attach end-of-run telemetry to the reply itself so it survives in
         // the transcript (mirrors what the backend persists as metadata).
-        const meta: { filesChanged?: string[]; usage?: { costUsd?: number } } = {}
+        const meta: { filesChanged?: string[]; usage?: AIMessage['usage'] } = {}
         if (response.files_changed && response.files_changed.length > 0) {
           meta.filesChanged = response.files_changed
         }
-        if (typeof response.usage?.cost_usd === 'number') {
-          meta.usage = { costUsd: response.usage.cost_usd }
+        // Keep every usage field the run reported; absent usage stays absent
+        // (unknown, never free/zero).
+        const usage = response.usage
+        if (usage) {
+          const mapped: NonNullable<AIMessage['usage']> = {}
+          if (typeof usage.cost_usd === 'number') mapped.costUsd = usage.cost_usd
+          if (typeof usage.input_tokens === 'number') mapped.inputTokens = usage.input_tokens
+          if (typeof usage.output_tokens === 'number') mapped.outputTokens = usage.output_tokens
+          if (Object.keys(mapped).length > 0) meta.usage = mapped
         }
         if (meta.filesChanged || meta.usage) {
           store.setMessageMeta(instanceId, streamingMessageId, meta)
         }
       }
 
-      if (response.files_changed && response.files_changed.length > 0) {
+      // Canonical-tree runs only: a task changed its worktree, not the tree
+      // this refresh/commit targets — its changes land via accept-merge
+      // (handleTaskAccepted does the refresh then).
+      if (!isTaskRun && response.files_changed && response.files_changed.length > 0) {
         // One refresh + one commit for the whole run: the backend stages
         // `git add .` regardless of path, so a per-file loop just produced
         // N identical fetches and N commits.
@@ -674,6 +733,22 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
           timestamp: new Date().toISOString(),
           id: `system-busy-${Date.now()}`
         })
+      } else if ((agentError as any)?.status === 429) {
+        // Usage limit hit (pre-stream rejection, like the 409): the message
+        // never reached the backend, so drop the optimistic bubble too.
+        store.removeMessage(instanceId, userMessageId)
+        const body = (agentError as any)?.body as { resets_at?: string | null } | undefined
+        const resetsAt = formatResetTime(body?.resets_at)
+        store.addMessageToInstance(instanceId, {
+          role: 'assistant',
+          content: resetsAt
+            ? `Usage limit reached — resets ${resetsAt}. Upgrade your plan for a higher limit.`
+            : 'Usage limit reached — usage frees up as older activity ages out of the window. Upgrade your plan for a higher limit.',
+          timestamp: new Date().toISOString(),
+          id: `system-limit-${Date.now()}`
+        })
+        // Show the exhausted window in the navbar card / composer dropdown.
+        void useUsageStore().fetchUsage()
       } else if ((agentError as any)?.code === 'max_turns') {
         // The run hit its turn cap mid-task. Work so far is saved; a
         // follow-up prompt resumes from the same conversation.
@@ -695,14 +770,11 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
       }
     }
 
-    try {
-      setTimeout(() => {
-        useBalanceStore().fetchBalance(false, true)
-          .catch(err => console.warn('Error updating balance after AI operation:', err))
-      }, 1000)
-    } catch (err) {
-      console.warn('Error setting up balance update:', err)
-    }
+    // Refresh the usage windows after the run; the short delay lets the
+    // backend's usage-event write land first.
+    setTimeout(() => {
+      void useUsageStore().fetchUsage()
+    }, 1000)
   } catch (error) {
     console.error('Error processing prompt:', error)
     // Failures outside the agent call (store errors, setup bugs) must still
@@ -715,6 +787,13 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
     })
   } finally {
     store.setInstanceProcessing(instanceId, false)
+    // A task's run end flips it ready-for-review server-side (and grows its
+    // token total) — sync this instance's DTO fields so the review inbox
+    // picks it up without a reload.
+    const finished = store.instances.find(i => i.id === instanceId)
+    if (finished?.kind === 'task') {
+      void store.refreshInstanceFromServer(instanceId)
+    }
   }
 }
 
@@ -922,7 +1001,7 @@ async function retryProjectLoad() {
 
     const active = store.activeInstance
     if (active && !active.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.6-sol')
+      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.6-terra')
         || store.availableModels[0];
       if (defaultModel) {
         store.setInstanceModel(active.id, defaultModel.id)
@@ -978,7 +1057,7 @@ onMounted(async () => {
   
   try {
     // Get stores for easier access
-    const paymentsStore = usePaymentStore();
+    const usageStore = useUsageStore();
     const authStore = useAuthStore();
     
     // Create a shared request cache to prevent duplicate calls
@@ -1080,14 +1159,14 @@ onMounted(async () => {
         // Load agent instances for this project (creates a starter instance if none)
         await executeOnce('loadInstances', () => store.loadInstances(projectId.value))
 
-        // Only fetch balance once at startup, with no auto-refresh
-        executeOnce('fetchBalance', () => paymentsStore.fetchBalance(false, false))
-          .catch(err => console.error('Error fetching balance:', err));
+        // Fetch the plan's usage windows once at startup; runs refresh them.
+        executeOnce('fetchUsage', () => usageStore.fetchUsage())
+          .catch(err => console.error('Error fetching usage status:', err));
 
         // Ensure active instance has a model selected
         const active = store.activeInstance
         if (active && !active.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.6-sol')
+          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.6-terra')
             || store.availableModels[0];
           if (defaultModel) {
             store.setInstanceModel(active.id, defaultModel.id)
@@ -1196,6 +1275,23 @@ onBeforeUnmount(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Manager <-> chat pane swap: a light fade+slide. The preview lives in the
+   main content area and is untouched by this transition. */
+.sidebar-view-enter-active,
+.sidebar-view-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-view-enter-from {
+  opacity: 0;
+  transform: translateX(8px);
+}
+
+.sidebar-view-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 /* Refined minimal scrollbar - Matching Homepage */

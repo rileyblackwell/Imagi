@@ -4,6 +4,7 @@ import type {
   AgentActivityStep,
   AgentResponse,
   AgentPlanStep,
+  ConversationKind,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -37,12 +38,19 @@ export interface AgentStreamHandlers {
 export class AgentStreamError extends Error {
   status?: number
   code?: string
+  /** Parsed JSON body of a pre-stream rejection (e.g. the 429
+   *  usage_limit_exceeded payload carries window + resets_at). */
+  body?: Record<string, unknown>
 
-  constructor(message: string, opts: { status?: number; code?: string } = {}) {
+  constructor(
+    message: string,
+    opts: { status?: number; code?: string; body?: Record<string, unknown> } = {}
+  ) {
     super(message)
     this.name = 'AgentStreamError'
     this.status = opts.status
     this.code = opts.code
+    this.body = opts.body
   }
 }
 
@@ -108,7 +116,7 @@ export interface ConversationMessageDto {
   plan?: AgentPlanStep[]
   activity?: AgentActivityStep[]
   filesChanged?: string[]
-  usage?: { costUsd?: number }
+  usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
   checkpoint?: string
 }
 
@@ -178,13 +186,15 @@ export const AgentService = {
       // rejections use "detail" (e.g. the 409 {"detail": "agent_busy"} when
       // another run holds the project); our own errors use "error".
       let detail = ''
+      let errorBody: Record<string, unknown> | undefined
       try {
         const body = await response.json()
         detail = body?.error || body?.detail || ''
+        if (body && typeof body === 'object') errorBody = body
       } catch { /* non-JSON body */ }
       throw new AgentStreamError(
         detail || `Agent request failed (${response.status})`,
-        { status: response.status }
+        { status: response.status, body: errorBody }
       )
     }
 
@@ -410,11 +420,21 @@ export const AgentService = {
   async createConversation(projectId: string | number, data: {
     modelName?: string
     title?: string
+    /** 'lead' requests are deduped server-side: a project keeps at most one
+     *  live lead thread, so racing clients converge on the same one. */
+    kind?: ConversationKind
+    /** conversationId of the lead thread a task was dispatched from */
+    parent?: number | null
+    /** Shared uuid grouping best-of-N sibling tasks from one prompt */
+    variantGroup?: string
   } = {}): Promise<ConversationDto> {
     const response = await api.post('/v1/agents/conversations/', {
       project_id: Number(projectId),
       model_name: data.modelName,
-      title: data.title ?? ''
+      title: data.title ?? '',
+      ...(data.kind ? { kind: data.kind } : {}),
+      ...(data.parent != null ? { parent: data.parent } : {}),
+      ...(data.variantGroup ? { variant_group: data.variantGroup } : {}),
     })
     return response.data as ConversationDto
   },
@@ -450,6 +470,24 @@ export const AgentService = {
     return response.data as ConversationDto
   },
 
+  /**
+   * Accept a reviewed task: the backend merges its worktree into the
+   * canonical tree and marks it accepted. Errors keep the axios shape —
+   * a conflicted merge rejects with response.status 409 and response.data
+   * { error: 'merge_conflict', detail: <git conflict detail> } (and a live
+   * canonical run rejects with the usual { detail: 'agent_busy' } 409).
+   */
+  async acceptTask(conversationId: number): Promise<{ status: string }> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/accept/`)
+    return response.data as { status: string }
+  },
+
+  /** Dismiss a reviewed task: discard its worktree without merging. */
+  async dismissTask(conversationId: number): Promise<{ status: string }> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/dismiss/`)
+    return response.data as { status: string }
+  },
+
   async getConversationMessages(conversationId: number): Promise<ConversationMessageDto[]> {
     const response = await api.get(
       `/v1/agents/conversations/${conversationId}/messages/`
@@ -474,8 +512,15 @@ export const AgentService = {
       if (Array.isArray(meta.files_changed) && meta.files_changed.length > 0) {
         dto.filesChanged = meta.files_changed
       }
-      if (typeof meta.usage?.cost_usd === 'number') {
-        dto.usage = { costUsd: meta.usage.cost_usd }
+      // Hydrate whatever usage fields were captured — tokens can exist
+      // without cost and vice versa. No fields at all means unknown, so the
+      // usage object stays absent entirely (never a phantom zero).
+      if (meta.usage) {
+        const usage: { costUsd?: number; inputTokens?: number; outputTokens?: number } = {}
+        if (typeof meta.usage.cost_usd === 'number') usage.costUsd = meta.usage.cost_usd
+        if (typeof meta.usage.input_tokens === 'number') usage.inputTokens = meta.usage.input_tokens
+        if (typeof meta.usage.output_tokens === 'number') usage.outputTokens = meta.usage.output_tokens
+        if (Object.keys(usage).length > 0) dto.usage = usage
       }
       if (typeof meta.checkpoint === 'string' && meta.checkpoint) {
         dto.checkpoint = meta.checkpoint

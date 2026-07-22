@@ -10,10 +10,10 @@ vi.mock('../modelsService', () => ({
   },
 }))
 
-const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
+const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 
 vi.mock('@/shared/services/api', () => ({
-  default: { get: apiGet },
+  default: { get: apiGet, post: apiPost },
   getAuthToken: () => 'test-token',
 }))
 
@@ -167,6 +167,28 @@ describe('AgentService.streamAgent', () => {
     } as any)
     await expect(call()).rejects.toMatchObject({ message: 'agent_busy', status: 409 })
   })
+
+  it('carries the parsed body of a 429 usage-limit rejection', async () => {
+    // The body's window + resets_at feed the "Usage limit reached" bubble.
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({
+        error: 'usage_limit_exceeded',
+        detail: 'limit reached',
+        window: '5h',
+        resets_at: '2026-07-22T18:00:00Z',
+      }),
+    } as any)
+    await expect(call()).rejects.toMatchObject({
+      status: 429,
+      body: {
+        error: 'usage_limit_exceeded',
+        window: '5h',
+        resets_at: '2026-07-22T18:00:00Z',
+      },
+    })
+  })
 })
 
 describe('labelForTool', () => {
@@ -189,6 +211,77 @@ describe('labelForTool', () => {
     ['some_future_tool', undefined, 'Worked on the project'],
   ] as const)('%s → %s', (name, args, expected) => {
     expect(labelForTool(name, args as Record<string, string> | undefined)).toBe(expected)
+  })
+})
+
+describe('AgentService task review (accept / dismiss)', () => {
+  beforeEach(() => {
+    apiPost.mockReset()
+  })
+
+  it('accepts a task through the accept endpoint', async () => {
+    apiPost.mockResolvedValue({ data: { status: 'accepted' } })
+    const result = await AgentService.acceptTask(12)
+    expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/12/accept/')
+    expect(result).toEqual({ status: 'accepted' })
+  })
+
+  it('propagates the 409 merge_conflict body so the UI can show its detail', async () => {
+    // Axios error shape: the response body rides on error.response.data.
+    const conflict = Object.assign(new Error('Request failed with status code 409'), {
+      response: {
+        status: 409,
+        data: { error: 'merge_conflict', detail: 'CONFLICT (content): src/App.vue' },
+      },
+    })
+    apiPost.mockRejectedValue(conflict)
+    await expect(AgentService.acceptTask(12)).rejects.toMatchObject({
+      response: {
+        status: 409,
+        data: { error: 'merge_conflict', detail: 'CONFLICT (content): src/App.vue' },
+      },
+    })
+  })
+
+  it('dismisses a task through the dismiss endpoint', async () => {
+    apiPost.mockResolvedValue({ data: { status: 'dismissed' } })
+    const result = await AgentService.dismissTask(31)
+    expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/31/dismiss/')
+    expect(result).toEqual({ status: 'dismissed' })
+  })
+})
+
+describe('AgentService.createConversation', () => {
+  beforeEach(() => {
+    apiPost.mockReset()
+  })
+
+  it('sends kind, parent and variant_group when dispatching a task', async () => {
+    apiPost.mockResolvedValue({ data: { id: 5 } })
+    await AgentService.createConversation(3, {
+      modelName: 'gpt-5.6-terra',
+      kind: 'task',
+      parent: 9,
+      variantGroup: 'uuid-1',
+    })
+    expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/', {
+      project_id: 3,
+      model_name: 'gpt-5.6-terra',
+      title: '',
+      kind: 'task',
+      parent: 9,
+      variant_group: 'uuid-1',
+    })
+  })
+
+  it('omits the task fields entirely for plain conversations', async () => {
+    apiPost.mockResolvedValue({ data: { id: 6 } })
+    await AgentService.createConversation(3, { modelName: 'gpt-5.6-terra' })
+    expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/', {
+      project_id: 3,
+      model_name: 'gpt-5.6-terra',
+      title: '',
+    })
   })
 })
 
@@ -233,10 +326,10 @@ describe('AgentService.getConversationMessages', () => {
     ])
     expect(msgs[1]!.plan).toEqual([{ step: 'Restyle navbar', status: 'completed' }])
     expect(msgs[1]!.filesChanged).toEqual(['src/views/Home.vue'])
-    expect(msgs[1]!.usage).toEqual({ costUsd: 0.012 })
+    expect(msgs[1]!.usage).toEqual({ costUsd: 0.012, inputTokens: 1000, outputTokens: 200 })
   })
 
-  it('omits usage when the persisted metadata has no cost', async () => {
+  it('hydrates token counts even when the persisted metadata has no cost', async () => {
     apiGet.mockResolvedValue({
       data: [
         {
@@ -249,6 +342,19 @@ describe('AgentService.getConversationMessages', () => {
       ],
     })
     const msgs = await AgentService.getConversationMessages(8)
+    expect(msgs[0]!.usage).toEqual({ inputTokens: 10, outputTokens: 5 })
+  })
+
+  it('leaves usage undefined when the metadata carries no usage fields', async () => {
+    // Absent usage means "unknown", never "free" — no phantom zero object.
+    apiGet.mockResolvedValue({
+      data: [
+        { id: 4, role: 'assistant', content: 'ok', timestamp: 't4', metadata: { usage: {} } },
+        { id: 5, role: 'assistant', content: 'ok', timestamp: 't5', metadata: null },
+      ],
+    })
+    const msgs = await AgentService.getConversationMessages(9)
     expect(msgs[0]!.usage).toBeUndefined()
+    expect(msgs[1]!.usage).toBeUndefined()
   })
 })

@@ -2,8 +2,7 @@
   <DashboardLayout
     :storage-key="storageKey"
     :navigation-items="navigationItems"
-    :wide="!extraWide"
-    :extra-wide="extraWide"
+    wide
     compact-top
     mobile-overlay
     app-shell
@@ -51,10 +50,6 @@ defineProps({
   navigationItems: {
     type: Array as () => NavigationItem[],
     default: () => []
-  },
-  extraWide: {
-    type: Boolean,
-    default: false
   }
 })
 </script>

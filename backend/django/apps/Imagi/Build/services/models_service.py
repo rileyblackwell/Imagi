@@ -14,8 +14,8 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
 # The GPT 5.6 suite: three tiers users can choose from when building.
-#   Sol   - flagship, most capable (default)
-#   Terra - balanced, general-purpose
+#   Sol   - flagship, most capable
+#   Terra - balanced, general-purpose (default)
 #   Luna  - light, fast and economical
 #
 # `backend_model` is the REAL OpenAI model id the suite id maps to at runtime.

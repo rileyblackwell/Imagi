@@ -12,11 +12,9 @@
         :class="[
           isSidebarCollapsed
             ? 'w-16 bg-white dark:bg-[#0a0a0a]'
-            : (extraWide
-              ? 'w-[36rem] bg-white dark:bg-dark-950/95 backdrop-blur-md'
-              : (wide
-                ? 'w-80 bg-white dark:bg-dark-950/95 backdrop-blur-md'
-                : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md')),
+            : (wide
+              ? 'w-80 bg-white dark:bg-dark-950/95 backdrop-blur-md'
+              : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md'),
           mobileOverlay ? 'max-md:top-16 max-md:w-full max-md:bg-white max-md:dark:bg-[#0a0a0a] max-md:backdrop-blur-none' : '',
           mobileOverlay ? (isSidebarCollapsed ? 'max-md:-translate-x-full' : 'max-md:translate-x-0') : ''
         ]"
@@ -89,7 +87,7 @@
         class="flex-1 flex flex-col transition-all duration-300 ease-in-out"
         :class="[
           appShell ? 'h-full min-h-0 overflow-hidden' : 'min-h-screen',
-          isSidebarCollapsed ? 'ml-16' : (extraWide ? 'ml-[36rem]' : (wide ? 'ml-80' : 'ml-72')),
+          isSidebarCollapsed ? 'ml-16' : (wide ? 'ml-80' : 'ml-72'),
           mobileOverlay ? 'max-md:ml-0' : ''
         ]"
       >
@@ -97,7 +95,7 @@
         <BaseNavbar
           class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm"
           :class="[
-            isSidebarCollapsed ? 'left-16' : (extraWide ? 'left-[36rem]' : (wide ? 'left-80' : 'left-72')),
+            isSidebarCollapsed ? 'left-16' : (wide ? 'left-80' : 'left-72'),
             mobileOverlay ? 'max-md:left-0' : ''
           ]"
         >
@@ -168,7 +166,6 @@ const props = defineProps<{
   navigationItems: NavigationItem[]
   storageKey?: string
   wide?: boolean
-  extraWide?: boolean
   compactTop?: boolean
   // When true, the sidebar becomes a full-screen off-canvas overlay on mobile
   // (< md) instead of squeezing the main content. Opt-in so other layouts keep
@@ -180,7 +177,6 @@ const props = defineProps<{
 }>()
 
 const wide = computed(() => !!props.wide)
-const extraWide = computed(() => !!props.extraWide)
 const compactTop = computed(() => !!props.compactTop)
 const mobileOverlay = computed(() => !!props.mobileOverlay)
 const appShell = computed(() => !!props.appShell)

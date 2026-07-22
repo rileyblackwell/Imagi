@@ -49,7 +49,7 @@ OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Default model for agents
-DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-sol')
+DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
 
 # Upper bound on agent-loop iterations for a single request: room for
 # plan → search → read → edit → verify cycles without letting a confused
@@ -278,6 +278,11 @@ class AgentContext:
     project_name: Optional[str] = None
     project_description: Optional[str] = None
     project_path: Optional[str] = None
+    # Root directory this run's file tools operate on: the canonical
+    # project_path for chat/lead runs, the task's git worktree for
+    # kind='task' runs (tools re-point the in-memory Project at it and
+    # suppress the DB mirror — see tools._get_project).
+    effective_project_path: Optional[str] = None
     conversation_id: Optional[int] = None
     current_file: Optional[Dict[str, Any]] = None
     # Working plan maintained by the agent via the update_plan tool
@@ -298,7 +303,7 @@ class ImagiAgentService:
         Initialize the agent service.
 
         Args:
-            model: The OpenAI model to use (default: gpt-5.6-sol)
+            model: The OpenAI model to use (default: gpt-5.6-terra)
             reasoning_effort: How much reasoning the model should use
                 ('low', 'medium', 'high'). None uses the model default.
         """
@@ -346,8 +351,11 @@ class ImagiAgentService:
         system_prompt: Optional[str] = None,
         project_id: Optional[int] = None,
         title: str = "",
+        kind: str = "chat",
+        parent: Optional[AgentConversation] = None,
+        variant_group: str = "",
     ) -> AgentConversation:
-        """Create a new conversation."""
+        """Create a new conversation. New tasks start awaiting work ('active')."""
         from .coding_agent import CODING_AGENT_INSTRUCTIONS
 
         conversation = AgentConversation.objects.create(
@@ -356,6 +364,10 @@ class ImagiAgentService:
             project_id=project_id,
             mode="agent",
             title=title,
+            kind=kind,
+            parent=parent,
+            review_status='active' if kind == 'task' else '',
+            variant_group=variant_group or '',
         )
 
         prompt_content = system_prompt or CODING_AGENT_INSTRUCTIONS
@@ -399,6 +411,33 @@ class ImagiAgentService:
             content=content,
             metadata=metadata,
         )
+
+    def _record_usage_event(
+        self,
+        user,
+        model: Optional[str],
+        usage: Optional[Dict[str, Any]],
+        conversation,
+    ) -> None:
+        """Feed a persisted run's token usage into Payments' usage metering.
+
+        Best-effort by contract: metering must never break message
+        persistence, so every failure is swallowed after logging. Runs
+        without captured usage are skipped (absent means unknown).
+        """
+        if not usage:
+            return
+        try:
+            from .usage_limits import record_usage
+            record_usage(
+                user,
+                model or self.model,
+                usage.get('input_tokens'),
+                usage.get('output_tokens'),
+                conversation_id=conversation.id if conversation else None,
+            )
+        except Exception as e:
+            logger.warning(f"Could not record usage event: {e}")
 
     def build_conversation_history(self, conversation: AgentConversation) -> List[Dict[str, str]]:
         """Build conversation history for the agent, compacting when long."""
@@ -490,19 +529,33 @@ class ImagiAgentService:
             conversation = self.create_conversation(user, model, project_id=project_id)
 
         # Get project info (also hydrates the working copy, which must exist
-        # before the checkpoint below can snapshot it)
+        # before the worktree/checkpoint work below can snapshot it)
         project_info = self.get_project_info(project_id, user)
+
+        # Task conversations run inside their own git worktree so parallel
+        # tasks (and the lead) never trample each other's edits; every other
+        # kind runs on the canonical tree. A worktree failure fails the run —
+        # silently running a task on the canonical tree would break isolation.
+        effective_root = project_info.get("project_path")
+        if conversation.kind == 'task' and effective_root:
+            effective_root = self._ensure_task_worktree(conversation, effective_root)
+
+        # A fresh prompt to a task that was awaiting review reopens it.
+        if conversation.kind == 'task' and conversation.review_status == 'ready':
+            conversation.review_status = 'active'
+            conversation.save(update_fields=["review_status"])
 
         # Checkpoint: capture the project state this message starts from, so
         # the workspace can offer a per-message restore point (conversation
-        # and files rewind together). Best-effort — a checkpoint failure must
-        # never block the run itself.
+        # and files rewind together). Runs against the effective root, so a
+        # task's restore points live in its worktree. Best-effort — a
+        # checkpoint failure must never block the run itself.
         user_message_metadata = None
-        if project_info.get("project_path"):
+        if effective_root:
             try:
                 from .version_control_service import VersionControlService
                 checkpoint = VersionControlService().ensure_checkpoint(
-                    project_info["project_path"],
+                    effective_root,
                     'Checkpoint before: ' + (user_input or '').strip().splitlines()[0][:60]
                 )
                 if checkpoint.get("success") and checkpoint.get("commit_hash"):
@@ -526,6 +579,7 @@ class ImagiAgentService:
             project_name=project_info["project_name"],
             project_description=project_info["project_description"],
             project_path=project_info["project_path"],
+            effective_project_path=effective_root,
             conversation_id=conversation.id,
             current_file=current_file,
         )
@@ -553,6 +607,62 @@ class ImagiAgentService:
         conversation.save(update_fields=["run_started_at"])
 
         return conversation, context, input_messages
+
+    def _ensure_task_worktree(self, conversation, project_path: str) -> str:
+        """Return the task conversation's worktree root, creating it if missing.
+
+        Persists worktree_path on the conversation so the review endpoints
+        (accept/dismiss) and cleanup can find it without recomputing.
+        """
+        from .version_control_service import VersionControlService
+
+        # Task dispatch is exempt from the canonical busy guard, so a live
+        # chat/lead run may have half-written edits on the canonical tree
+        # right now. Snapshotting them would commit that broken intermediate
+        # state as a permanent canonical commit AND fork the task from it,
+        # so in that case the task forks from the last committed HEAD instead.
+        snapshot_pending = not self._project_has_live_canonical_run(
+            conversation.user, conversation.project_id
+        )
+        result = VersionControlService().create_task_worktree(
+            project_path, conversation.id, snapshot_pending=snapshot_pending
+        )
+        if not result.get('success') or not result.get('worktree_path'):
+            raise RuntimeError(
+                result.get('message') or 'Could not create the task worktree'
+            )
+        worktree_path = result['worktree_path']
+        if conversation.worktree_path != worktree_path:
+            conversation.worktree_path = worktree_path
+            conversation.save(update_fields=["worktree_path"])
+        return worktree_path
+
+    def _project_has_live_canonical_run(self, user, project_id) -> bool:
+        """Is a canonical-tree (chat/lead) run in flight for this project?
+
+        Delegates to the API layer's guard so the staleness window stays
+        defined in one place (lazy import: views imports this module at load
+        time). Best-effort — an error here must never block a task run.
+        """
+        if not project_id:
+            return False
+        try:
+            from ..api.views import _project_has_running_conversation
+            return _project_has_running_conversation(user, project_id)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not check for a live canonical run: {e}")
+            return False
+
+    def _mark_task_ready(self, conversation) -> None:
+        """A task whose run persisted its final reply is awaiting review."""
+        # getattr: test doubles stand in for the conversation here.
+        if getattr(conversation, 'kind', 'chat') != 'task':
+            return
+        try:
+            conversation.review_status = 'ready'
+            conversation.save(update_fields=["review_status"])
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not mark task ready for review: {e}")
 
     def _clear_run_started(self, conversation) -> None:
         """Best-effort: mark the conversation's run as finished.
@@ -695,6 +805,12 @@ class ImagiAgentService:
                 ),
             )
             persisted = True
+            # The final reply landed — a task is now awaiting review (partial
+            # replies persisted from the finally block below stay 'active').
+            await sync_to_async(self._mark_task_ready)(conversation)
+            await sync_to_async(self._record_usage_event)(
+                user, model, usage, conversation
+            )
 
             done_event = {
                 "type": "done",
@@ -759,6 +875,19 @@ class ImagiAgentService:
                         )
                     except Exception as e:  # pragma: no cover - best effort
                         logger.warning(f"Could not persist partial agent reply: {e}")
+                # An interrupted run (stop/disconnect/turn cap) still spent
+                # tokens; meter the mid-stream reading — a lower bound, which
+                # is honest for the usage windows even though it stays
+                # omitted from the displayed message metadata (where absent
+                # means unknown).
+                try:
+                    interrupted_usage = extract_usage(result, model or self.model)
+                except Exception:  # pragma: no cover - defensive
+                    interrupted_usage = None
+                if interrupted_usage:
+                    await sync_to_async(self._record_usage_event)(
+                        user, model, interrupted_usage, conversation
+                    )
             if conversation is not None:
                 await sync_to_async(self._clear_run_started)(conversation)
 
@@ -810,6 +939,7 @@ class ImagiAgentService:
 
             response_content = result.final_output or ""
             metadata = extract_run_metadata(result)
+            usage = extract_usage(result, model or self.model)
 
             # Add assistant message (with run metadata) to conversation
             self.add_assistant_message(
@@ -819,9 +949,11 @@ class ImagiAgentService:
                     tool_calls=extract_tool_call_records(result),
                     files_changed=metadata["files_changed"],
                     plan=list(context.plan),
-                    usage=extract_usage(result, model or self.model),
+                    usage=usage,
                 ),
             )
+            self._mark_task_ready(conversation)
+            self._record_usage_event(user, model, usage, conversation)
 
             return {
                 "success": True,

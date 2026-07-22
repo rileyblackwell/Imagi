@@ -4,12 +4,12 @@
          dropdown can anchor to the full header width — the sidebar clips
          overflow, so a narrow panel can't fit it anchored to the button. -->
     <div class="shrink-0 relative flex items-center gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
-      <div v-if="!isManagerOpen" class="relative group max-md:hidden">
+      <div class="relative group max-md:hidden">
         <button
           class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
           @click="$emit('toggleManager')"
         >
-          <i class="fas fa-chevron-right text-sm"></i>
+          <i class="fas fa-layer-group text-sm"></i>
         </button>
         <div
           class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
@@ -119,14 +119,70 @@
         :is-processing="!!activeInstance?.isProcessing"
         :status-text="activeInstance?.statusText || ''"
         :examples="promptExamples"
+        :can-restore="canRestoreCheckpoints"
         @use-example="handleExamplePrompt"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         class="flex-1"
       />
     </div>
 
-    <!-- Chat Input Section (fixed at bottom) -->
-    <div class="shrink-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+    <!-- Chat Input Section (fixed at bottom). Relative so the usage panel
+         can anchor to the full section width — the sidebar clips overflow,
+         so a panel anchored to its narrow button couldn't fit. -->
+    <div class="shrink-0 relative bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+      <!-- Usage limits panel (opens upward above the composer) -->
+      <div
+        v-if="usageOpen"
+        ref="usagePanel"
+        class="absolute bottom-full left-2 right-2 mb-1 z-50 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+      >
+        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            Usage
+          </span>
+          <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
+            {{ usageStore.plan ? `${usageStore.plan.name} plan` : '—' }}
+          </span>
+        </div>
+        <!-- Body scrolls on short viewports (like the version-history list)
+             so the panel never grows past the top of the sidebar; the calc
+             budget covers the navbar + composer + panel header. -->
+        <div class="max-h-[min(20rem,calc(100vh-19rem))] overflow-y-auto">
+          <div class="px-3 py-2.5 space-y-3">
+            <div v-for="meter in usageMeters" :key="meter.key">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-white/40">
+                  {{ meter.label }}
+                </span>
+                <!-- Unknown usage shows an em-dash and no bar — never 0% -->
+                <span class="text-[11px] font-medium tabular-nums text-blue-950/70 dark:text-white/70">
+                  {{ meter.usedText }}
+                </span>
+              </div>
+              <div v-if="meter.percent !== null" class="usage-meter mt-1.5">
+                <div class="usage-meter-fill" :style="{ width: `${meter.percent}%` }"></div>
+              </div>
+              <p v-if="meter.resetsAt" class="mt-1 text-[10px] text-blue-950/40 dark:text-white/35">
+                Resets {{ meter.resetsAt }}
+              </p>
+            </div>
+          </div>
+          <div v-if="otherPlans.length" class="border-t border-blue-100 dark:border-white/[0.08] px-3 py-2">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-white/40 pb-1.5">
+              Other plans
+            </div>
+            <div
+              v-for="plan in otherPlans"
+              :key="plan.id"
+              class="flex items-center justify-between gap-2 py-0.5"
+            >
+              <span class="text-[11px] font-medium text-blue-950/75 dark:text-white/70">{{ plan.name }}</span>
+              <span class="text-[10px] tabular-nums text-blue-950/45 dark:text-white/40">{{ plan.limits }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="px-2 pt-1 pb-3">
         <!-- Queued prompt: one message held while the agent works -->
         <div
@@ -208,6 +264,20 @@
                   </option>
                 </select>
               </div>
+
+              <!-- Usage limits dropdown (button + anchored panel above) -->
+              <div ref="usageRoot" class="dropdown-wrapper" title="Plan usage limits">
+                <i class="fas fa-gauge-high dropdown-icon"></i>
+                <button
+                  type="button"
+                  aria-label="Usage limits"
+                  :aria-expanded="usageOpen"
+                  class="dropdown-select dropdown-select--with-icon text-xs"
+                  @click="toggleUsage"
+                >
+                  Usage
+                </button>
+              </div>
             </div>
 
             <!-- Stop Button (replaces send while a run is in flight) -->
@@ -244,6 +314,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
+import { useUsageStore, formatCompactTokens, formatResetTime } from '@/shared/stores/usage'
 import { useConfirm } from '../../../composables/useConfirm'
 import { ChatConversation } from '../../organisms/chat'
 import type { AIMessage, AIModel } from '../../../types/index'
@@ -268,7 +339,6 @@ const props = defineProps<{
   onExamplePrompt: (example: string) => void
   onCollapseSidebar?: () => void
   isCollapsed?: boolean
-  isManagerOpen?: boolean
   versionHistory?: VersionEntry[]
   versionsLoading?: boolean
   promptExamples?: string[]
@@ -294,10 +364,21 @@ const historyOpen = ref(false)
 const historyRoot = ref<HTMLElement | null>(null)
 const historyDropdown = ref<HTMLElement | null>(null)
 
-// Restores git-reset the working tree that a live run's file tools write to,
-// so they stay disabled while ANY of the project's instances is mid-run (the
-// workspace and backend enforce the same rule as backstops).
-const anyRunActive = computed(() => store.instances.some(i => i.isProcessing))
+// Restores git-reset the canonical working tree. Only canonical-tree
+// (chat/lead) runs write to it — kind='task' runs edit their own git
+// worktrees — so restores stay enabled while tasks run in parallel and are
+// blocked only by a live canonical run (the workspace and backend enforce
+// the same rule as backstops).
+const anyRunActive = computed(() =>
+  store.instances.some(i => i.kind !== 'task' && i.isProcessing)
+)
+
+// Restore chips belong to canonical-tree threads: a task's edits live in its
+// worktree and land (or not) through the review inbox, so its transcript
+// never offers canonical-timeline restores.
+const canRestoreCheckpoints = computed(() =>
+  activeInstance.value?.kind !== 'task' && !anyRunActive.value
+)
 
 function toggleHistory() {
   historyOpen.value = !historyOpen.value
@@ -319,17 +400,71 @@ async function onRestoreVersion(version: VersionEntry) {
 }
 
 function onDocMousedown(e: MouseEvent) {
-  if (!historyOpen.value) return
   const target = e.target as Node
-  // The toggle button counts as "inside": closing on its mousedown would make
-  // the follow-up click toggle the menu straight back open.
-  if (historyRoot.value?.contains(target)) return
-  if (historyDropdown.value?.contains(target)) return
-  historyOpen.value = false
+  // The toggle buttons count as "inside": closing on their mousedown would
+  // make the follow-up click toggle the menu straight back open.
+  if (
+    historyOpen.value &&
+    !historyRoot.value?.contains(target) &&
+    !historyDropdown.value?.contains(target)
+  ) {
+    historyOpen.value = false
+  }
+  if (
+    usageOpen.value &&
+    !usageRoot.value?.contains(target) &&
+    !usagePanel.value?.contains(target)
+  ) {
+    usageOpen.value = false
+  }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocMousedown))
 onBeforeUnmount(() => document.removeEventListener('mousedown', onDocMousedown))
+
+// --- Usage limits dropdown (plan + rolling windows) ---
+
+const usageStore = useUsageStore()
+const usageOpen = ref(false)
+const usageRoot = ref<HTMLElement | null>(null)
+const usagePanel = ref<HTMLElement | null>(null)
+
+function toggleUsage() {
+  usageOpen.value = !usageOpen.value
+  // Windows drift as older activity ages out; refresh on open.
+  if (usageOpen.value) void usageStore.fetchUsage()
+}
+
+/** The two rolling-window meters. Missing data renders as unknown (em-dash,
+ *  no bar) — never as 0%. */
+const usageMeters = computed(() => {
+  const rows = [
+    { key: '5h', label: '5-hour window', win: usageStore.fiveHour, percent: usageStore.fiveHourPercent },
+    { key: 'week', label: 'Weekly window', win: usageStore.weekly, percent: usageStore.weeklyPercent },
+  ]
+  return rows.map(({ key, label, win, percent }) => ({
+    key,
+    label,
+    percent,
+    usedText: win && win.used !== null && win.limit !== null
+      ? `${formatCompactTokens(win.used)} / ${formatCompactTokens(win.limit)}${percent !== null ? ` · ${percent}%` : ''}`
+      : '—',
+    resetsAt: formatResetTime(win?.resetsAt ?? null),
+  }))
+})
+
+/** The plan registry minus the user's own plan, for comparing limits. */
+const otherPlans = computed(() =>
+  usageStore.plans
+    .filter(p => p.id && p.id !== usageStore.plan?.id)
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      limits: p.fiveHourTokens !== null && p.weeklyTokens !== null
+        ? `${formatCompactTokens(p.fiveHourTokens)} / 5h · ${formatCompactTokens(p.weeklyTokens)} / wk`
+        : '—',
+    }))
+)
 
 const modelOptions = computed<AIModel[]>(() => {
   const available = (store.availableModels || []).filter(model => model.id.startsWith('gpt-5.6'))
@@ -337,8 +472,8 @@ const modelOptions = computed<AIModel[]>(() => {
     return available
   }
   return [
-    { id: 'gpt-5.6-sol', name: 'GPT 5.6 Sol', provider: 'openai' } as AIModel,
     { id: 'gpt-5.6-terra', name: 'GPT 5.6 Terra', provider: 'openai' } as AIModel,
+    { id: 'gpt-5.6-sol', name: 'GPT 5.6 Sol', provider: 'openai' } as AIModel,
     { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', provider: 'openai' } as AIModel
   ]
 })
@@ -600,6 +735,34 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 .dropdown-select option:hover {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Usage-window meter: quiet navy ink bar (cream in dark mode, matching the
+   primary button system) */
+.usage-meter {
+  position: relative;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: rgba(23, 37, 84, 0.1);
+  overflow: hidden;
+}
+
+.dark .usage-meter {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.usage-meter-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 9999px;
+  background: theme('colors.blue.950');
+  transition: width 0.3s ease;
+}
+
+.dark .usage-meter-fill {
+  background: #f3ede2;
 }
 
 /* Textarea sits inside the input shell, which owns the border/focus ring */

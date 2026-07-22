@@ -49,6 +49,12 @@ class ProjectManagementService:
             else:
                 # Fallback to name-based deletion if path doesn't exist
                 self._delete_project_files(project_name)
+
+            # Task worktrees live beside the project directory
+            # ('<project_path>--wt-<conversation_id>', see Build's
+            # version_control_service); sweep them so deleted projects
+            # don't leak per-task checkouts.
+            self._delete_task_worktrees(project_path)
             
             # Perform a hard delete by using the hard_delete=True parameter
             project.delete(hard_delete=True)
@@ -168,6 +174,23 @@ class ProjectManagementService:
         except Exception as e:
             logger.error(f"Error deleting project directory {project_path}: {str(e)}")
             # Don't raise the exception, as we still want to delete the database record
+
+    def _delete_task_worktrees(self, project_path):
+        """Delete the per-task git worktree directories beside the project.
+
+        Best-effort: a worktree that cannot be removed is logged, never
+        raised — it must not block deleting the project itself.
+        """
+        if not project_path:
+            return
+        try:
+            import glob
+            for worktree_path in glob.glob(glob.escape(project_path.rstrip(os.sep)) + '--wt-*'):
+                if os.path.isdir(worktree_path):
+                    logger.info(f"Deleting task worktree: {worktree_path}")
+                    self._delete_project_directory(worktree_path)
+        except Exception as e:
+            logger.warning(f"Error deleting task worktrees for {project_path}: {e}")
 
     def _delete_project_files(self, project_name):
         """Delete project files for a given project name (legacy method, fallback)"""

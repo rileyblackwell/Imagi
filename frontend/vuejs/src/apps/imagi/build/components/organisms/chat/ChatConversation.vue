@@ -37,10 +37,12 @@
               </div>
               <!-- Checkpoint: rewind files + conversation to just before this
                    message. Revealed on hover/focus so the transcript stays
-                   quiet; hidden while a run is in flight (restore would pull
-                   the tree out from under the agent). -->
+                   quiet. Restore chips belong to canonical-tree threads
+                   (chat/lead) and hide while a canonical run is live — the
+                   parent gates both via can-restore; task transcripts never
+                   show them. -->
               <button
-                v-if="message.checkpoint && message.dbId && !isProcessing"
+                v-if="message.checkpoint && message.dbId && restoreAllowed"
                 type="button"
                 class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-blue-950/40 dark:text-white/35 hover:text-blue-950/75 dark:hover:text-white/75 hover:bg-blue-50/80 dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150"
                 title="Restore your app and this conversation to the moment before this message"
@@ -81,13 +83,15 @@
                   {{ message.filesChanged.length }} {{ message.filesChanged.length === 1 ? 'file' : 'files' }} updated
                 </span>
               </div>
-              <!-- Run cost: outside the memoized v-html, so its late arrival
-                   (on done) never needs a cache invalidation. -->
+              <!-- Run token usage: outside the memoized v-html, so its late
+                   arrival (on done) never needs a cache invalidation. Renders
+                   only when tokens were captured — absent usage is unknown,
+                   never "0 tokens". -->
               <p
-                v-if="typeof message.usage?.costUsd === 'number'"
+                v-if="typeof messageTokens(message) === 'number'"
                 class="mt-1.5 text-[10px] text-blue-950/35 dark:text-white/30"
               >
-                {{ formatCostUsd(message.usage.costUsd) }}
+                {{ formatTokens(messageTokens(message)!) }}
               </p>
             </div>
 
@@ -148,7 +152,15 @@ const props = defineProps<{
   statusText?: string
   /** Starter prompts offered in the empty state; clicking one emits use-example. */
   examples?: string[]
+  /** Whether restore chips may show: false on task transcripts (their edits
+   *  live in a worktree, not the canonical timeline) and while a
+   *  canonical-tree run is live. Omitted = fall back to !isProcessing. */
+  canRestore?: boolean
 }>()
+
+const restoreAllowed = computed(() =>
+  props.canRestore !== undefined ? props.canRestore : !props.isProcessing
+)
 
 /**
  * Show the activity indicator while the agent works, except when the reply is
@@ -314,10 +326,32 @@ const formatMessage = (message: AIMessage, index: number): string => {
   return html
 }
 
-/** Tiny cost caption under a reply, e.g. "$0.14"; floors at "<$0.01". */
-const formatCostUsd = (costUsd: number): string => {
-  if (costUsd > 0 && costUsd < 0.01) return '<$0.01'
-  return `$${costUsd.toFixed(2)}`
+/**
+ * Total tokens a reply used, or null when its usage was never captured
+ * (absent means unknown, never free — and an all-zero total also renders
+ * nothing rather than a misleading "0 tokens").
+ */
+const messageTokens = (message: AIMessage): number | null => {
+  const usage = message.usage
+  if (!usage) return null
+  const input = typeof usage.inputTokens === 'number' ? usage.inputTokens : null
+  const output = typeof usage.outputTokens === 'number' ? usage.outputTokens : null
+  if (input === null && output === null) return null
+  const total = (input ?? 0) + (output ?? 0)
+  return total > 0 ? total : null
+}
+
+/** Tiny usage caption under a reply, e.g. "9,340 tokens", "12.3k tokens". */
+const formatTokens = (total: number): string => {
+  if (total >= 1_000_000) {
+    const millions = total / 1_000_000
+    return `${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M tokens`
+  }
+  if (total > 10_000) {
+    const thousands = total / 1_000
+    return `${thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k tokens`
+  }
+  return `${total.toLocaleString()} tokens`
 }
 
 const copyToClipboard = (code: string) => {

@@ -17,6 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from asgiref.sync import sync_to_async
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -24,8 +25,9 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from ..models import AgentConversation, AgentMessage
+from ..models import AgentConversation, AgentMessage, CANONICAL_TREE_KINDS
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
+from ..services.usage_limits import check_usage_allowed
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
@@ -37,7 +39,11 @@ from ..services.browser_preview_service import (
 )
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from rest_framework.exceptions import NotFound, APIException
-from ..services.version_control_service import VersionControlService
+from ..services.version_control_service import (
+    MergeConflict,
+    StaleForkPoint,
+    VersionControlService,
+)
 from ..services.create_app_service import CreateAppService
 from ..services.directory_service import DirectoryService
 
@@ -690,10 +696,12 @@ class VersionControlResetView(APIView):
                     'error': 'Commit hash is required'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # The reset runs `git reset --hard` on the same working tree a
-            # live agent run's file tools write to; refuse while any of the
-            # project's conversations has a fresh run (same contract as the
-            # stream endpoint's agent_busy guard).
+            # The reset runs `git reset --hard` on the canonical working
+            # tree, so refuse while a canonical-tree (chat/lead) run is
+            # live (same contract as the stream endpoint's agent_busy
+            # guard). Task runs don't block it: their worktrees branched
+            # from an earlier HEAD and keep their own checkouts, so a
+            # canonical reset leaves them untouched.
             if _project_has_running_conversation(request.user, project_id):
                 return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
 
@@ -985,6 +993,27 @@ def agent(request):
             except (ValueError, TypeError):
                 conversation_id = None
 
+        # Busy guard, same scoping as the stream endpoint: canonical-tree
+        # (chat/lead) runs are serialized per project, a task run is blocked
+        # only while that same task is already running.
+        conversation = None
+        if conversation_id:
+            conversation = AgentConversation.objects.filter(
+                id=conversation_id, user=request.user
+            ).first()
+        if conversation is not None and conversation.kind == 'task':
+            if _conversation_is_running(conversation):
+                return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+        elif _project_has_running_conversation(
+            request.user, project_id, exclude_conversation_id=conversation_id
+        ):
+            return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+
+        # Plan usage limits, enforced before any model work starts.
+        allowed, limit_payload = check_usage_allowed(request.user)
+        if not allowed:
+            return Response(limit_payload, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         # Create agent service instance
         agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
@@ -1092,15 +1121,34 @@ async def agent_stream(request):
     model = resolve_model(payload.get('model', DEFAULT_MODEL))
     reasoning_effort = payload.get('reasoning_effort')
 
-    # One agent run per project at a time. Best-effort guard, not a lock:
-    # two simultaneous submits may both pass, which is acceptable — this
-    # protects against a user launching runs that trample each other's file
-    # edits, not against a determined race.
-    busy = await sync_to_async(_project_has_running_conversation)(
-        user, project_id, exclude_conversation_id=conversation_id
-    )
-    if busy:
-        return JsonResponse({'detail': 'agent_busy'}, status=409)
+    # Busy guard, scoped by what the run will edit. Chat/lead runs edit the
+    # shared canonical tree, so only one of those may be live per project;
+    # kind='task' runs edit their own git worktree, so a task is blocked only
+    # while that same conversation is already running — tasks run in parallel
+    # with the lead and with each other. Best-effort guard, not a lock: two
+    # simultaneous submits may both pass, which is acceptable — this protects
+    # against a user launching runs that trample each other's file edits, not
+    # against a determined race.
+    conversation = None
+    if conversation_id:
+        conversation = await sync_to_async(
+            AgentConversation.objects.filter(id=conversation_id, user=user).first
+        )()
+    if conversation is not None and conversation.kind == 'task':
+        if _conversation_is_running(conversation):
+            return JsonResponse({'detail': 'agent_busy'}, status=409)
+    else:
+        busy = await sync_to_async(_project_has_running_conversation)(
+            user, project_id, exclude_conversation_id=conversation_id
+        )
+        if busy:
+            return JsonResponse({'detail': 'agent_busy'}, status=409)
+
+    # Plan usage limits: refuse before the stream opens, following the same
+    # pre-stream JSON contract as the agent_busy 409 above.
+    allowed, limit_payload = await sync_to_async(check_usage_allowed)(user)
+    if not allowed:
+        return JsonResponse(limit_payload, status=429)
 
     agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
@@ -1148,10 +1196,16 @@ def _conversation_is_running(conversation):
     return bool(started and timezone.now() - started < RUN_STALENESS_WINDOW)
 
 
-def _project_has_running_conversation(user, project_id, exclude_conversation_id=None):
-    """Does any conversation in this project have a fresh run in flight?
+def _project_has_running_conversation(
+    user, project_id, exclude_conversation_id=None, kinds=CANONICAL_TREE_KINDS
+):
+    """Does any conversation of these kinds have a fresh run in this project?
 
-    Backs the stream endpoint's 409 agent_busy guard. The staleness window
+    Backs the 409 agent_busy guards. Scoped to the canonical-tree kinds
+    (chat/lead) by default: those runs edit the shared canonical tree and
+    must be serialized, while kind='task' runs edit only their own git
+    worktree — tasks neither block nor are blocked by this guard, so they
+    run in parallel with the lead and with each other. The staleness window
     matches is_running, so a crashed worker that never cleared
     run_started_at cannot wedge the project.
     """
@@ -1160,10 +1214,34 @@ def _project_has_running_conversation(user, project_id, exclude_conversation_id=
         user=user,
         project_id=project_id,
         run_started_at__gt=threshold,
+        kind__in=kinds,
     )
     if exclude_conversation_id:
         qs = qs.exclude(id=exclude_conversation_id)
     return qs.exists()
+
+
+def _conversation_total_tokens(conversation):
+    """Sum input+output tokens across the conversation's message usage.
+
+    None (not 0) when no message carries usage: absent usage means the run's
+    tokens were never captured, never that it was free. Aggregated in Python
+    because usage lives inside the metadata JSONField.
+    """
+    total = None
+    metadatas = conversation.messages.exclude(metadata__isnull=True).values_list(
+        'metadata', flat=True
+    )
+    for metadata in metadatas:
+        usage = metadata.get('usage') if isinstance(metadata, dict) else None
+        if not isinstance(usage, dict):
+            continue
+        input_tokens = usage.get('input_tokens')
+        output_tokens = usage.get('output_tokens')
+        if not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
+            continue
+        total = (total or 0) + input_tokens + output_tokens
+    return total
 
 
 def _serialize_conversation(conversation):
@@ -1176,12 +1254,49 @@ def _serialize_conversation(conversation):
         'title': conversation.title or '',
         'model_name': conversation.model_name,
         'project_id': conversation.project_id,
+        'kind': conversation.kind,
+        'parent': conversation.parent_id,
+        'review_status': conversation.review_status,
+        'variant_group': conversation.variant_group,
+        # The path itself is server-internal; the client only needs to know
+        # whether this task has an unmerged worktree to review.
+        'has_worktree': bool(conversation.worktree_path),
         'archived_at': conversation.archived_at.isoformat() if conversation.archived_at else None,
         'created_at': conversation.created_at.isoformat(),
         'updated_at': conversation.updated_at.isoformat(),
         'last_message_preview': preview,
         'is_running': _conversation_is_running(conversation),
+        'total_tokens': _conversation_total_tokens(conversation),
     }
+
+
+def _conversation_project(conversation):
+    """The conversation's project row, or None (project_id is a plain int)."""
+    if not conversation.project_id:
+        return None
+    return PMProject.objects.filter(
+        id=conversation.project_id, user=conversation.user
+    ).first()
+
+
+def _remove_conversation_worktree(conversation):
+    """Best-effort removal of a task conversation's git worktree.
+
+    Failures are logged, never raised: a leaked worktree directory must not
+    block deleting or dismissing the conversation itself.
+    """
+    if not conversation.worktree_path:
+        return
+    try:
+        project = _conversation_project(conversation)
+        if project and project.project_path:
+            VersionControlService().remove_task_worktree(
+                project.project_path, conversation.id
+            )
+    except Exception as e:
+        logger.warning(
+            f"Could not remove worktree for conversation {conversation.id}: {e}"
+        )
 
 
 @api_view(['GET', 'POST'])
@@ -1211,13 +1326,63 @@ def conversations_list_create(request):
             except (ValueError, TypeError):
                 return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
 
+        kind = request.data.get('kind')
+        if kind not in ('lead', 'task'):
+            kind = 'chat'
+        variant_group = (request.data.get('variant_group') or '').strip()[:64]
+
+        parent = None
+        parent_id = request.data.get('parent')
+        if parent_id is not None:
+            try:
+                parent = AgentConversation.objects.filter(
+                    id=int(parent_id), user=request.user
+                ).first()
+            except (ValueError, TypeError):
+                parent = None
+
+        # Single-lead invariant: a project has at most one live lead thread.
+        # Asking for another returns the existing one (200) instead of
+        # creating a duplicate, so racing clients converge on the same lead.
+        if kind == 'lead' and project_id is not None:
+            existing_lead = AgentConversation.objects.filter(
+                user=request.user,
+                project_id=project_id,
+                kind='lead',
+                archived_at__isnull=True,
+            ).order_by('created_at').first()
+            if existing_lead is not None:
+                return Response(
+                    _serialize_conversation(existing_lead), status=status.HTTP_200_OK
+                )
+
         agent_service = ImagiAgentService(model=model_name)
-        conversation = agent_service.create_conversation(
-            user=request.user,
-            model=model_name,
-            project_id=project_id,
-            title=title,
-        )
+        try:
+            with transaction.atomic():
+                conversation = agent_service.create_conversation(
+                    user=request.user,
+                    model=model_name,
+                    project_id=project_id,
+                    title=title,
+                    kind=kind,
+                    parent=parent,
+                    variant_group=variant_group,
+                )
+        except IntegrityError:
+            # Lost the race against the one_live_lead_per_project constraint:
+            # a concurrent request created the lead between our check and our
+            # insert. Converge on the winner instead of erroring.
+            existing_lead = AgentConversation.objects.filter(
+                user=request.user,
+                project_id=project_id,
+                kind='lead',
+                archived_at__isnull=True,
+            ).order_by('created_at').first()
+            if kind == 'lead' and existing_lead is not None:
+                return Response(
+                    _serialize_conversation(existing_lead), status=status.HTTP_200_OK
+                )
+            raise
         return Response(_serialize_conversation(conversation), status=status.HTTP_201_CREATED)
     except Exception as e:
         logger.error(f"Error creating conversation: {str(e)}")
@@ -1237,6 +1402,16 @@ def conversation_detail(request, conversation_id):
         return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
 
     if request.method == 'DELETE':
+        # A live task run is executing inside the worktree this delete would
+        # remove: deleting under it leaves an orphan non-git directory (the
+        # run's file tools recreate plain paths) and a run writing into a
+        # dead tree. Same 409 contract as accept/dismiss. Canonical-tree
+        # conversations have no worktree, so their delete-while-running flow
+        # (disconnect the run, keep what landed) is unchanged.
+        if conversation.kind == 'task' and _conversation_is_running(conversation):
+            return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+        # A task's worktree would otherwise leak beside the project dir.
+        _remove_conversation_worktree(conversation)
         conversation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -1250,6 +1425,27 @@ def conversation_detail(request, conversation_id):
         updated_fields.append('model_name')
     if 'archived' in request.data:
         archived = bool(request.data.get('archived'))
+        # Unarchiving a lead while a newer live lead exists would violate the
+        # single-lead invariant (and trip its DB constraint) — refuse rather
+        # than resurrect a second live lead.
+        if (
+            not archived
+            and conversation.kind == 'lead'
+            and conversation.archived_at is not None
+            and AgentConversation.objects.filter(
+                user=request.user,
+                project_id=conversation.project_id,
+                kind='lead',
+                archived_at__isnull=True,
+            ).exclude(id=conversation.id).exists()
+        ):
+            return Response(
+                {
+                    'error': 'lead_exists',
+                    'detail': 'This project already has a live lead thread.',
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         conversation.archived_at = timezone.now() if archived else None
         updated_fields.append('archived_at')
 
@@ -1306,16 +1502,32 @@ def conversation_restore_checkpoint(request, conversation_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Same rule as version reset: never rewrite the working tree while any
-    # of the project's conversations has a live run.
-    if conversation.project_id and _project_has_running_conversation(
-        request.user, conversation.project_id
-    ):
-        return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
-
-    result = VersionControlService().reset_to_version(
-        request.user, conversation.project_id, checkpoint
-    )
+    # A restore rewinds the tree the conversation's runs edit. For a task
+    # that is its own worktree (checkpoints were committed there), guarded
+    # only against that task's run; for chat/lead it is the canonical tree,
+    # guarded against canonical-tree runs — task runs don't block it, their
+    # worktrees branched from an earlier HEAD and are unaffected by a
+    # canonical reset.
+    if conversation.kind == 'task':
+        if not conversation.worktree_path:
+            return Response(
+                {'error': 'This task no longer has a worktree to restore.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if _conversation_is_running(conversation):
+            return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+        result = VersionControlService().reset_to_version(
+            request.user, conversation.project_id, checkpoint,
+            tree_path=conversation.worktree_path,
+        )
+    else:
+        if conversation.project_id and _project_has_running_conversation(
+            request.user, conversation.project_id
+        ):
+            return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+        result = VersionControlService().reset_to_version(
+            request.user, conversation.project_id, checkpoint
+        )
     if not result.get('success'):
         return Response(
             {'error': result.get('message', 'Could not restore the project files.')},
@@ -1327,13 +1539,124 @@ def conversation_restore_checkpoint(request, conversation_id):
     prompt_text = message.content
     conversation.messages.filter(created_at__gt=message.created_at).delete()
     conversation.messages.filter(created_at=message.created_at, id__gte=message.id).delete()
-    conversation.save(update_fields=['updated_at'])
+    # The rewind removed the reply that made a task reviewable.
+    if conversation.kind == 'task' and conversation.review_status == 'ready':
+        conversation.review_status = 'active'
+        conversation.save(update_fields=['review_status', 'updated_at'])
+    else:
+        conversation.save(update_fields=['updated_at'])
 
     return Response({
         'success': True,
         'checkpoint': checkpoint,
         'prompt': prompt_text,
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def conversation_accept(request, conversation_id):
+    """Accept a reviewed task: merge its worktree into the canonical tree.
+
+    Commits pending changes on both sides, merges the task branch, re-syncs
+    the ProjectFile mirror from the (now merged) canonical disk — worktree
+    runs skipped mirror writes by design — marks the task accepted, and
+    removes the worktree. A conflicted merge is aborted and reported as a
+    409 merge_conflict, leaving the canonical tree untouched.
+    """
+    conversation = get_object_or_404(
+        AgentConversation, id=conversation_id, user=request.user
+    )
+    if conversation.kind != 'task' or not conversation.worktree_path:
+        return Response(
+            {'error': 'Only task conversations with a worktree can be accepted.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if _conversation_is_running(conversation):
+        return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+    # The merge also rewrites the canonical tree, so it needs the same
+    # guard as version resets: no canonical-tree (chat/lead) run may be live.
+    if conversation.project_id and _project_has_running_conversation(
+        request.user, conversation.project_id
+    ):
+        return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+
+    project = _conversation_project(conversation)
+    if project is None or not project.project_path:
+        return Response(
+            {'error': 'Project not found for this conversation.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    service = VersionControlService()
+    try:
+        result = service.merge_task_worktree(project.project_path, conversation.id)
+    except MergeConflict as e:
+        return Response(
+            {'error': 'merge_conflict', 'detail': str(e)},
+            status=status.HTTP_409_CONFLICT
+        )
+    except StaleForkPoint as e:
+        # The canonical tree was restored to before this task's fork point;
+        # merging would silently resurrect the restored-away history.
+        return Response(
+            {'error': 'stale_base', 'detail': str(e)},
+            status=status.HTTP_409_CONFLICT
+        )
+    if not result.get('success'):
+        return Response(
+            {'error': result.get('message', 'Could not merge the task worktree.')},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # The merge rewrote the canonical working copy wholesale — bring the
+    # database mirror back in sync with disk.
+    try:
+        from ..services.project_files_service import import_project_from_disk
+        import_project_from_disk(project)
+    except Exception as sync_error:
+        logger.error(f"Task merge succeeded but database re-sync failed: {sync_error}")
+
+    service.remove_task_worktree(project.project_path, conversation.id)
+    conversation.review_status = 'accepted'
+    conversation.worktree_path = ''
+    conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
+
+    return Response({'status': 'accepted'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def conversation_dismiss(request, conversation_id):
+    """Dismiss a task: discard its worktree without merging anything."""
+    conversation = get_object_or_404(
+        AgentConversation, id=conversation_id, user=request.user
+    )
+    if conversation.kind != 'task':
+        return Response(
+            {'error': 'Only task conversations can be dismissed.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    # 'accepted' is terminal: the worktree is already merged into the
+    # canonical tree, so relabeling it 'dismissed' (e.g. from a stale tab)
+    # would make the record claim merged changes were discarded.
+    if conversation.review_status == 'accepted':
+        return Response(
+            {
+                'error': 'already_accepted',
+                'detail': 'This task was already accepted; its changes are part of your app.',
+            },
+            status=status.HTTP_409_CONFLICT
+        )
+    if _conversation_is_running(conversation):
+        return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+
+    _remove_conversation_worktree(conversation)
+    conversation.review_status = 'dismissed'
+    conversation.worktree_path = ''
+    conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
+
+    return Response({'status': 'dismissed'}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

@@ -44,6 +44,8 @@ from apps.Imagi.Build.services.tools import (
     resolve_safe_path,
     set_plan,
 )
+from apps.Payments.models import UsageEvent
+from apps.Payments.services.plans import PLANS
 
 
 class ToolTestBase(SimpleTestCase):
@@ -477,6 +479,13 @@ class ProcessStreamTests(TestCase):
         self.assertEqual(metadata['plan'], [{'step': 'edit the page', 'status': 'completed'}])
         self.assertEqual(metadata['usage'], done['usage'])
 
+        # The run's usage also feeds Payments' rolling-window metering.
+        usage_event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(usage_event.input_tokens, 1_000_000)
+        self.assertEqual(usage_event.output_tokens, 100_000)
+        self.assertEqual(usage_event.total_tokens, 1_100_000)
+        self.assertEqual(usage_event.conversation_id, 7)
+
     def test_done_event_omits_usage_when_unavailable(self):
         # The fake run exposes no context_wrapper, mirroring an SDK result
         # without tracked usage: the field must be absent, not zeroed.
@@ -485,6 +494,8 @@ class ProcessStreamTests(TestCase):
         self.assertNotIn('usage', events[-1])
         # A plain reply with no run artifacts persists NULL metadata.
         self.assertEqual(self.persisted_metadata, [None])
+        # Unknown usage is never metered as zero tokens.
+        self.assertFalse(UsageEvent.objects.exists())
 
     def test_max_turns_emits_error_code_and_persists_partial(self):
         class HitsTurnCap(_FakeStreamedRun):
@@ -500,6 +511,58 @@ class ProcessStreamTests(TestCase):
         # Friendlier than the SDK's raw message, so it can be shown as-is.
         self.assertNotIn('Max turns (30) exceeded', error['error'])
         self.assertEqual(self.persisted, ['Working on it'])
+
+    def test_interrupted_run_still_meters_usage(self):
+        # A run cut off mid-stream has already spent tokens; skipping the
+        # UsageEvent would make plan limits bypassable by stopping runs.
+        class Exploding(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started ')
+                raise RuntimeError('model exploded')
+
+        run = Exploding([])
+        run.context_wrapper = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=5_000, output_tokens=250)
+        )
+
+        self._run(run)
+
+        usage_event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(usage_event.input_tokens, 5_000)
+        self.assertEqual(usage_event.output_tokens, 250)
+        self.assertEqual(usage_event.total_tokens, 5_250)
+        self.assertEqual(usage_event.conversation_id, 7)
+        # The persisted partial reply still omits usage from its metadata
+        # (a mid-stream reading is a lower bound — display keeps "unknown").
+        self.assertEqual(self.persisted, ['I started'])
+        self.assertIsNone(self.persisted_metadata[0])
+
+    def test_max_turns_run_meters_usage(self):
+        class HitsTurnCap(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('Working on it ')
+                raise MaxTurnsExceeded('Max turns (30) exceeded')
+
+        run = HitsTurnCap([])
+        run.context_wrapper = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=2_000_000, output_tokens=90_000)
+        )
+
+        self._run(run)
+
+        usage_event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(usage_event.total_tokens, 2_090_000)
+
+    def test_interrupted_run_without_usage_records_nothing(self):
+        # No context_wrapper usage: absent means unknown — never a zero row.
+        class Exploding(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started ')
+                raise RuntimeError('model exploded')
+
+        self._run(Exploding([]))
+
+        self.assertFalse(UsageEvent.objects.exists())
 
 
 class AgentStreamEndpointTests(TestCase):
@@ -553,6 +616,27 @@ class AgentStreamEndpointTests(TestCase):
         )
         self.assertEqual(resp.status_code, 409)
         self.assertEqual(resp.json()['detail'], 'agent_busy')
+
+    def test_rejects_run_when_over_usage_limit(self):
+        # Starter-plan 5-hour window exhausted -> refused before the stream
+        # opens, with the same pre-stream JSON contract as agent_busy.
+        UsageEvent.objects.create(
+            user=self.user, model_name='gpt-5.6-terra',
+            input_tokens=PLANS['starter']['five_hour_tokens'], output_tokens=0,
+            total_tokens=PLANS['starter']['five_hour_tokens'],
+        )
+        token = Token.objects.create(user=self.user)
+        resp = self.client.post(
+            self.url, data='{"message": "hi", "project_id": 1}',
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(resp.status_code, 429)
+        body = resp.json()
+        self.assertEqual(body['error'], 'usage_limit_exceeded')
+        self.assertEqual(body['window'], '5h')
+        self.assertIn('detail', body)
+        self.assertIsNotNone(body['resets_at'])
 
 
 class ProjectBusyGuardTests(TestCase):
@@ -624,6 +708,57 @@ class ConversationMessagesMetadataTests(TestCase):
         messages = resp.json()
         self.assertIsNone(messages[0]['metadata'])
         self.assertEqual(messages[1]['metadata'], metadata)
+
+
+class ConversationTotalTokensTests(TestCase):
+    """Serialized conversations aggregate token usage across their messages."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='tokens', password='pw123456')
+        self.client.force_login(self.user)
+
+    def _conversation(self):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1
+        )
+
+    def test_total_tokens_sums_usage_across_messages(self):
+        conversation = self._conversation()
+        AgentMessage.objects.create(
+            conversation=conversation, role='user', content='hi',
+            metadata={'checkpoint': 'abc123'},  # non-usage metadata is ignored
+        )
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='one',
+            metadata={'usage': {'input_tokens': 1000, 'output_tokens': 200}},
+        )
+        # A run whose usage was never captured contributes nothing.
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='untracked',
+        )
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='two',
+            metadata={'usage': {'input_tokens': 50, 'output_tokens': 5, 'cost_usd': 0.01}},
+        )
+
+        resp = self.client.get(
+            reverse('conversations_list_create'), {'project_id': 1}
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        [conversation_data] = resp.json()
+        self.assertEqual(conversation_data['total_tokens'], 1255)
+
+    def test_total_tokens_null_when_no_message_has_usage(self):
+        # Absent usage means unknown — null, never 0.
+        conversation = self._conversation()
+        AgentMessage.objects.create(conversation=conversation, role='user', content='hi')
+        AgentMessage.objects.create(conversation=conversation, role='assistant', content='yo')
+
+        resp = self.client.get(reverse('conversation_detail', args=[conversation.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.json()['total_tokens'])
 
 
 class CheckpointTests(TestCase):

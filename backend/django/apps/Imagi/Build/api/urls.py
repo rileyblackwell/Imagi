@@ -31,7 +31,9 @@ from .views import (
     agent_stream,
     conversations_list_create,
     conversation_detail,
+    conversation_accept,
     conversation_cancel,
+    conversation_dismiss,
     conversation_restore_checkpoint,
     conversation_messages,
 )
@@ -74,6 +76,10 @@ agents_patterns = [
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),
     path('conversations/<int:conversation_id>/cancel/', conversation_cancel, name='conversation_cancel'),
+    # Task review: accept merges the task's worktree into the canonical
+    # tree, dismiss discards it.
+    path('conversations/<int:conversation_id>/accept/', conversation_accept, name='conversation_accept'),
+    path('conversations/<int:conversation_id>/dismiss/', conversation_dismiss, name='conversation_dismiss'),
     path('conversations/<int:conversation_id>/restore/', conversation_restore_checkpoint, name='conversation_restore_checkpoint'),
     path('conversations/<int:conversation_id>/messages/', conversation_messages, name='conversation_messages'),
 ]

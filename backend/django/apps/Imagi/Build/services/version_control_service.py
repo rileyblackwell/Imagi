@@ -7,8 +7,11 @@ This service handles git operations for project versioning, including:
 - Creating new commits on file changes
 """
 
+import contextlib
+import fcntl
 import logging
 import os
+import shutil
 import subprocess
 import datetime
 import time
@@ -16,6 +19,82 @@ from django.shortcuts import get_object_or_404
 from apps.Imagi.ProjectManager.models import Project as PMProject
 
 logger = logging.getLogger(__name__)
+
+
+class MergeConflict(Exception):
+    """A task branch could not be merged into the canonical tree cleanly.
+
+    Raised after the conflicted merge has been aborted, so the canonical
+    tree is left untouched. The API maps this to a 409 merge_conflict.
+    """
+
+
+class StaleForkPoint(Exception):
+    """The canonical tree was restored to before this task's fork point.
+
+    Merging the task branch would resurrect the history the restore
+    removed (the branch's ancestry contains the pre-restore commits), so
+    the merge is refused before touching the canonical tree. The API maps
+    this to a 409 stale_base.
+    """
+
+
+def task_worktree_path(project_path: str, conversation_id: int) -> str:
+    """Directory of a task conversation's git worktree.
+
+    A SIBLING of the project directory, never inside it: the canonical
+    tree's file walks, `git add .`, and the preview servers must never see
+    another task's in-progress variant.
+    """
+    return f"{project_path.rstrip(os.sep)}--wt-{conversation_id}"
+
+
+def task_branch(conversation_id: int) -> str:
+    """Branch a task conversation's worktree has checked out."""
+    return f"task/{conversation_id}"
+
+
+def task_base_ref(conversation_id: int) -> str:
+    """Git ref recording the canonical commit a task branch forked from.
+
+    Stored in the repo itself (not the database) so merge_task_worktree can
+    detect a canonical restore-to-before-the-fork without extra plumbing;
+    absent for worktrees created before this ref existed, in which case the
+    merge falls back to the plain behaviour.
+    """
+    return f"refs/imagi/task-base/{conversation_id}"
+
+
+@contextlib.contextmanager
+def canonical_repo_lock(project_path):
+    """Serialize canonical-repo git mutations for one project.
+
+    An exclusive flock on the project's .git directory: two near-simultaneous
+    task dispatches (or a dispatch racing a merge) would otherwise collide on
+    .git/index.lock and fail nondeterministically. When the repo does not
+    exist yet there is nothing to contend on, so the lock is skipped.
+    """
+    git_dir = os.path.join(project_path, '.git')
+    fd = None
+    try:
+        if os.path.isdir(git_dir):
+            try:
+                fd = os.open(git_dir, os.O_RDONLY)
+                fcntl.flock(fd, fcntl.LOCK_EX)
+            except OSError as e:  # pragma: no cover - defensive
+                logger.warning(f"Could not lock repo at {git_dir}: {e}")
+                if fd is not None:
+                    os.close(fd)
+                    fd = None
+        yield
+    finally:
+        if fd is not None:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            except OSError:  # pragma: no cover - defensive
+                pass
+            os.close(fd)
+
 
 class VersionControlService:
     """
@@ -98,9 +177,11 @@ class VersionControlService:
         """
         try:
             git_dir = os.path.join(project_path, '.git')
-            
-            # Check if git repository already exists
-            if os.path.exists(git_dir) and os.path.isdir(git_dir):
+
+            # Check if git repository already exists. Existence, not isdir:
+            # in a linked worktree '.git' is a FILE pointing at the main
+            # repo, and re-initing there would nest a repo inside it.
+            if os.path.exists(git_dir):
                 return True
                 
             # Initialize git repository
@@ -261,56 +342,62 @@ class VersionControlService:
         except Exception as e:
             return {'success': False, 'message': f"Error getting commit history: {str(e)}"}
     
-    def reset_to_version(self, user, project_id, commit_hash):
+    def reset_to_version(self, user, project_id, commit_hash, tree_path=None):
         """
         Reset the project to a specific version (commit).
-        
+
         Args:
             user: The user making the request
             project_id (int): The ID of the project
             commit_hash (str): The hash of the commit to reset to
-            
+            tree_path (str): Working tree to reset (a task's worktree);
+                defaults to the canonical project tree
+
         Returns:
             dict: Result of the operation containing success status and message
         """
         try:
             project = get_object_or_404(PMProject, id=project_id, user=user)
-            
-            if not project.project_path or not os.path.exists(project.project_path):
+
+            target_path = tree_path or project.project_path
+            if not target_path or not os.path.exists(target_path):
                 return {'success': False, 'message': 'Project path does not exist'}
-            
+
             # Check if the commit exists
             check_result = subprocess.run(
                 ['git', 'rev-parse', '--verify', commit_hash],
-                cwd=project.project_path,
+                cwd=target_path,
                 capture_output=True,
                 text=True
             )
-            
+
             if check_result.returncode != 0:
                 return {'success': False, 'message': f"Invalid commit hash: {commit_hash}"}
-            
+
             # Reset to the specified commit
             reset_result = subprocess.run(
                 ['git', 'reset', '--hard', commit_hash],
-                cwd=project.project_path,
+                cwd=target_path,
                 capture_output=True,
                 text=True
             )
-            
+
             if reset_result.returncode != 0:
                 return {'success': False, 'message': f"Error resetting to commit {commit_hash}: {reset_result.stderr}"}
 
             # The reset rewrote the working copy wholesale — bring the
             # database copy of the project files back in sync with disk.
-            try:
-                from .project_files_service import import_project_from_disk
-                import_project_from_disk(project)
-            except Exception as sync_error:
-                logger.error(f"Project reset succeeded but database re-sync failed: {sync_error}")
+            # Canonical tree only: the mirror tracks canonical content, so a
+            # task-worktree reset must never write its variant files into it.
+            if target_path == project.project_path:
+                try:
+                    from .project_files_service import import_project_from_disk
+                    import_project_from_disk(project)
+                except Exception as sync_error:
+                    logger.error(f"Project reset succeeded but database re-sync failed: {sync_error}")
 
             return {'success': True, 'message': f'Successfully reset project to version {commit_hash}'}
-            
+
         except Exception as e:
             return {'success': False, 'message': f"Error resetting to version: {str(e)}"}
     
@@ -364,6 +451,229 @@ class VersionControlService:
             return {'success': False, 'commit_hash': None, 'message': f"Error creating checkpoint: {e.stderr}"}
         except Exception as e:
             return {'success': False, 'commit_hash': None, 'message': f"Error creating checkpoint: {str(e)}"}
+
+    # ------------------------------------------------------------------
+    # Per-task worktrees (one isolated checkout per task conversation)
+    # ------------------------------------------------------------------
+
+    def create_task_worktree(self, project_path, conversation_id, snapshot_pending=True):
+        """Create (or reuse) the git worktree a task conversation runs in.
+
+        The worktree lives beside the project directory and checks out
+        branch task/<id> forked from the canonical HEAD, so parallel tasks
+        each edit their own tree and merge back explicitly on accept.
+
+        Args:
+            snapshot_pending: When True (the default), pending canonical
+                changes are committed first so the task forks from what is
+                on disk right now. Callers pass False while a canonical-tree
+                run is live: committing its half-written edits would bake a
+                broken intermediate state into a permanent canonical commit,
+                so the task forks from the last committed HEAD instead.
+
+        Returns:
+            dict: {'success': bool, 'worktree_path': str | None, 'message': str}
+        """
+        try:
+            worktree_path = task_worktree_path(project_path, conversation_id)
+            branch = task_branch(conversation_id)
+
+            if os.path.isdir(worktree_path):
+                return {
+                    'success': True,
+                    'worktree_path': worktree_path,
+                    'message': 'Task worktree already exists',
+                }
+
+            # Serialized per project: parallel dispatches (the best-of-N
+            # form fires several without awaiting) would otherwise race on
+            # .git/index.lock.
+            with canonical_repo_lock(project_path):
+                # The branch forks from HEAD, so make sure one exists.
+                head_exists = subprocess.run(
+                    ['git', 'rev-parse', '--verify', '--quiet', 'HEAD'],
+                    cwd=project_path, capture_output=True, text=True
+                ).returncode == 0
+                if snapshot_pending or not head_exists:
+                    checkpoint = self.ensure_checkpoint(
+                        project_path, f'Checkpoint before task {conversation_id}'
+                    )
+                    if not checkpoint.get('success'):
+                        return {
+                            'success': False,
+                            'worktree_path': None,
+                            'message': checkpoint.get('message', 'Could not checkpoint the project'),
+                        }
+
+                # Drop stale bookkeeping from a worktree directory that was
+                # deleted without `git worktree remove`.
+                subprocess.run(
+                    ['git', 'worktree', 'prune'],
+                    cwd=project_path, capture_output=True, text=True
+                )
+
+                branch_exists = subprocess.run(
+                    ['git', 'rev-parse', '--verify', f'refs/heads/{branch}'],
+                    cwd=project_path, capture_output=True, text=True
+                ).returncode == 0
+                if branch_exists:
+                    cmd = ['git', 'worktree', 'add', worktree_path, branch]
+                else:
+                    cmd = ['git', 'worktree', 'add', '-b', branch, worktree_path]
+
+                result = subprocess.run(
+                    cmd, cwd=project_path, capture_output=True, text=True
+                )
+                if result.returncode != 0:
+                    return {
+                        'success': False,
+                        'worktree_path': None,
+                        'message': f"Error creating task worktree: {result.stderr}",
+                    }
+
+                # Record the fork point for a freshly-created branch, so an
+                # accept can detect a canonical restore to before it. A
+                # pre-existing branch keeps its original base ref (or none,
+                # for branches created before the ref existed).
+                if not branch_exists:
+                    subprocess.run(
+                        ['git', 'update-ref', task_base_ref(conversation_id), 'HEAD'],
+                        cwd=project_path, capture_output=True, text=True
+                    )
+
+            return {
+                'success': True,
+                'worktree_path': worktree_path,
+                'message': 'Task worktree created',
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'worktree_path': None,
+                'message': f"Error creating task worktree: {str(e)}",
+            }
+
+    def remove_task_worktree(self, project_path, conversation_id):
+        """Remove a task conversation's worktree and branch.
+
+        Tolerates pieces that are already gone (a manually deleted
+        directory, a pruned branch, a project directory that was removed
+        first) — cleanup must be safe to repeat.
+        """
+        worktree_path = task_worktree_path(project_path, conversation_id)
+        branch = task_branch(conversation_id)
+        try:
+            if os.path.isdir(project_path):
+                with canonical_repo_lock(project_path):
+                    subprocess.run(
+                        ['git', 'worktree', 'remove', '--force', worktree_path],
+                        cwd=project_path, capture_output=True, text=True
+                    )
+                    if os.path.isdir(worktree_path):
+                        shutil.rmtree(worktree_path, ignore_errors=True)
+                    subprocess.run(
+                        ['git', 'branch', '-D', branch],
+                        cwd=project_path, capture_output=True, text=True
+                    )
+                    subprocess.run(
+                        ['git', 'update-ref', '-d', task_base_ref(conversation_id)],
+                        cwd=project_path, capture_output=True, text=True
+                    )
+                    subprocess.run(
+                        ['git', 'worktree', 'prune'],
+                        cwd=project_path, capture_output=True, text=True
+                    )
+            if os.path.isdir(worktree_path):
+                shutil.rmtree(worktree_path, ignore_errors=True)
+            return {'success': True, 'message': 'Task worktree removed'}
+        except Exception as e:
+            return {'success': False, 'message': f"Error removing task worktree: {str(e)}"}
+
+    def merge_task_worktree(self, project_path, conversation_id):
+        """Merge a task's branch back into the canonical tree.
+
+        Commits pending changes on both sides first (the same auto-commit
+        style the workspace uses everywhere), then merges task/<id> into
+        the canonical branch. On conflict the merge is aborted — leaving
+        the canonical tree untouched — and MergeConflict is raised. If the
+        canonical tree was restored to before the task's fork point while
+        the task was pending, StaleForkPoint is raised before anything is
+        touched: merging would silently resurrect the restored-away history.
+
+        Returns:
+            dict: {'success': bool, 'message': str, 'commit_hash': str | None}
+        """
+        worktree_path = task_worktree_path(project_path, conversation_id)
+        branch = task_branch(conversation_id)
+
+        if not os.path.isdir(worktree_path):
+            return {'success': False, 'message': 'Task worktree does not exist'}
+
+        # Commit whatever the task run left uncommitted inside its worktree,
+        # so the merge carries the tree the user actually reviewed.
+        worktree_commit = self.commit_changes(
+            worktree_path, f'Task {conversation_id} changes'
+        )
+        if not worktree_commit.get('success'):
+            return {
+                'success': False,
+                'message': worktree_commit.get('message', 'Could not commit task changes'),
+            }
+
+        with canonical_repo_lock(project_path):
+            # A restore/reset while the task was pending moved canonical HEAD
+            # to before the fork point; merging the branch (whose ancestry
+            # contains the undone commits) would re-apply them wholesale.
+            base = subprocess.run(
+                ['git', 'rev-parse', '--verify', '--quiet', task_base_ref(conversation_id)],
+                cwd=project_path, capture_output=True, text=True
+            )
+            if base.returncode == 0:
+                fork_point = base.stdout.strip()
+                ancestor = subprocess.run(
+                    ['git', 'merge-base', '--is-ancestor', fork_point, 'HEAD'],
+                    cwd=project_path, capture_output=True, text=True
+                )
+                if ancestor.returncode == 1:
+                    raise StaleForkPoint(
+                        'The project was restored to an earlier version after '
+                        'this draft was made, so accepting it would undo that '
+                        'restore.'
+                    )
+
+            # And any pending canonical edits, so the merge target is clean.
+            canonical_commit = self.commit_changes(
+                project_path, f'Checkpoint before merging task {conversation_id}'
+            )
+            if not canonical_commit.get('success'):
+                return {
+                    'success': False,
+                    'message': canonical_commit.get('message', 'Could not commit canonical changes'),
+                }
+
+            merge = subprocess.run(
+                ['git', 'merge', '--no-edit', branch],
+                cwd=project_path, capture_output=True, text=True
+            )
+            if merge.returncode != 0:
+                subprocess.run(
+                    ['git', 'merge', '--abort'],
+                    cwd=project_path, capture_output=True, text=True
+                )
+                detail = (merge.stdout or '').strip() or (merge.stderr or '').strip()
+                raise MergeConflict(
+                    detail or f'Task {conversation_id} conflicts with the current project state'
+                )
+
+            hash_result = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'],
+                cwd=project_path, capture_output=True, text=True
+            )
+        return {
+            'success': True,
+            'message': f'Task {conversation_id} merged',
+            'commit_hash': hash_result.stdout.strip() if hash_result.returncode == 0 else None,
+        }
 
     def create_version_after_file_change(self, user, project_id, file_path, description=None):
         """

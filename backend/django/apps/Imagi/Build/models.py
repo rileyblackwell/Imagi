@@ -28,6 +28,31 @@ MODE_CHOICES = (
     ('agent', 'Agent'),
 )
 
+# Conversation roles in the lead-thread workspace: one persistent 'lead'
+# thread per project, 'task' conversations dispatched from it (each running
+# in its own git worktree), and 'chat' for legacy standalone conversations
+# (every row predating the split defaults to it and renders as history).
+KIND_CHOICES = (
+    ('chat', 'Chat'),
+    ('lead', 'Lead'),
+    ('task', 'Task'),
+)
+
+# Kinds whose agent runs edit the shared canonical project tree. Task runs
+# edit only their own worktree, so they sit outside the canonical busy guard.
+CANONICAL_TREE_KINDS = ('chat', 'lead')
+
+# Review lifecycle for kind='task' conversations ('' for everything else):
+# active (running/being worked) -> ready (final reply persisted, awaiting
+# review) -> accepted (merged into the canonical tree) or dismissed.
+REVIEW_STATUS_CHOICES = (
+    ('', 'None'),
+    ('active', 'Active'),
+    ('ready', 'Ready'),
+    ('accepted', 'Accepted'),
+    ('dismissed', 'Dismissed'),
+)
+
 
 # ---------------------------------------------------------------------------
 # Builder workspace models (formerly the Builder sub-app)
@@ -99,6 +124,20 @@ class AgentConversation(models.Model):
     project_id = models.IntegerField(null=True, blank=True)  # Store reference to ProjectManager's Project ID
     title = models.CharField(max_length=120, blank=True, default='')
     mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='agent')
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default='chat')
+    # Lead thread a task was dispatched from. SET_NULL: deleting the lead
+    # must not cascade away task history.
+    parent = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL, related_name='children'
+    )
+    review_status = models.CharField(
+        max_length=10, choices=REVIEW_STATUS_CHOICES, blank=True, default=''
+    )
+    # Absolute path of the task's git worktree ('<project_path>--wt-<id>'),
+    # set when the first task run creates it; cleared on accept/dismiss.
+    worktree_path = models.CharField(max_length=500, blank=True, default='')
+    # Groups best-of-N sibling tasks spawned from one prompt.
+    variant_group = models.CharField(max_length=64, blank=True, default='')
     archived_at = models.DateTimeField(null=True, blank=True)
     # Set when an agent run starts, cleared when it ends. Readers must treat
     # old timestamps as "not running" (staleness guard) because a crashed
@@ -108,6 +147,16 @@ class AgentConversation(models.Model):
     class Meta:
         db_table = 'Agents_agentconversation'
         ordering = ['-updated_at']
+        constraints = [
+            # Single-lead invariant, enforced at the database so concurrent
+            # creates (multi-worker gunicorn, two tabs) cannot slip a second
+            # live lead past the API's check-then-create.
+            models.UniqueConstraint(
+                fields=['user', 'project_id'],
+                condition=models.Q(kind='lead', archived_at__isnull=True),
+                name='one_live_lead_per_project',
+            ),
+        ]
 
     def __str__(self):
         return f"Agent Conversation {self.id} - {self.user.username} using {self.model_name} ({self.provider})"
