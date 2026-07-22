@@ -13,7 +13,7 @@
           isSidebarCollapsed
             ? 'w-16 bg-white dark:bg-[#0a0a0a]'
             : (wide
-              ? 'w-80 bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'
+              ? 'w-[22rem] bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'
               : 'w-72 bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'),
           mobileOverlay ? 'max-md:top-16 max-md:w-full max-md:bg-white max-md:dark:bg-[#0a0a0a] max-md:backdrop-blur-none' : '',
           mobileOverlay ? (isSidebarCollapsed ? 'max-md:-translate-x-full' : 'max-md:translate-x-0') : ''
@@ -87,7 +87,7 @@
         class="flex-1 flex flex-col transition-all duration-300 ease-in-out"
         :class="[
           appShell ? 'h-full min-h-0 overflow-hidden' : 'min-h-screen',
-          isSidebarCollapsed ? 'ml-16' : (wide ? 'ml-80' : 'ml-72'),
+          isSidebarCollapsed ? 'ml-16' : (wide ? 'ml-[22rem]' : 'ml-72'),
           mobileOverlay ? 'max-md:ml-0' : ''
         ]"
       >
@@ -95,7 +95,7 @@
         <BaseNavbar
           class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
           :class="[
-            isSidebarCollapsed ? 'left-16' : (wide ? 'left-80' : 'left-72'),
+            isSidebarCollapsed ? 'left-16' : (wide ? 'left-[22rem]' : 'left-72'),
             mobileOverlay ? 'max-md:left-0' : ''
           ]"
         >

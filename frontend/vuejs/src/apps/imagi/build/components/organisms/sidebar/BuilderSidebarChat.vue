@@ -130,6 +130,79 @@
          can anchor to the full section width — the sidebar clips overflow,
          so a panel anchored to its narrow button couldn't fit. -->
     <div class="shrink-0 relative bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+      <!-- Model slider panel (opens upward above the composer): one slider
+           across the three models, faster → smarter -->
+      <div
+        v-if="modelOpen"
+        ref="modelPanel"
+        class="absolute bottom-full left-2 right-2 mb-1 z-50 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+      >
+        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            Model
+          </span>
+          <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
+            {{ currentModel?.name || '—' }}
+          </span>
+        </div>
+        <div class="px-3 py-3">
+          <input
+            type="range"
+            class="control-slider"
+            min="0"
+            :max="Math.max(orderedModels.length - 1, 0)"
+            step="1"
+            :value="modelIndex"
+            :disabled="!activeInstance || orderedModels.length < 2"
+            aria-label="Model — faster to smarter"
+            @input="onModelSlider"
+          />
+          <div class="flex items-center justify-between mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-blue-950/45 dark:text-white/40">
+            <span>Faster</span>
+            <span>Smarter</span>
+          </div>
+          <p class="mt-2 text-[11px] leading-snug text-blue-950/50 dark:text-white/45">
+            Smarter models consume your usage faster.
+          </p>
+        </div>
+      </div>
+
+      <!-- Reasoning effort slider panel (opens upward above the composer) -->
+      <div
+        v-if="effortOpen"
+        ref="effortPanel"
+        class="absolute bottom-full left-2 right-2 mb-1 z-50 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+      >
+        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            Reasoning
+          </span>
+          <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
+            {{ currentEffort?.name || '—' }}
+          </span>
+        </div>
+        <div class="px-3 py-3">
+          <input
+            type="range"
+            class="control-slider"
+            min="0"
+            :max="Math.max(effortOptions.length - 1, 0)"
+            step="1"
+            :value="effortIndex"
+            :disabled="!activeInstance || effortOptions.length < 2"
+            aria-label="Reasoning effort — faster to smarter"
+            @input="onEffortSlider"
+          />
+          <div class="flex items-center justify-between mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-blue-950/45 dark:text-white/40">
+            <span>Faster</span>
+            <span>Smarter</span>
+          </div>
+          <p class="mt-2 text-[11px] leading-snug text-blue-950/50 dark:text-white/45">
+            More reasoning consumes your usage faster.
+          </p>
+        </div>
+      </div>
+
       <!-- Usage limits panel (opens upward above the composer) -->
       <div
         v-if="usageOpen"
@@ -224,58 +297,58 @@
 
           <!-- Controls toolbar: model + reasoning side by side on the left, send pinned right -->
           <div class="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
-            <div class="flex flex-nowrap items-center gap-1.5 min-w-0">
-              <!-- Model Dropdown -->
-              <div class="dropdown-wrapper" title="Model">
-                <i class="fas fa-microchip dropdown-icon"></i>
-                <select
-                  :value="activeInstance?.selectedModelId ?? ''"
-                  :disabled="!activeInstance"
-                  aria-label="Model"
-                  @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
-                  class="dropdown-select dropdown-select--with-icon text-xs"
-                >
-                  <option
-                    v-for="model in modelOptions"
-                    :key="model.id"
-                    :value="model.id"
-                  >
-                    {{ model.name }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Reasoning Effort Dropdown -->
-              <div class="dropdown-wrapper" title="How much reasoning the model uses">
-                <i class="fas fa-brain dropdown-icon"></i>
-                <select
-                  :value="activeInstance?.selectedEffort ?? 'medium'"
-                  :disabled="!activeInstance"
-                  aria-label="Reasoning effort"
-                  @change="handleEffortSelect(($event.target as HTMLSelectElement).value as ReasoningEffort)"
-                  class="dropdown-select dropdown-select--with-icon text-xs"
-                >
-                  <option
-                    v-for="effort in effortOptions"
-                    :key="effort.id"
-                    :value="effort.id"
-                  >
-                    {{ effort.name }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Usage limits dropdown (button + anchored panel above) -->
-              <div ref="usageRoot" class="dropdown-wrapper" title="Plan usage limits">
-                <i class="fas fa-gauge-high dropdown-icon"></i>
+            <!-- min-w-0 + overflow-hidden lets the chips truncate rather than
+                 shove the send button off the edge on a narrow sidebar. -->
+            <div class="flex flex-nowrap items-center gap-1 min-w-0 flex-1 overflow-hidden">
+              <!-- Model: opens a slider from faster → smarter across the three models -->
+              <div ref="modelRoot" class="min-w-0">
                 <button
                   type="button"
+                  title="Model — slide from faster to smarter"
+                  aria-label="Model"
+                  :aria-expanded="modelOpen"
+                  :disabled="!activeInstance"
+                  class="control-chip"
+                  :class="{ 'control-chip--active': modelOpen }"
+                  @click="toggleModel"
+                >
+                  <i class="fas fa-microchip control-chip-icon"></i>
+                  <span class="control-chip-label">{{ modelShortName(activeInstance?.selectedModelId) }}</span>
+                  <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': modelOpen }"></i>
+                </button>
+              </div>
+
+              <!-- Reasoning effort: same faster → smarter slider -->
+              <div ref="effortRoot" class="min-w-0">
+                <button
+                  type="button"
+                  title="Reasoning effort — slide from faster to smarter"
+                  aria-label="Reasoning effort"
+                  :aria-expanded="effortOpen"
+                  :disabled="!activeInstance"
+                  class="control-chip"
+                  :class="{ 'control-chip--active': effortOpen }"
+                  @click="toggleEffort"
+                >
+                  <i class="fas fa-brain control-chip-icon"></i>
+                  <span class="control-chip-label">{{ effortLabel(activeInstance?.selectedEffort) }}</span>
+                  <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': effortOpen }"></i>
+                </button>
+              </div>
+
+              <!-- Usage limits (button + anchored panel above) -->
+              <div ref="usageRoot" class="shrink-0">
+                <button
+                  type="button"
+                  title="Plan usage limits"
                   aria-label="Usage limits"
                   :aria-expanded="usageOpen"
-                  class="dropdown-select dropdown-select--with-icon text-xs"
+                  class="control-chip"
+                  :class="{ 'control-chip--active': usageOpen }"
                   @click="toggleUsage"
                 >
-                  Usage
+                  <i class="fas fa-gauge-high control-chip-icon"></i>
+                  <span class="control-chip-label">Usage</span>
                 </button>
               </div>
             </div>
@@ -417,6 +490,20 @@ function onDocMousedown(e: MouseEvent) {
   ) {
     usageOpen.value = false
   }
+  if (
+    modelOpen.value &&
+    !modelRoot.value?.contains(target) &&
+    !modelPanel.value?.contains(target)
+  ) {
+    modelOpen.value = false
+  }
+  if (
+    effortOpen.value &&
+    !effortRoot.value?.contains(target) &&
+    !effortPanel.value?.contains(target)
+  ) {
+    effortOpen.value = false
+  }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocMousedown))
@@ -429,10 +516,41 @@ const usageOpen = ref(false)
 const usageRoot = ref<HTMLElement | null>(null)
 const usagePanel = ref<HTMLElement | null>(null)
 
+// --- Model + reasoning slider popovers ---
+
+const modelOpen = ref(false)
+const modelRoot = ref<HTMLElement | null>(null)
+const modelPanel = ref<HTMLElement | null>(null)
+const effortOpen = ref(false)
+const effortRoot = ref<HTMLElement | null>(null)
+const effortPanel = ref<HTMLElement | null>(null)
+
+// The three controls share the space above the composer, so only one panel
+// opens at a time.
+function closeControlPanels() {
+  usageOpen.value = false
+  modelOpen.value = false
+  effortOpen.value = false
+}
+
 function toggleUsage() {
-  usageOpen.value = !usageOpen.value
+  const next = !usageOpen.value
+  closeControlPanels()
+  usageOpen.value = next
   // Windows drift as older activity ages out; refresh on open.
   if (usageOpen.value) void usageStore.fetchUsage()
+}
+
+function toggleModel() {
+  const next = !modelOpen.value
+  closeControlPanels()
+  modelOpen.value = next
+}
+
+function toggleEffort() {
+  const next = !effortOpen.value
+  closeControlPanels()
+  effortOpen.value = next
 }
 
 /** The two rolling-window meters. Missing data renders as unknown (em-dash,
@@ -479,6 +597,63 @@ const modelOptions = computed<AIModel[]>(() => {
 })
 
 const effortOptions = computed<ReasoningEffortOption[]>(() => REASONING_EFFORTS)
+
+// Models ranked faster → smarter (Luna is light/fast, Sol is the flagship) so
+// the slider reads left = faster, right = smarter. Unknown ids sort last but
+// still appear, so the slider degrades gracefully if the suite changes.
+const MODEL_RANK: Record<string, number> = {
+  'gpt-5.6-luna': 0,
+  'gpt-5.6-terra': 1,
+  'gpt-5.6-sol': 2,
+}
+const orderedModels = computed<AIModel[]>(() =>
+  [...modelOptions.value].sort(
+    (a, b) => (MODEL_RANK[a.id] ?? 99) - (MODEL_RANK[b.id] ?? 99)
+  )
+)
+const modelIndex = computed(() => {
+  const idx = orderedModels.value.findIndex(m => m.id === activeInstance.value?.selectedModelId)
+  return idx >= 0 ? idx : 0
+})
+const currentModel = computed<AIModel | null>(() => orderedModels.value[modelIndex.value] ?? null)
+
+/** The distinctive part of the model name for the compact chip ("Terra"),
+ *  dropping the shared "GPT 5.6" prefix. */
+function modelShortName(id?: string | null): string {
+  const model = orderedModels.value.find(m => m.id === id) ?? currentModel.value
+  if (!model) return 'Model'
+  return model.name.replace(/^GPT\s*5\.6\s*/i, '').trim() || model.name
+}
+
+function onModelSlider(e: Event) {
+  const idx = Number((e.target as HTMLInputElement).value)
+  const model = orderedModels.value[idx]
+  if (model && model.id !== activeInstance.value?.selectedModelId) {
+    void handleModelSelect(model.id)
+  }
+}
+
+// REASONING_EFFORTS is already ordered minimal → xhigh = faster → smarter.
+const effortIndex = computed(() => {
+  const idx = effortOptions.value.findIndex(
+    o => o.id === (activeInstance.value?.selectedEffort ?? 'medium')
+  )
+  return idx >= 0 ? idx : 0
+})
+const currentEffort = computed<ReasoningEffortOption | null>(() => effortOptions.value[effortIndex.value] ?? null)
+
+function effortLabel(id?: string | null): string {
+  const option = effortOptions.value.find(o => o.id === id) ?? currentEffort.value
+  return option?.name ?? 'Reasoning'
+}
+
+function onEffortSlider(e: Event) {
+  const idx = Number((e.target as HTMLInputElement).value)
+  const option = effortOptions.value[idx]
+  if (option && option.id !== activeInstance.value?.selectedEffort) {
+    void handleEffortSelect(option.id)
+  }
+}
 
 // Helper to get friendly display name from file path
 function getDisplayName(path: string): string {
@@ -631,110 +806,147 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.18);
 }
 
-/* Dropdown wrapper provides room for leading icon */
-.dropdown-wrapper {
-  position: relative;
+/* Control chip: the compact model / reasoning / usage buttons. Ghost until
+   hovered or open, so the input shell stays the focal point. */
+.control-chip {
   display: inline-flex;
   align-items: center;
-}
-
-.dropdown-icon {
-  position: absolute;
-  left: 0.625rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.55);
-  pointer-events: none;
-  transition: color 0.2s ease;
-  z-index: 1;
-}
-
-.dark .dropdown-icon {
-  color: rgba(219, 234, 254, 0.55);
-}
-
-.dropdown-wrapper:hover .dropdown-icon {
-  color: rgb(23, 37, 84);
-}
-
-.dark .dropdown-wrapper:hover .dropdown-icon {
-  color: rgba(219, 234, 254, 0.9);
-}
-
-/* Ghost dropdown select: quiet until hovered, so the input shell stays the
-   focal point */
-.dropdown-select {
-  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(23,37,84,0.55)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
-  background-repeat: no-repeat;
-  background-position: right 0.55rem center;
-  background-size: 0.85em;
-  background-color: transparent;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.5rem;
   border: 1px solid transparent;
+  background-color: transparent;
   color: rgba(23, 37, 84, 0.75);
+  font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.01em;
-  padding: 0.3rem 1.5rem 0.3rem 0.6rem;
-  border-radius: 0.5rem;
   cursor: pointer;
-  text-overflow: ellipsis;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
   transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
   outline: none;
 }
 
-.dropdown-select--with-icon {
-  padding-left: 1.5rem;
-}
-
-.dark .dropdown-select {
-  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(219,234,254,0.6)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
-  color: rgba(219, 234, 254, 0.7);
-}
-
-.dropdown-select:hover {
+.control-chip:hover:not(:disabled) {
   background-color: rgba(219, 234, 254, 0.5);
   color: rgb(23, 37, 84);
 }
 
-.dark .dropdown-select:hover {
+.control-chip--active {
+  background-color: rgba(219, 234, 254, 0.7);
+  color: rgb(23, 37, 84);
+}
+
+.control-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-chip:focus-visible {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.dark .control-chip {
+  color: rgba(219, 234, 254, 0.7);
+}
+
+.dark .control-chip:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.07);
   color: rgba(255, 255, 255, 0.95);
 }
 
-.dropdown-select:focus-visible {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(59, 130, 246, 0.4);
-  outline: none;
+.dark .control-chip--active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
-.dark .dropdown-select:focus-visible {
+.dark .control-chip:focus-visible {
   box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
 }
 
-
-/* Style dropdown options to match the page */
-.dropdown-select option {
-  background-color: white;
-  color: #172554;
-  padding: 8px 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  outline: none !important;
+.control-chip-icon {
+  font-size: 0.6875rem;
+  opacity: 0.75;
+  flex-shrink: 0;
 }
 
-.dark .dropdown-select option {
-  background-color: #0a0a0a;
-  color: rgba(219, 234, 254, 0.8);
-  outline: none !important;
+.control-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.dropdown-select option:focus,
-.dropdown-select option:active,
-.dropdown-select option:hover {
-  outline: none !important;
-  box-shadow: none !important;
+.control-chip-caret {
+  font-size: 0.5rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+/* Faster ↔ smarter slider: navy ink track + thumb (cream in dark), matching
+   the primary button system. */
+.control-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(23, 37, 84, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+
+.dark .control-slider {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.control-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: theme('colors.blue.950');
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(23, 37, 84, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.control-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+
+.control-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: theme('colors.blue.950');
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(23, 37, 84, 0.35);
+  cursor: pointer;
+}
+
+.control-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.control-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.dark .control-slider::-webkit-slider-thumb {
+  background: #f3ede2;
+  border-color: #0f0f0f;
+}
+
+.dark .control-slider::-moz-range-thumb {
+  background: #f3ede2;
+  border-color: #0f0f0f;
 }
 
 /* Usage-window meter: quiet navy ink bar (cream in dark mode, matching the

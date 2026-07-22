@@ -4,13 +4,14 @@
          (useConfirm state is global; one host avoids duplicate modals). -->
     <!-- Header -->
     <div class="shrink-0 flex items-center gap-1 px-2 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
-      <!-- Back to chat (desktop only; mobile uses the navbar view switcher) -->
+      <!-- Back to the agent chat (desktop only; mobile uses the navbar view
+           switcher). The robot marks it as the agent instance. -->
       <div class="relative group max-md:hidden">
         <button
           class="flex items-center justify-center w-7 h-7 rounded-md text-blue-950/60 dark:text-blue-100/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           @click="emit('collapse')"
         >
-          <i class="fas fa-chevron-left text-xs"></i>
+          <i class="fas fa-robot text-xs"></i>
         </button>
         <div
           class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
