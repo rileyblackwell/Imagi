@@ -8,7 +8,7 @@
       </div>
 
       <!-- Content Container -->
-      <div class="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-24 md:pt-32 md:pb-32">
+      <div class="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-24 md:pt-32 md:pb-32">
         <!-- Header Section -->
         <div class="mb-16 md:mb-20 text-center">
           <!-- Editorial kicker: tracked small caps flanked by fading hairline rules -->
@@ -42,19 +42,21 @@
         </div>
 
         <!-- Subscription Tier Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 md:mb-20">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-16 md:mb-20">
           <SubscriptionTierCard
             v-for="tier in tiers"
-            :key="tier.name + tier.price"
+            :key="tier.name"
             :name="tier.name"
             :price="tier.price"
+            :lookup-key="tier.lookupKey"
             :cta="tier.cta"
             :features="tier.features"
             :session-limit="tier.sessionLimit"
             :weekly-limit="tier.weeklyLimit"
+            :options="tier.options"
             :is-popular="tier.isPopular"
-            :loading="loadingTier === (tier.lookupKey ?? tier.name)"
-            @subscribe="handleSubscribe(tier)"
+            :loading="isTierLoading(tier)"
+            @subscribe="(lookupKey) => handleSubscribe(tier, lookupKey)"
           />
         </div>
 
@@ -142,52 +144,73 @@ const tiers: Tier[] = [
   },
   {
     name: 'Max',
-    price: 100,
-    lookupKey: 'max_5x_monthly',
     cta: 'Get Started',
-    sessionLimit: '5× more usage every 5 hours',
-    weeklyLimit: '5× higher weekly limit',
-    features: [
-      'Everything in Pro',
-      '5× more usage than Pro',
-      'Higher output limits',
-      'Early access to new features',
-    ],
     isPopular: false,
-  },
-  {
-    name: 'Max',
-    price: 200,
-    lookupKey: 'max_20x_monthly',
-    cta: 'Get Started',
-    sessionLimit: '20× more usage every 5 hours',
-    weeklyLimit: '20× higher weekly limit',
-    features: [
-      'Everything in Pro',
-      '20× more usage than Pro',
-      'Highest output limits',
-      'Priority access at peak times',
+    // A single Max plan with selectable usage options, mirroring Claude's Max tier.
+    options: [
+      {
+        label: '5× usage',
+        price: 100,
+        lookupKey: 'max_5x_monthly',
+        sessionLimit: '5× more usage every 5 hours',
+        weeklyLimit: '5× higher weekly limit',
+        features: [
+          'Everything in Pro',
+          '5× more usage than Pro',
+          'Higher output limits',
+          'Early access to new features',
+        ],
+      },
+      {
+        label: '20× usage',
+        price: 200,
+        lookupKey: 'max_20x_monthly',
+        sessionLimit: '20× more usage every 5 hours',
+        weeklyLimit: '20× higher weekly limit',
+        features: [
+          'Everything in Pro',
+          '20× more usage than Pro',
+          'Highest output limits',
+          'Priority access at peak times',
+        ],
+      },
     ],
-    isPopular: false,
   },
 ]
 
-interface Tier {
-  name: string
+interface TierOption {
+  label: string
   price: number
-  lookupKey: string | null
-  cta: string
+  lookupKey: string
   sessionLimit: string
   weeklyLimit: string
   features: string[]
-  isPopular: boolean
 }
 
-const handleSubscribe = async (tier: Tier) => {
+interface Tier {
+  name: string
+  cta: string
+  isPopular: boolean
+  // Single-option tiers set these directly; multi-option tiers use `options` instead.
+  price?: number
+  lookupKey?: string | null
+  sessionLimit?: string
+  weeklyLimit?: string
+  features?: string[]
+  options?: TierOption[]
+}
+
+// A Max-style tier is "loading" while any of its options is checking out.
+const isTierLoading = (tier: Tier) => {
+  if (tier.options) return tier.options.some((o) => o.lookupKey === loadingTier.value)
+  return loadingTier.value === (tier.lookupKey ?? tier.name)
+}
+
+const handleSubscribe = async (tier: Tier, lookupKey: string | null) => {
   error.value = ''
 
   // Free plan has no checkout — send new users to sign up, existing users into the app.
-  if (!tier.lookupKey) {
+  if (!lookupKey) {
     router.push(authStore.isAuthenticated ? { path: '/' } : { path: '/auth/register' })
     return
   }
@@ -199,10 +222,10 @@ const handleSubscribe = async (tier: Tier) => {
   }
 
   try {
-    loadingTier.value = tier.lookupKey
+    loadingTier.value = lookupKey
 
     const response = await paymentService.createCheckoutSession({
-      lookup_key: tier.lookupKey,
+      lookup_key: lookupKey,
       success_url: window.location.origin + '/payments/success',
       cancel_url: window.location.origin + '/payments/cancel',
     })

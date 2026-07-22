@@ -169,7 +169,7 @@
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
               <p class="text-sm text-white/40 text-center sm:text-left">
                 <i class="fas fa-clock text-amber-400/60 mr-2"></i>
-                Imagi-hosted deployment launching Q1 2026
+                Imagi-hosted deployment launching Q4 2026
               </p>
               <router-link 
                 to="/contact"

@@ -87,10 +87,10 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          value: '$10',
-          unit: '/mo',
+          value: 'Free',
+          unit: '',
           label: 'Plans Starting At',
-          caption: 'Simple monthly plans that include AI usage and deployments—cancel anytime.'
+          caption: 'Start free, then upgrade as you grow. Usage refreshes on a rolling 5-hour session and a weekly limit—cancel anytime.'
         },
         {
           value: '30',
