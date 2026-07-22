@@ -21,31 +21,8 @@
       </div>
 
       <!-- Panel title -->
-      <div class="flex-1 min-w-0 flex items-center gap-2 pl-0.5">
-        <div class="agents-icon-chip flex items-center justify-center w-5 h-5 rounded-md shrink-0">
-          <i class="fas fa-layer-group text-[9px] text-blue-950/80 dark:text-[#f3ede2]/90"></i>
-        </div>
-        <span class="text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">Agents</span>
-      </div>
-
-      <!-- Search -->
-      <div class="relative group">
-        <button
-          :class="[
-            'flex items-center justify-center w-7 h-7 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
-            showSearch
-              ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
-              : 'text-blue-950/60 dark:text-blue-100/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white'
-          ]"
-          @click="toggleSearch"
-        >
-          <i class="fas fa-search text-xs"></i>
-        </button>
-        <div
-          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        >
-          Search chats
-        </div>
+      <div class="flex-1 min-w-0 flex items-center pl-0.5">
+        <span class="text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">Agent Manager</span>
       </div>
 
       <!-- New task -->
@@ -124,28 +101,6 @@
       </div>
     </div>
 
-    <!-- Search input -->
-    <div v-if="showSearch" class="shrink-0 px-2 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
-      <div class="search-shell flex items-center gap-2 rounded-lg bg-blue-50/50 dark:bg-white/[0.03] border border-blue-200/70 dark:border-white/[0.14] px-2.5 py-1.5">
-        <i class="fas fa-search text-[11px] text-blue-950/40 dark:text-blue-100/45 shrink-0"></i>
-        <input
-          ref="searchInput"
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search chats"
-          class="flex-1 min-w-0 bg-transparent text-xs text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-blue-100/40 outline-none"
-          @keydown.escape="closeSearch"
-        />
-        <button
-          v-if="searchQuery"
-          class="shrink-0 text-blue-950/40 hover:text-blue-950/70 dark:text-blue-100/45 dark:hover:text-blue-100/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] rounded"
-          @click="searchQuery = ''"
-        >
-          <i class="fas fa-times text-[11px]"></i>
-        </button>
-      </div>
-    </div>
-
     <!-- Team view -->
     <div class="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1">
       <!-- Loading state -->
@@ -155,20 +110,6 @@
       >
         <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
         <span>Loading agents…</span>
-      </div>
-
-      <!-- No search results -->
-      <div
-        v-else-if="searching && !hasResults"
-        class="flex flex-col items-center px-4 py-8 text-center"
-      >
-        <div class="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 dark:bg-white/[0.05] border border-blue-950/[0.08] dark:border-white/[0.14] mb-2.5">
-          <i class="fas fa-search text-xs text-blue-400 dark:text-blue-300/60"></i>
-        </div>
-        <div class="text-xs font-medium text-blue-950/60 dark:text-blue-100/60">No matching chats</div>
-        <div class="text-[11px] text-blue-950/40 dark:text-blue-100/40 mt-1 break-all">
-          Nothing matches "{{ searchQuery.trim() }}"
-        </div>
       </div>
 
       <template v-else>
@@ -411,35 +352,18 @@ const store = useAgentStore()
 const showHistory = ref(false)
 const { confirm } = useConfirm()
 
-const showSearch = ref(false)
-const searchQuery = ref('')
-const searchInput = ref<HTMLInputElement | null>(null)
-
-function filterBySearch(list: AgentInstance[]): AgentInstance[] {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return list
-  return list.filter(
-    i =>
-      (i.title || '').toLowerCase().includes(q) ||
-      (i.lastMessagePreview || '').toLowerCase().includes(q)
-  )
-}
-
-const searching = computed(() => showSearch.value && !!searchQuery.value.trim())
 const lead = computed(() => store.leadInstance)
-const leadVisible = computed(() =>
-  !!lead.value && (!searching.value || filterBySearch([lead.value]).length > 0)
-)
+const leadVisible = computed(() => !!lead.value)
 // taskFeedInstances is already newest-first
-const taskFeed = computed(() => filterBySearch(store.taskFeedInstances))
-const history = computed(() => filterBySearch(store.historyInstances))
+const taskFeed = computed(() => store.taskFeedInstances)
+const history = computed(() => store.historyInstances)
 
 /** Ready tasks grouped by variant_group: best-of-N siblings render as
  *  side-by-side draft columns, everything else as single cards. */
 const reviewGroups = computed<AgentInstance[][]>(() => {
   const groups: AgentInstance[][] = []
   const byGroup = new Map<string, AgentInstance[]>()
-  for (const instance of filterBySearch(store.reviewInboxInstances)) {
+  for (const instance of store.reviewInboxInstances) {
     if (instance.variantGroup) {
       let group = byGroup.get(instance.variantGroup)
       if (!group) {
@@ -454,11 +378,6 @@ const reviewGroups = computed<AgentInstance[][]>(() => {
   }
   return groups
 })
-
-const hasResults = computed(() =>
-  leadVisible.value || taskFeed.value.length > 0 ||
-  reviewGroups.value.length > 0 || history.value.length > 0
-)
 
 function draftLetter(index: number): string {
   return String.fromCharCode(65 + index) // A, B, C
@@ -492,21 +411,6 @@ function formatTokens(total: number): string {
     return `${thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k`
   }
   return String(total)
-}
-
-async function toggleSearch() {
-  showSearch.value = !showSearch.value
-  if (showSearch.value) {
-    await nextTick()
-    searchInput.value?.focus()
-  } else {
-    searchQuery.value = ''
-  }
-}
-
-function closeSearch() {
-  showSearch.value = false
-  searchQuery.value = ''
 }
 
 // --- New task dispatch -------------------------------------------------
@@ -945,20 +849,5 @@ async function handleRename(id: string, title: string) {
 .dark .dropdown-select option {
   background-color: #0a0a0a;
   color: rgba(255, 255, 255, 0.7);
-}
-
-/* Search field focus ring - matching the chat input shell */
-.search-shell {
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.search-shell:focus-within {
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-.dark .search-shell:focus-within {
-  border-color: rgba(147, 197, 253, 0.5);
-  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.18);
 }
 </style>

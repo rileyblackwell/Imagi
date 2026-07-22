@@ -6,12 +6,13 @@ code-defined (like Build's models_service.MODELS) so limits ship with the
 code; the database only stores which plan a user is on (models.Subscription).
 """
 
-DEFAULT_PLAN_ID = 'starter'
+DEFAULT_PLAN_ID = 'free'
 
+# Ids/names mirror the purchasable tiers on the pricing page (Free, Pro, Max).
 PLANS = {
-    'starter': {
-        'id': 'starter',
-        'name': 'Starter',
+    'free': {
+        'id': 'free',
+        'name': 'Free',
         'five_hour_tokens': 2_000_000,
         'weekly_tokens': 20_000_000,
     },
@@ -66,7 +67,7 @@ def plan_id_for_lookup_key(lookup_key):
 def get_plan(plan_id):
     """Return the plan definition for an id, falling back to the default plan.
 
-    Unknown ids resolve to 'starter' so a stale/renamed plan value in the
+    Unknown ids resolve to 'free' so a stale/renamed plan value in the
     database can never disable metering.
     """
     plan = PLANS.get(plan_id)
@@ -74,7 +75,7 @@ def get_plan(plan_id):
 
 
 def get_plan_for_user(user):
-    """Return the plan definition for a user (no Subscription row -> starter)."""
+    """Return the plan definition for a user (no Subscription row -> free)."""
     from ..models import Subscription
 
     subscription = Subscription.objects.filter(user=user).first()

@@ -290,20 +290,20 @@ class PlanRegistryTests(APITestCase):
     def test_get_plan_returns_known_plan(self):
         self.assertEqual(get_plan('pro')['name'], 'Pro')
 
-    def test_unknown_plan_falls_back_to_starter(self):
-        self.assertEqual(get_plan('legacy-gold')['id'], 'starter')
-        self.assertEqual(get_plan(None)['id'], 'starter')
+    def test_unknown_plan_falls_back_to_free(self):
+        self.assertEqual(get_plan('legacy-gold')['id'], 'free')
+        self.assertEqual(get_plan(None)['id'], 'free')
 
-    def test_user_without_subscription_row_is_on_starter(self):
-        self.assertEqual(get_plan_for_user(self.user)['id'], 'starter')
+    def test_user_without_subscription_row_is_on_free(self):
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_user_subscription_row_selects_plan(self):
         Subscription.objects.create(user=self.user, plan='max_5x')
         self.assertEqual(get_plan_for_user(self.user)['id'], 'max_5x')
 
-    def test_stale_subscription_plan_falls_back_to_starter(self):
+    def test_stale_subscription_plan_falls_back_to_free(self):
         Subscription.objects.create(user=self.user, plan='discontinued')
-        self.assertEqual(get_plan_for_user(self.user)['id'], 'starter')
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
 
 # --------------------------------------------------------------------------- #
@@ -347,10 +347,10 @@ class UsageWindowTests(APITestCase):
         for window in status_payload['windows'].values():
             self.assertEqual(window['used'], 0)
             self.assertIsNone(window['resets_at'])
-        self.assertEqual(status_payload['plan']['id'], 'starter')
+        self.assertEqual(status_payload['plan']['id'], 'free')
         self.assertEqual(
             status_payload['windows']['five_hour']['limit'],
-            PLANS['starter']['five_hour_tokens'],
+            PLANS['free']['five_hour_tokens'],
         )
 
     def test_five_hour_boundary_event_counts_weekly_only(self):
@@ -395,11 +395,11 @@ class CheckUsageAllowedTests(APITestCase):
         record_usage(self.user, 'gpt-5.6-terra', 1_000, 0)
         allowed, payload = check_usage_allowed(self.user)
         self.assertTrue(allowed)
-        self.assertEqual(payload['plan']['id'], 'starter')
+        self.assertEqual(payload['plan']['id'], 'free')
 
     def test_refused_over_five_hour_limit(self):
         record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['starter']['five_hour_tokens'], 0
+            self.user, 'gpt-5.6-terra', PLANS['free']['five_hour_tokens'], 0
         )
         allowed, payload = check_usage_allowed(self.user)
         self.assertFalse(allowed)
@@ -411,7 +411,7 @@ class CheckUsageAllowedTests(APITestCase):
     def test_refused_over_weekly_limit(self):
         # Spread beyond the 5-hour window so only the weekly limit trips.
         event = record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['starter']['weekly_tokens'], 0
+            self.user, 'gpt-5.6-terra', PLANS['free']['weekly_tokens'], 0
         )
         UsageEvent.objects.filter(pk=event.pk).update(
             created_at=timezone.now() - timedelta(days=1)
@@ -423,7 +423,7 @@ class CheckUsageAllowedTests(APITestCase):
     def test_higher_plan_raises_the_limit(self):
         Subscription.objects.create(user=self.user, plan='pro')
         record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['starter']['five_hour_tokens'], 0
+            self.user, 'gpt-5.6-terra', PLANS['free']['five_hour_tokens'], 0
         )
         allowed, _ = check_usage_allowed(self.user)
         self.assertTrue(allowed)
@@ -510,7 +510,7 @@ class SubscriptionWebhookTests(APITestCase):
         self.user.subscription.refresh_from_db()
         self.assertEqual(self.user.subscription.plan, 'pro')
 
-    def test_deleted_event_downgrades_to_starter(self):
+    def test_deleted_event_downgrades_to_free(self):
         Subscription.objects.create(
             user=self.user, plan='max_5x', stripe_subscription_id='sub_1'
         )
@@ -519,7 +519,7 @@ class SubscriptionWebhookTests(APITestCase):
             self._subscription(lookup_key='max_5x_monthly'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'starter')
+        self.assertEqual(self.user.subscription.plan, 'free')
         self.assertEqual(self.user.subscription.stripe_subscription_id, '')
 
     def test_unknown_customer_is_ignored(self):
@@ -585,7 +585,7 @@ class SubscriptionWebhookTests(APITestCase):
         self.assertEqual(self.user.subscription.plan, 'pro')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_old')
 
-    def test_unpaid_status_downgrades_to_starter(self):
+    def test_unpaid_status_downgrades_to_free(self):
         # Dunning exhausted with the 'mark unpaid' setting: no deleted event
         # ever fires, so the updated event must revoke the paid plan.
         Subscription.objects.create(
@@ -596,7 +596,7 @@ class SubscriptionWebhookTests(APITestCase):
             self._subscription(lookup_key='pro', sub_status='unpaid'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'starter')
+        self.assertEqual(self.user.subscription.plan, 'free')
         # The id stays so later events for this subscription still match.
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
 
@@ -650,17 +650,17 @@ class PaymentsAPITests(APITestCase):
         record_usage(self.user, 'gpt-5.6-terra', 1_000, 500)
         resp = self.client.get(reverse('api-usage-status'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data['plan']['id'], 'starter')
+        self.assertEqual(resp.data['plan']['id'], 'free')
         self.assertEqual(resp.data['windows']['five_hour']['used'], 1_500)
         self.assertEqual(resp.data['windows']['weekly']['used'], 1_500)
         # The registry rides along so the frontend can render plan options.
         self.assertEqual(
             [p['id'] for p in resp.data['plans']],
-            ['starter', 'pro', 'max_5x', 'max_20x'],
+            ['free', 'pro', 'max_5x', 'max_20x'],
         )
         self.assertEqual(
             resp.data['plans'][0]['weekly_tokens'],
-            PLANS['starter']['weekly_tokens'],
+            PLANS['free']['weekly_tokens'],
         )
 
     def test_check_credits_endpoint(self):
