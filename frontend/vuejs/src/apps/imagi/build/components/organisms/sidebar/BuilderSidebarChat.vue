@@ -120,6 +120,7 @@
         :status-text="activeInstance?.statusText || ''"
         :examples="promptExamples"
         @use-example="handleExamplePrompt"
+        @restore-checkpoint="emit('restore-checkpoint', $event)"
         class="flex-1"
       />
     </div>
@@ -241,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { useConfirm } from '../../../composables/useConfirm'
 import { ChatConversation } from '../../organisms/chat'
@@ -278,6 +279,7 @@ const emit = defineEmits<{
   (e: 'stop'): void
   (e: 'load-versions'): void
   (e: 'restore-version', hash: string): void
+  (e: 'restore-checkpoint', message: AIMessage): void
 }>()
 
 const store = useAgentStore()
@@ -398,7 +400,9 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
         plan: m.plan,
         activity: m.activity,
         filesChanged: m.filesChanged,
-        usage: m.usage
+        usage: m.usage,
+        dbId: m.dbId,
+        checkpoint: m.checkpoint
       }
     }) as AIMessage[]
   
@@ -412,6 +416,18 @@ function autoResizeTextarea() {
   const maxHeight = 240
   promptTextarea.value.style.height = `${Math.min(scrollHeight, maxHeight)}px`
 }
+
+// After a checkpoint restore, the removed prompt comes back here so the
+// user can edit and resend it (the Cursor rewind flow).
+function setPromptText(text: string) {
+  prompt.value = text
+  nextTick(() => {
+    autoResizeTextarea()
+    promptTextarea.value?.focus()
+  })
+}
+
+defineExpose({ setPromptText })
 
 async function handlePrompt() {
   if (!prompt.value.trim() || !activeInstance.value) return

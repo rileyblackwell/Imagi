@@ -1279,6 +1279,63 @@ def conversation_cancel(request, conversation_id):
     return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def conversation_restore_checkpoint(request, conversation_id):
+    """Rewind a conversation (and the project files) to a user message.
+
+    Body: {"message_id": <id of a user message carrying a checkpoint>}
+
+    Restores the working tree to the checkpoint commit captured when that
+    message was sent, then deletes the message and everything after it —
+    conversation and files rewind together, like Cursor's per-message
+    restore. Returns the removed prompt text so the client can hand it back
+    to the composer for editing.
+    """
+    conversation = get_object_or_404(
+        AgentConversation, id=conversation_id, user=request.user
+    )
+    message = get_object_or_404(
+        AgentMessage, id=request.data.get('message_id'), conversation=conversation
+    )
+
+    checkpoint = (message.metadata or {}).get('checkpoint')
+    if message.role != 'user' or not checkpoint:
+        return Response(
+            {'error': 'That message has no restore point.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Same rule as version reset: never rewrite the working tree while any
+    # of the project's conversations has a live run.
+    if conversation.project_id and _project_has_running_conversation(
+        request.user, conversation.project_id
+    ):
+        return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
+
+    result = VersionControlService().reset_to_version(
+        request.user, conversation.project_id, checkpoint
+    )
+    if not result.get('success'):
+        return Response(
+            {'error': result.get('message', 'Could not restore the project files.')},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Truncate the thread: the restored-to message and everything after it.
+    # created_at can collide within a burst, so break ties by id.
+    prompt_text = message.content
+    conversation.messages.filter(created_at__gt=message.created_at).delete()
+    conversation.messages.filter(created_at=message.created_at, id__gte=message.id).delete()
+    conversation.save(update_fields=['updated_at'])
+
+    return Response({
+        'success': True,
+        'checkpoint': checkpoint,
+        'prompt': prompt_text,
+    }, status=status.HTTP_200_OK)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def conversation_messages(request, conversation_id):

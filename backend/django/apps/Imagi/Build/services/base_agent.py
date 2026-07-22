@@ -366,12 +366,18 @@ class ImagiAgentService:
 
         return conversation
 
-    def add_user_message(self, conversation: AgentConversation, content: str) -> AgentMessage:
+    def add_user_message(
+        self,
+        conversation: AgentConversation,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> AgentMessage:
         """Add a user message to the conversation."""
         message = AgentMessage.objects.create(
             conversation=conversation,
             role="user",
-            content=content
+            content=content,
+            metadata=metadata,
         )
         if not conversation.title:
             conversation.title = (content or "").strip().splitlines()[0][:80]
@@ -483,11 +489,36 @@ class ImagiAgentService:
         if conversation is None:
             conversation = self.create_conversation(user, model, project_id=project_id)
 
-        # Add user message to conversation
-        self.add_user_message(conversation, user_input)
-
-        # Get project info
+        # Get project info (also hydrates the working copy, which must exist
+        # before the checkpoint below can snapshot it)
         project_info = self.get_project_info(project_id, user)
+
+        # Checkpoint: capture the project state this message starts from, so
+        # the workspace can offer a per-message restore point (conversation
+        # and files rewind together). Best-effort — a checkpoint failure must
+        # never block the run itself.
+        user_message_metadata = None
+        if project_info.get("project_path"):
+            try:
+                from .version_control_service import VersionControlService
+                checkpoint = VersionControlService().ensure_checkpoint(
+                    project_info["project_path"],
+                    'Checkpoint before: ' + (user_input or '').strip().splitlines()[0][:60]
+                )
+                if checkpoint.get("success") and checkpoint.get("commit_hash"):
+                    user_message_metadata = {"checkpoint": checkpoint["commit_hash"]}
+            except Exception as e:
+                logger.warning(f"Could not create pre-run checkpoint: {e}")
+
+        # Add user message to conversation, stamped with its checkpoint
+        user_message = self.add_user_message(
+            conversation, user_input, metadata=user_message_metadata
+        )
+        if run_state is not None:
+            # Lets the stream's start event tell the client which persisted
+            # message its optimistic bubble became, and its restore point.
+            run_state["user_message_id"] = user_message.id
+            run_state["checkpoint"] = (user_message_metadata or {}).get("checkpoint")
 
         context = AgentContext(
             user_id=user.id,
@@ -597,7 +628,12 @@ class ImagiAgentService:
                 run_state=run_state,
             )
 
-            yield {"type": "start", "conversation_id": conversation.id}
+            start_event = {"type": "start", "conversation_id": conversation.id}
+            if run_state.get("user_message_id"):
+                start_event["user_message_id"] = run_state["user_message_id"]
+            if run_state.get("checkpoint"):
+                start_event["checkpoint"] = run_state["checkpoint"]
+            yield start_event
 
             # run_streamed returns immediately; the run advances as events are
             # consumed. Sync function tools are dispatched to worker threads by

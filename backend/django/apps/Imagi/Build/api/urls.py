@@ -32,6 +32,7 @@ from .views import (
     conversations_list_create,
     conversation_detail,
     conversation_cancel,
+    conversation_restore_checkpoint,
     conversation_messages,
 )
 
@@ -73,6 +74,7 @@ agents_patterns = [
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),
     path('conversations/<int:conversation_id>/cancel/', conversation_cancel, name='conversation_cancel'),
+    path('conversations/<int:conversation_id>/restore/', conversation_restore_checkpoint, name='conversation_restore_checkpoint'),
     path('conversations/<int:conversation_id>/messages/', conversation_messages, name='conversation_messages'),
 ]
 

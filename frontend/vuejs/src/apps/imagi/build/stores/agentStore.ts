@@ -280,6 +280,8 @@ export const useAgentStore = defineStore('agent', {
           activity: m.activity,
           filesChanged: m.filesChanged,
           usage: m.usage,
+          dbId: m.id,
+          checkpoint: m.checkpoint,
         } as AIMessage))
         instance.messagesLoaded = true
       } catch (e) {
@@ -529,6 +531,41 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.conversation = instance.conversation.filter(m => m.id !== messageId)
+    },
+
+    /**
+     * Tie an optimistic user bubble to its persisted row: the stream's start
+     * event carries the backend message id and the pre-run checkpoint, which
+     * the inline restore control needs without waiting for a reload.
+     */
+    setMessageCheckpoint(instanceId: string, messageId: string, dbId?: number, checkpoint?: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      const message = instance.conversation.find(m => m.id === messageId)
+      if (!message) return
+      if (dbId !== undefined) message.dbId = dbId
+      if (checkpoint) message.checkpoint = checkpoint
+    },
+
+    /**
+     * Rewind this instance to just before a user message: restore the
+     * message's checkpoint (backend resets files + deletes the message and
+     * everything after), then truncate the local transcript to match.
+     * Returns the removed prompt text (for the composer), or null on failure.
+     */
+    async restoreToCheckpoint(instanceId: string, message: AIMessage): Promise<string | null> {
+      const instance = this._findInstance(instanceId)
+      if (!instance || !instance.conversationId || !message.dbId || !message.checkpoint) return null
+      const result = await AgentService.restoreCheckpoint(instance.conversationId, message.dbId)
+      if (!result?.success) return null
+      const index = instance.conversation.findIndex(m => m.id === message.id)
+      if (index >= 0) {
+        instance.conversation = instance.conversation.slice(0, index)
+      }
+      instance.lastMessagePreview =
+        (instance.conversation[instance.conversation.length - 1]?.content || '')
+          .split('\n')[0]?.slice(0, 140) || ''
+      return result.prompt ?? message.content
     },
 
     updateInstanceConversationId(instanceId: string, conversationId: number) {

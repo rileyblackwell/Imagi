@@ -314,6 +314,57 @@ class VersionControlService:
         except Exception as e:
             return {'success': False, 'message': f"Error resetting to version: {str(e)}"}
     
+    def ensure_checkpoint(self, project_path, message=None):
+        """
+        Return a commit hash representing the working tree's current state.
+
+        If the tree is dirty the changes are committed first (so the
+        checkpoint really captures what is on disk right now); if it is
+        clean the existing HEAD already is that state. Used to stamp each
+        user message with the project state it started from, so the
+        workspace can offer per-message restore points.
+
+        Returns:
+            dict: {'success': bool, 'commit_hash': str | None, 'message': str}
+        """
+        try:
+            commit_result = self.commit_changes(
+                project_path,
+                message or 'Checkpoint before agent run'
+            )
+            if not commit_result.get('success'):
+                return commit_result
+            if commit_result.get('commit_hash'):
+                return commit_result
+
+            # Nothing to commit — the checkpoint is the current HEAD.
+            hash_result = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'],
+                cwd=project_path,
+                capture_output=True,
+                text=True
+            )
+            if hash_result.returncode != 0:
+                # A repo with no commits yet (fresh init): create an empty
+                # baseline commit so there is something to restore to.
+                subprocess.run(
+                    ['git', 'commit', '--allow-empty', '-m', 'Initial checkpoint'],
+                    cwd=project_path, capture_output=True, text=True, check=True
+                )
+                hash_result = subprocess.run(
+                    ['git', 'rev-parse', 'HEAD'],
+                    cwd=project_path, capture_output=True, text=True, check=True
+                )
+            return {
+                'success': True,
+                'commit_hash': hash_result.stdout.strip(),
+                'message': 'Checkpoint at current HEAD'
+            }
+        except subprocess.CalledProcessError as e:
+            return {'success': False, 'commit_hash': None, 'message': f"Error creating checkpoint: {e.stderr}"}
+        except Exception as e:
+            return {'success': False, 'commit_hash': None, 'message': f"Error creating checkpoint: {str(e)}"}
+
     def create_version_after_file_change(self, user, project_id, file_path, description=None):
         """
         Create a new commit after a file has been changed.

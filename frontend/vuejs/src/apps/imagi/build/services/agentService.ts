@@ -18,7 +18,9 @@ import { ModelsService } from '@/apps/imagi/build/services/modelsService'
  */
 /** Events the agent stream emits, in the order a run produces them. */
 export interface AgentStreamHandlers {
-  onStart?: (conversationId: number) => void
+  /** info identifies the persisted user message this run started from and
+   *  the pre-run checkpoint commit it can be restored to. */
+  onStart?: (conversationId: number, info?: { userMessageId?: number; checkpoint?: string }) => void
   /** A chunk of the agent's reply. Chunks concatenate into the final text. */
   onDelta?: (text: string) => void
   /** args is a small allowlisted extract of the tool's arguments (path,
@@ -93,6 +95,8 @@ interface PersistedMessageMetadata {
   files_changed?: string[]
   plan?: AgentPlanStep[]
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
+  /** Pre-run project snapshot, stamped on user messages only */
+  checkpoint?: string
 }
 
 /** One conversation message with its persisted telemetry hydrated. */
@@ -105,6 +109,7 @@ export interface ConversationMessageDto {
   activity?: AgentActivityStep[]
   filesChanged?: string[]
   usage?: { costUsd?: number }
+  checkpoint?: string
 }
 
 export const AgentService = {
@@ -198,7 +203,10 @@ export const AgentService = {
       switch (event.type) {
         case 'start':
           conversationId = event.conversation_id
-          handlers.onStart?.(event.conversation_id)
+          handlers.onStart?.(event.conversation_id, {
+            userMessageId: event.user_message_id,
+            checkpoint: event.checkpoint,
+          })
           break
         case 'delta':
           text.push(event.text)
@@ -469,8 +477,28 @@ export const AgentService = {
       if (typeof meta.usage?.cost_usd === 'number') {
         dto.usage = { costUsd: meta.usage.cost_usd }
       }
+      if (typeof meta.checkpoint === 'string' && meta.checkpoint) {
+        dto.checkpoint = meta.checkpoint
+      }
       return dto
     })
+  },
+
+  /**
+   * Rewind a conversation (and the project files) to just before the given
+   * user message was sent. The backend restores the message's checkpoint
+   * commit and deletes the message plus everything after it; the removed
+   * prompt text comes back so the composer can offer it for editing.
+   */
+  async restoreCheckpoint(
+    conversationId: number,
+    messageId: number
+  ): Promise<{ success: boolean; checkpoint: string; prompt: string }> {
+    const response = await api.post(
+      `/v1/agents/conversations/${conversationId}/restore/`,
+      { message_id: messageId }
+    )
+    return response.data
   }
 };
 

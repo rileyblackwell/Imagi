@@ -626,6 +626,114 @@ class ConversationMessagesMetadataTests(TestCase):
         self.assertEqual(messages[1]['metadata'], metadata)
 
 
+class CheckpointTests(TestCase):
+    """Per-message checkpoints: stamp on the user message, restore rewinds
+    files + conversation together."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='ckpt', password='pw123456')
+        self.client.force_login(self.user)
+        # A real git repo the checkpoint/restore code can drive.
+        self.repo = tempfile.mkdtemp(prefix='ckpt_repo_')
+        self.addCleanup(lambda: shutil.rmtree(self.repo, ignore_errors=True))
+        import subprocess
+        subprocess.run(['git', 'init'], cwd=self.repo, capture_output=True, check=True)
+        subprocess.run(['git', 'config', 'user.email', 't@t.co'], cwd=self.repo, capture_output=True, check=True)
+        subprocess.run(['git', 'config', 'user.name', 'T'], cwd=self.repo, capture_output=True, check=True)
+
+    def _write_commit(self, name, content, message):
+        import subprocess
+        with open(os.path.join(self.repo, name), 'w') as f:
+            f.write(content)
+        subprocess.run(['git', 'add', '.'], cwd=self.repo, capture_output=True, check=True)
+        subprocess.run(['git', 'commit', '-m', message], cwd=self.repo, capture_output=True, check=True)
+        return subprocess.run(
+            ['git', 'rev-parse', 'HEAD'], cwd=self.repo, capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    def test_ensure_checkpoint_returns_head_when_clean(self):
+        from apps.Imagi.Build.services.version_control_service import VersionControlService
+        head = self._write_commit('a.txt', 'one', 'first')
+        result = VersionControlService().ensure_checkpoint(self.repo, 'noop')
+        # Nothing to commit → the checkpoint is the current HEAD.
+        self.assertTrue(result['success'])
+        self.assertEqual(result['commit_hash'], head)
+
+    def test_ensure_checkpoint_commits_dirty_tree(self):
+        from apps.Imagi.Build.services.version_control_service import VersionControlService
+        head = self._write_commit('a.txt', 'one', 'first')
+        with open(os.path.join(self.repo, 'a.txt'), 'w') as f:
+            f.write('two')  # uncommitted change
+        result = VersionControlService().ensure_checkpoint(self.repo, 'snapshot')
+        self.assertTrue(result['success'])
+        self.assertNotEqual(result['commit_hash'], head)  # a new commit captured it
+
+    def _conversation_with_project(self):
+        from apps.Imagi.ProjectManager.models import Project
+        project = Project.objects.create(
+            user=self.user, name='P', project_path=self.repo, is_active=True
+        )
+        conversation = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=project.id
+        )
+        return project, conversation
+
+    def test_restore_rewinds_files_and_truncates_conversation(self):
+        project, conversation = self._conversation_with_project()
+        checkpoint = self._write_commit('page.txt', 'original', 'v1')
+        self._write_commit('page.txt', 'edited by agent', 'v2')
+
+        first = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='make a change',
+            metadata={'checkpoint': checkpoint},
+        )
+        AgentMessage.objects.create(conversation=conversation, role='assistant', content='done')
+        AgentMessage.objects.create(conversation=conversation, role='user', content='another')
+
+        resp = self.client.post(
+            reverse('conversation_restore_checkpoint', args=[conversation.id]),
+            data={'message_id': first.id}, content_type='application/json',
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['prompt'], 'make a change')
+        # Files rewound to the checkpoint...
+        with open(os.path.join(self.repo, 'page.txt')) as f:
+            self.assertEqual(f.read(), 'original')
+        # ...and the restored-to message plus everything after it are gone.
+        self.assertEqual(conversation.messages.count(), 0)
+
+    def test_restore_rejected_without_checkpoint(self):
+        project, conversation = self._conversation_with_project()
+        msg = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='no checkpoint here'
+        )
+        resp = self.client.post(
+            reverse('conversation_restore_checkpoint', args=[conversation.id]),
+            data={'message_id': msg.id}, content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_restore_blocked_while_project_busy(self):
+        project, conversation = self._conversation_with_project()
+        checkpoint = self._write_commit('page.txt', 'original', 'v1')
+        msg = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='x',
+            metadata={'checkpoint': checkpoint},
+        )
+        # Another conversation in the same project is mid-run.
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=project.id,
+            run_started_at=timezone.now(),
+        )
+        resp = self.client.post(
+            reverse('conversation_restore_checkpoint', args=[conversation.id]),
+            data={'message_id': msg.id}, content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.json()['detail'], 'agent_busy')
+
+
 class ComputeCostTests(SimpleTestCase):
     def test_computes_from_suite_pricing(self):
         # Sol: $6/M input + $30/M output

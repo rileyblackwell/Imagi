@@ -29,12 +29,26 @@
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
             <!-- User Message: a single compact bubble that opens the turn -->
             <div v-if="message.role === 'user'"
-              class="msg-row user-row flex justify-end"
+              class="msg-row user-row group flex flex-col items-end"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <div class="user-bubble">
                 <p class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ message.content }}</p>
               </div>
+              <!-- Checkpoint: rewind files + conversation to just before this
+                   message. Revealed on hover/focus so the transcript stays
+                   quiet; hidden while a run is in flight (restore would pull
+                   the tree out from under the agent). -->
+              <button
+                v-if="message.checkpoint && message.dbId && !isProcessing"
+                type="button"
+                class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-blue-950/40 dark:text-white/35 hover:text-blue-950/75 dark:hover:text-white/75 hover:bg-blue-50/80 dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150"
+                title="Restore your app and this conversation to the moment before this message"
+                @click="emit('restore-checkpoint', message)"
+              >
+                <i class="fas fa-clock-rotate-left text-[9px]"></i>
+                Restore checkpoint
+              </button>
             </div>
 
             <!-- Assistant Message: the agent's work flows plainly below the bubble -->
@@ -152,6 +166,7 @@ const showActivityIndicator = computed(() => {
 const emit = defineEmits<{
   (e: 'apply-code', code: string): void
   (e: 'use-example', example: string): void
+  (e: 'restore-checkpoint', message: AIMessage): void
 }>()
 
 // Refs and reactive state
@@ -325,6 +340,14 @@ const copyToClipboard = (code: string) => {
 
 .msg-row + .user-row {
   margin-top: 2rem;
+}
+
+/* Touch screens have no hover: keep the restore chip faintly visible so the
+   affordance is discoverable without a pointer. */
+@media (hover: none) {
+  .restore-chip {
+    opacity: 0.55;
+  }
 }
 
 /* The user's prompt is the one element that gets a bubble */

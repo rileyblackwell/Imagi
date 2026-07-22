@@ -225,6 +225,14 @@ export interface AIMessage {
   filesChanged?: string[];
   /** What this reply cost, when the backend reported run usage */
   usage?: { costUsd?: number };
+  /** Backend AgentMessage id, once known (hydration or the start event) */
+  dbId?: number;
+  /**
+   * Commit hash of the project state this user message started from.
+   * Present only on user messages; powers the inline restore-checkpoint
+   * control (conversation and files rewind together).
+   */
+  checkpoint?: string;
 }
 
 export interface AIGenerationResponse {

@@ -30,6 +30,7 @@
             @collapse="toggleManager"
           />
           <BuilderSidebarChat
+            ref="chatRef"
             class="flex-1 min-w-0"
             :class="mobileView === 'chat' ? 'max-md:w-full' : 'max-md:hidden'"
             :selected-app="null"
@@ -47,6 +48,7 @@
             @stop="handleStop"
             @load-versions="loadVersionHistory"
             @restore-version="onVersionSelect"
+            @restore-checkpoint="onRestoreCheckpoint"
           />
         </div>
       </template>
@@ -175,6 +177,8 @@ const projectId = ref<string>('')
 const confirmModal = useConfirm()
 // The embedded preview pane; exposes reload/loadPreview/navigateTo.
 const previewRef = ref<InstanceType<typeof WorkspacePreview> | null>(null)
+// The chat panel; exposes setPromptText for the checkpoint-restore flow.
+const chatRef = ref<InstanceType<typeof BuilderSidebarChat> | null>(null)
 const {
   createFile,
   loadModels,
@@ -303,6 +307,58 @@ async function onVersionSelect(hash: string) {
     showNotification({
       type: 'error',
       message: `Could not restore that version: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      duration: 5000
+    })
+  }
+}
+
+// Inline per-message checkpoint restore (the Cursor rewind flow): rewind the
+// project files AND the conversation to the moment before a user message was
+// sent, then hand the message text back to the composer for editing.
+async function onRestoreCheckpoint(message: AIMessage) {
+  const instance = store.activeInstance
+  if (!instance || !message.dbId || !message.checkpoint) return
+  const { showNotification } = useNotification()
+  // Same shared-working-tree rule as version restore: never rewrite files
+  // while any of this project's runs is live.
+  if (store.instances.some(i => i.isProcessing)) {
+    showNotification({
+      type: 'info',
+      message: 'The agent is still working — wait for it to finish (or stop it) before restoring.',
+      duration: 4000
+    })
+    return
+  }
+  const confirmed = await confirmModal.confirm({
+    title: 'Restore checkpoint',
+    message: 'Your app\'s files and this conversation will go back to the moment before this message was sent. Later messages will be removed, and the message returns to the composer for editing.',
+    confirmText: 'Restore',
+    cancelText: 'Cancel',
+    type: 'warning'
+  })
+  if (!confirmed) return
+  try {
+    const prompt = await store.restoreToCheckpoint(instance.id, message)
+    if (prompt === null) {
+      throw new Error('Restore failed')
+    }
+    // The working tree changed wholesale — refresh everything that mirrors it.
+    await loadProjectFiles(true)
+    await loadVersionHistory()
+    chatRef.value?.setPromptText(prompt)
+    showNotification({
+      type: 'success',
+      message: 'Restored — your app and conversation are back to that point.',
+      duration: 3000
+    })
+    previewRef.value?.reload()
+  } catch (e) {
+    const status = (e as any)?.response?.status ?? (e as any)?.status
+    showNotification({
+      type: status === 409 ? 'info' : 'error',
+      message: status === 409
+        ? 'Another agent is still working on this project — wait for it to finish or stop it.'
+        : `Could not restore: ${e instanceof Error ? e.message : 'Unknown error'}`,
       duration: 5000
     })
   }
@@ -518,9 +574,16 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
           conversationId: conversationIdBefore ?? undefined
         },
         {
-          onStart: (conversationId) => {
+          onStart: (conversationId, info) => {
             if (conversationId && !instance.conversationId) {
               store.updateInstanceConversationId(instanceId, conversationId)
+            }
+            // Tie the optimistic bubble to its persisted row so the inline
+            // restore-checkpoint control works without a reload.
+            if (info?.userMessageId || info?.checkpoint) {
+              store.setMessageCheckpoint(
+                instanceId, userMessageId, info.userMessageId, info.checkpoint
+              )
             }
           },
           onDelta: (text) => {
