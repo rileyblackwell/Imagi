@@ -54,21 +54,21 @@
           building your web app, then use built-in tools to operate and grow your business:
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <DocsCard title="Build Your Web App">
-            Describe what you want in plain English and design visually. The AI agent plans and writes your
-            application collaboratively, then deploys it to the web with a single click—no coding or server setup required.
+          <DocsCard title="Build">
+            Describe what you want in plain language and Imagi's AI agents generate the pages, styling, and logic
+            for your product—refining it live in an interactive preview, with no coding or server setup required.
           </DocsCard>
-          <DocsCard title="Market Your Business">
-            Reach customers and grow your audience with tools for email and social campaigns, landing pages,
-            and SEO—so people can find and try your product.
+          <DocsCard title="Sell">
+            Turn visitors into paying customers. Create a product catalog, share checkout links, and track orders
+            and customer relationships—payments powered by your own Stripe account.
           </DocsCard>
-          <DocsCard title="Sell to Customers">
-            Turn visitors into paying customers. Manage leads, track your sales pipeline, and take payments
-            with tools built right into your business.
+          <DocsCard title="Market">
+            Reach and engage your audience over text and voice with Twilio-powered campaigns, hold two-way
+            conversations in a shared inbox, and keep an eye on your Google and Meta ad campaigns in one place.
           </DocsCard>
-          <DocsCard title="Manage Your Finances">
-            Stay on top of the numbers with invoicing, billing, and revenue and expense tracking, plus
-            dashboards that show the health of your business at a glance.
+          <DocsCard title="Operate">
+            Run the day-to-day from a single command center—record income and expenses, send invoices and get
+            paid, and track your tasks, with dashboards that show the health of your business at a glance.
           </DocsCard>
         </div>
       </section>
@@ -112,14 +112,24 @@
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <DocsNavigationCard
-            to="/docs/quickstart"
-            title="Quick Start Guide"
-            description="Get up and running with Imagi in minutes with this step-by-step guide."
+            to="/docs/building"
+            title="Building with AI"
+            description="Create a project and build your app by chatting with Imagi's AI agents."
           />
           <DocsNavigationCard
-            to="/docs/creating-projects"
-            title="Creating Projects"
-            description="Learn how to create and configure projects in detail."
+            to="/docs/running-your-business"
+            title="Running Your Business"
+            description="Sell, market, and operate your business with the built-in workspaces."
+          />
+          <DocsNavigationCard
+            to="/docs/models"
+            title="Models & Reasoning"
+            description="Choose the right AI model and reasoning effort for each task."
+          />
+          <DocsNavigationCard
+            to="/docs/plans"
+            title="Plans & Usage"
+            description="Understand plans, usage limits, credits, and billing."
           />
         </div>
       </section>
