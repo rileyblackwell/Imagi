@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
+  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
     <!-- Header: manager toggle + instance title. Relative so the version
          dropdown can anchor to the full header width — the sidebar clips
          overflow, so a narrow panel can't fit it anchored to the button. -->
@@ -92,19 +92,6 @@
         </div>
       </div>
 
-      <div v-if="onCollapseSidebar" class="relative group shrink-0 max-md:hidden">
-        <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/65 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-          @click="onCollapseSidebar()"
-        >
-          <i class="fas fa-chevron-left text-sm"></i>
-        </button>
-        <div
-          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        >
-          Collapse sidebar
-        </div>
-      </div>
     </div>
 
     <!-- Conversation Area (scrollable) -->
@@ -410,7 +397,6 @@ const props = defineProps<{
   onModelSelect: (modelId: string) => Promise<void>
   onEffortSelect: (effort: ReasoningEffort) => Promise<void>
   onExamplePrompt: (example: string) => void
-  onCollapseSidebar?: () => void
   isCollapsed?: boolean
   versionHistory?: VersionEntry[]
   versionsLoading?: boolean

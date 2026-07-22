@@ -2,10 +2,12 @@
   <DashboardLayout
     :storage-key="storageKey"
     :navigation-items="navigationItems"
-    wide
+    aside-width-class="w-[22rem] max-md:w-full"
+    content-offset-class="md:ml-[22rem]"
+    nav-offset-class="md:left-[22rem]"
     compact-top
-    mobile-overlay
     app-shell
+    hide-toggle-on-mobile
   >
     <template #sidebar-content="{ isSidebarCollapsed, toggleSidebar }">
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed" :toggle-sidebar="toggleSidebar"></slot>
