@@ -22,24 +22,24 @@
     <!-- Price -->
     <div class="flex items-baseline gap-1 mb-6">
       <span class="font-display text-4xl font-semibold text-blue-950 dark:text-white tracking-tight tabular-nums transition-colors duration-300">
-        ${{ price }}
+        {{ price === 0 ? 'Free' : `$${price}` }}
       </span>
-      <span class="text-blue-950/60 dark:text-blue-100/55 text-sm transition-colors duration-300">/month</span>
+      <span v-if="price !== 0" class="text-blue-950/60 dark:text-blue-100/55 text-sm transition-colors duration-300">/month</span>
     </div>
 
-    <!-- Key Highlights -->
+    <!-- Key Highlights: usage refreshes on a rolling 5-hour session and a weekly limit -->
     <div class="mb-6 space-y-2">
       <div class="flex items-center gap-2 text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">
         <svg class="w-4 h-4 flex-shrink-0" :class="isPopular ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300'" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838l-3.14 1.346L10 11.25l6.606-2.83a1 1 0 000-1.84l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
         </svg>
-        <span>{{ deployments }}</span>
+        <span>{{ sessionLimit }}</span>
       </div>
       <div class="flex items-center gap-2 text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">
         <svg class="w-4 h-4 flex-shrink-0" :class="isPopular ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300'" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+          <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
         </svg>
-        <span>{{ apiUsage }}</span>
+        <span>{{ weeklyLimit }}</span>
       </div>
     </div>
 
@@ -80,7 +80,7 @@
         </svg>
         Processing...
       </span>
-      <span v-else>Get Started</span>
+      <span v-else>{{ cta ?? 'Get Started' }}</span>
     </button>
   </div>
 </template>
@@ -90,8 +90,9 @@ defineProps<{
   name: string
   price: number
   features: string[]
-  deployments: string
-  apiUsage: string
+  sessionLimit: string
+  weeklyLimit: string
+  cta?: string
   isPopular?: boolean
   loading?: boolean
 }>()
