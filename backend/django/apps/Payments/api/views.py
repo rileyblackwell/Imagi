@@ -16,7 +16,7 @@ from ..services.stripe_service import StripeService
 from ..services.credit_service import CreditService
 from ..services.transaction_service import TransactionService
 from ..services.payment_method_service import PaymentMethodService
-from ..services.plans import DEFAULT_PLAN_ID, PLANS, list_plans
+from ..services.plans import DEFAULT_PLAN_ID, PLANS, list_plans, plan_id_for_lookup_key
 from ..services.usage_service import get_usage_status
 from .serializers import (
     TransactionSerializer,
@@ -858,13 +858,15 @@ def _resolve_subscription_plan_id(subscription):
     """Map a Stripe subscription to a plan id, or None when unrecognized.
 
     The price lookup_key is the canonical mapping (checkout sessions are
-    created by lookup_key); metadata['plan'] is the manual fallback.
+    created by lookup_key, which plan_id_for_lookup_key resolves to a plan
+    id); metadata['plan'] is the manual fallback.
     """
     items = (subscription.get('items') or {}).get('data') or []
     for item in items:
         lookup_key = (item.get('price') or {}).get('lookup_key')
-        if lookup_key in PLANS:
-            return lookup_key
+        plan_id = plan_id_for_lookup_key(lookup_key)
+        if plan_id:
+            return plan_id
     plan = (subscription.get('metadata') or {}).get('plan')
     if plan in PLANS:
         return plan

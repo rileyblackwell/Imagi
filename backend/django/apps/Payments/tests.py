@@ -290,20 +290,20 @@ class PlanRegistryTests(APITestCase):
     def test_get_plan_returns_known_plan(self):
         self.assertEqual(get_plan('pro')['name'], 'Pro')
 
-    def test_unknown_plan_falls_back_to_starter(self):
-        self.assertEqual(get_plan('legacy-gold')['id'], 'starter')
-        self.assertEqual(get_plan(None)['id'], 'starter')
+    def test_unknown_plan_falls_back_to_free(self):
+        self.assertEqual(get_plan('legacy-gold')['id'], 'free')
+        self.assertEqual(get_plan(None)['id'], 'free')
 
-    def test_user_without_subscription_row_is_on_starter(self):
-        self.assertEqual(get_plan_for_user(self.user)['id'], 'starter')
+    def test_user_without_subscription_row_is_on_free(self):
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_user_subscription_row_selects_plan(self):
-        Subscription.objects.create(user=self.user, plan='scale')
-        self.assertEqual(get_plan_for_user(self.user)['id'], 'scale')
+        Subscription.objects.create(user=self.user, plan='max_5x')
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'max_5x')
 
-    def test_stale_subscription_plan_falls_back_to_starter(self):
+    def test_stale_subscription_plan_falls_back_to_free(self):
         Subscription.objects.create(user=self.user, plan='discontinued')
-        self.assertEqual(get_plan_for_user(self.user)['id'], 'starter')
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
 
 # --------------------------------------------------------------------------- #
@@ -347,10 +347,10 @@ class UsageWindowTests(APITestCase):
         for window in status_payload['windows'].values():
             self.assertEqual(window['used'], 0)
             self.assertIsNone(window['resets_at'])
-        self.assertEqual(status_payload['plan']['id'], 'starter')
+        self.assertEqual(status_payload['plan']['id'], 'free')
         self.assertEqual(
             status_payload['windows']['five_hour']['limit'],
-            PLANS['starter']['five_hour_tokens'],
+            PLANS['free']['five_hour_tokens'],
         )
 
     def test_five_hour_boundary_event_counts_weekly_only(self):
@@ -395,11 +395,11 @@ class CheckUsageAllowedTests(APITestCase):
         record_usage(self.user, 'gpt-5.6-terra', 1_000, 0)
         allowed, payload = check_usage_allowed(self.user)
         self.assertTrue(allowed)
-        self.assertEqual(payload['plan']['id'], 'starter')
+        self.assertEqual(payload['plan']['id'], 'free')
 
     def test_refused_over_five_hour_limit(self):
         record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['starter']['five_hour_tokens'], 0
+            self.user, 'gpt-5.6-terra', PLANS['free']['five_hour_tokens'], 0
         )
         allowed, payload = check_usage_allowed(self.user)
         self.assertFalse(allowed)
@@ -411,7 +411,7 @@ class CheckUsageAllowedTests(APITestCase):
     def test_refused_over_weekly_limit(self):
         # Spread beyond the 5-hour window so only the weekly limit trips.
         event = record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['starter']['weekly_tokens'], 0
+            self.user, 'gpt-5.6-terra', PLANS['free']['weekly_tokens'], 0
         )
         UsageEvent.objects.filter(pk=event.pk).update(
             created_at=timezone.now() - timedelta(days=1)
@@ -423,7 +423,7 @@ class CheckUsageAllowedTests(APITestCase):
     def test_higher_plan_raises_the_limit(self):
         Subscription.objects.create(user=self.user, plan='pro')
         record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['starter']['five_hour_tokens'], 0
+            self.user, 'gpt-5.6-terra', PLANS['free']['five_hour_tokens'], 0
         )
         allowed, _ = check_usage_allowed(self.user)
         self.assertTrue(allowed)
@@ -460,27 +460,46 @@ class SubscriptionWebhookTests(APITestCase):
         }
 
     def test_created_event_sets_plan_from_lookup_key(self):
+        # The Stripe price lookup_keys the frontend checks out by resolve to
+        # their registry plan ids (pro_monthly -> pro, max_*x_monthly -> max_*x).
         resp = self._post_event(
-            'customer.subscription.created', self._subscription(lookup_key='pro')
+            'customer.subscription.created',
+            self._subscription(lookup_key='pro_monthly'),
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(self.user.subscription.plan, 'pro')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
 
+    def test_max_lookup_keys_map_to_distinct_tiers(self):
+        # 5x and 20x are separate plans, not one collapsed tier.
+        self._post_event(
+            'customer.subscription.created',
+            self._subscription(lookup_key='max_20x_monthly'),
+        )
+        self.assertEqual(self.user.subscription.plan, 'max_20x')
+
+    def test_lookup_key_that_is_a_plan_id_resolves(self):
+        # Backward-compatible fallback: a lookup_key equal to a plan id works.
+        self._post_event(
+            'customer.subscription.created', self._subscription(lookup_key='pro')
+        )
+        self.assertEqual(self.user.subscription.plan, 'pro')
+
     def test_updated_event_changes_plan(self):
         Subscription.objects.create(user=self.user, plan='pro')
         self._post_event(
-            'customer.subscription.updated', self._subscription(lookup_key='scale')
+            'customer.subscription.updated',
+            self._subscription(lookup_key='max_5x_monthly'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
 
     def test_metadata_plan_is_the_fallback(self):
         self._post_event(
             'customer.subscription.created',
-            self._subscription(metadata={'plan': 'scale'}),
+            self._subscription(metadata={'plan': 'max_5x'}),
         )
-        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
 
     def test_unknown_plan_leaves_subscription_unchanged(self):
         Subscription.objects.create(user=self.user, plan='pro')
@@ -491,15 +510,16 @@ class SubscriptionWebhookTests(APITestCase):
         self.user.subscription.refresh_from_db()
         self.assertEqual(self.user.subscription.plan, 'pro')
 
-    def test_deleted_event_downgrades_to_starter(self):
+    def test_deleted_event_downgrades_to_free(self):
         Subscription.objects.create(
-            user=self.user, plan='scale', stripe_subscription_id='sub_1'
+            user=self.user, plan='max_5x', stripe_subscription_id='sub_1'
         )
         self._post_event(
-            'customer.subscription.deleted', self._subscription(lookup_key='scale')
+            'customer.subscription.deleted',
+            self._subscription(lookup_key='max_5x_monthly'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'starter')
+        self.assertEqual(self.user.subscription.plan, 'free')
         self.assertEqual(self.user.subscription.stripe_subscription_id, '')
 
     def test_unknown_customer_is_ignored(self):
@@ -515,28 +535,28 @@ class SubscriptionWebhookTests(APITestCase):
         # one is cancelled; the old one's deleted event must not downgrade
         # the plan the user is actually paying for.
         Subscription.objects.create(
-            user=self.user, plan='scale', stripe_subscription_id='sub_new'
+            user=self.user, plan='max_5x', stripe_subscription_id='sub_new'
         )
         self._post_event(
             'customer.subscription.deleted',
-            self._subscription(lookup_key='pro', sub_id='sub_old'),
+            self._subscription(lookup_key='pro_monthly', sub_id='sub_old'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
 
     def test_updated_event_for_another_subscription_is_ignored(self):
         # A late 'updated' for the replaced subscription (Stripe does not
         # guarantee ordering) must not overwrite the stored plan.
         Subscription.objects.create(
-            user=self.user, plan='scale', stripe_subscription_id='sub_new'
+            user=self.user, plan='max_5x', stripe_subscription_id='sub_new'
         )
         self._post_event(
             'customer.subscription.updated',
-            self._subscription(lookup_key='pro', sub_id='sub_old'),
+            self._subscription(lookup_key='pro_monthly', sub_id='sub_old'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
 
     def test_created_event_for_new_active_subscription_takes_over(self):
@@ -547,10 +567,10 @@ class SubscriptionWebhookTests(APITestCase):
         )
         self._post_event(
             'customer.subscription.created',
-            self._subscription(lookup_key='scale', sub_id='sub_new'),
+            self._subscription(lookup_key='max_5x_monthly', sub_id='sub_new'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
 
     def test_created_event_for_incomplete_subscription_does_not_take_over(self):
@@ -559,13 +579,13 @@ class SubscriptionWebhookTests(APITestCase):
         )
         self._post_event(
             'customer.subscription.created',
-            self._subscription(lookup_key='scale', sub_id='sub_new', sub_status='incomplete'),
+            self._subscription(lookup_key='max_5x_monthly', sub_id='sub_new', sub_status='incomplete'),
         )
         self.user.subscription.refresh_from_db()
         self.assertEqual(self.user.subscription.plan, 'pro')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_old')
 
-    def test_unpaid_status_downgrades_to_starter(self):
+    def test_unpaid_status_downgrades_to_free(self):
         # Dunning exhausted with the 'mark unpaid' setting: no deleted event
         # ever fires, so the updated event must revoke the paid plan.
         Subscription.objects.create(
@@ -576,7 +596,7 @@ class SubscriptionWebhookTests(APITestCase):
             self._subscription(lookup_key='pro', sub_status='unpaid'),
         )
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'starter')
+        self.assertEqual(self.user.subscription.plan, 'free')
         # The id stays so later events for this subscription still match.
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
 
@@ -630,16 +650,17 @@ class PaymentsAPITests(APITestCase):
         record_usage(self.user, 'gpt-5.6-terra', 1_000, 500)
         resp = self.client.get(reverse('api-usage-status'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data['plan']['id'], 'starter')
+        self.assertEqual(resp.data['plan']['id'], 'free')
         self.assertEqual(resp.data['windows']['five_hour']['used'], 1_500)
         self.assertEqual(resp.data['windows']['weekly']['used'], 1_500)
         # The registry rides along so the frontend can render plan options.
         self.assertEqual(
-            [p['id'] for p in resp.data['plans']], ['starter', 'pro', 'scale']
+            [p['id'] for p in resp.data['plans']],
+            ['free', 'pro', 'max_5x', 'max_20x'],
         )
         self.assertEqual(
             resp.data['plans'][0]['weekly_tokens'],
-            PLANS['starter']['weekly_tokens'],
+            PLANS['free']['weekly_tokens'],
         )
 
     def test_check_credits_endpoint(self):
