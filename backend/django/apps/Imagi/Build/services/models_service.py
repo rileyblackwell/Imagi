@@ -70,12 +70,17 @@ MODELS = {
     }
 }
 
-# Reasoning effort levels users can pick per request. Applied to the OpenAI
-# Responses API `reasoning.effort` parameter for reasoning-capable models.
+# Reasoning effort levels users can pick per request, ordered faster → smarter.
+# Applied to the OpenAI Responses API `reasoning.effort` parameter for
+# reasoning-capable models. ('none' is intentionally excluded — it disables
+# reasoning entirely rather than sitting on this speed/intelligence ladder.)
+# Keep in step with the frontend's REASONING_EFFORTS.
 REASONING_EFFORT_CHOICES = [
+    ('minimal', 'Minimal'),
     ('low', 'Low'),
     ('medium', 'Medium'),
     ('high', 'High'),
+    ('xhigh', 'Extra High'),
 ]
 REASONING_EFFORT_IDS = [effort_id for effort_id, _ in REASONING_EFFORT_CHOICES]
 DEFAULT_REASONING_EFFORT = _BUILDER_SETTINGS.get('DEFAULT_REASONING_EFFORT', 'medium')

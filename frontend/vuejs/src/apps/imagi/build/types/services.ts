@@ -126,7 +126,12 @@ export const AI_MODELS: AIModel[] = [
 /**
  * Reasoning effort levels — how much reasoning the model uses per request.
  */
-export type ReasoningEffort = 'low' | 'medium' | 'high';
+// The discrete reasoning-effort ladder the OpenAI Responses API accepts for
+// reasoning-capable models, ordered faster → smarter. ('none' — no reasoning —
+// is intentionally omitted: it's a different concept than "think less", not a
+// point on this speed/intelligence ladder.) Must stay in step with the
+// backend's REASONING_EFFORT_CHOICES.
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 
 export interface ReasoningEffortOption {
   id: ReasoningEffort;
@@ -134,9 +139,11 @@ export interface ReasoningEffortOption {
 }
 
 export const REASONING_EFFORTS: ReasoningEffortOption[] = [
+  { id: 'minimal', name: 'Minimal' },
   { id: 'low', name: 'Low' },
   { id: 'medium', name: 'Medium' },
   { id: 'high', name: 'High' },
+  { id: 'xhigh', name: 'Extra High' },
 ];
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';

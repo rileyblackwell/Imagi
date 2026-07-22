@@ -97,13 +97,6 @@
         </div>
       </template>
 
-      <!-- Plan + usage-window display in navbar right -->
-      <template #navbar-right>
-        <div class="flex items-center gap-3">
-          <UsageLimitsDisplay />
-        </div>
-      </template>
-
       <!-- Clean Main Content Area - fills the space below the navbar. Sized
            by the app-shell layout (h-full of the padded <main>) rather than a
            viewport calc, so it can never disagree with the shell and leave
@@ -157,7 +150,6 @@ import { useConfirm } from '../composables/useConfirm'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/imagi/build/layouts'
-import { UsageLimitsDisplay } from '../components/molecules'
 
 // Atomic Components
 import {
