@@ -48,8 +48,10 @@ const route = useRoute()
 
 const navigationItems = [
   { name: 'Welcome', to: '/docs', icon: 'fas fa-book' },
-  { name: 'Quick Start', to: '/docs/quickstart', icon: 'fas fa-rocket' },
-  { name: 'Creating Projects', to: '/docs/creating-projects', icon: 'fas fa-plus-circle' }
+  { name: 'Building with AI', to: '/docs/building', icon: 'fas fa-wand-magic-sparkles' },
+  { name: 'Running Your Business', to: '/docs/running-your-business', icon: 'fas fa-briefcase' },
+  { name: 'Models & Reasoning', to: '/docs/models', icon: 'fas fa-microchip' },
+  { name: 'Plans & Usage', to: '/docs/plans', icon: 'fas fa-gauge-high' }
 ]
 
 const isActive = (path) => route.path === path

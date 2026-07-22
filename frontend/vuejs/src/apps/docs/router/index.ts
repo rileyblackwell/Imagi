@@ -2,7 +2,6 @@ import type { RouteRecordRaw } from 'vue-router'
 
 // Views
 import DocsIntroduction from '../views/DocsIntroduction.vue'
-import DocsQuickStart from '../views/DocsQuickStart.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -15,24 +14,42 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/docs/quickstart',
-    name: 'docs-quickstart',
-    component: DocsQuickStart,
+    path: '/docs/building',
+    name: 'docs-building',
+    component: () => import('../views/DocsBuildingWithAI.vue'),
     meta: {
       requiresAuth: false,
-      title: 'Quick Start Guide'
+      title: 'Building with AI'
     }
   },
   {
-    path: '/docs/creating-projects',
-    name: 'docs-creating-projects',
-    component: () => import('../views/DocsCreatingProjects.vue'),
+    path: '/docs/running-your-business',
+    name: 'docs-running-your-business',
+    component: () => import('../views/DocsRunningYourBusiness.vue'),
     meta: {
       requiresAuth: false,
-      title: 'Creating Projects'
+      title: 'Running Your Business'
+    }
+  },
+  {
+    path: '/docs/models',
+    name: 'docs-models',
+    component: () => import('../views/DocsModels.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Models & Reasoning'
+    }
+  },
+  {
+    path: '/docs/plans',
+    name: 'docs-plans',
+    component: () => import('../views/DocsPlansAndUsage.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Plans & Usage'
     }
   }
 ]
 
 export { routes }
-export default routes 
+export default routes
