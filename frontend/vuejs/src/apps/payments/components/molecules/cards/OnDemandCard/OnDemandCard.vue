@@ -7,7 +7,7 @@
           On-Demand Credits
         </h3>
         <p class="text-blue-950/65 dark:text-blue-100/65 text-sm leading-relaxed text-pretty transition-colors duration-300">
-          Need extra API usage beyond your plan? Purchase additional credits anytime. Credits are added to your account instantly and never expire.
+          Hit your session or weekly limit? Buy additional usage credits anytime. Credits are added to your account instantly, stack on top of your plan, and never expire.
         </p>
       </div>
 

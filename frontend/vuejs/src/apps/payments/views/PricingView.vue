@@ -8,7 +8,7 @@
       </div>
 
       <!-- Content Container -->
-      <div class="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-24 md:pt-32 md:pb-32">
+      <div class="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-24 md:pt-32 md:pb-32">
         <!-- Header Section -->
         <div class="mb-16 md:mb-20 text-center">
           <!-- Editorial kicker: tracked small caps flanked by fading hairline rules -->
@@ -25,7 +25,7 @@
             Choose your <em class="pricing-accent not-italic">plan</em>
           </h1>
           <p class="pricing-rise text-xl text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty max-w-3xl mx-auto transition-colors duration-300" style="animation-delay: 180ms">
-            Simple, transparent pricing for every team. Start building today with the plan that fits your needs.
+            Start free, then upgrade as you grow. Usage refreshes on a rolling 5-hour session and a weekly limit — pick the plan that fits how much you build.
           </p>
         </div>
 
@@ -42,17 +42,18 @@
         </div>
 
         <!-- Subscription Tier Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-16 md:mb-20">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 md:mb-20">
           <SubscriptionTierCard
             v-for="tier in tiers"
-            :key="tier.lookupKey"
+            :key="tier.name + tier.price"
             :name="tier.name"
             :price="tier.price"
+            :cta="tier.cta"
             :features="tier.features"
-            :deployments="tier.deployments"
-            :api-usage="tier.apiUsage"
+            :session-limit="tier.sessionLimit"
+            :weekly-limit="tier.weeklyLimit"
             :is-popular="tier.isPopular"
-            :loading="loadingTier === tier.lookupKey"
+            :loading="loadingTier === (tier.lookupKey ?? tier.name)"
             @subscribe="handleSubscribe(tier)"
           />
         </div>
@@ -108,46 +109,64 @@ const loadingTier = ref<string | null>(null)
 const loadingOnDemand = ref(false)
 const error = ref('')
 
-const tiers = [
+const tiers: Tier[] = [
   {
-    name: 'Hobby',
-    price: 10,
-    lookupKey: 'hobby_monthly',
-    deployments: '1 project deployment',
-    apiUsage: '$10 of API usage per month',
+    name: 'Free',
+    price: 0,
+    lookupKey: null,
+    cta: 'Start for free',
+    sessionLimit: 'Basic usage every 5 hours',
+    weeklyLimit: 'Limited weekly usage',
     features: [
-      '1 project deployment',
-      '$10 API usage/month',
+      'Access to the core AI builder',
+      '1 active project',
+      'Standard models',
       'Community support',
-      'Basic analytics',
     ],
     isPopular: false,
   },
   {
     name: 'Pro',
-    price: 50,
+    price: 20,
     lookupKey: 'pro_monthly',
-    deployments: '5 project deployments',
-    apiUsage: '$50 of API usage per month',
+    cta: 'Get Started',
+    sessionLimit: 'More usage every 5 hours',
+    weeklyLimit: 'Full weekly usage',
     features: [
-      '5 project deployments',
-      '$50 API usage/month',
+      'Everything in Free',
+      'Unlimited projects',
+      'Advanced models',
       'Priority support',
-      'Advanced analytics',
     ],
     isPopular: true,
   },
   {
     name: 'Max',
     price: 100,
-    lookupKey: 'max_monthly',
-    deployments: 'Unlimited project deployments',
-    apiUsage: '$100 of API usage per month',
+    lookupKey: 'max_5x_monthly',
+    cta: 'Get Started',
+    sessionLimit: '5× more usage every 5 hours',
+    weeklyLimit: '5× higher weekly limit',
     features: [
-      'Unlimited deployments',
-      '$100 API usage/month',
-      'Dedicated support',
-      'Full analytics suite',
+      'Everything in Pro',
+      '5× more usage than Pro',
+      'Higher output limits',
+      'Early access to new features',
+    ],
+    isPopular: false,
+  },
+  {
+    name: 'Max',
+    price: 200,
+    lookupKey: 'max_20x_monthly',
+    cta: 'Get Started',
+    sessionLimit: '20× more usage every 5 hours',
+    weeklyLimit: '20× higher weekly limit',
+    features: [
+      'Everything in Pro',
+      '20× more usage than Pro',
+      'Highest output limits',
+      'Priority access at peak times',
     ],
     isPopular: false,
   },
@@ -156,15 +175,22 @@ const tiers = [
 interface Tier {
   name: string
   price: number
-  lookupKey: string
-  deployments: string
-  apiUsage: string
+  lookupKey: string | null
+  cta: string
+  sessionLimit: string
+  weeklyLimit: string
   features: string[]
   isPopular: boolean
 }
 
 const handleSubscribe = async (tier: Tier) => {
   error.value = ''
+
+  // Free plan has no checkout — send new users to sign up, existing users into the app.
+  if (!tier.lookupKey) {
+    router.push(authStore.isAuthenticated ? { path: '/' } : { path: '/auth/register' })
+    return
+  }
 
   // Check authentication
   if (!authStore.isAuthenticated) {
