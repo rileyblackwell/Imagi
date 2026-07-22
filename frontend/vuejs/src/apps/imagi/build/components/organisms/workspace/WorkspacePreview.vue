@@ -1,14 +1,15 @@
 <template>
   <div class="relative w-full h-full flex flex-col bg-white dark:bg-[#0a0a0a]">
     <!-- Toolbar -->
-    <div class="flex flex-col gap-2 px-3 py-1.5 border-b border-blue-950/[0.08] dark:border-white/[0.14] bg-blue-50/50 dark:bg-white/[0.02]">
-      <div class="flex items-center gap-1.5 flex-wrap">
+    <div class="flex items-center gap-1 px-2.5 py-2 border-b border-blue-950/[0.07] dark:border-white/[0.10] bg-[#fdf9f2]/50 dark:bg-white/[0.015]">
+      <!-- Navigation controls — quiet ghost buttons, grouped as one cluster -->
+      <div class="flex items-center gap-0.5 shrink-0">
         <button
           type="button"
           @click="goBack"
           :disabled="!canGoBack || phase !== 'ready'"
           title="Back"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-blue-950/55 disabled:cursor-not-allowed disabled:active:scale-100"
         >
           <i class="fas fa-arrow-left text-xs"></i>
         </button>
@@ -18,7 +19,7 @@
           @click="goForward"
           :disabled="!canGoForward || phase !== 'ready'"
           title="Forward"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-blue-950/55 disabled:cursor-not-allowed disabled:active:scale-100"
         >
           <i class="fas fa-arrow-right text-xs"></i>
         </button>
@@ -27,7 +28,7 @@
           type="button"
           @click="reload"
           title="Refresh page"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <i class="fas fa-sync-alt text-xs" :class="{ 'fa-spin': phase === 'starting' }"></i>
         </button>
@@ -36,72 +37,72 @@
           type="button"
           @click="goHome"
           title="Go to home page"
-          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] text-blue-950/70 hover:text-blue-950 dark:text-blue-100/70 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <i class="fas fa-home text-xs"></i>
         </button>
+      </div>
 
-        <!-- Combined App / Page selector — slender address bar -->
-        <div class="relative flex-1 min-w-[8rem]" ref="menuRoot">
-          <button
-            type="button"
-            @click="onMenuToggle"
-            :disabled="apps.length === 0"
-            class="group w-full flex items-center gap-2 h-8 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white/80 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-white/[0.07] hover:border-blue-950/30 dark:hover:border-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] pl-3 pr-8 text-[13px] font-medium text-blue-950 dark:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span class="truncate flex-1 text-left">{{ triggerLabel }}</span>
-            <span class="truncate max-w-[10rem] text-[11px] text-blue-950/35 dark:text-blue-100/45 font-normal hidden sm:block">{{ currentPath }}</span>
-            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/40 dark:text-blue-100/45 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
-          </button>
+      <!-- Hairline divider: separates controls from the address field -->
+      <div class="w-px h-5 mx-1 shrink-0 bg-blue-950/[0.09] dark:bg-white/[0.12]"></div>
 
-          <div
-            v-if="menuOpen && apps.length > 0"
-            class="absolute z-20 mt-1.5 left-0 max-md:left-auto max-md:right-0 min-w-[14rem] max-md:max-w-[calc(100vw-1.5rem)] rounded-xl border border-blue-950/[0.08] dark:border-white/[0.14] bg-white dark:bg-[#0f0f0f] shadow-xl py-1"
-          >
-            <div
-              v-for="app in apps"
-              :key="app.name"
-              class="relative"
-              @mouseenter="onAppEnter(app.name)"
-              @mouseleave="onAppLeave(app.name)"
+      <!-- Combined App / Page selector — the address bar -->
+      <div class="relative flex-1 min-w-0" ref="menuRoot">
+        <button
+          type="button"
+          @click="onMenuToggle"
+          :disabled="apps.length === 0"
+          class="group w-full flex items-center gap-2 h-9 rounded-full border border-blue-950/[0.10] dark:border-white/[0.14] bg-white dark:bg-white/[0.04] hover:border-blue-950/[0.22] dark:hover:border-white/[0.26] hover:shadow-[0_1px_2px_rgba(23,37,84,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a] pl-3.5 pr-9 text-[13px] transition-[border-color,box-shadow] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+        >
+          <i class="fas fa-globe text-[11px] shrink-0 text-blue-950/30 dark:text-blue-100/35 group-hover:text-blue-950/45 dark:group-hover:text-blue-100/50 transition-colors"></i>
+          <span class="flex-1 truncate text-left font-medium text-blue-950 dark:text-white">{{ triggerLabel }}</span>
+          <i class="fas fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/35 dark:text-blue-100/40 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
+        </button>
+
+        <!-- Directory tree: apps are folders, their pages are the files inside -->
+        <div
+          v-if="menuOpen && apps.length > 0"
+          class="absolute z-20 mt-2 left-0 max-md:left-auto max-md:right-0 min-w-[17rem] max-md:max-w-[calc(100vw-1.5rem)] max-h-[60vh] overflow-y-auto rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-white dark:bg-[#0f0f0f] shadow-[0_16px_44px_-12px_rgba(23,37,84,0.22)] dark:shadow-[0_16px_44px_-12px_rgba(0,0,0,0.7)] p-1.5"
+        >
+          <p class="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-950/35 dark:text-blue-100/35">Pages</p>
+          <div v-for="app in apps" :key="app.name">
+            <!-- Folder row -->
+            <button
+              type="button"
+              @click="toggleApp(app.name)"
+              class="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[13px] font-medium text-blue-950 dark:text-white hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
             >
-              <button
-                type="button"
-                @click="hoveredApp = hoveredApp === app.name ? '' : app.name"
-                class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-blue-950 dark:text-white hover:bg-blue-50 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
-              >
-                <span class="flex items-center gap-2 truncate">
-                  {{ app.title }}
-                </span>
-                <i
-                  class="fas fa-chevron-right text-[10px] text-blue-950/40 dark:text-blue-100/45 transition-transform duration-200"
-                  :class="{ 'max-md:rotate-90': hoveredApp === app.name }"
-                ></i>
-              </button>
+              <i
+                class="fas fa-chevron-right text-[9px] w-3 shrink-0 text-blue-950/35 dark:text-blue-100/40 transition-transform duration-200"
+                :class="{ 'rotate-90': isExpanded(app.name) }"
+              ></i>
+              <i class="fas fa-folder text-[12px] shrink-0 text-blue-950/45 dark:text-blue-100/45"></i>
+              <span class="truncate">{{ app.title }}</span>
+            </button>
 
-              <div
-                v-if="hoveredApp === app.name && app.pages.length"
-                class="py-1 md:absolute md:top-0 md:left-full md:ml-1 md:min-w-[14rem] md:rounded-lg md:border md:border-blue-950/[0.08] md:dark:border-white/[0.14] md:bg-white md:dark:bg-[#0f0f0f] md:shadow-lg max-md:ml-4 max-md:mt-0.5 max-md:mb-1 max-md:border-l max-md:border-blue-950/[0.08] max-md:dark:border-white/[0.14]"
-                @mouseenter="onAppEnter(app.name)"
-                @mouseleave="onAppLeave(app.name)"
+            <!-- Files (pages) nested under the folder, with a tree guide line -->
+            <div v-if="isExpanded(app.name)" class="ml-[1.05rem] pl-2 border-l border-blue-950/[0.08] dark:border-white/[0.10]">
+              <p v-if="!app.pages.length" class="px-2 py-1.5 text-[12px] text-blue-950/35 dark:text-blue-100/35 italic">No pages</p>
+              <button
+                v-for="page in app.pages"
+                :key="page.path"
+                type="button"
+                @click="onSelectPage(page.path)"
+                :class="['group/file w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50',
+                         page.path === currentPath
+                           ? 'bg-blue-50 dark:bg-white/[0.08] font-medium text-blue-950 dark:text-white'
+                           : 'text-blue-950/70 dark:text-blue-100/80 hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.06]']"
               >
-                <button
-                  v-for="page in app.pages"
-                  :key="page.path"
-                  type="button"
-                  @click="onSelectPage(page.path)"
-                  :class="['w-full flex items-center gap-2 px-3 py-2 text-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50',
-                           page.path === currentPath
-                             ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
-                             : 'text-blue-950/70 dark:text-blue-100/80 hover:bg-blue-50 dark:hover:bg-white/[0.05]']"
-                >
-                  <span class="truncate">{{ page.title }}</span>
-                </button>
-              </div>
+                <i
+                  class="fas text-[11px] w-3.5 shrink-0"
+                  :class="page.path === currentPath ? 'fa-circle-dot text-blue-600 dark:text-blue-300' : 'fa-file text-blue-950/30 dark:text-blue-100/35'"
+                ></i>
+                <span class="truncate flex-1">{{ page.title }}</span>
+                <span class="truncate font-mono text-[10.5px] text-blue-950/30 dark:text-blue-100/40 max-w-[45%] hidden sm:block">{{ page.path }}</span>
+              </button>
             </div>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -256,12 +257,12 @@ const canGoForward = ref(false)
 // pane so client coordinates map 1:1 onto page coordinates.
 const viewport = ref<[number, number]>([1280, 800])
 
-const selectedApp = ref('')
 const menuOpen = ref(false)
-const hoveredApp = ref('')
+// Folders (apps) default to expanded so the whole tree is visible; this holds
+// the ones the user has explicitly collapsed this session.
+const collapsedApps = ref<string[]>([])
 const menuRoot = ref<HTMLElement | null>(null)
 const screenRef = ref<HTMLElement | null>(null)
-let leaveTimer: number | null = null
 
 // ---------------------------------------------------------------------------
 // Session lifecycle + frame polling
@@ -323,7 +324,6 @@ function applyFrame(f: PreviewFrame, onShown?: () => void) {
   // A full replacement list on every payload (empty array clears); guarded so
   // a payload from an older backend without the field keeps the current list.
   if (Array.isArray(f.console_errors)) consoleErrors.value = f.console_errors
-  syncSelectionFromCurrent()
 }
 
 // ---------------------------------------------------------------------------
@@ -899,7 +899,6 @@ async function refreshPages() {
   if (!props.projectId) return
   try {
     apps.value = await PreviewService.pages(props.projectId)
-    syncSelectionFromCurrent()
   } catch {
     // Keep whatever menu we had; the preview itself is unaffected.
   }
@@ -912,15 +911,15 @@ function onMenuToggle() {
   if (menuOpen.value) void refreshPages()
 }
 
-const pagesForSelectedApp = computed(() => {
-  const app = apps.value.find(a => a.name === selectedApp.value)
-  return app ? app.pages : []
-})
+// Folders start expanded; collapsedApps only tracks the ones the user closed.
+function isExpanded(name: string): boolean {
+  return !collapsedApps.value.includes(name)
+}
 
-function appNameFromPath(path: string): string | null {
-  if (path === '/' || path === '') return apps.value.some(a => a.name === 'home') ? 'home' : null
-  const m = path.match(/^\/([^/]+)/)
-  return m ? m[1]! : null
+function toggleApp(name: string) {
+  const i = collapsedApps.value.indexOf(name)
+  if (i >= 0) collapsedApps.value.splice(i, 1)
+  else collapsedApps.value.push(name)
 }
 
 function normalizePath(input: string): string {
@@ -940,50 +939,24 @@ function normalizePath(input: string): string {
 function onSelectPage(path: string) {
   navigateTo(path)
   menuOpen.value = false
-  hoveredApp.value = ''
-}
-
-function onAppEnter(name: string) {
-  if (leaveTimer) {
-    window.clearTimeout(leaveTimer)
-    leaveTimer = null
-  }
-  hoveredApp.value = name
-}
-
-function onAppLeave(name: string) {
-  if (leaveTimer) window.clearTimeout(leaveTimer)
-  leaveTimer = window.setTimeout(() => {
-    if (hoveredApp.value === name) hoveredApp.value = ''
-    leaveTimer = null
-  }, 120)
 }
 
 function onDocClick(e: MouseEvent) {
   if (!menuOpen.value) return
   if (menuRoot.value && !menuRoot.value.contains(e.target as Node)) {
     menuOpen.value = false
-    hoveredApp.value = ''
   }
 }
 
+// The collapsed address bar shows just the page you're on (e.g. "About").
 const triggerLabel = computed(() => {
-  const app = apps.value.find(a => a.name === selectedApp.value)
-  const page = pagesForSelectedApp.value.find(p => p.path === currentPath.value)
-  if (app && page) return `${app.title} / ${page.title}`
-  if (app) return app.title
-  if (apps.value.length === 0) return 'No apps yet'
-  return 'Select page'
-})
-
-function syncSelectionFromCurrent() {
-  const appFromPath = appNameFromPath(currentPath.value)
-  if (appFromPath && apps.value.some(a => a.name === appFromPath)) {
-    selectedApp.value = appFromPath
-  } else if (!selectedApp.value && apps.value.length > 0) {
-    selectedApp.value = apps.value[0]!.name
+  if (apps.value.length === 0) return 'No pages yet'
+  for (const app of apps.value) {
+    const page = app.pages.find(p => p.path === currentPath.value)
+    if (page) return page.title
   }
-}
+  return currentPath.value || 'Select page'
+})
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -1002,7 +975,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   disposed = true
   document.removeEventListener('mousedown', onDocClick)
-  if (leaveTimer) window.clearTimeout(leaveTimer)
   if (pollTimer) window.clearTimeout(pollTimer)
   if (resizeTimer) window.clearTimeout(resizeTimer)
   if (flushTimer) window.clearTimeout(flushTimer)
@@ -1028,12 +1000,6 @@ watch(
     }
   }
 )
-
-watch(apps, () => {
-  if (!selectedApp.value && apps.value.length > 0) {
-    syncSelectionFromCurrent()
-  }
-})
 
 watch(
   () => props.paused,
