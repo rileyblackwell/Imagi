@@ -57,7 +57,7 @@
 
             <!-- Section header -->
             <div v-reveal class="text-center mb-14 md:mb-16">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Our Mission</p>
+              <SectionLabel label="Our Mission" tone="orange" class="mb-6" />
               <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
                 Making entrepreneurship accessible to <em class="section-accent not-italic">everyone</em>
               </h2>
@@ -101,7 +101,7 @@
 
             <!-- Section header -->
             <div v-reveal class="text-center mb-14 md:mb-16">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-6 transition-colors duration-300">What We Do</p>
+              <SectionLabel label="What We Do" tone="blue" class="mb-6" />
               <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
                 One platform to build and run <em class="section-accent not-italic">it all</em>
               </h2>
@@ -139,7 +139,7 @@
 
             <!-- Section header -->
             <div v-reveal class="text-center mb-14 md:mb-16">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Who We Serve</p>
+              <SectionLabel label="Who We Serve" tone="orange" class="mb-6" />
               <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
                 Built for creators, entrepreneurs, and <em class="section-accent not-italic">innovators</em>
               </h2>
@@ -187,13 +187,15 @@
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
 import { CTASection } from '@/apps/home/components/organisms/sections'
+import { SectionLabel } from '@/apps/home/components/atoms'
 import reveal from '@/apps/home/directives/reveal'
 
 export default defineComponent({
   name: 'About',
   components: {
     DefaultLayout,
-    CTASection
+    CTASection,
+    SectionLabel
   },
   directives: { reveal },
   setup() {

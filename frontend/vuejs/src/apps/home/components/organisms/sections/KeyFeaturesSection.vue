@@ -15,7 +15,7 @@
       <!-- Editorial header: headline left, supporting copy right -->
       <div v-reveal class="md:flex md:items-end md:justify-between gap-12 mb-14 md:mb-16">
         <div class="max-w-xl">
-          <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Step 2 &middot; Run</p>
+          <StepBadge number="02" label="Run" tone="orange" class="mb-6" />
           <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
             Run your <em class="section-accent-warm not-italic">business</em>
           </h2>
@@ -39,7 +39,7 @@
             class="icon-tile relative flex items-center justify-center w-12 h-12 rounded-xl mb-6 ring-1 transition-all duration-300"
             :class="index % 2 === 1 ? 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-blue-900/[0.08] dark:ring-blue-300/[0.18]' : 'bg-orange-100 dark:bg-orange-400/[0.14] ring-orange-900/[0.08] dark:ring-orange-300/[0.18]'"
           >
-            <i :class="[feature.icon, 'text-lg', index % 2 === 1 ? 'text-blue-600 dark:text-blue-300' : 'text-orange-600 dark:text-orange-300']"></i>
+            <HomeCardIcon :name="feature.icon" :class="index % 2 === 1 ? 'text-blue-600 dark:text-blue-300' : 'text-orange-600 dark:text-orange-300'" />
           </div>
 
           <!-- Title -->
@@ -77,9 +77,11 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
+import { StepBadge, HomeCardIcon } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'KeyFeaturesSection',
+  components: { StepBadge, HomeCardIcon },
   directives: { reveal },
   props: {
     features: {
@@ -88,7 +90,7 @@ export default defineComponent({
         {
           title: 'Marketing',
           description: 'Reach customers and grow your audience. Launch campaigns, build a presence, and drive traffic to your app—no marketing team required.',
-          icon: 'fas fa-bullhorn',
+          icon: 'marketing',
           highlights: [
             'Email & social campaigns',
             'Landing pages & SEO',
@@ -98,7 +100,7 @@ export default defineComponent({
         {
           title: 'Sales',
           description: 'Turn visitors into paying customers. Manage leads, track your pipeline, and close deals with tools built right into your business.',
-          icon: 'fas fa-handshake',
+          icon: 'sales',
           highlights: [
             'Lead & contact management',
             'Pipeline tracking',
@@ -108,7 +110,7 @@ export default defineComponent({
         {
           title: 'Finance',
           description: 'Stay on top of the numbers. Track revenue and expenses, send invoices, and understand the health of your business at a glance.',
-          icon: 'fas fa-chart-line',
+          icon: 'finance',
           highlights: [
             'Revenue & expense tracking',
             'Invoicing & billing',
