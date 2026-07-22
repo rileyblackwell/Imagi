@@ -15,7 +15,7 @@
       <!-- Editorial header: headline left, supporting copy right -->
       <div v-reveal class="md:flex md:items-end md:justify-between gap-12 mb-14 md:mb-16">
         <div class="max-w-xl">
-          <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Why Imagi</p>
+          <SectionLabel label="Why Imagi" tone="orange" class="mb-6" />
           <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
             Everything your business needs, <em class="section-accent not-italic">in one place</em>
           </h2>
@@ -57,7 +57,7 @@
             class="icon-tile relative flex items-center justify-center w-12 h-12 rounded-xl mb-6 ring-1 transition-all duration-300"
             :class="index % 2 === 1 ? 'bg-orange-100 dark:bg-orange-400/[0.14] ring-orange-900/[0.08] dark:ring-orange-300/[0.18]' : 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-blue-900/[0.08] dark:ring-blue-300/[0.18]'"
           >
-            <i :class="[metric.icon, 'text-lg', index % 2 === 1 ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300']"></i>
+            <HomeCardIcon :name="metric.icon" :class="index % 2 === 1 ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300'" />
           </div>
 
           <!-- Title -->
@@ -78,9 +78,11 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
+import { SectionLabel, HomeCardIcon } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'StatsSection',
+  components: { SectionLabel, HomeCardIcon },
   directives: { reveal },
   props: {
     stats: {
@@ -104,17 +106,17 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          icon: 'fas fa-seedling',
+          icon: 'founders',
           title: 'Ideal for Founders',
           description: 'Go from idea to a running business without a technical co-founder. Build your app, then find customers and grow revenue—all in one platform.'
         },
         {
-          icon: 'fas fa-store',
+          icon: 'business',
           title: 'Ideal for Small Businesses',
           description: 'Get your business online and manage marketing, sales, and finances in one place—no need to stitch together a dozen separate tools.'
         },
         {
-          icon: 'fas fa-users',
+          icon: 'teams',
           title: 'Ideal for Teams',
           description: 'Give your whole team the tools to launch products and run operations quickly, without waiting on engineering resources.'
         }
