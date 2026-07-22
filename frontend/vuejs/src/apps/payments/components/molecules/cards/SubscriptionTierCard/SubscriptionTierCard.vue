@@ -22,9 +22,32 @@
     <!-- Price -->
     <div class="flex items-baseline gap-1 mb-6">
       <span class="font-display text-4xl font-semibold text-blue-950 dark:text-white tracking-tight tabular-nums transition-colors duration-300">
-        {{ price === 0 ? 'Free' : `$${price}` }}
+        {{ active.price === 0 ? 'Free' : `$${active.price}` }}
       </span>
-      <span v-if="price !== 0" class="text-blue-950/60 dark:text-blue-100/55 text-sm transition-colors duration-300">/month</span>
+      <span v-if="active.price !== 0" class="text-blue-950/60 dark:text-blue-100/55 text-sm transition-colors duration-300">/month</span>
+    </div>
+
+    <!-- Usage option selector (Max-style tiers pick between 5× and 20×) -->
+    <div
+      v-if="options && options.length > 1"
+      class="flex w-full p-1 mb-6 rounded-full bg-blue-950/[0.04] dark:bg-white/[0.05] border border-blue-950/[0.07] dark:border-white/[0.08]"
+      role="tablist"
+      aria-label="Usage amount"
+    >
+      <button
+        v-for="(opt, i) in options"
+        :key="opt.lookupKey"
+        type="button"
+        role="tab"
+        :aria-selected="selected === i"
+        @click="selected = i"
+        class="flex-1 py-1.5 px-3 rounded-full text-xs font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+        :class="selected === i
+          ? 'bg-white text-blue-950 shadow-sm dark:bg-[#f3ede2] dark:text-blue-950'
+          : 'text-blue-950/55 hover:text-blue-950/80 dark:text-blue-100/55 dark:hover:text-blue-100/80'"
+      >
+        {{ opt.label }}
+      </button>
     </div>
 
     <!-- Key Highlights: usage refreshes on a rolling 5-hour session and a weekly limit -->
@@ -33,20 +56,20 @@
         <svg class="w-4 h-4 flex-shrink-0" :class="isPopular ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300'" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
         </svg>
-        <span>{{ sessionLimit }}</span>
+        <span>{{ active.sessionLimit }}</span>
       </div>
       <div class="flex items-center gap-2 text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">
         <svg class="w-4 h-4 flex-shrink-0" :class="isPopular ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300'" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
         </svg>
-        <span>{{ weeklyLimit }}</span>
+        <span>{{ active.weeklyLimit }}</span>
       </div>
     </div>
 
     <!-- Feature List -->
     <ul class="space-y-3 mb-8 pt-5 border-t border-blue-950/[0.06] dark:border-white/[0.07]">
       <li
-        v-for="(feature, index) in features"
+        v-for="(feature, index) in active.features"
         :key="index"
         class="flex items-start gap-3 text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300"
       >
@@ -64,7 +87,7 @@
 
     <!-- CTA Button -->
     <button
-      @click="$emit('subscribe')"
+      @click="$emit('subscribe', active.lookupKey)"
       :disabled="loading"
       class="w-full inline-flex items-center justify-center py-3 px-6 rounded-full font-medium text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
       :class="[
@@ -86,20 +109,51 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  name: string
+import { ref, computed } from 'vue'
+
+interface TierOption {
+  label: string
   price: number
-  features: string[]
+  lookupKey: string
   sessionLimit: string
   weeklyLimit: string
+  features: string[]
+}
+
+const props = defineProps<{
+  name: string
   cta?: string
   isPopular?: boolean
   loading?: boolean
+  // Single-option tiers pass these directly…
+  price?: number
+  lookupKey?: string | null
+  sessionLimit?: string
+  weeklyLimit?: string
+  features?: string[]
+  // …multi-option tiers (e.g. Max) pass these instead.
+  options?: TierOption[]
 }>()
 
 defineEmits<{
-  subscribe: []
+  subscribe: [lookupKey: string | null]
 }>()
+
+const selected = ref(0)
+
+// What's currently shown: the selected option for multi-option tiers,
+// otherwise the tier's own props.
+const active = computed(() => {
+  const opt = props.options?.[selected.value]
+  if (opt) return opt
+  return {
+    price: props.price ?? 0,
+    lookupKey: props.lookupKey ?? null,
+    sessionLimit: props.sessionLimit ?? '',
+    weeklyLimit: props.weeklyLimit ?? '',
+    features: props.features ?? [],
+  }
+})
 </script>
 
 <style scoped>

@@ -192,13 +192,13 @@ export default defineComponent({
       {
         icon: 'fas fa-dollar-sign',
         question: 'How does pricing work?',
-        answer: 'Imagi offers monthly subscription plans: Hobby ($10/month), Pro ($50/month), and Max ($100/month). Each plan includes a monthly allowance of AI usage and project deployments, with higher tiers unlocking more deployments, usage, and support. You can cancel anytime.',
+        answer: 'Imagi starts with a free plan, plus two paid plans: Pro ($20/month) and Max, which you can set to 5× ($100/month) or 20× ($200/month) more usage than Pro. Instead of counting deployments, your AI usage refreshes on a rolling 5-hour session with a separate weekly limit — higher plans unlock more usage every session and week, along with advanced models and priority support. You can cancel anytime.',
         link: { text: 'View pricing details', to: '/payments/pricing' }
       },
       {
         icon: 'fas fa-rocket',
         question: 'When will deployment be available?',
-        answer: 'Imagi-hosted deployment is coming in Q1 2026. You\'ll be able to publish your app to a .imagi.app domain with one click. Custom domains, SSL, and auto-scaling will be included. Join the waitlist to get early access.',
+        answer: 'Imagi-hosted deployment is coming in Q4 2026. You\'ll be able to publish your app to a .imagi.app domain with one click. Custom domains, SSL, and auto-scaling will be included. Join the waitlist to get early access.',
         link: { text: 'Join the waitlist', to: '/contact' }
       },
       {
