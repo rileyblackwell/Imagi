@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
+  <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
     <!-- Confirmations render through the workspace-level ConfirmModal
          (useConfirm state is global; one host avoids duplicate modals). -->
     <!-- Header -->

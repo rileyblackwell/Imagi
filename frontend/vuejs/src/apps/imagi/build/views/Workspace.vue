@@ -23,7 +23,7 @@
            to desktop) — the agent manager (team view) OR the active
            instance's chat. The preview lives in the main slot, so swapping
            panes never unmounts it. -->
-      <template #sidebar-content="{ collapsed, toggleSidebar }">
+      <template #sidebar-content="{ collapsed }">
         <div v-if="!collapsed" class="h-full overflow-hidden">
           <!-- KeepAlive keeps the hidden pane's component state alive across
                swaps — most importantly the composer's typed-but-unsent draft,
@@ -49,7 +49,6 @@
                 :on-model-select="handleModelSelect"
                 :on-effort-select="handleEffortSelect"
                 :on-example-prompt="handleExamplePrompt"
-                :on-collapse-sidebar="() => collapseSidebar(toggleSidebar)"
                 :is-collapsed="false"
                 :version-history="versionHistory"
                 :versions-loading="isLoadingVersions"
@@ -263,14 +262,6 @@ async function handleTaskAccepted() {
   await loadProjectFiles(true)
   await loadVersionHistory()
   previewRef.value?.reload()
-}
-
-// Collapsing the sidebar from the chat header reveals the browser pane; keep
-// the mobile view switcher pointed at it so the highlighted tab (and the
-// browser pane's visibility) match what's on screen.
-function collapseSidebar(toggleSidebar: () => void) {
-  toggleSidebar()
-  if (isMobile.value) mobileView.value = 'browser'
 }
 
 // Version history state and actions (surfaced in BuilderSidebarChat's

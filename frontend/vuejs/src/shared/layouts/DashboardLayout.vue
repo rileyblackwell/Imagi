@@ -1,4 +1,12 @@
-<!-- Dashboard layout for authenticated users -->
+<!-- Global authenticated app shell: one sidebar engine for every workspace
+     (docs, builder, …). The sidebar's surface, motion, collapse behaviour and
+     the top-bar toggle are shared here; each section customises width and the
+     panel's contents through props + slots.
+
+     Collapsed means GONE: the panel slides fully off-canvas on every
+     breakpoint and the content reclaims the full width. The only control that
+     brings it back lives in the top bar (SidebarToggle), never inside the
+     panel — so it can never disappear along with the thing it opens. -->
 <template>
   <BaseLayout>
     <!-- App-shell views (the builder workspace) pin the shell to the dynamic
@@ -6,99 +14,94 @@
          scroll — otherwise the vh/dvh mismatch on mobile leaves a few dozen
          scrollable pixels that slide the content up under the fixed navbar. -->
     <div class="flex" :class="appShell ? 'h-dvh overflow-hidden' : 'min-h-screen'">
-      <!-- Sidebar -->
+      <!-- Sidebar: the same glass as the navbar (bg-white/80 blur + hairline),
+           so the top bar and the panel read as one continuous frame around the
+           page. On mobile it drops below the navbar and becomes an off-canvas
+           drawer that floats over the content. -->
       <aside
-        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-blue-950/[0.08] dark:border-white/[0.08] shadow-xl"
+        class="sidebar-panel fixed inset-y-0 left-0 z-30 flex flex-col max-md:top-16 border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
         :class="[
-          isSidebarCollapsed
-            ? 'w-16 bg-white dark:bg-[#0a0a0a]'
-            : (wide
-              ? 'w-[22rem] bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'
-              : 'w-72 bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'),
-          mobileOverlay ? 'max-md:top-16 max-md:w-full max-md:bg-white max-md:dark:bg-[#0a0a0a] max-md:backdrop-blur-none' : '',
-          mobileOverlay ? (isSidebarCollapsed ? 'max-md:-translate-x-full' : 'max-md:translate-x-0') : ''
+          asideWidthClass,
+          isSidebarCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
         ]"
+        :aria-hidden="isSidebarCollapsed ? 'true' : undefined"
       >
-        <!-- Logo and Brand -->
+        <!-- Section header (skipped for compact app shells like the builder,
+             which supply their own panel header). Holds a section label and
+             the in-panel collapse control. -->
         <div
-          v-if="!compactTop || isSidebarCollapsed"
-          class="flex-shrink-0 flex items-center justify-end"
-          :class="compactTop ? 'h-10 px-2' : 'h-16 px-4'"
+          v-if="!compactTop"
+          class="flex-shrink-0 h-14 flex items-center gap-2 px-3 border-b border-blue-950/[0.08] dark:border-white/[0.08]"
         >
-          <!-- Collapse/Expand Button -->
-          <button 
-            @click="toggleSidebar"
-            class="sidebar-toggle-btn flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/60 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-            :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
-          >
-            <i 
-              class="fas text-sm transition-transform duration-300" 
-              :class="[isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left']"
-            ></i>
-          </button>
+          <div class="flex-1 min-w-0">
+            <slot name="sidebar-header"></slot>
+          </div>
         </div>
-        
-        <!-- Navigation -->
-        <nav v-if="navigationItems.length" class="flex-shrink-0 py-6">
+
+        <!-- Navigation (used when a section passes navigationItems directly
+             rather than filling the sidebar-content slot). -->
+        <nav v-if="navigationItems.length" class="flex-shrink-0 py-4">
           <div class="px-3 space-y-1">
             <router-link
               v-for="item in navigationItems"
               :key="item.name"
               :to="item.to"
               :class="[
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
                 isActivePath(item)
-                  ? 'bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300 shadow-sm'
+                  ? 'nav-item-active text-blue-950 dark:text-white'
                   : 'text-blue-950/65 dark:text-blue-100/65 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white'
               ]"
             >
-              <i 
+              <i
                 :class="[
                   item.icon,
-                  'text-lg transition-colors duration-200',
-                  isActivePath(item) ? 'text-blue-700 dark:text-blue-300' : 'text-blue-950/50 dark:text-blue-100/40 group-hover:text-blue-950 dark:group-hover:text-white',
-                  isSidebarCollapsed ? '' : 'mr-3'
+                  'text-base w-5 text-center transition-colors duration-200 mr-3',
+                  isActivePath(item) ? 'text-blue-700 dark:text-blue-300' : 'text-blue-950/45 dark:text-blue-100/40 group-hover:text-blue-950 dark:group-hover:text-white'
                 ]"
               ></i>
-              <span 
-                v-if="!isSidebarCollapsed" 
-                class="truncate transition-opacity duration-200"
-              >
-                {{ item.name }}
-              </span>
+              <span class="truncate">{{ item.name }}</span>
             </router-link>
           </div>
         </nav>
 
         <!-- Custom Sidebar Content -->
-        <div class="flex-1 overflow-hidden" :class="{ 'opacity-0 pointer-events-none': isSidebarCollapsed }">
+        <div class="flex-1 min-h-0 overflow-hidden">
           <slot name="sidebar-content" :isSidebarCollapsed="isSidebarCollapsed" :toggleSidebar="toggleSidebar"></slot>
         </div>
 
         <!-- Bottom Actions -->
-        <div class="flex-shrink-0 border-t border-blue-950/[0.08] dark:border-white/[0.08]">
-          <!-- Additional bottom actions from slot -->
+        <div v-if="$slots['sidebar-bottom']" class="flex-shrink-0 border-t border-blue-950/[0.08] dark:border-white/[0.08]">
           <slot name="sidebar-bottom"></slot>
         </div>
       </aside>
 
-      <!-- Main content -->
+      <!-- Main content — margin animates to match the sidebar, and drops to 0
+           when the panel is collapsed (or on mobile, where the panel overlays
+           rather than pushes). -->
       <div
-        class="flex-1 flex flex-col transition-all duration-300 ease-in-out"
+        class="content-shell flex-1 flex flex-col ml-0"
         :class="[
           appShell ? 'h-full min-h-0 overflow-hidden' : 'min-h-screen',
-          isSidebarCollapsed ? 'ml-16' : (wide ? 'ml-[22rem]' : 'ml-72'),
-          mobileOverlay ? 'max-md:ml-0' : ''
+          isSidebarCollapsed ? '' : contentOffsetClass
         ]"
       >
         <!-- Navbar -->
         <BaseNavbar
-          class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
-          :class="[
-            isSidebarCollapsed ? 'left-16' : (wide ? 'left-[22rem]' : 'left-72'),
-            mobileOverlay ? 'max-md:left-0' : ''
-          ]"
+          class="navbar-shell fixed top-0 right-0 left-0 z-20 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
+          :class="isSidebarCollapsed ? '' : navOffsetClass"
         >
+          <!-- The permanent show/hide control, pinned to the far left of the
+               top bar (before the wordmark) so collapsing the panel never
+               hides the only way back. -->
+          <template #left-leading>
+            <SidebarToggle
+              :open="!isSidebarCollapsed"
+              class="mr-1 -ml-3 sm:-ml-5 lg:-ml-9"
+              :class="hideToggleOnMobile ? 'max-md:hidden' : ''"
+              @toggle="toggleSidebar"
+            />
+          </template>
           <template #left>
             <slot
               name="navbar-left"
@@ -108,7 +111,6 @@
             ></slot>
           </template>
           <template #center>
-            <!-- Pass through a navbar-center slot for centered content -->
             <div class="flex items-center justify-center">
               <slot
                 name="navbar-center"
@@ -119,8 +121,6 @@
             </div>
           </template>
           <template #right>
-            <!-- Pass through the navbar-right slot; sits flush in the corner
-                 (mirroring the logo on the left) with no extra end padding. -->
             <div class="flex items-center justify-end">
               <slot
                 name="navbar-right"
@@ -144,16 +144,32 @@
              BaseFooter supplies its own white / dark #0a0a0a canvas + hairline. -->
         <BaseFooter v-if="!appShell" />
       </div>
+
+      <!-- Mobile scrim: dims the content behind the drawer and taps to close.
+           Desktop pushes content instead, so it's mobile-only. -->
+      <transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="!isSidebarCollapsed"
+          class="md:hidden fixed top-16 left-0 right-0 bottom-0 z-20 bg-blue-950/25 dark:bg-black/45 backdrop-blur-[1px]"
+          aria-hidden="true"
+          @click="setSidebarCollapsed(true)"
+        ></div>
+      </transition>
     </div>
   </BaseLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import BaseLayout from './BaseLayout.vue'
-import { BaseNavbar, BaseFooter } from '@/shared/components'
+import { BaseNavbar, BaseFooter, SidebarToggle } from '@/shared/components'
 
 interface NavigationItem {
   name: string
@@ -163,39 +179,58 @@ interface NavigationItem {
   children?: NavigationItem[]
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   navigationItems: NavigationItem[]
   storageKey?: string
-  wide?: boolean
   compactTop?: boolean
-  // When true, the sidebar becomes a full-screen off-canvas overlay on mobile
-  // (< md) instead of squeezing the main content. Opt-in so other layouts keep
-  // their current behaviour.
-  mobileOverlay?: boolean
   // When true, this is a full-screen app shell (e.g. the builder workspace):
   // the site footer is dropped so the content fills the viewport exactly.
   appShell?: boolean
-}>()
-
-const wide = computed(() => !!props.wide)
-const compactTop = computed(() => !!props.compactTop)
-const mobileOverlay = computed(() => !!props.mobileOverlay)
-const appShell = computed(() => !!props.appShell)
+  // Per-section sizing. Passed as ready-made utility classes so the responsive
+  // (md:) variants compose cleanly and there are no scoped-style specificity
+  // fights. The content/nav offsets are applied only at md+ — on mobile the
+  // panel overlays, so the content is never pushed.
+  asideWidthClass?: string
+  contentOffsetClass?: string
+  navOffsetClass?: string
+  // Start collapsed on small screens (no stored preference yet) so a section
+  // whose panel is a menu (docs) opens to its content, not the menu.
+  mobileDefaultCollapsed?: boolean
+  // Sections with their own mobile view switcher (the builder) suppress the
+  // top-bar toggle on mobile to avoid two competing controls.
+  hideToggleOnMobile?: boolean
+  // Deprecated, accepted for back-compat with existing callers.
+  wide?: boolean
+  mobileOverlay?: boolean
+}>(), {
+  asideWidthClass: 'w-72',
+  contentOffsetClass: 'md:ml-72',
+  navOffsetClass: 'md:left-72',
+})
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Sidebar state
-const isSidebarCollapsed = ref(false)
+// Sidebar state. Initialised synchronously (before first paint) so a
+// mobile-default-collapsed section never flashes its panel open then shut.
+const isSidebarCollapsed = ref(getInitialCollapsed())
+
+function getInitialCollapsed(): boolean {
+  if (typeof window === 'undefined') return false
+  if (props.storageKey) {
+    const saved = localStorage.getItem(props.storageKey)
+    if (saved !== null) return saved === 'true'
+  }
+  if (props.mobileDefaultCollapsed && window.innerWidth < 768) return true
+  return false
+}
 
 // Check if a navigation item is active
 const isActivePath = (item: NavigationItem): boolean => {
   if (item.exact) {
     return route.path === item.to
   }
-  
-  // Check if current route starts with the navigation item path
   return route.path.startsWith(item.to)
 }
 
@@ -207,25 +242,15 @@ const toggleSidebar = () => {
 // Set the sidebar collapsed state directly (used by the mobile view switcher)
 const setSidebarCollapsed = (collapsed: boolean) => {
   isSidebarCollapsed.value = collapsed
-
-  // Save preference if storage key is provided
   if (props.storageKey) {
     localStorage.setItem(props.storageKey, isSidebarCollapsed.value ? 'true' : 'false')
   }
 }
 
-// Initialize sidebar state from localStorage if available
 onMounted(() => {
-  if (props.storageKey) {
-    const savedState = localStorage.getItem(props.storageKey)
-    if (savedState !== null) {
-      isSidebarCollapsed.value = savedState === 'true'
-    }
-  }
-
   // Only check authentication if the current route requires it
   if (!authStore.isAuthenticated && route.meta.requiresAuth) {
-    router.push({ 
+    router.push({
       name: 'login',
       query: { redirect: route.fullPath }
     })
@@ -234,24 +259,54 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Note: never redefine Tailwind utilities (.w-16, .ml-16, ...) in here. Scoped
+/* Note: never redefine Tailwind utilities (.w-72, .ml-72, ...) in here. Scoped
    rules compile with a [data-v-*] attribute selector, so they out-rank
-   responsive variants like max-md:ml-0 and silently break them. */
+   responsive variants like md:ml-72 and silently break them. Sizing is passed
+   in as utility classes precisely to keep it out of here. */
 
-/* Ensure tooltips in collapsed sidebar are visible */
-aside {
-  overflow: visible !important;
+/* One coordinated glide for the whole shell: the panel slides on transform,
+   the content margin and navbar offset animate in lockstep on the same curve
+   (matching the home page's reveal easing), so nothing tears or lags. */
+.sidebar-panel {
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
-/* Custom tooltips */
-:deep(.sidebar-tooltip) {
-  z-index: 100;
-  visibility: visible;
+.content-shell,
+.navbar-shell {
+  transition: margin 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-panel,
+  .content-shell,
+  .navbar-shell {
+    transition: none;
+  }
+}
+
+/* Active nav item: a quiet raised "crisp-card" pill rather than a heavy solid
+   fill — reads as selected without shouting, matching the home page's card
+   language. */
+.nav-item-active {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.05),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 3px 8px -3px rgba(15, 23, 42, 0.12);
+}
+
+:global(.dark) .nav-item-active {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* No tap flash on the toggle; keyboard focus shows the canonical ring via
    the focus-visible utilities on the button itself. */
-.sidebar-toggle-btn {
+:deep(.sidebar-toggle) {
   -webkit-tap-highlight-color: transparent;
 }
 </style>

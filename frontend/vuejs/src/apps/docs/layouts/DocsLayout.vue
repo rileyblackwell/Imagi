@@ -1,28 +1,48 @@
 <template>
-  <DashboardLayout :navigationItems="[]" storageKey="docs_sidebar_collapsed" class="docs-layout">
-    <template #sidebar-content="{ isSidebarCollapsed }">
-      <div class="px-3 pb-6 space-y-1">
+  <DashboardLayout
+    :navigationItems="[]"
+    storageKey="docs_sidebar_collapsed"
+    class="docs-layout"
+    aside-width-class="w-64"
+    content-offset-class="md:ml-64"
+    nav-offset-class="md:left-64"
+    mobile-default-collapsed
+  >
+    <!-- Section header: a quiet eyebrow that labels the panel -->
+    <template #sidebar-header>
+      <div class="flex items-center gap-2 pl-1">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-blue-950/[0.05] dark:bg-white/[0.07] text-blue-950/70 dark:text-blue-100/70">
+          <i class="fas fa-book-open text-[11px]"></i>
+        </span>
+        <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-950/60 dark:text-blue-100/55">
+          Documentation
+        </span>
+      </div>
+    </template>
+
+    <template #sidebar-content>
+      <nav class="px-3 pt-3 pb-6 space-y-0.5">
         <router-link
           v-for="item in navigationItems"
           :key="item.to"
           :to="item.to"
           :class="[
-            'group flex items-center px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
+            'group flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
             isActive(item.to)
-              ? 'bg-blue-950 text-[#fdf9f2] dark:bg-[#f3ede2] dark:text-blue-950 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)]'
-              : 'text-blue-950/70 dark:text-blue-100/60 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white'
+              ? 'docs-nav-active text-blue-950 dark:text-white'
+              : 'text-blue-950/65 dark:text-blue-100/60 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white'
           ]"
         >
           <i
             :class="[
               item.icon,
-              'text-lg',
-              isSidebarCollapsed ? '' : 'mr-3'
+              'text-base w-5 text-center transition-colors duration-200',
+              isActive(item.to) ? 'text-blue-700 dark:text-blue-300' : 'text-blue-950/45 dark:text-blue-100/40 group-hover:text-blue-950 dark:group-hover:text-white'
             ]"
           ></i>
-          <span v-if="!isSidebarCollapsed" class="truncate">{{ item.name }}</span>
+          <span class="truncate">{{ item.name }}</span>
         </router-link>
-      </div>
+      </nav>
     </template>
 
     <!-- Warm porcelain canvas with a soft baby-blue wash and film grain (matching the home page) -->
@@ -153,18 +173,21 @@ const isActive = (path) => route.path === path
 </style>
 
 <style>
-.docs-layout aside.w-72 {
-  width: 14rem;
+/* Active nav item: a quiet raised card (matching the home page's crisp-card
+   language) rather than a heavy solid pill — clearly selected, still calm. */
+.docs-layout .docs-nav-active {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.05),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 3px 8px -3px rgba(15, 23, 42, 0.12);
 }
-.docs-layout aside nav.py-6 {
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.docs-layout .ml-72 {
-  margin-left: 14rem;
-}
-.docs-layout .left-72 {
-  left: 14rem;
+
+.dark .docs-layout .docs-nav-active {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Brand-tinted text selection, matching the home page */
