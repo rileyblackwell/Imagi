@@ -16,10 +16,10 @@ from .views import (
     FileContentView,
     PreviewSessionView,
     ProjectPagesView,
-    PreviewFrameView,
-    PreviewInputView,
-    PreviewNavigateView,
-    PreviewResizeView,
+    preview_frame,
+    preview_input,
+    preview_navigate,
+    preview_resize,
     VersionControlHistoryView, VersionControlResetView,
     CreateAppView,
     ProjectDirectoriesView,
@@ -31,6 +31,10 @@ from .views import (
     agent_stream,
     conversations_list_create,
     conversation_detail,
+    conversation_accept,
+    conversation_cancel,
+    conversation_dismiss,
+    conversation_restore_checkpoint,
     conversation_messages,
 )
 
@@ -43,10 +47,12 @@ builder_patterns = [
     # project's dev servers; the client streams frames and sends input.
     path('<int:project_id>/preview/', PreviewSessionView.as_view(), name='api-preview'),
     path('<int:project_id>/pages/', ProjectPagesView.as_view(), name='api-project-pages'),
-    path('<int:project_id>/preview/frame/', PreviewFrameView.as_view(), name='api-preview-frame'),
-    path('<int:project_id>/preview/input/', PreviewInputView.as_view(), name='api-preview-input'),
-    path('<int:project_id>/preview/navigate/', PreviewNavigateView.as_view(), name='api-preview-navigate'),
-    path('<int:project_id>/preview/resize/', PreviewResizeView.as_view(), name='api-preview-resize'),
+    # The frame/input/navigate/resize endpoints are async views: preview
+    # traffic runs on the thread pool instead of ASGI's single sync thread.
+    path('<int:project_id>/preview/frame/', preview_frame, name='api-preview-frame'),
+    path('<int:project_id>/preview/input/', preview_input, name='api-preview-input'),
+    path('<int:project_id>/preview/navigate/', preview_navigate, name='api-preview-navigate'),
+    path('<int:project_id>/preview/resize/', preview_resize, name='api-preview-resize'),
 
     # File management endpoints
     path('<int:project_id>/files/create/', CreateFileView.as_view(), name='api-create-file'),
@@ -69,6 +75,12 @@ agents_patterns = [
     path('agent/stream/', agent_stream, name='agent_stream'),
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),
+    path('conversations/<int:conversation_id>/cancel/', conversation_cancel, name='conversation_cancel'),
+    # Task review: accept merges the task's worktree into the canonical
+    # tree, dismiss discards it.
+    path('conversations/<int:conversation_id>/accept/', conversation_accept, name='conversation_accept'),
+    path('conversations/<int:conversation_id>/dismiss/', conversation_dismiss, name='conversation_dismiss'),
+    path('conversations/<int:conversation_id>/restore/', conversation_restore_checkpoint, name='conversation_restore_checkpoint'),
     path('conversations/<int:conversation_id>/messages/', conversation_messages, name='conversation_messages'),
 ]
 

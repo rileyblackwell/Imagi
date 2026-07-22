@@ -8,6 +8,7 @@ from . import views
 urlpatterns = [
     # Core payment functionality
     path('balance/', views.CreditBalanceView.as_view(), name='api-credit-balance'),
+    path('usage/', views.UsageStatusView.as_view(), name='api-usage-status'),
     path('process/', views.process_payment, name='api-process-payment'),
     
     # Credit management

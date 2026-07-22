@@ -36,12 +36,27 @@
         </div>
         <div class="flex items-center gap-1.5 mt-1 text-[10px] text-blue-950/40 dark:text-blue-100/45">
           <span>{{ relativeTime(instance.updatedAt) }}</span>
+          <!-- Conversation-wide token total; null means never captured, so
+               nothing renders (unknown, not "0 tokens") -->
+          <span
+            v-if="typeof instance.totalTokens === 'number' && instance.totalTokens > 0"
+            :title="`${instance.totalTokens.toLocaleString()} tokens used`"
+          >
+            · {{ formatTokens(instance.totalTokens) }} tokens
+          </span>
           <span v-if="instance.isProcessing" class="ml-1 flex items-center gap-1 text-blue-600 dark:text-blue-300">
             <i class="fas fa-circle-notch fa-spin text-[9px]"></i>
             <span>running</span>
           </span>
         </div>
       </div>
+
+      <!-- Unread dot: a run finished while this instance was off-screen -->
+      <span
+        v-if="instance.hasUnread"
+        class="shrink-0 w-1.5 h-1.5 mt-1.5 rounded-full bg-blue-950 dark:bg-[#f3ede2]"
+        title="Agent finished while you were away"
+      ></span>
 
       <!-- Actions -->
       <div ref="menuRef" class="relative shrink-0" @click.stop>
@@ -162,6 +177,19 @@ function commitRename() {
 
 function cancelRename() {
   isEditing.value = false
+}
+
+/** Compact token count for the meta row: 850, 12.3k, 2M. */
+function formatTokens(total: number): string {
+  if (total >= 1_000_000) {
+    const millions = total / 1_000_000
+    return `${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M`
+  }
+  if (total >= 1_000) {
+    const thousands = total / 1_000
+    return `${thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k`
+  }
+  return String(total)
 }
 
 function relativeTime(iso: string): string {

@@ -244,7 +244,7 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 IMAGI_BUILDER = {
     # Public suite model id the agent runs on (see Build/services/models_service.py
     # for the mapping to real OpenAI model ids).
-    'DEFAULT_MODEL': 'gpt-5.6-sol',
+    'DEFAULT_MODEL': 'gpt-5.6-terra',
     # Reasoning effort used when a request doesn't specify one.
     'DEFAULT_REASONING_EFFORT': 'medium',
     # Upper bound on agent-loop iterations for a single request.

@@ -167,6 +167,68 @@ class CreditPlan(models.Model):
         verbose_name_plural = 'Credit Plans'
         ordering = ['price_cents']
 
+class Subscription(models.Model):
+    """
+    A user's subscription plan, kept in sync with Stripe by the webhook.
+
+    Plan definitions (names, token limits) live in services/plans.py; this row
+    stores only which plan the user is on. Users without a row are on the
+    default 'starter' plan.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='subscription'
+    )
+    plan = models.CharField(max_length=50, default='starter')
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'payments_subscription'
+        verbose_name = 'Subscription'
+        verbose_name_plural = 'Subscriptions'
+
+    def __str__(self):
+        return f"{self.user.username} on {self.plan}"
+
+
+class UsageEvent(models.Model):
+    """
+    Append-only record of one agent run's token usage.
+
+    Written by the Build agent after each run whose usage was captured (runs
+    with unknown usage are never recorded — absent means unknown, not free).
+    Rolling-window plan limits are computed by summing these rows, so no row
+    locking is needed for concurrent runs.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='usage_events'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    model_name = models.CharField(max_length=50)
+    input_tokens = models.BigIntegerField(default=0)
+    output_tokens = models.BigIntegerField(default=0)
+    total_tokens = models.BigIntegerField(default=0)
+    # Plain int (not FK) mirroring Build's AgentConversation.project_id style;
+    # usage rows must survive conversation deletion for honest metering.
+    conversation_id = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'payments_usage_event'
+        verbose_name = 'Usage Event'
+        verbose_name_plural = 'Usage Events'
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} used {self.total_tokens} tokens ({self.model_name})"
+
+
 class Transaction(models.Model):
     """
     Records all credit transactions (purchases and usage).

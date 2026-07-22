@@ -14,8 +14,8 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
 # The GPT 5.6 suite: three tiers users can choose from when building.
-#   Sol   - flagship, most capable (default)
-#   Terra - balanced, general-purpose
+#   Sol   - flagship, most capable
+#   Terra - balanced, general-purpose (default)
 #   Luna  - light, fast and economical
 #
 # `backend_model` is the REAL OpenAI model id the suite id maps to at runtime.
@@ -178,6 +178,32 @@ def get_backend_model_id(model_id: str) -> str:
     if model and model.get('backend_model'):
         return model['backend_model']
     return model_id
+
+def compute_cost_usd(model_id: str, input_tokens: int, output_tokens: int):
+    """
+    Compute the USD cost of a run from a suite model's per-million-token pricing.
+
+    Args:
+        model_id: The public suite model ID (e.g. 'gpt-5.6-sol')
+        input_tokens: Input tokens consumed by the run
+        output_tokens: Output tokens produced by the run
+
+    Returns:
+        float or None: The cost in USD, or None when the model (or its
+        pricing) is unknown so callers can omit cost cleanly.
+    """
+    model = get_model_by_id(model_id)
+    if not model:
+        return None
+    input_price = model.get('input_price_per_m_tokens')
+    output_price = model.get('output_price_per_m_tokens')
+    if input_price is None or output_price is None:
+        return None
+    cost = (
+        (input_tokens or 0) * input_price
+        + (output_tokens or 0) * output_price
+    ) / 1_000_000
+    return round(cost, 6)
 
 def is_valid_reasoning_effort(effort: str) -> bool:
     """Whether the given reasoning effort level is recognized."""

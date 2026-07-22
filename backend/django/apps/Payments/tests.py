@@ -6,11 +6,14 @@ pure database logic, Stripe never touched), and the API endpoints. Endpoints
 that reach Stripe are exercised with the Stripe service mocked out.
 """
 
+from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
@@ -20,11 +23,21 @@ from apps.Payments.models import (
     CreditPackage,
     Payment,
     PaymentMethod,
+    Subscription,
     Transaction,
+    UsageEvent,
 )
 from apps.Payments.services.credit_service import CreditService
 from apps.Payments.services.payment_method_service import PaymentMethodService
+from apps.Payments.services.plans import PLANS, get_plan, get_plan_for_user
 from apps.Payments.services.transaction_service import TransactionService
+from apps.Payments.services.usage_service import (
+    FIVE_HOUR_WINDOW,
+    WEEKLY_WINDOW,
+    check_usage_allowed,
+    get_usage_status,
+    record_usage,
+)
 
 User = get_user_model()
 
@@ -268,6 +281,327 @@ class PaymentMethodServiceTests(APITestCase):
 
 
 # --------------------------------------------------------------------------- #
+# Plans
+# --------------------------------------------------------------------------- #
+class PlanRegistryTests(APITestCase):
+    def setUp(self):
+        self.user = make_user()
+
+    def test_get_plan_returns_known_plan(self):
+        self.assertEqual(get_plan('pro')['name'], 'Pro')
+
+    def test_unknown_plan_falls_back_to_starter(self):
+        self.assertEqual(get_plan('legacy-gold')['id'], 'starter')
+        self.assertEqual(get_plan(None)['id'], 'starter')
+
+    def test_user_without_subscription_row_is_on_starter(self):
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'starter')
+
+    def test_user_subscription_row_selects_plan(self):
+        Subscription.objects.create(user=self.user, plan='scale')
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'scale')
+
+    def test_stale_subscription_plan_falls_back_to_starter(self):
+        Subscription.objects.create(user=self.user, plan='discontinued')
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'starter')
+
+
+# --------------------------------------------------------------------------- #
+# Usage metering
+# --------------------------------------------------------------------------- #
+class RecordUsageTests(APITestCase):
+    def setUp(self):
+        self.user = make_user()
+
+    def test_records_event_with_total(self):
+        event = record_usage(self.user, 'gpt-5.6-terra', 1000, 200, conversation_id=7)
+        self.assertEqual(event.total_tokens, 1200)
+        self.assertEqual(event.conversation_id, 7)
+        self.assertEqual(UsageEvent.objects.count(), 1)
+
+    def test_skips_when_usage_absent(self):
+        # Absent usage means unknown, never free: no zero-token rows.
+        self.assertIsNone(record_usage(self.user, 'gpt-5.6-terra', None, None))
+        self.assertIsNone(record_usage(self.user, 'gpt-5.6-terra', 0, 0))
+        self.assertEqual(UsageEvent.objects.count(), 0)
+
+    def test_records_when_only_one_count_present(self):
+        event = record_usage(self.user, 'gpt-5.6-terra', 500, None)
+        self.assertEqual(event.total_tokens, 500)
+
+
+class UsageWindowTests(APITestCase):
+    def setUp(self):
+        self.user = make_user()
+
+    def _event(self, tokens, age):
+        """Create a usage event backdated by `age`."""
+        event = record_usage(self.user, 'gpt-5.6-terra', tokens, 0)
+        UsageEvent.objects.filter(pk=event.pk).update(
+            created_at=timezone.now() - age
+        )
+        return UsageEvent.objects.get(pk=event.pk)
+
+    def test_windows_empty_without_events(self):
+        status_payload = get_usage_status(self.user)
+        for window in status_payload['windows'].values():
+            self.assertEqual(window['used'], 0)
+            self.assertIsNone(window['resets_at'])
+        self.assertEqual(status_payload['plan']['id'], 'starter')
+        self.assertEqual(
+            status_payload['windows']['five_hour']['limit'],
+            PLANS['starter']['five_hour_tokens'],
+        )
+
+    def test_five_hour_boundary_event_counts_weekly_only(self):
+        # Just past the 5-hour window but well inside the weekly one.
+        self._event(1_000, timedelta(hours=5, minutes=1))
+        windows = get_usage_status(self.user)['windows']
+        self.assertEqual(windows['five_hour']['used'], 0)
+        self.assertEqual(windows['weekly']['used'], 1_000)
+
+    def test_event_older_than_a_week_counts_nowhere(self):
+        self._event(1_000, timedelta(days=7, minutes=1))
+        windows = get_usage_status(self.user)['windows']
+        self.assertEqual(windows['five_hour']['used'], 0)
+        self.assertEqual(windows['weekly']['used'], 0)
+
+    def test_used_sums_events_and_resets_at_tracks_oldest(self):
+        oldest = self._event(1_000, timedelta(hours=2))
+        self._event(500, timedelta(hours=1))
+        windows = get_usage_status(self.user)['windows']
+        self.assertEqual(windows['five_hour']['used'], 1_500)
+        self.assertEqual(
+            windows['five_hour']['resets_at'],
+            (oldest.created_at + FIVE_HOUR_WINDOW).isoformat(),
+        )
+        self.assertEqual(
+            windows['weekly']['resets_at'],
+            (oldest.created_at + WEEKLY_WINDOW).isoformat(),
+        )
+
+    def test_other_users_events_do_not_count(self):
+        other = make_user('other')
+        record_usage(other, 'gpt-5.6-terra', 9_999, 0)
+        windows = get_usage_status(self.user)['windows']
+        self.assertEqual(windows['weekly']['used'], 0)
+
+
+class CheckUsageAllowedTests(APITestCase):
+    def setUp(self):
+        self.user = make_user()
+
+    def test_allowed_under_limits(self):
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0)
+        allowed, payload = check_usage_allowed(self.user)
+        self.assertTrue(allowed)
+        self.assertEqual(payload['plan']['id'], 'starter')
+
+    def test_refused_over_five_hour_limit(self):
+        record_usage(
+            self.user, 'gpt-5.6-terra', PLANS['starter']['five_hour_tokens'], 0
+        )
+        allowed, payload = check_usage_allowed(self.user)
+        self.assertFalse(allowed)
+        self.assertEqual(payload['error'], 'usage_limit_exceeded')
+        self.assertEqual(payload['window'], '5h')
+        self.assertIsNotNone(payload['resets_at'])
+        self.assertIn('detail', payload)
+
+    def test_refused_over_weekly_limit(self):
+        # Spread beyond the 5-hour window so only the weekly limit trips.
+        event = record_usage(
+            self.user, 'gpt-5.6-terra', PLANS['starter']['weekly_tokens'], 0
+        )
+        UsageEvent.objects.filter(pk=event.pk).update(
+            created_at=timezone.now() - timedelta(days=1)
+        )
+        allowed, payload = check_usage_allowed(self.user)
+        self.assertFalse(allowed)
+        self.assertEqual(payload['window'], 'week')
+
+    def test_higher_plan_raises_the_limit(self):
+        Subscription.objects.create(user=self.user, plan='pro')
+        record_usage(
+            self.user, 'gpt-5.6-terra', PLANS['starter']['five_hour_tokens'], 0
+        )
+        allowed, _ = check_usage_allowed(self.user)
+        self.assertTrue(allowed)
+
+
+# --------------------------------------------------------------------------- #
+# Subscription webhook events
+# --------------------------------------------------------------------------- #
+class SubscriptionWebhookTests(APITestCase):
+    """customer.subscription.* events sync the local Subscription row."""
+
+    def setUp(self):
+        self.user = make_user()
+        CreditBalance.objects.create(user=self.user, stripe_customer_id='cus_42')
+        self.url = reverse('api-stripe-webhook')
+
+    def _post_event(self, event_type, subscription):
+        event = SimpleNamespace(
+            type=event_type, data=SimpleNamespace(object=subscription)
+        )
+        with patch('apps.Payments.api.views.stripe_service') as mock_stripe:
+            mock_stripe.verify_webhook_event.return_value = event
+            return self.client.post(self.url, {}, HTTP_STRIPE_SIGNATURE='sig')
+
+    def _subscription(self, lookup_key=None, metadata=None, customer='cus_42',
+                      sub_id='sub_1', sub_status='active'):
+        price = {'lookup_key': lookup_key} if lookup_key else {}
+        return {
+            'id': sub_id,
+            'customer': customer,
+            'status': sub_status,
+            'items': {'data': [{'price': price}]},
+            'metadata': metadata or {},
+        }
+
+    def test_created_event_sets_plan_from_lookup_key(self):
+        resp = self._post_event(
+            'customer.subscription.created', self._subscription(lookup_key='pro')
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.user.subscription.plan, 'pro')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
+
+    def test_updated_event_changes_plan(self):
+        Subscription.objects.create(user=self.user, plan='pro')
+        self._post_event(
+            'customer.subscription.updated', self._subscription(lookup_key='scale')
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'scale')
+
+    def test_metadata_plan_is_the_fallback(self):
+        self._post_event(
+            'customer.subscription.created',
+            self._subscription(metadata={'plan': 'scale'}),
+        )
+        self.assertEqual(self.user.subscription.plan, 'scale')
+
+    def test_unknown_plan_leaves_subscription_unchanged(self):
+        Subscription.objects.create(user=self.user, plan='pro')
+        self._post_event(
+            'customer.subscription.updated',
+            self._subscription(lookup_key='mystery-price'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'pro')
+
+    def test_deleted_event_downgrades_to_starter(self):
+        Subscription.objects.create(
+            user=self.user, plan='scale', stripe_subscription_id='sub_1'
+        )
+        self._post_event(
+            'customer.subscription.deleted', self._subscription(lookup_key='scale')
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'starter')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, '')
+
+    def test_unknown_customer_is_ignored(self):
+        resp = self._post_event(
+            'customer.subscription.created',
+            self._subscription(lookup_key='pro', customer='cus_stranger'),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(Subscription.objects.exists())
+
+    def test_deleted_event_for_another_subscription_is_ignored(self):
+        # Upgrading via checkout creates a new subscription before the old
+        # one is cancelled; the old one's deleted event must not downgrade
+        # the plan the user is actually paying for.
+        Subscription.objects.create(
+            user=self.user, plan='scale', stripe_subscription_id='sub_new'
+        )
+        self._post_event(
+            'customer.subscription.deleted',
+            self._subscription(lookup_key='pro', sub_id='sub_old'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
+
+    def test_updated_event_for_another_subscription_is_ignored(self):
+        # A late 'updated' for the replaced subscription (Stripe does not
+        # guarantee ordering) must not overwrite the stored plan.
+        Subscription.objects.create(
+            user=self.user, plan='scale', stripe_subscription_id='sub_new'
+        )
+        self._post_event(
+            'customer.subscription.updated',
+            self._subscription(lookup_key='pro', sub_id='sub_old'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
+
+    def test_created_event_for_new_active_subscription_takes_over(self):
+        # The upgrade-checkout path: a freshly-created, in-good-standing
+        # subscription becomes the stored one.
+        Subscription.objects.create(
+            user=self.user, plan='pro', stripe_subscription_id='sub_old'
+        )
+        self._post_event(
+            'customer.subscription.created',
+            self._subscription(lookup_key='scale', sub_id='sub_new'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'scale')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
+
+    def test_created_event_for_incomplete_subscription_does_not_take_over(self):
+        Subscription.objects.create(
+            user=self.user, plan='pro', stripe_subscription_id='sub_old'
+        )
+        self._post_event(
+            'customer.subscription.created',
+            self._subscription(lookup_key='scale', sub_id='sub_new', sub_status='incomplete'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'pro')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_old')
+
+    def test_unpaid_status_downgrades_to_starter(self):
+        # Dunning exhausted with the 'mark unpaid' setting: no deleted event
+        # ever fires, so the updated event must revoke the paid plan.
+        Subscription.objects.create(
+            user=self.user, plan='pro', stripe_subscription_id='sub_1'
+        )
+        self._post_event(
+            'customer.subscription.updated',
+            self._subscription(lookup_key='pro', sub_status='unpaid'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'starter')
+        # The id stays so later events for this subscription still match.
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
+
+    def test_past_due_status_leaves_plan_unchanged(self):
+        # Stripe is still retrying the charge — entitlement holds meanwhile.
+        Subscription.objects.create(
+            user=self.user, plan='pro', stripe_subscription_id='sub_1'
+        )
+        self._post_event(
+            'customer.subscription.updated',
+            self._subscription(lookup_key='pro', sub_status='past_due'),
+        )
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'pro')
+
+    def test_missing_status_is_treated_as_healthy(self):
+        # Defensive: real Stripe events always carry a status, but its
+        # absence must not strip entitlement.
+        subscription = self._subscription(lookup_key='pro')
+        del subscription['status']
+        self._post_event('customer.subscription.created', subscription)
+        self.assertEqual(self.user.subscription.plan, 'pro')
+
+
+# --------------------------------------------------------------------------- #
 # API endpoints
 # --------------------------------------------------------------------------- #
 class PaymentsAPITests(APITestCase):
@@ -286,6 +620,27 @@ class PaymentsAPITests(APITestCase):
         resp = self.client.get(reverse('api-credit-balance'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['balance'], 42.0)
+
+    def test_usage_endpoint_requires_auth(self):
+        self.client.credentials()  # drop auth
+        resp = self.client.get(reverse('api-usage-status'))
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_usage_endpoint_returns_status_and_plan_registry(self):
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 500)
+        resp = self.client.get(reverse('api-usage-status'))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['plan']['id'], 'starter')
+        self.assertEqual(resp.data['windows']['five_hour']['used'], 1_500)
+        self.assertEqual(resp.data['windows']['weekly']['used'], 1_500)
+        # The registry rides along so the frontend can render plan options.
+        self.assertEqual(
+            [p['id'] for p in resp.data['plans']], ['starter', 'pro', 'scale']
+        )
+        self.assertEqual(
+            resp.data['plans'][0]['weekly_tokens'],
+            PLANS['starter']['weekly_tokens'],
+        )
 
     def test_check_credits_endpoint(self):
         CreditService().add_credits(self.user, 10.0)

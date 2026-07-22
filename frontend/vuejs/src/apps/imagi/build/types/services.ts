@@ -73,22 +73,10 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   }
 };
 
-// List of standard models — the GPT 5.6 suite (Sol, Terra, Luna)
+// List of standard models — the GPT 5.6 suite (Terra, Sol, Luna). Terra leads:
+// createInstance prefers the `default: true` entry, then falls back to the
+// first of the list, so ordering here is load-bearing.
 export const AI_MODELS: AIModel[] = [
-  {
-    id: 'gpt-5.6-sol',
-    name: 'GPT 5.6 Sol',
-    provider: 'openai',
-    type: 'openai',
-    context_window: 128000,
-    features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks',
-    capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 128000,
-    inputPricePerMTokens: 6,
-    outputPricePerMTokens: 30,
-    api_version: 'responses'
-  },
   {
     id: 'gpt-5.6-terra',
     name: 'GPT 5.6 Terra',
@@ -96,11 +84,27 @@ export const AI_MODELS: AIModel[] = [
     type: 'openai',
     context_window: 128000,
     features: ['chat', 'code', 'analysis'],
+    default: true,
     description: 'OpenAI | GPT 5.6 Terra — balanced model for everyday chat and building assistance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     inputPricePerMTokens: 3,
     outputPricePerMTokens: 15,
+    api_version: 'responses'
+  },
+  {
+    id: 'gpt-5.6-sol',
+    name: 'GPT 5.6 Sol',
+    provider: 'openai',
+    type: 'openai',
+    context_window: 128000,
+    features: ['chat', 'code', 'analysis'],
+    default: false,
+    description: 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 128000,
+    inputPricePerMTokens: 6,
+    outputPricePerMTokens: 30,
     api_version: 'responses'
   },
   {
@@ -167,21 +171,48 @@ export interface APIResponse<T> {
 }
 
 // Conversation / agent instance types
+
+/** What role a conversation plays in the workspace (lead thread / task / plain chat). */
+export type ConversationKind = 'chat' | 'lead' | 'task';
+
+/** Review lifecycle for kind='task' conversations ('' for everything else). */
+export type TaskReviewStatus = '' | 'active' | 'ready' | 'accepted' | 'dismissed';
+
 export interface ConversationDto {
   id: number;
   title: string;
   model_name: string;
   project_id: number | null;
+  kind: ConversationKind;
+  /** Lead conversation this task was dispatched from */
+  parent: number | null;
+  review_status: TaskReviewStatus;
+  /** Groups best-of-N sibling tasks spawned from one prompt */
+  variant_group: string;
+  /** True while this task has an unmerged worktree to review */
+  has_worktree: boolean;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
   last_message_preview: string;
+  /** True while a run is active server-side (staleness-guarded to 10 min) */
+  is_running: boolean;
+  /** Tokens used across the conversation; null when never captured (unknown, not free) */
+  total_tokens: number | null;
 }
 
 export interface AgentInstance {
   id: string;                      // local UUID
   conversationId: number | null;   // backend AgentConversation id
   title: string;
+  kind: ConversationKind;
+  /** conversationId of the lead thread this task was dispatched from */
+  parentId: number | null;
+  reviewStatus: TaskReviewStatus;
+  variantGroup: string;
+  hasWorktree: boolean;
+  /** Conversation-wide token total; null when never captured (unknown, not free) */
+  totalTokens: number | null;
   selectedModelId: string | null;
   selectedEffort: ReasoningEffort;
   selectedFile: any | null;
@@ -194,7 +225,17 @@ export interface AgentInstance {
   updatedAt: string;
   lastMessagePreview: string;
   messagesLoaded: boolean;
+  /** Client-only: a run finished while this instance was not active */
+  hasUnread?: boolean;
+  /** Client-only: one prompt submitted mid-run, auto-sent when the run ends
+   *  (unless the user explicitly stopped it). A second submit replaces it. */
+  queuedPrompt?: string | null;
 }
+
+/**
+ * One entry in the agent's live activity feed (a tool call surfaced to the UI)
+ */
+export type AgentActivityStep = { name: string; label: string; detail?: string };
 
 // AI-specific response types
 export interface AIMessage {
@@ -205,6 +246,22 @@ export interface AIMessage {
   id?: string;
   isStreaming?: boolean;  // Flag for streaming message
   isTyping?: boolean;     // Flag for typing animation
+  /** The agent's working-plan snapshot attached to this reply */
+  plan?: AgentPlanStep[];
+  /** Tool activity recorded while the agent produced this reply */
+  activity?: AgentActivityStep[];
+  /** Project files the agent changed during this reply */
+  filesChanged?: string[];
+  /** Run usage, when the backend reported it (absent means unknown, never free) */
+  usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number };
+  /** Backend AgentMessage id, once known (hydration or the start event) */
+  dbId?: number;
+  /**
+   * Commit hash of the project state this user message started from.
+   * Present only on user messages; powers the inline restore-checkpoint
+   * control (conversation and files rewind together).
+   */
+  checkpoint?: string;
 }
 
 export interface AIGenerationResponse {
@@ -234,6 +291,8 @@ export interface AgentResponse {
   tool_calls?: string[];
   /** The agent's working plan for multi-step tasks */
   plan?: AgentPlanStep[];
+  /** Token usage for the run; omitted when the backend could not track it */
+  usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number };
   single_message?: boolean;
 }
 

@@ -82,12 +82,28 @@ def is_syncable_path(rel_path: str) -> bool:
 # Write-through primitives (called after every disk mutation)
 # ---------------------------------------------------------------------------
 
+def mirror_suppressed(project) -> bool:
+    """Whether DB-mirror write-through is disabled for this project instance.
+
+    Task agent runs operate on a per-conversation git worktree: their
+    in-memory Project instance is re-pointed at the worktree and flagged
+    (see Build.services.tools._get_project). Mirroring those writes under
+    the canonical project would corrupt the mirror with unmerged variant
+    content, so worktree runs write disk only — the mirror re-syncs from
+    canonical disk when a task is accepted and merged.
+    """
+    return bool(getattr(project, '_suppress_db_mirror', False))
+
+
 def record_file(project, rel_path: str, content: str = None):
     """Upsert the database copy of a project file.
 
     Reads the content from disk when not provided. Returns the ProjectFile
-    row, or None when the path is not syncable (binary/ignored/too large).
+    row, or None when the path is not syncable (binary/ignored/too large)
+    or the mirror is suppressed for a worktree run.
     """
+    if mirror_suppressed(project):
+        return None
     rel_path = _normalize_rel_path(rel_path)
     if not is_syncable_path(rel_path):
         return None
@@ -122,6 +138,8 @@ def record_file(project, rel_path: str, content: str = None):
 
 def remove_file(project, rel_path: str) -> int:
     """Delete the database copy of a project file. Returns rows deleted."""
+    if mirror_suppressed(project):
+        return 0
     rel_path = _normalize_rel_path(rel_path)
     deleted, _ = ProjectFile.objects.filter(project=project, path=rel_path).delete()
     return deleted
@@ -129,6 +147,8 @@ def remove_file(project, rel_path: str) -> int:
 
 def remove_directory(project, rel_dir: str) -> int:
     """Delete database copies of every file under a directory prefix."""
+    if mirror_suppressed(project):
+        return 0
     rel_dir = _normalize_rel_path(rel_dir).rstrip('/')
     if not rel_dir:
         raise ValueError("Refusing to remove database files for the project root")

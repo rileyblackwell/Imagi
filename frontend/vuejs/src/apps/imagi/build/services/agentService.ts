@@ -1,8 +1,10 @@
 import api, { getAuthToken } from '@/shared/services/api'
 import type {
   AIModel,
+  AgentActivityStep,
   AgentResponse,
   AgentPlanStep,
+  ConversationKind,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -17,11 +19,105 @@ import { ModelsService } from '@/apps/imagi/build/services/modelsService'
  */
 /** Events the agent stream emits, in the order a run produces them. */
 export interface AgentStreamHandlers {
-  onStart?: (conversationId: number) => void
+  /** info identifies the persisted user message this run started from and
+   *  the pre-run checkpoint commit it can be restored to. */
+  onStart?: (conversationId: number, info?: { userMessageId?: number; checkpoint?: string }) => void
   /** A chunk of the agent's reply. Chunks concatenate into the final text. */
   onDelta?: (text: string) => void
-  onToolCall?: (name: string) => void
+  /** args is a small allowlisted extract of the tool's arguments (path,
+   *  pattern, query, …) — values are backend-truncated strings. */
+  onToolCall?: (name: string, args?: Record<string, string>) => void
   onPlan?: (plan: AgentPlanStep[]) => void
+}
+
+/**
+ * A failed agent run. Carries the HTTP status for pre-stream rejections
+ * (409 agent_busy, 401, …) and the backend's error code for in-stream
+ * failures ('max_turns' when the run hit its turn cap).
+ */
+export class AgentStreamError extends Error {
+  status?: number
+  code?: string
+  /** Parsed JSON body of a pre-stream rejection (e.g. the 429
+   *  usage_limit_exceeded payload carries window + resets_at). */
+  body?: Record<string, unknown>
+
+  constructor(
+    message: string,
+    opts: { status?: number; code?: string; body?: Record<string, unknown> } = {}
+  ) {
+    super(message)
+    this.name = 'AgentStreamError'
+    this.status = opts.status
+    this.code = opts.code
+    this.body = opts.body
+  }
+}
+
+/** Basename of the file a tool touched, from its display-safe args. */
+function toolFileName(args?: Record<string, string>): string {
+  const path = args?.path || args?.file_path || ''
+  return path.split('/').filter(Boolean).pop() || 'a file'
+}
+
+/**
+ * Founder-language label for a tool call. Shared by the live activity feed
+ * and persisted-metadata hydration so a replayed transcript reads exactly
+ * like it did while streaming.
+ */
+export function labelForTool(name: string, args?: Record<string, string>): string {
+  switch (name) {
+    case 'read_file': return `Read ${toolFileName(args)}`
+    case 'edit_file':
+    case 'update_file': return `Edited ${toolFileName(args)}`
+    case 'create_file': return `Created ${toolFileName(args)}`
+    case 'delete_file': return `Deleted ${toolFileName(args)}`
+    case 'grep_files':
+    case 'glob_files':
+    case 'get_project_tree':
+    case 'list_project_files': return 'Searched the project'
+    case 'update_plan': return 'Updated the plan'
+    case 'web_search':
+    case 'web_search_call': return 'Searched the web'
+    case 'create_app': return 'Created an app'
+    case 'create_directory':
+    case 'delete_directory': return 'Organized project folders'
+    default: return 'Worked on the project'
+  }
+}
+
+/** One activity-feed entry for a tool call (live event or persisted record). */
+export function toolCallToActivityStep(
+  name: string,
+  args?: Record<string, string>
+): AgentActivityStep {
+  const step: AgentActivityStep = { name, label: labelForTool(name, args) }
+  const detail = args?.path || args?.file_path || args?.pattern
+  if (detail) step.detail = detail
+  return step
+}
+
+/** AgentMessage.metadata as persisted by the backend (see contract shape). */
+interface PersistedMessageMetadata {
+  tool_calls?: Array<{ name: string; args?: Record<string, string> }>
+  files_changed?: string[]
+  plan?: AgentPlanStep[]
+  usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
+  /** Pre-run project snapshot, stamped on user messages only */
+  checkpoint?: string
+}
+
+/** One conversation message with its persisted telemetry hydrated. */
+export interface ConversationMessageDto {
+  id: number
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: string
+  plan?: AgentPlanStep[]
+  activity?: AgentActivityStep[]
+  filesChanged?: string[]
+  usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
+  checkpoint?: string
 }
 
 export const AgentService = {
@@ -86,12 +182,20 @@ export const AgentService = {
     })
 
     if (!response.ok || !response.body) {
-      // Errors before the stream opens are plain JSON, not SSE.
+      // Errors before the stream opens are plain JSON, not SSE. DRF-style
+      // rejections use "detail" (e.g. the 409 {"detail": "agent_busy"} when
+      // another run holds the project); our own errors use "error".
       let detail = ''
+      let errorBody: Record<string, unknown> | undefined
       try {
-        detail = (await response.json())?.error || ''
+        const body = await response.json()
+        detail = body?.error || body?.detail || ''
+        if (body && typeof body === 'object') errorBody = body
       } catch { /* non-JSON body */ }
-      throw new Error(detail || `Agent request failed (${response.status})`)
+      throw new AgentStreamError(
+        detail || `Agent request failed (${response.status})`,
+        { status: response.status, body: errorBody }
+      )
     }
 
     const reader = response.body.getReader()
@@ -99,6 +203,7 @@ export const AgentService = {
     let buffer = ''
     let done: AgentResponse | null = null
     let streamError = ''
+    let streamErrorCode: string | undefined
     const text: string[] = []
     const toolCalls: string[] = []
     let plan: AgentPlanStep[] = []
@@ -108,7 +213,10 @@ export const AgentService = {
       switch (event.type) {
         case 'start':
           conversationId = event.conversation_id
-          handlers.onStart?.(event.conversation_id)
+          handlers.onStart?.(event.conversation_id, {
+            userMessageId: event.user_message_id,
+            checkpoint: event.checkpoint,
+          })
           break
         case 'delta':
           text.push(event.text)
@@ -116,7 +224,7 @@ export const AgentService = {
           break
         case 'tool_call':
           toolCalls.push(event.name)
-          handlers.onToolCall?.(event.name)
+          handlers.onToolCall?.(event.name, event.args)
           break
         case 'plan':
           plan = event.plan || []
@@ -129,11 +237,15 @@ export const AgentService = {
             files_changed: event.files_changed || [],
             tool_calls: event.tool_calls || toolCalls,
             plan: event.plan || plan,
+            // Usage (and its cost) is best-effort on the backend; absent
+            // means "unknown", never "free".
+            usage: event.usage,
             single_message: event.single_message ?? true,
           }
           break
         case 'error':
           streamError = event.error || 'Agent run failed'
+          streamErrorCode = event.code
           break
       }
     }
@@ -157,7 +269,7 @@ export const AgentService = {
       }
     }
 
-    if (streamError) throw new Error(streamError)
+    if (streamError) throw new AgentStreamError(streamError, { code: streamErrorCode })
     if (done) return done
 
     // Stream ended without a terminal event (server died, connection dropped).
@@ -219,7 +331,11 @@ export const AgentService = {
       return {
         success: false,
         versions: [],
-        error: this.formatError(error)
+        // Restores are refused while an agent run holds the project
+        // (agent_busy contract) — say so instead of a generic failure.
+        error: error?.response?.status === 409
+          ? 'Another agent is still working on this project — wait for it to finish or stop it.'
+          : this.formatError(error)
       }
     }
   },
@@ -304,12 +420,27 @@ export const AgentService = {
   async createConversation(projectId: string | number, data: {
     modelName?: string
     title?: string
+    /** 'lead' requests are deduped server-side: a project keeps at most one
+     *  live lead thread, so racing clients converge on the same one. */
+    kind?: ConversationKind
+    /** conversationId of the lead thread a task was dispatched from */
+    parent?: number | null
+    /** Shared uuid grouping best-of-N sibling tasks from one prompt */
+    variantGroup?: string
   } = {}): Promise<ConversationDto> {
     const response = await api.post('/v1/agents/conversations/', {
       project_id: Number(projectId),
       model_name: data.modelName,
-      title: data.title ?? ''
+      title: data.title ?? '',
+      ...(data.kind ? { kind: data.kind } : {}),
+      ...(data.parent != null ? { parent: data.parent } : {}),
+      ...(data.variantGroup ? { variant_group: data.variantGroup } : {}),
     })
+    return response.data as ConversationDto
+  },
+
+  async getConversation(conversationId: number): Promise<ConversationDto> {
+    const response = await api.get(`/v1/agents/conversations/${conversationId}/`)
     return response.data as ConversationDto
   },
 
@@ -329,14 +460,88 @@ export const AgentService = {
     await api.delete(`/v1/agents/conversations/${conversationId}/`)
   },
 
-  async getConversationMessages(conversationId: number): Promise<Array<{
-    id: number
-    role: 'user' | 'assistant' | 'system'
-    content: string
-    timestamp: string
-  }>> {
+  /**
+   * Release a conversation's server-side running-run marker (clears
+   * is_running and lifts the project's agent_busy guard). Cannot halt a run
+   * driven by another tab's live stream — there is no server task handle.
+   */
+  async cancelConversationRun(conversationId: number): Promise<ConversationDto> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/cancel/`)
+    return response.data as ConversationDto
+  },
+
+  /**
+   * Accept a reviewed task: the backend merges its worktree into the
+   * canonical tree and marks it accepted. Errors keep the axios shape —
+   * a conflicted merge rejects with response.status 409 and response.data
+   * { error: 'merge_conflict', detail: <git conflict detail> } (and a live
+   * canonical run rejects with the usual { detail: 'agent_busy' } 409).
+   */
+  async acceptTask(conversationId: number): Promise<{ status: string }> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/accept/`)
+    return response.data as { status: string }
+  },
+
+  /** Dismiss a reviewed task: discard its worktree without merging. */
+  async dismissTask(conversationId: number): Promise<{ status: string }> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/dismiss/`)
+    return response.data as { status: string }
+  },
+
+  async getConversationMessages(conversationId: number): Promise<ConversationMessageDto[]> {
     const response = await api.get(
       `/v1/agents/conversations/${conversationId}/messages/`
+    )
+    // Hydrate persisted run metadata into the same shapes the live stream
+    // produces, so a reloaded transcript replays its activity feed verbatim.
+    return (response.data as any[]).map((m) => {
+      const dto: ConversationMessageDto = {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp,
+      }
+      const meta = m.metadata as PersistedMessageMetadata | null | undefined
+      if (!meta) return dto
+      if (Array.isArray(meta.tool_calls) && meta.tool_calls.length > 0) {
+        dto.activity = meta.tool_calls.map(tc => toolCallToActivityStep(tc.name, tc.args))
+      }
+      if (Array.isArray(meta.plan) && meta.plan.length > 0) {
+        dto.plan = meta.plan
+      }
+      if (Array.isArray(meta.files_changed) && meta.files_changed.length > 0) {
+        dto.filesChanged = meta.files_changed
+      }
+      // Hydrate whatever usage fields were captured — tokens can exist
+      // without cost and vice versa. No fields at all means unknown, so the
+      // usage object stays absent entirely (never a phantom zero).
+      if (meta.usage) {
+        const usage: { costUsd?: number; inputTokens?: number; outputTokens?: number } = {}
+        if (typeof meta.usage.cost_usd === 'number') usage.costUsd = meta.usage.cost_usd
+        if (typeof meta.usage.input_tokens === 'number') usage.inputTokens = meta.usage.input_tokens
+        if (typeof meta.usage.output_tokens === 'number') usage.outputTokens = meta.usage.output_tokens
+        if (Object.keys(usage).length > 0) dto.usage = usage
+      }
+      if (typeof meta.checkpoint === 'string' && meta.checkpoint) {
+        dto.checkpoint = meta.checkpoint
+      }
+      return dto
+    })
+  },
+
+  /**
+   * Rewind a conversation (and the project files) to just before the given
+   * user message was sent. The backend restores the message's checkpoint
+   * commit and deletes the message plus everything after it; the removed
+   * prompt text comes back so the composer can offer it for editing.
+   */
+  async restoreCheckpoint(
+    conversationId: number,
+    messageId: number
+  ): Promise<{ success: boolean; checkpoint: string; prompt: string }> {
+    const response = await api.post(
+      `/v1/agents/conversations/${conversationId}/restore/`,
+      { message_id: messageId }
     )
     return response.data
   }

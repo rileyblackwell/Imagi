@@ -169,11 +169,28 @@ def _sync_db_mirror(project, file_path: str, should_exist: bool) -> None:
 
 
 def _get_project(ctx):
-    """Resolve the Project model from agent context."""
+    """Resolve the Project model from agent context.
+
+    Task runs operate on a per-conversation git worktree instead of the
+    canonical project tree: when the context carries an effective root that
+    differs from the DB row's project_path, the in-memory instance is
+    re-pointed at it (never saved), so every tool — and every file service
+    the tools delegate to — reads and writes inside the worktree. The
+    ProjectFile DB mirror is suppressed for those runs: mirroring worktree
+    writes under the canonical project would corrupt the mirror with
+    unmerged variant content, so worktree runs write disk only and the
+    mirror re-syncs from canonical disk when the task is accepted.
+    """
     try:
-        return Project.objects.get(id=ctx.project_id, user_id=ctx.user_id, is_active=True)
+        project = Project.objects.get(id=ctx.project_id, user_id=ctx.user_id, is_active=True)
     except Project.DoesNotExist:
         raise ValueError(f"Project {ctx.project_id} not found for user {ctx.user_id}")
+
+    effective_root = getattr(ctx, 'effective_project_path', None)
+    if effective_root and effective_root != project.project_path:
+        project.project_path = effective_root  # in-memory only, never saved
+        project._suppress_db_mirror = True  # read by project_files_service
+    return project
 
 
 def _iter_project_files(project_path: str):

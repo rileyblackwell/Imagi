@@ -27,6 +27,14 @@ export interface PreviewInputEvent {
   modifiers?: number
 }
 
+/** One recent uncaught JS error captured from the previewed page. */
+export interface PreviewConsoleError {
+  level: 'error'
+  text: string
+  /** ms epoch, on the previewed page's clock */
+  ts: number
+}
+
 /** Snapshot of the remote page: navigation state plus (optionally) a frame. */
 export interface PreviewFrame {
   running?: boolean
@@ -40,6 +48,10 @@ export interface PreviewFrame {
   viewport?: [number, number]
   device_scale_factor?: number
   error?: string
+  /** Recent console errors + uncaught exceptions from the previewed page:
+   *  last ~5, deduped by text, a full replacement list on every payload
+   *  (empty array means none), cleared on hard navigation. */
+  console_errors?: PreviewConsoleError[]
 }
 
 /** One navigable page of the previewed app, read from its actual router. */

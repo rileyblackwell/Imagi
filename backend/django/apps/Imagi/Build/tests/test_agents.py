@@ -10,21 +10,27 @@ no OpenAI calls are made.
 import os
 import shutil
 import tempfile
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 
+from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
+from apps.Imagi.Build.api.views import _project_has_running_conversation
+from apps.Imagi.Build.models import AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
     AgentContext,
     ImagiAgentService,
     compact_history,
     extract_run_metadata,
 )
+from apps.Imagi.Build.services.models_service import compute_cost_usd
 from apps.Imagi.Build.services.coding_agent import (
     PROJECT_MEMORY_MAX_CHARS,
     load_project_memory,
@@ -38,6 +44,8 @@ from apps.Imagi.Build.services.tools import (
     resolve_safe_path,
     set_plan,
 )
+from apps.Payments.models import UsageEvent
+from apps.Payments.services.plans import PLANS
 
 
 class ToolTestBase(SimpleTestCase):
@@ -345,11 +353,16 @@ class ProcessStreamTests(TestCase):
         conversation = SimpleNamespace(id=7)
         self.context = AgentContext(user_id=self.user.id, project_id=1)
         self.persisted = []
+        self.persisted_metadata = []
+
+        def record_assistant_message(conv, content, metadata=None):
+            self.persisted.append(content)
+            self.persisted_metadata.append(metadata)
 
         self.service._prepare_run = lambda **kwargs: (
             conversation, self.context, [{'role': 'user', 'content': kwargs['user_input']}]
         )
-        self.service.add_assistant_message = lambda conv, content: self.persisted.append(content)
+        self.service.add_assistant_message = record_assistant_message
 
     async def _collect(self, **overrides):
         kwargs = {'user_input': 'build me a page', 'user': self.user, 'project_id': 1}
@@ -424,6 +437,133 @@ class ProcessStreamTests(TestCase):
         self.assertIn('model exploded', events[-1]['error'])
         self.assertEqual(self.persisted, ['I started'])
 
+    def test_done_event_reports_usage_and_persists_metadata(self):
+        run = _FakeStreamedRun(
+            [_tool_call_event('edit_file')],
+            new_items=[
+                SimpleNamespace(
+                    type='tool_call_item',
+                    raw_item=SimpleNamespace(
+                        name='edit_file',
+                        arguments='{"path": "frontend/vuejs/src/App.vue"}',
+                    ),
+                ),
+                SimpleNamespace(
+                    type='tool_call_output_item',
+                    output='{"success": true, "path": "frontend/vuejs/src/App.vue"}',
+                ),
+            ],
+        )
+        run.context_wrapper = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=100_000)
+        )
+        self.context.plan = [{'step': 'edit the page', 'status': 'completed'}]
+
+        events = self._run(run)
+
+        done = events[-1]
+        self.assertEqual(done['type'], 'done')
+        self.assertEqual(done['usage']['input_tokens'], 1_000_000)
+        self.assertEqual(done['usage']['output_tokens'], 100_000)
+        self.assertEqual(
+            done['usage']['cost_usd'],
+            compute_cost_usd(self.service.model, 1_000_000, 100_000),
+        )
+
+        metadata = self.persisted_metadata[0]
+        self.assertEqual(
+            metadata['tool_calls'],
+            [{'name': 'edit_file', 'args': {'path': 'frontend/vuejs/src/App.vue'}}],
+        )
+        self.assertEqual(metadata['files_changed'], ['frontend/vuejs/src/App.vue'])
+        self.assertEqual(metadata['plan'], [{'step': 'edit the page', 'status': 'completed'}])
+        self.assertEqual(metadata['usage'], done['usage'])
+
+        # The run's usage also feeds Payments' rolling-window metering.
+        usage_event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(usage_event.input_tokens, 1_000_000)
+        self.assertEqual(usage_event.output_tokens, 100_000)
+        self.assertEqual(usage_event.total_tokens, 1_100_000)
+        self.assertEqual(usage_event.conversation_id, 7)
+
+    def test_done_event_omits_usage_when_unavailable(self):
+        # The fake run exposes no context_wrapper, mirroring an SDK result
+        # without tracked usage: the field must be absent, not zeroed.
+        events = self._run(_FakeStreamedRun([_delta_event('hi')]))
+
+        self.assertNotIn('usage', events[-1])
+        # A plain reply with no run artifacts persists NULL metadata.
+        self.assertEqual(self.persisted_metadata, [None])
+        # Unknown usage is never metered as zero tokens.
+        self.assertFalse(UsageEvent.objects.exists())
+
+    def test_max_turns_emits_error_code_and_persists_partial(self):
+        class HitsTurnCap(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('Working on it ')
+                raise MaxTurnsExceeded('Max turns (30) exceeded')
+
+        events = self._run(HitsTurnCap([]))
+
+        error = events[-1]
+        self.assertEqual(error['type'], 'error')
+        self.assertEqual(error['code'], 'max_turns')
+        # Friendlier than the SDK's raw message, so it can be shown as-is.
+        self.assertNotIn('Max turns (30) exceeded', error['error'])
+        self.assertEqual(self.persisted, ['Working on it'])
+
+    def test_interrupted_run_still_meters_usage(self):
+        # A run cut off mid-stream has already spent tokens; skipping the
+        # UsageEvent would make plan limits bypassable by stopping runs.
+        class Exploding(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started ')
+                raise RuntimeError('model exploded')
+
+        run = Exploding([])
+        run.context_wrapper = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=5_000, output_tokens=250)
+        )
+
+        self._run(run)
+
+        usage_event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(usage_event.input_tokens, 5_000)
+        self.assertEqual(usage_event.output_tokens, 250)
+        self.assertEqual(usage_event.total_tokens, 5_250)
+        self.assertEqual(usage_event.conversation_id, 7)
+        # The persisted partial reply still omits usage from its metadata
+        # (a mid-stream reading is a lower bound — display keeps "unknown").
+        self.assertEqual(self.persisted, ['I started'])
+        self.assertIsNone(self.persisted_metadata[0])
+
+    def test_max_turns_run_meters_usage(self):
+        class HitsTurnCap(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('Working on it ')
+                raise MaxTurnsExceeded('Max turns (30) exceeded')
+
+        run = HitsTurnCap([])
+        run.context_wrapper = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=2_000_000, output_tokens=90_000)
+        )
+
+        self._run(run)
+
+        usage_event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(usage_event.total_tokens, 2_090_000)
+
+    def test_interrupted_run_without_usage_records_nothing(self):
+        # No context_wrapper usage: absent means unknown — never a zero row.
+        class Exploding(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started ')
+                raise RuntimeError('model exploded')
+
+        self._run(Exploding([]))
+
+        self.assertFalse(UsageEvent.objects.exists())
+
 
 class AgentStreamEndpointTests(TestCase):
     """Auth on the SSE endpoint, which cannot use DRF's sync-only decorators."""
@@ -462,6 +602,282 @@ class AgentStreamEndpointTests(TestCase):
         )
         self.assertEqual(resp.status_code, 400)
         self.assertIn('Message is required', resp.json()['error'])
+
+    def test_rejects_run_while_project_has_one_in_flight(self):
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=1,
+            run_started_at=timezone.now(),
+        )
+        token = Token.objects.create(user=self.user)
+        resp = self.client.post(
+            self.url, data='{"message": "hi", "project_id": 1}',
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.json()['detail'], 'agent_busy')
+
+    def test_rejects_run_when_over_usage_limit(self):
+        # Starter-plan 5-hour window exhausted -> refused before the stream
+        # opens, with the same pre-stream JSON contract as agent_busy.
+        UsageEvent.objects.create(
+            user=self.user, model_name='gpt-5.6-terra',
+            input_tokens=PLANS['starter']['five_hour_tokens'], output_tokens=0,
+            total_tokens=PLANS['starter']['five_hour_tokens'],
+        )
+        token = Token.objects.create(user=self.user)
+        resp = self.client.post(
+            self.url, data='{"message": "hi", "project_id": 1}',
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(resp.status_code, 429)
+        body = resp.json()
+        self.assertEqual(body['error'], 'usage_limit_exceeded')
+        self.assertEqual(body['window'], '5h')
+        self.assertIn('detail', body)
+        self.assertIsNotNone(body['resets_at'])
+
+
+class ProjectBusyGuardTests(TestCase):
+    """The one-run-per-project guard behind the stream endpoint's 409."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='busy', password='pw123456')
+
+    def _conversation(self, **kwargs):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=1, **kwargs
+        )
+
+    def test_fresh_run_in_project_blocks(self):
+        self._conversation(run_started_at=timezone.now())
+        self.assertTrue(_project_has_running_conversation(self.user, 1))
+
+    def test_stale_or_absent_run_does_not_block(self):
+        # A crashed worker never clears run_started_at; the staleness window
+        # keeps it from wedging the project forever.
+        self._conversation(run_started_at=timezone.now() - timedelta(minutes=11))
+        self._conversation()
+        self.assertFalse(_project_has_running_conversation(self.user, 1))
+
+    def test_conversation_being_started_is_excluded(self):
+        running = self._conversation(run_started_at=timezone.now())
+        self.assertFalse(
+            _project_has_running_conversation(
+                self.user, 1, exclude_conversation_id=running.id
+            )
+        )
+
+    def test_other_projects_and_users_do_not_block(self):
+        self._conversation(run_started_at=timezone.now())  # project 1
+        other = User.objects.create_user(username='busy2', password='pw123456')
+        AgentConversation.objects.create(
+            user=other, model_name='gpt-5.6-sol', project_id=2,
+            run_started_at=timezone.now(),
+        )
+        self.assertFalse(_project_has_running_conversation(self.user, 2))
+        self.assertFalse(_project_has_running_conversation(other, 1))
+
+
+class ConversationMessagesMetadataTests(TestCase):
+    """The messages endpoint returns persisted run metadata per message."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='msguser', password='pw123456')
+        self.client.force_login(self.user)
+
+    def test_messages_include_metadata(self):
+        conversation = ImagiAgentService().create_conversation(
+            self.user, 'gpt-5.6-sol', project_id=1
+        )
+        AgentMessage.objects.create(conversation=conversation, role='user', content='hi')
+        metadata = {
+            'tool_calls': [{'name': 'edit_file', 'args': {'path': 'src/App.vue'}}],
+            'files_changed': ['frontend/vuejs/src/App.vue'],
+            'usage': {'input_tokens': 100, 'output_tokens': 10, 'cost_usd': 0.0009},
+        }
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='done',
+            metadata=metadata,
+        )
+
+        resp = self.client.get(reverse('conversation_messages', args=[conversation.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        messages = resp.json()
+        self.assertIsNone(messages[0]['metadata'])
+        self.assertEqual(messages[1]['metadata'], metadata)
+
+
+class ConversationTotalTokensTests(TestCase):
+    """Serialized conversations aggregate token usage across their messages."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='tokens', password='pw123456')
+        self.client.force_login(self.user)
+
+    def _conversation(self):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1
+        )
+
+    def test_total_tokens_sums_usage_across_messages(self):
+        conversation = self._conversation()
+        AgentMessage.objects.create(
+            conversation=conversation, role='user', content='hi',
+            metadata={'checkpoint': 'abc123'},  # non-usage metadata is ignored
+        )
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='one',
+            metadata={'usage': {'input_tokens': 1000, 'output_tokens': 200}},
+        )
+        # A run whose usage was never captured contributes nothing.
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='untracked',
+        )
+        AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='two',
+            metadata={'usage': {'input_tokens': 50, 'output_tokens': 5, 'cost_usd': 0.01}},
+        )
+
+        resp = self.client.get(
+            reverse('conversations_list_create'), {'project_id': 1}
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        [conversation_data] = resp.json()
+        self.assertEqual(conversation_data['total_tokens'], 1255)
+
+    def test_total_tokens_null_when_no_message_has_usage(self):
+        # Absent usage means unknown — null, never 0.
+        conversation = self._conversation()
+        AgentMessage.objects.create(conversation=conversation, role='user', content='hi')
+        AgentMessage.objects.create(conversation=conversation, role='assistant', content='yo')
+
+        resp = self.client.get(reverse('conversation_detail', args=[conversation.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.json()['total_tokens'])
+
+
+class CheckpointTests(TestCase):
+    """Per-message checkpoints: stamp on the user message, restore rewinds
+    files + conversation together."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='ckpt', password='pw123456')
+        self.client.force_login(self.user)
+        # A real git repo the checkpoint/restore code can drive.
+        self.repo = tempfile.mkdtemp(prefix='ckpt_repo_')
+        self.addCleanup(lambda: shutil.rmtree(self.repo, ignore_errors=True))
+        import subprocess
+        subprocess.run(['git', 'init'], cwd=self.repo, capture_output=True, check=True)
+        subprocess.run(['git', 'config', 'user.email', 't@t.co'], cwd=self.repo, capture_output=True, check=True)
+        subprocess.run(['git', 'config', 'user.name', 'T'], cwd=self.repo, capture_output=True, check=True)
+
+    def _write_commit(self, name, content, message):
+        import subprocess
+        with open(os.path.join(self.repo, name), 'w') as f:
+            f.write(content)
+        subprocess.run(['git', 'add', '.'], cwd=self.repo, capture_output=True, check=True)
+        subprocess.run(['git', 'commit', '-m', message], cwd=self.repo, capture_output=True, check=True)
+        return subprocess.run(
+            ['git', 'rev-parse', 'HEAD'], cwd=self.repo, capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    def test_ensure_checkpoint_returns_head_when_clean(self):
+        from apps.Imagi.Build.services.version_control_service import VersionControlService
+        head = self._write_commit('a.txt', 'one', 'first')
+        result = VersionControlService().ensure_checkpoint(self.repo, 'noop')
+        # Nothing to commit → the checkpoint is the current HEAD.
+        self.assertTrue(result['success'])
+        self.assertEqual(result['commit_hash'], head)
+
+    def test_ensure_checkpoint_commits_dirty_tree(self):
+        from apps.Imagi.Build.services.version_control_service import VersionControlService
+        head = self._write_commit('a.txt', 'one', 'first')
+        with open(os.path.join(self.repo, 'a.txt'), 'w') as f:
+            f.write('two')  # uncommitted change
+        result = VersionControlService().ensure_checkpoint(self.repo, 'snapshot')
+        self.assertTrue(result['success'])
+        self.assertNotEqual(result['commit_hash'], head)  # a new commit captured it
+
+    def _conversation_with_project(self):
+        from apps.Imagi.ProjectManager.models import Project
+        project = Project.objects.create(
+            user=self.user, name='P', project_path=self.repo, is_active=True
+        )
+        conversation = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=project.id
+        )
+        return project, conversation
+
+    def test_restore_rewinds_files_and_truncates_conversation(self):
+        project, conversation = self._conversation_with_project()
+        checkpoint = self._write_commit('page.txt', 'original', 'v1')
+        self._write_commit('page.txt', 'edited by agent', 'v2')
+
+        first = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='make a change',
+            metadata={'checkpoint': checkpoint},
+        )
+        AgentMessage.objects.create(conversation=conversation, role='assistant', content='done')
+        AgentMessage.objects.create(conversation=conversation, role='user', content='another')
+
+        resp = self.client.post(
+            reverse('conversation_restore_checkpoint', args=[conversation.id]),
+            data={'message_id': first.id}, content_type='application/json',
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['prompt'], 'make a change')
+        # Files rewound to the checkpoint...
+        with open(os.path.join(self.repo, 'page.txt')) as f:
+            self.assertEqual(f.read(), 'original')
+        # ...and the restored-to message plus everything after it are gone.
+        self.assertEqual(conversation.messages.count(), 0)
+
+    def test_restore_rejected_without_checkpoint(self):
+        project, conversation = self._conversation_with_project()
+        msg = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='no checkpoint here'
+        )
+        resp = self.client.post(
+            reverse('conversation_restore_checkpoint', args=[conversation.id]),
+            data={'message_id': msg.id}, content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_restore_blocked_while_project_busy(self):
+        project, conversation = self._conversation_with_project()
+        checkpoint = self._write_commit('page.txt', 'original', 'v1')
+        msg = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='x',
+            metadata={'checkpoint': checkpoint},
+        )
+        # Another conversation in the same project is mid-run.
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-sol', project_id=project.id,
+            run_started_at=timezone.now(),
+        )
+        resp = self.client.post(
+            reverse('conversation_restore_checkpoint', args=[conversation.id]),
+            data={'message_id': msg.id}, content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.json()['detail'], 'agent_busy')
+
+
+class ComputeCostTests(SimpleTestCase):
+    def test_computes_from_suite_pricing(self):
+        # Sol: $6/M input + $30/M output
+        self.assertEqual(compute_cost_usd('gpt-5.6-sol', 1_000_000, 1_000_000), 36.0)
+        # Luna: $1/M input + $5/M output
+        self.assertEqual(compute_cost_usd('gpt-5.6-luna', 500_000, 200_000), 1.5)
+
+    def test_unknown_model_returns_none(self):
+        self.assertIsNone(compute_cost_usd('gpt-oops', 1000, 1000))
 
 
 class ProjectMemoryTests(SimpleTestCase):

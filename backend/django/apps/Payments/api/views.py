@@ -11,10 +11,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
 
+from ..models import CreditBalance, Subscription
 from ..services.stripe_service import StripeService
 from ..services.credit_service import CreditService
 from ..services.transaction_service import TransactionService
 from ..services.payment_method_service import PaymentMethodService
+from ..services.plans import DEFAULT_PLAN_ID, PLANS, list_plans
+from ..services.usage_service import get_usage_status
 from .serializers import (
     TransactionSerializer,
     CreditPackageSerializer,
@@ -41,6 +44,20 @@ class CreditBalanceView(APIView):
             })
         except Exception:
             logger.exception("Error fetching balance")
+            raise
+
+class UsageStatusView(APIView):
+    """Get the user's plan, rolling usage windows, and the plan registry."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            payload = get_usage_status(request.user)
+            # Ship the full registry too so the frontend can render plan options.
+            payload['plans'] = list_plans()
+            return Response(payload)
+        except Exception:
+            logger.exception("Error fetching usage status")
             raise
 
 class CreditPackagesView(APIView):
@@ -756,7 +773,14 @@ def webhook(request):
         elif event.type == 'checkout.session.completed':
             session = event.data.object
             handle_checkout_session_completed(session)
-            
+
+        elif event.type in (
+            'customer.subscription.created',
+            'customer.subscription.updated',
+            'customer.subscription.deleted',
+        ):
+            handle_subscription_event(event.type, event.data.object)
+
         # Return success response
         return Response({'status': 'success'})
         
@@ -824,8 +848,141 @@ def handle_checkout_session_completed(session):
         )
         
         credit_service.add_credits(user, credits, transaction)
-        
+
         logger.info(f"Credits added via checkout: {credits} for user {user_id}")
-        
+
     except Exception as e:
-        logger.error(f"Error handling checkout session completed: {str(e)}") 
+        logger.error(f"Error handling checkout session completed: {str(e)}")
+
+def _resolve_subscription_plan_id(subscription):
+    """Map a Stripe subscription to a plan id, or None when unrecognized.
+
+    The price lookup_key is the canonical mapping (checkout sessions are
+    created by lookup_key); metadata['plan'] is the manual fallback.
+    """
+    items = (subscription.get('items') or {}).get('data') or []
+    for item in items:
+        lookup_key = (item.get('price') or {}).get('lookup_key')
+        if lookup_key in PLANS:
+            return lookup_key
+    plan = (subscription.get('metadata') or {}).get('plan')
+    if plan in PLANS:
+        return plan
+    return None
+
+def handle_subscription_event(event_type, subscription):
+    """Sync a user's Subscription row from a Stripe subscription event.
+
+    Only ever called from the signature-verified webhook path. The user is
+    resolved through CreditBalance.stripe_customer_id — the single store of
+    the Stripe customer id.
+
+    A customer can have several Stripe subscriptions at once (the upgrade
+    checkout creates a new one before the old one is cancelled), and Stripe
+    does not guarantee event ordering — so events for a subscription other
+    than the stored one must never clobber the active plan. Entitlement also
+    follows the subscription's standing: a subscription that is not
+    active/trialing never grants (or re-affirms) a paid plan.
+    """
+    try:
+        customer_id = subscription.get('customer')
+        credit_balance = (
+            CreditBalance.objects.filter(stripe_customer_id=customer_id).first()
+            if customer_id else None
+        )
+        if credit_balance is None:
+            logger.warning(
+                f"Subscription event {event_type} for unknown Stripe customer {customer_id}"
+            )
+            return
+        user = credit_balance.user
+
+        event_sub_id = subscription.get('id') or ''
+        stored = Subscription.objects.filter(user=user).first()
+        stored_id = stored.stripe_subscription_id if stored else ''
+        # An empty stored id matches anything (backward compatibility with
+        # rows written before the id was tracked); so does an event without
+        # an id (defensive — real Stripe events always carry one).
+        is_stored_subscription = (
+            not stored_id or not event_sub_id or stored_id == event_sub_id
+        )
+        # 'active'/'trialing' are the only statuses in good standing; absent
+        # status (never sent by Stripe) is treated as healthy, defensively.
+        sub_status = subscription.get('status')
+        in_good_standing = sub_status in ('active', 'trialing') or sub_status is None
+
+        if event_type == 'customer.subscription.deleted':
+            # Only the stored subscription may downgrade the plan: deleting
+            # an old/secondary subscription (e.g. the one an upgrade checkout
+            # replaced) must not strip the plan the user is paying for.
+            if not is_stored_subscription:
+                logger.info(
+                    f"Ignoring deleted event for subscription {event_sub_id} "
+                    f"(user {user.id} is on {stored_id})"
+                )
+                return
+            Subscription.objects.update_or_create(
+                user=user,
+                defaults={'plan': DEFAULT_PLAN_ID, 'stripe_subscription_id': ''},
+            )
+            logger.info(f"Subscription ended for user {user.id}; downgraded to {DEFAULT_PLAN_ID}")
+            return
+
+        # created/updated. A different subscription than the stored one takes
+        # over only when it is newly created and in good standing (the
+        # upgrade-checkout path); stale updates to a replaced subscription
+        # are ignored.
+        if not is_stored_subscription and not (
+            event_type == 'customer.subscription.created' and in_good_standing
+        ):
+            logger.info(
+                f"Ignoring {event_type} for subscription {event_sub_id} "
+                f"(user {user.id} is on {stored_id})"
+            )
+            return
+
+        if not in_good_standing:
+            if sub_status == 'past_due':
+                # Stripe is still retrying the charge; don't yank entitlement
+                # mid-dunning.
+                logger.info(
+                    f"Subscription {event_sub_id} past_due for user {user.id}; "
+                    "leaving plan unchanged during retries"
+                )
+                return
+            # incomplete / incomplete_expired / unpaid / canceled / paused:
+            # never keep paid limits for a subscription that isn't paying.
+            Subscription.objects.update_or_create(
+                user=user,
+                defaults={
+                    'plan': DEFAULT_PLAN_ID,
+                    'stripe_subscription_id': event_sub_id,
+                },
+            )
+            logger.info(
+                f"Subscription {event_sub_id} is {sub_status} for user {user.id}; "
+                f"downgraded to {DEFAULT_PLAN_ID}"
+            )
+            return
+
+        plan_id = _resolve_subscription_plan_id(subscription)
+        if plan_id is None:
+            # Unknown price/metadata: leave the stored plan unchanged rather
+            # than guessing a downgrade or upgrade.
+            logger.warning(
+                f"Could not resolve plan for subscription {subscription.get('id')} "
+                f"(user {user.id}); leaving plan unchanged"
+            )
+            return
+
+        Subscription.objects.update_or_create(
+            user=user,
+            defaults={
+                'plan': plan_id,
+                'stripe_subscription_id': event_sub_id,
+            },
+        )
+        logger.info(f"Subscription {event_type}: user {user.id} on plan {plan_id}")
+
+    except Exception as e:
+        logger.error(f"Error handling subscription event {event_type}: {str(e)}") 
