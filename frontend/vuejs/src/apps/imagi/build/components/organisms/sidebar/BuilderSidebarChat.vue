@@ -1,8 +1,8 @@
 <template>
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-    <!-- Header: manager toggle + instance title. Relative so the version
-         dropdown can anchor to the full header width — the sidebar clips
-         overflow, so a narrow panel can't fit it anchored to the button. -->
+    <!-- Header: manager toggle + instance title. Version restores live
+         inline in the transcript (the per-message checkpoint chips), so the
+         header carries no history controls. -->
     <div class="shrink-0 relative flex items-center gap-2 px-3 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
       <div class="relative group max-md:hidden">
         <button
@@ -20,78 +20,6 @@
       <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">
         {{ activeInstance?.title || 'New instance' }}
       </div>
-
-      <!-- Version history toggle -->
-      <div ref="historyRoot" class="relative group shrink-0">
-        <button
-          :class="[
-            'flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200',
-            historyOpen
-              ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
-              : 'text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white'
-          ]"
-          @click="toggleHistory"
-        >
-          <i class="fas fa-clock-rotate-left text-sm"></i>
-        </button>
-        <div
-          v-if="!historyOpen"
-          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        >
-          Version history
-        </div>
-      </div>
-
-      <!-- Version history dropdown (anchored to the header, not the button:
-           the sidebar clips overflow, so it must fit the panel's width) -->
-      <div
-        v-if="historyOpen"
-        ref="historyDropdown"
-        class="absolute right-2 top-full mt-1 z-50 w-72 max-w-[calc(100%-1rem)] rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
-      >
-        <div class="px-3 py-2 border-b border-blue-100 dark:border-white/[0.08] text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
-          Version history
-        </div>
-        <div class="max-h-72 overflow-y-auto py-1">
-          <div
-            v-if="versionsLoading && !(versionHistory && versionHistory.length)"
-            class="flex items-center gap-2 px-3 py-4 text-xs text-blue-950/40 dark:text-white/40"
-          >
-            <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
-            <span>Loading versions…</span>
-          </div>
-          <div
-            v-else-if="!(versionHistory && versionHistory.length)"
-            class="px-3 py-4 text-xs text-blue-950/40 dark:text-white/40"
-          >
-            No versions yet — they appear as your app changes.
-          </div>
-          <div
-            v-for="version in versionHistory"
-            :key="version.hash"
-            class="flex items-center gap-2 px-3 py-2 hover:bg-blue-50/60 dark:hover:bg-white/[0.04] transition-colors"
-          >
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-medium text-blue-950/85 dark:text-white/85 truncate" :title="version.message">
-                {{ version.message || 'Project update' }}
-              </p>
-              <p class="text-[10px] text-blue-950/40 dark:text-white/35 truncate">
-                {{ version.relative_date || version.date || '' }}
-              </p>
-            </div>
-            <button
-              type="button"
-              :disabled="anyRunActive"
-              :title="anyRunActive ? 'Wait for the agent to finish (or stop it) before restoring' : undefined"
-              class="shrink-0 rounded-full border border-blue-200/70 dark:border-white/[0.12] px-2.5 py-1 text-[11px] font-medium text-blue-950/70 dark:text-white/70 hover:bg-blue-950 hover:border-blue-950 hover:text-[#fdf9f2] dark:hover:bg-[#f3ede2] dark:hover:border-[#f3ede2] dark:hover:text-blue-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-blue-200/70 dark:disabled:hover:border-white/[0.12] disabled:hover:text-blue-950/70 dark:disabled:hover:text-white/70"
-              @click="onRestoreVersion(version)"
-            >
-              Restore
-            </button>
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <!-- Conversation Area (scrollable) -->
@@ -105,9 +33,7 @@
         :messages="ensureValidMessages(activeInstance?.conversation || [])"
         :is-processing="!!activeInstance?.isProcessing"
         :status-text="activeInstance?.statusText || ''"
-        :examples="promptExamples"
         :can-restore="canRestoreCheckpoints"
-        @use-example="handleExamplePrompt"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         class="flex-1"
       />
@@ -375,20 +301,10 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { useUsageStore, formatCompactTokens, formatResetTime } from '@/shared/stores/usage'
-import { useConfirm } from '../../../composables/useConfirm'
 import { ChatConversation } from '../../organisms/chat'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
 import { REASONING_EFFORTS } from '../../../types/services'
-
-/** One commit from the project's version history (backend versions shape). */
-interface VersionEntry {
-  hash: string
-  message?: string
-  author?: string
-  date?: string
-  relative_date?: string
-}
 
 // Props
 const props = defineProps<{
@@ -396,18 +312,12 @@ const props = defineProps<{
   onPromptSubmit: (prompt: string) => Promise<void>
   onModelSelect: (modelId: string) => Promise<void>
   onEffortSelect: (effort: ReasoningEffort) => Promise<void>
-  onExamplePrompt: (example: string) => void
   isCollapsed?: boolean
-  versionHistory?: VersionEntry[]
-  versionsLoading?: boolean
-  promptExamples?: string[]
 }>()
 
 const emit = defineEmits<{
   (e: 'toggleManager'): void
   (e: 'stop'): void
-  (e: 'load-versions'): void
-  (e: 'restore-version', hash: string): void
   (e: 'restore-checkpoint', message: AIMessage): void
 }>()
 
@@ -415,13 +325,6 @@ const store = useAgentStore()
 const activeInstance = computed(() => store.activeInstance)
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
-
-// --- Version history dropdown ---
-
-const { confirm } = useConfirm()
-const historyOpen = ref(false)
-const historyRoot = ref<HTMLElement | null>(null)
-const historyDropdown = ref<HTMLElement | null>(null)
 
 // Restores git-reset the canonical working tree. Only canonical-tree
 // (chat/lead) runs write to it — kind='task' runs edit their own git
@@ -439,36 +342,10 @@ const canRestoreCheckpoints = computed(() =>
   activeInstance.value?.kind !== 'task' && !anyRunActive.value
 )
 
-function toggleHistory() {
-  historyOpen.value = !historyOpen.value
-  // The list may be stale (the agent commits as it works); refresh on open.
-  if (historyOpen.value) emit('load-versions')
-}
-
-async function onRestoreVersion(version: VersionEntry) {
-  const confirmed = await confirm({
-    title: 'Restore This Version',
-    message: 'Restore your app to this version? Current work stays in history.',
-    confirmText: 'Restore',
-    cancelText: 'Cancel',
-    type: 'warning'
-  })
-  if (!confirmed) return
-  historyOpen.value = false
-  emit('restore-version', version.hash)
-}
-
 function onDocMousedown(e: MouseEvent) {
   const target = e.target as Node
   // The toggle buttons count as "inside": closing on their mousedown would
   // make the follow-up click toggle the menu straight back open.
-  if (
-    historyOpen.value &&
-    !historyRoot.value?.contains(target) &&
-    !historyDropdown.value?.contains(target)
-  ) {
-    historyOpen.value = false
-  }
   if (
     usageOpen.value &&
     !usageRoot.value?.contains(target) &&
@@ -760,11 +637,6 @@ function handleStopClick() {
     store.clearQueuedPrompt(instance.id)
   }
   emit('stop')
-}
-
-function handleExamplePrompt(exampleText: string) {
-  prompt.value = exampleText
-  handlePrompt()
 }
 
 async function handleModelSelect(modelId: string) {

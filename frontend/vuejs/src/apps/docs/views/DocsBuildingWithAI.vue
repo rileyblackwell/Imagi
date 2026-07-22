@@ -189,21 +189,21 @@
         </div>
       </section>
 
-      <!-- Version history -->
+      <!-- Checkpoints -->
       <section class="mb-16">
         <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
           Never Lose Your Work
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
-          Imagi saves a version of your app every time it changes, so you never have to think about saving—and you can always
-          go back.
+          Every message you send is a checkpoint. Imagi saves your app's state before the agent starts working, so you never
+          have to think about saving—and you can always go back.
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <DocsCard title="Version history">
-            Open the history menu to see past versions, each with a description and timestamp. Restore any one and your app
-            rolls back to that point—your current work stays safely in history.
+          <DocsCard title="Checkpoints in the chat">
+            Your restore points live right in the conversation: each message you sent marks the moment before the agent
+            acted on it, so the chat itself is your app's history.
           </DocsCard>
-          <DocsCard title="Rewind a message">
+          <DocsCard title="Restore a checkpoint">
             Hover any earlier message and choose "Restore checkpoint" to roll both your app and the conversation back to the
             moment before that message—handy for trying a different direction.
           </DocsCard>

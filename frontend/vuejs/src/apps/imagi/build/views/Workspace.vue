@@ -8,7 +8,7 @@
 <template>
   <div class="relative">
     <!-- Single confirm host for the whole workspace (useConfirm state is
-         global): manager deletes and version restores both open this modal. -->
+         global): manager deletes and checkpoint restores both open this modal. -->
     <ConfirmModal
       :is-open="confirmModal.isModalOpen.value"
       :options="confirmModal.modalOptions.value"
@@ -48,15 +48,9 @@
                 :on-prompt-submit="handlePrompt"
                 :on-model-select="handleModelSelect"
                 :on-effort-select="handleEffortSelect"
-                :on-example-prompt="handleExamplePrompt"
                 :is-collapsed="false"
-                :version-history="versionHistory"
-                :versions-loading="isLoadingVersions"
-                :prompt-examples="promptExamplesComputed"
                 @toggle-manager="setSidebarView('manager')"
                 @stop="handleStop"
-                @load-versions="loadVersionHistory"
-                @restore-version="onVersionSelect"
                 @restore-checkpoint="onRestoreCheckpoint"
               />
             </KeepAlive>
@@ -257,86 +251,10 @@ function handleManagerSelect() {
 }
 
 /** An accepted task's worktree just merged into the canonical tree —
- *  refresh everything that mirrors it (same pattern as version restore). */
+ *  refresh everything that mirrors it (same pattern as a checkpoint restore). */
 async function handleTaskAccepted() {
   await loadProjectFiles(true)
-  await loadVersionHistory()
   previewRef.value?.reload()
-}
-
-// Version history state and actions (surfaced in BuilderSidebarChat's
-// history dropdown; restores are confirmed there before reaching us)
-type VersionEntry = {
-  hash: string
-  message?: string
-  author?: string
-  date?: string
-  relative_date?: string
-}
-const versionHistory = ref<VersionEntry[]>([])
-const isLoadingVersions = ref<boolean>(false)
-
-async function loadVersionHistory() {
-  if (!projectId.value) return
-  try {
-    isLoadingVersions.value = true
-    const res = await AgentService.getVersionHistory(projectId.value)
-    // Support either versions or commits shapes
-    const list = (res && (res as any).versions) || (res as any).commits || []
-    versionHistory.value = Array.isArray(list)
-      ? list.filter((v: any): v is VersionEntry => !!v && typeof v.hash === 'string')
-      : []
-  } catch (e) {
-    console.error('Failed to load version history:', e)
-  } finally {
-    isLoadingVersions.value = false
-  }
-}
-
-// The auto-commit after a run is deferred (~500ms) inside
-// VersionControlService, so an immediate refetch would miss it.
-function refreshVersionHistorySoon() {
-  setTimeout(() => void loadVersionHistory(), 2000)
-}
-
-async function onVersionSelect(hash: string) {
-  if (!hash || !projectId.value) return
-  const { showNotification } = useNotification()
-  // Restoring runs `git reset --hard` on the canonical working tree, which
-  // only canonical-tree (chat/lead) runs write to — kind='task' runs edit
-  // their own git worktrees, so they neither block a restore nor are
-  // affected by one. The backend enforces the same rule with a 409 for
-  // runs started from other tabs.
-  if (store.instances.some(i => i.kind !== 'task' && i.isProcessing)) {
-    showNotification({
-      type: 'info',
-      message: 'The agent is still working — wait for it to finish (or stop it) before restoring a version.',
-      duration: 4000
-    })
-    return
-  }
-  try {
-    const res = await AgentService.resetToVersion(projectId.value, hash)
-    if ((res as any)?.success === false) {
-      throw new Error((res as any)?.error || 'Restore failed')
-    }
-    await handleVersionReset({ hash })
-    await loadVersionHistory()
-    showNotification({
-      type: 'success',
-      message: 'Your app was restored to the selected version.',
-      duration: 3000
-    })
-    // The previewed dev server now serves the restored files; reload the page.
-    previewRef.value?.reload()
-  } catch (e) {
-    console.error('Failed to reset to selected version:', e)
-    showNotification({
-      type: 'error',
-      message: `Could not restore that version: ${e instanceof Error ? e.message : 'Unknown error'}`,
-      duration: 5000
-    })
-  }
 }
 
 // Inline per-message checkpoint restore (the Cursor rewind flow): rewind the
@@ -372,7 +290,6 @@ async function onRestoreCheckpoint(message: AIMessage) {
     }
     // The working tree changed wholesale — refresh everything that mirrors it.
     await loadProjectFiles(true)
-    await loadVersionHistory()
     chatRef.value?.setPromptText(prompt)
     showNotification({
       type: 'success',
@@ -403,15 +320,6 @@ const currentProject = computed(() => {
   return projectStore.currentProject || null
 })
 
-// Starter prompts for the chat's empty state — founder language, each one a
-// change the agent can visibly finish in a single run.
-const promptExamplesComputed = computed(() => [
-  'Add a contact page with a form',
-  'Change the homepage headline and colors',
-  'Add an About page that tells my story',
-  'Make the site look great on phones',
-])
-
 // Display name for the Project Web App title
 const projectTitle = computed(() => {
   const name = currentProject.value && (currentProject.value as any).name
@@ -439,18 +347,6 @@ const navbarDescSanitized = computed(() => {
     : ''
   return raw.trim()
 })
-
-// Refresh files and clear any selection on version reset
-async function handleVersionReset(version: Record<string, any>) {
-  try {
-    console.debug('Version reset to:', version)
-    await loadProjectFiles(true)
-    const instance = store.activeInstance
-    if (instance) store.setInstanceFile(instance.id, null)
-  } catch (e) {
-    console.error('Error handling version reset:', e)
-  }
-}
 
 // Helper function to get just the filename
 function getFileName(path: string): string {
@@ -577,7 +473,6 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
       // The commit endpoint stages `git add .` itself and no-ops when
       // nothing actually changed, so this is safe even if the edit failed.
       createCommitFromPrompt('/', `${promptText} ${suffix}`)
-      refreshVersionHistorySoon()
     }
 
     // The message appears on the first sign of life — text OR a tool call —
@@ -694,9 +589,8 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
         } catch (refreshError) {
           console.warn('Error refreshing files after agent edit:', refreshError)
         }
+        // The commit becomes the checkpoint the next message can restore to.
         createCommitFromPrompt(response.files_changed[0] ?? '/', promptText)
-        // The commit above becomes a new restorable version.
-        refreshVersionHistorySoon()
       }
     } catch (agentError) {
       if (abortController.signal.aborted) {
@@ -783,10 +677,6 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
 function handleStop() {
   const instance = store.activeInstance
   if (instance) store.abortInstanceRun(instance.id)
-}
-
-function handleExamplePrompt(exampleText: string) {
-  handlePrompt(exampleText)
 }
 
 /** "Fix it" pressed on the preview's console-error banner. */
@@ -974,8 +864,6 @@ async function retryProjectLoad() {
     await loadProjectFiles(true)
     // Ensure default apps exist after retry load
     await ensureDefaultApps()
-    // Refresh version history after retry
-    await loadVersionHistory()
 
     // loadInstances rebuilds instances under fresh local ids, which would
     // orphan any in-flight stream still keyed to the old ones.
@@ -1136,8 +1024,6 @@ onMounted(async () => {
         await executeOnce('loadProjectFiles', () => loadProjectFiles(true));
         // Ensure default apps are present for new/empty projects
         await ensureDefaultApps()
-        // Load version history for header dropdown
-        await loadVersionHistory()
 
         // Load agent instances for this project (creates a starter instance if none)
         await executeOnce('loadInstances', () => store.loadInstances(projectId.value))
