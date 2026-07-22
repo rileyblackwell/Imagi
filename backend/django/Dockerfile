@@ -50,7 +50,11 @@ EXPOSE 8000
 # ASGI via uvicorn workers: agent runs stream over SSE for minutes, which sync
 # workers cannot hold open (one run would occupy a whole worker, and gunicorn
 # would kill it at --timeout since sync workers do not heartbeat mid-request).
-CMD python manage.py migrate --noinput && \
+#
+# The same image runs as two Railway services (see settings.IMAGI_ROLE). Only
+# the 'web' tier applies migrations on boot; the 'workspace' tier skips them so
+# the two services never race the same migration against the shared Postgres.
+CMD if [ "${IMAGI_ROLE:-web}" = "web" ]; then python manage.py migrate --noinput; fi && \
     gunicorn imagi.asgi:application \
         --worker-class uvicorn.workers.UvicornWorker \
         --bind "[::]:${PORT:-8000}" \
