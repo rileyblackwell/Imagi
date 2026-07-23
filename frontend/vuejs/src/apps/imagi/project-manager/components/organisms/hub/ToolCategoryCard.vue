@@ -12,7 +12,7 @@
     :class="[
       isBuildLocked
         ? 'building-card items-center text-center cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
-        : ['items-start text-left bg-white/90 dark:bg-white/[0.045] border-slate-200/70 dark:border-white/[0.08] hover:-translate-y-1', accent.border],
+        : ['items-start text-left bg-white/90 dark:bg-white/[0.045] hover:-translate-y-1', tone.card],
     ]"
     :title="isBuildLocked ? 'Imagi is building your app — this card unlocks the moment the build finishes' : tool.name"
     :aria-disabled="isBuildLocked ? 'true' : undefined"
@@ -53,19 +53,12 @@
 
     <!-- ==================== DEFAULT STATE ==================== -->
     <template v-else>
-      <!-- Hairline accent, revealed along the card's top edge on hover -->
-      <span
-        class="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        :class="accent.bar"
-        aria-hidden="true"
-      ></span>
-
       <!-- Icon -->
       <div
-        class="relative w-12 h-12 rounded-xl flex items-center justify-center border mb-6 transition-colors duration-300"
-        :class="accent.iconWrap"
+        class="relative w-12 h-12 rounded-xl flex items-center justify-center mb-6"
+        :class="tone.tile"
       >
-        <i :class="['fas', tool.icon, accent.iconText]" class="text-lg transition-colors duration-300"></i>
+        <i :class="['fas', tool.icon, tone.icon]" class="text-lg"></i>
       </div>
 
       <!-- Name + tagline -->
@@ -78,8 +71,8 @@
 
       <!-- CTA -->
       <div
-        class="relative flex items-center w-full text-[13px] font-medium mt-auto pt-5 border-t border-slate-200/70 dark:border-white/[0.08] transition-colors duration-300"
-        :class="accent.link"
+        class="relative flex items-center w-full text-[13px] font-medium mt-auto pt-5 border-t border-blue-950/[0.06] dark:border-white/[0.07]"
+        :class="tone.icon"
       >
         <span>{{ tool.status === 'available' ? 'Open workspace' : 'Preview' }}</span>
         <i class="fas fa-arrow-right text-[11px] ml-auto group-hover:translate-x-0.5 transition-transform duration-200"></i>
@@ -91,16 +84,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { hubCardAccents, type BusinessTool } from '../../../utils/businessTools'
+import { hubCardTones, type BusinessTool } from '../../../utils/businessTools'
 
 const props = defineProps<{
   tool: BusinessTool
   projectSlug: string
+  /** Position in the hub grid; the cards alternate Imagi's blue/orange brand tones. */
+  index: number
   /** The project's generation_status; drives the Build card's "AI building" state. */
   buildStatus?: 'pending' | 'generating' | 'completed' | 'failed' | null
 }>()
 
-const accent = computed(() => hubCardAccents[props.tool.accent])
+// Alternate the brand's two tones down the grid, matching the home feature cards.
+const tone = computed(() => hubCardTones[props.index % 2 === 0 ? 'blue' : 'orange'])
 
 /**
  * The initial AI build is still running. While it is, the Build card is locked:
