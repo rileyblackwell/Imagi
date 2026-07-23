@@ -76,10 +76,9 @@
             <section class="rise-item" style="animation-delay: 90ms">
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
                 <ToolCategoryCard
-                  v-for="(tool, index) in businessTools"
+                  v-for="tool in businessTools"
                   :key="tool.id"
                   :tool="tool"
-                  :index="index"
                   :project-slug="projectSlug"
                   :build-status="buildStatus"
                 />
