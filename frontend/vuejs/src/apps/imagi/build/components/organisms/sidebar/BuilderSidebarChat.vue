@@ -407,8 +407,8 @@ function toggleEffort() {
  *  no bar) — never as 0%. */
 const usageMeters = computed(() => {
   const rows = [
-    { key: '5h', label: '5-hour window', win: usageStore.fiveHour, percent: usageStore.fiveHourPercent },
-    { key: 'week', label: 'Weekly window', win: usageStore.weekly, percent: usageStore.weeklyPercent },
+    { key: '5h', label: '5-hour limit', win: usageStore.fiveHour, percent: usageStore.fiveHourPercent },
+    { key: 'week', label: 'Weekly limit', win: usageStore.weekly, percent: usageStore.weeklyPercent },
   ]
   return rows.map(({ key, label, win, percent }) => ({
     key,
