@@ -618,12 +618,13 @@ class AgentStreamEndpointTests(TestCase):
         self.assertEqual(resp.json()['detail'], 'agent_busy')
 
     def test_rejects_run_when_over_usage_limit(self):
-        # Starter-plan 5-hour window exhausted -> refused before the stream
-        # opens, with the same pre-stream JSON contract as agent_busy.
+        # Free-plan 5-hour window exhausted -> refused before the stream opens,
+        # with the same pre-stream JSON contract as agent_busy. The user has no
+        # Subscription row, so their plan is the default 'free' tier.
         UsageEvent.objects.create(
             user=self.user, model_name='gpt-5.6-terra',
-            input_tokens=PLANS['starter']['five_hour_tokens'], output_tokens=0,
-            total_tokens=PLANS['starter']['five_hour_tokens'],
+            input_tokens=PLANS['free']['five_hour_tokens'], output_tokens=0,
+            total_tokens=PLANS['free']['five_hour_tokens'],
         )
         token = Token.objects.create(user=self.user)
         resp = self.client.post(
