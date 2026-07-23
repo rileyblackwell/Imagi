@@ -287,7 +287,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
-import { useUsageStore, formatCompactTokens, formatResetTime } from '@/shared/stores/usage'
+import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
@@ -414,9 +414,9 @@ const usageMeters = computed(() => {
     key,
     label,
     percent,
-    usedText: win && win.used !== null && win.limit !== null
-      ? `${formatCompactTokens(win.used)} / ${formatCompactTokens(win.limit)}${percent !== null ? ` · ${percent}%` : ''}`
-      : '—',
+    // Just the percentage used — no raw token counts (matches Claude Code's
+    // 5-hour / weekly session limits). Unknown usage stays an em-dash.
+    usedText: percent !== null ? `${percent}% used` : '—',
     resetsAt: formatResetTime(win?.resetsAt ?? null),
   }))
 })
