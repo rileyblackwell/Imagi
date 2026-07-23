@@ -64,19 +64,21 @@
           v-if="menuOpen && apps.length > 0"
           class="absolute z-20 mt-2 left-0 max-md:left-auto max-md:right-0 min-w-[17rem] max-md:max-w-[calc(100vw-1.5rem)] max-h-[60vh] overflow-y-auto rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-white dark:bg-[#0f0f0f] shadow-[0_16px_44px_-12px_rgba(23,37,84,0.22)] dark:shadow-[0_16px_44px_-12px_rgba(0,0,0,0.7)] p-1.5"
         >
-          <p class="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-950/35 dark:text-blue-100/35">Pages</p>
           <div v-for="app in apps" :key="app.name">
             <!-- Folder row -->
             <button
               type="button"
               @click="toggleApp(app.name)"
-              class="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[13px] font-medium text-blue-950 dark:text-white hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+              class="group/folder w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] font-medium text-blue-950 dark:text-white hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
             >
               <i
-                class="fas fa-chevron-right text-[9px] w-3 shrink-0 text-blue-950/35 dark:text-blue-100/40 transition-transform duration-200"
+                class="fas fa-chevron-right text-[9px] w-3 shrink-0 text-blue-950/30 dark:text-blue-100/35 group-hover/folder:text-blue-950/50 dark:group-hover/folder:text-blue-100/55 transition-[transform,color] duration-200"
                 :class="{ 'rotate-90': isExpanded(app.name) }"
               ></i>
-              <i class="fas fa-folder text-[12px] shrink-0 text-blue-950/45 dark:text-blue-100/45"></i>
+              <i
+                class="fas text-[12px] shrink-0 text-blue-950/40 dark:text-blue-100/45"
+                :class="isExpanded(app.name) ? 'fa-folder-open' : 'fa-folder'"
+              ></i>
               <span class="truncate">{{ app.title }}</span>
             </button>
 
@@ -98,7 +100,6 @@
                   :class="page.path === currentPath ? 'fa-circle-dot text-blue-600 dark:text-blue-300' : 'fa-file text-blue-950/30 dark:text-blue-100/35'"
                 ></i>
                 <span class="truncate flex-1">{{ page.title }}</span>
-                <span class="truncate font-mono text-[10.5px] text-blue-950/30 dark:text-blue-100/40 max-w-[45%] hidden sm:block">{{ page.path }}</span>
               </button>
             </div>
           </div>
@@ -258,9 +259,10 @@ const canGoForward = ref(false)
 const viewport = ref<[number, number]>([1280, 800])
 
 const menuOpen = ref(false)
-// Folders (apps) default to expanded so the whole tree is visible; this holds
-// the ones the user has explicitly collapsed this session.
-const collapsedApps = ref<string[]>([])
+// Folders (apps) start collapsed; this holds the ones currently open. When the
+// menu opens we seed it with the folder holding the current page (see
+// onMenuToggle) so you land on where you are without the whole tree unfurling.
+const expandedApps = ref<string[]>([])
 const menuRoot = ref<HTMLElement | null>(null)
 const screenRef = ref<HTMLElement | null>(null)
 
@@ -906,20 +908,26 @@ async function refreshPages() {
 
 function onMenuToggle() {
   menuOpen.value = !menuOpen.value
-  // Routes may have changed since the last fetch (the agent edits routers);
-  // refresh in the background whenever the menu opens.
-  if (menuOpen.value) void refreshPages()
+  if (menuOpen.value) {
+    // Open only the folder holding the current page, so you land on where you
+    // are rather than the whole tree.
+    const active = apps.value.find(a => a.pages.some(p => p.path === currentPath.value))
+    expandedApps.value = active ? [active.name] : []
+    // Routes may have changed since the last fetch (the agent edits routers);
+    // refresh in the background whenever the menu opens.
+    void refreshPages()
+  }
 }
 
-// Folders start expanded; collapsedApps only tracks the ones the user closed.
+// Folders start collapsed; expandedApps tracks the ones currently open.
 function isExpanded(name: string): boolean {
-  return !collapsedApps.value.includes(name)
+  return expandedApps.value.includes(name)
 }
 
 function toggleApp(name: string) {
-  const i = collapsedApps.value.indexOf(name)
-  if (i >= 0) collapsedApps.value.splice(i, 1)
-  else collapsedApps.value.push(name)
+  const i = expandedApps.value.indexOf(name)
+  if (i >= 0) expandedApps.value.splice(i, 1)
+  else expandedApps.value.push(name)
 }
 
 function normalizePath(input: string): string {
