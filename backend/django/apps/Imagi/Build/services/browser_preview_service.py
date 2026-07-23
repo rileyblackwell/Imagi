@@ -480,6 +480,7 @@ class BrowserPreviewService:
         # browser that happened to use this port.
         _pool_invalidate(cdp_port)
         os.makedirs(self.profile_dir, exist_ok=True)
+        self._clear_singleton_locks()
 
         # --no-sandbox: the preview renders the user's own generated app, and
         # that same code already runs unsandboxed in this container via the
@@ -532,6 +533,26 @@ class BrowserPreviewService:
                 time.sleep(0.25)
 
         raise BrowserPreviewError('Browser did not expose its DevTools endpoint in time.')
+
+    def _clear_singleton_locks(self):
+        """Remove Chromium's profile lock files before (re)launching.
+
+        Chromium writes ``SingletonLock`` (a symlink to ``<hostname>-<pid>``)
+        into the user-data-dir to stop two instances sharing one profile. We
+        keep the profile across relaunches (``keep_profile=True``), so on a
+        Railway redeploy the new container inherits the previous container's
+        lock. Because the hostname differs, Chromium can't confirm the old pid
+        is dead and refuses to start ("in use by another Chromium process on
+        another computer"). We've already killed any browser we own by the time
+        this runs, so any lock still present is stale and safe to delete.
+        """
+        for name in ('SingletonLock', 'SingletonSocket', 'SingletonCookie'):
+            try:
+                os.unlink(os.path.join(self.profile_dir, name))
+            except OSError:
+                # Missing (the common case) or a directory we didn't create —
+                # either way there's no lock of ours to clear.
+                pass
 
     def _kill_browser(self, keep_profile=False):
         self.servers._kill_from_pid_file(self.pid_file)
