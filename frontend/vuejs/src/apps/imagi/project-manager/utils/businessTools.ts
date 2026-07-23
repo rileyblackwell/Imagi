@@ -129,6 +129,59 @@ export const businessTools: BusinessTool[] = [
   },
 ]
 
+/**
+ * Accent classes for the project-hub cards (ToolCategoryCard).
+ *
+ * These deliberately differ from `accentClasses` below: the hub grid reads as
+ * one composed set at rest — neutral graphite icon tiles on clean cards — and
+ * reveals each module's accent only on hover. That keeps the four cards feeling
+ * professional and cohesive rather than candy-bright, while still letting each
+ * workspace keep its own color identity on interaction.
+ *
+ * Static literal strings for the Tailwind JIT (see note at the top of the file).
+ */
+export const hubCardAccents: Record<ToolAccent, {
+  /** Accent border tint applied to the whole card on hover. */
+  border: string
+  /** Icon tile: neutral graphite at rest, accent tint on hover. */
+  iconWrap: string
+  /** Icon glyph: graphite at rest, accent on hover. */
+  iconText: string
+  /** `via-*` color for the hairline accent line revealed along the card top. */
+  bar: string
+  /** CTA row: muted at rest, accent on hover. */
+  link: string
+}> = {
+  blue: {
+    border: 'group-hover:border-blue-300/70 dark:group-hover:border-blue-300/30',
+    iconWrap: 'bg-slate-100/80 border-slate-200/70 dark:bg-white/[0.05] dark:border-white/[0.08] group-hover:bg-blue-50 group-hover:border-blue-200/70 dark:group-hover:bg-blue-400/10 dark:group-hover:border-blue-400/25',
+    iconText: 'text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-300',
+    bar: 'via-blue-400/70 dark:via-blue-300/50',
+    link: 'text-slate-400 dark:text-blue-100/45 group-hover:text-blue-700 dark:group-hover:text-blue-300',
+  },
+  emerald: {
+    border: 'group-hover:border-emerald-300/70 dark:group-hover:border-emerald-300/30',
+    iconWrap: 'bg-slate-100/80 border-slate-200/70 dark:bg-white/[0.05] dark:border-white/[0.08] group-hover:bg-emerald-50 group-hover:border-emerald-200/70 dark:group-hover:bg-emerald-400/10 dark:group-hover:border-emerald-400/25',
+    iconText: 'text-slate-500 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-300',
+    bar: 'via-emerald-400/70 dark:via-emerald-300/50',
+    link: 'text-slate-400 dark:text-blue-100/45 group-hover:text-emerald-700 dark:group-hover:text-emerald-300',
+  },
+  violet: {
+    border: 'group-hover:border-violet-300/70 dark:group-hover:border-violet-300/30',
+    iconWrap: 'bg-slate-100/80 border-slate-200/70 dark:bg-white/[0.05] dark:border-white/[0.08] group-hover:bg-violet-50 group-hover:border-violet-200/70 dark:group-hover:bg-violet-400/10 dark:group-hover:border-violet-400/25',
+    iconText: 'text-slate-500 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-300',
+    bar: 'via-violet-400/70 dark:via-violet-300/50',
+    link: 'text-slate-400 dark:text-blue-100/45 group-hover:text-violet-700 dark:group-hover:text-violet-300',
+  },
+  amber: {
+    border: 'group-hover:border-amber-300/70 dark:group-hover:border-amber-300/30',
+    iconWrap: 'bg-slate-100/80 border-slate-200/70 dark:bg-white/[0.05] dark:border-white/[0.08] group-hover:bg-amber-50 group-hover:border-amber-200/70 dark:group-hover:bg-amber-400/10 dark:group-hover:border-amber-400/25',
+    iconText: 'text-slate-500 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-300',
+    bar: 'via-amber-400/70 dark:via-amber-300/50',
+    link: 'text-slate-400 dark:text-blue-100/45 group-hover:text-amber-700 dark:group-hover:text-amber-300',
+  },
+}
+
 /** Look up a tool by its URL slug (for coming-soon routes). */
 export function getToolBySlug(slug: string): BusinessTool | undefined {
   return businessTools.find(tool => tool.slug === slug)

@@ -8,22 +8,15 @@
   <component
     :is="isBuildLocked ? 'div' : 'router-link'"
     :to="isBuildLocked ? undefined : target"
-    class="crisp-card group relative flex flex-col items-center text-center h-full px-6 pt-8 pb-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+    class="crisp-card group relative flex flex-col h-full p-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
     :class="[
       isBuildLocked
-        ? 'building-card cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
-        : ['bg-white/85 dark:bg-white/[0.045] hover:-translate-y-1', accent.cardBorder],
+        ? 'building-card items-center text-center cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
+        : ['items-start text-left bg-white/90 dark:bg-white/[0.045] border-slate-200/70 dark:border-white/[0.08] hover:-translate-y-1', accent.border],
     ]"
     :title="isBuildLocked ? 'Imagi is building your app — this card unlocks the moment the build finishes' : tool.name"
     :aria-disabled="isBuildLocked ? 'true' : undefined"
   >
-    <!-- Soft accent glow on hover -->
-    <div
-      v-if="!isBuildLocked"
-      class="pointer-events-none absolute -top-px inset-x-0 mx-auto w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 bg-gradient-to-b to-transparent transition-opacity duration-500"
-      :class="accent.glow"
-    ></div>
-
     <!-- Moving sheen while building -->
     <div v-if="isBuildLocked" class="building-sheen pointer-events-none absolute inset-0 rounded-2xl overflow-hidden"></div>
 
@@ -60,31 +53,36 @@
 
     <!-- ==================== DEFAULT STATE ==================== -->
     <template v-else>
+      <!-- Hairline accent, revealed along the card's top edge on hover -->
+      <span
+        class="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        :class="accent.bar"
+        aria-hidden="true"
+      ></span>
+
       <!-- Icon -->
       <div
-        class="relative w-14 h-14 rounded-2xl flex items-center justify-center border mb-5 transition-transform duration-300 group-hover:scale-105"
-        :class="[accent.iconWrap]"
+        class="relative w-12 h-12 rounded-xl flex items-center justify-center border mb-6 transition-colors duration-300"
+        :class="accent.iconWrap"
       >
-        <i :class="['fas', tool.icon, accent.iconText]" class="text-xl"></i>
+        <i :class="['fas', tool.icon, accent.iconText]" class="text-lg transition-colors duration-300"></i>
       </div>
 
       <!-- Name + tagline -->
-      <div class="relative flex-1">
-        <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 tracking-tight transition-colors duration-300">
-          {{ tool.name }}
-        </h3>
-        <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">
-          {{ tool.tagline }}
-        </p>
-      </div>
+      <h3 class="relative text-[17px] font-semibold text-blue-950 dark:text-white mb-1.5 tracking-[-0.01em] transition-colors duration-300">
+        {{ tool.name }}
+      </h3>
+      <p class="relative text-sm text-blue-950/60 dark:text-blue-100/60 leading-relaxed transition-colors duration-300">
+        {{ tool.tagline }}
+      </p>
 
       <!-- CTA -->
       <div
-        class="relative flex items-center justify-center gap-1.5 w-full text-sm font-medium mt-6 pt-4 border-t border-blue-200/60 dark:border-white/[0.1] transition-colors duration-300"
+        class="relative flex items-center w-full text-[13px] font-medium mt-auto pt-5 border-t border-slate-200/70 dark:border-white/[0.08] transition-colors duration-300"
         :class="accent.link"
       >
         <span>{{ tool.status === 'available' ? 'Open workspace' : 'Preview' }}</span>
-        <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform duration-200"></i>
+        <i class="fas fa-arrow-right text-[11px] ml-auto group-hover:translate-x-0.5 transition-transform duration-200"></i>
       </div>
     </template>
   </component>
@@ -93,7 +91,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { accentClasses, type BusinessTool } from '../../../utils/businessTools'
+import { hubCardAccents, type BusinessTool } from '../../../utils/businessTools'
 
 const props = defineProps<{
   tool: BusinessTool
@@ -102,7 +100,7 @@ const props = defineProps<{
   buildStatus?: 'pending' | 'generating' | 'completed' | 'failed' | null
 }>()
 
-const accent = computed(() => accentClasses[props.tool.accent])
+const accent = computed(() => hubCardAccents[props.tool.accent])
 
 /**
  * The initial AI build is still running. While it is, the Build card is locked:
