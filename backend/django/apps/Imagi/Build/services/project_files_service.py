@@ -26,11 +26,43 @@ Design
 import logging
 import os
 
+from django.conf import settings
 from django.db import transaction
 
 from apps.Imagi.Build.models import ProjectFile
 
 logger = logging.getLogger(__name__)
+
+
+class WrongTierError(RuntimeError):
+    """Raised when a project working copy is mutated on the wrong compute tier.
+
+    In the split deployment only the 'workspace' tier owns the on-disk working
+    copies (its volume is the source of truth). The 'web' tier's disk is
+    ephemeral, so a write there would silently diverge from the volume — see
+    the IMAGI_ROLE notes in settings.
+    """
+
+
+def ensure_workspace_tier(operation: str = 'modify a project working copy') -> None:
+    """Guard: refuse working-copy mutations on the stateless web tier.
+
+    Fires only when this process is explicitly the web tier of a split
+    deployment (``IMAGI_ROLE == 'web'``). Single-process deployments — local
+    dev, tests, a non-split box — leave IMAGI_ROLE unset and are unaffected,
+    as is the workspace tier itself. This turns a mis-routed write (e.g. a new
+    disk-touching endpoint that the nginx ``$api_upstream`` map does not send
+    to workspace) into a loud, immediate failure instead of a silent
+    divergence between the volume and the DB mirror.
+    """
+    if settings.IMAGI_ROLE == 'web':
+        raise WrongTierError(
+            f"Refusing to {operation} on the 'web' tier: project working copies "
+            f"live on the workspace tier's volume, so a write here would land on "
+            f"ephemeral disk and silently diverge from the source of truth. This "
+            f"request was almost certainly routed to the wrong service — check the "
+            f"nginx $api_upstream map in frontend/vuejs/nginx.conf."
+        )
 
 # Only text files with these extensions are stored in the database.
 # Everything else (images, binaries, lockfiles we don't care about) lives
@@ -102,6 +134,7 @@ def record_file(project, rel_path: str, content: str = None):
     row, or None when the path is not syncable (binary/ignored/too large)
     or the mirror is suppressed for a worktree run.
     """
+    ensure_workspace_tier('write a project file')
     if mirror_suppressed(project):
         return None
     rel_path = _normalize_rel_path(rel_path)
@@ -138,6 +171,7 @@ def record_file(project, rel_path: str, content: str = None):
 
 def remove_file(project, rel_path: str) -> int:
     """Delete the database copy of a project file. Returns rows deleted."""
+    ensure_workspace_tier('delete a project file')
     if mirror_suppressed(project):
         return 0
     rel_path = _normalize_rel_path(rel_path)
@@ -147,6 +181,7 @@ def remove_file(project, rel_path: str) -> int:
 
 def remove_directory(project, rel_dir: str) -> int:
     """Delete database copies of every file under a directory prefix."""
+    ensure_workspace_tier('delete a project directory')
     if mirror_suppressed(project):
         return 0
     rel_dir = _normalize_rel_path(rel_dir).rstrip('/')
