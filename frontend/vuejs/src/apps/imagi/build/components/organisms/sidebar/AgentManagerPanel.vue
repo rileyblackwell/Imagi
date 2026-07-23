@@ -162,9 +162,7 @@
             :instance="instance"
             :is-active="instance.id === store.activeInstanceId"
             @select="handleSelect(instance.id)"
-            @archive="handleArchive(instance.id)"
             @delete="handleDelete(instance.id)"
-            @rename="handleRename(instance.id, $event)"
           />
         </template>
         <div v-else class="px-2 pb-1 text-[11px] text-blue-950/35 dark:text-white/30">
@@ -314,10 +312,7 @@
               :is-active="instance.id === store.activeInstanceId"
               :is-archived="!!instance.archivedAt"
               @select="handleSelect(instance.id)"
-              @archive="handleArchive(instance.id)"
-              @unarchive="handleUnarchive(instance.id)"
               @delete="handleDelete(instance.id)"
-              @rename="handleRename(instance.id, $event)"
             />
           </template>
         </template>
@@ -593,14 +588,6 @@ async function handleSelect(id: string) {
   await store.switchInstance(id)
 }
 
-async function handleArchive(id: string) {
-  await store.archiveInstance(id)
-}
-
-async function handleUnarchive(id: string) {
-  await store.unarchiveInstance(id)
-}
-
 async function handleDelete(id: string) {
   const instance = store.instances.find(i => i.id === id)
   const name = instance?.title || 'this agent instance'
@@ -626,9 +613,6 @@ async function handleDelete(id: string) {
   }
 }
 
-async function handleRename(id: string, title: string) {
-  await store.renameInstance(id, title)
-}
 </script>
 
 <style scoped>

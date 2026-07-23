@@ -28,6 +28,9 @@ export interface AgentStreamHandlers {
    *  pattern, query, …) — values are backend-truncated strings. */
   onToolCall?: (name: string, args?: Record<string, string>) => void
   onPlan?: (plan: AgentPlanStep[]) => void
+  /** The backend named the thread from its opening exchange. Fires once, as
+   *  the first run wraps up, so the sidebar can swap the provisional title. */
+  onTitle?: (conversationId: number, title: string) => void
 }
 
 /**
@@ -229,6 +232,9 @@ export const AgentService = {
         case 'plan':
           plan = event.plan || []
           handlers.onPlan?.(plan)
+          break
+        case 'title':
+          handlers.onTitle?.(event.conversation_id, event.title)
           break
         case 'done':
           done = {

@@ -9,6 +9,7 @@ compaction), the agent run loop, and extraction of structured run metadata
 
 import json
 import os
+import re
 import logging
 import time
 from typing import Optional, Dict, Any, List
@@ -67,6 +68,63 @@ RUN_HEARTBEAT_INTERVAL = 60
 # without bound.
 HISTORY_MAX_CHARS = 60_000
 COMPACTED_SNIPPET_CHARS = 120
+
+# Model used to auto-name a conversation from its opening exchange. Always the
+# smallest suite tier (Luna) so naming a thread costs the least usage possible —
+# it should never feel like it competes with the build itself. Resolved through
+# the registry so it tracks Luna's real backend id if that mapping ever changes.
+TITLE_SUITE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'gpt-5.6-luna')
+
+
+def _clean_title(raw: str) -> Optional[str]:
+    """Normalize a model-produced title: take the first line, strip any
+    "Title:" label and wrapping quotes, collapse whitespace, drop trailing
+    punctuation, and cap the length. Returns None when nothing usable remains.
+    """
+    stripped = (raw or "").strip()
+    if not stripped:
+        return None
+    title = stripped.splitlines()[0]
+    # Drop a leading "Title:" / "Title -" style label and any wrapping quotes.
+    title = re.sub(r'^\s*title\s*[:\-]\s*', '', title, flags=re.IGNORECASE)
+    title = title.strip().strip('"\'“”‘’').strip()
+    title = re.sub(r'\s+', ' ', title).rstrip('.!,;:')
+    return title[:80] or None
+
+
+def generate_conversation_title(user_input: str, assistant_reply: str) -> Optional[str]:
+    """Ask a small model for a concise title describing the conversation.
+
+    Draws on the opening request and the agent's reply so the name reflects
+    what the thread is actually about. Returns a cleaned 3-6 word title, or
+    None when unavailable (no key, API error) so the caller can fall back to
+    the provisional first-line title.
+    """
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        from openai import OpenAI
+
+        from .models_service import get_backend_model_id
+
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        prompt = (
+            "Write a short, specific title for this coding-assistant conversation.\n"
+            "Rules: 3-6 words, Title Case, no quotes, no ending punctuation, and "
+            "no leading label like 'Title:'. Name the concrete task.\n\n"
+            f"User request:\n{(user_input or '').strip()[:800]}\n\n"
+            f"Assistant reply:\n{(assistant_reply or '').strip()[:800]}"
+        )
+        response = client.responses.create(
+            model=get_backend_model_id(TITLE_SUITE_MODEL),
+            input=prompt,
+            max_output_tokens=500,
+            reasoning={"effort": "minimal"},
+        )
+        return _clean_title(getattr(response, "output_text", "") or "")
+    except Exception as e:
+        logger.warning(f"Conversation title generation failed: {e}")
+        return None
 
 
 def build_model_settings(reasoning_effort: Optional[str] = None):
@@ -411,6 +469,32 @@ class ImagiAgentService:
             content=content,
             metadata=metadata,
         )
+
+    def autoname_from_first_reply(
+        self,
+        conversation: AgentConversation,
+        user_input: str,
+        response_content: str,
+    ) -> Optional[str]:
+        """Give the thread a concise AI-generated name off its opening exchange.
+
+        Runs once — only when the just-persisted assistant message is the
+        conversation's first reply — so later turns leave the established name
+        alone. Returns the new title, or None to leave the provisional
+        first-line title (set in add_user_message) in place.
+        """
+        try:
+            if conversation.messages.filter(role="assistant").count() != 1:
+                return None
+            title = generate_conversation_title(user_input, response_content)
+            if not title:
+                return None
+            conversation.title = title
+            conversation.save(update_fields=["title", "updated_at"])
+            return title
+        except Exception as e:
+            logger.warning(f"Auto-naming conversation {conversation.id} failed: {e}")
+            return None
 
     def _record_usage_event(
         self,
@@ -811,6 +895,19 @@ class ImagiAgentService:
             await sync_to_async(self._record_usage_event)(
                 user, model, usage, conversation
             )
+
+            # Name the thread from its opening exchange (once). Emitting the
+            # title before "done" lets the sidebar swap the provisional
+            # first-line name for the AI one as the run wraps up.
+            new_title = await sync_to_async(self.autoname_from_first_reply)(
+                conversation, user_input, response_content
+            )
+            if new_title:
+                yield {
+                    "type": "title",
+                    "title": new_title,
+                    "conversation_id": conversation.id,
+                }
 
             done_event = {
                 "type": "done",

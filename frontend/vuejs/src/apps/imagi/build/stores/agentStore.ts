@@ -417,6 +417,17 @@ export const useAgentStore = defineStore('agent', {
       await this.ensureMessagesLoaded(instance.id)
     },
 
+    /** Apply a title the backend already persisted (e.g. the AI auto-name from
+     *  the first exchange). Local-only — no server write, since the row is
+     *  already saved. Matched by conversationId because the stream reports the
+     *  conversation, not the local instance id. */
+    applyInstanceTitle(conversationId: number, title: string) {
+      const trimmed = (title || '').trim()
+      if (!trimmed) return
+      const instance = this.instances.find(i => i.conversationId === conversationId)
+      if (instance) instance.title = trimmed.slice(0, 120)
+    },
+
     async renameInstance(instanceId: string, title: string) {
       const instance = this._findInstance(instanceId)
       if (!instance || !instance.conversationId) return
