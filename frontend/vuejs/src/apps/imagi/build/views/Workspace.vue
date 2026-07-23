@@ -536,6 +536,11 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
             sawPlan = sawPlan || plan.length > 0
             store.setMessagePlan(instanceId, streamingMessageId, plan)
           },
+          onTitle: (conversationId, title) => {
+            // The backend auto-named the thread from its opening exchange;
+            // reflect it in the sidebar without a reload.
+            store.applyInstanceTitle(conversationId, title)
+          },
         },
         abortController.signal
       )

@@ -12,19 +12,7 @@
     <!-- Title row -->
     <div class="flex items-start gap-2">
       <div class="flex-1 min-w-0">
-        <input
-          v-if="isEditing"
-          ref="titleInput"
-          v-model="draftTitle"
-          type="text"
-          class="w-full bg-transparent text-xs font-semibold text-blue-950 dark:text-white/90 border-b border-blue-400 dark:border-blue-300/60 outline-none"
-          @click.stop
-          @keydown.enter.prevent="commitRename"
-          @keydown.escape="cancelRename"
-          @blur="commitRename"
-        />
         <div
-          v-else
           :class="[
             'text-xs truncate transition-colors duration-200',
             isActive
@@ -74,18 +62,6 @@
           v-if="menuOpen"
           class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-blue-950/[0.08] dark:border-white/[0.14] bg-white/95 dark:bg-[#161616]/95 backdrop-blur-sm shadow-xl shadow-blue-950/10 dark:shadow-black/40 py-1"
         >
-          <button class="menu-item" @click.stop="onRename">
-            <i class="fas fa-pen menu-item-icon"></i>
-            <span>Rename</span>
-          </button>
-          <button v-if="!isArchived" class="menu-item" @click.stop="onArchive">
-            <i class="fas fa-archive menu-item-icon"></i>
-            <span>Archive</span>
-          </button>
-          <button v-else class="menu-item" @click.stop="onUnarchive">
-            <i class="fas fa-box-open menu-item-icon"></i>
-            <span>Unarchive</span>
-          </button>
           <button class="menu-item menu-item--danger" @click.stop="onDelete">
             <i class="fas fa-trash menu-item-icon"></i>
             <span>Delete</span>
@@ -97,10 +73,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { AgentInstance } from '../../../types/services'
 
-const props = defineProps<{
+defineProps<{
   instance: AgentInstance
   isActive: boolean
   isArchived?: boolean
@@ -108,15 +84,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'select'): void
-  (e: 'archive'): void
-  (e: 'unarchive'): void
   (e: 'delete'): void
-  (e: 'rename', title: string): void
 }>()
-
-const isEditing = ref(false)
-const draftTitle = ref('')
-const titleInput = ref<HTMLInputElement | null>(null)
 
 const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
@@ -127,21 +96,6 @@ function toggleMenu() {
 
 function closeMenu() {
   menuOpen.value = false
-}
-
-function onRename() {
-  closeMenu()
-  startRename()
-}
-
-function onArchive() {
-  closeMenu()
-  emit('archive')
-}
-
-function onUnarchive() {
-  closeMenu()
-  emit('unarchive')
 }
 
 function onDelete() {
@@ -157,27 +111,6 @@ function handleDocumentClick(event: MouseEvent) {
 
 onMounted(() => document.addEventListener('mousedown', handleDocumentClick))
 onBeforeUnmount(() => document.removeEventListener('mousedown', handleDocumentClick))
-
-async function startRename() {
-  draftTitle.value = props.instance.title || ''
-  isEditing.value = true
-  await nextTick()
-  titleInput.value?.focus()
-  titleInput.value?.select()
-}
-
-function commitRename() {
-  if (!isEditing.value) return
-  const newTitle = draftTitle.value.trim()
-  isEditing.value = false
-  if (newTitle && newTitle !== props.instance.title) {
-    emit('rename', newTitle)
-  }
-}
-
-function cancelRename() {
-  isEditing.value = false
-}
 
 /** Compact token count for the meta row: 850, 12.3k, 2M. */
 function formatTokens(total: number): string {
