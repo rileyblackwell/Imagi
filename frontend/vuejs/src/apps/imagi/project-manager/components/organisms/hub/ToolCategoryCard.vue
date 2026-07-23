@@ -89,14 +89,12 @@ import { hubCardTones, type BusinessTool } from '../../../utils/businessTools'
 const props = defineProps<{
   tool: BusinessTool
   projectSlug: string
-  /** Position in the hub grid; the cards alternate Imagi's blue/orange brand tones. */
-  index: number
   /** The project's generation_status; drives the Build card's "AI building" state. */
   buildStatus?: 'pending' | 'generating' | 'completed' | 'failed' | null
 }>()
 
-// Alternate the brand's two tones down the grid, matching the home feature cards.
-const tone = computed(() => hubCardTones[props.index % 2 === 0 ? 'blue' : 'orange'])
+// Every hub card uses Imagi's orange brand tone (icon tile, border, and CTA).
+const tone = computed(() => hubCardTones.orange)
 
 /**
  * The initial AI build is still running. While it is, the Build card is locked:

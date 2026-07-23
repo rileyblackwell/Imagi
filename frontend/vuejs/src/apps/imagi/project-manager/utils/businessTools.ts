@@ -134,11 +134,12 @@ export type HubTone = 'blue' | 'orange'
 /**
  * Static two-tone treatment for the project-hub cards (ToolCategoryCard).
  *
- * Imagi's brand runs on blue with an orange counterpart, and the home feature
- * cards alternate the two. The hub cards follow the same rhythm so the page
- * feels of a piece with the rest of the site. These are fixed at rest — there
- * is deliberately no hover/click color change — and mirror the exact tile,
- * ring, icon, and border values used by the home KeyFeatures cards.
+ * Imagi's brand runs on blue with an orange counterpart. The hub cards use the
+ * orange tone so the page feels of a piece with the rest of the site while
+ * staying visually calm. These are fixed at rest — there is deliberately no
+ * hover/click color change — and mirror the exact tile, ring, icon, and border
+ * values used by the home KeyFeatures cards. The blue tone is kept available
+ * should the hub want to alternate tones again.
  *
  * Static literal strings for the Tailwind JIT (see note at the top of the file).
  */
