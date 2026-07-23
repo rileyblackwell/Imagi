@@ -31,15 +31,19 @@ load_dotenv(BASE_DIR / '.env')
 # debug pages or stack traces in production.
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-# Which tier this process serves. Both tiers run this same image against the
-# same Postgres and SECRET_KEY; only nginx routing and this flag differ.
-#  - 'web' (default): stateless API — auth, payments, project metadata. Reads
-#    the ProjectFile DB mirror; never touches a working copy on disk.
+# Which tier this process serves in the split deployment. Both tiers run this
+# same image against the same Postgres and SECRET_KEY; only nginx routing and
+# this flag differ. See the Dockerfile CMD and the frontend nginx.conf.
+#  - 'web': stateless API — auth, payments, project metadata. Reads the
+#    ProjectFile DB mirror; must never write a working copy to disk (its disk
+#    is ephemeral, so a stray write silently diverges from the source of
+#    truth). project_files_service.ensure_workspace_tier() enforces this.
 #  - 'workspace': the stateful tier that owns the on-disk working copies under
 #    PROJECTS_ROOT (on a persistent volume) and runs the dev servers, headless
 #    browser preview, and agent runs. All disk-touching endpoints route here.
-# See the two-service split in the Dockerfile CMD and the frontend nginx.conf.
-IMAGI_ROLE = os.environ.get('IMAGI_ROLE', 'web')
+#  - '' (unset): single-process deployments — local dev, tests, a non-split
+#    box — where one process owns everything. The tier guard is inert here.
+IMAGI_ROLE = os.environ.get('IMAGI_ROLE', '').strip().lower()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # No hardcoded fallback: a publicly-known key would allow session-cookie /

@@ -15,7 +15,7 @@ import shutil
 import tempfile
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from apps.Imagi.Build.models import ProjectFile
@@ -227,3 +227,56 @@ class ReadFallbackTests(ProjectFilesTestCase):
         content = service.get_file_content('frontend/vuejs/src/App.vue')
 
         self.assertEqual(content, 'db only')
+
+
+class TierGuardTests(ProjectFilesTestCase):
+    """The workspace-role guard: working-copy mutations are refused on the
+    stateless 'web' tier, so a mis-routed disk write fails loudly instead of
+    silently diverging from the volume-backed source of truth. Every mutation
+    funnels through these write-through functions, so guarding them covers the
+    agent tools, the builder file/dir endpoints, and app/project scaffolding."""
+
+    @override_settings(IMAGI_ROLE='web')
+    def test_web_tier_blocks_record_file(self):
+        with self.assertRaises(project_files_service.WrongTierError):
+            project_files_service.record_file(
+                self.project, 'frontend/vuejs/src/App.vue', content='x'
+            )
+        self.assertIsNone(self._db_content('frontend/vuejs/src/App.vue'))
+
+    @override_settings(IMAGI_ROLE='web')
+    def test_web_tier_blocks_remove_file(self):
+        with self.assertRaises(project_files_service.WrongTierError):
+            project_files_service.remove_file(self.project, 'frontend/vuejs/src/App.vue')
+
+    @override_settings(IMAGI_ROLE='web')
+    def test_web_tier_blocks_remove_directory(self):
+        with self.assertRaises(project_files_service.WrongTierError):
+            project_files_service.remove_directory(self.project, 'frontend/vuejs/src/apps')
+
+    @override_settings(IMAGI_ROLE='web')
+    def test_guard_fires_ahead_of_mirror_suppression(self):
+        # Worktree runs suppress the mirror, but the guard sits ahead of that
+        # early return, so a suppressed write on the wrong tier still fails.
+        self.project._suppress_db_mirror = True
+        with self.assertRaises(project_files_service.WrongTierError):
+            project_files_service.record_file(
+                self.project, 'frontend/vuejs/src/App.vue', content='x'
+            )
+
+    @override_settings(IMAGI_ROLE='workspace')
+    def test_workspace_tier_allows_writes(self):
+        row = project_files_service.record_file(
+            self.project, 'frontend/vuejs/src/App.vue', content='ok'
+        )
+        self.assertIsNotNone(row)
+        self.assertEqual(self._db_content('frontend/vuejs/src/App.vue'), 'ok')
+
+    @override_settings(IMAGI_ROLE='')
+    def test_unset_role_is_inert(self):
+        # Single-process deployments (local dev, tests, a non-split box) leave
+        # IMAGI_ROLE unset — one process owns everything, so writes are allowed.
+        row = project_files_service.record_file(
+            self.project, 'frontend/vuejs/src/App.vue', content='ok'
+        )
+        self.assertIsNotNone(row)
