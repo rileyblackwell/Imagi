@@ -19,9 +19,13 @@
            page. On mobile it drops below the navbar and becomes an off-canvas
            drawer that floats over the content. -->
       <aside
-        class="sidebar-panel fixed inset-y-0 left-0 z-30 flex flex-col max-md:top-16 border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
+        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col max-md:top-16 border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
         :class="[
           asideWidthClass,
+          // The stacked frame drops the panel below the full-width top bar so
+          // the bar's toggle + wordmark own the true top-left corner; other
+          // sections keep the panel flush to the top on desktop.
+          stackedNav ? 'top-16' : 'md:top-0',
           isSidebarCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
         ]"
         :aria-hidden="isSidebarCollapsed ? 'true' : undefined"
@@ -89,7 +93,8 @@
         <!-- Navbar -->
         <BaseNavbar
           class="navbar-shell fixed top-0 right-0 left-0 z-20 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
-          :class="isSidebarCollapsed ? '' : navOffsetClass"
+          :class="(isSidebarCollapsed || stackedNav) ? '' : navOffsetClass"
+          :fluid="stackedNav"
         >
           <!-- The permanent show/hide control, pinned to the far left of the
                top bar (before the wordmark) so collapsing the panel never
@@ -165,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import BaseLayout from './BaseLayout.vue'
@@ -186,6 +191,12 @@ const props = withDefaults(defineProps<{
   // When true, this is a full-screen app shell (e.g. the builder workspace):
   // the site footer is dropped so the content fills the viewport exactly.
   appShell?: boolean
+  // When true, the top bar spans the full viewport width with its controls
+  // (toggle + wordmark) pinned to the true top-left corner, and the sidebar
+  // sits *below* the bar rather than beside it — the builder workspace's frame.
+  // app shells always use this; other sections (docs) opt in without adopting
+  // the footer-drop / viewport-clip behaviour that `appShell` also brings.
+  fullWidthNav?: boolean
   // Per-section sizing. Passed as ready-made utility classes so the responsive
   // (md:) variants compose cleanly and there are no scoped-style specificity
   // fights. The content/nav offsets are applied only at md+ — on mobile the
@@ -211,6 +222,11 @@ const props = withDefaults(defineProps<{
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+
+// The builder-style frame: full-width top bar with corner-pinned controls and
+// the sidebar tucked below it. App shells always get it; other sections request
+// it explicitly via fullWidthNav.
+const stackedNav = computed(() => props.appShell || props.fullWidthNav)
 
 // Sidebar state. Initialised synchronously (before first paint) so a
 // mobile-default-collapsed section never flashes its panel open then shut.
