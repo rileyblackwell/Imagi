@@ -153,19 +153,6 @@
               </p>
             </div>
           </div>
-          <div v-if="otherPlans.length" class="border-t border-blue-100 dark:border-white/[0.08] px-3 py-2">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-white/40 pb-1.5">
-              Other plans
-            </div>
-            <div
-              v-for="plan in otherPlans"
-              :key="plan.id"
-              class="flex items-center justify-between gap-2 py-0.5"
-            >
-              <span class="text-[11px] font-medium text-blue-950/75 dark:text-white/70">{{ plan.name }}</span>
-              <span class="text-[10px] tabular-nums text-blue-950/45 dark:text-white/40">{{ plan.limits }}</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -433,19 +420,6 @@ const usageMeters = computed(() => {
     resetsAt: formatResetTime(win?.resetsAt ?? null),
   }))
 })
-
-/** The plan registry minus the user's own plan, for comparing limits. */
-const otherPlans = computed(() =>
-  usageStore.plans
-    .filter(p => p.id && p.id !== usageStore.plan?.id)
-    .map(p => ({
-      id: p.id,
-      name: p.name,
-      limits: p.fiveHourTokens !== null && p.weeklyTokens !== null
-        ? `${formatCompactTokens(p.fiveHourTokens)} / 5h · ${formatCompactTokens(p.weeklyTokens)} / wk`
-        : '—',
-    }))
-)
 
 const modelOptions = computed<AIModel[]>(() => {
   const available = (store.availableModels || []).filter(model => model.id.startsWith('gpt-5.6'))
