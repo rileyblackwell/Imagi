@@ -31,6 +31,16 @@ load_dotenv(BASE_DIR / '.env')
 # debug pages or stack traces in production.
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
+# Which tier this process serves. Both tiers run this same image against the
+# same Postgres and SECRET_KEY; only nginx routing and this flag differ.
+#  - 'web' (default): stateless API — auth, payments, project metadata. Reads
+#    the ProjectFile DB mirror; never touches a working copy on disk.
+#  - 'workspace': the stateful tier that owns the on-disk working copies under
+#    PROJECTS_ROOT (on a persistent volume) and runs the dev servers, headless
+#    browser preview, and agent runs. All disk-touching endpoints route here.
+# See the two-service split in the Dockerfile CMD and the frontend nginx.conf.
+IMAGI_ROLE = os.environ.get('IMAGI_ROLE', 'web')
+
 # SECURITY WARNING: keep the secret key used in production secret!
 # No hardcoded fallback: a publicly-known key would allow session-cookie /
 # signed-token forgery. Require it in production; allow an ephemeral
