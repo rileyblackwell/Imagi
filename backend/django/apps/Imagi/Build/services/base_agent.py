@@ -69,10 +69,11 @@ RUN_HEARTBEAT_INTERVAL = 60
 HISTORY_MAX_CHARS = 60_000
 COMPACTED_SNIPPET_CHARS = 120
 
-# Model used to auto-name a conversation from its opening exchange. The nano
-# tier keeps this a rounding-error cost — naming a thread should never feel
-# like it competes with the build itself.
-TITLE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'gpt-5-nano')
+# Model used to auto-name a conversation from its opening exchange. Always the
+# smallest suite tier (Luna) so naming a thread costs the least usage possible —
+# it should never feel like it competes with the build itself. Resolved through
+# the registry so it tracks Luna's real backend id if that mapping ever changes.
+TITLE_SUITE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'gpt-5.6-luna')
 
 
 def _clean_title(raw: str) -> Optional[str]:
@@ -104,6 +105,8 @@ def generate_conversation_title(user_input: str, assistant_reply: str) -> Option
     try:
         from openai import OpenAI
 
+        from .models_service import get_backend_model_id
+
         client = OpenAI(api_key=OPENAI_API_KEY)
         prompt = (
             "Write a short, specific title for this coding-assistant conversation.\n"
@@ -113,7 +116,7 @@ def generate_conversation_title(user_input: str, assistant_reply: str) -> Option
             f"Assistant reply:\n{(assistant_reply or '').strip()[:800]}"
         )
         response = client.responses.create(
-            model=TITLE_MODEL,
+            model=get_backend_model_id(TITLE_SUITE_MODEL),
             input=prompt,
             max_output_tokens=500,
             reasoning={"effort": "minimal"},
