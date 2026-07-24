@@ -24,30 +24,54 @@ class ProjectManagementService:
         return self.get_active_projects().filter(id=project_id).first()
         
     def delete_project(self, project_or_id):
-        """Delete a project and its associated files."""
+        """Delete a project and its associated files.
+
+        The database row is the single source of truth for whether a project is
+        still visible to the user (every listing filters ``is_active=True`` and
+        the row is hard-deleted here). So we delete the row first and treat all
+        filesystem/preview cleanup as best-effort: cleanup failures are logged,
+        never raised, and can never leave the row — and therefore the project's
+        card — behind.
+        """
+        # Resolve the project.
+        if isinstance(project_or_id, int):
+            project = self.get_project(project_or_id)
+            if not project:
+                raise ValidationError("Project not found")
+        else:
+            project = project_or_id
+
+        # Capture details before deletion (project.pk is cleared by delete()).
+        project_name = project.name
+        project_path = project.project_path
+        project_id = project.id
+
+        # Hard delete the database row. This is authoritative: on success the
+        # project disappears from every list. Deleting a project cascades into
+        # related rows in the Build/Sell/Operate/Marketing apps, so a missing
+        # table or column in the database (e.g. migrations not applied in
+        # production) surfaces here — we log the real error and re-raise it
+        # rather than masking why the delete failed.
         try:
-            # Get project if ID is provided
-            if isinstance(project_or_id, int):
-                project = self.get_project(project_or_id)
-                if not project:
-                    raise ValidationError("Project not found")
-            else:
-                project = project_or_id
-            
-            # Store project details before deletion
-            project_name = project.name
-            project_path = project.project_path
-            project_id = project.id
-            
+            project.delete(hard_delete=True)
+        except Exception as e:
+            logger.error(f"Failed to hard-delete project {project_id} ({project_name}): {str(e)}")
+            raise ValidationError(f"Failed to delete project: {str(e)}")
+
+        # Best-effort cleanup of the running preview server, its sidecar
+        # (PID/log/ports) files, the project directory and the per-task git
+        # worktrees beside it. The row is already gone, so nothing below may
+        # raise or the request would report a failure for an already-deleted
+        # project (and the UI would restore its card).
+        try:
             # Stop any running preview servers and delete the PID, log and
-            # preview-port files that live outside the project directory
+            # preview-port files that live outside the project directory.
             self._stop_project_server_and_cleanup_files(project)
-            
-            # Delete project files using path (preferred) or name as fallback
+
+            # Delete project files using path (preferred) or name as fallback.
             if project_path and os.path.exists(project_path):
                 self._delete_project_directory(project_path)
             else:
-                # Fallback to name-based deletion if path doesn't exist
                 self._delete_project_files(project_name)
 
             # Task worktrees live beside the project directory
@@ -55,23 +79,14 @@ class ProjectManagementService:
             # version_control_service); sweep them so deleted projects
             # don't leak per-task checkouts.
             self._delete_task_worktrees(project_path)
-            
-            # Perform a hard delete by using the hard_delete=True parameter
-            project.delete(hard_delete=True)
-            
-            # Verify deletion and force if needed
-            if Project.objects.filter(id=project_id).exists():
-                logger.warning(f"Project {project_id} still exists after deletion attempt, forcing removal")
-                # Force delete with raw SQL if needed
-                from django.db import connection
-                with connection.cursor() as cursor:
-                    cursor.execute("DELETE FROM Products_Imagi_ProjectManager_project WHERE id = %s", [project_id])
-            
-            logger.info(f"Project {project_name} deleted successfully (path: {project_path})")
-            return {"success": True, "message": f"Project {project_name} deleted successfully"}
         except Exception as e:
-            logger.error(f"Error deleting project: {str(e)}")
-            raise ValidationError(f"Failed to delete project: {str(e)}")
+            logger.warning(
+                f"Best-effort cleanup failed for deleted project {project_id} "
+                f"({project_name}); the project row is already removed: {str(e)}"
+            )
+
+        logger.info(f"Project {project_name} deleted successfully (path: {project_path})")
+        return {"success": True, "message": f"Project {project_name} deleted successfully"}
 
     def _delete_project_directory(self, project_path):
         """Delete project directory at the specific path with robust cleanup.
