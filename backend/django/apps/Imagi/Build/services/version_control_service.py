@@ -203,7 +203,7 @@ class VersionControlService:
             )
             
             subprocess.run(
-                ['git', 'config', 'user.email', 'system@imagioasis.com'],
+                ['git', 'config', 'user.email', 'system@imagi.ai'],
                 cwd=project_path,
                 capture_output=True,
                 text=True,
