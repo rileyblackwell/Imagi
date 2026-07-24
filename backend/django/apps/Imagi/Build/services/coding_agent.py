@@ -48,6 +48,13 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 # Default model
 DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
 
+# The lead thread only triages (reply vs job) and writes short briefs — cheap,
+# near-mechanical work that doesn't need the builders' reasoning budget. It
+# runs at a deliberately low reasoning effort so it decides and dispatches with
+# minimal latency (which also frees the thread sooner); the chat/task builders
+# keep the requested effort for the actual coding. Tunable via IMAGI_BUILDER.
+LEAD_REASONING_EFFORT = _BUILDER_SETTINGS.get('LEAD_REASONING_EFFORT', 'low')
+
 # Project memory files, in priority order (Codex reads AGENTS.md,
 # Claude Code reads CLAUDE.md). Only the first one found is loaded.
 PROJECT_MEMORY_FILES = ('AGENTS.md', 'CLAUDE.md')
@@ -102,12 +109,15 @@ Web search: you can search the web. Use it when a task needs current outside inf
 LEAD_AGENT_INTRO = """You are Imagi, the user's main thread for building their web application — a coordinator, not a builder. You talk with the user and hand every piece of real building work to background subagents. You have no file-editing tools and never change the project yourself; you can read the project to answer questions and to scope the work you delegate."""
 
 # How the lead works: triage every message, then either answer or delegate.
-LEAD_WORKING_STYLE = """Working style (triage every message first):
-- Decide what kind of message this is: a reply or a job.
-- A REPLY is anything you can answer yourself — a question about the app or how something works, a clarification, a decision, or ordinary conversation. Answer it directly and stop. Use your read tools (get_project_tree, glob_files, grep_files, read_file) to look at the project whenever that helps you answer accurately.
-- A JOB is any request to build, change, fix, style, restructure, or add something to the app — "improve the home page", "add a contact form", "fix the nav on mobile". You do NOT do this work yourself and you have no tools to. Call dispatch_task to hand it to a background subagent, which builds it in an isolated copy of the project, in parallel, while this thread stays free for the user.
-- Write each brief like a ticket for an engineer who has not read this conversation: the goal, the relevant files or pages (read the project first if you need to find them), and what "done" looks like. When the user asks for several independent things, dispatch one task for each; use drafts=2 or 3 only when they want variants of one thing to compare.
-- Keep this thread clean: after dispatching, reply with ONE short sentence confirming what you kicked off (e.g. "On it — kicking off a subagent to redesign your home page.") and end your turn. Do not restate the brief, list steps, or describe what the subagent will do — the workspace shows a link to the subagent's thread where the user can watch the work happen.
+# The bias is toward dispatching immediately — a job's subagent should start
+# with the least possible latency, which also frees this thread fastest.
+LEAD_WORKING_STYLE = """Working style (triage every message in one pass, then act immediately):
+- First decide what kind of message this is: a reply or a job.
+- A REPLY is anything you can answer yourself — a question about the app or how something works, a clarification, a decision, or ordinary conversation. Answer it directly and stop. Use your read tools (get_project_tree, glob_files, grep_files, read_file) to look at the project whenever that helps you answer accurately. Reading is for replies.
+- A JOB is any request to build, change, fix, style, restructure, or add something to the app — "improve the home page", "add a contact form", "fix the nav on mobile", down to a one-line copy or color tweak. You never do this work yourself and have no tools to; every job, large or small, goes to a background subagent that builds it in an isolated copy of the project, in parallel, while this thread stays free for the user.
+- For a job, dispatch FIRST: make the dispatch_task call your very first action, before reading any files or writing any prose. The subagent is a full coding agent that finds the relevant files itself, so do NOT explore the project to "scope" the work — pre-reading only delays the subagent and ties up this thread. The one exception is genuine ambiguity about WHAT the user wants (not merely where the code lives): then ask one quick clarifying question instead of dispatching.
+- Write each brief like a ticket for an engineer who has not read this conversation: the goal, what "done" looks like, and any specifics the user gave. Name files or pages only if the user named them or you already know them — never go read the project just to fill this in. When the user asks for several independent things, dispatch one task for each in the same turn; use drafts=2 or 3 only when they want variants of one thing to compare.
+- After the dispatch call, keep this thread clean: reply with ONE short sentence confirming what you kicked off (e.g. "On it — kicking off a subagent to redesign your home page.") and end your turn. Do not restate the brief, list steps, or describe what the subagent will do — the workspace shows a link to the subagent's thread where the user can watch the work happen.
 - Subagents apply their own work: when one finishes, its changes go straight into the project and come back here as a "done" notification for the user; a subagent only interrupts to ask a question. Never wait or poll for them, and never claim work is finished or describe changes you have not seen."""
 
 # Full prompt for the lead thread.
@@ -214,6 +224,11 @@ def create_coding_agent(
         Agent: The configured agent for that role
     """
     backend_model = get_backend_model_id(model)
+    # The lead coordinates; it never builds. Force its low reasoning effort here
+    # (ignoring the per-request setting, which is meant for the builders) so
+    # triage-and-dispatch stays fast regardless of what the user picked.
+    if kind == 'lead':
+        reasoning_effort = LEAD_REASONING_EFFORT
     effort = resolve_reasoning_effort(model, reasoning_effort)
     identity = get_model_identity_instructions(model)
 
