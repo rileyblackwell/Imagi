@@ -129,37 +129,39 @@ export const businessTools: BusinessTool[] = [
   },
 ]
 
-export type HubTone = 'blue' | 'orange'
+export type HubTone = 'ink' | 'blue'
 
 /**
- * Static two-tone treatment for the project-hub cards (ToolCategoryCard).
+ * Static treatment for the project-hub cards (ToolCategoryCard).
  *
- * Imagi's brand runs on blue with an orange counterpart. The hub cards use the
- * orange tone so the page feels of a piece with the rest of the site while
- * staying visually calm. These are fixed at rest — there is deliberately no
- * hover/click color change — and mirror the exact tile, ring, icon, and border
- * values used by the home KeyFeatures cards. The blue tone is kept available
- * should the hub want to alternate tones again.
+ * The hub is the most utilitarian surface in the product, so it wears the
+ * brand's most restrained, professional face: navy ink on porcelain — the same
+ * ink as the `Imagi.` wordmark — rather than a warm accent. Each card carries a
+ * solid ink icon chip with a porcelain glyph; the blue brand color is held back
+ * and appears only as a whisper on hover (see the card's border/CTA). This keeps
+ * four repeated cards calm and premium instead of loud. The `blue` tone is kept
+ * available should a surface want the softer cool treatment used on the home
+ * KeyFeatures cards.
  *
  * Static literal strings for the Tailwind JIT (see note at the top of the file).
  */
 export const hubCardTones: Record<HubTone, {
-  /** Card border. */
+  /** Card border (with hover accent). */
   card: string
-  /** Icon tile background + ring. */
+  /** Icon chip background + ring. */
   tile: string
-  /** Icon glyph + CTA color. */
-  icon: string
+  /** Icon glyph color (sits on the chip). */
+  glyph: string
 }> = {
+  ink: {
+    card: 'border-blue-950/[0.08] dark:border-white/[0.08] group-hover:border-blue-300/60 dark:group-hover:border-blue-300/25',
+    tile: 'bg-blue-950 dark:bg-white ring-1 ring-blue-950/10 dark:ring-white/10',
+    glyph: 'text-[#fdf9f2] dark:text-blue-950',
+  },
   blue: {
     card: 'border-blue-200/70 dark:border-blue-300/[0.14]',
     tile: 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18]',
-    icon: 'text-blue-600 dark:text-blue-300',
-  },
-  orange: {
-    card: 'border-orange-200/70 dark:border-orange-300/[0.14]',
-    tile: 'bg-orange-100 dark:bg-orange-400/[0.14] ring-1 ring-orange-900/[0.08] dark:ring-orange-300/[0.18]',
-    icon: 'text-orange-600 dark:text-orange-300',
+    glyph: 'text-blue-600 dark:text-blue-300',
   },
 }
 
