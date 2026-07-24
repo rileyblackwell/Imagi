@@ -15,28 +15,39 @@ Build progress is tracked on the existing Project.generation_status field
 import logging
 import threading
 
+from django.conf import settings
 from django.db import close_old_connections
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
 
-def build_initial_prompt(name: str, description: str) -> str:
-    """Compose the first build prompt from the business name and description."""
-    return f"""You are performing the very first build of a brand-new project the user just created on Imagi. Nothing custom has been built yet — the project contains only Imagi's default scaffold (home and auth apps).
+def build_initial_prompt(name: str, description: str, design_preferences: str = "") -> str:
+    """Compose the first build prompt from the founder's inputs.
+
+    Kept intentionally short: the framing, the freedom to build whatever the
+    business needs, the design direction, and the guardrails (keep auth, no
+    payments) all live in the initial-build system prompt
+    (coding_agent.INITIAL_BUILD_INSTRUCTIONS). This message just hands over the
+    business the agent is building.
+    """
+    prompt = f"""This is the first build of a brand-new project — build the first version of this business's web app.
 
 Business name: {name}
 
 Business description (written by the founder):
-{description}
+{description}"""
 
-Using this description, build the first version of the business's web application so the founder sees a tailored starting point — not a generic scaffold — when they open the workspace:
+    design = (design_preferences or "").strip()
+    if design:
+        prompt += f"\n\nDesign & style preferences (from the founder):\n{design}"
 
-1. Rework the home app's landing page around this business: a clear hero (business name and what it does), sections covering its offering and intended customers, and a call to action that matches the sales approach in the description. Keep the header's sign-in and create-account links to the prebuilt auth pages ('/auth/signin', '/auth/register') present and working.
-2. Update titles, headings, and placeholder copy that still reference the scaffold so they reflect the business.
-3. If the description clearly calls for one or two more simple pages (for example an About or Pricing page), create them and wire up their routes.
-
-Keep the scope tight: this is a strong starting point, not a finished product. Do not touch the auth app beyond copy tweaks, and do not invent features the description doesn't support. Do not build any payment or checkout functionality even if the description mentions selling — the founder adds secure, prebuilt payment pages later from their Sell workspace. When you finish, briefly summarize what you built — the founder will read it as the first message in their workspace."""
+    prompt += (
+        "\n\nBuild a tailored, polished first version that fits this business, "
+        "following your design direction. When you're done, briefly summarize "
+        "what you built."
+    )
+    return prompt
 
 
 def start_initial_build(project, user) -> bool:
@@ -79,9 +90,12 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
     try:
         from django.contrib.auth import get_user_model
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
+        from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
 
         project = Project.objects.get(pk=project_id)
         user = get_user_model().objects.get(pk=user_id)
+
+        builder = getattr(settings, 'IMAGI_BUILDER', {})
 
         service = ImagiAgentService()
         conversation = service.create_conversation(
@@ -89,13 +103,21 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             service.model,
             project_id=project_id,
             title='Initial build',
+            kind='initial_build',
+            system_prompt=INITIAL_BUILD_INSTRUCTIONS,
         )
 
         result = service.process(
-            user_input=build_initial_prompt(project.name, project.description),
+            user_input=build_initial_prompt(
+                project.name,
+                project.description,
+                getattr(project, 'design_preferences', ''),
+            ),
             user=user,
             project_id=project_id,
             conversation_id=conversation.id,
+            max_turns=builder.get('INITIAL_BUILD_MAX_TURNS'),
+            cost_budget_usd=builder.get('INITIAL_BUILD_COST_BUDGET_USD'),
         )
 
         if result.get('success'):

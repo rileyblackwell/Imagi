@@ -108,6 +108,24 @@
                     ></textarea>
                   </div>
 
+                  <!-- Design & Style Input (optional) -->
+                  <div class="flex-shrink-0">
+                    <label class="flex items-center gap-2 text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-1 transition-colors duration-300">
+                      Design &amp; Style
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.12em]">Optional</span>
+                    </label>
+                    <p class="text-xs text-blue-950/70 dark:text-blue-100/55 mb-2 transition-colors duration-300">
+                      Any look and feel you want — colors, mood, references. Leave blank and Imagi picks a design that fits your business.
+                    </p>
+                    <textarea
+                      v-model="newProjectDesign"
+                      rows="2"
+                      placeholder="e.g. Warm and minimal, earthy palette, lots of whitespace — like a modern coffee brand."
+                      class="w-full min-h-[56px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-all duration-300 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
+                      :disabled="isCreating"
+                    ></textarea>
+                  </div>
+
                   <!-- Create Button -->
                   <div class="flex-shrink-0 pt-1">
                     <button
@@ -260,6 +278,9 @@ const { confirm } = confirmModal
 // State
 const newProjectName = ref('')
 const newProjectDescription = ref('')
+// Optional: extra design/style direction for the initial AI build. Empty is
+// fine — the build carries strong default design direction on its own.
+const newProjectDesign = ref('')
 const isCreating = ref(false)
 
 // The description seeds the initial AI build, so require enough signal to
@@ -356,14 +377,16 @@ async function createProject() {
     // Create a properly formatted project data object with name and description
     const projectData = {
       name: newProjectName.value.trim(),
-      description: newProjectDescription.value.trim() // Use the description value
+      description: newProjectDescription.value.trim(), // Use the description value
+      design_preferences: newProjectDesign.value.trim() // Optional design direction
     }
-    
+
     const newProject = await projectStore.createProject(projectData)
-    
-    // Clear the project name and description fields after successful creation
+
+    // Clear the create form after successful creation
     newProjectName.value = ''
     newProjectDescription.value = ''
+    newProjectDesign.value = ''
     
     // Log project information to debug any ID issues
     console.debug('Created project details:', {

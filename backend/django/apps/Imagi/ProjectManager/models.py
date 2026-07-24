@@ -26,6 +26,11 @@ class Project(models.Model):
         blank=True,
         help_text="Optional project description"
     )
+    design_preferences = models.TextField(
+        blank=True,
+        default="",
+        help_text="Optional founder-provided design/style direction for the initial AI build"
+    )
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

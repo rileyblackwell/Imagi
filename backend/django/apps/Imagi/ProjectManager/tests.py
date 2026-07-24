@@ -13,6 +13,7 @@ import shutil
 import tempfile
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
@@ -434,17 +435,48 @@ class InitialBuildServiceTests(TestCase):
         prompt = fake_service.process.call_args.kwargs['user_input']
         self.assertIn('Beanline', prompt)
         self.assertIn('coffee roastery', prompt)
-        fake_service.create_conversation.assert_called_once_with(
-            self.user,
-            'gpt-5.6-sol',
-            project_id=self.project.pk,
-            title='Initial build',
-        )
+
+        # The conversation runs as the dedicated initial-build role, carrying
+        # the initial-build system prompt.
+        from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
+        conv_kwargs = fake_service.create_conversation.call_args.kwargs
+        self.assertEqual(fake_service.create_conversation.call_args.args,
+                         (self.user, 'gpt-5.6-sol'))
+        self.assertEqual(conv_kwargs['project_id'], self.project.pk)
+        self.assertEqual(conv_kwargs['title'], 'Initial build')
+        self.assertEqual(conv_kwargs['kind'], 'initial_build')
+        self.assertEqual(conv_kwargs['system_prompt'], INITIAL_BUILD_INSTRUCTIONS)
+
+        # The run must be bounded by the initial-build turn and cost caps.
+        proc_kwargs = fake_service.process.call_args.kwargs
+        self.assertEqual(proc_kwargs['cost_budget_usd'],
+                         settings.IMAGI_BUILDER['INITIAL_BUILD_COST_BUDGET_USD'])
+        self.assertEqual(proc_kwargs['max_turns'],
+                         settings.IMAGI_BUILDER['INITIAL_BUILD_MAX_TURNS'])
 
     def test_run_failure_marks_failed(self):
         self._run_with_agent_result({'success': False, 'error': 'model error'})
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'failed')
+
+    def test_design_preferences_flow_into_prompt(self):
+        self.project.design_preferences = 'Warm, earthy palette; minimal, lots of whitespace'
+        self.project.save(update_fields=['design_preferences'])
+
+        fake_service = self._run_with_agent_result({'success': True, 'files_changed': []})
+
+        prompt = fake_service.process.call_args.kwargs['user_input']
+        self.assertIn('Warm, earthy palette', prompt)
+
+    def test_capped_run_still_marks_completed(self):
+        # A run stopped by the turn/cost cap returns success with capped=True;
+        # the files it produced are on disk, so the build counts as completed.
+        fake_service = self._run_with_agent_result(
+            {'success': True, 'capped': True, 'files_changed': []}
+        )
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+        self.assertTrue(fake_service.process.called)
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)

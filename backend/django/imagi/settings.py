@@ -263,6 +263,13 @@ IMAGI_BUILDER = {
     'DEFAULT_REASONING_EFFORT': 'medium',
     # Upper bound on agent-loop iterations for a single request.
     'MAX_AGENT_TURNS': 30,
+    # Initial build (the one-shot first build of a new project) runs headless
+    # and unattended, so it gets its own tighter caps. The cost budget is the
+    # primary bound: the run stops once its token cost reaches this many
+    # dollars. The turn cap is a backstop against a run that spins without
+    # spending much. Together they keep a first build from running away.
+    'INITIAL_BUILD_COST_BUDGET_USD': 0.50,
+    'INITIAL_BUILD_MAX_TURNS': 24,
     # Attach OpenAI's hosted web-search tool to the agent.
     'ENABLE_WEB_SEARCH': True,
     # Apps scaffolded into every new project. Payment pages are deliberately
