@@ -181,6 +181,42 @@
                   </div>
                 </div>
 
+                <!-- Deletion result banner — anchored in the library instead of a bottom-right toast -->
+                <Transition
+                  enter-active-class="transition-all duration-300 ease-out"
+                  enter-from-class="opacity-0 -translate-y-1"
+                  enter-to-class="opacity-100 translate-y-0"
+                  leave-active-class="transition-all duration-200 ease-in"
+                  leave-from-class="opacity-100 translate-y-0"
+                  leave-to-class="opacity-0 -translate-y-1"
+                >
+                  <div
+                    v-if="deleteBanner"
+                    :key="deleteBanner.id"
+                    role="status"
+                    aria-live="polite"
+                    class="mb-4 flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors duration-300"
+                    :class="deleteBanner.type === 'success'
+                      ? 'border-emerald-200/70 dark:border-emerald-400/25 bg-emerald-50/85 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-200'
+                      : 'border-red-200/70 dark:border-red-400/25 bg-red-50/85 dark:bg-red-400/10 text-red-800 dark:text-red-200'"
+                  >
+                    <i
+                      class="text-base"
+                      :class="deleteBanner.type === 'success'
+                        ? 'fas fa-check-circle text-emerald-500 dark:text-emerald-300'
+                        : 'fas fa-exclamation-circle text-red-500 dark:text-red-300'"
+                    ></i>
+                    <span class="flex-1 font-medium">{{ deleteBanner.message }}</span>
+                    <button
+                      @click="dismissDeleteBanner"
+                      aria-label="Dismiss notification"
+                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded-md opacity-60 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/30"
+                    >
+                      <i class="fas fa-times text-xs"></i>
+                    </button>
+                  </div>
+                </Transition>
+
                 <!-- Content Section -->
                 <div class="flex-1 flex flex-col min-h-0">
                   <!-- Loading State -->
@@ -293,13 +329,25 @@ const canCreate = computed(() =>
 )
 const isInitializing = ref(true)
 
-// Show a global toast confirming a project was deleted.
-const showDeleteSuccess = (projectName: string) => {
-  showNotification({
-    type: 'delete',
-    message: `"${projectName}" deleted successfully`,
-    duration: 4000
-  })
+// Deletion outcomes surface as an inline banner anchored in the Project
+// Library panel (see template) rather than a bottom-right toast, so the
+// confirmation reads as part of the library the project was removed from.
+type DeleteBanner = { type: 'success' | 'error'; message: string; id: number }
+const deleteBanner = ref<DeleteBanner | null>(null)
+let deleteBannerTimer: ReturnType<typeof setTimeout> | null = null
+
+const showDeleteBanner = (type: DeleteBanner['type'], message: string) => {
+  if (deleteBannerTimer) clearTimeout(deleteBannerTimer)
+  deleteBanner.value = { type, message, id: Date.now() }
+  // Success auto-dismisses; errors stay until dismissed so they aren't missed.
+  deleteBannerTimer = type === 'success'
+    ? setTimeout(() => { deleteBanner.value = null; deleteBannerTimer = null }, 5000)
+    : null
+}
+
+const dismissDeleteBanner = () => {
+  if (deleteBannerTimer) { clearTimeout(deleteBannerTimer); deleteBannerTimer = null }
+  deleteBanner.value = null
 }
 
 // Computed
@@ -491,7 +539,7 @@ const confirmDelete = async (project: Project) => {
     await projectStore.deleteProject(String(project.id))
 
     // Confirm the deletion right away, independent of any background refresh.
-    showDeleteSuccess(projectName)
+    showDeleteBanner('success', `"${projectName}" deleted successfully`)
 
     // If the user was in the workspace for this project, navigate away from it.
     if (isCurrentlyInWorkspace) {
@@ -503,11 +551,7 @@ const confirmDelete = async (project: Project) => {
     // A real failure (the store already treats 404 as success). The optimistic
     // removal leaves the project missing from the list, so reconcile with the
     // server to bring it back, then report the error.
-    showNotification({
-      message: error?.message || `Failed to delete "${projectName}"`,
-      type: 'error',
-      duration: 5000
-    })
+    showDeleteBanner('error', error?.message || `Failed to delete "${projectName}"`)
 
     try {
       await fetchProjects(true)
@@ -561,6 +605,8 @@ onBeforeUnmount(() => {
   // Clear dashboard-specific notifications when leaving
   const notificationStore = useNotificationStore()
   notificationStore.clear()
+  // Drop any pending deletion-banner auto-dismiss timer.
+  if (deleteBannerTimer) clearTimeout(deleteBannerTimer)
 })
 
 // Watch auth store authentication status
