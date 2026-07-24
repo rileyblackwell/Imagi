@@ -5,12 +5,14 @@
  * strings for the JIT compiler.
  */
 
+import { fieldShell } from '@/shared/styles/forms'
+
 export const ui = {
   card: 'crisp-card rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] transition-colors duration-300',
 
   label: 'block text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/70 dark:text-blue-100/55 mb-1.5 transition-colors duration-300',
 
-  input: 'w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.06] border border-blue-200/70 dark:border-white/[0.12] text-blue-950 dark:text-white text-sm placeholder-blue-950/40 dark:placeholder-blue-100/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-blue-300/50 focus:border-blue-300 dark:focus:border-blue-400/40 transition-colors duration-200',
+  input: `w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.06] text-blue-950 dark:text-white text-sm placeholder-blue-950/40 dark:placeholder-blue-100/30 ${fieldShell}`,
 
   primaryBtn: 'inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white text-sm font-medium transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed',
 

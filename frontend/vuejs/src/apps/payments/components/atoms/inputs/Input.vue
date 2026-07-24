@@ -19,11 +19,11 @@
         :disabled="disabled"
         :readonly="readonly"
         :class="[
-          'w-full px-4 py-3 bg-white dark:bg-white/[0.05] backdrop-blur-sm border border-blue-950/[0.12] dark:border-white/[0.14] rounded-xl text-blue-950 dark:text-white',
-          'transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50',
+          'w-full px-4 py-3 bg-white dark:bg-white/[0.05] backdrop-blur-sm border border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25 rounded-xl text-blue-950 dark:text-white',
+          'transition-colors duration-200 focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45',
           'disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-blue-950/40 dark:placeholder:text-blue-100/30',
           prefix ? 'pl-8' : '',
-          error ? 'border-red-500/50 dark:border-red-400/50 focus-visible:border-red-500/50 dark:focus-visible:border-red-400/50 focus-visible:ring-red-500/40 dark:focus-visible:ring-red-400/40' : '',
+          error ? 'border-red-500/50 dark:border-red-400/50 focus:border-red-500 dark:focus:border-red-400' : '',
           customClass,
         ]"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"

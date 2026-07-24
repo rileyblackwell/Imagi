@@ -182,7 +182,7 @@
         </div>
         <div v-if="editingContact">
           <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16161a]" />
+            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16161a]" />
             Subscribed to messages
           </label>
         </div>

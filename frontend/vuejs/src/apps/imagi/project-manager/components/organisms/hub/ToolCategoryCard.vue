@@ -17,9 +17,6 @@
     :title="isBuildLocked ? 'Imagi is building your app — this card unlocks the moment the build finishes' : tool.name"
     :aria-disabled="isBuildLocked ? 'true' : undefined"
   >
-    <!-- Moving sheen while building -->
-    <div v-if="isBuildLocked" class="building-sheen pointer-events-none absolute inset-0 rounded-2xl overflow-hidden"></div>
-
     <!-- ==================== BUILDING STATE ==================== -->
     <template v-if="isBuildLocked">
       <!-- Animated build icon: concentric pulsing rings behind a spinner ring -->
@@ -194,38 +191,6 @@ const target = computed<RouteLocationRaw>(() => {
   }
 }
 
-/* Diagonal sheen sweeping across the card. */
-.building-sheen::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -60%;
-  width: 45%;
-  height: 100%;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    rgba(255, 255, 255, 0.55),
-    transparent
-  );
-  transform: skewX(-18deg);
-  animation: building-sweep 2.6s ease-in-out infinite;
-}
-
-:global(.dark) .building-sheen::before {
-  background: linear-gradient(
-    100deg,
-    transparent,
-    rgba(147, 197, 253, 0.14),
-    transparent
-  );
-}
-
-@keyframes building-sweep {
-  0% { left: -60%; }
-  60%, 100% { left: 120%; }
-}
-
 /* Indeterminate progress bar that slides back and forth. */
 .building-bar {
   animation: building-bar 1.6s ease-in-out infinite;
@@ -238,7 +203,6 @@ const target = computed<RouteLocationRaw>(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .building-card,
-  .building-sheen::before,
   .building-bar,
   .animate-ping {
     animation: none;

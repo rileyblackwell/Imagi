@@ -87,7 +87,8 @@
                       v-model="newProjectName"
                       type="text"
                       placeholder="Enter your business name..."
-                      class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      :class="fieldShell"
                       :disabled="isCreating"
                     >
                   </div>
@@ -103,7 +104,8 @@
                     <textarea
                       v-model="newProjectDescription"
                       placeholder="What does your business do? Who are its customers? What does the market look like, and how will you sell?"
-                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-all duration-300 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-colors duration-200 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      :class="fieldShell"
                       :disabled="isCreating"
                     ></textarea>
                   </div>
@@ -121,7 +123,8 @@
                       v-model="newProjectDesign"
                       rows="2"
                       placeholder="e.g. Warm and minimal, earthy palette, lots of whitespace — like a modern coffee brand."
-                      class="w-full min-h-[56px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-all duration-300 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="w-full min-h-[56px] px-4 py-3 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-colors duration-200 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      :class="fieldShell"
                       :disabled="isCreating"
                     ></textarea>
                   </div>
@@ -176,7 +179,8 @@
                       v-model="searchQuery"
                       type="text"
                       placeholder="Search projects..."
-                      class="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 text-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+                      class="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 text-sm transition-colors duration-200"
+                      :class="fieldShell"
                     >
                   </div>
                 </div>
@@ -289,6 +293,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount, onMounted, onActivated } from 'vue'
+import { fieldShell } from '@/shared/styles/forms'
 import { useRouter } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
 import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'

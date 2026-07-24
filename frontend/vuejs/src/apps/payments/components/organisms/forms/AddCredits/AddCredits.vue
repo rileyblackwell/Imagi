@@ -40,8 +40,8 @@
           max="1000"
           step="1"
           placeholder="Enter amount"
-          class="flex-1 p-2 border rounded-xl bg-white dark:bg-white/[0.05] text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
-          :class="customAmountError ? 'border-red-500/50 dark:border-red-400/50' : 'border-blue-950/[0.12] dark:border-white/[0.14]'"
+          class="flex-1 p-2 border rounded-xl bg-white dark:bg-white/[0.05] text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45"
+          :class="customAmountError ? 'border-red-500/50 dark:border-red-400/50 focus:border-red-500 dark:focus:border-red-400' : 'border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25'"
         />
       </div>
       <div v-if="customAmountError" class="text-red-600 dark:text-red-400 text-sm mt-1">

@@ -22,7 +22,7 @@
                 :min="minAmount"
                 :max="maxAmount"
                 :step="step"
-                class="block w-full rounded-xl border border-blue-950/[0.12] dark:border-white/[0.14] bg-white dark:bg-white/[0.05] py-3 pl-8 pr-28 text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
+                class="block w-full rounded-xl border border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25 bg-white dark:bg-white/[0.05] py-3 pl-8 pr-28 text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45"
               />
               <div class="absolute inset-y-0 right-12 flex flex-col justify-center py-1 gap-0.5">
                 <button
@@ -71,7 +71,7 @@
               <div
                 id="card-element"
                 ref="cardElement"
-                class="block w-full rounded-xl border border-blue-950/[0.12] dark:border-white/[0.14] bg-white dark:bg-white/[0.05] py-3 px-4 text-blue-950 dark:text-white transition-all duration-300 focus-within:border-blue-500/50 dark:focus-within:border-blue-300/50 focus-within:ring-2 focus-within:ring-blue-500/40 dark:focus-within:ring-blue-300/50 min-h-[45px]"
+                class="block w-full rounded-xl border border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25 bg-white dark:bg-white/[0.05] py-3 px-4 text-blue-950 dark:text-white transition-colors duration-200 focus-within:border-blue-950/45 dark:focus-within:border-white/45 min-h-[45px]"
               ></div>
               <div id="card-errors" class="mt-2 text-sm text-red-600 dark:text-red-400"></div>
             </div>

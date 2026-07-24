@@ -729,17 +729,15 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 <style scoped>
 /* Input shell wraps the textarea + controls toolbar as one field */
 .chat-input-shell {
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.18s ease;
 }
 
 .chat-input-shell:focus-within {
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-color: rgba(23, 37, 84, 0.45);
 }
 
 .dark .chat-input-shell:focus-within {
-  border-color: rgba(147, 197, 253, 0.5);
-  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.18);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 /* Control chip: the compact model / reasoning / usage buttons. Ghost until

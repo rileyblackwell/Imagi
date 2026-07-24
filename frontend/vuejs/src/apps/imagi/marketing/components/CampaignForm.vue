@@ -70,11 +70,11 @@
       <span :class="ui.label">Audience</span>
       <div class="space-y-2.5">
         <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
+          <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
           All subscribed contacts
         </label>
         <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
+          <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
           Contacts with any of these tags
         </label>
         <div v-if="form.audience_type === 'tags'" class="pl-6">

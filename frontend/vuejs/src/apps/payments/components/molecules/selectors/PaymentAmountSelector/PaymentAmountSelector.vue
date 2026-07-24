@@ -26,7 +26,7 @@
             :value="customAmount"
             @input="onCustomAmountChange"
             @focus="selectCustomAmount"
-            class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] rounded-xl px-3 py-2 w-full text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
+            class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25 rounded-xl px-3 py-2 w-full text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45"
             placeholder="Enter amount"
           />
         </div>
