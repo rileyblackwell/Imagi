@@ -220,7 +220,7 @@ const mobileView = ref<MobileView>(
     localStorage.getItem('builderWorkspaceSidebarCollapsed') === 'true') ? 'browser' : 'chat'
 )
 const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string }> = [
-  { value: 'manager', label: 'Agents', icon: 'fas fa-layer-group' },
+  { value: 'manager', label: 'Subagents', icon: 'fas fa-layer-group' },
   { value: 'chat', label: 'Chat', icon: 'fas fa-comment-dots' },
   { value: 'browser', label: 'Preview', icon: 'fas fa-globe' },
 ]
@@ -309,7 +309,7 @@ async function handleCheckInDismiss(checkIn: CheckInDto) {
   const { showNotification } = useNotification()
   const confirmed = await confirmModal.confirm({
     title: 'Discard This Work',
-    message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in the agent manager.`,
+    message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in your Subagents list.`,
     confirmText: 'Discard',
     cancelText: 'Cancel',
     type: 'warning'

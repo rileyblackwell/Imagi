@@ -1,7 +1,7 @@
 <!--
   WorkspacePaneHeader.vue — the masthead shared by the two sidebar panes.
 
-  The chat and the agent manager are two views of one workspace, so they wear
+  The main agent and the subagents are two views of one workspace, so they wear
   the same plate: a mark identifying the pane, its name in the brand serif, a
   live status line, and — on desktop — a pill that names the pane it switches
   to and how much is happening over there. That count is the point: you can
@@ -36,7 +36,13 @@
         v-if="switchDirection === 'back'"
         class="fas fa-chevron-left pane-switch-chevron"
       ></i>
-      <i :class="[switchIcon, 'pane-switch-icon']"></i>
+      <!-- The destination has a live run (a subagent working over there): the
+           icon carries the same pulse the pane mark uses, so the link to the
+           working subagent is always visible from the thread you're in. -->
+      <span class="pane-switch-icon-wrap">
+        <i :class="[switchIcon, 'pane-switch-icon']"></i>
+        <span v-if="switchLive" class="pane-switch-pulse" aria-hidden="true"></span>
+      </span>
       <span class="pane-switch-label">{{ switchLabel }}</span>
       <!-- Ambient count of what is waiting on the other side -->
       <span v-if="switchCount" class="pane-switch-count">{{ switchCount }}</span>
@@ -62,6 +68,8 @@ withDefaults(
     live?: boolean
     switchIcon?: string
     switchLabel?: string
+    /** A run is live in the pane this switches to — the switch icon pulses */
+    switchLive?: boolean
     /** Badge on the switch: how much is waiting in the other pane */
     switchCount?: number
     switchDirection?: 'forward' | 'back'
@@ -149,7 +157,8 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane-pulse { animation: none; }
+  .pane-pulse,
+  .pane-switch-pulse { animation: none; }
 }
 
 /* The name carries the brand serif (Fraunces) — the same face as the Imagi
@@ -231,9 +240,34 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
 }
 
+.pane-switch-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .pane-switch-icon {
   font-size: 0.625rem;
   opacity: 0.7;
+}
+
+/* Same pulse as the pane mark, sized down for the switch icon — the link to a
+   working subagent reads as live without stealing attention. */
+.pane-switch-pulse {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: theme('colors.blue.500');
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  animation: pane-pulse 1.8s ease-in-out infinite;
+}
+
+.dark .pane-switch-pulse {
+  background: theme('colors.blue.300');
+  box-shadow: 0 0 0 2px rgba(10, 10, 10, 0.9);
 }
 
 .pane-switch-chevron {

@@ -482,9 +482,9 @@ def dispatch_task_impl(ctx, description: str, title: str = '', drafts: int = 1) 
         'dispatched_tasks': dispatched,
         'instruction': (
             f"{len(dispatched)} background task(s) are now staged and will start "
-            "running in parallel. Tell the user what you dispatched. Their "
-            "results and questions come back to this thread as check-ins — "
-            "do not wait or poll for them."
+            "running in parallel. Tell the user what you dispatched. Each one "
+            "applies its own changes when it finishes and comes back here as a "
+            "\"done\" notification (or a question) — do not wait or poll for them."
         ),
     }
 
@@ -769,9 +769,12 @@ def dispatch_task(ctx: RunContextWrapper, description: str, title: str = "", dra
 
     Use for well-scoped features or fixes that don't need this conversation's
     back-and-forth, or when the user wants several things (or several drafts of
-    one thing) built at once. The subagent reports back to this thread as a
-    check-in when it finishes or has a question. Do NOT dispatch trivial edits
-    you can do faster yourself, and never wait for a dispatched task.
+    one thing) built at once. A single-draft subagent applies its changes to
+    the project when it finishes and reports back to this thread as a "done"
+    notification; it only interrupts sooner if it has a question. (Multi-draft
+    variants are built to compare, so those wait for the user to pick one.) Do
+    NOT dispatch trivial edits you can do faster yourself, and never wait for a
+    dispatched task.
 
     Args:
         description: The brief for the subagent, written like a ticket for an

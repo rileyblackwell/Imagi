@@ -6,7 +6,7 @@
     <WorkspacePaneHeader
       icon="fas fa-layer-group"
       tone="muted"
-      title="Agent Manager"
+      title="Subagents"
       :status="fleetStatus"
       :live="activeAgents.some(a => a.isProcessing)"
       switch-icon="fas fa-comments"

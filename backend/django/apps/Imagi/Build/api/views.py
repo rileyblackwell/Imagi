@@ -1556,6 +1556,53 @@ def conversation_restore_checkpoint(request, conversation_id):
     }, status=status.HTTP_200_OK)
 
 
+def _apply_task_worktree(conversation, project) -> dict:
+    """Merge a finished task's worktree into the canonical tree.
+
+    The single merge path shared by the manual accept endpoint and the
+    auto-apply flow that runs when a solo task finishes: it commits and merges
+    the task branch, re-syncs the ProjectFile mirror from the (now merged)
+    canonical disk — worktree runs skip mirror writes by design — marks the
+    task accepted, and removes the worktree.
+
+    Returns {'ok': True} on success, or {'ok': False, 'error': <code>,
+    'detail': <str>} when the merge conflicts, forks from a restored-away
+    base, or otherwise fails — the canonical tree is left untouched in every
+    failure case. Does NOT resolve check-ins; each caller owns its own queue
+    bookkeeping (accept resolves the review card it acted on; auto-apply files
+    a fresh "done" notification afterward).
+    """
+    service = VersionControlService()
+    try:
+        result = service.merge_task_worktree(project.project_path, conversation.id)
+    except MergeConflict as e:
+        return {'ok': False, 'error': 'merge_conflict', 'detail': str(e)}
+    except StaleForkPoint as e:
+        # The canonical tree was restored to before this task's fork point;
+        # merging would silently resurrect the restored-away history.
+        return {'ok': False, 'error': 'stale_base', 'detail': str(e)}
+    if not result.get('success'):
+        return {
+            'ok': False,
+            'error': 'merge_failed',
+            'detail': result.get('message', 'Could not merge the task worktree.'),
+        }
+
+    # The merge rewrote the canonical working copy wholesale — bring the
+    # database mirror back in sync with disk.
+    try:
+        from ..services.project_files_service import import_project_from_disk
+        import_project_from_disk(project)
+    except Exception as sync_error:
+        logger.error(f"Task merge succeeded but database re-sync failed: {sync_error}")
+
+    service.remove_task_worktree(project.project_path, conversation.id)
+    conversation.review_status = 'accepted'
+    conversation.worktree_path = ''
+    conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
+    return {'ok': True}
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def conversation_accept(request, conversation_id):
@@ -1591,39 +1638,18 @@ def conversation_accept(request, conversation_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    service = VersionControlService()
-    try:
-        result = service.merge_task_worktree(project.project_path, conversation.id)
-    except MergeConflict as e:
+    outcome = _apply_task_worktree(conversation, project)
+    if not outcome['ok']:
+        if outcome['error'] in ('merge_conflict', 'stale_base'):
+            return Response(
+                {'error': outcome['error'], 'detail': outcome['detail']},
+                status=status.HTTP_409_CONFLICT
+            )
         return Response(
-            {'error': 'merge_conflict', 'detail': str(e)},
-            status=status.HTTP_409_CONFLICT
-        )
-    except StaleForkPoint as e:
-        # The canonical tree was restored to before this task's fork point;
-        # merging would silently resurrect the restored-away history.
-        return Response(
-            {'error': 'stale_base', 'detail': str(e)},
-            status=status.HTTP_409_CONFLICT
-        )
-    if not result.get('success'):
-        return Response(
-            {'error': result.get('message', 'Could not merge the task worktree.')},
+            {'error': outcome['detail']},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # The merge rewrote the canonical working copy wholesale — bring the
-    # database mirror back in sync with disk.
-    try:
-        from ..services.project_files_service import import_project_from_disk
-        import_project_from_disk(project)
-    except Exception as sync_error:
-        logger.error(f"Task merge succeeded but database re-sync failed: {sync_error}")
-
-    service.remove_task_worktree(project.project_path, conversation.id)
-    conversation.review_status = 'accepted'
-    conversation.worktree_path = ''
-    conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
     # Accepting consumes the task's queue slot in the main thread.
     _resolve_conversation_check_ins(conversation)
 
