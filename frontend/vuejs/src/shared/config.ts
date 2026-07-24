@@ -2,15 +2,17 @@
  * Imagi Frontend Configuration
  * 
  * PROXY ARCHITECTURE:
- * - Development: Vite dev server (localhost:5174) → Django backend (localhost:8000)
+ * - Development: Vite dev server → Django backend, both on harness-assigned ports
  * - Production: Nginx (imagi.up.railway.app) → Django backend (backend.railway.internal:8000)
- * 
+ *
  * ENVIRONMENT SETUP:
- * - Development: Set VITE_BACKEND_URL=http://localhost:8000 in environment
- * - Production: Set VITE_BACKEND_URL=http://backend.railway.internal:8000 in environment  
- * 
+ * - Development: nothing to set. Each worktree's backend publishes its port and
+ *   vite.config.ts finds it, so concurrent Claude Code instances stay isolated.
+ *   VITE_BACKEND_URL still overrides if you need to point somewhere specific.
+ * - Production: Set VITE_BACKEND_URL=http://backend.railway.internal:8000 in environment
+ *
  * All API calls use relative URLs (/api/*) and are proxied by:
- * - Vite dev server in development (configured via VITE_BACKEND_URL)
+ * - Vite dev server in development (see vite.config.ts)
  * - Nginx in production (configured via Dockerfile)
  */
 
