@@ -1,17 +1,19 @@
 <template>
-  <div class="relative w-full h-full flex flex-col bg-white dark:bg-[#0a0a0a]">
-    <!-- Toolbar -->
-    <div class="flex items-center gap-1 px-2.5 py-2 border-b border-blue-950/[0.07] dark:border-white/[0.10] bg-[#fdf9f2]/50 dark:bg-white/[0.015]">
-      <!-- Navigation controls — quiet ghost buttons, grouped as one cluster -->
-      <div class="flex items-center gap-0.5 shrink-0">
+  <div class="pv-root relative w-full h-full flex flex-col">
+    <!-- Toolbar — the plate. Wears the same wash + hairline as the chat pane's
+         masthead opposite it, so the two halves of the workspace match. -->
+    <div class="pv-bar">
+      <!-- Navigation controls, seated in one recessed rail -->
+      <div class="pv-rail shrink-0">
         <button
           type="button"
           @click="goBack"
           :disabled="!canGoBack || phase !== 'ready'"
           title="Back"
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-blue-950/55 disabled:cursor-not-allowed disabled:active:scale-100"
+          aria-label="Back"
+          class="pv-nav"
         >
-          <i class="fas fa-arrow-left text-xs"></i>
+          <i class="fas fa-arrow-left"></i>
         </button>
 
         <button
@@ -19,99 +21,118 @@
           @click="goForward"
           :disabled="!canGoForward || phase !== 'ready'"
           title="Forward"
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-blue-950/55 disabled:cursor-not-allowed disabled:active:scale-100"
+          aria-label="Forward"
+          class="pv-nav"
         >
-          <i class="fas fa-arrow-right text-xs"></i>
+          <i class="fas fa-arrow-right"></i>
         </button>
 
         <button
           type="button"
           @click="reload"
           title="Refresh page"
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a]"
+          aria-label="Refresh page"
+          class="pv-nav"
         >
-          <i class="fas fa-sync-alt text-xs" :class="{ 'fa-spin': phase === 'starting' }"></i>
+          <i class="fas fa-sync-alt" :class="{ 'fa-spin': busy }"></i>
         </button>
 
         <button
           type="button"
           @click="goHome"
           title="Go to home page"
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-950/55 hover:text-blue-950 dark:text-blue-100/55 dark:hover:text-white hover:bg-blue-950/[0.06] dark:hover:bg-white/[0.07] active:scale-95 transition-[color,background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a]"
+          aria-label="Go to home page"
+          class="pv-nav"
         >
-          <i class="fas fa-home text-xs"></i>
+          <i class="fas fa-home"></i>
         </button>
       </div>
 
-      <!-- Hairline divider: separates controls from the address field -->
-      <div class="w-px h-5 mx-1 shrink-0 bg-blue-950/[0.09] dark:bg-white/[0.12]"></div>
-
-      <!-- Combined App / Page selector — the address bar -->
+      <!-- The nameplate: what you're looking at, said properly — session state,
+           the app it belongs to, the page's name in the brand serif, and the
+           literal path in mono. Also the app/page selector. -->
       <div class="relative flex-1 min-w-0" ref="menuRoot">
         <button
           type="button"
           @click="onMenuToggle"
           :disabled="apps.length === 0"
-          class="group w-full flex items-center gap-2 h-9 rounded-full border border-blue-950/[0.10] dark:border-white/[0.14] bg-white dark:bg-white/[0.04] hover:border-blue-950/[0.22] dark:hover:border-white/[0.26] hover:shadow-[0_1px_2px_rgba(23,37,84,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0a0a0a] pl-3.5 pr-9 text-[13px] transition-[border-color,box-shadow] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+          :aria-expanded="menuOpen"
+          aria-haspopup="true"
+          class="pv-plate group"
         >
-          <i class="fas fa-globe text-[11px] shrink-0 text-blue-950/30 dark:text-blue-100/35 group-hover:text-blue-950/45 dark:group-hover:text-blue-100/50 transition-colors"></i>
-          <span class="flex-1 truncate text-left font-medium text-blue-950 dark:text-white">{{ triggerLabel }}</span>
-          <i class="fas fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/35 dark:text-blue-100/40 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
+          <span :class="['pv-dot', `pv-dot--${phase}`]" aria-hidden="true"></span>
+          <span v-if="currentAppTitle" class="pv-plate-app">{{ currentAppTitle }}</span>
+          <span v-if="currentAppTitle" class="pv-plate-sep" aria-hidden="true">/</span>
+          <span class="pv-plate-page">{{ triggerLabel }}</span>
+          <span class="pv-plate-path">{{ currentPath }}</span>
+          <i class="fas fa-chevron-down pv-plate-chevron" :class="{ 'rotate-180': menuOpen }"></i>
         </button>
 
         <!-- Directory tree: apps are folders, their pages are the files inside -->
         <div
           v-if="menuOpen && apps.length > 0"
-          class="absolute z-20 mt-2 left-0 max-md:left-auto max-md:right-0 min-w-[17rem] max-md:max-w-[calc(100vw-1.5rem)] max-h-[60vh] overflow-y-auto rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-white dark:bg-[#0f0f0f] shadow-[0_16px_44px_-12px_rgba(23,37,84,0.22)] dark:shadow-[0_16px_44px_-12px_rgba(0,0,0,0.7)] p-1.5"
+          class="pv-menu"
         >
-          <div v-for="app in apps" :key="app.name">
+          <p class="pv-menu-label">
+            <span>Pages</span>
+            <span class="pv-menu-count">{{ pageCount }}</span>
+          </p>
+          <div v-for="(app, i) in apps" :key="app.name" class="pv-row" :style="{ '--pv-i': i }">
             <!-- Folder row -->
             <button
               type="button"
               @click="toggleApp(app.name)"
-              class="group/folder w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] font-medium text-blue-950 dark:text-white hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+              class="pv-folder group/folder"
             >
               <i
-                class="fas fa-chevron-right text-[9px] w-3 shrink-0 text-blue-950/30 dark:text-blue-100/35 group-hover/folder:text-blue-950/50 dark:group-hover/folder:text-blue-100/55 transition-[transform,color] duration-200"
+                class="fas fa-chevron-right pv-folder-chevron"
                 :class="{ 'rotate-90': isExpanded(app.name) }"
               ></i>
               <i
-                class="fas text-[12px] shrink-0 text-blue-950/40 dark:text-blue-100/45"
+                class="fas pv-folder-icon"
                 :class="isExpanded(app.name) ? 'fa-folder-open' : 'fa-folder'"
               ></i>
               <span class="truncate">{{ app.title }}</span>
+              <span class="pv-folder-count">{{ app.pages.length }}</span>
             </button>
 
             <!-- Files (pages) nested under the folder, with a tree guide line -->
-            <div v-if="isExpanded(app.name)" class="ml-[1.05rem] pl-2 border-l border-blue-950/[0.08] dark:border-white/[0.10]">
-              <p v-if="!app.pages.length" class="px-2 py-1.5 text-[12px] text-blue-950/35 dark:text-blue-100/35 italic">No pages</p>
+            <div v-if="isExpanded(app.name)" class="pv-files">
+              <p v-if="!app.pages.length" class="pv-files-empty">No pages</p>
               <button
                 v-for="page in app.pages"
                 :key="page.path"
                 type="button"
                 @click="onSelectPage(page.path)"
-                :class="['group/file w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50',
-                         page.path === currentPath
-                           ? 'bg-blue-50 dark:bg-white/[0.08] font-medium text-blue-950 dark:text-white'
-                           : 'text-blue-950/70 dark:text-blue-100/80 hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.06]']"
+                :class="['pv-file', page.path === currentPath && 'pv-file--current']"
               >
                 <i
-                  class="fas text-[11px] w-3.5 shrink-0"
-                  :class="page.path === currentPath ? 'fa-circle-dot text-blue-600 dark:text-blue-300' : 'fa-file text-blue-950/30 dark:text-blue-100/35'"
+                  class="fas pv-file-icon"
+                  :class="page.path === currentPath ? 'fa-circle-dot' : 'fa-file'"
                 ></i>
                 <span class="truncate flex-1">{{ page.title }}</span>
+                <span class="pv-file-path">{{ page.path }}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Loading ribbon: rides the plate's bottom edge while the session is
+           starting or a navigation is in flight. -->
+      <div v-if="busy" class="pv-progress" aria-hidden="true"></div>
     </div>
 
-    <!-- Screen: frames from the remote browser, input forwarded back -->
+    <!-- Screen: frames from the remote browser, input forwarded back.
+         NOTE for future edits: this element's box IS the remote viewport —
+         paneSize() measures it and pageCoords() maps client coords through it
+          1:1. Never give it padding, a border, or anything else that makes its
+         rect disagree with the <img> inside; decoration goes on the background
+         or in pointer-events-none overlays. -->
     <div
       ref="screenRef"
       tabindex="0"
-      class="relative flex-1 min-h-0 bg-white dark:bg-[#0a0a0a] outline-none overflow-hidden touch-none"
+      class="pv-stage relative flex-1 min-h-0 outline-none overflow-hidden touch-none"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
@@ -141,83 +162,76 @@
            input forwarding underneath. -->
       <div
         v-if="consoleBannerVisible && latestConsoleError"
-        class="absolute bottom-3 left-3 right-3 z-10 flex items-center gap-2.5 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white/95 dark:bg-[#0f0f0f]/95 backdrop-blur px-3 py-2 shadow-lg"
+        class="pv-alert"
         @pointerdown.stop
         @pointermove.stop
         @pointerup.stop
         @wheel.stop
       >
-        <div class="w-7 h-7 shrink-0 rounded-full bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 flex items-center justify-center">
-          <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-[10px]"></i>
+        <span class="pv-alert-edge" aria-hidden="true"></span>
+        <div class="pv-alert-mark">
+          <i class="fas fa-exclamation"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-[13px] font-medium text-blue-950 dark:text-white/90 leading-tight">Something broke in your app</p>
-          <p class="text-[11px] text-blue-950/50 dark:text-white/45 truncate">{{ latestConsoleError.text }}</p>
+          <p class="pv-alert-title">Something broke in your app</p>
+          <p class="pv-alert-detail">{{ latestConsoleError.text }}</p>
         </div>
-        <button
-          type="button"
-          @click="onFixConsoleError"
-          class="shrink-0 inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[12px] font-medium bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-colors"
-        >
-          <i class="fas fa-wand-magic-sparkles text-[10px]"></i>
+        <button type="button" @click="onFixConsoleError" class="pv-btn pv-btn--ink shrink-0">
+          <i class="fas fa-wand-magic-sparkles"></i>
           Fix it
         </button>
         <button
           type="button"
           @click="dismissConsoleBanner"
           title="Dismiss"
-          class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-blue-950/40 dark:text-white/40 hover:bg-blue-50 dark:hover:bg-white/[0.06] hover:text-blue-950/70 dark:hover:text-white/70 transition-colors"
+          aria-label="Dismiss"
+          class="pv-alert-dismiss"
         >
-          <i class="fas fa-times text-[11px]"></i>
+          <i class="fas fa-times"></i>
         </button>
       </div>
 
-      <!-- Starting overlay -->
-      <div
-        v-if="phase === 'starting'"
-        class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/90 dark:bg-[#0a0a0a]/90 text-blue-950/60 dark:text-blue-100/65"
-      >
-        <i class="fas fa-spinner fa-spin text-2xl"></i>
-        <span class="text-sm font-medium">Starting preview…</span>
-        <span class="text-xs text-blue-950/40 dark:text-blue-100/45 max-w-xs text-center">
-          The first start can take a few minutes while your project's dependencies install.
-        </span>
+      <!-- Starting: the wait is long enough (first start installs the whole
+           dependency tree) that it gets a real progress story — an elapsed
+           clock and copy that tracks which stage the wait is in. -->
+      <div v-if="phase === 'starting'" class="pv-veil">
+        <div class="pv-notice">
+          <div class="pv-orbit" aria-hidden="true"><span class="pv-orbit-core"></span></div>
+          <h3 class="pv-notice-title">Bringing your app to life</h3>
+          <p class="pv-notice-body" aria-live="polite">{{ startingStage }}</p>
+          <p class="pv-clock">{{ elapsedLabel }}</p>
+        </div>
       </div>
 
       <!-- Error overlay -->
-      <div
-        v-else-if="phase === 'error'"
-        class="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center bg-white dark:bg-[#0a0a0a]"
-      >
-        <div class="w-12 h-12 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl flex items-center justify-center">
-          <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400"></i>
+      <div v-else-if="phase === 'error'" class="pv-veil pv-veil--solid">
+        <div class="pv-notice">
+          <div class="pv-mark pv-mark--alert" aria-hidden="true">
+            <i class="fas fa-triangle-exclamation"></i>
+          </div>
+          <h3 class="pv-notice-title">The preview couldn't start</h3>
+          <p class="pv-notice-body">This is the preview server, not your app's code — a retry usually clears it.</p>
+          <pre class="pv-code">{{ error }}</pre>
+          <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
+            <i class="fas fa-sync-alt"></i>
+            Try again
+          </button>
         </div>
-        <p class="text-sm text-blue-950/70 dark:text-blue-100/70 max-w-md break-words">{{ error }}</p>
-        <button
-          @click="startPreview"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-sm font-medium text-blue-950/80 hover:text-blue-950 dark:text-blue-100/80 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-        >
-          <i class="fas fa-sync-alt text-xs"></i>
-          Retry
-        </button>
       </div>
 
       <!-- Stopped overlay (session ended, e.g. idle shutdown or restart) -->
-      <div
-        v-else-if="phase === 'stopped'"
-        class="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center bg-white/95 dark:bg-[#0a0a0a]/95"
-      >
-        <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.05] border border-blue-950/[0.08] dark:border-white/[0.14] rounded-xl flex items-center justify-center">
-          <i class="fas fa-pause text-blue-600 dark:text-blue-300"></i>
+      <div v-else-if="phase === 'stopped'" class="pv-veil">
+        <div class="pv-notice">
+          <div class="pv-mark" aria-hidden="true">
+            <i class="fas fa-moon"></i>
+          </div>
+          <h3 class="pv-notice-title">Your preview dozed off</h3>
+          <p class="pv-notice-body">The session shuts down after a quiet spell to save you money. Everything you built is safe.</p>
+          <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
+            <i class="fas fa-play"></i>
+            Wake it up
+          </button>
         </div>
-        <p class="text-sm text-blue-950/70 dark:text-blue-100/70 max-w-md">The preview session has stopped.</p>
-        <button
-          @click="startPreview"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-sm font-medium text-blue-950/80 hover:text-blue-950 dark:text-blue-100/80 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-        >
-          <i class="fas fa-play text-xs"></i>
-          Start preview
-        </button>
       </div>
     </div>
   </div>
@@ -257,6 +271,11 @@ const canGoForward = ref(false)
 // Size of the remote browser viewport in CSS pixels; kept in sync with the
 // pane so client coordinates map 1:1 onto page coordinates.
 const viewport = ref<[number, number]>([1280, 800])
+
+// A navigation (goto/back/forward/reload) is waiting on the server. Purely
+// presentational: it drives the loading ribbon and the refresh icon's spin.
+const navigating = ref(false)
+const busy = computed(() => phase.value === 'starting' || navigating.value)
 
 const menuOpen = ref(false)
 // Folders (apps) start collapsed; this holds the ones currently open. When the
@@ -821,12 +840,15 @@ async function doNavigate(action: 'goto' | 'back' | 'forward' | 'reload', path?:
   // Hard navigation clears the page's error buffer, so the same error text
   // on the fresh document should notify again.
   dismissedErrorKey.value = null
+  navigating.value = true
   try {
     const f = await PreviewService.navigate(props.projectId, action, path)
     applyFrame(f)
     schedulePoll(300)
   } catch (e) {
     if (e instanceof PreviewNotRunningError) markSessionStopped()
+  } finally {
+    navigating.value = false
   }
 }
 
@@ -966,6 +988,62 @@ const triggerLabel = computed(() => {
   return currentPath.value || 'Select page'
 })
 
+// The app the current page belongs to, shown ahead of the page name on the
+// nameplate ("Marketing / Pricing"). Empty when the path isn't in any router —
+// then the page name alone carries the plate.
+const currentAppTitle = computed(() => {
+  const app = apps.value.find(a => a.pages.some(p => p.path === currentPath.value))
+  return app?.title || ''
+})
+
+const pageCount = computed(() =>
+  apps.value.reduce((n, app) => n + app.pages.length, 0)
+)
+
+// ---------------------------------------------------------------------------
+// Start-up progress
+//
+// A cold start installs the project's whole dependency tree, so the wait runs
+// to minutes. A bare spinner reads as "hung" at that length; an elapsed clock
+// and copy that names the current stage read as "working".
+// ---------------------------------------------------------------------------
+
+const elapsed = ref(0)
+let elapsedTimer: number | null = null
+
+function stopElapsed() {
+  if (elapsedTimer) {
+    window.clearInterval(elapsedTimer)
+    elapsedTimer = null
+  }
+}
+
+watch(phase, (p) => {
+  stopElapsed()
+  if (p !== 'starting') return
+  elapsed.value = 0
+  const startedAt = Date.now()
+  elapsedTimer = window.setInterval(() => {
+    elapsed.value = Math.floor((Date.now() - startedAt) / 1000)
+  }, 1000)
+})
+
+const elapsedLabel = computed(() => {
+  const s = elapsed.value
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
+
+// Thresholds are the shape of a real cold start, not a promise about it — the
+// copy stays true even if a stage runs long, because none of it claims to be
+// nearly done until the wait is genuinely unusual.
+const startingStage = computed(() => {
+  const s = elapsed.value
+  if (s < 8) return 'Waking the preview server…'
+  if (s < 35) return 'Installing your project\'s dependencies…'
+  if (s < 90) return 'Compiling your app…'
+  return 'Still going — a first start can take a few minutes.'
+})
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
@@ -986,6 +1064,7 @@ onBeforeUnmount(() => {
   if (pollTimer) window.clearTimeout(pollTimer)
   if (resizeTimer) window.clearTimeout(resizeTimer)
   if (flushTimer) window.clearTimeout(flushTimer)
+  stopElapsed()
   stopInertia()
   observer?.disconnect()
 })
@@ -1050,3 +1129,920 @@ watch(
 const loadPreview = startPreview
 defineExpose({ reload, loadPreview, navigateTo })
 </script>
+
+<style scoped>
+/* ---------------------------------------------------------------------------
+   The preview pane is the other half of the workspace: the chat sits on the
+   left in a porcelain plate, and the user's own app sits here. So the chrome
+   wears the same materials as WorkspacePaneHeader — the wash, the hairline,
+   the brand serif — and then gets out of the way. Everything below the plate
+   belongs to the app being built, which is why the stage is a quiet matte
+   rather than another surface competing for attention.
+   --------------------------------------------------------------------------- */
+
+.pv-root {
+  background: #ffffff;
+}
+
+.dark .pv-root {
+  background: #0a0a0a;
+}
+
+/* --- The plate ----------------------------------------------------------- */
+
+.pv-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.625rem;
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.5) 0%, rgba(239, 246, 255, 0) 100%);
+  border-bottom: 1px solid rgba(23, 37, 84, 0.08);
+  /* Casts onto the stage so the app reads as seated *under* the chrome. */
+  box-shadow: 0 8px 16px -14px rgba(23, 37, 84, 0.55);
+}
+
+.dark .pv-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 18px -14px rgba(0, 0, 0, 0.9);
+}
+
+/* Navigation lives in one recessed rail, so four ghost glyphs read as a
+   single instrument instead of four loose dots. */
+.pv-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.0625rem;
+  padding: 0.125rem;
+  border-radius: 9999px;
+  background: rgba(23, 37, 84, 0.045);
+  box-shadow: inset 0 1px 2px rgba(23, 37, 84, 0.05);
+}
+
+.dark .pv-rail {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.pv-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  color: rgba(23, 37, 84, 0.55);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.pv-nav:hover:not(:disabled) {
+  color: theme('colors.blue.950');
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 2px rgba(23, 37, 84, 0.12);
+}
+
+.pv-nav:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.pv-nav:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.pv-nav:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.dark .pv-nav {
+  color: rgba(219, 234, 254, 0.55);
+}
+
+.dark .pv-nav:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.dark .pv-nav:focus-visible {
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+}
+
+/* --- The nameplate ------------------------------------------------------- */
+
+/* Three typefaces doing three jobs: the app in small caps (where you are), the
+   page in Fraunces (what you're looking at), the path in mono (the truth). */
+.pv-plate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  width: 100%;
+  height: 2.125rem;
+  padding: 0 2rem 0 0.75rem;
+  border-radius: 9999px;
+  /* An address reads from the left even when it doesn't fill the plate — a
+     button's centred default would float the page name mid-bar. */
+  text-align: left;
+  border: 1px solid rgba(23, 37, 84, 0.1);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 0 #ffffff;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.pv-plate:hover:not(:disabled) {
+  border-color: rgba(23, 37, 84, 0.22);
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(23, 37, 84, 0.08);
+}
+
+.pv-plate:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pv-plate:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.dark .pv-plate {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .pv-plate:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .pv-plate:focus-visible {
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+}
+
+/* Session state, told by a single dot rather than a word — the pane has one
+   job and this is the only place its health needs saying. */
+.pv-dot {
+  flex-shrink: 0;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  background: rgba(23, 37, 84, 0.25);
+}
+
+.pv-dot--ready {
+  background: #10b981;
+  box-shadow: 0 0 0 2.5px rgba(16, 185, 129, 0.16);
+}
+
+.pv-dot--starting {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2.5px rgba(245, 158, 11, 0.18);
+  animation: pv-breathe 1.6s ease-in-out infinite;
+}
+
+.pv-dot--error {
+  background: #ef4444;
+  box-shadow: 0 0 0 2.5px rgba(239, 68, 68, 0.18);
+}
+
+.dark .pv-dot {
+  background: rgba(219, 234, 254, 0.25);
+}
+
+@keyframes pv-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.pv-plate-app {
+  flex-shrink: 0;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(23, 37, 84, 0.42);
+}
+
+.pv-plate-sep {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: rgba(23, 37, 84, 0.22);
+}
+
+.pv-plate-page {
+  flex-shrink: 0;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: theme('fontFamily.display');
+  font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  color: theme('colors.blue.950');
+}
+
+/* The literal path, in mono: a technical counterweight to the serif, and the
+   detail that turns a label back into an address bar. */
+.pv-plate-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  color: rgba(23, 37, 84, 0.3);
+}
+
+.dark .pv-plate-app { color: rgba(219, 234, 254, 0.42); }
+.dark .pv-plate-sep { color: rgba(219, 234, 254, 0.2); }
+.dark .pv-plate-page { color: rgba(255, 255, 255, 0.94); }
+.dark .pv-plate-path { color: rgba(219, 234, 254, 0.3); }
+
+/* Narrow panes shed the supporting detail before the page name ever wraps. */
+@media (max-width: 1100px) {
+  .pv-plate-path { display: none; }
+  .pv-plate-page { flex: 1; max-width: none; }
+}
+
+@media (max-width: 640px) {
+  .pv-plate-app,
+  .pv-plate-sep { display: none; }
+}
+
+.pv-plate-chevron {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.5625rem;
+  color: rgba(23, 37, 84, 0.35);
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.pv-plate-chevron.rotate-180 {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.dark .pv-plate-chevron { color: rgba(219, 234, 254, 0.4); }
+
+/* Loading ribbon on the plate's bottom edge — a browser's own progress bar,
+   reduced to a travelling sliver of ink. */
+.pv-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pv-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, rgba(23, 37, 84, 0.7), transparent);
+  animation: pv-slide 1.2s ease-in-out infinite;
+}
+
+.dark .pv-progress::after {
+  background: linear-gradient(90deg, transparent, rgba(243, 237, 226, 0.75), transparent);
+}
+
+@keyframes pv-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(400%); }
+}
+
+/* --- The index (app / page menu) ----------------------------------------- */
+
+.pv-menu {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  margin-top: 0.5rem;
+  min-width: 18rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.375rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(23, 37, 84, 0.08);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 18px 48px -14px rgba(23, 37, 84, 0.24),
+    0 2px 6px -2px rgba(23, 37, 84, 0.1);
+  transform-origin: top left;
+  animation: pv-menu-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.dark .pv-menu {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #0f0f0f;
+  box-shadow: 0 18px 48px -14px rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+  .pv-menu {
+    left: auto;
+    right: 0;
+    max-width: calc(100vw - 1.5rem);
+    transform-origin: top right;
+  }
+}
+
+@keyframes pv-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.pv-menu-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem 0.4375rem;
+  margin-bottom: 0.125rem;
+  border-bottom: 1px solid rgba(23, 37, 84, 0.06);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(23, 37, 84, 0.4);
+}
+
+.dark .pv-menu-label {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  color: rgba(219, 234, 254, 0.4);
+}
+
+.pv-menu-count {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: rgba(23, 37, 84, 0.3);
+}
+
+.dark .pv-menu-count { color: rgba(219, 234, 254, 0.3); }
+
+/* Rows arrive in sequence, so opening the menu reads as a list unfolding. */
+.pv-row {
+  animation: pv-row-in 0.22s ease both;
+  animation-delay: calc(var(--pv-i, 0) * 28ms);
+}
+
+@keyframes pv-row-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pv-folder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: theme('colors.blue.950');
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.pv-folder:hover { background: rgba(23, 37, 84, 0.05); }
+
+.pv-folder:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.dark .pv-folder { color: #ffffff; }
+.dark .pv-folder:hover { background: rgba(255, 255, 255, 0.06); }
+
+.pv-folder-chevron {
+  width: 0.75rem;
+  flex-shrink: 0;
+  font-size: 0.5625rem;
+  color: rgba(23, 37, 84, 0.3);
+  transition: transform 0.2s ease, color 0.14s ease;
+}
+
+.pv-folder:hover .pv-folder-chevron { color: rgba(23, 37, 84, 0.5); }
+.pv-folder-chevron.rotate-90 { transform: rotate(90deg); }
+
+.pv-folder-icon {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: rgba(23, 37, 84, 0.4);
+}
+
+.dark .pv-folder-chevron { color: rgba(219, 234, 254, 0.35); }
+.dark .pv-folder:hover .pv-folder-chevron { color: rgba(219, 234, 254, 0.55); }
+.dark .pv-folder-icon { color: rgba(219, 234, 254, 0.45); }
+
+.pv-folder-count {
+  margin-left: auto;
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(23, 37, 84, 0.28);
+}
+
+.dark .pv-folder-count { color: rgba(219, 234, 254, 0.28); }
+
+.pv-files {
+  margin-left: 1.05rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(23, 37, 84, 0.08);
+}
+
+.dark .pv-files { border-left-color: rgba(255, 255, 255, 0.1); }
+
+.pv-files-empty {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: rgba(23, 37, 84, 0.35);
+}
+
+.dark .pv-files-empty { color: rgba(219, 234, 254, 0.35); }
+
+.pv-file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  text-align: left;
+  color: rgba(23, 37, 84, 0.7);
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.pv-file:hover {
+  background: rgba(23, 37, 84, 0.05);
+  color: theme('colors.blue.950');
+}
+
+.pv-file:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.pv-file--current {
+  background: theme('colors.blue.50');
+  font-weight: 500;
+  color: theme('colors.blue.950');
+}
+
+.pv-file-icon {
+  width: 0.875rem;
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: rgba(23, 37, 84, 0.3);
+}
+
+.pv-file--current .pv-file-icon { color: theme('colors.blue.600'); }
+
+/* The page's own path, kept quiet until you're hovering the row it belongs to */
+.pv-file-path {
+  flex-shrink: 0;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.625rem;
+  color: rgba(23, 37, 84, 0.28);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.pv-file:hover .pv-file-path,
+.pv-file--current .pv-file-path { opacity: 1; }
+
+.dark .pv-file { color: rgba(219, 234, 254, 0.8); }
+.dark .pv-file:hover { background: rgba(255, 255, 255, 0.06); color: #ffffff; }
+.dark .pv-file--current { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
+.dark .pv-file-icon { color: rgba(219, 234, 254, 0.35); }
+.dark .pv-file--current .pv-file-icon { color: theme('colors.blue.300'); }
+.dark .pv-file-path { color: rgba(219, 234, 254, 0.3); }
+
+/* --- The stage ----------------------------------------------------------- */
+
+/* Warm paper, faintly tooth-textured. The frame is object-contain, so when the
+   pane and the remote viewport briefly disagree — or an optimistic scroll
+   opens a gap — what shows through is matting, not a glitch. */
+.pv-stage {
+  background-color: #f5f0e7;
+  background-image: radial-gradient(circle at 1px 1px, rgba(23, 37, 84, 0.055) 1px, transparent 0);
+  background-size: 14px 14px;
+}
+
+.dark .pv-stage {
+  background-color: #0b0b0d;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+}
+
+/* --- Notices (starting / stopped / error) -------------------------------- */
+
+.pv-veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(245, 240, 231, 0.86);
+  backdrop-filter: blur(6px);
+}
+
+.pv-veil--solid { background: #f5f0e7; }
+
+.dark .pv-veil { background: rgba(11, 11, 13, 0.88); }
+.dark .pv-veil--solid { background: #0b0b0d; }
+
+.pv-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 23rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(23, 37, 84, 0.08);
+  background: #fdf9f2;
+  text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 24px 60px -24px rgba(23, 37, 84, 0.3);
+  animation: pv-notice-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.dark .pv-notice {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #121214;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 24px 60px -24px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes pv-notice-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.pv-notice-title {
+  font-family: theme('fontFamily.display');
+  font-variation-settings: 'opsz' 24, 'SOFT' 30, 'WONK' 1;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: theme('colors.blue.950');
+}
+
+.dark .pv-notice-title { color: rgba(255, 255, 255, 0.94); }
+
+.pv-notice-body {
+  max-width: 19rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgba(23, 37, 84, 0.55);
+}
+
+.dark .pv-notice-body { color: rgba(219, 234, 254, 0.55); }
+
+/* Elapsed clock: proof of life while a cold start installs a dependency tree */
+.pv-clock {
+  margin-top: 0.125rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: rgba(23, 37, 84, 0.35);
+}
+
+.dark .pv-clock { color: rgba(219, 234, 254, 0.35); }
+
+/* A ring of ink drawn once around, with a heartbeat at the centre. */
+.pv-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin-bottom: 0.375rem;
+}
+
+.pv-orbit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(23, 37, 84, 0) 0deg,
+    rgba(23, 37, 84, 0.1) 150deg,
+    rgba(23, 37, 84, 0.85) 355deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  animation: pv-rotate 1.1s linear infinite;
+}
+
+.dark .pv-orbit::before {
+  background: conic-gradient(
+    from 0deg,
+    rgba(243, 237, 226, 0) 0deg,
+    rgba(243, 237, 226, 0.12) 150deg,
+    rgba(243, 237, 226, 0.9) 355deg
+  );
+}
+
+.pv-orbit-core {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: theme('colors.blue.950');
+  animation: pv-breathe 1.8s ease-in-out infinite;
+}
+
+.dark .pv-orbit-core { background: #f3ede2; }
+
+@keyframes pv-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* Notice marks: the same rounded plaque as the pane header's mark */
+.pv-mark {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.875rem;
+  background: rgba(23, 37, 84, 0.06);
+  color: rgba(23, 37, 84, 0.6);
+  font-size: 0.9375rem;
+  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
+}
+
+.pv-mark--alert {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.18);
+}
+
+.dark .pv-mark {
+  background: rgba(243, 237, 226, 0.09);
+  color: rgba(243, 237, 226, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.dark .pv-mark--alert {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+
+/* Raw server text stays raw — mono, boxed, and scrollable rather than
+   dressed up as prose. */
+.pv-code {
+  width: 100%;
+  max-height: 7rem;
+  overflow: auto;
+  margin: 0.375rem 0 0.25rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(23, 37, 84, 0.08);
+  background: rgba(23, 37, 84, 0.035);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(23, 37, 84, 0.65);
+}
+
+.dark .pv-code {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(219, 234, 254, 0.65);
+}
+
+/* --- Buttons (navy ink) --------------------------------------------------- */
+
+.pv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.pv-btn i { font-size: 0.625rem; }
+
+.pv-btn--lg {
+  height: 2.125rem;
+  margin-top: 0.625rem;
+  padding: 0 1.125rem;
+  font-size: 0.8125rem;
+}
+
+.pv-btn--ink {
+  background: theme('colors.blue.950');
+  color: #fdf9f2;
+  box-shadow:
+    0 1px 2px rgba(23, 37, 84, 0.2),
+    0 3px 8px -2px rgba(23, 37, 84, 0.25);
+}
+
+.pv-btn--ink:hover {
+  background: theme('colors.blue.900');
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 3px rgba(23, 37, 84, 0.2),
+    0 6px 14px -4px rgba(23, 37, 84, 0.3);
+}
+
+.pv-btn--ink:active { transform: translateY(0); }
+
+.pv-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.dark .pv-btn--ink {
+  background: #f3ede2;
+  color: theme('colors.blue.950');
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 3px 8px -2px rgba(0, 0, 0, 0.45);
+}
+
+.dark .pv-btn--ink:hover { background: #ffffff; }
+
+.dark .pv-btn:focus-visible {
+  box-shadow: 0 0 0 2px #121214, 0 0 0 4px rgba(147, 197, 253, 0.5);
+}
+
+/* --- Console-error banner ------------------------------------------------- */
+
+.pv-alert {
+  position: absolute;
+  z-index: 10;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  overflow: hidden;
+  padding: 0.5rem 0.625rem 0.5rem 0.875rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(23, 37, 84, 0.08);
+  background: rgba(253, 249, 242, 0.96);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 16px 36px -16px rgba(23, 37, 84, 0.4);
+  animation: pv-alert-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.dark .pv-alert {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 20, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 36px -16px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes pv-alert-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* A stripe of alarm down the edge — enough to read as "wrong" from the corner
+   of the eye without turning the whole card red. */
+.pv-alert-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #f87171, #dc2626);
+}
+
+.pv-alert-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-size: 0.625rem;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.2);
+}
+
+.dark .pv-alert-mark {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+}
+
+.pv-alert-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: theme('colors.blue.950');
+}
+
+.dark .pv-alert-title { color: rgba(255, 255, 255, 0.92); }
+
+.pv-alert-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  color: rgba(23, 37, 84, 0.5);
+}
+
+.dark .pv-alert-detail { color: rgba(219, 234, 254, 0.45); }
+
+.pv-alert-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  color: rgba(23, 37, 84, 0.4);
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.pv-alert-dismiss:hover {
+  background: rgba(23, 37, 84, 0.06);
+  color: rgba(23, 37, 84, 0.7);
+}
+
+.pv-alert-dismiss:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.dark .pv-alert-dismiss { color: rgba(255, 255, 255, 0.4); }
+
+.dark .pv-alert-dismiss:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-progress::after,
+  .pv-orbit::before,
+  .pv-orbit-core,
+  .pv-dot--starting {
+    animation: none;
+  }
+
+  .pv-menu,
+  .pv-row,
+  .pv-notice,
+  .pv-alert {
+    animation-duration: 0.01ms;
+  }
+
+  .pv-btn--ink:hover { transform: none; }
+}
+</style>
