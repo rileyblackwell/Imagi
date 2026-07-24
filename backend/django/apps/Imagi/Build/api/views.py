@@ -25,7 +25,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from ..models import AgentConversation, AgentMessage, CANONICAL_TREE_KINDS
+from ..models import AgentCheckIn, AgentConversation, AgentMessage, CANONICAL_TREE_KINDS
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
 from ..services.usage_limits import check_usage_allowed
 from ..services.create_file_service import CreateFileService
@@ -1267,6 +1267,9 @@ def _serialize_conversation(conversation):
         'last_message_preview': preview,
         'is_running': _conversation_is_running(conversation),
         'total_tokens': _conversation_total_tokens(conversation),
+        # A dispatched-but-not-yet-run task's brief: the client fires the run
+        # with it (and _prepare_run clears it when that run starts).
+        'queued_prompt': conversation.queued_prompt or '',
     }
 
 
@@ -1621,6 +1624,8 @@ def conversation_accept(request, conversation_id):
     conversation.review_status = 'accepted'
     conversation.worktree_path = ''
     conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
+    # Accepting consumes the task's queue slot in the main thread.
+    _resolve_conversation_check_ins(conversation)
 
     return Response({'status': 'accepted'}, status=status.HTTP_200_OK)
 
@@ -1655,8 +1660,90 @@ def conversation_dismiss(request, conversation_id):
     conversation.review_status = 'dismissed'
     conversation.worktree_path = ''
     conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
+    # Dismissing consumes the task's queue slot in the main thread.
+    _resolve_conversation_check_ins(conversation)
 
     return Response({'status': 'dismissed'}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Check-ins (the main thread's processing queue)
+# ---------------------------------------------------------------------------
+
+def _resolve_conversation_check_ins(conversation):
+    """Mark every pending check-in for this task resolved (its queue slot is
+    consumed by whatever action the caller just took)."""
+    AgentCheckIn.objects.filter(
+        conversation=conversation, status='pending'
+    ).update(status='resolved', resolved_at=timezone.now())
+
+
+def _serialize_check_in(check_in):
+    task = check_in.conversation
+    return {
+        'id': check_in.id,
+        'kind': check_in.kind,
+        'body': check_in.body,
+        'status': check_in.status,
+        'created_at': check_in.created_at.isoformat(),
+        'resolved_at': check_in.resolved_at.isoformat() if check_in.resolved_at else None,
+        'project_id': check_in.project_id,
+        'lead_id': check_in.lead_id,
+        # Enough of the task's state to render and act on the queue card
+        # without a second fetch.
+        'task': {
+            'id': task.id,
+            'title': task.title or '',
+            'kind': task.kind,
+            'review_status': task.review_status,
+            'variant_group': task.variant_group,
+            'has_worktree': bool(task.worktree_path),
+            'is_running': _conversation_is_running(task),
+        },
+    }
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_ins_list(request):
+    """The check-in queue for a project, oldest first (FIFO).
+
+    Pending only by default — the queue the lead thread renders. Pass
+    ?status=all for history.
+    """
+    project_id = request.query_params.get('project_id')
+    if not project_id:
+        return create_error_response('project_id is required', status.HTTP_400_BAD_REQUEST)
+    try:
+        project_id = int(project_id)
+    except (ValueError, TypeError):
+        return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
+
+    qs = AgentCheckIn.objects.filter(
+        user=request.user, project_id=project_id
+    ).select_related('conversation')
+    status_param = request.query_params.get('status', 'pending')
+    if status_param != 'all':
+        qs = qs.filter(status=status_param)
+    data = [_serialize_check_in(ci) for ci in qs.order_by('created_at')]
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def check_in_resolve(request, check_in_id):
+    """Resolve one check-in without further action (the queue's dismiss).
+
+    Accepting/dismissing a task and re-running it resolve its check-ins as
+    side effects; this endpoint is for clearing an entry the user has simply
+    dealt with (read an error, decided a question answer isn't needed).
+    """
+    check_in = get_object_or_404(AgentCheckIn, id=check_in_id, user=request.user)
+    if check_in.status != 'resolved':
+        check_in.status = 'resolved'
+        check_in.resolved_at = timezone.now()
+        check_in.save(update_fields=['status', 'resolved_at'])
+    return Response(_serialize_check_in(check_in), status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

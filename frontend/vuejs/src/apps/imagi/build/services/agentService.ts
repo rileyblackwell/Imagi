@@ -4,7 +4,9 @@ import type {
   AgentActivityStep,
   AgentResponse,
   AgentPlanStep,
+  CheckInDto,
   ConversationKind,
+  DispatchedTaskDto,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -31,6 +33,9 @@ export interface AgentStreamHandlers {
   /** The backend named the thread from its opening exchange. Fires once, as
    *  the first run wraps up, so the sidebar can swap the provisional title. */
   onTitle?: (conversationId: number, title: string) => void
+  /** The lead agent delegated work: these task conversations are staged and
+   *  their runs should start now, in parallel, while this run keeps going. */
+  onTaskDispatch?: (tasks: DispatchedTaskDto[]) => void
 }
 
 /**
@@ -211,6 +216,9 @@ export const AgentService = {
     const toolCalls: string[] = []
     let plan: AgentPlanStep[] = []
     let conversationId: number | undefined
+    // Tasks already handed to onTaskDispatch, so the 'done' payload's repeat
+    // of them cannot start the same background run twice.
+    const dispatchedIds = new Set<number>()
 
     const handleEvent = (event: any) => {
       switch (event.type) {
@@ -236,6 +244,14 @@ export const AgentService = {
         case 'title':
           handlers.onTitle?.(event.conversation_id, event.title)
           break
+        case 'task_dispatch':
+          // Mid-stream so the background runs start while the lead is still
+          // talking; ids are tracked to skip the duplicate in 'done'.
+          for (const task of (event.tasks || []) as DispatchedTaskDto[]) {
+            dispatchedIds.add(task.conversation_id)
+          }
+          if (event.tasks?.length) handlers.onTaskDispatch?.(event.tasks)
+          break
         case 'done':
           done = {
             response: event.response ?? text.join(''),
@@ -246,7 +262,19 @@ export const AgentService = {
             // Usage (and its cost) is best-effort on the backend; absent
             // means "unknown", never "free".
             usage: event.usage,
+            dispatched_tasks: event.dispatched_tasks,
             single_message: event.single_message ?? true,
+          }
+          // Backstop: the terminal payload repeats every dispatch, so a
+          // task whose mid-stream event was missed still gets fired — but
+          // one already fired must not run twice.
+          {
+            const missed = ((event.dispatched_tasks || []) as DispatchedTaskDto[])
+              .filter(t => !dispatchedIds.has(t.conversation_id))
+            if (missed.length > 0) {
+              for (const task of missed) dispatchedIds.add(task.conversation_id)
+              handlers.onTaskDispatch?.(missed)
+            }
           }
           break
         case 'error':
@@ -533,6 +561,33 @@ export const AgentService = {
       }
       return dto
     })
+  },
+
+  // ------------------------------------------------------------
+  // Check-ins (the main thread's processing queue)
+  // ------------------------------------------------------------
+
+  /**
+   * The project's pending check-ins, oldest first. Background tasks file
+   * these when they finish, need an answer, or fail — the user works
+   * through them from the lead thread.
+   */
+  async listCheckIns(projectId: string | number): Promise<CheckInDto[]> {
+    const response = await api.get('/v1/agents/checkins/', {
+      params: { project_id: String(projectId) }
+    })
+    return response.data as CheckInDto[]
+  },
+
+  /**
+   * Clear one queue entry without further action. Accepting, dismissing, or
+   * re-running the task resolves its check-ins server-side already; this is
+   * for entries the user has simply read (an error, a question they decided
+   * not to answer).
+   */
+  async resolveCheckIn(checkInId: number): Promise<CheckInDto> {
+    const response = await api.post(`/v1/agents/checkins/${checkInId}/resolve/`)
+    return response.data as CheckInDto
   },
 
   /**

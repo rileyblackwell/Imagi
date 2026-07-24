@@ -1,6 +1,6 @@
 // Types used in stores
 import type { ProjectFile } from './components'
-import type { AIModel, AgentInstance } from './services'
+import type { AIModel, AgentInstance, CheckInDto } from './services'
 
 /**
  * Agent store state interface
@@ -14,4 +14,7 @@ export interface AgentState {
   unsavedChanges: boolean;
   error: string | null;
   instancesLoading: boolean;
+  /** Pending check-ins from background tasks, oldest first — the main
+   *  thread's processing queue. */
+  checkIns: CheckInDto[];
 }

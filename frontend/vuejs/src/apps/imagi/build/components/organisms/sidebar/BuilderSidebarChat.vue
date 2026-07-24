@@ -1,26 +1,24 @@
 <template>
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-    <!-- Header: manager toggle + instance title. Version restores live
-         inline in the transcript (the per-message checkpoint chips), so the
-         header carries no history controls. -->
-    <div class="shrink-0 relative flex items-center gap-2 px-3 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
-      <div class="relative group max-md:hidden">
-        <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/65 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-          @click="$emit('toggleManager')"
-        >
-          <i class="fas fa-layer-group text-sm"></i>
-        </button>
-        <div
-          class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        >
-          Show agent manager
-        </div>
-      </div>
-      <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">
-        {{ activeInstance?.title || 'New instance' }}
-      </div>
-    </div>
+    <!-- Header: who you're talking to, and a way over to the agents. There is
+         only one thread the user drives, so it is simply "Main agent" — no
+         conversation name to track. A subagent's read-only thread keeps its
+         own name and a muted mark, which is how you tell the two apart at a
+         glance. Version restores live inline in the transcript (the
+         per-message checkpoint chips), so the header carries no history
+         controls. -->
+    <WorkspacePaneHeader
+      :icon="isTaskThread ? 'fas fa-robot' : 'fas fa-comments'"
+      :tone="isTaskThread ? 'muted' : 'primary'"
+      :title="headerTitle"
+      :status="headerStatus"
+      :live="!!activeInstance?.isProcessing"
+      switch-icon="fas fa-layer-group"
+      switch-label="Agents"
+      :switch-count="store.activeAgentInstances.length"
+      switch-direction="forward"
+      @switch="$emit('toggleManager')"
+    />
 
     <!-- Conversation Area (scrollable) -->
     <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -156,7 +154,38 @@
         </div>
       </div>
 
-      <div class="px-2 pt-1 pb-3">
+      <!-- A background task's thread is read-only: it is driven by the main
+           thread (dispatch, and answers relayed from the check-in queue), so
+           there is no composer here — just a way back. -->
+      <div v-if="isTaskThread" class="px-2 pt-1 pb-3">
+        <div class="rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.14] bg-blue-50/40 dark:bg-white/[0.03] px-3 py-2.5">
+          <p class="text-[11px] leading-snug text-blue-950/60 dark:text-white/55">
+            This agent is working in the background. You direct it from your main
+            thread — its results and questions arrive there.
+          </p>
+          <button
+            type="button"
+            class="btn-back-to-lead mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 transition-all duration-200"
+            @click="goToLead"
+          >
+            Back to main thread
+          </button>
+        </div>
+      </div>
+
+      <div v-else class="px-2 pt-1 pb-3">
+        <!-- Check-in queue: background agents reporting back, one at a time -->
+        <CheckInQueue
+          v-if="isLeadThread"
+          :queue="store.checkIns"
+          :busy="resolvingCheckIn"
+          @accept="emit('check-in-accept', $event)"
+          @dismiss="emit('check-in-dismiss', $event)"
+          @answer="onAnswerCheckIn"
+          @skip="onSkipCheckIn"
+          @view="onViewCheckIn"
+        />
+
         <!-- Queued prompt: one message held while the agent works -->
         <div
           v-if="activeInstance?.queuedPrompt"
@@ -289,8 +318,10 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
+import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
+import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import type { AIMessage, AIModel } from '../../../types/index'
-import type { ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
+import type { CheckInDto, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
 import { REASONING_EFFORTS } from '../../../types/services'
 
 // Props
@@ -300,18 +331,82 @@ const props = defineProps<{
   onModelSelect: (modelId: string) => Promise<void>
   onEffortSelect: (effort: ReasoningEffort) => Promise<void>
   isCollapsed?: boolean
+  /** An accept/dismiss from the check-in queue is in flight */
+  resolvingCheckIn?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'toggleManager'): void
   (e: 'stop'): void
   (e: 'restore-checkpoint', message: AIMessage): void
+  /** Merge a finished background task's work into the app */
+  (e: 'check-in-accept', checkIn: CheckInDto): void
+  /** Discard a finished background task's work */
+  (e: 'check-in-dismiss', checkIn: CheckInDto): void
 }>()
 
 const store = useAgentStore()
 const activeInstance = computed(() => store.activeInstance)
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
+
+// The user drives everything from the lead thread; a task's thread is a
+// read-only record of what a background subagent did.
+const isTaskThread = computed(() => activeInstance.value?.kind === 'task')
+const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
+
+// The main thread is always just "the main agent" — its conversation name is
+// never surfaced, so there is nothing for the user to name or keep track of.
+// Subagent threads show their own name so it is obvious which one is open.
+const headerTitle = computed(() =>
+  isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : 'Main agent'
+)
+
+/** The header's second line: what this thread is doing right now. On the main
+ *  thread the queue takes precedence — agents waiting on you is the thing you
+ *  most need to know before typing. */
+const headerStatus = computed(() => {
+  const instance = activeInstance.value
+  if (instance?.isProcessing) return instance.statusText || 'Working…'
+  // No "background agent" prefix: the muted mark and the note above the
+  // composer already say that, and the sidebar is too narrow to spend
+  // characters twice. These match the manager's card labels word for word.
+  if (isTaskThread.value) {
+    switch (instance?.reviewStatus) {
+      case 'input': return 'Asked you a question'
+      case 'ready': return 'Finished — waiting on you'
+      case 'accepted': return 'Added to your app'
+      case 'dismissed': return 'Discarded'
+      default: return 'Read only'
+    }
+  }
+  const waiting = store.checkIns.length
+  if (waiting > 0) {
+    return `${waiting} ${waiting === 1 ? 'agent is' : 'agents are'} waiting on you`
+  }
+  return 'Ready when you are'
+})
+
+async function goToLead() {
+  const lead = store.leadInstance
+  if (lead) await store.switchInstance(lead.id)
+}
+
+/** The answer restarts the subagent in the background — the user stays here. */
+function onAnswerCheckIn(checkIn: CheckInDto, answer: string) {
+  store.answerCheckIn(checkIn, answer)
+}
+
+/** Clear an entry the user has dealt with (or wants out of the way). */
+function onSkipCheckIn(checkIn: CheckInDto) {
+  void store.resolveCheckIn(checkIn.id)
+}
+
+/** Open the task's read-only thread to see what it actually did. */
+async function onViewCheckIn(checkIn: CheckInDto) {
+  const instance = store.instances.find(i => i.conversationId === checkIn.task.id)
+  if (instance) await store.switchInstance(instance.id)
+}
 
 // Restores git-reset the canonical working tree. Only canonical-tree
 // (chat/lead) runs write to it — kind='task' runs edit their own git
@@ -825,6 +920,31 @@ textarea:active {
   -webkit-tap-highlight-color: transparent !important;
   border: none !important;
   transition: none !important;
+}
+
+/* Back-to-main-thread button on a read-only task thread — same navy ink
+   recipe as the composer's send button */
+.btn-back-to-lead {
+  background: theme('colors.blue.950');
+  box-shadow:
+    0 1px 2px rgba(23, 37, 84, 0.2),
+    0 3px 8px -2px rgba(23, 37, 84, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-back-to-lead:hover {
+  background: theme('colors.blue.900');
+}
+
+.dark .btn-back-to-lead {
+  background: #f3ede2;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 3px 8px -2px rgba(0, 0, 0, 0.45);
+}
+
+.dark .btn-back-to-lead:hover {
+  background: #ffffff;
 }
 
 /* Navy ink send button - matching the site's primary "Start Building" button */
