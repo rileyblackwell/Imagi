@@ -1,0 +1,69 @@
+"""Create the throwaway local login used to drive the app in a preview browser.
+
+Agents working in a preview browser need to get past /auth/signin to see
+anything behind authentication, and the dev database is gitignored — so a fresh
+clone or a reset DB has no account to log in with. This recreates a known one on
+demand. The credentials are documented in CLAUDE.md; they are deliberately
+public and worthless, and this command exists so they never have to be typed
+into a registration form by hand.
+
+Local only, and enforced rather than merely documented:
+  - DEBUG must be on. This is the check that gates production, which runs with
+    DEBUG=False.
+  - The default database must be SQLite. Setting DATABASE_URL is what switches
+    imagi/settings.py to Postgres, so a non-SQLite engine means we are pointed
+    at a real database and must refuse.
+"""
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from rest_framework.authtoken.models import Token
+
+# Kept in sync with the "Dev login" section of CLAUDE.md.
+DEV_USERNAME = 'devuser'
+DEV_EMAIL = 'devuser@localhost.invalid'  # .invalid is reserved; can never be a real mailbox
+DEV_PASSWORD = 'imagi-local-dev-only'
+
+
+class Command(BaseCommand):
+    help = 'Create or reset the local-only dev login used for preview-browser sign-in.'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--username', default=DEV_USERNAME)
+        parser.add_argument('--email', default=DEV_EMAIL)
+        parser.add_argument('--password', default=DEV_PASSWORD)
+
+    def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError(
+                'Refusing to run with DEBUG=False. This command seeds a login with a '
+                'publicly documented password and is for local development only.'
+            )
+        engine = settings.DATABASES['default']['ENGINE']
+        if not engine.endswith('sqlite3'):
+            raise CommandError(
+                f'Refusing to run against {engine}. Setting DATABASE_URL points this '
+                'at a real database; the dev login belongs only in the local SQLite DB.'
+            )
+
+        username = options['username']
+        User = get_user_model()
+
+        with transaction.atomic():
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={'email': options['email']},
+            )
+            # Always reset, so a half-remembered password from an earlier run
+            # can't leave the documented credentials wrong.
+            user.email = options['email']
+            user.set_password(options['password'])
+            user.save()
+            Token.objects.get_or_create(user=user)
+
+        self.stdout.write(self.style.SUCCESS(
+            f"{'Created' if created else 'Reset'} dev login '{username}' "
+            f"(password documented in CLAUDE.md). Sign in at /auth/signin."
+        ))
