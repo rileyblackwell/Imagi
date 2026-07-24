@@ -14,11 +14,18 @@ the first build the machinery every task already has — it builds in its own
 git worktree, so the project the preview serves is never half-written, and
 its result is merged in one step when it is finished and sound.
 
-"Sound" is enforced, not hoped for: a build cut short by its turn or cost cap
-routinely leaves a page importing a component it never wrote, and Vite serves
-that as a "Failed to resolve import" error instead of the app. Before the
-worktree is merged, the frontend's import graph is checked; a build with
-dangling references gets follow-up repair runs, and one that still doesn't
+The build is bounded by wall-clock time, not by how much it manages to build:
+the founder is waiting on it, so the whole thing — first run plus any repair
+runs — shares one deadline (IMAGI_BUILDER['INITIAL_BUILD_TIME_BUDGET_S']) and
+ships whatever is finished and sound when that runs out. This degrades safely
+because the project already holds a working home + auth scaffold the moment it
+is created: a build that runs short means less tailoring, never a broken app.
+
+"Sound" is enforced, not hoped for: a build cut short by a cap routinely leaves
+a page importing a component it never wrote, and Vite serves that as a "Failed
+to resolve import" error instead of the app. Before the worktree is merged, the
+frontend's import graph is checked; a build with dangling references gets
+follow-up repair runs from whatever time is left, and one that still doesn't
 resolve is never merged — the project keeps its clean, working scaffold.
 
 Build progress is tracked on the existing Project.generation_status field
@@ -27,6 +34,7 @@ Build progress is tracked on the existing Project.generation_status field
 
 import logging
 import threading
+import time
 
 from django.conf import settings
 from django.db import close_old_connections
@@ -75,21 +83,54 @@ Business description (written by the founder):
     return prompt
 
 
-def build_repair_prompt(problems) -> str:
-    """Ask the subagent to fix imports that point at files it never created."""
-    from apps.Imagi.Build.services.frontend_integrity import describe_unresolved_imports
+def build_repair_prompt(problems, router_problems=()) -> str:
+    """Ask the subagent to fix what is keeping its build from being applied.
 
-    return (
-        "Your build is not finished: the frontend imports files that do not "
-        "exist, so the app fails to load with a \"Failed to resolve import\" "
-        "error. Fix every one of these:\n\n"
-        f"{describe_unresolved_imports(problems)}\n\n"
-        "For each: either create the missing file properly, or remove the "
-        "import and whatever depends on it (including its route entry). Do not "
-        "start any new pages or features — this run is only to make what you "
-        "already built load cleanly. Verify with grep_files/read_file that every "
-        "path you reference exists, then summarize what you fixed."
+    Covers both blocking defects: references to files that were never created,
+    and an app router that stopped handing its routes to the root router.
+    """
+    from apps.Imagi.Build.services.frontend_integrity import (
+        describe_router_contract_problems,
+        describe_unresolved_imports,
     )
+
+    sections = ["Your build is not finished and cannot be shown to the founder yet."]
+
+    if problems:
+        sections.append(
+            "The frontend references files that do not exist, so the app fails "
+            "to load with a \"Failed to resolve import\" error. Fix every one "
+            f"of these:\n\n{describe_unresolved_imports(problems)}\n\n"
+            "For each: either create the missing file properly, or remove the "
+            "reference and whatever depends on it (including its route entry). "
+            "If it is an image or media file, remove it — this project has no "
+            "image assets and you cannot create them; use a CSS gradient, a "
+            "colored block, or an inline <svg> instead."
+        )
+
+    if router_problems:
+        sections.append(
+            "An app's router module no longer hands its routes to the project's "
+            "root router, which means every page 404s — including the home page:"
+            f"\n\n{describe_router_contract_problems(router_problems)}\n\n"
+            "Restore the contract: the app's 'router/index.ts' must import its "
+            "view components and export a plain routes array, like\n"
+            "    import type { RouteRecordRaw } from 'vue-router'\n"
+            "    import HomeView from '../views/HomeView.vue'\n"
+            "    const routes: RouteRecordRaw[] = [\n"
+            "      { path: '/', name: 'home-view', component: HomeView }\n"
+            "    ]\n"
+            "    export { routes }\n"
+            "Do NOT call createRouter or createWebHistory in an app router — "
+            "'frontend/vuejs/src/router' already does that and globs up every "
+            "app's routes."
+        )
+
+    sections.append(
+        "Do not start any new pages or features — this run is only to make what "
+        "you already built load cleanly. Then summarize what you fixed."
+    )
+    return "\n\n".join(sections)
 
 
 def start_initial_build(project, user) -> bool:
@@ -258,10 +299,24 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
     back off the conversation, and anything left unmerged with unresolved
     imports gets a targeted repair run. Returns whether the work landed in
     the project.
+
+    The founder's wait is the binding constraint, so every run in this loop
+    shares ONE deadline rather than getting a fresh budget: a build plus its
+    repairs is held to INITIAL_BUILD_TIME_BUDGET_S in total. When too little
+    time is left for a repair to plausibly finish, it is skipped — starting one
+    that gets killed mid-edit tends to leave more dangling references than it
+    fixes.
     """
-    from apps.Imagi.Build.services.frontend_integrity import find_unresolved_imports
+    from apps.Imagi.Build.services.frontend_integrity import (
+        find_router_contract_problems,
+        find_unresolved_imports,
+    )
 
     attempts = builder.get('INITIAL_BUILD_REPAIR_ATTEMPTS', 2)
+    time_budget = builder.get('INITIAL_BUILD_TIME_BUDGET_S', 60)
+    min_repair_seconds = builder.get('INITIAL_BUILD_MIN_REPAIR_SECONDS', 12)
+    deadline_at = time.monotonic() + time_budget if time_budget else None
+
     user_input = prompt
     max_turns = builder.get('INITIAL_BUILD_MAX_TURNS')
     cost_budget = builder.get('INITIAL_BUILD_COST_BUDGET_USD')
@@ -274,6 +329,7 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
             conversation_id=task.id,
             max_turns=max_turns,
             cost_budget_usd=cost_budget,
+            deadline_at=deadline_at,
         )
         if not result.get('success'):
             logger.error(
@@ -287,10 +343,13 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
         if task.review_status == 'accepted':
             return True
 
-        # Not applied. Unresolved imports are the one cause worth another run;
-        # anything else (a merge conflict, a git failure) needs the user.
+        # Not applied. A dangling reference or a broken app-router contract are
+        # the causes worth another run; anything else (a merge conflict, a git
+        # failure) needs the user.
         problems = find_unresolved_imports(task.worktree_path)
-        if not problems:
+        router_problems = find_router_contract_problems(task.worktree_path)
+        blocking = len(problems) + len(router_problems)
+        if not blocking:
             logger.error(
                 "Initial AI build for project %s finished but could not be applied "
                 "(review status %r)",
@@ -301,22 +360,37 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
         if attempt >= attempts:
             logger.error(
                 "Initial AI build for project %s still has %d unresolved import(s) "
-                "after %d repair attempt(s)",
+                "and %d router problem(s) after %d repair attempt(s)",
                 project_id,
                 len(problems),
+                len(router_problems),
                 attempts,
             )
             return False
 
+        remaining = deadline_at - time.monotonic() if deadline_at else None
+        if remaining is not None and remaining < min_repair_seconds:
+            logger.warning(
+                "Initial AI build for project %s left %d blocking problem(s) with "
+                "only %.1fs of its time budget left; skipping repair so the project "
+                "keeps its working scaffold",
+                project_id,
+                blocking,
+                remaining,
+            )
+            return False
+
         logger.warning(
-            "Initial AI build for project %s left %d unresolved import(s); "
-            "starting repair run %d/%d",
+            "Initial AI build for project %s left %d unresolved import(s) and %d "
+            "router problem(s); starting repair run %d/%d with %s of time budget left",
             project_id,
             len(problems),
+            len(router_problems),
             attempt + 1,
             attempts,
+            f"{remaining:.1f}s" if remaining is not None else "no limit",
         )
-        user_input = build_repair_prompt(problems)
+        user_input = build_repair_prompt(problems, router_problems)
         max_turns = builder.get('INITIAL_BUILD_REPAIR_MAX_TURNS')
         cost_budget = builder.get('INITIAL_BUILD_REPAIR_COST_BUDGET_USD')
 

@@ -55,6 +55,14 @@ DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
 # keep the requested effort for the actual coding. Tunable via IMAGI_BUILDER.
 LEAD_REASONING_EFFORT = _BUILDER_SETTINGS.get('LEAD_REASONING_EFFORT', 'low')
 
+# The initial build is bounded by wall-clock time (the founder is waiting on
+# it), and it writes new UI from a description rather than reasoning about
+# existing code. Low effort trades depth it doesn't need for turns it does:
+# more pages finished inside the budget. Tunable via IMAGI_BUILDER.
+INITIAL_BUILD_REASONING_EFFORT = _BUILDER_SETTINGS.get(
+    'INITIAL_BUILD_REASONING_EFFORT', 'low'
+)
+
 # Project memory files, in priority order (Codex reads AGENTS.md,
 # Claude Code reads CLAUDE.md). Only the first one found is loaded.
 PROJECT_MEMORY_FILES = ('AGENTS.md', 'CLAUDE.md')
@@ -113,25 +121,62 @@ DESIGN_DIRECTION = """Design direction (make what you build look genuinely good,
 - Keep it clean and accessible: sufficient color contrast, semantic markup, and real copy written for this business (never lorem ipsum or leftover scaffold text).
 - Follow any style preferences the founder gave; when they gave none, choose a look that fits the business's tone and industry."""
 
+# Working style for the initial build, replacing BUILDER_WORKING_STYLE. The
+# builder style is written for changing code that already exists — search, read,
+# then edit narrowly — which is exactly wrong here: the target is a scaffold
+# this prompt already describes, and every exploratory turn is spent against a
+# wall-clock budget. So: plan once, then write whole files.
+INITIAL_BUILD_WORKING_STYLE = """Working style:
+- Open with ONE update_plan call listing the pages you intend to build, then keep it updated as each one lands. The founder watches this plan in their workspace — it is how they see progress — so it is worth the single turn.
+- Write complete files: create_file for new ones, update_file to replace a scaffold file wholesale. Reach for edit_file only to make a small change to a file you have already written this run (adding a route to router/index.ts, adding a nav link).
+- Do not verify by re-reading what you just wrote. Write it correctly the first time.
+- If a tool returns an error or "success": false, say so in your summary — never claim success when an operation failed. If edit_file fails, read that one file and retry with its exact current text.
+- Afterward, briefly summarize what you built and where."""
+
 # Intro for the initial build — the one-shot, headless first build of a new
 # project. It runs like the chat builder (full editing tools, direct edits to
 # the real project) but with a first-build framing and design direction.
 INITIAL_BUILD_INTRO = """You are Imagi, performing the very first build of a brand-new web application for the founder who just described their business. Right now the project holds only Imagi's default scaffold: a home app and a prebuilt auth app. Turn it into a tailored, good-looking first version of THIS business's app. The founder sees your result the moment they open their workspace, so it should feel custom-built for them — not a generic starter."""
 
 # What the initial build should (and shouldn't) do. Deliberately does NOT limit
-# the agent to a fixed set of files — it decides what the business needs.
-INITIAL_BUILD_GUIDANCE = """Building the first version:
-- You decide what to build. From the founder's description (and any style preferences), build the pages and UI this specific business needs — you are NOT limited to a fixed list of files or pages. Always rework the home app's landing page around the business, and add whatever further pages make sense (About, Pricing, Features, Contact, a product/services page, ...), wiring up each new page's route.
-- Make it coherent and real: shared navigation, working links, and copy written for this business. Keep the header's sign-in and create-account links to the prebuilt auth pages ('/auth/signin', '/auth/register') present and working.
+# the agent to a fixed set of files — it decides what the business needs — but
+# it IS strictly bounded in time, so the guidance is written around spending
+# that time writing pages rather than exploring a scaffold it already knows.
+INITIAL_BUILD_GUIDANCE = """Building the first version — you are racing a clock:
+- You have ABOUT ONE MINUTE of wall-clock time, and the founder is watching and waiting. When it runs out you are stopped wherever you are. So spend every turn writing files, and treat anything else as a turn you don't get back.
+- Do NOT explore the project first. You already know the layout (below), and the scaffold is exactly as described — no get_project_tree, no glob_files, no grep_files, and no read_file on a scaffold file you are about to replace wholesale. Go straight to writing.
+- Write whole files with create_file (new pages) and update_file (replacing a scaffold file). Do not read-then-edit_file your way through a file you are rewriting anyway; one full write is one turn instead of three.
+
+You are building PAGES inside an existing, working project — you are not restructuring it. Write and rewrite page components freely; leave the project's plumbing exactly as it is.
+
+Work in this order, and stop cleanly whenever time runs short — every step is a good place to stop:
+1. FIRST, rewrite the landing page 'frontend/vuejs/src/apps/home/views/HomeView.vue' as a real, polished landing page for THIS business. This is the one thing that must happen: it is what the founder sees first. Keep its header links to '/auth/signin' and '/auth/register' working.
+2. THEN, only if you have time, add one or two further pages that this business genuinely needs (About, Pricing, Features, Contact, a product/services page, ...). For each page: write 'frontend/vuejs/src/apps/home/views/<Name>View.vue', ADD one route entry to the existing array in 'frontend/vuejs/src/apps/home/router/index.ts' with edit_file, export it from 'frontend/vuejs/src/apps/home/views/index.ts', and link it from the landing page's nav — all four, for that page, before you start another one.
+3. Stop and summarize. A tight two-page app that loads beats a five-page one that doesn't.
+
+How routing works here — get this wrong and NOTHING loads:
+- 'frontend/vuejs/src/router' is the project's ONE router. It already calls createRouter and automatically globs up every app's routes. Never touch it.
+- An app's 'router/index.ts' only exports a plain array: `const routes: RouteRecordRaw[] = [...]` plus `export { routes }`. Adding a page means adding ONE entry to that array with edit_file — never rewrite the file, and NEVER call createRouter or createWebHistory in it. An app router that exports a Router instead of a routes array still compiles, and then the app serves no routes at all: every page, including home, 404s.
+
+Hard rules:
+- DO NOT change the project's structure or its plumbing. You are adding and rewriting pages, nothing else. Leave every one of these exactly as you found it: 'frontend/vuejs/src/router' (the root router), 'frontend/vuejs/src/main.ts', 'frontend/vuejs/src/App.vue', 'frontend/vuejs/src/shared/', the whole 'frontend/vuejs/src/apps/auth/' app, 'vite.config.ts', 'package.json', 'tsconfig*.json', 'tailwind.config.js', 'postcss.config.js', 'index.html', and everything under 'backend/django/'. Do not add dependencies, change the build setup, or reorganize directories. A first build that rewires the project is discarded even if it looks good.
+- NEVER leave a reference dangling. Every file you import and every component you register must already exist. One import of a file you didn't write makes the whole app fail to load with a "Failed to resolve import" error, and a build in that state is DISCARDED — the founder gets the plain scaffold instead of your work. This is the single worst outcome, worse than building less.
+- NEVER reference an image or media file. There are NO image assets in this project and no 'public/' directory, so every '<img src="/images/...">', background-image url(), or imported .jpg/.png/.svg file is a dangling reference: it renders as a broken image and breaks the production build. You cannot create binary images either. Build visuals out of what you can actually write: CSS gradients, colored and rounded div blocks, inline <svg> you author yourself, borders, shadows, and type. A confident gradient-and-type hero looks far better than a broken image icon.
 - Authentication is already done for you: the auth app (sign-in and register pages plus its backend) is prebuilt and secure. Do NOT rebuild, restyle, or modify the auth app beyond leaving its links in place.
 - Do NOT build payment, checkout, cart, or subscription-billing functionality even if the business sells something — the founder installs secure, prebuilt payment pages later from their Sell workspace. Design the marketing/product pages with a clear call-to-action instead of wiring real payments.
-- Work efficiently on a tight build budget: build a cohesive set of pages that looks great and covers the core of the business, then stop. Don't pad it out with dozens of pages or half-finished features — a strong, complete first impression beats a sprawling unfinished one.
-- Finish each page completely before starting the next one, and never leave a reference dangling: every file you import and every component you register must already exist by the time you move on. A single import of a file you didn't write makes the whole app fail to load with a "Failed to resolve import" error, and a build in that state is discarded rather than shown to the founder. If you are running low on budget, stop cleanly — a smaller app that loads beats a bigger one that doesn't.
-- When you finish, briefly summarize what you built. The founder reads it as the first message in their workspace."""
+- Keep it to the frontend pages above. Don't add backend endpoints, stores, or API wiring on a first build unless a page genuinely cannot render without them.
+- When you finish, briefly summarize what you built. The founder reads it as the first message in their workspace.
+
+The scaffold you are starting from (already on disk — trust this instead of looking):
+- 'frontend/vuejs/src/apps/home/views/HomeView.vue' — generic placeholder landing page, routed at '/'. Replace it.
+- 'frontend/vuejs/src/apps/home/router/index.ts' — routes for the home app; its one entry maps '/' to HomeView.
+- 'frontend/vuejs/src/apps/home/views/index.ts' — barrel exporting HomeView.
+- 'frontend/vuejs/src/apps/auth/' — the prebuilt auth app serving '/auth/signin' and '/auth/register'. Leave it alone.
+- Tailwind, Vue Router, and Pinia are already installed and wired up."""
 
 # Full prompt for the initial build role.
 INITIAL_BUILD_INSTRUCTIONS = "\n\n".join(
-    (INITIAL_BUILD_INTRO, BUILDER_WORKING_STYLE, SHARED_PROJECT_GUIDANCE,
+    (INITIAL_BUILD_INTRO, INITIAL_BUILD_WORKING_STYLE, SHARED_PROJECT_GUIDANCE,
      DESIGN_DIRECTION, INITIAL_BUILD_GUIDANCE)
 )
 
@@ -266,6 +311,8 @@ def create_coding_agent(
     # triage-and-dispatch stays fast regardless of what the user picked.
     if kind == 'lead':
         reasoning_effort = LEAD_REASONING_EFFORT
+    elif kind == 'initial_build':
+        reasoning_effort = INITIAL_BUILD_REASONING_EFFORT
     effort = resolve_reasoning_effort(model, reasoning_effort)
     identity = get_model_identity_instructions(model)
 
@@ -292,8 +339,13 @@ def create_coding_agent(
         if StopAtTools is not None:
             kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
 
+    # The initial build is the one role that never searches: it is racing a
+    # wall-clock budget, and everything it needs is in the founder's brief. A
+    # single hosted search can eat a meaningful share of that budget, and it
+    # also costs every later turn the tool's schema in the prompt.
     web_search_enabled = (
         WebSearchTool is not None
+        and kind != 'initial_build'
         and _BUILDER_SETTINGS.get('ENABLE_WEB_SEARCH', True)
     )
     if web_search_enabled:

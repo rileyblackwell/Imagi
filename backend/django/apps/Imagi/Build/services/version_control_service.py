@@ -452,6 +452,40 @@ class VersionControlService:
         except Exception as e:
             return {'success': False, 'commit_hash': None, 'message': f"Error creating checkpoint: {str(e)}"}
 
+    def list_worktree_changes(self, worktree_path):
+        """Project-relative paths a worktree has added, modified, or deleted.
+
+        Used to report what a run actually produced when it was cut short by
+        one of its caps: the SDK result object is lost in that path, so the
+        working tree itself is the only record of the work. Best-effort — a
+        report that cannot be built comes back empty rather than raising into
+        the run's own error handling.
+        """
+        if not worktree_path or not os.path.isdir(worktree_path):
+            return []
+        try:
+            result = subprocess.run(
+                ['git', 'status', '--porcelain', '--untracked-files=all'],
+                cwd=worktree_path, capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                return []
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not list worktree changes in {worktree_path}: {e}")
+            return []
+
+        paths = []
+        for line in result.stdout.splitlines():
+            # Porcelain v1: two status columns, a space, then the path. A
+            # rename/copy reads 'old -> new'; the new path is what was written.
+            entry = line[3:].strip()
+            if ' -> ' in entry:
+                entry = entry.split(' -> ', 1)[1]
+            entry = entry.strip('"')
+            if entry:
+                paths.append(entry)
+        return paths
+
     # ------------------------------------------------------------------
     # Per-task worktrees (one isolated checkout per task conversation)
     # ------------------------------------------------------------------

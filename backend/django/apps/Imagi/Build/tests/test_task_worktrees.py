@@ -776,6 +776,55 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
             self.repo, 'frontend', 'vuejs', 'src', 'shared', 'components', 'SiteHeader.vue'
         )))
 
+    def _worktree_with_app_router(self, task, router_source):
+        """Give a task a worktree whose home app holds one router module."""
+        worktree = VersionControlService().create_task_worktree(
+            self.repo, task.id
+        )['worktree_path']
+        router_dir = os.path.join(
+            worktree, 'frontend', 'vuejs', 'src', 'apps', 'home', 'router'
+        )
+        os.makedirs(router_dir, exist_ok=True)
+        with open(os.path.join(router_dir, 'index.ts'), 'w') as f:
+            f.write(router_source)
+        task.worktree_path = worktree
+        task.save(update_fields=['worktree_path'])
+        return worktree
+
+    def test_auto_apply_defers_to_review_when_an_app_router_is_rewritten(self):
+        # An app router rewritten as a standalone createRouter compiles and
+        # builds cleanly, then leaves vue-router with no routes at all, so every
+        # page 404s. It must not reach the tree the preview serves.
+        task = self._task()
+        self._worktree_with_app_router(
+            task,
+            "import { createRouter, createWebHistory } from 'vue-router'\n"
+            "const routes = []\n"
+            "export default createRouter({ history: createWebHistory(), routes })\n",
+        )
+
+        self.service._finalize_task_run(task, self._context(), 'Built the pages.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'ready')
+        self.assertFalse(
+            os.path.exists(os.path.join(self.repo, 'frontend', 'vuejs', 'src'))
+        )
+
+    def test_auto_apply_proceeds_when_the_app_router_keeps_its_contract(self):
+        task = self._task()
+        self._worktree_with_app_router(
+            task,
+            "import type { RouteRecordRaw } from 'vue-router'\n"
+            "const routes: RouteRecordRaw[] = [{ path: '/', name: 'home' }]\n"
+            "export { routes }\n",
+        )
+
+        self.service._finalize_task_run(task, self._context(), 'Added a route.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'accepted')
+
     def test_capped_run_still_routes_the_task_back(self):
         # A run stopped by its turn or cost cap has already written files; if
         # it did not finalize, the task would sit at 'active' forever — never
