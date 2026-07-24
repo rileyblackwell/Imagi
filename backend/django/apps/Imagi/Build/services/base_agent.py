@@ -981,11 +981,12 @@ class ImagiAgentService:
 
         A run that ended on ask_user parks the task at 'input' and queues the
         question. A run that finished its work applies itself: a solo task
-        auto-merges into the project and files a "done — changes applied"
-        notification, so the user is only told, not asked. Variant takes (built
-        to compare) and any task whose auto-merge can't run cleanly fall back to
-        a 'ready' review card the user picks or merges by hand. Either way the
-        task never interrupts the user directly — it surfaces in the queue.
+        auto-merges into the project and queues nothing at all — its summary
+        and 'added to your app' outcome live on the dispatch card in the main
+        thread, which is a record to read rather than a card to clear. Variant
+        takes (built to compare) and any task whose auto-merge can't run
+        cleanly fall back to a 'ready' review card the user picks or merges by
+        hand. Either way the task never interrupts the user directly.
         """
         # getattr: test doubles stand in for the conversation here.
         if getattr(conversation, 'kind', 'chat') != 'task':
@@ -1007,12 +1008,17 @@ class ImagiAgentService:
             not getattr(conversation, 'variant_group', '')
             and self._auto_apply_task(conversation)
         )
-        if not applied:
-            try:
-                conversation.review_status = 'ready'
-                conversation.save(update_fields=["review_status"])
-            except Exception as e:  # pragma: no cover - best effort
-                logger.warning(f"Could not update task review status: {e}")
+        if applied:
+            # Nothing is being asked, so nothing goes in the queue: the work
+            # is already in the app and the thread's dispatch card reports it.
+            # Any entry an earlier run of this task left behind is stale now.
+            self._resolve_pending_check_ins(conversation)
+            return
+        try:
+            conversation.review_status = 'ready'
+            conversation.save(update_fields=["review_status"])
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not update task review status: {e}")
         self._file_check_in(conversation, 'ready', response_content)
 
     def _auto_apply_task(self, conversation) -> bool:

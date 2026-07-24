@@ -96,6 +96,7 @@ export const useAgentStore = defineStore('agent', {
     availableModels: [],
     instances: [],
     activeInstanceId: null,
+    openedSubagentId: null,
     files: [],
     unsavedChanges: false,
     error: null,
@@ -120,6 +121,13 @@ export const useAgentStore = defineStore('agent', {
     /** The project's one pinned lead thread (ensured by loadInstances). */
     leadInstance(state): AgentInstance | null {
       return state.instances.find(i => i.kind === 'lead' && !i.archivedAt) || null
+    },
+
+    /** The subagent the Subagents pane is reading, or null when it is showing
+     *  the list. */
+    openedSubagent(state): AgentInstance | null {
+      if (!state.openedSubagentId) return null
+      return state.instances.find(i => i.id === state.openedSubagentId) || null
     },
 
     /** Every subagent whose work is not finished yet, newest first: running,
@@ -215,6 +223,9 @@ export const useAgentStore = defineStore('agent', {
         const dtos = await AgentService.listConversations(projectId)
         const fallback = pickDefaultModelId(this.availableModels)
         this.instances = dtos.map(d => dtoToInstance(d, fallback))
+        // Local ids are regenerated above, so any drilled-into subagent id is
+        // now stale — the pane falls back to its list.
+        this.openedSubagentId = null
 
         // Every project pins exactly one lead thread; the backend dedupes
         // lead creation, so racing tabs converge on the same conversation.
@@ -225,7 +236,12 @@ export const useAgentStore = defineStore('agent', {
         // Pick active: remembered id from localStorage, else the lead
         const remembered = localStorage.getItem(`activeAgentInstance_${projectId}`)
         const activeConvId: number | null = remembered ? Number(remembered) : null
-        let picked = this.instances.find(i => i.conversationId === activeConvId && !i.archivedAt)
+        // Never a task: a subagent's thread is read in the Subagents pane, so
+        // restoring one as the active (composer-bearing) thread would strand
+        // the user in a thread they cannot type in.
+        let picked = this.instances.find(
+          i => i.conversationId === activeConvId && !i.archivedAt && i.kind !== 'task'
+        )
         if (!picked) {
           picked = this.leadInstance
             || this.instances.find(i => !i.archivedAt)
@@ -571,6 +587,21 @@ export const useAgentStore = defineStore('agent', {
       return instance
     },
 
+    /**
+     * Read a subagent's thread inside the Subagents pane. Deliberately not
+     * switchInstance: a subagent's thread is a record you look at, not one you
+     * talk in, so opening it must leave the main thread — and the composer's
+     * draft — exactly where they were. Pass null to go back to the list.
+     */
+    async openSubagent(instanceId: string | null) {
+      this.openedSubagentId = instanceId
+      if (!instanceId) return
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.hasUnread = false
+      await this.ensureMessagesLoaded(instance.id)
+    },
+
     async switchInstance(instanceId: string) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
@@ -653,6 +684,7 @@ export const useAgentStore = defineStore('agent', {
         await AgentService.deleteConversation(instance.conversationId)
       }
       this.instances = this.instances.filter(i => i.id !== instance.id)
+      if (this.openedSubagentId === instance.id) this.openedSubagentId = null
       if (wasActive) {
         // Fall back to the lead thread; never auto-create plain chats.
         const next = this.leadInstance

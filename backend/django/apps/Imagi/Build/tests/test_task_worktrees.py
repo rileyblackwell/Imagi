@@ -684,23 +684,37 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         self.assertEqual(check_in.lead_id, self.lead.id)
         self.assertEqual(check_in.body, 'Added the page.')
 
-    def test_finished_solo_task_auto_applies_and_notifies(self):
+    def test_finished_solo_task_auto_applies_without_queueing(self):
         task = self._task()
         self._worktree_with_change(task)
 
         self.service._finalize_task_run(task, self._context(), 'Added the feature.')
 
         task.refresh_from_db()
-        # Merged straight into the project — the user is notified, not asked.
+        # Merged straight into the project — the user is told, not asked.
         self.assertEqual(task.review_status, 'accepted')
         self.assertEqual(task.worktree_path, '')
         with open(os.path.join(self.repo, 'feature.txt')) as f:
             self.assertEqual(f.read(), 'task output')
-        # Still files a check-in: the queue shows a "done" notification whose
-        # accepted status tells the card to drop the accept/discard buttons.
-        check_in = AgentCheckIn.objects.get(conversation=task)
-        self.assertEqual(check_in.kind, 'ready')
-        self.assertEqual(check_in.body, 'Added the feature.')
+        # Nothing to decide, so nothing goes in the queue: the outcome is
+        # reported on the task's dispatch card in the main thread.
+        self.assertFalse(AgentCheckIn.objects.filter(conversation=task).exists())
+
+    def test_auto_apply_clears_a_check_in_an_earlier_run_left_behind(self):
+        task = self._task()
+        AgentCheckIn.objects.create(
+            user=self.user, project_id=self.project.id, conversation=task,
+            lead=self.lead, kind='question', body='Which layout?',
+        )
+        self._worktree_with_change(task)
+
+        self.service._finalize_task_run(task, self._context(), 'Added the feature.')
+
+        # The question is answered by the work being done; leaving it pending
+        # would keep asking for input on a task already merged.
+        self.assertFalse(
+            AgentCheckIn.objects.filter(conversation=task, status='pending').exists()
+        )
 
     def test_variant_task_waits_for_a_pick_one_review(self):
         task = self.service.create_conversation(
@@ -848,8 +862,10 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
 
         self.assertTrue(result.get('capped'))
         task.refresh_from_db()
+        # Applied, so its report is the dispatch card in the main thread —
+        # what matters here is that it left 'active' at all.
         self.assertEqual(task.review_status, 'accepted')
-        self.assertTrue(
+        self.assertFalse(
             AgentCheckIn.objects.filter(conversation=task, status='pending').exists()
         )
 
@@ -1269,6 +1285,22 @@ class CheckInEndpointTests(TestCase):
         self.assertEqual([c['id'] for c in data], [first.id, second.id])
         self.assertEqual(data[0]['task']['id'], first.conversation_id)
         self.assertEqual(data[1]['kind'], 'question')
+
+    def test_list_clears_a_done_card_for_work_already_in_the_app(self):
+        # Filed before finished-and-merged tasks stopped queueing. Showing it
+        # would ask the user to accept or discard work the app already has.
+        stale = self._check_in(body='merged itself')
+        stale.conversation.review_status = 'accepted'
+        stale.conversation.save(update_fields=['review_status'])
+        live = self._check_in(kind='question', body='Stripe or PayPal?')
+
+        resp = self.client.get(
+            reverse('check_ins_list'), {'project_id': self.project.id}
+        )
+
+        self.assertEqual([c['id'] for c in resp.json()], [live.id])
+        stale.refresh_from_db()
+        self.assertEqual(stale.status, 'resolved')
 
     def test_list_never_leaks_another_users_queue(self):
         self._check_in(body='mine')

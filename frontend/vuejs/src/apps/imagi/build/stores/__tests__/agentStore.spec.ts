@@ -97,6 +97,54 @@ describe('agent store manager taxonomy', () => {
   })
 })
 
+describe('agent store openSubagent', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('reads a subagent without moving the thread the user talks in', async () => {
+    const store = useAgentStore()
+    const lead = makeInstance({ kind: 'lead' })
+    const task = makeInstance({ kind: 'task', hasUnread: true })
+    store.instances = [lead, task]
+    store.activeInstanceId = lead.id
+
+    await store.openSubagent(task.id)
+
+    expect(store.openedSubagent?.id).toBe(task.id)
+    // The composer (and its draft) stay with the lead thread.
+    expect(store.activeInstanceId).toBe(lead.id)
+    expect(task.hasUnread).toBe(false)
+  })
+
+  it('goes back to the list on null', async () => {
+    const store = useAgentStore()
+    const task = makeInstance({ kind: 'task' })
+    store.instances = [task]
+
+    await store.openSubagent(task.id)
+    await store.openSubagent(null)
+
+    expect(store.openedSubagent).toBeNull()
+  })
+
+  it('closes a subagent the user deleted', async () => {
+    const store = useAgentStore()
+    const lead = makeInstance({ kind: 'lead' })
+    const task = makeInstance({ kind: 'task' })
+    store.instances = [lead, task]
+    store.activeInstanceId = lead.id
+    agentService.deleteConversation.mockResolvedValue(undefined)
+
+    await store.openSubagent(task.id)
+    await store.deleteInstance(task.id)
+
+    expect(store.openedSubagentId).toBeNull()
+  })
+})
+
 describe('agent store deleteInstance', () => {
   beforeEach(() => {
     localStorage.clear()

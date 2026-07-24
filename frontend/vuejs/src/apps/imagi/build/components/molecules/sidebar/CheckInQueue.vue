@@ -1,10 +1,13 @@
 <!--
   CheckInQueue.vue — the main thread's processing queue.
 
-  Background subagents never interrupt the user: when one finishes, needs an
-  answer, or fails, it files a check-in that surfaces here, above the lead
-  thread's composer. One card is shown at a time (FIFO) so the user stays
-  single-threaded; the rest wait behind a count.
+  Background subagents never interrupt the user: when one needs an answer,
+  fails, or finishes work the user has to pick between, it files a check-in
+  that surfaces here, above the lead thread's composer. Everything in this
+  queue is a decision — a subagent that simply finished and merged its own
+  work reports on its dispatch card in the thread and never lands here.
+  One card is shown at a time (FIFO) so the user stays single-threaded; the
+  rest wait behind a count.
 -->
 <template>
   <div v-if="queue.length > 0" class="mb-1.5">
@@ -96,27 +99,10 @@
         </div>
       </div>
 
-      <!-- An auto-applied task is already part of the app: this is a
-           notification, not a decision — just look or clear it away. -->
-      <div v-else-if="applied" class="flex items-center gap-1.5 mt-2">
-        <button
-          type="button"
-          class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
-          @click="emit('view', current)"
-        >
-          View changes
-        </button>
-        <button
-          type="button"
-          class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
-          @click="emit('skip', current)"
-        >
-          Dismiss
-        </button>
-      </div>
-
       <!-- A variant take (or a task whose auto-merge fell back) is merged or
-           discarded from right here -->
+           discarded from right here. A task that merged itself never gets
+           here — it has nothing to decide, so it is reported on its dispatch
+           card in the thread instead of queued. -->
       <div v-else-if="current.kind === 'ready'" class="flex items-center gap-1.5 mt-2">
         <button
           type="button"
@@ -209,13 +195,6 @@ const siblingIndex = computed(
   () => siblings.value.findIndex(c => c.id === current.value?.id) + 1
 )
 
-// A finished solo task merges itself into the app; its check-in is a
-// notification, not a review. Variant takes and merge-conflict fallbacks stay
-// at 'ready' (still awaiting the user), so they keep the Add/Discard card.
-const applied = computed(
-  () => current.value?.kind === 'ready' && current.value?.task.review_status === 'accepted'
-)
-
 const kindIcon = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'fas fa-circle-question'
@@ -228,7 +207,7 @@ const kindLabel = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'Needs your answer'
     case 'error': return 'Stopped early'
-    default: return applied.value ? 'Done — added to your app' : 'Finished — ready to review'
+    default: return 'Finished — ready to review'
   }
 })
 
