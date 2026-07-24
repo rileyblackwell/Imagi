@@ -1,38 +1,24 @@
 <template>
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-    <!-- Header: manager toggle + who you're talking to. There is only one
-         thread the user drives, so it is simply "Main agent" — no conversation
-         name to track. A subagent's read-only thread keeps its own name, which
-         is how you tell it apart from the main one. Version restores live
-         inline in the transcript (the per-message checkpoint chips), so the
-         header carries no history controls. -->
-    <div class="shrink-0 relative flex items-center gap-2 px-3 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
-      <div class="relative group max-md:hidden">
-        <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/65 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-          @click="$emit('toggleManager')"
-        >
-          <i class="fas fa-layer-group text-sm"></i>
-        </button>
-        <div
-          class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        >
-          Show agent manager
-        </div>
-      </div>
-      <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">
-        {{ headerTitle }}
-      </div>
-      <!-- A background task's thread is a read-only record: the user directs
-           everything from the main thread, so say which one they're in. -->
-      <span
-        v-if="isTaskThread"
-        class="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider bg-blue-950/[0.06] dark:bg-white/[0.08] text-blue-950/55 dark:text-white/55"
-      >
-        <i class="fas fa-eye text-[8px]"></i>
-        Background task
-      </span>
-    </div>
+    <!-- Header: who you're talking to, and a way over to the agents. There is
+         only one thread the user drives, so it is simply "Main agent" — no
+         conversation name to track. A subagent's read-only thread keeps its
+         own name and a muted mark, which is how you tell the two apart at a
+         glance. Version restores live inline in the transcript (the
+         per-message checkpoint chips), so the header carries no history
+         controls. -->
+    <WorkspacePaneHeader
+      :icon="isTaskThread ? 'fas fa-robot' : 'fas fa-comments'"
+      :tone="isTaskThread ? 'muted' : 'primary'"
+      :title="headerTitle"
+      :status="headerStatus"
+      :live="!!activeInstance?.isProcessing"
+      switch-icon="fas fa-layer-group"
+      switch-label="Agents"
+      :switch-count="store.activeAgentInstances.length"
+      switch-direction="forward"
+      @switch="$emit('toggleManager')"
+    />
 
     <!-- Conversation Area (scrollable) -->
     <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -333,6 +319,7 @@ import { useAgentStore } from '../../../stores/agentStore'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
 import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
+import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { CheckInDto, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
 import { REASONING_EFFORTS } from '../../../types/services'
@@ -374,6 +361,31 @@ const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
 const headerTitle = computed(() =>
   isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : 'Main agent'
 )
+
+/** The header's second line: what this thread is doing right now. On the main
+ *  thread the queue takes precedence — agents waiting on you is the thing you
+ *  most need to know before typing. */
+const headerStatus = computed(() => {
+  const instance = activeInstance.value
+  if (instance?.isProcessing) return instance.statusText || 'Working…'
+  // No "background agent" prefix: the muted mark and the note above the
+  // composer already say that, and the sidebar is too narrow to spend
+  // characters twice. These match the manager's card labels word for word.
+  if (isTaskThread.value) {
+    switch (instance?.reviewStatus) {
+      case 'input': return 'Asked you a question'
+      case 'ready': return 'Finished — waiting on you'
+      case 'accepted': return 'Added to your app'
+      case 'dismissed': return 'Discarded'
+      default: return 'Read only'
+    }
+  }
+  const waiting = store.checkIns.length
+  if (waiting > 0) {
+    return `${waiting} ${waiting === 1 ? 'agent is' : 'agents are'} waiting on you`
+  }
+  return 'Ready when you are'
+})
 
 async function goToLead() {
   const lead = store.leadInstance

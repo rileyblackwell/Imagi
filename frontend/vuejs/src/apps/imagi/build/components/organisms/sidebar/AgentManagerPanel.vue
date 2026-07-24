@@ -2,39 +2,21 @@
   <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
     <!-- Confirmations render through the workspace-level ConfirmModal
          (useConfirm state is global; one host avoids duplicate modals). -->
-    <!-- Header -->
-    <div class="shrink-0 flex items-center gap-1 px-2 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
-      <!-- Back to the agent chat (desktop only; mobile uses the navbar view
-           switcher). The robot marks it as the agent instance. -->
-      <div class="relative group max-md:hidden">
-        <button
-          class="flex items-center justify-center w-7 h-7 rounded-md text-blue-950/60 dark:text-blue-100/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
-          @click="emit('collapse')"
-        >
-          <i class="fas fa-robot text-xs"></i>
-        </button>
-        <div
-          class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        >
-          Back to chat
-        </div>
-      </div>
-
-      <!-- Panel title -->
-      <div class="flex-1 min-w-0 flex items-center pl-0.5">
-        <span class="text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">Agent Manager</span>
-      </div>
-
-      <!-- Read-only view: work is dispatched by the agent in the main thread,
-           not from here, so there is no "new task" control. -->
-      <span
-        class="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider bg-blue-950/[0.06] dark:bg-white/[0.08] text-blue-950/55 dark:text-white/55"
-        title="Ask for work in your main thread — your agent dispatches it here"
-      >
-        <i class="fas fa-eye text-[8px]"></i>
-        View only
-      </span>
-    </div>
+    <!-- Header: the same plate the chat pane wears, switching back the other
+         way. The status line reports the fleet, which is what the removed
+         "view only" badge was gesturing at — except it carries real news. -->
+    <WorkspacePaneHeader
+      icon="fas fa-layer-group"
+      tone="muted"
+      title="Agent Manager"
+      :status="fleetStatus"
+      :live="activeAgents.some(a => a.isProcessing)"
+      switch-icon="fas fa-comments"
+      switch-label="Main agent"
+      :switch-count="store.checkIns.length"
+      switch-direction="back"
+      @switch="emit('collapse')"
+    />
 
     <!-- Team view -->
     <div class="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1">
@@ -117,6 +99,7 @@ import { computed, ref } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { useConfirm } from '../../../composables/useConfirm'
 import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
+import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 
 const emit = defineEmits<{
   (e: 'collapse'): void
@@ -132,6 +115,16 @@ const { confirm } = useConfirm()
 // is deliberately absent here — this panel is only about the subagents.
 const activeAgents = computed(() => store.activeAgentInstances)
 const history = computed(() => store.historyInstances)
+
+/** The fleet at a glance, leading with whoever is actually working. */
+const fleetStatus = computed(() => {
+  const total = activeAgents.value.length
+  if (total === 0) return 'No agents working'
+  const working = activeAgents.value.filter(a => a.isProcessing).length
+  if (working === total) return `${total} ${total === 1 ? 'agent' : 'agents'} working`
+  if (working > 0) return `${working} working · ${total - working} waiting on you`
+  return `${total} ${total === 1 ? 'agent' : 'agents'} waiting on you`
+})
 
 // --- Shared instance actions --------------------------------------------
 
