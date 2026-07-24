@@ -4,7 +4,7 @@
     {
       "name": "frontend-vite",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh frontend; npm run dev"],
+      "runtimeArgs": ["-c", "exec bash ../../.claude/hooks/dev-setup.sh serve-frontend"],
       "cwd": "frontend/vuejs",
       "port": 5173,
       "autoPort": true
@@ -12,7 +12,7 @@
     {
       "name": "backend-django",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh backend; pipenv run uvicorn imagi.asgi:application --reload --port ${PORT:-8000}"],
+      "runtimeArgs": ["-c", "exec bash ../../.claude/hooks/dev-setup.sh serve-backend"],
       "cwd": "backend/django",
       "port": 8000,
       "autoPort": true

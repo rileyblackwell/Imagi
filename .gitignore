@@ -16,6 +16,7 @@ pnpm-debug.log*
 # Claude Code dev-setup artifacts
 .claude/.locks/
 .claude/.dev-setup.log
+.claude/.dev-ports.json
 
 # IDE
 .vscode/*
