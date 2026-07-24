@@ -857,23 +857,65 @@ class ImagiAgentService:
         """Route a finished task run back to the main thread.
 
         A run that ended on ask_user parks the task at 'input' and queues the
-        question; a run that finished its work marks the task 'ready' and
-        queues a review check-in. Either way the user processes it from the
-        lead thread — the task never interrupts them directly.
+        question. A run that finished its work applies itself: a solo task
+        auto-merges into the project and files a "done — changes applied"
+        notification, so the user is only told, not asked. Variant takes (built
+        to compare) and any task whose auto-merge can't run cleanly fall back to
+        a 'ready' review card the user picks or merges by hand. Either way the
+        task never interrupts the user directly — it surfaces in the queue.
         """
         # getattr: test doubles stand in for the conversation here.
         if getattr(conversation, 'kind', 'chat') != 'task':
             return
         question = (getattr(context, 'pending_question', None) or '').strip() if context else ''
-        try:
-            conversation.review_status = 'input' if question else 'ready'
-            conversation.save(update_fields=["review_status"])
-        except Exception as e:  # pragma: no cover - best effort
-            logger.warning(f"Could not update task review status: {e}")
         if question:
+            try:
+                conversation.review_status = 'input'
+                conversation.save(update_fields=["review_status"])
+            except Exception as e:  # pragma: no cover - best effort
+                logger.warning(f"Could not update task review status: {e}")
             self._file_check_in(conversation, 'question', question)
-        else:
-            self._file_check_in(conversation, 'ready', response_content)
+            return
+
+        # A solo task applies its own work; variants still queue for a
+        # pick-one review. _auto_apply_task sets review_status='accepted' on a
+        # clean merge, so only the fallback path needs to mark it 'ready'.
+        applied = (
+            not getattr(conversation, 'variant_group', '')
+            and self._auto_apply_task(conversation)
+        )
+        if not applied:
+            try:
+                conversation.review_status = 'ready'
+                conversation.save(update_fields=["review_status"])
+            except Exception as e:  # pragma: no cover - best effort
+                logger.warning(f"Could not update task review status: {e}")
+        self._file_check_in(conversation, 'ready', response_content)
+
+    def _auto_apply_task(self, conversation) -> bool:
+        """Merge a finished solo task's worktree into the project automatically.
+
+        Returns True when the changes were applied (the task is now
+        'accepted'); False when we deliberately leave it for a manual review —
+        a live canonical run we must not merge across, a merge conflict, a
+        stale base, or any git-level failure. Best-effort by contract: it never
+        raises, so any trouble simply parks the task at 'ready' for the user.
+        """
+        user = getattr(conversation, 'user', None)
+        project_id = getattr(conversation, 'project_id', None)
+        # The merge rewrites the canonical tree, so it must not race a chat or
+        # lead run editing it — the same guard the accept endpoint applies.
+        if user is not None and self._project_has_live_canonical_run(user, project_id):
+            return False
+        try:
+            from ..api.views import _apply_task_worktree, _conversation_project
+            project = _conversation_project(conversation)
+            if project is None or not getattr(project, 'project_path', ''):
+                return False
+            return bool(_apply_task_worktree(conversation, project).get('ok'))
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not auto-apply task worktree: {e}")
+            return False
 
     def _clear_run_started(self, conversation) -> None:
         """Best-effort: mark the conversation's run as finished.

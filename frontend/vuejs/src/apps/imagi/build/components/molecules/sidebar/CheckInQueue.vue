@@ -96,7 +96,27 @@
         </div>
       </div>
 
-      <!-- A finished task is merged or discarded from right here -->
+      <!-- An auto-applied task is already part of the app: this is a
+           notification, not a decision — just look or clear it away. -->
+      <div v-else-if="applied" class="flex items-center gap-1.5 mt-2">
+        <button
+          type="button"
+          class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+          @click="emit('view', current)"
+        >
+          View changes
+        </button>
+        <button
+          type="button"
+          class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+          @click="emit('skip', current)"
+        >
+          Dismiss
+        </button>
+      </div>
+
+      <!-- A variant take (or a task whose auto-merge fell back) is merged or
+           discarded from right here -->
       <div v-else-if="current.kind === 'ready'" class="flex items-center gap-1.5 mt-2">
         <button
           type="button"
@@ -189,6 +209,13 @@ const siblingIndex = computed(
   () => siblings.value.findIndex(c => c.id === current.value?.id) + 1
 )
 
+// A finished solo task merges itself into the app; its check-in is a
+// notification, not a review. Variant takes and merge-conflict fallbacks stay
+// at 'ready' (still awaiting the user), so they keep the Add/Discard card.
+const applied = computed(
+  () => current.value?.kind === 'ready' && current.value?.task.review_status === 'accepted'
+)
+
 const kindIcon = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'fas fa-circle-question'
@@ -201,7 +228,7 @@ const kindLabel = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'Needs your answer'
     case 'error': return 'Stopped early'
-    default: return 'Finished — ready to review'
+    default: return applied.value ? 'Done — added to your app' : 'Finished — ready to review'
   }
 })
 

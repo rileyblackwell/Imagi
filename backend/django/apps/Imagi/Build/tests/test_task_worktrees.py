@@ -658,7 +658,20 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
             pending_question=pending_question,
         )
 
+    def _worktree_with_change(self, task, name='feature.txt', content='task output'):
+        """Give a task a real worktree carrying one uncommitted edit, the state
+        a subagent leaves behind when its run ends."""
+        worktree = VersionControlService().create_task_worktree(
+            self.repo, task.id
+        )['worktree_path']
+        with open(os.path.join(worktree, name), 'w') as f:
+            f.write(content)
+        task.worktree_path = worktree
+        task.save(update_fields=['worktree_path'])
+        return worktree
+
     def test_finished_task_queues_a_ready_check_in(self):
+        # No worktree to merge, so the task falls back to a manual review card.
         task = self._task()
 
         self.service._finalize_task_run(task, self._context(), 'Added the page.')
@@ -670,6 +683,54 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         self.assertEqual(check_in.status, 'pending')
         self.assertEqual(check_in.lead_id, self.lead.id)
         self.assertEqual(check_in.body, 'Added the page.')
+
+    def test_finished_solo_task_auto_applies_and_notifies(self):
+        task = self._task()
+        self._worktree_with_change(task)
+
+        self.service._finalize_task_run(task, self._context(), 'Added the feature.')
+
+        task.refresh_from_db()
+        # Merged straight into the project — the user is notified, not asked.
+        self.assertEqual(task.review_status, 'accepted')
+        self.assertEqual(task.worktree_path, '')
+        with open(os.path.join(self.repo, 'feature.txt')) as f:
+            self.assertEqual(f.read(), 'task output')
+        # Still files a check-in: the queue shows a "done" notification whose
+        # accepted status tells the card to drop the accept/discard buttons.
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.kind, 'ready')
+        self.assertEqual(check_in.body, 'Added the feature.')
+
+    def test_variant_task_waits_for_a_pick_one_review(self):
+        task = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id,
+            kind='task', parent=self.lead, variant_group='v1',
+        )
+        self._worktree_with_change(task)
+
+        self.service._finalize_task_run(task, self._context(), 'Draft one.')
+
+        task.refresh_from_db()
+        # A variant is one of several takes to compare — never auto-applied.
+        self.assertEqual(task.review_status, 'ready')
+        self.assertNotEqual(task.worktree_path, '')
+        self.assertFalse(os.path.exists(os.path.join(self.repo, 'feature.txt')))
+
+    def test_auto_apply_defers_to_review_while_a_canonical_run_is_live(self):
+        task = self._task()
+        self._worktree_with_change(task)
+        # A live lead/chat run rewrites the canonical tree; merging across it
+        # is unsafe, so the task falls back to a manual review card.
+        self.lead.run_started_at = timezone.now()
+        self.lead.save(update_fields=['run_started_at'])
+
+        self.service._finalize_task_run(task, self._context(), 'Added the feature.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'ready')
+        self.assertNotEqual(task.worktree_path, '')
+        self.assertFalse(os.path.exists(os.path.join(self.repo, 'feature.txt')))
 
     def test_ask_user_run_parks_the_task_and_queues_the_question(self):
         task = self._task()
