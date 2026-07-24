@@ -21,13 +21,22 @@ try:  # Hosted web-search tool (available on the OpenAI Responses API)
 except ImportError:  # pragma: no cover - defensive fallback
     WebSearchTool = None
 
+try:  # Ends a run after a named tool call (task runs stop on ask_user)
+    from agents.agent import StopAtTools
+except ImportError:  # pragma: no cover - defensive fallback
+    StopAtTools = None
+
 from apps.Imagi.Build.services.models_service import (
     get_backend_model_id,
     get_model_identity_instructions,
     resolve_reasoning_effort,
 )
 from .base_agent import build_model_settings
-from .tools import CODING_AGENT_TOOLS
+from .tools import (
+    CODING_AGENT_TOOLS,
+    LEAD_AGENT_EXTRA_TOOLS,
+    TASK_AGENT_EXTRA_TOOLS,
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -75,6 +84,22 @@ Technology stack: Django + REST framework, Vue 3 (Composition API + TypeScript),
 # Appended to the instructions only when the hosted web-search tool is attached.
 WEB_SEARCH_INSTRUCTIONS = """
 Web search: you can search the web. Use it when a task needs current outside information — real-world facts about the user's business or industry, up-to-date library or API usage — not for things you already know or that live in the project itself."""
+
+# Appended for lead-thread runs: the lead is the user's single main thread and
+# can delegate self-contained work to parallel background subagents.
+LEAD_AGENT_INSTRUCTIONS = """
+Delegating work (you are the user's main thread):
+- You are the one thread the user drives everything from. For a well-scoped, self-contained feature or fix — or when the user asks for several independent things at once, or for alternative takes on one thing — call dispatch_task to hand the work to a background subagent. Each subagent builds in its own isolated copy of the project, in parallel with you.
+- Do the work yourself when it is quick, depends on this conversation's context, or the user is iterating on something you just changed. Dispatch when the work is chunky and independent. Never dispatch a task just to answer a question.
+- Write each brief like a ticket for an engineer who has not read this conversation: the goal, relevant files or pages if known, and what "done" looks like. Use drafts=2 or 3 only when the user wants variants to compare.
+- After dispatching, keep going: tell the user what you kicked off and finish your reply. Subagent results and questions come back into this thread as check-ins for the user — never wait or poll for them, and never pretend to know their outcome."""
+
+# Appended for task runs: the subagent works one dispatched brief in isolation
+# and reports back through the review flow.
+TASK_AGENT_INSTRUCTIONS = """
+Working as a background subagent:
+- You are building one dispatched task in an isolated copy of the project. Work the brief to completion, then summarize what you changed and why — the user reviews and merges your work from the main thread.
+- If you are blocked on a decision only the user can make (ambiguous requirements, a real tradeoff between approaches, missing information), call ask_user with ONE clear, specific question; it ends your turn and the user's answer arrives as the next message. If a sensible default exists, do not ask — take the default and note it in your summary."""
 
 
 def load_project_memory(project_path: Optional[str]) -> Optional[str]:
@@ -138,13 +163,20 @@ def get_dynamic_coding_instructions(context: RunContextWrapper, agent: Agent) ->
     return instructions
 
 
-def create_coding_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None) -> Agent:
+def create_coding_agent(
+    model: str = DEFAULT_MODEL,
+    reasoning_effort: Optional[str] = None,
+    kind: str = 'chat',
+) -> Agent:
     """
     Create the Imagi agent: a single agent that chats and edits project files.
 
     Args:
         model: The public suite model id (mapped to the real OpenAI model)
         reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
+        kind: The conversation role this agent runs as. 'lead' adds the
+            dispatch_task delegation tool; 'task' adds ask_user (and stops the
+            run when it is called, handing the question back to the user).
 
     Returns:
         Agent: The configured agent with file tools
@@ -154,6 +186,20 @@ def create_coding_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[s
     identity = get_model_identity_instructions(model)
 
     tools = list(CODING_AGENT_TOOLS)
+    role_instructions = ""
+    kwargs = {}
+    if kind == 'lead':
+        tools.extend(LEAD_AGENT_EXTRA_TOOLS)
+        role_instructions = LEAD_AGENT_INSTRUCTIONS
+    elif kind == 'task':
+        tools.extend(TASK_AGENT_EXTRA_TOOLS)
+        role_instructions = TASK_AGENT_INSTRUCTIONS
+        # ask_user must end the run — the user's answer is the next turn. On
+        # SDKs without StopAtTools the tool still records the question; the
+        # model is instructed to stop, it just isn't mechanically enforced.
+        if StopAtTools is not None:
+            kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
+
     web_search_enabled = (
         WebSearchTool is not None
         and _BUILDER_SETTINGS.get('ENABLE_WEB_SEARCH', True)
@@ -163,11 +209,12 @@ def create_coding_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[s
 
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
         instructions = get_dynamic_coding_instructions(context, agent)
+        if role_instructions:
+            instructions += "\n" + role_instructions
         if web_search_enabled:
             instructions += "\n" + WEB_SEARCH_INSTRUCTIONS
         return instructions + "\n\n" + identity
 
-    kwargs = {}
     model_settings = build_model_settings(effort)
     if model_settings is not None:
         kwargs['model_settings'] = model_settings

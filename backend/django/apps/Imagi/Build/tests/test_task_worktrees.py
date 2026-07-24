@@ -24,9 +24,18 @@ from rest_framework.authtoken.models import Token
 from unittest.mock import patch
 
 from apps.Imagi.Build.api.views import _project_has_running_conversation
-from apps.Imagi.Build.models import AgentConversation, AgentMessage, ProjectFile
+from apps.Imagi.Build.models import (
+    AgentCheckIn,
+    AgentConversation,
+    AgentMessage,
+    ProjectFile,
+)
 from apps.Imagi.Build.services.base_agent import AgentContext, ImagiAgentService
-from apps.Imagi.Build.services.tools import _get_project, edit_file_impl
+from apps.Imagi.Build.services.tools import (
+    _get_project,
+    dispatch_task_impl,
+    edit_file_impl,
+)
 from apps.Imagi.Build.services.version_control_service import (
     MergeConflict,
     StaleForkPoint,
@@ -576,6 +585,39 @@ class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
         task.refresh_from_db()
         self.assertEqual(task.review_status, 'active')
 
+    def test_answer_reopens_a_task_awaiting_input(self):
+        """The user's answer, relayed from the lead thread, restarts the task
+        and clears the question it was holding in the check-in queue."""
+        task = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='task'
+        )
+        task.review_status = 'input'
+        task.save(update_fields=['review_status'])
+        AgentCheckIn.objects.create(
+            user=self.user, project_id=self.project.id, conversation=task,
+            kind='question', body='Which layout?',
+        )
+
+        self._prepare(task)
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'active')
+        self.assertEqual(
+            AgentCheckIn.objects.filter(conversation=task, status='pending').count(), 0
+        )
+
+    def test_dispatch_brief_is_consumed_when_the_run_starts(self):
+        task = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='task'
+        )
+        task.queued_prompt = 'Build the pricing page'
+        task.save(update_fields=['queued_prompt'])
+
+        self._prepare(task)
+
+        task.refresh_from_db()
+        self.assertEqual(task.queued_prompt, '')
+
     def test_chat_run_uses_canonical_root(self):
         chat = self.service.create_conversation(
             self.user, 'gpt-5.6-terra', project_id=self.project.id
@@ -586,21 +628,90 @@ class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
         chat.refresh_from_db()
         self.assertEqual(chat.worktree_path, '')
 
-    def test_mark_task_ready_only_touches_tasks(self):
-        task = self.service.create_conversation(
-            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='task'
+
+class TaskCheckInTests(GitRepoTestMixin, TestCase):
+    """A finished task reports back to the lead thread's queue, never to the
+    user directly."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='checkin', password='pw123456')
+        self.repo = self._make_repo()
+        self.project = Project.objects.create(
+            user=self.user, name='P', project_path=self.repo, is_active=True
         )
+        self.service = ImagiAgentService()
+        self.lead = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='lead'
+        )
+
+    def _task(self):
+        return self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id,
+            kind='task', parent=self.lead,
+        )
+
+    def _context(self, pending_question=None):
+        return AgentContext(
+            user_id=self.user.id,
+            project_id=self.project.id,
+            conversation_kind='task',
+            pending_question=pending_question,
+        )
+
+    def test_finished_task_queues_a_ready_check_in(self):
+        task = self._task()
+
+        self.service._finalize_task_run(task, self._context(), 'Added the page.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'ready')
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.kind, 'ready')
+        self.assertEqual(check_in.status, 'pending')
+        self.assertEqual(check_in.lead_id, self.lead.id)
+        self.assertEqual(check_in.body, 'Added the page.')
+
+    def test_ask_user_run_parks_the_task_and_queues_the_question(self):
+        task = self._task()
+
+        self.service._finalize_task_run(
+            task, self._context(pending_question='Stripe or PayPal?'), 'Stripe or PayPal?'
+        )
+
+        task.refresh_from_db()
+        # 'input', not 'ready': there is nothing to review until it is answered.
+        self.assertEqual(task.review_status, 'input')
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.kind, 'question')
+        self.assertEqual(check_in.body, 'Stripe or PayPal?')
+
+    def test_a_task_holds_one_queue_slot(self):
+        """A second check-in supersedes the first — the queue never shows one
+        task twice."""
+        task = self._task()
+
+        self.service._finalize_task_run(
+            task, self._context(pending_question='Which layout?'), 'Which layout?'
+        )
+        self.service._finalize_task_run(task, self._context(), 'Done.')
+
+        pending = AgentCheckIn.objects.filter(conversation=task, status='pending')
+        self.assertEqual(pending.count(), 1)
+        self.assertEqual(pending.first().kind, 'ready')
+
+    def test_canonical_runs_never_queue_check_ins(self):
         chat = self.service.create_conversation(
             self.user, 'gpt-5.6-terra', project_id=self.project.id
         )
 
-        self.service._mark_task_ready(task)
-        self.service._mark_task_ready(chat)
+        self.service._finalize_task_run(chat, self._context(), 'Done.')
+        self.service._finalize_task_run(self.lead, self._context(), 'Done.')
 
-        task.refresh_from_db()
         chat.refresh_from_db()
-        self.assertEqual(task.review_status, 'ready')
+        self.lead.refresh_from_db()
         self.assertEqual(chat.review_status, '')
+        self.assertEqual(self.lead.review_status, '')
+        self.assertEqual(AgentCheckIn.objects.count(), 0)
 
 
 class WorktreeMirrorSuppressionTests(GitRepoTestMixin, TestCase):
@@ -842,3 +953,154 @@ class ReviewEndpointTests(GitRepoTestMixin, TestCase):
         self.assertEqual(resp.json()['detail'], 'agent_busy')
         self.assertTrue(os.path.isdir(worktree))
         self.assertTrue(AgentConversation.objects.filter(id=task.id).exists())
+
+
+class DispatchTaskToolTests(TestCase):
+    """The lead thread's delegation tool stages background tasks."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='dispatcher', password='pw123456')
+        self.project = Project.objects.create(
+            user=self.user, name='P', project_path='/tmp/nonexistent', is_active=True
+        )
+        self.service = ImagiAgentService()
+        self.lead = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='lead'
+        )
+
+    def _context(self, conversation):
+        return AgentContext(
+            user_id=self.user.id,
+            project_id=self.project.id,
+            conversation_id=conversation.id,
+            conversation_kind=conversation.kind,
+        )
+
+    def test_dispatch_stages_a_task_with_its_brief(self):
+        result = dispatch_task_impl(
+            self._context(self.lead), 'Build a pricing page', title='Pricing page'
+        )
+
+        self.assertTrue(result['success'])
+        task = AgentConversation.objects.get(kind='task')
+        self.assertEqual(task.parent_id, self.lead.id)
+        self.assertEqual(task.project_id, self.project.id)
+        self.assertEqual(task.review_status, 'active')
+        self.assertEqual(task.title, 'Pricing page')
+        # The brief is persisted, so a reload between dispatch and the run
+        # firing does not lose the work.
+        self.assertEqual(task.queued_prompt, 'Build a pricing page')
+        self.assertEqual(result['dispatched_tasks'][0]['conversation_id'], task.id)
+
+    def test_dispatch_records_tasks_on_the_run_context(self):
+        context = self._context(self.lead)
+
+        dispatch_task_impl(context, 'Build a pricing page')
+
+        self.assertEqual(len(context.dispatched_tasks), 1)
+
+    def test_multiple_drafts_share_a_variant_group(self):
+        dispatch_task_impl(self._context(self.lead), 'Try a hero section', drafts=3)
+
+        tasks = AgentConversation.objects.filter(kind='task')
+        self.assertEqual(tasks.count(), 3)
+        groups = {t.variant_group for t in tasks}
+        self.assertEqual(len(groups), 1)
+        self.assertTrue(groups.pop())
+
+    def test_drafts_are_clamped_to_the_maximum(self):
+        dispatch_task_impl(self._context(self.lead), 'Fan out', drafts=99)
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 3)
+
+    def test_single_draft_has_no_variant_group(self):
+        dispatch_task_impl(self._context(self.lead), 'Just one')
+        self.assertEqual(AgentConversation.objects.get(kind='task').variant_group, '')
+
+    def test_only_the_lead_can_dispatch(self):
+        """Subagents dispatching subagents would rebuild the tangle the single
+        main thread exists to remove."""
+        task = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id,
+            kind='task', parent=self.lead,
+        )
+
+        with self.assertRaises(ValueError):
+            dispatch_task_impl(self._context(task), 'Sub-dispatch')
+
+    def test_empty_description_is_rejected(self):
+        with self.assertRaises(ValueError):
+            dispatch_task_impl(self._context(self.lead), '   ')
+
+
+class CheckInEndpointTests(TestCase):
+    """The main thread's queue API."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='queue', password='pw123456')
+        self.other = User.objects.create_user(username='intruder', password='pw123456')
+        self.client.force_login(self.user)
+        self.project = Project.objects.create(
+            user=self.user, name='P', project_path='/tmp/nonexistent', is_active=True
+        )
+        self.lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra',
+            project_id=self.project.id, kind='lead',
+        )
+
+    def _check_in(self, kind='ready', body='done', status='pending', user=None):
+        owner = user or self.user
+        task = AgentConversation.objects.create(
+            user=owner, model_name='gpt-5.6-terra',
+            project_id=self.project.id, kind='task', parent=self.lead,
+        )
+        return AgentCheckIn.objects.create(
+            user=owner, project_id=self.project.id, conversation=task,
+            lead=self.lead, kind=kind, body=body, status=status,
+        )
+
+    def test_list_returns_pending_check_ins_oldest_first(self):
+        first = self._check_in(body='first')
+        second = self._check_in(kind='question', body='second')
+        self._check_in(body='already handled', status='resolved')
+
+        resp = self.client.get(
+            reverse('check_ins_list'), {'project_id': self.project.id}
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual([c['id'] for c in data], [first.id, second.id])
+        self.assertEqual(data[0]['task']['id'], first.conversation_id)
+        self.assertEqual(data[1]['kind'], 'question')
+
+    def test_list_never_leaks_another_users_queue(self):
+        self._check_in(body='mine')
+        self._check_in(body='theirs', user=self.other)
+
+        resp = self.client.get(
+            reverse('check_ins_list'), {'project_id': self.project.id}
+        )
+
+        self.assertEqual([c['body'] for c in resp.json()], ['mine'])
+
+    def test_list_requires_a_project(self):
+        self.assertEqual(self.client.get(reverse('check_ins_list')).status_code, 400)
+
+    def test_resolve_clears_a_queue_entry(self):
+        check_in = self._check_in()
+
+        resp = self.client.post(reverse('check_in_resolve', args=[check_in.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        check_in.refresh_from_db()
+        self.assertEqual(check_in.status, 'resolved')
+        self.assertIsNotNone(check_in.resolved_at)
+
+    def test_resolve_rejects_another_users_check_in(self):
+        check_in = self._check_in(user=self.other)
+
+        resp = self.client.post(reverse('check_in_resolve', args=[check_in.id]))
+
+        self.assertEqual(resp.status_code, 404)
+        check_in.refresh_from_db()
+        self.assertEqual(check_in.status, 'pending')

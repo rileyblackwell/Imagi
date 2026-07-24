@@ -34,10 +34,8 @@
                 v-if="activeSidebarPane === 'manager'"
                 key="manager"
                 class="h-full w-full"
-                :on-dispatch-task="handlePrompt"
                 @select="handleManagerSelect"
                 @collapse="setSidebarView('chat')"
-                @accepted="handleTaskAccepted"
               />
               <BuilderSidebarChat
                 v-else
@@ -49,9 +47,12 @@
                 :on-model-select="handleModelSelect"
                 :on-effort-select="handleEffortSelect"
                 :is-collapsed="false"
+                :resolving-check-in="resolvingCheckIn"
                 @toggle-manager="setSidebarView('manager')"
                 @stop="handleStop"
                 @restore-checkpoint="onRestoreCheckpoint"
+                @check-in-accept="handleCheckInAccept"
+                @check-in-dismiss="handleCheckInDismiss"
               />
             </KeepAlive>
           </Transition>
@@ -158,7 +159,7 @@ defineOptions({ name: 'Workspace' })
 // Types
 import type { ProjectFile } from '../types/components'
 import type { AIMessage } from '../types/index'
-import type { ReasoningEffort } from '../types/services'
+import type { CheckInDto, ReasoningEffort } from '../types/services'
 import { matchesSlug, toSlug } from '../utils/slug'
 
 // Ensure all services use the shared API client with proper timeout configurations
@@ -255,6 +256,73 @@ function handleManagerSelect() {
 async function handleTaskAccepted() {
   await loadProjectFiles(true)
   previewRef.value?.reload()
+}
+
+// --- Check-in queue (background agents reporting into the main thread) ---
+
+const resolvingCheckIn = ref(false)
+
+/** Turn a review failure into something a founder can act on. Mirrors the
+ *  manager panel's wording — the same backend contracts surface in both. */
+function describeReviewError(e: unknown): string {
+  const response = (e as any)?.response
+  if (response?.status === 409 && response?.data?.error === 'merge_conflict') {
+    return 'This work no longer applies cleanly to your app — your project changed underneath it. Discard it and ask again.'
+  }
+  if (response?.status === 409 && response?.data?.error === 'stale_base') {
+    return 'Your project was restored to an earlier version after this work was done, so adding it would undo that restore. Discard it and ask again.'
+  }
+  if (response?.status === 409 && response?.data?.error === 'already_accepted') {
+    return 'This work is already part of your app.'
+  }
+  if (response?.status === 409) {
+    return 'An agent is still working on this project — wait for it to finish or stop it.'
+  }
+  return e instanceof Error && e.message ? e.message : 'Something went wrong — try again.'
+}
+
+/** Merge a finished background task's work, straight from the queue. */
+async function handleCheckInAccept(checkIn: CheckInDto) {
+  const instance = store.instances.find(i => i.conversationId === checkIn.task.id)
+  if (!instance || resolvingCheckIn.value) return
+  const { showNotification } = useNotification()
+  resolvingCheckIn.value = true
+  try {
+    await store.acceptTaskInstance(instance.id)
+    await handleTaskAccepted()
+    showNotification({
+      type: 'success',
+      message: `"${instance.title || 'The task'}" is now part of your app.`,
+      duration: 3000
+    })
+  } catch (e) {
+    showNotification({ type: 'error', message: describeReviewError(e), duration: 6000 })
+  } finally {
+    resolvingCheckIn.value = false
+  }
+}
+
+/** Discard a finished background task's work without merging it. */
+async function handleCheckInDismiss(checkIn: CheckInDto) {
+  const instance = store.instances.find(i => i.conversationId === checkIn.task.id)
+  if (!instance || resolvingCheckIn.value) return
+  const { showNotification } = useNotification()
+  const confirmed = await confirmModal.confirm({
+    title: 'Discard This Work',
+    message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in the agent manager.`,
+    confirmText: 'Discard',
+    cancelText: 'Cancel',
+    type: 'warning'
+  })
+  if (!confirmed) return
+  resolvingCheckIn.value = true
+  try {
+    await store.dismissTaskInstance(instance.id)
+  } catch (e) {
+    showNotification({ type: 'error', message: describeReviewError(e), duration: 6000 })
+  } finally {
+    resolvingCheckIn.value = false
+  }
 }
 
 // Inline per-message checkpoint restore (the Cursor rewind flow): rewind the
@@ -540,6 +608,12 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
             // The backend auto-named the thread from its opening exchange;
             // reflect it in the sidebar without a reload.
             store.applyInstanceTitle(conversationId, title)
+          },
+          onTaskDispatch: (tasks) => {
+            // The lead agent delegated work: start those background runs now,
+            // in parallel, while this run keeps streaming. They edit their own
+            // worktrees, so they neither block nor are blocked by this one.
+            store.startDispatchedTasks(tasks)
           },
         },
         abortController.signal
@@ -928,6 +1002,13 @@ onMounted(async () => {
     void handlePrompt(queuedText, instanceId)
   })
 
+  // Background task runs are driven through the same path, targeted at the
+  // task's instance: dispatched briefs from the lead agent, and answers the
+  // user gives to a subagent's question from the check-in queue.
+  store.setTaskRunner((instanceId, taskPrompt) => {
+    void handlePrompt(taskPrompt, instanceId)
+  })
+
   // Get project name from route params (URL slug)
   const projectNameSlug = String(route.params.projectName)
   
@@ -1133,8 +1214,11 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  // The sender closes over this view's handlePrompt; it must not outlive it.
+  // These close over this view's handlePrompt; they must not outlive it.
   store.setQueuedPromptSender(null)
+  store.setTaskRunner(null)
+  // The check-in queue only matters while the workspace is open.
+  store.stopCheckInPolling()
   // Conversations are persisted server-side; no local cleanup needed.
   store.setError(null)
 })

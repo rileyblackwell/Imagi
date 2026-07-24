@@ -5,8 +5,10 @@ import type {
   AgentActivityStep,
   AgentInstance,
   AgentPlanStep,
+  CheckInDto,
   ConversationDto,
   ConversationKind,
+  DispatchedTaskDto,
   ReasoningEffort
 } from '../types/services'
 import { DEFAULT_REASONING_EFFORT } from '../types/services'
@@ -40,6 +42,22 @@ let queuedPromptSender: ((instanceId: string, prompt: string) => void) | null = 
 let resyncTimer: ReturnType<typeof setInterval> | null = null
 const RESYNC_INTERVAL_MS = 5000
 
+// Background tasks are dispatched by the lead agent but their runs are driven
+// from here (the client owns the streaming connections), so a check-in poller
+// runs whenever the workspace is open — the queue must fill even when the
+// user is idle and no run is streaming.
+let checkInTimer: ReturnType<typeof setInterval> | null = null
+const CHECK_IN_INTERVAL_MS = 6000
+
+// Conversation ids whose dispatched run this tab already fired. Module scope
+// and non-reactive: a re-dispatch of the same task (stream backstop, a
+// reload's pendingBrief sweep) must never start a second run.
+const firedDispatches = new Set<number>()
+
+// Registered by the workspace: how a background task's run is driven (the
+// same handlePrompt path, targeted at the task's instance).
+let taskRunner: ((instanceId: string, prompt: string) => void) | null = null
+
 function newLocalId(): string {
   return `inst-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
@@ -68,6 +86,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     messagesLoaded: false,
     hasUnread: false,
     queuedPrompt: null,
+    pendingBrief: dto.queued_prompt || null,
   }
 }
 
@@ -81,6 +100,7 @@ export const useAgentStore = defineStore('agent', {
     unsavedChanges: false,
     error: null,
     instancesLoading: false,
+    checkIns: [],
   }),
 
   getters: {
@@ -104,14 +124,22 @@ export const useAgentStore = defineStore('agent', {
 
     /** Tasks still being worked on, newest first. A running task always
      *  belongs here — a re-prompted 'ready' task flips back to active
-     *  server-side before the local status resyncs. */
+     *  server-side before the local status resyncs. Tasks parked on a
+     *  question ('input') stay too: they are live work waiting on the user,
+     *  not finished work. */
     taskFeedInstances(state): AgentInstance[] {
       return state.instances
         .filter(
           i => i.kind === 'task' && !i.archivedAt &&
-            (i.reviewStatus === 'active' || (i.reviewStatus === 'ready' && i.isProcessing))
+            (i.reviewStatus === 'active' || i.reviewStatus === 'input' ||
+              (i.reviewStatus === 'ready' && i.isProcessing))
         )
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    },
+
+    /** The next check-in the user should deal with (FIFO), or null. */
+    nextCheckIn(state): CheckInDto | null {
+      return state.checkIns[0] ?? null
     },
 
     /** Finished tasks whose worktree awaits an accept/dismiss decision.
@@ -119,6 +147,13 @@ export const useAgentStore = defineStore('agent', {
     reviewInboxInstances(state): AgentInstance[] {
       return state.instances.filter(
         i => i.reviewStatus === 'ready' && !i.archivedAt && !i.isProcessing
+      )
+    },
+
+    /** Tasks the lead dispatched whose run has not started yet. */
+    pendingDispatchInstances(state): AgentInstance[] {
+      return state.instances.filter(
+        i => i.kind === 'task' && !!i.pendingBrief && !i.isProcessing && !i.archivedAt
       )
     },
 
@@ -211,8 +246,146 @@ export const useAgentStore = defineStore('agent', {
 
         // Restored instances may have runs still executing server-side.
         this.resyncRunningInstances()
+        // Background tasks report in whether or not anything is streaming
+        // here, so the queue polls for as long as the workspace is open.
+        void this.loadCheckIns()
+        this.startCheckInPolling()
+        // A dispatch whose run never fired (the tab closed between the lead
+        // staging it and the run starting) is still staged server-side —
+        // pick it up so no task is silently stranded.
+        this.firePendingDispatches()
       } finally {
         this.instancesLoading = false
+      }
+    },
+
+    // --- Check-in queue (the main thread's processing queue) ---
+
+    /** Registered by the workspace: how a background task's run is started
+     *  (its handlePrompt). Pass null on teardown. */
+    setTaskRunner(runner: ((instanceId: string, prompt: string) => void) | null) {
+      taskRunner = runner
+    },
+
+    async loadCheckIns() {
+      if (!this.projectId) return
+      try {
+        this.checkIns = await AgentService.listCheckIns(this.projectId)
+      } catch (e) {
+        console.error('Failed to load check-ins', e)
+      }
+    },
+
+    startCheckInPolling() {
+      this.stopCheckInPolling()
+      checkInTimer = setInterval(() => {
+        void this.loadCheckIns()
+      }, CHECK_IN_INTERVAL_MS)
+    },
+
+    stopCheckInPolling() {
+      if (checkInTimer !== null) {
+        clearInterval(checkInTimer)
+        checkInTimer = null
+      }
+    },
+
+    /** Drop a check-in from the local queue (the server-side resolve already
+     *  happened, or is happening as a side effect of accept/dismiss/answer). */
+    removeCheckIn(checkInId: number) {
+      this.checkIns = this.checkIns.filter(c => c.id !== checkInId)
+    },
+
+    /** Clear one queue entry the user has simply dealt with. */
+    async resolveCheckIn(checkInId: number) {
+      this.removeCheckIn(checkInId)
+      try {
+        await AgentService.resolveCheckIn(checkInId)
+      } catch (e) {
+        console.error('Failed to resolve check-in', e)
+        // The server still holds it; the next poll re-surfaces it rather
+        // than silently losing the item.
+        void this.loadCheckIns()
+      }
+    },
+
+    /**
+     * Answer a subagent's question from the main thread: the answer is sent
+     * as the task's next message, which restarts it in the background (and
+     * resolves its check-in server-side).
+     */
+    answerCheckIn(checkIn: CheckInDto, answer: string) {
+      const text = answer.trim()
+      if (!text) return
+      const instance = this.instances.find(i => i.conversationId === checkIn.task.id)
+      if (!instance || !taskRunner) return
+      this.removeCheckIn(checkIn.id)
+      taskRunner(instance.id, text)
+    },
+
+    // --- Task dispatch (the lead agent's delegation tool) ---
+
+    /**
+     * The lead agent staged background tasks: adopt them into the instance
+     * list and start their runs in parallel. Each edits its own worktree, so
+     * they neither block each other nor the lead thread the user is in.
+     */
+    startDispatchedTasks(tasks: DispatchedTaskDto[]) {
+      const fallback = pickDefaultModelId(this.availableModels)
+      for (const task of tasks) {
+        if (firedDispatches.has(task.conversation_id)) continue
+        let instance = this.instances.find(i => i.conversationId === task.conversation_id)
+        if (!instance) {
+          instance = dtoToInstance(
+            {
+              id: task.conversation_id,
+              title: task.title,
+              model_name: task.model_name,
+              project_id: null,
+              kind: 'task',
+              parent: task.parent,
+              review_status: 'active',
+              variant_group: task.variant_group,
+              has_worktree: false,
+              archived_at: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_message_preview: '',
+              is_running: false,
+              total_tokens: null,
+            },
+            fallback
+          )
+          // Nothing has been said in it yet, so there is nothing to fetch.
+          instance.messagesLoaded = true
+          this.instances.unshift(instance)
+        }
+        firedDispatches.add(task.conversation_id)
+        instance.pendingBrief = null
+        if (taskRunner) {
+          const send = taskRunner
+          const instanceId = instance.id
+          // Deferred so the dispatching run's stream handler unwinds before
+          // N more streams open.
+          queueMicrotask(() => send(instanceId, task.brief))
+        }
+      }
+    },
+
+    /** Start any dispatched task whose run never fired (tab closed mid-flight). */
+    firePendingDispatches() {
+      for (const instance of this.pendingDispatchInstances) {
+        const conversationId = instance.conversationId
+        const brief = instance.pendingBrief
+        if (conversationId == null || !brief) continue
+        if (firedDispatches.has(conversationId)) continue
+        firedDispatches.add(conversationId)
+        instance.pendingBrief = null
+        if (taskRunner) {
+          const send = taskRunner
+          const instanceId = instance.id
+          queueMicrotask(() => send(instanceId, brief))
+        }
       }
     },
 
@@ -327,6 +500,8 @@ export const useAgentStore = defineStore('agent', {
             instance.hasWorktree = !!dto.has_worktree
             if (typeof dto.total_tokens === 'number') instance.totalTokens = dto.total_tokens
             this.setInstanceProcessing(instance.id, false)
+            // The finished run filed its check-in; surface it now.
+            if (instance.kind === 'task') void this.loadCheckIns()
           } catch (e) {
             console.error('Failed to resync running conversation', instance.conversationId, e)
           }
@@ -509,6 +684,9 @@ export const useAgentStore = defineStore('agent', {
       if (!instance || instance.conversationId == null) return
       try {
         const dto = await AgentService.getConversation(instance.conversationId)
+        // A task's run end files its check-in server-side; pull the queue so
+        // the main thread shows it without waiting for the next poll tick.
+        if (dto.kind === 'task') void this.loadCheckIns()
         instance.title = dto.title || ''
         instance.kind = dto.kind || instance.kind
         instance.parentId = dto.parent ?? instance.parentId
@@ -535,6 +713,9 @@ export const useAgentStore = defineStore('agent', {
       await AgentService.acceptTask(instance.conversationId)
       instance.reviewStatus = 'accepted'
       instance.hasWorktree = false
+      // The backend resolved this task's check-ins as part of the accept;
+      // drop them locally so the queue advances without waiting for a poll.
+      this.removeCheckInsForTask(instance.conversationId)
       await this.refreshInstanceFromServer(instanceId)
     },
 
@@ -545,7 +726,13 @@ export const useAgentStore = defineStore('agent', {
       await AgentService.dismissTask(instance.conversationId)
       instance.reviewStatus = 'dismissed'
       instance.hasWorktree = false
+      this.removeCheckInsForTask(instance.conversationId)
       await this.refreshInstanceFromServer(instanceId)
+    },
+
+    /** Drop every local queue entry belonging to one task. */
+    removeCheckInsForTask(conversationId: number) {
+      this.checkIns = this.checkIns.filter(c => c.task.id !== conversationId)
     },
 
     setInstanceModel(instanceId: string, modelId: string) {

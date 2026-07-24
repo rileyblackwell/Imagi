@@ -280,6 +280,26 @@ def extract_tool_call_records(result) -> List[Dict[str, Any]]:
     return records
 
 
+def extract_dispatched_tasks(output) -> Optional[List[Dict[str, Any]]]:
+    """The dispatch_task tool's staged tasks from a tool output, or None.
+
+    Defensive like extract_tool_args: tool outputs are model-adjacent strings,
+    so any parse problem yields None rather than breaking the event stream.
+    """
+    try:
+        parsed = json.loads(output) if isinstance(output, str) else output
+        if (
+            isinstance(parsed, dict)
+            and parsed.get('success')
+            and isinstance(parsed.get('dispatched_tasks'), list)
+            and parsed['dispatched_tasks']
+        ):
+            return parsed['dispatched_tasks']
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return None
+
+
 def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
     """Token usage (with cost when priceable) from an SDK run result, or None.
 
@@ -342,9 +362,18 @@ class AgentContext:
     # suppress the DB mirror — see tools._get_project).
     effective_project_path: Optional[str] = None
     conversation_id: Optional[int] = None
+    # The conversation's role ('chat' | 'lead' | 'task') — gates the
+    # delegation tools (dispatch_task on lead, ask_user on task).
+    conversation_kind: Optional[str] = None
     current_file: Optional[Dict[str, Any]] = None
     # Working plan maintained by the agent via the update_plan tool
     plan: List[Dict[str, str]] = field(default_factory=list)
+    # Set by a task run's ask_user tool: the question that ended the run,
+    # routed into the lead thread's check-in queue instead of marking ready.
+    pending_question: Optional[str] = None
+    # Tasks staged by the lead's dispatch_task tool during this run
+    # ([{conversation_id, title, brief, variant_group, ...}]).
+    dispatched_tasks: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class ImagiAgentService:
@@ -367,7 +396,12 @@ class ImagiAgentService:
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
-        self._agent = None
+        # Agents cached per conversation kind: lead runs carry the delegation
+        # tool, task runs carry ask_user (+ its stop behavior).
+        self._agents: Dict[str, Agent] = {}
+        # The kind of the conversation currently being run; set by
+        # _prepare_run so the `agent` property builds the right variant.
+        self._run_kind: Optional[str] = None
 
         # Verify API key is available
         if not OPENAI_API_KEY:
@@ -377,18 +411,26 @@ class ImagiAgentService:
             os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
     def _apply_reasoning_effort(self, reasoning_effort: Optional[str]) -> None:
-        """Update the reasoning effort, invalidating the cached agent if it changed."""
+        """Update the reasoning effort, invalidating the cached agents if it changed."""
         if reasoning_effort is not None and reasoning_effort != self.reasoning_effort:
             self.reasoning_effort = reasoning_effort
-            self._agent = None
+            self._agents = {}
 
     @property
     def agent(self) -> Agent:
-        """Lazy-load the Imagi agent."""
-        if self._agent is None:
+        """Lazy-load the Imagi agent for the current run's conversation kind.
+
+        _prepare_run stamps _run_kind before any caller reaches this, so the
+        lead thread gets its delegation tool and task runs get ask_user;
+        callers outside a run (tests, scripts) fall back to the plain agent.
+        """
+        kind = self._run_kind or 'chat'
+        if kind not in self._agents:
             from .coding_agent import create_coding_agent
-            self._agent = create_coding_agent(self.model, self.reasoning_effort)
-        return self._agent
+            self._agents[kind] = create_coding_agent(
+                self.model, self.reasoning_effort, kind=kind
+            )
+        return self._agents[kind]
 
     # -------------------------------------------------------------------------
     # Conversation Management
@@ -624,10 +666,15 @@ class ImagiAgentService:
         if conversation.kind == 'task' and effective_root:
             effective_root = self._ensure_task_worktree(conversation, effective_root)
 
-        # A fresh prompt to a task that was awaiting review reopens it.
-        if conversation.kind == 'task' and conversation.review_status == 'ready':
+        # A fresh prompt reopens a task that was awaiting review ('ready') or
+        # awaiting an answer ('input' — the prompt IS the answer). Any pending
+        # check-ins it filed are superseded by this new run: the next run end
+        # files fresh ones, so stale queue entries must not linger.
+        if conversation.kind == 'task' and conversation.review_status in ('ready', 'input'):
             conversation.review_status = 'active'
             conversation.save(update_fields=["review_status"])
+        if conversation.kind == 'task':
+            self._resolve_pending_check_ins(conversation)
 
         # Checkpoint: capture the project state this message starts from, so
         # the workspace can offer a per-message restore point (conversation
@@ -665,8 +712,12 @@ class ImagiAgentService:
             project_path=project_info["project_path"],
             effective_project_path=effective_root,
             conversation_id=conversation.id,
+            conversation_kind=conversation.kind,
             current_file=current_file,
         )
+        # The `agent` property builds the kind-matched variant (delegation
+        # tools for lead, ask_user for task) from here on.
+        self._run_kind = conversation.kind
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.
@@ -687,8 +738,15 @@ class ImagiAgentService:
         # Deliberately the last work in this function: anything raising after
         # this commit — but before the caller's cleanup owns the conversation —
         # would leave the marker set and wedge the project's busy guard.
+        # A staged dispatch brief is consumed by the run now firing, so it is
+        # cleared in the same commit (the client echoes the brief as the
+        # run's user_input).
+        run_fields = ["run_started_at"]
+        if conversation.queued_prompt:
+            conversation.queued_prompt = ''
+            run_fields.append("queued_prompt")
         conversation.run_started_at = timezone.now()
-        conversation.save(update_fields=["run_started_at"])
+        conversation.save(update_fields=run_fields)
 
         return conversation, context, input_messages
 
@@ -737,16 +795,60 @@ class ImagiAgentService:
             logger.warning(f"Could not check for a live canonical run: {e}")
             return False
 
-    def _mark_task_ready(self, conversation) -> None:
-        """A task whose run persisted its final reply is awaiting review."""
-        # getattr: test doubles stand in for the conversation here.
+    def _resolve_pending_check_ins(self, conversation) -> None:
+        """Best-effort: clear a task's pending queue entries (superseded)."""
+        try:
+            from ..models import AgentCheckIn
+            AgentCheckIn.objects.filter(
+                conversation=conversation, status='pending'
+            ).update(status='resolved', resolved_at=timezone.now())
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not resolve pending check-ins: {e}")
+
+    def _file_check_in(self, conversation, kind: str, body: str) -> None:
+        """File one entry into the lead thread's processing queue.
+
+        Best-effort by contract: queueing must never fail the run whose
+        outcome it reports. Any older pending entry for the same task is
+        resolved first — a task holds at most one live queue slot.
+        """
         if getattr(conversation, 'kind', 'chat') != 'task':
             return
         try:
-            conversation.review_status = 'ready'
+            from ..models import AgentCheckIn
+            self._resolve_pending_check_ins(conversation)
+            AgentCheckIn.objects.create(
+                user=conversation.user,
+                project_id=conversation.project_id,
+                conversation=conversation,
+                lead=conversation.parent,
+                kind=kind,
+                body=(body or '').strip()[:2000],
+            )
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not file {kind} check-in: {e}")
+
+    def _finalize_task_run(self, conversation, context, response_content: str) -> None:
+        """Route a finished task run back to the main thread.
+
+        A run that ended on ask_user parks the task at 'input' and queues the
+        question; a run that finished its work marks the task 'ready' and
+        queues a review check-in. Either way the user processes it from the
+        lead thread — the task never interrupts them directly.
+        """
+        # getattr: test doubles stand in for the conversation here.
+        if getattr(conversation, 'kind', 'chat') != 'task':
+            return
+        question = (getattr(context, 'pending_question', None) or '').strip() if context else ''
+        try:
+            conversation.review_status = 'input' if question else 'ready'
             conversation.save(update_fields=["review_status"])
         except Exception as e:  # pragma: no cover - best effort
-            logger.warning(f"Could not mark task ready for review: {e}")
+            logger.warning(f"Could not update task review status: {e}")
+        if question:
+            self._file_check_in(conversation, 'question', question)
+        else:
+            self._file_check_in(conversation, 'ready', response_content)
 
     def _clear_run_started(self, conversation) -> None:
         """Best-effort: mark the conversation's run as finished.
@@ -873,6 +975,13 @@ class ImagiAgentService:
                             # Hosted web-search calls have no .name attribute;
                             # surface them under a stable synthetic name.
                             yield {"type": "tool_call", "name": "web_search"}
+                    elif getattr(item, 'type', '') in ('tool_call_output_item', 'function_call_output'):
+                        # dispatch_task staged background tasks — tell the
+                        # client immediately so it can fire their runs in
+                        # parallel while this (lead) run keeps streaming.
+                        dispatched = extract_dispatched_tasks(getattr(item, 'output', None))
+                        if dispatched:
+                            yield {"type": "task_dispatch", "tasks": dispatched}
 
             response_content = result.final_output or "".join(text_parts)
             metadata = extract_run_metadata(result)
@@ -889,9 +998,13 @@ class ImagiAgentService:
                 ),
             )
             persisted = True
-            # The final reply landed — a task is now awaiting review (partial
-            # replies persisted from the finally block below stay 'active').
-            await sync_to_async(self._mark_task_ready)(conversation)
+            # The final reply landed — route the task back to the main
+            # thread: 'ready' for review, or 'input' + a queued question when
+            # the run ended on ask_user (partial replies persisted from the
+            # finally block below stay 'active').
+            await sync_to_async(self._finalize_task_run)(
+                conversation, context, response_content
+            )
             await sync_to_async(self._record_usage_event)(
                 user, model, usage, conversation
             )
@@ -921,6 +1034,11 @@ class ImagiAgentService:
             }
             if usage:
                 done_event["usage"] = usage
+            if context.dispatched_tasks:
+                # Backstop for the per-tool task_dispatch events above: a
+                # client that missed them mid-stream can still fire the
+                # staged runs off the terminal payload.
+                done_event["dispatched_tasks"] = list(context.dispatched_tasks)
             yield done_event
 
         except MaxTurnsExceeded:
@@ -928,6 +1046,14 @@ class ImagiAgentService:
             # code:'max_turns' lets the frontend offer a "Continue" action
             # (the finally block below keeps the partial reply).
             logger.warning(f"Agent run hit the turn limit ({MAX_AGENT_TURNS} turns)")
+            if conversation is not None:
+                # A background task's turn-cap must reach the main thread —
+                # nobody is watching the task itself.
+                await sync_to_async(self._file_check_in)(
+                    conversation, 'error',
+                    "Ran out of turns before finishing. Progress so far is "
+                    "saved — reply to continue this task.",
+                )
             yield {
                 "type": "error",
                 "code": "max_turns",
@@ -941,6 +1067,12 @@ class ImagiAgentService:
             logger.error(f"Error in imagi_agent stream: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
+            if conversation is not None:
+                # Same routing for failures: a silent dead task would leave
+                # the user waiting on a check-in that never comes.
+                await sync_to_async(self._file_check_in)(
+                    conversation, 'error', f"The task hit an error: {str(e)[:500]}"
+                )
             yield {
                 "type": "error",
                 "error": str(e),
@@ -1049,10 +1181,10 @@ class ImagiAgentService:
                     usage=usage,
                 ),
             )
-            self._mark_task_ready(conversation)
+            self._finalize_task_run(conversation, context, response_content)
             self._record_usage_event(user, model, usage, conversation)
 
-            return {
+            result_payload = {
                 "success": True,
                 "response": response_content,
                 "conversation_id": conversation.id,
@@ -1061,11 +1193,18 @@ class ImagiAgentService:
                 "plan": context.plan,
                 "single_message": True,
             }
+            if context.dispatched_tasks:
+                result_payload["dispatched_tasks"] = list(context.dispatched_tasks)
+            return result_payload
 
         except Exception as e:
             logger.error(f"Error in imagi_agent run: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
+            if conversation is not None:
+                self._file_check_in(
+                    conversation, 'error', f"The task hit an error: {str(e)[:500]}"
+                )
             return {
                 "success": False,
                 "error": str(e),

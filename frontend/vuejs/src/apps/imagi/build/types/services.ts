@@ -182,8 +182,46 @@ export interface APIResponse<T> {
 /** What role a conversation plays in the workspace (lead thread / task / plain chat). */
 export type ConversationKind = 'chat' | 'lead' | 'task';
 
-/** Review lifecycle for kind='task' conversations ('' for everything else). */
-export type TaskReviewStatus = '' | 'active' | 'ready' | 'accepted' | 'dismissed';
+/** Review lifecycle for kind='task' conversations ('' for everything else).
+ *  'input' = the subagent asked a question and is parked until it's answered. */
+export type TaskReviewStatus = '' | 'active' | 'input' | 'ready' | 'accepted' | 'dismissed';
+
+/** How a background task surfaces back into the main thread's queue. */
+export type CheckInKind = 'ready' | 'question' | 'error';
+
+/** One entry in the main thread's processing queue. */
+export interface CheckInDto {
+  id: number;
+  kind: CheckInKind;
+  /** Question text, completion summary, or error message */
+  body: string;
+  status: 'pending' | 'resolved';
+  created_at: string;
+  resolved_at: string | null;
+  project_id: number | null;
+  lead_id: number | null;
+  /** Enough of the checking-in task to render and act on the card */
+  task: {
+    id: number;
+    title: string;
+    kind: ConversationKind;
+    review_status: TaskReviewStatus;
+    variant_group: string;
+    has_worktree: boolean;
+    is_running: boolean;
+  };
+}
+
+/** One background task staged by the lead agent's dispatch_task tool. The
+ *  client fires its run; the brief is also persisted server-side. */
+export interface DispatchedTaskDto {
+  conversation_id: number;
+  title: string;
+  brief: string;
+  variant_group: string;
+  parent: number;
+  model_name: string;
+}
 
 export interface ConversationDto {
   id: number;
@@ -206,6 +244,9 @@ export interface ConversationDto {
   is_running: boolean;
   /** Tokens used across the conversation; null when never captured (unknown, not free) */
   total_tokens: number | null;
+  /** A dispatched task's brief, waiting for its run to fire (cleared server-side
+   *  when the run starts). Empty for everything else. */
+  queued_prompt?: string;
 }
 
 export interface AgentInstance {
@@ -237,6 +278,9 @@ export interface AgentInstance {
   /** Client-only: one prompt submitted mid-run, auto-sent when the run ends
    *  (unless the user explicitly stopped it). A second submit replaces it. */
   queuedPrompt?: string | null;
+  /** A dispatched brief this task has not started running yet. Cleared when
+   *  the client fires the run (the backend clears its own copy then too). */
+  pendingBrief?: string | null;
 }
 
 /**
@@ -300,6 +344,8 @@ export interface AgentResponse {
   plan?: AgentPlanStep[];
   /** Token usage for the run; omitted when the backend could not track it */
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number };
+  /** Background tasks the lead agent staged during this run (dispatch_task) */
+  dispatched_tasks?: DispatchedTaskDto[];
   single_message?: boolean;
 }
 

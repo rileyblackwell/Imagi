@@ -36,6 +36,8 @@ from .views import (
     conversation_dismiss,
     conversation_restore_checkpoint,
     conversation_messages,
+    check_ins_list,
+    check_in_resolve,
 )
 
 builder_patterns = [
@@ -82,6 +84,10 @@ agents_patterns = [
     path('conversations/<int:conversation_id>/dismiss/', conversation_dismiss, name='conversation_dismiss'),
     path('conversations/<int:conversation_id>/restore/', conversation_restore_checkpoint, name='conversation_restore_checkpoint'),
     path('conversations/<int:conversation_id>/messages/', conversation_messages, name='conversation_messages'),
+    # The main thread's processing queue: background tasks check in here
+    # when they finish, need an answer, or fail.
+    path('checkins/', check_ins_list, name='check_ins_list'),
+    path('checkins/<int:check_in_id>/resolve/', check_in_resolve, name='check_in_resolve'),
 ]
 
 urlpatterns = [

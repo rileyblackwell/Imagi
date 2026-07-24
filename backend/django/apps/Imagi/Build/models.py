@@ -44,13 +44,29 @@ CANONICAL_TREE_KINDS = ('chat', 'lead')
 
 # Review lifecycle for kind='task' conversations ('' for everything else):
 # active (running/being worked) -> ready (final reply persisted, awaiting
-# review) -> accepted (merged into the canonical tree) or dismissed.
+# review) -> accepted (merged into the canonical tree) or dismissed. A task
+# whose run ended on an ask_user call sits at 'input' until the user's answer
+# (relayed from the lead thread) re-runs it.
 REVIEW_STATUS_CHOICES = (
     ('', 'None'),
     ('active', 'Active'),
+    ('input', 'Needs input'),
     ('ready', 'Ready'),
     ('accepted', 'Accepted'),
     ('dismissed', 'Dismissed'),
+)
+
+# Check-in kinds: how a background task surfaces back into the lead thread's
+# processing queue.
+CHECK_IN_KIND_CHOICES = (
+    ('ready', 'Ready for review'),
+    ('question', 'Question'),
+    ('error', 'Error'),
+)
+
+CHECK_IN_STATUS_CHOICES = (
+    ('pending', 'Pending'),
+    ('resolved', 'Resolved'),
 )
 
 
@@ -138,6 +154,10 @@ class AgentConversation(models.Model):
     worktree_path = models.CharField(max_length=500, blank=True, default='')
     # Groups best-of-N sibling tasks spawned from one prompt.
     variant_group = models.CharField(max_length=64, blank=True, default='')
+    # The brief a dispatched task is waiting to run (set by the lead agent's
+    # dispatch_task tool, cleared when the run actually starts). Persisted so
+    # a dispatch survives a reload between creation and the run firing.
+    queued_prompt = models.TextField(blank=True, default='')
     archived_at = models.DateTimeField(null=True, blank=True)
     # Set when an agent run starts, cleared when it ends. Readers must treat
     # old timestamps as "not running" (staleness guard) because a crashed
@@ -187,6 +207,52 @@ class SystemPrompt(models.Model):
 
     def __str__(self):
         return f"System Prompt for Conversation {self.conversation.id}"
+
+
+class AgentCheckIn(models.Model):
+    """One item in the main thread's processing queue.
+
+    Background task runs never interrupt the user directly: when one finishes
+    ('ready'), needs an answer ('question'), or fails ('error'), it files a
+    check-in here. The lead thread renders pending check-ins as a FIFO queue
+    the user works through one at a time; resolving happens when the user acts
+    (accept/dismiss/answer) or when a new run re-drives the task.
+    """
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name='agent_check_ins'
+    )
+    project_id = models.IntegerField(null=True, blank=True)
+    # The task conversation checking in. CASCADE: a deleted task takes its
+    # queue entries with it.
+    conversation = models.ForeignKey(
+        AgentConversation, on_delete=models.CASCADE, related_name='check_ins'
+    )
+    # The lead thread whose queue this lands in (the task's parent at filing
+    # time). SET_NULL: an archived/deleted lead must not orphan the queue —
+    # pending check-ins are looked up by user+project, not by lead.
+    lead = models.ForeignKey(
+        AgentConversation, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='inbox_check_ins'
+    )
+    kind = models.CharField(max_length=10, choices=CHECK_IN_KIND_CHOICES)
+    # Question text, completion summary, or error message (display-sized).
+    body = models.TextField(blank=True, default='')
+    status = models.CharField(
+        max_length=10, choices=CHECK_IN_STATUS_CHOICES, default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'Agents_agentcheckin'
+        # FIFO: the queue is processed oldest-first.
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['user', 'project_id', 'status']),
+        ]
+
+    def __str__(self):
+        return f"CheckIn {self.id} ({self.kind}) for conversation {self.conversation_id}"
 
 
 class AgentMessage(models.Model):

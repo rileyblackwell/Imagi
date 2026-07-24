@@ -403,6 +403,92 @@ def _glob_to_regex(pattern: str) -> re.Pattern:
     return re.compile('^' + ''.join(out) + '$')
 
 
+# Delegation limits: a dispatch fans out to at most this many parallel
+# drafts, and briefs are capped so a runaway prompt can't bloat the queue.
+DISPATCH_MAX_DRAFTS = 3
+DISPATCH_BRIEF_MAX_CHARS = 4000
+ASK_USER_MAX_CHARS = 2000
+
+
+def dispatch_task_impl(ctx, description: str, title: str = '', drafts: int = 1) -> dict:
+    """Create background task conversations from the lead thread.
+
+    Each task is a kind='task' child of the current lead conversation with the
+    brief persisted in queued_prompt. The runs themselves are fired by the
+    workspace client (which owns the streaming connections), so this only
+    stages the work — resilient to a reload between dispatch and firing.
+    """
+    from apps.Imagi.Build.models import AgentConversation, SystemPrompt
+    from apps.Imagi.Build.services.coding_agent import CODING_AGENT_INSTRUCTIONS
+    import uuid
+
+    brief = (description or '').strip()
+    if not brief:
+        raise ValueError("description must describe the task to dispatch")
+    if len(brief) > DISPATCH_BRIEF_MAX_CHARS:
+        brief = brief[:DISPATCH_BRIEF_MAX_CHARS]
+
+    parent = AgentConversation.objects.filter(
+        id=getattr(ctx, 'conversation_id', None), user_id=ctx.user_id
+    ).first()
+    if parent is None:
+        raise ValueError("Could not resolve the current conversation")
+    if parent.kind != 'lead':
+        raise ValueError("Only the lead thread can dispatch background tasks")
+
+    try:
+        count = int(drafts or 1)
+    except (TypeError, ValueError):
+        count = 1
+    count = max(1, min(DISPATCH_MAX_DRAFTS, count))
+    variant_group = uuid.uuid4().hex if count > 1 else ''
+    provisional_title = ((title or '').strip() or brief).splitlines()[0][:80]
+
+    dispatched = []
+    for _ in range(count):
+        conversation = AgentConversation.objects.create(
+            user_id=ctx.user_id,
+            model_name=parent.model_name,
+            project_id=parent.project_id,
+            mode='agent',
+            title=provisional_title,
+            kind='task',
+            parent=parent,
+            review_status='active',
+            variant_group=variant_group,
+            queued_prompt=brief,
+        )
+        SystemPrompt.objects.create(
+            conversation=conversation, content=CODING_AGENT_INSTRUCTIONS
+        )
+        dispatched.append({
+            'conversation_id': conversation.id,
+            'title': provisional_title,
+            'brief': brief,
+            'variant_group': variant_group,
+            'parent': parent.id,
+            'model_name': conversation.model_name,
+        })
+
+    # Also recorded on the run context so the harness can surface the
+    # dispatch in its terminal payload even if the stream's per-tool event
+    # was missed.
+    tracked = getattr(ctx, 'dispatched_tasks', None)
+    if isinstance(tracked, list):
+        tracked.extend(dispatched)
+
+    return {
+        'success': True,
+        'dispatched_tasks': dispatched,
+        'instruction': (
+            f"{len(dispatched)} background task(s) are now staged and will start "
+            "running in parallel. Tell the user what you dispatched. Their "
+            "results and questions come back to this thread as check-ins — "
+            "do not wait or poll for them."
+        ),
+    }
+
+
 def set_plan(context, steps: List[PlanStep]) -> dict:
     """Validate and store the agent's plan on the run context."""
     valid_statuses = {'pending', 'in_progress', 'completed'}
@@ -677,6 +763,56 @@ def update_plan(ctx: RunContextWrapper, steps: List[PlanStep]) -> str:
         return _error_result(str(e))
 
 
+@function_tool
+def dispatch_task(ctx: RunContextWrapper, description: str, title: str = "", drafts: int = 1) -> str:
+    """Dispatch a self-contained task to a background subagent that builds it in an isolated copy of the project, in parallel with this conversation.
+
+    Use for well-scoped features or fixes that don't need this conversation's
+    back-and-forth, or when the user wants several things (or several drafts of
+    one thing) built at once. The subagent reports back to this thread as a
+    check-in when it finishes or has a question. Do NOT dispatch trivial edits
+    you can do faster yourself, and never wait for a dispatched task.
+
+    Args:
+        description: The brief for the subagent, written like a ticket for an
+            engineer who has not read this conversation: the goal, relevant
+            files or pages if known, and what "done" looks like.
+        title: Optional short task name shown in the workspace (defaults to the
+            brief's first line).
+        drafts: How many parallel variants to build (1-3). Use 2 or 3 only when
+            the user wants alternative takes to compare.
+    """
+    try:
+        result = dispatch_task_impl(ctx.context, description, title=title, drafts=drafts)
+        return json.dumps(result)
+    except Exception as e:
+        logger.error(f"Error dispatching task: {e}")
+        return _error_result(str(e))
+
+
+@function_tool
+def ask_user(ctx: RunContextWrapper, question: str) -> str:
+    """Ask the user a question and END YOUR TURN — their answer arrives as the next message in this conversation.
+
+    Only for decisions you cannot make yourself: ambiguous requirements, a
+    choice between approaches with real tradeoffs, or missing information.
+    Ask ONE clear, specific question. If a sensible default exists, do not
+    ask — pick the default and note it in your summary instead.
+
+    Args:
+        question: The single question the user must answer before you can continue.
+    """
+    text = (question or '').strip()[:ASK_USER_MAX_CHARS]
+    if not text:
+        return _error_result("question must not be empty")
+    # The harness reads this off the context after the run stops to route the
+    # question into the lead thread's check-in queue.
+    ctx.context.pending_question = text
+    # This is the run's final output (StopAtTools), so return the question
+    # itself — the transcript then ends with the question, readable as chat.
+    return text
+
+
 # All tools exposed to the coding agent, in the order they appear in its prompt.
 CODING_AGENT_TOOLS = [
     update_plan,
@@ -692,3 +828,9 @@ CODING_AGENT_TOOLS = [
     create_directory,
     delete_directory,
 ]
+
+# Role-specific extras layered on top of CODING_AGENT_TOOLS by
+# coding_agent.create_coding_agent: the lead thread can delegate, a task
+# subagent can hand a question back to the user.
+LEAD_AGENT_EXTRA_TOOLS = [dispatch_task]
+TASK_AGENT_EXTRA_TOOLS = [ask_user]
