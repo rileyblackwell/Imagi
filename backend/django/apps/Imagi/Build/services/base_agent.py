@@ -24,7 +24,7 @@ try:  # ModelSettings location can vary across SDK versions
 except ImportError:  # pragma: no cover - defensive fallback
     ModelSettings = None
 
-try:  # Run lifecycle hooks (used for the initial build's cost cap)
+try:  # Run lifecycle hooks (used for the initial build's cost/time caps)
     from agents import RunHooks
 except ImportError:  # pragma: no cover - defensive fallback
     RunHooks = None
@@ -73,6 +73,9 @@ RUN_HEARTBEAT_INTERVAL = 60
 # without bound.
 HISTORY_MAX_CHARS = 60_000
 COMPACTED_SNIPPET_CHARS = 120
+
+# How many file paths a capped run's note lists before summarizing the rest.
+CAPPED_NOTE_MAX_FILES = 12
 
 # Model used to auto-name a conversation from its opening exchange. Always the
 # smallest suite tier (Luna) so naming a thread costs the least usage possible —
@@ -149,27 +152,64 @@ class RunBudgetExceeded(Exception):
         )
 
 
-def make_cost_budget_hook(model_id: str, budget_usd: Optional[float]):
-    """A RunHooks that stops a run once cumulative token cost hits budget_usd.
+class RunDeadlineExceeded(Exception):
+    """Raised by the run-bounds hook when a run runs out of wall-clock time.
 
-    Checks the run's aggregated usage after each model turn and raises
-    RunBudgetExceeded when the priced cost reaches the cap. Returns None when
-    hooks or a usable budget/pricing aren't available, so callers transparently
-    fall back to the turn cap alone.
+    The initial build is bounded primarily by time, not turns: the founder is
+    waiting on it, so "how long until I can see my app" is the number that
+    matters. Like RunBudgetExceeded this is a partial result, not a failure —
+    every file written before the deadline is already on disk.
     """
-    if RunHooks is None or not budget_usd or budget_usd <= 0:
+
+    def __init__(self, elapsed_s: float, limit_s: float):
+        self.elapsed_s = elapsed_s
+        self.limit_s = limit_s
+        super().__init__(
+            f"Run took {elapsed_s:.1f}s, reaching its {limit_s:.0f}s time limit"
+        )
+
+
+def make_run_bounds_hook(
+    model_id: str,
+    budget_usd: Optional[float] = None,
+    deadline_at: Optional[float] = None,
+):
+    """A RunHooks that stops a run at its cost and/or wall-clock bound.
+
+    Both are checked after each model turn — the only point the SDK hands us
+    control — so a run overshoots by at most the turn in flight.
+
+    deadline_at is an absolute time.monotonic() value, so a multi-run build can
+    share one deadline across its runs instead of giving each a fresh budget.
+
+    Returns None when hooks are unavailable or neither bound is usable, so
+    callers transparently fall back to the turn cap alone.
+    """
+    has_budget = bool(budget_usd) and budget_usd > 0
+    has_deadline = deadline_at is not None
+    if RunHooks is None or not (has_budget or has_deadline):
         return None
 
-    class _CostBudgetHook(RunHooks):
-        async def on_llm_end(self, context, agent, response):  # noqa: ANN001
-            usage = getattr(context, 'usage', None)
-            input_tokens = getattr(usage, 'input_tokens', 0) or 0
-            output_tokens = getattr(usage, 'output_tokens', 0) or 0
-            cost = compute_cost_usd(model_id, input_tokens, output_tokens)
-            if cost is not None and cost >= budget_usd:
-                raise RunBudgetExceeded(cost, budget_usd)
+    # The hook is built immediately before its run, so this is the run's start.
+    started_at = time.monotonic()
 
-    return _CostBudgetHook()
+    class _RunBoundsHook(RunHooks):
+        async def on_llm_end(self, context, agent, response):  # noqa: ANN001
+            if has_deadline:
+                now = time.monotonic()
+                if now >= deadline_at:
+                    raise RunDeadlineExceeded(
+                        now - started_at, deadline_at - started_at
+                    )
+            if has_budget:
+                usage = getattr(context, 'usage', None)
+                input_tokens = getattr(usage, 'input_tokens', 0) or 0
+                output_tokens = getattr(usage, 'output_tokens', 0) or 0
+                cost = compute_cost_usd(model_id, input_tokens, output_tokens)
+                if cost is not None and cost >= budget_usd:
+                    raise RunBudgetExceeded(cost, budget_usd)
+
+    return _RunBoundsHook()
 
 
 def build_model_settings(reasoning_effort: Optional[str] = None):
@@ -367,6 +407,30 @@ def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
     if cost is not None:
         payload["cost_usd"] = cost
     return payload
+
+
+def _capped_run_note(files_changed: List[str]) -> str:
+    """The message a capped run leaves in its thread.
+
+    A build stopped at its cap is the normal way a time-bounded first build
+    ends, so the note reports what landed rather than only that a limit was
+    hit — that text is what the user reads in the subagent's thread.
+    """
+    if not files_changed:
+        return (
+            "I ran out of build time before I could change anything. Tell me "
+            "what you'd like me to focus on and I'll get straight to it."
+        )
+    shown = files_changed[:CAPPED_NOTE_MAX_FILES]
+    listed = "\n".join(f"- {path}" for path in shown)
+    remaining = len(files_changed) - len(shown)
+    if remaining > 0:
+        listed += f"\n- …and {remaining} more file{'s' if remaining > 1 else ''}"
+    return (
+        "I reached this build's time limit and stopped cleanly. Here's what "
+        f"I built:\n\n{listed}\n\n"
+        "Tell me what you'd like to refine or add next."
+    )
 
 
 def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
@@ -956,8 +1020,9 @@ class ImagiAgentService:
 
         Returns True when the changes were applied (the task is now
         'accepted'); False when we deliberately leave it for a manual review —
-        a broken frontend import graph, a live canonical run we must not merge
-        across, a merge conflict, a stale base, or any git-level failure.
+        a broken frontend import graph, an app router that stopped exporting its
+        routes, a live canonical run we must not merge across, a merge conflict,
+        a stale base, or any git-level failure.
         Best-effort by contract: it never raises, so any trouble simply parks
         the task at 'ready' for the user.
         """
@@ -969,6 +1034,8 @@ class ImagiAgentService:
             return False
         if self._worktree_import_problems(conversation):
             return False
+        if self._worktree_router_problems(conversation):
+            return False
         try:
             from ..api.views import _apply_task_worktree, _conversation_project
             project = _conversation_project(conversation)
@@ -978,6 +1045,25 @@ class ImagiAgentService:
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not auto-apply task worktree: {e}")
             return False
+
+    def _capped_run_files(self, conversation) -> List[str]:
+        """Files a capped run wrote, read back off its working tree.
+
+        A capped run loses the SDK result object that normally reports
+        files_changed, but the work itself is on disk — so the tree is the
+        record. Only task runs have a worktree to read; a capped chat run
+        reports nothing rather than diffing the canonical project. Best-effort:
+        never raises into the capped path it is reporting on.
+        """
+        worktree_path = getattr(conversation, 'worktree_path', '') or ''
+        if not worktree_path:
+            return []
+        try:
+            from .version_control_service import VersionControlService
+            return VersionControlService().list_worktree_changes(worktree_path)
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not list files from a capped run: {e}")
+            return []
 
     def _worktree_import_problems(self, conversation) -> List[Dict[str, str]]:
         """Frontend imports in the task's worktree that point at missing files.
@@ -1006,6 +1092,36 @@ class ImagiAgentService:
                 len(problems),
                 problems[0]['file'],
                 problems[0]['import'],
+            )
+        return problems
+
+    def _worktree_router_problems(self, conversation) -> List[Dict[str, str]]:
+        """App router modules in the task's worktree that broke their contract.
+
+        An app router that stops exporting its ``routes`` array — most often by
+        being rewritten as a standalone ``createRouter(...)`` — compiles and
+        type-checks cleanly, then resolves to no routes at all, so every page
+        including the home page 404s. Nothing downstream would catch it, which
+        is exactly why it is gated here. Best-effort, like the import check: an
+        error reports no problems rather than blocking a fine merge.
+        """
+        worktree_path = getattr(conversation, 'worktree_path', '') or ''
+        if not worktree_path:
+            return []
+        try:
+            from .frontend_integrity import find_router_contract_problems
+            problems = find_router_contract_problems(worktree_path)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not check app routers before applying: {e}")
+            return []
+        if problems:
+            logger.warning(
+                "Not auto-applying conversation %s: %d app router(s) broke the "
+                "routes contract, first is %s (%s)",
+                getattr(conversation, 'id', None),
+                len(problems),
+                problems[0]['file'],
+                problems[0]['detail'],
             )
         return problems
 
@@ -1297,6 +1413,7 @@ class ImagiAgentService:
         reasoning_effort: Optional[str] = None,
         max_turns: Optional[int] = None,
         cost_budget_usd: Optional[float] = None,
+        deadline_at: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Process a message with the Imagi agent.
@@ -1306,11 +1423,13 @@ class ImagiAgentService:
         history, runs the agent, and returns the response plus run metadata:
         the files it changed, the tools it called, and its working plan.
 
-        max_turns overrides the default agent-loop cap for this run;
-        cost_budget_usd, when set, stops the run once its token cost reaches
-        that many dollars (used by the initial build to bound spend). A run
-        stopped by either cap returns success with "capped": True — the files
-        it produced are already on disk.
+        Three optional bounds stop a long run, all treated the same way:
+        max_turns overrides the agent-loop cap; cost_budget_usd stops the run
+        once its token cost reaches that many dollars; deadline_at (an absolute
+        time.monotonic() value) stops it at a wall-clock deadline, which the
+        initial build uses so the founder's wait is bounded. A run stopped by
+        any of them returns success with "capped": True — the files it produced
+        are already on disk.
         """
         if not project_id:
             return {"success": False, "error": "Project ID is required"}
@@ -1334,9 +1453,11 @@ class ImagiAgentService:
             )
 
             run_kwargs: Dict[str, Any] = {}
-            budget_hook = make_cost_budget_hook(model or self.model, cost_budget_usd)
-            if budget_hook is not None:
-                run_kwargs["hooks"] = budget_hook
+            bounds_hook = make_run_bounds_hook(
+                model or self.model, cost_budget_usd, deadline_at
+            )
+            if bounds_hook is not None:
+                run_kwargs["hooks"] = bounds_hook
 
             result = Runner.run_sync(
                 self.agent,
@@ -1379,20 +1500,26 @@ class ImagiAgentService:
                 result_payload["dispatched_tasks"] = list(context.dispatched_tasks)
             return result_payload
 
-        except (MaxTurnsExceeded, RunBudgetExceeded) as cap:
-            # The run hit its turn or cost cap. Everything the agent wrote
-            # before the cap is already on disk, so surface a partial (capped)
-            # result rather than a hard failure. We don't have the SDK result
-            # object here, so metadata is minimal.
+        except (MaxTurnsExceeded, RunBudgetExceeded, RunDeadlineExceeded) as cap:
+            # The run hit one of its caps (turns, cost, or wall clock).
+            # Everything the agent wrote before the cap is already on disk, so
+            # surface a partial (capped) result rather than a hard failure. The
+            # SDK result object is lost here, so the files it produced are read
+            # back off the working tree instead.
             logger.info("Agent run capped for conversation %s: %s",
                         conversation.id if conversation else None, cap)
-            capped_note = (
-                "I reached this build's limit and stopped here. The files I "
-                "completed are saved — tell me what you'd like to refine or add next."
-            )
+            files_changed = self._capped_run_files(conversation)
+            capped_note = _capped_run_note(files_changed)
             if conversation is not None:
                 try:
-                    self.add_assistant_message(conversation, capped_note)
+                    self.add_assistant_message(
+                        conversation,
+                        capped_note,
+                        build_message_metadata(
+                            files_changed=files_changed,
+                            plan=list(getattr(context, "plan", []) or []),
+                        ),
+                    )
                 except Exception:  # pragma: no cover - best effort persistence
                     logger.warning("Could not persist capped-run note", exc_info=True)
                 # A capped run is a finished run: its files are on disk, so it
@@ -1405,7 +1532,7 @@ class ImagiAgentService:
                 "capped": True,
                 "response": capped_note,
                 "conversation_id": conversation.id if conversation else None,
-                "files_changed": [],
+                "files_changed": files_changed,
                 "tool_calls": [],
                 "plan": list(getattr(context, "plan", []) or []),
             }

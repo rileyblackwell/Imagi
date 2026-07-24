@@ -494,10 +494,18 @@ def vue_router_index() -> str:
 // Supports both TS and JS router modules if present
 const modules = import.meta.glob('@/apps/**/router/index.{ts,js}', { eager: true })
 
-// Extract routes from each module (default export or named `routes`)
-const routeModules = Object.values(modules)
-  .map((mod) => (mod && 'default' in mod ? mod.default : (mod && mod.routes) || []))
-  .flat()
+// Extract routes from each module: the named `routes` export is the contract,
+// with a default export accepted only when it is actually an array of routes.
+// Anything else (most importantly a whole Router instance, which vue-router
+// accepts silently and then resolves to NO routes at all) is ignored rather
+// than allowed to take the entire route table down with it.
+const asRoutes = (value) => (Array.isArray(value) ? value : [])
+const pickRoutes = (mod) => {
+  if (!mod) return []
+  const named = asRoutes(mod.routes)
+  return named.length ? named : asRoutes(mod.default)
+}
+const routeModules = Object.values(modules).map(pickRoutes).flat()
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

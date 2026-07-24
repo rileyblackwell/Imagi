@@ -265,21 +265,45 @@ IMAGI_BUILDER = {
     'MAX_AGENT_TURNS': 30,
     # Initial build (the first build of a new project, dispatched from the
     # project's main thread to a background subagent) runs headless and
-    # unattended, so it gets its own model and tighter caps. The cost budget is
-    # the primary bound: the run stops once its token cost reaches this many
-    # dollars. The turn cap is a backstop against a run that spins without
-    # spending much. Together they keep a first build from running away.
+    # unattended, so it gets its own model and tighter caps.
+    #
+    # TIME is the primary bound, because the founder is sitting there waiting:
+    # the whole build — first run plus any repair runs — is held to this many
+    # seconds, and whatever is finished and sound by then is what ships. The
+    # project already holds a working home + auth scaffold from the moment it is
+    # created, so a build that stops early degrades to "less tailoring", never
+    # to a broken or empty app.
+    # Held a little under a minute on purpose: this bounds the agent's own run,
+    # and the founder additionally waits on the work either side of it (worktree
+    # setup, then the merge and database mirror on the way out) — measured at
+    # ~2s combined. 55 keeps the end-to-end wait under a minute.
     'INITIAL_BUILD_MODEL': 'gpt-5.6-terra',
-    'INITIAL_BUILD_COST_BUDGET_USD': 0.50,
+    'INITIAL_BUILD_TIME_BUDGET_S': 55,
+    # First builds create UI from a description rather than reasoning about
+    # existing code, so they run at low effort: it roughly halves per-turn
+    # latency, which buys more pages inside the time budget than deeper
+    # reasoning does.
+    'INITIAL_BUILD_REASONING_EFFORT': 'low',
+    # Cost and turns are runaway backstops now, not the operative limit — the
+    # time budget stops a normal build long before either binds. NOTE: the cost
+    # figure is priced with the *suite retail* rates in models_service (what a
+    # run is displayed as costing), which are a multiple of the underlying API
+    # price — so this is deliberately well above real expected spend. Sized so
+    # it never cuts a build short on its own; time does that.
+    'INITIAL_BUILD_COST_BUDGET_USD': 3.00,
     'INITIAL_BUILD_MAX_TURNS': 24,
-    # A build that stops at one of those caps can leave a page importing a
-    # component it never wrote, which takes the whole preview down. Such a
-    # build is not merged into the project; instead the subagent gets up to
-    # this many follow-up runs to repair the dangling references, each on a
-    # smaller budget (repair is a short, targeted job).
+    # A build that stops at a cap can leave a page importing a component it
+    # never wrote, which takes the whole preview down. Such a build is not
+    # merged; instead the subagent gets up to this many short follow-up runs to
+    # repair the dangling references — but only from whatever time is left in
+    # the budget above, so repair can never extend the founder's wait.
     'INITIAL_BUILD_REPAIR_ATTEMPTS': 2,
-    'INITIAL_BUILD_REPAIR_COST_BUDGET_USD': 0.20,
+    'INITIAL_BUILD_REPAIR_COST_BUDGET_USD': 1.00,
     'INITIAL_BUILD_REPAIR_MAX_TURNS': 12,
+    # Skip a repair run that cannot plausibly finish in the time left, rather
+    # than starting one that will be killed mid-edit (which tends to leave more
+    # dangling references than it fixes).
+    'INITIAL_BUILD_MIN_REPAIR_SECONDS': 12,
     # Attach OpenAI's hosted web-search tool to the agent.
     'ENABLE_WEB_SEARCH': True,
     # Apps scaffolded into every new project. Payment pages are deliberately

@@ -10,6 +10,7 @@ no OpenAI calls are made.
 import os
 import shutil
 import tempfile
+import time
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
@@ -25,14 +26,21 @@ from rest_framework.authtoken.models import Token
 from apps.Imagi.Build.api.views import _project_has_running_conversation
 from apps.Imagi.Build.models import AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
+    CAPPED_NOTE_MAX_FILES,
     AgentContext,
     ImagiAgentService,
+    RunBudgetExceeded,
+    RunDeadlineExceeded,
+    _capped_run_note,
     compact_history,
     extract_run_metadata,
+    make_run_bounds_hook,
 )
 from apps.Imagi.Build.services.models_service import compute_cost_usd
 from apps.Imagi.Build.services.coding_agent import (
+    INITIAL_BUILD_REASONING_EFFORT,
     PROJECT_MEMORY_MAX_CHARS,
+    create_coding_agent,
     load_project_memory,
 )
 from apps.Imagi.Build.services.tools import (
@@ -879,6 +887,109 @@ class ComputeCostTests(SimpleTestCase):
 
     def test_unknown_model_returns_none(self):
         self.assertIsNone(compute_cost_usd('gpt-oops', 1000, 1000))
+
+
+class RunBoundsHookTests(SimpleTestCase):
+    """The cost and wall-clock bounds that stop a long run."""
+
+    def _fire(self, hook, input_tokens=0, output_tokens=0):
+        context = SimpleNamespace(
+            usage=SimpleNamespace(
+                input_tokens=input_tokens, output_tokens=output_tokens
+            )
+        )
+        async_to_sync(hook.on_llm_end)(context, None, None)
+
+    def test_no_bounds_means_no_hook(self):
+        self.assertIsNone(make_run_bounds_hook('gpt-5.6-sol'))
+
+    def test_run_within_both_bounds_is_left_alone(self):
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', budget_usd=10.0, deadline_at=time.monotonic() + 300
+        )
+        self._fire(hook, input_tokens=1000, output_tokens=100)
+
+    def test_passed_deadline_stops_the_run(self):
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', deadline_at=time.monotonic() - 1
+        )
+        with self.assertRaises(RunDeadlineExceeded):
+            self._fire(hook)
+
+    def test_deadline_is_checked_before_cost(self):
+        # A run that is both over time and over budget reports the deadline:
+        # for the initial build, time is the bound that matters.
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', budget_usd=0.01, deadline_at=time.monotonic() - 1
+        )
+        with self.assertRaises(RunDeadlineExceeded):
+            self._fire(hook, input_tokens=1_000_000, output_tokens=1_000_000)
+
+    def test_spent_budget_stops_the_run(self):
+        hook = make_run_bounds_hook('gpt-5.6-sol', budget_usd=1.0)
+        with self.assertRaises(RunBudgetExceeded):
+            self._fire(hook, input_tokens=1_000_000, output_tokens=0)
+
+
+class InitialBuildAgentTests(SimpleTestCase):
+    """The first-build role's own configuration, which trades depth for speed."""
+
+    def test_initial_build_has_no_web_search_tool(self):
+        # A hosted search can eat a large share of a one-minute budget, and its
+        # schema costs every later turn prompt tokens.
+        agent = create_coding_agent(kind='initial_build')
+        self.assertNotIn(
+            'WebSearchTool', [type(tool).__name__ for tool in agent.tools]
+        )
+
+    def test_chat_keeps_web_search(self):
+        agent = create_coding_agent(kind='chat')
+        self.assertIn(
+            'WebSearchTool', [type(tool).__name__ for tool in agent.tools]
+        )
+
+    def test_initial_build_can_still_write_files(self):
+        agent = create_coding_agent(kind='initial_build')
+        names = {getattr(tool, 'name', '') for tool in agent.tools}
+        self.assertTrue({'create_file', 'update_file'} <= names, names)
+
+    def test_initial_build_runs_at_its_configured_effort(self):
+        # Set explicitly for the role, so a per-request effort meant for the
+        # interactive builders cannot slow the first build down.
+        agent = create_coding_agent(
+            kind='initial_build', reasoning_effort='xhigh'
+        )
+        self.assertEqual(
+            agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
+        )
+
+
+class CappedRunNoteTests(SimpleTestCase):
+    """What a capped run tells the user it built.
+
+    A time-bounded first build ends at its cap as a matter of course, so this
+    note is the normal completion message in the subagent's thread.
+    """
+
+    def test_note_lists_what_was_built(self):
+        note = _capped_run_note([
+            'frontend/vuejs/src/apps/home/views/HomeView.vue',
+            'frontend/vuejs/src/apps/home/views/AboutView.vue',
+        ])
+        self.assertIn('HomeView.vue', note)
+        self.assertIn('AboutView.vue', note)
+
+    def test_long_file_lists_are_summarized(self):
+        files = [f'frontend/vuejs/src/apps/home/views/View{i}.vue' for i in range(20)]
+        note = _capped_run_note(files)
+        self.assertIn('View0.vue', note)
+        self.assertIn(f'and {20 - CAPPED_NOTE_MAX_FILES} more files', note)
+
+    def test_a_run_that_built_nothing_says_so(self):
+        # Must not claim work it did not do — this is the message the user reads.
+        note = _capped_run_note([])
+        self.assertIn('ran out of build time', note)
+        self.assertNotIn("here's what", note.lower())
 
 
 class ProjectMemoryTests(SimpleTestCase):

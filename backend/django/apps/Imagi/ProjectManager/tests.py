@@ -592,6 +592,102 @@ class InitialBuildServiceTests(TestCase):
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'failed')
 
+    def test_a_rewritten_app_router_triggers_a_repair_run(self):
+        # The worst failure mode seen live: the build replaced the home app's
+        # route module with its own createRouter, which compiles and builds
+        # cleanly but leaves every page — including home — 404ing. It must be
+        # repaired before the build can be applied.
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        router_problem = [{
+            'file': 'frontend/vuejs/src/apps/home/router/index.ts',
+            'detail': "calls createRouter(), but an app router must only export a 'routes' array",
+        }]
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_router_contract_problems',
+            return_value=router_problem,
+        ):
+            calls = self._run_build(['leave', 'accept'], unresolved=[])
+
+        self.assertEqual(len(calls), 2, 'a broken app router was not repaired')
+        repair_prompt = calls[1]['user_input']
+        self.assertIn('router/index.ts', repair_prompt)
+        self.assertIn('createRouter', repair_prompt)
+        self.assertIn('export { routes }', repair_prompt)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_repair_prompt_covers_imports_and_routers_together(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            build_repair_prompt,
+        )
+
+        prompt = build_repair_prompt(
+            [{'file': 'HomeView.vue', 'import': '/images/hero.jpg'}],
+            [{'file': 'router/index.ts', 'detail': 'calls createRouter()'}],
+        )
+        self.assertIn('/images/hero.jpg', prompt)
+        self.assertIn('router/index.ts', prompt)
+        # An invented image must be removed, not "created properly" — the
+        # project has no image assets and the agent cannot make binaries.
+        self.assertIn('inline <svg>', prompt)
+
+    def test_every_run_shares_one_wall_clock_deadline(self):
+        # The founder's wait is what is being bounded, so a repair must eat
+        # into the same budget as the build — not restart it. A per-run budget
+        # would let one slow build plus two repairs run three times as long as
+        # the configured limit.
+        calls = self._run_build(
+            ['leave', 'accept'],
+            unresolved=[{
+                'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
+                'import': '@/shared/components/SiteHeader.vue',
+            }],
+        )
+
+        self.assertEqual(len(calls), 2)
+        deadlines = {call['deadline_at'] for call in calls}
+        self.assertEqual(len(deadlines), 1, 'each run got its own deadline')
+        self.assertIsNotNone(calls[0]['deadline_at'])
+
+    def test_deadline_is_the_configured_time_budget_away(self):
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        with patch.object(initial_build_service.time, 'monotonic', return_value=1000.0):
+            calls = self._run_build(['accept'])
+
+        self.assertEqual(
+            calls[0]['deadline_at'],
+            1000.0 + settings.IMAGI_BUILDER['INITIAL_BUILD_TIME_BUDGET_S'],
+        )
+
+    def test_repair_is_skipped_when_too_little_time_remains(self):
+        # Starting a repair that will be killed mid-edit tends to leave more
+        # dangling references than it fixes, so a build with no time left keeps
+        # its scaffold instead.
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        budget = settings.IMAGI_BUILDER['INITIAL_BUILD_TIME_BUDGET_S']
+        min_repair = settings.IMAGI_BUILDER['INITIAL_BUILD_MIN_REPAIR_SECONDS']
+        # First reading sets the deadline; the second is checked before repair,
+        # by which point less than the repair minimum is left.
+        clock = iter([0.0, budget - (min_repair / 2)])
+
+        with patch.object(
+            initial_build_service.time, 'monotonic', side_effect=lambda: next(clock)
+        ):
+            calls = self._run_build(
+                ['leave', 'accept'],
+                unresolved=[{
+                    'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
+                    'import': '@/shared/components/SiteHeader.vue',
+                }],
+            )
+
+        self.assertEqual(len(calls), 1, 'a repair ran with no time budget left')
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'failed')
+
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
 class ScaffoldWiringTests(TestCase):
