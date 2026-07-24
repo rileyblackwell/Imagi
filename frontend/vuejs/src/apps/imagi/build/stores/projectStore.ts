@@ -286,7 +286,7 @@ export const useProjectStore = defineStore('builder', () => {
    * Used by dashboard components for project creation
    * Should not be called from workspace components
    */
-  async function createProject(projectData: { name: string; description: string }) {
+  async function createProject(projectData: { name: string; description: string; design_preferences?: string }) {
     if (!isAuthenticated.value) {
       throw new Error('You must be logged in to create projects')
     }

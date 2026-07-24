@@ -24,6 +24,11 @@ try:  # ModelSettings location can vary across SDK versions
 except ImportError:  # pragma: no cover - defensive fallback
     ModelSettings = None
 
+try:  # Run lifecycle hooks (used for the initial build's cost cap)
+    from agents import RunHooks
+except ImportError:  # pragma: no cover - defensive fallback
+    RunHooks = None
+
 try:  # Reasoning config for the OpenAI Responses API
     from openai.types.shared import Reasoning
 except ImportError:  # pragma: no cover - defensive fallback
@@ -125,6 +130,46 @@ def generate_conversation_title(user_input: str, assistant_reply: str) -> Option
     except Exception as e:
         logger.warning(f"Conversation title generation failed: {e}")
         return None
+
+
+class RunBudgetExceeded(Exception):
+    """Raised by the cost-budget hook to stop a run that hit its USD cap.
+
+    Used for the initial build so a runaway or unexpectedly large build can't
+    spend more than a configured budget. Files written before the cap are
+    already on disk, so callers treat this as a partial (capped) result rather
+    than a failure.
+    """
+
+    def __init__(self, cost_usd: float, budget_usd: float):
+        self.cost_usd = cost_usd
+        self.budget_usd = budget_usd
+        super().__init__(
+            f"Run cost ${cost_usd:.4f} reached its ${budget_usd:.2f} budget"
+        )
+
+
+def make_cost_budget_hook(model_id: str, budget_usd: Optional[float]):
+    """A RunHooks that stops a run once cumulative token cost hits budget_usd.
+
+    Checks the run's aggregated usage after each model turn and raises
+    RunBudgetExceeded when the priced cost reaches the cap. Returns None when
+    hooks or a usable budget/pricing aren't available, so callers transparently
+    fall back to the turn cap alone.
+    """
+    if RunHooks is None or not budget_usd or budget_usd <= 0:
+        return None
+
+    class _CostBudgetHook(RunHooks):
+        async def on_llm_end(self, context, agent, response):  # noqa: ANN001
+            usage = getattr(context, 'usage', None)
+            input_tokens = getattr(usage, 'input_tokens', 0) or 0
+            output_tokens = getattr(usage, 'output_tokens', 0) or 0
+            cost = compute_cost_usd(model_id, input_tokens, output_tokens)
+            if cost is not None and cost >= budget_usd:
+                raise RunBudgetExceeded(cost, budget_usd)
+
+    return _CostBudgetHook()
 
 
 def build_model_settings(reasoning_effort: Optional[str] = None):
@@ -1203,6 +1248,8 @@ class ImagiAgentService:
         current_file: Optional[Dict[str, Any]] = None,
         conversation_id: Optional[int] = None,
         reasoning_effort: Optional[str] = None,
+        max_turns: Optional[int] = None,
+        cost_budget_usd: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Process a message with the Imagi agent.
@@ -1211,6 +1258,12 @@ class ImagiAgentService:
         to use tools. Persists the message, builds context and (compacted)
         history, runs the agent, and returns the response plus run metadata:
         the files it changed, the tools it called, and its working plan.
+
+        max_turns overrides the default agent-loop cap for this run;
+        cost_budget_usd, when set, stops the run once its token cost reaches
+        that many dollars (used by the initial build to bound spend). A run
+        stopped by either cap returns success with "capped": True — the files
+        it produced are already on disk.
         """
         if not project_id:
             return {"success": False, "error": "Project ID is required"}
@@ -1232,12 +1285,18 @@ class ImagiAgentService:
                 run_state=run_state,
             )
 
+            run_kwargs: Dict[str, Any] = {}
+            budget_hook = make_cost_budget_hook(model or self.model, cost_budget_usd)
+            if budget_hook is not None:
+                run_kwargs["hooks"] = budget_hook
+
             result = Runner.run_sync(
                 self.agent,
                 input=input_messages,
                 context=context,
-                max_turns=MAX_AGENT_TURNS,
+                max_turns=max_turns or MAX_AGENT_TURNS,
                 run_config=self._run_config(user),
+                **run_kwargs,
             )
 
             response_content = result.final_output or ""
@@ -1271,6 +1330,32 @@ class ImagiAgentService:
             if context.dispatched_tasks:
                 result_payload["dispatched_tasks"] = list(context.dispatched_tasks)
             return result_payload
+
+        except (MaxTurnsExceeded, RunBudgetExceeded) as cap:
+            # The run hit its turn or cost cap. Everything the agent wrote
+            # before the cap is already on disk, so surface a partial (capped)
+            # result rather than a hard failure. We don't have the SDK result
+            # object here, so metadata is minimal.
+            logger.info("Agent run capped for conversation %s: %s",
+                        conversation.id if conversation else None, cap)
+            capped_note = (
+                "I reached this build's limit and stopped here. The files I "
+                "completed are saved — tell me what you'd like to refine or add next."
+            )
+            if conversation is not None:
+                try:
+                    self.add_assistant_message(conversation, capped_note)
+                except Exception:  # pragma: no cover - best effort persistence
+                    logger.warning("Could not persist capped-run note", exc_info=True)
+            return {
+                "success": True,
+                "capped": True,
+                "response": capped_note,
+                "conversation_id": conversation.id if conversation else None,
+                "files_changed": [],
+                "tool_calls": [],
+                "plan": list(getattr(context, "plan", []) or []),
+            }
 
         except Exception as e:
             logger.error(f"Error in imagi_agent run: {str(e)}")

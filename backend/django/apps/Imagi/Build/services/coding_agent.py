@@ -94,6 +94,39 @@ CODING_AGENT_INSTRUCTIONS = "\n\n".join(
     (CODING_AGENT_INTRO, BUILDER_WORKING_STYLE, SHARED_PROJECT_GUIDANCE)
 )
 
+# Design direction shared by builds that create UI from scratch (the initial
+# build). It biases the agent toward a polished, cohesive look instead of the
+# flat, generic output an unguided model tends to produce.
+DESIGN_DIRECTION = """Design direction (make what you build look genuinely good, not a generic template):
+- Aim for a polished, modern, production-grade look — the bar of a well-designed startup landing page, not a scaffold. Tailor the design to this business and its industry.
+- Work from a small, intentional visual system and reuse it everywhere: one primary brand color plus a neutral palette, a consistent type scale (a strong hero headline down to readable body text), and consistent spacing. Use Tailwind's built-in scale rather than arbitrary one-off values.
+- Give pages rhythm and hierarchy: a focused hero, then well-separated sections with generous whitespace and aligned, grid-based layouts. Lead the eye from the most important thing downward.
+- Make every screen fully responsive (design mobile-first) and correct in both light and dark mode.
+- Add tasteful polish — hover and focus states on interactive elements, subtle transitions, rounded corners and soft shadows where they help — without overdoing motion or decoration.
+- Keep it clean and accessible: sufficient color contrast, semantic markup, and real copy written for this business (never lorem ipsum or leftover scaffold text).
+- Follow any style preferences the founder gave; when they gave none, choose a look that fits the business's tone and industry."""
+
+# Intro for the initial build — the one-shot, headless first build of a new
+# project. It runs like the chat builder (full editing tools, direct edits to
+# the real project) but with a first-build framing and design direction.
+INITIAL_BUILD_INTRO = """You are Imagi, performing the very first build of a brand-new web application for the founder who just described their business. Right now the project holds only Imagi's default scaffold: a home app and a prebuilt auth app. Turn it into a tailored, good-looking first version of THIS business's app. The founder sees your result the moment they open their workspace, so it should feel custom-built for them — not a generic starter."""
+
+# What the initial build should (and shouldn't) do. Deliberately does NOT limit
+# the agent to a fixed set of files — it decides what the business needs.
+INITIAL_BUILD_GUIDANCE = """Building the first version:
+- You decide what to build. From the founder's description (and any style preferences), build the pages and UI this specific business needs — you are NOT limited to a fixed list of files or pages. Always rework the home app's landing page around the business, and add whatever further pages make sense (About, Pricing, Features, Contact, a product/services page, ...), wiring up each new page's route.
+- Make it coherent and real: shared navigation, working links, and copy written for this business. Keep the header's sign-in and create-account links to the prebuilt auth pages ('/auth/signin', '/auth/register') present and working.
+- Authentication is already done for you: the auth app (sign-in and register pages plus its backend) is prebuilt and secure. Do NOT rebuild, restyle, or modify the auth app beyond leaving its links in place.
+- Do NOT build payment, checkout, cart, or subscription-billing functionality even if the business sells something — the founder installs secure, prebuilt payment pages later from their Sell workspace. Design the marketing/product pages with a clear call-to-action instead of wiring real payments.
+- Work efficiently on a tight build budget: build a cohesive set of pages that looks great and covers the core of the business, then stop. Don't pad it out with dozens of pages or half-finished features — a strong, complete first impression beats a sprawling unfinished one.
+- When you finish, briefly summarize what you built. The founder reads it as the first message in their workspace."""
+
+# Full prompt for the initial build role.
+INITIAL_BUILD_INSTRUCTIONS = "\n\n".join(
+    (INITIAL_BUILD_INTRO, BUILDER_WORKING_STYLE, SHARED_PROJECT_GUIDANCE,
+     DESIGN_DIRECTION, INITIAL_BUILD_GUIDANCE)
+)
+
 # Appended to the instructions only when the hosted web-search tool is attached.
 WEB_SEARCH_INSTRUCTIONS = """
 Web search: you can search the web. Use it when a task needs current outside information — real-world facts about the user's business or industry, up-to-date library or API usage — not for things you already know or that live in the project itself."""
@@ -204,11 +237,14 @@ def create_coding_agent(
     Args:
         model: The public suite model id (mapped to the real OpenAI model)
         reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
-        kind: The conversation role this agent runs as. 'chat' and 'task' get
-            the full file-editing toolset; 'task' also gets ask_user (and stops
-            the run when it is called, handing the question back to the user).
-            'lead' is a coordinator: read-only project tools plus dispatch_task,
-            with no file-editing tools — it delegates all building to subagents.
+        kind: The conversation role this agent runs as. 'chat', 'task', and
+            'initial_build' get the full file-editing toolset; 'task' also gets
+            ask_user (and stops the run when it is called, handing the question
+            back to the user). 'initial_build' is the one-shot first build of a
+            new project — same tools as chat, but a first-build prompt with
+            design direction. 'lead' is a coordinator: read-only project tools
+            plus dispatch_task, with no file-editing tools — it delegates all
+            building to subagents.
 
     Returns:
         Agent: The configured agent for that role
@@ -227,6 +263,10 @@ def create_coding_agent(
         # keeps every change on a background subagent and the main thread free.
         tools = list(LEAD_AGENT_READONLY_TOOLS) + list(LEAD_AGENT_EXTRA_TOOLS)
         base_instructions = LEAD_AGENT_INSTRUCTIONS
+    elif kind == 'initial_build':
+        # One-shot first build of a new project: same full editing toolset as
+        # chat, but framed as the initial build with explicit design direction.
+        base_instructions = INITIAL_BUILD_INSTRUCTIONS
     elif kind == 'task':
         tools.extend(TASK_AGENT_EXTRA_TOOLS)
         role_instructions = TASK_AGENT_INSTRUCTIONS

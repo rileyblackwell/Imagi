@@ -170,14 +170,18 @@ export const ProjectService = {
    * Create a new project
    * Used by dashboard for project creation
    */
-  async createProject({ name, description }: { name: string; description: string }): Promise<Project> {
+  async createProject(
+    { name, description, design_preferences = '' }:
+    { name: string; description: string; design_preferences?: string }
+  ): Promise<Project> {
     console.debug('Project API - creating project:', { name, description })
-    
+
     try {
       // API endpoint for creating projects
       const response = await api.post('/v1/project-manager/projects/create/', {
         name,
-        description
+        description,
+        design_preferences
       })
       
       console.debug('Project API - createProject response:', {
