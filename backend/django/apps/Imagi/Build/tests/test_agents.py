@@ -38,7 +38,9 @@ from apps.Imagi.Build.services.base_agent import (
 )
 from apps.Imagi.Build.services.models_service import compute_cost_usd
 from apps.Imagi.Build.services.coding_agent import (
+    INITIAL_BUILD_INSTRUCTIONS,
     INITIAL_BUILD_REASONING_EFFORT,
+    INITIAL_BUILD_TIME_BUDGET_S,
     PROJECT_MEMORY_MAX_CHARS,
     create_coding_agent,
     load_project_memory,
@@ -892,13 +894,23 @@ class ComputeCostTests(SimpleTestCase):
 class RunBoundsHookTests(SimpleTestCase):
     """The cost and wall-clock bounds that stop a long run."""
 
-    def _fire(self, hook, input_tokens=0, output_tokens=0):
+    def _fire(self, hook, input_tokens=0, output_tokens=0, response=None):
         context = SimpleNamespace(
             usage=SimpleNamespace(
                 input_tokens=input_tokens, output_tokens=output_tokens
             )
         )
-        async_to_sync(hook.on_llm_end)(context, None, None)
+        async_to_sync(hook.on_llm_end)(context, None, response)
+
+    def _start_turn(self, hook):
+        async_to_sync(hook.on_llm_start)(None, None, None, [])
+
+    @staticmethod
+    def _response_with_tool_call():
+        return SimpleNamespace(output=[
+            SimpleNamespace(type='reasoning'),
+            SimpleNamespace(type='function_call'),
+        ])
 
     def test_no_bounds_means_no_hook(self):
         self.assertIsNone(make_run_bounds_hook('gpt-5.6-sol'))
@@ -930,13 +942,41 @@ class RunBoundsHookTests(SimpleTestCase):
         with self.assertRaises(RunBudgetExceeded):
             self._fire(hook, input_tokens=1_000_000, output_tokens=0)
 
+    def test_pending_tool_calls_run_before_the_stop(self):
+        # The turn that ends over the deadline is usually the turn that wrote
+        # the page. Stopping on the spot would discard it, so its tool calls
+        # are executed and the run stops before the next model turn instead.
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', deadline_at=time.monotonic() - 1
+        )
+        self._fire(hook, response=self._response_with_tool_call())
+        with self.assertRaises(RunDeadlineExceeded):
+            self._start_turn(hook)
+
+    def test_stop_is_deferred_only_past_the_bound(self):
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', deadline_at=time.monotonic() + 300
+        )
+        self._fire(hook, response=self._response_with_tool_call())
+        self._start_turn(hook)
+
+    def test_a_deferred_stop_still_fires_without_on_llm_start(self):
+        # Belt and braces for an SDK that never calls on_llm_start: the next
+        # turn's end raises rather than letting the run continue unbounded.
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', deadline_at=time.monotonic() - 1
+        )
+        self._fire(hook, response=self._response_with_tool_call())
+        with self.assertRaises(RunDeadlineExceeded):
+            self._fire(hook, response=self._response_with_tool_call())
+
 
 class InitialBuildAgentTests(SimpleTestCase):
     """The first-build role's own configuration, which trades depth for speed."""
 
     def test_initial_build_has_no_web_search_tool(self):
-        # A hosted search can eat a large share of a one-minute budget, and its
-        # schema costs every later turn prompt tokens.
+        # A hosted search can eat a large share of a half-minute budget, and
+        # its schema costs every later turn prompt tokens.
         agent = create_coding_agent(kind='initial_build')
         self.assertNotIn(
             'WebSearchTool', [type(tool).__name__ for tool in agent.tools]
@@ -952,6 +992,40 @@ class InitialBuildAgentTests(SimpleTestCase):
         agent = create_coding_agent(kind='initial_build')
         names = {getattr(tool, 'name', '') for tool in agent.tools}
         self.assertTrue({'create_file', 'update_file'} <= names, names)
+
+    def test_prompt_quotes_the_real_time_budget(self):
+        # The agent paces itself by the number in its prompt, so that number is
+        # read from the same setting that stops the run.
+        self.assertIn(
+            f"about {INITIAL_BUILD_TIME_BUDGET_S} seconds",
+            INITIAL_BUILD_INSTRUCTIONS,
+        )
+
+    def test_prompt_scopes_the_build_to_the_home_page_alone(self):
+        # Half a minute buys one good write. Anything split across files can be
+        # cut off mid-way holding a dangling import, which discards the build.
+        self.assertIn(
+            'frontend/vuejs/src/apps/home/views/HomeView.vue',
+            INITIAL_BUILD_INSTRUCTIONS,
+        )
+        for rule in (
+            'Do NOT create component files',
+            'do NOT add other pages',
+            'do NOT add routes',
+        ):
+            self.assertIn(rule, INITIAL_BUILD_INSTRUCTIONS)
+
+    def test_prompt_wires_in_the_prebuilt_auth_pages(self):
+        # The auth app is prebuilt and left untouched; the first build's job is
+        # to bring its two pages into the home page it writes.
+        for path in ("'/auth/signin'", "'/auth/register'"):
+            self.assertIn(path, INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('useAuthStore', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn(
+            "Do NOT open, restyle, or modify anything under "
+            "'frontend/vuejs/src/apps/auth/'",
+            INITIAL_BUILD_INSTRUCTIONS,
+        )
 
     def test_initial_build_runs_at_its_configured_effort(self):
         # Set explicitly for the role, so a per-request effort meant for the

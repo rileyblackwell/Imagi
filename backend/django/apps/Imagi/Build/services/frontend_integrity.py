@@ -21,7 +21,14 @@ them:
    complaint and resolves to NO routes at all, so every URL — including the
    home page — falls through to the 404 page.
 
-Both scans run without booting anything, so a run's output can be checked
+3. Auth pages nothing links to. Every project is created with working
+   sign-in and register pages and a home page linking to both; a first build
+   that rewrites that home page can drop the links, leaving pages that exist
+   but cannot be reached. This one is advisory rather than blocking — a good
+   page with no sign-in link still beats the untouched scaffold — so it feeds
+   a repair run, and the caller decides what an unrepaired one is worth.
+
+Every scan runs without booting anything, so a run's output can be checked
 before it reaches the tree the preview serves. They are deliberately
 conservative: a clean project always scans clean, because a false positive
 discards a build that was actually fine.
@@ -277,6 +284,72 @@ def describe_router_contract_problems(problems):
     """Render broken router contracts as a bulleted list for an agent prompt."""
     shown = problems[:MAX_REPORTED_PROBLEMS]
     lines = [f"- {p['file']} {p['detail']}" for p in shown]
+    if len(problems) > len(shown):
+        lines.append(f"- ... and {len(problems) - len(shown)} more")
+    return "\n".join(lines)
+
+
+# The routes the prebuilt auth app serves. The scaffolded home page ships
+# linking to both, so a home app that references neither has lost them.
+AUTH_LINK_PATHS = ('/auth/signin', '/auth/register')
+
+# The app whose pages are the way into the auth pages: '/' lives here.
+LANDING_APP = 'home'
+
+
+def find_auth_link_problems(root, app_name=LANDING_APP):
+    """Find prebuilt auth pages the landing app stopped linking to.
+
+    Every project is created with a working sign-in and register page and a
+    home page that links to both. A first build rewrites that home page
+    wholesale, and a rewrite that drops the links leaves the founder an app
+    whose auth pages exist but cannot be reached from anywhere. Nothing else
+    notices: it compiles, loads, and looks finished.
+
+    Unlike the two checks above, this one is advisory — see
+    initial_build_service, which prefers shipping a page that fails it to
+    handing the founder the untouched scaffold.
+
+    Args:
+        root: The project tree to scan (a project_path or a task worktree).
+        app_name: The frontend app that owns the landing page.
+
+    Returns:
+        list[dict]: ``{'path': '/auth/...'}`` for each auth route the app's
+        source no longer references anywhere, in a stable order. A project
+        without an auth app, or without that landing app, yields [] — this
+        reports a link that was lost, it does not require one to exist.
+    """
+    src_root = os.path.join(root or '', FRONTEND_SRC)
+    auth_app = os.path.join(src_root, 'apps', 'auth')
+    app_root = os.path.join(src_root, 'apps', app_name)
+    if not os.path.isdir(auth_app) or not os.path.isdir(app_root):
+        return []
+
+    # Read the app whole: a link counts wherever it lives, so a build that
+    # moved the header into a layout component is not reported.
+    sources = []
+    for source_file in _iter_source_files(app_root):
+        try:
+            with open(source_file, 'r', encoding='utf-8') as f:
+                sources.append(f.read())
+        except (OSError, UnicodeDecodeError) as e:
+            logger.warning(f"Could not read {source_file} for auth link check: {e}")
+    if not sources:
+        return []
+
+    app_source = "\n".join(sources)
+    return [
+        {'path': path} for path in AUTH_LINK_PATHS if path not in app_source
+    ]
+
+
+def describe_auth_link_problems(problems):
+    """Render lost auth links as a bulleted list for an agent prompt."""
+    shown = problems[:MAX_REPORTED_PROBLEMS]
+    lines = [
+        f"- nothing links to '{p['path']}' any more" for p in shown
+    ]
     if len(problems) > len(shown):
         lines.append(f"- ... and {len(problems) - len(shown)} more")
     return "\n".join(lines)

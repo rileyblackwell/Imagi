@@ -1,8 +1,8 @@
 """
 Initial AI build service.
 
-When a user creates a project (their business), the business name and
-description they provided become the first build prompt for the coding
+When a user creates a project (their business), the name, description and any
+style preferences they provided become the first build prompt for the coding
 agent. The build runs in a background thread so project creation stays
 fast; by the time the user enters build mode the workspace already has a
 tailored starting point instead of the generic scaffold.
@@ -16,17 +16,33 @@ its result is merged in one step when it is finished and sound.
 
 The build is bounded by wall-clock time, not by how much it manages to build:
 the founder is waiting on it, so the whole thing — first run plus any repair
-runs — shares one deadline (IMAGI_BUILDER['INITIAL_BUILD_TIME_BUDGET_S']) and
-ships whatever is finished and sound when that runs out. This degrades safely
-because the project already holds a working home + auth scaffold the moment it
-is created: a build that runs short means less tailoring, never a broken app.
+run — shares one deadline (IMAGI_BUILDER['INITIAL_BUILD_TIME_BUDGET_S'], sized
+so the founder waits about half a minute) and ships whatever is finished and
+sound when that runs out. This degrades safely because the project already
+holds a working home + auth scaffold the moment it is created: a build that
+runs short means less tailoring, never a broken app.
 
-"Sound" is enforced, not hoped for: a build cut short by a cap routinely leaves
-a page importing a component it never wrote, and Vite serves that as a "Failed
-to resolve import" error instead of the app. Before the worktree is merged, the
-frontend's import graph is checked; a build with dangling references gets
-follow-up repair runs from whatever time is left, and one that still doesn't
-resolve is never merged — the project keeps its clean, working scaffold.
+That deadline is what sets the scope. Half a minute buys one good write, so the
+subagent is pointed at exactly one thing (coding_agent.INITIAL_BUILD_GUIDANCE):
+rewrite the home page as a single self-contained component, with the prebuilt
+auth app's sign-in and register pages wired into its header and calls to
+action. Everything else a web app needs — the Vue and Django scaffolding, the
+auth app itself — is already on disk before this runs.
+
+"Sound" is enforced, not hoped for: a build cut short by a cap can leave a page
+importing a component it never wrote, and Vite serves that as a "Failed to
+resolve import" error instead of the app. Before the worktree is merged, the
+frontend's import graph is checked; a build with dangling references gets a
+follow-up repair run from whatever time is left, and one that still doesn't
+resolve is never merged — the project keeps its clean, working scaffold. The
+one-file scope is the first line of that defense: a page that imports nothing
+it wrote itself cannot dangle in the first place.
+
+A third check asks whether the page the build wrote still links to the sign-in
+and register pages, since a wholesale rewrite can quietly drop them and leave
+auth nothing points at. That one earns a repair run but never costs the build:
+a page that loads and is hard to sign into still beats the scaffold, so an
+unrepaired one is merged anyway.
 
 Build progress is tracked on the existing Project.generation_status field
 ('generating' -> 'completed'/'failed').
@@ -76,20 +92,24 @@ Business description (written by the founder):
         prompt += f"\n\nDesign & style preferences (from the founder):\n{design}"
 
     prompt += (
-        "\n\nBuild a tailored, polished first version that fits this business, "
-        "following your design direction. When you're done, briefly summarize "
-        "what you built."
+        "\n\nBuild a tailored, polished home page that fits this business, "
+        "following your design direction, and wire the prebuilt sign-in and "
+        "register pages into it. When you're done, briefly summarize what you "
+        "built."
     )
     return prompt
 
 
-def build_repair_prompt(problems, router_problems=()) -> str:
+def build_repair_prompt(problems, router_problems=(), auth_problems=()) -> str:
     """Ask the subagent to fix what is keeping its build from being applied.
 
-    Covers both blocking defects: references to files that were never created,
-    and an app router that stopped handing its routes to the root router.
+    Covers the two blocking defects — references to files that were never
+    created, and an app router that stopped handing its routes to the root
+    router — plus the one advisory defect: a home page that no longer links to
+    the prebuilt sign-in and register pages.
     """
     from apps.Imagi.Build.services.frontend_integrity import (
+        describe_auth_link_problems,
         describe_router_contract_problems,
         describe_unresolved_imports,
     )
@@ -124,6 +144,19 @@ def build_repair_prompt(problems, router_problems=()) -> str:
             "Do NOT call createRouter or createWebHistory in an app router — "
             "'frontend/vuejs/src/router' already does that and globs up every "
             "app's routes."
+        )
+
+    if auth_problems:
+        sections.append(
+            "Your home page dropped the links to the project's prebuilt "
+            "sign-in and register pages, so there is now no way into them:"
+            f"\n\n{describe_auth_link_problems(auth_problems)}\n\n"
+            "Add them back to the page you wrote, styled to match it: a "
+            "'Sign in' <router-link> to '/auth/signin' in the header, and a "
+            "create-account <router-link> to '/auth/register' as the header's "
+            "and the hero's call to action (word it for this business). Keep "
+            "both paths exact, and leave 'frontend/vuejs/src/apps/auth/' "
+            "itself untouched — those pages already work."
         )
 
     sections.append(
@@ -291,14 +324,73 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         close_old_connections()
 
 
+def _apply_despite_lost_auth_links(service, task, user, project_id, auth_problems) -> bool:
+    """Merge a build whose only remaining defect is a lost link to auth.
+
+    The auth-link gate blocks the automatic merge for one reason: to buy a
+    repair run while the worktree still exists. It is not a verdict on the
+    build. Once the repairs are spent, a home page tailored to the founder's
+    business but missing its 'Sign in' link is plainly worth more to them than
+    the untouched scaffold, and getting the link back is one sentence to their
+    main thread. The blocking checks have already passed by the time this
+    runs, so what merges here is a page that loads.
+
+    Returns whether the merge landed; a refusal leaves the project on its
+    scaffold exactly as before.
+    """
+    from apps.Imagi.Build.api.views import (
+        _apply_task_worktree,
+        _conversation_project,
+    )
+
+    # The merge rewrites the canonical tree, so it must not race a chat or lead
+    # run editing it — the same guard the automatic path applies.
+    if service._project_has_live_canonical_run(user, project_id):
+        logger.warning(
+            "Not applying the initial build for project %s: another run holds "
+            "the canonical tree",
+            project_id,
+        )
+        return False
+
+    project = _conversation_project(task)
+    if project is None:
+        return False
+
+    outcome = _apply_task_worktree(task, project)
+    if not outcome.get('ok'):
+        logger.error(
+            "Could not apply the initial build for project %s: %s",
+            project_id,
+            outcome.get('detail') or outcome.get('error'),
+        )
+        return False
+
+    logger.warning(
+        "Applied the initial build for project %s even though its home page no "
+        "longer links to %s — a tailored page beats the scaffold, and the links "
+        "are one request away",
+        project_id,
+        " or ".join(p['path'] for p in auth_problems),
+    )
+    return True
+
+
 def _build_and_apply(service, task, user, project_id, prompt, builder):
-    """Run the build, repairing dangling imports until the work can be applied.
+    """Run the build, repairing what stands between it and the project.
 
     Each run ends in the usual task finalization, which merges the worktree
-    only when its frontend actually resolves. So "was it applied?" is read
-    back off the conversation, and anything left unmerged with unresolved
-    imports gets a targeted repair run. Returns whether the work landed in
+    only when its frontend actually resolves, its app routers still export
+    their routes, and its home page still reaches the prebuilt auth pages. So
+    "was it applied?" is read back off the conversation, and anything left
+    unmerged gets a targeted repair run. Returns whether the work landed in
     the project.
+
+    The three defects are not weighted the same when the repairs run out. A
+    dangling import or a broken router means an app that does not load, so
+    that build is abandoned and the project keeps its scaffold. A missing auth
+    link only means a page that loads and is harder to sign into, so that one
+    ships anyway.
 
     The founder's wait is the binding constraint, so every run in this loop
     shares ONE deadline rather than getting a fresh budget: a build plus its
@@ -308,6 +400,7 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
     fixes.
     """
     from apps.Imagi.Build.services.frontend_integrity import (
+        find_auth_link_problems,
         find_router_contract_problems,
         find_unresolved_imports,
     )
@@ -343,13 +436,15 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
         if task.review_status == 'accepted':
             return True
 
-        # Not applied. A dangling reference or a broken app-router contract are
-        # the causes worth another run; anything else (a merge conflict, a git
-        # failure) needs the user.
+        # Not applied. A dangling reference, a broken app-router contract, or a
+        # home page that lost its way into the auth pages are the causes worth
+        # another run; anything else (a merge conflict, a git failure) needs
+        # the user.
         problems = find_unresolved_imports(task.worktree_path)
         router_problems = find_router_contract_problems(task.worktree_path)
-        blocking = len(problems) + len(router_problems)
-        if not blocking:
+        auth_problems = find_auth_link_problems(task.worktree_path)
+        found = len(problems) + len(router_problems) + len(auth_problems)
+        if not found:
             logger.error(
                 "Initial AI build for project %s finished but could not be applied "
                 "(review status %r)",
@@ -357,40 +452,49 @@ def _build_and_apply(service, task, user, project_id, prompt, builder):
                 task.review_status,
             )
             return False
-        if attempt >= attempts:
-            logger.error(
-                "Initial AI build for project %s still has %d unresolved import(s) "
-                "and %d router problem(s) after %d repair attempt(s)",
-                project_id,
-                len(problems),
-                len(router_problems),
-                attempts,
-            )
-            return False
 
         remaining = deadline_at - time.monotonic() if deadline_at else None
-        if remaining is not None and remaining < min_repair_seconds:
-            logger.warning(
-                "Initial AI build for project %s left %d blocking problem(s) with "
-                "only %.1fs of its time budget left; skipping repair so the project "
-                "keeps its working scaffold",
-                project_id,
-                blocking,
-                remaining,
-            )
+        out_of_attempts = attempt >= attempts
+        out_of_time = remaining is not None and remaining < min_repair_seconds
+        if out_of_attempts or out_of_time:
+            # Only the blocking defects are worth losing the build over.
+            if auth_problems and not problems and not router_problems:
+                return _apply_despite_lost_auth_links(
+                    service, task, user, project_id, auth_problems
+                )
+            if out_of_attempts:
+                logger.error(
+                    "Initial AI build for project %s still has %d unresolved "
+                    "import(s) and %d router problem(s) after %d repair attempt(s)",
+                    project_id,
+                    len(problems),
+                    len(router_problems),
+                    attempts,
+                )
+            else:
+                logger.warning(
+                    "Initial AI build for project %s left %d problem(s) with only "
+                    "%.1fs of its time budget left; skipping repair so the project "
+                    "keeps its working scaffold",
+                    project_id,
+                    found,
+                    remaining,
+                )
             return False
 
         logger.warning(
-            "Initial AI build for project %s left %d unresolved import(s) and %d "
-            "router problem(s); starting repair run %d/%d with %s of time budget left",
+            "Initial AI build for project %s left %d unresolved import(s), %d "
+            "router problem(s) and %d lost auth link(s); starting repair run "
+            "%d/%d with %s of time budget left",
             project_id,
             len(problems),
             len(router_problems),
+            len(auth_problems),
             attempt + 1,
             attempts,
             f"{remaining:.1f}s" if remaining is not None else "no limit",
         )
-        user_input = build_repair_prompt(problems, router_problems)
+        user_input = build_repair_prompt(problems, router_problems, auth_problems)
         max_turns = builder.get('INITIAL_BUILD_REPAIR_MAX_TURNS')
         cost_budget = builder.get('INITIAL_BUILD_REPAIR_COST_BUDGET_USD')
 

@@ -169,6 +169,20 @@ class RunDeadlineExceeded(Exception):
         )
 
 
+def response_has_tool_calls(response) -> bool:
+    """Whether a model response asked for tool calls that have yet to run.
+
+    The SDK names every tool item's type with a '_call' suffix ('function_call',
+    'file_search_call', ...), and reasoning/message items never end that way, so
+    the suffix is a stable test across tool kinds.
+    """
+    for item in getattr(response, 'output', None) or ():
+        item_type = getattr(item, 'type', '') or ''
+        if item_type.endswith('_call'):
+            return True
+    return False
+
+
 def make_run_bounds_hook(
     model_id: str,
     budget_usd: Optional[float] = None,
@@ -178,6 +192,13 @@ def make_run_bounds_hook(
 
     Both are checked after each model turn — the only point the SDK hands us
     control — so a run overshoots by at most the turn in flight.
+
+    A turn that ends over its bound while holding tool calls is allowed to run
+    them before the run stops. Raising immediately would throw that turn's work
+    away, and for the initial build the turn in flight is usually THE turn: the
+    agent spends most of its half-minute generating one large file, and a page
+    generated but never written to disk is a build that produced nothing. Tool
+    execution is a file write, so waiting for it costs milliseconds.
 
     deadline_at is an absolute time.monotonic() value, so a multi-run build can
     share one deadline across its runs instead of giving each a fresh budget.
@@ -194,11 +215,16 @@ def make_run_bounds_hook(
     started_at = time.monotonic()
 
     class _RunBoundsHook(RunHooks):
-        async def on_llm_end(self, context, agent, response):  # noqa: ANN001
+        # Set once a bound is passed on a turn whose tool calls still need to
+        # run; raised before the next model turn starts instead.
+        deferred_stop = None
+
+        def _exceeded_bound(self, context):
+            """The exception for whichever bound this turn passed, if any."""
             if has_deadline:
                 now = time.monotonic()
                 if now >= deadline_at:
-                    raise RunDeadlineExceeded(
+                    return RunDeadlineExceeded(
                         now - started_at, deadline_at - started_at
                     )
             if has_budget:
@@ -207,7 +233,27 @@ def make_run_bounds_hook(
                 output_tokens = getattr(usage, 'output_tokens', 0) or 0
                 cost = compute_cost_usd(model_id, input_tokens, output_tokens)
                 if cost is not None and cost >= budget_usd:
-                    raise RunBudgetExceeded(cost, budget_usd)
+                    return RunBudgetExceeded(cost, budget_usd)
+            return None
+
+        async def on_llm_start(self, context, agent, system_prompt, input_items):  # noqa: ANN001
+            # The previous turn's tools have run by now, so this is the first
+            # moment a deferred stop costs nothing.
+            if self.deferred_stop is not None:
+                raise self.deferred_stop
+
+        async def on_llm_end(self, context, agent, response):  # noqa: ANN001
+            # Reached only on an SDK without on_llm_start: the deferred turn's
+            # tools have long since run, so stop here rather than never.
+            if self.deferred_stop is not None:
+                raise self.deferred_stop
+            exceeded = self._exceeded_bound(context)
+            if exceeded is None:
+                return
+            if response_has_tool_calls(response):
+                self.deferred_stop = exceeded
+                return
+            raise exceeded
 
     return _RunBoundsHook()
 
@@ -1021,8 +1067,9 @@ class ImagiAgentService:
         Returns True when the changes were applied (the task is now
         'accepted'); False when we deliberately leave it for a manual review —
         a broken frontend import graph, an app router that stopped exporting its
-        routes, a live canonical run we must not merge across, a merge conflict,
-        a stale base, or any git-level failure.
+        routes, a first build that dropped its links to the prebuilt auth pages,
+        a live canonical run we must not merge across, a merge conflict, a stale
+        base, or any git-level failure.
         Best-effort by contract: it never raises, so any trouble simply parks
         the task at 'ready' for the user.
         """
@@ -1035,6 +1082,8 @@ class ImagiAgentService:
         if self._worktree_import_problems(conversation):
             return False
         if self._worktree_router_problems(conversation):
+            return False
+        if self._worktree_auth_link_problems(conversation):
             return False
         try:
             from ..api.views import _apply_task_worktree, _conversation_project
@@ -1122,6 +1171,40 @@ class ImagiAgentService:
                 len(problems),
                 problems[0]['file'],
                 problems[0]['detail'],
+            )
+        return problems
+
+    def _worktree_auth_link_problems(self, conversation) -> List[Dict[str, str]]:
+        """Prebuilt auth pages the first build's home page stopped linking to.
+
+        Only the initial build is checked, and only it can be: the page it
+        rewrites is the scaffold's, which ships those links, so their absence
+        means the run dropped them. Later tasks restructure headers for the
+        user all the time, and the same check there would fight them.
+
+        Blocking the merge here is how the repair run gets to happen at all —
+        it needs the worktree, which the merge removes. It is not the last
+        word: initial_build_service ships a page that still fails this rather
+        than handing the founder the untouched scaffold. Best-effort, like the
+        checks above: an error reports no problems.
+        """
+        if self.agent_kind != 'initial_build':
+            return []
+        worktree_path = getattr(conversation, 'worktree_path', '') or ''
+        if not worktree_path:
+            return []
+        try:
+            from .frontend_integrity import find_auth_link_problems
+            problems = find_auth_link_problems(worktree_path)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not check auth links before applying: {e}")
+            return []
+        if problems:
+            logger.warning(
+                "Not auto-applying conversation %s yet: its home page links to "
+                "neither %s",
+                getattr(conversation, 'id', None),
+                " nor ".join(p['path'] for p in problems),
             )
         return problems
 

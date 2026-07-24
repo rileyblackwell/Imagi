@@ -617,6 +617,66 @@ class InitialBuildServiceTests(TestCase):
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
 
+    def test_a_home_page_that_dropped_its_auth_links_is_repaired(self):
+        # The build compiles and looks finished, but nothing on it reaches the
+        # sign-in or register pages the project already ships.
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_auth_link_problems',
+            return_value=[{'path': '/auth/register'}],
+        ):
+            calls = self._run_build(['leave', 'accept'], unresolved=[])
+
+        self.assertEqual(len(calls), 2, 'a home page with no way into auth was shipped as-is')
+        repair_prompt = calls[1]['user_input']
+        self.assertIn('/auth/register', repair_prompt)
+        self.assertIn('/auth/signin', repair_prompt)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_an_unrepaired_auth_link_still_ships_the_page(self):
+        # Unlike a dangling import, this build loads — it is just harder to
+        # sign into. A tailored page beats handing the founder the scaffold,
+        # so once the repairs are spent it is merged anyway.
+        from apps.Imagi.Build import api as build_api
+
+        attempts = settings.IMAGI_BUILDER['INITIAL_BUILD_REPAIR_ATTEMPTS']
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_auth_link_problems',
+            return_value=[{'path': '/auth/register'}],
+        ), patch.object(
+            build_api.views, '_apply_task_worktree', return_value={'ok': True}
+        ) as apply_worktree:
+            calls = self._run_build(['leave'] * (attempts + 1), unresolved=[])
+
+        self.assertEqual(len(calls), attempts + 1)
+        apply_worktree.assert_called_once()
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_a_dangling_import_alongside_it_is_still_discarded(self):
+        # The soft treatment is only for the auth links. A build that does not
+        # load is abandoned however it got there.
+        from apps.Imagi.Build import api as build_api
+
+        attempts = settings.IMAGI_BUILDER['INITIAL_BUILD_REPAIR_ATTEMPTS']
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_auth_link_problems',
+            return_value=[{'path': '/auth/register'}],
+        ), patch.object(
+            build_api.views, '_apply_task_worktree', return_value={'ok': True}
+        ) as apply_worktree:
+            self._run_build(
+                ['leave'] * (attempts + 1),
+                unresolved=[{
+                    'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
+                    'import': '@/shared/components/SiteHeader.vue',
+                }],
+            )
+
+        apply_worktree.assert_not_called()
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'failed')
+
     def test_repair_prompt_covers_imports_and_routers_together(self):
         from apps.Imagi.ProjectManager.services.initial_build_service import (
             build_repair_prompt,
@@ -760,6 +820,15 @@ class ScaffoldWiringTests(TestCase):
         )
         self.assertIn('/auth/signin', home_view)
         self.assertIn('/auth/register', home_view)
+
+    def test_a_freshly_scaffolded_project_passes_the_auth_link_check(self):
+        # The check gates the first build's merge, so a false positive on a
+        # clean project would block every build there is.
+        from apps.Imagi.Build.services.frontend_integrity import (
+            find_auth_link_problems,
+        )
+
+        self.assertEqual(find_auth_link_problems(self.project.project_path), [])
 
     def test_scaffolded_files_are_mirrored_to_database(self):
         # Disk is the source of truth; the DB mirror should hold the same

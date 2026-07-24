@@ -273,12 +273,14 @@ IMAGI_BUILDER = {
     # project already holds a working home + auth scaffold from the moment it is
     # created, so a build that stops early degrades to "less tailoring", never
     # to a broken or empty app.
-    # Held a little under a minute on purpose: this bounds the agent's own run,
-    # and the founder additionally waits on the work either side of it (worktree
-    # setup, then the merge and database mirror on the way out) — measured at
-    # ~2s combined. 55 keeps the end-to-end wait under a minute.
+    # The target is a 30-second wait, so the agent's own run gets 28: the
+    # founder additionally waits on the work either side of it (worktree setup,
+    # then the merge and database mirror on the way out) — measured at ~2s
+    # combined. Half a minute is what the scope below is sized for: one
+    # self-contained home page, which is all a founder needs to see to know the
+    # build understood their business.
     'INITIAL_BUILD_MODEL': 'gpt-5.6-terra',
-    'INITIAL_BUILD_TIME_BUDGET_S': 55,
+    'INITIAL_BUILD_TIME_BUDGET_S': 28,
     # First builds create UI from a description rather than reasoning about
     # existing code, so they run at low effort: it roughly halves per-turn
     # latency, which buys more pages inside the time budget than deeper
@@ -290,20 +292,23 @@ IMAGI_BUILDER = {
     # run is displayed as costing), which are a multiple of the underlying API
     # price — so this is deliberately well above real expected spend. Sized so
     # it never cuts a build short on its own; time does that.
-    'INITIAL_BUILD_COST_BUDGET_USD': 3.00,
-    'INITIAL_BUILD_MAX_TURNS': 24,
+    'INITIAL_BUILD_COST_BUDGET_USD': 1.50,
+    'INITIAL_BUILD_MAX_TURNS': 12,
     # A build that stops at a cap can leave a page importing a component it
     # never wrote, which takes the whole preview down. Such a build is not
-    # merged; instead the subagent gets up to this many short follow-up runs to
-    # repair the dangling references — but only from whatever time is left in
-    # the budget above, so repair can never extend the founder's wait.
-    'INITIAL_BUILD_REPAIR_ATTEMPTS': 2,
-    'INITIAL_BUILD_REPAIR_COST_BUDGET_USD': 1.00,
-    'INITIAL_BUILD_REPAIR_MAX_TURNS': 12,
+    # merged; instead the subagent gets a short follow-up run to repair the
+    # dangling references — but only from whatever time is left in the budget
+    # above, so repair can never extend the founder's wait. At half a minute
+    # there is rarely room for even one, which is why the first-build prompt
+    # asks for a single self-contained file: a build that writes no cross-file
+    # references cannot leave a dangling one to repair.
+    'INITIAL_BUILD_REPAIR_ATTEMPTS': 1,
+    'INITIAL_BUILD_REPAIR_COST_BUDGET_USD': 0.50,
+    'INITIAL_BUILD_REPAIR_MAX_TURNS': 6,
     # Skip a repair run that cannot plausibly finish in the time left, rather
     # than starting one that will be killed mid-edit (which tends to leave more
     # dangling references than it fixes).
-    'INITIAL_BUILD_MIN_REPAIR_SECONDS': 12,
+    'INITIAL_BUILD_MIN_REPAIR_SECONDS': 8,
     # Attach OpenAI's hosted web-search tool to the agent.
     'ENABLE_WEB_SEARCH': True,
     # Apps scaffolded into every new project. Payment pages are deliberately
