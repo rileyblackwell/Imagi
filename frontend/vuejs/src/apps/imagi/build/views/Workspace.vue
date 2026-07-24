@@ -159,7 +159,7 @@ defineOptions({ name: 'Workspace' })
 // Types
 import type { ProjectFile } from '../types/components'
 import type { AIMessage } from '../types/index'
-import type { CheckInDto, ReasoningEffort } from '../types/services'
+import type { CheckInDto, DispatchedTaskRef, ReasoningEffort } from '../types/services'
 import { matchesSlug, toSlug } from '../utils/slug'
 
 // Ensure all services use the shared API client with proper timeout configurations
@@ -525,6 +525,9 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
     let sawActivity = false
     let sawPlan = false
     let sawFileEdit = false
+    // Subagent links accumulated across this run's dispatch events, rendered
+    // as clickable cards on the reply (patchMessage replaces the field whole).
+    let dispatchedRefs: DispatchedTaskRef[] = []
 
     // A run interrupted by Stop or the turn cap has still edited files on
     // disk (and the backend persisted its files_changed metadata) — without
@@ -616,6 +619,16 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
             // in parallel, while this run keeps streaming. They edit their own
             // worktrees, so they neither block nor are blocked by this one.
             store.startDispatchedTasks(tasks)
+            // Link the subagents into the reply itself, so the work is one
+            // click away and the main thread stays a clean summary.
+            ensureAssistantMessage()
+            dispatchedRefs = [
+              ...dispatchedRefs,
+              ...tasks.map(t => ({ conversationId: t.conversation_id, title: t.title || '' }))
+            ]
+            store.patchMessage(instanceId, streamingMessageId, {
+              dispatchedTasks: dispatchedRefs
+            })
           },
         },
         abortController.signal

@@ -516,6 +516,7 @@ export const useAgentStore = defineStore('agent', {
           plan: m.plan,
           activity: m.activity,
           filesChanged: m.filesChanged,
+          dispatchedTasks: m.dispatchedTasks,
           usage: m.usage,
           dbId: m.id,
           checkpoint: m.checkpoint,

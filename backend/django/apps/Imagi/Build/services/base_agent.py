@@ -324,11 +324,29 @@ def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
     return payload
 
 
+def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+    """Display-safe refs to a run's dispatched tasks, for persisted metadata.
+
+    Keeps just enough to render the transcript's subagent link after a reload
+    (the conversation id and title) — the brief already lives on the task
+    conversation itself.
+    """
+    if not dispatched:
+        return None
+    refs = [
+        {"conversation_id": t.get("conversation_id"), "title": t.get("title") or ""}
+        for t in dispatched
+        if t.get("conversation_id")
+    ]
+    return refs or None
+
+
 def build_message_metadata(
     tool_calls: Optional[List[Dict[str, Any]]] = None,
     files_changed: Optional[List[str]] = None,
     plan: Optional[List[Dict[str, str]]] = None,
     usage: Optional[Dict[str, Any]] = None,
+    dispatched_tasks: Optional[List[Dict[str, Any]]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Assemble AgentMessage.metadata from a run's artifacts.
 
@@ -345,6 +363,8 @@ def build_message_metadata(
         metadata["plan"] = plan
     if usage:
         metadata["usage"] = usage
+    if dispatched_tasks:
+        metadata["dispatched_tasks"] = dispatched_tasks
     return metadata or None
 
 
@@ -1000,6 +1020,7 @@ class ImagiAgentService:
                     files_changed=metadata["files_changed"],
                     plan=list(context.plan),
                     usage=usage,
+                    dispatched_tasks=dispatch_task_refs(context.dispatched_tasks),
                 ),
             )
             persisted = True
@@ -1103,6 +1124,12 @@ class ImagiAgentService:
                             tool_calls=extract_tool_call_records(result),
                             files_changed=extract_run_metadata(result)["files_changed"],
                             plan=list(context.plan) if context is not None else None,
+                            # A dispatch that happened before the interruption
+                            # is real — its subagents are running — so the
+                            # transcript keeps their links.
+                            dispatched_tasks=dispatch_task_refs(
+                                context.dispatched_tasks if context is not None else None
+                            ),
                         )
                         await sync_to_async(self.add_assistant_message)(
                             conversation, partial, partial_metadata
@@ -1184,6 +1211,7 @@ class ImagiAgentService:
                     files_changed=metadata["files_changed"],
                     plan=list(context.plan),
                     usage=usage,
+                    dispatched_tasks=dispatch_task_refs(context.dispatched_tasks),
                 ),
             )
             self._finalize_task_run(conversation, context, response_content)

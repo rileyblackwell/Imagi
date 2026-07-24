@@ -223,6 +223,13 @@ export interface DispatchedTaskDto {
   model_name: string;
 }
 
+/** A transcript's link to a subagent the lead kicked off during that reply —
+ *  just enough to render the card and jump to the task's thread. */
+export interface DispatchedTaskRef {
+  conversationId: number;
+  title: string;
+}
+
 export interface ConversationDto {
   id: number;
   title: string;
@@ -303,6 +310,9 @@ export interface AIMessage {
   activity?: AgentActivityStep[];
   /** Project files the agent changed during this reply */
   filesChanged?: string[];
+  /** Subagents the lead kicked off during this reply — rendered as links
+   *  into their threads so the work is one click away from the main thread */
+  dispatchedTasks?: DispatchedTaskRef[];
   /** Run usage, when the backend reported it (absent means unknown, never free) */
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number };
   /** Backend AgentMessage id, once known (hydration or the start event) */

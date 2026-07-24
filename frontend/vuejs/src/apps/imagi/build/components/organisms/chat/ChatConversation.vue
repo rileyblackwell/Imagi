@@ -59,6 +59,32 @@
                 v-if="message.content && message.content.trim().length > 0"
                 v-html="formatMessage(message, index)"
               />
+              <!-- Subagents this reply kicked off. The work streams in their
+                   own threads — the main thread keeps just these cards, each
+                   one click from watching the subagent build. -->
+              <div v-if="message.dispatchedTasks?.length" class="mt-2 flex flex-col gap-1.5">
+                <button
+                  v-for="task in message.dispatchedTasks"
+                  :key="task.conversationId"
+                  type="button"
+                  class="dispatch-card group flex items-center gap-2.5 w-full rounded-xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-2 text-left transition-colors hover:bg-blue-100/60 dark:hover:bg-white/[0.07]"
+                  :title="`Open this subagent's thread`"
+                  @click="emit('open-task', task.conversationId)"
+                >
+                  <span class="dispatch-chip flex items-center justify-center w-6 h-6 rounded-lg shrink-0">
+                    <i class="fas fa-robot text-[10px]"></i>
+                  </span>
+                  <span class="flex-1 min-w-0">
+                    <span class="block text-[12px] font-semibold text-blue-950/85 dark:text-white/85 truncate">
+                      {{ task.title || 'Background subagent' }}
+                    </span>
+                    <span class="block text-[10px] text-blue-950/45 dark:text-white/40">
+                      {{ dispatchStatus(task.conversationId) }}
+                    </span>
+                  </span>
+                  <i class="fas fa-chevron-right text-[10px] text-blue-950/30 dark:text-white/30 group-hover:text-blue-950/60 dark:group-hover:text-white/60 transition-colors shrink-0"></i>
+                </button>
+              </div>
               <div v-if="message.filesChanged?.length" class="mt-2">
                 <span
                   class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-blue-950/70 dark:text-white/60"
@@ -118,6 +144,7 @@ import { ref, nextTick, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import type { AIMessage } from '@/apps/imagi/build/types/services'
 import AgentActivityFeed from '@/apps/imagi/build/components/molecules/chat/AgentActivityFeed.vue'
 import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/AgentPlanChecklist.vue'
+import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
 
 marked.setOptions({
   gfm: true,
@@ -161,7 +188,28 @@ const showActivityIndicator = computed(() => {
 const emit = defineEmits<{
   (e: 'apply-code', code: string): void
   (e: 'restore-checkpoint', message: AIMessage): void
+  /** A dispatch card was clicked — open that subagent's thread */
+  (e: 'open-task', conversationId: number): void
 }>()
+
+// Dispatch cards show the subagent's live state, so the store is read
+// directly — the card in an old reply keeps telling the truth as the task
+// progresses (working → finished → added), without threading props through.
+const agentStore = useAgentStore()
+
+/** Status line for a dispatch card. Mirrors the manager's card wording. */
+function dispatchStatus(conversationId: number): string {
+  const instance = agentStore.instances.find(i => i.conversationId === conversationId)
+  if (!instance) return 'Subagent'
+  if (instance.isProcessing) return 'Working in the background…'
+  switch (instance.reviewStatus) {
+    case 'input': return 'Asked you a question'
+    case 'ready': return 'Finished — waiting on you'
+    case 'accepted': return 'Added to your app'
+    case 'dismissed': return 'Discarded'
+    default: return 'Starting…'
+  }
+}
 
 // Refs and reactive state
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -352,6 +400,19 @@ const copyToClipboard = (code: string) => {
    user bubble opens a turn with extra breathing room above it. */
 .msg-row + .msg-row {
   margin-top: 1rem;
+}
+
+/* Dispatch-card chip: same navy-ink / cream pairing as the check-in queue. */
+.dispatch-chip {
+  background: rgba(23, 37, 84, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
+  color: rgba(23, 37, 84, 0.8);
+}
+
+.dark .dispatch-chip {
+  background: rgba(243, 237, 226, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: rgba(243, 237, 226, 0.9);
 }
 
 .msg-row + .user-row {

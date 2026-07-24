@@ -829,8 +829,20 @@ CODING_AGENT_TOOLS = [
     delete_directory,
 ]
 
-# Role-specific extras layered on top of CODING_AGENT_TOOLS by
-# coding_agent.create_coding_agent: the lead thread can delegate, a task
-# subagent can hand a question back to the user.
+# Read-only surface for the lead thread. The lead coordinates but never edits:
+# it can discover and read the project (to answer questions and scope briefs)
+# but gets none of the file-writing tools, so all building happens on
+# background subagents and the main thread stays free.
+LEAD_AGENT_READONLY_TOOLS = [
+    get_project_tree,
+    list_project_files,
+    glob_files,
+    grep_files,
+    read_file,
+]
+
+# Role-specific extras. The chat/task roles build on CODING_AGENT_TOOLS; the
+# lead builds on LEAD_AGENT_READONLY_TOOLS (above). The lead can delegate, and
+# a task subagent can hand a question back to the user.
 LEAD_AGENT_EXTRA_TOOLS = [dispatch_task]
 TASK_AGENT_EXTRA_TOOLS = [ask_user]

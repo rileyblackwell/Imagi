@@ -7,6 +7,7 @@ import type {
   CheckInDto,
   ConversationKind,
   DispatchedTaskDto,
+  DispatchedTaskRef,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -90,6 +91,8 @@ export function labelForTool(name: string, args?: Record<string, string>): strin
     case 'create_app': return 'Created an app'
     case 'create_directory':
     case 'delete_directory': return 'Organized project folders'
+    case 'dispatch_task': return 'Kicked off a subagent'
+    case 'ask_user': return 'Asked you a question'
     default: return 'Worked on the project'
   }
 }
@@ -111,6 +114,8 @@ interface PersistedMessageMetadata {
   files_changed?: string[]
   plan?: AgentPlanStep[]
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
+  /** Subagents the lead dispatched during this reply (id + title refs) */
+  dispatched_tasks?: Array<{ conversation_id?: number; title?: string }>
   /** Pre-run project snapshot, stamped on user messages only */
   checkpoint?: string
 }
@@ -124,6 +129,7 @@ export interface ConversationMessageDto {
   plan?: AgentPlanStep[]
   activity?: AgentActivityStep[]
   filesChanged?: string[]
+  dispatchedTasks?: DispatchedTaskRef[]
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
   checkpoint?: string
 }
@@ -545,6 +551,12 @@ export const AgentService = {
       }
       if (Array.isArray(meta.files_changed) && meta.files_changed.length > 0) {
         dto.filesChanged = meta.files_changed
+      }
+      if (Array.isArray(meta.dispatched_tasks) && meta.dispatched_tasks.length > 0) {
+        const refs = meta.dispatched_tasks
+          .filter(t => typeof t?.conversation_id === 'number')
+          .map(t => ({ conversationId: t.conversation_id!, title: t.title || '' }))
+        if (refs.length > 0) dto.dispatchedTasks = refs
       }
       // Hydrate whatever usage fields were captured — tokens can exist
       // without cost and vice versa. No fields at all means unknown, so the

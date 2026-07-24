@@ -33,6 +33,7 @@
         :status-text="activeInstance?.statusText || ''"
         :can-restore="canRestoreCheckpoints"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
+        @open-task="onOpenTask"
         class="flex-1"
       />
     </div>
@@ -405,6 +406,13 @@ function onSkipCheckIn(checkIn: CheckInDto) {
 /** Open the task's read-only thread to see what it actually did. */
 async function onViewCheckIn(checkIn: CheckInDto) {
   const instance = store.instances.find(i => i.conversationId === checkIn.task.id)
+  if (instance) await store.switchInstance(instance.id)
+}
+
+/** A dispatch card in the transcript was clicked — open that subagent's
+ *  thread so the user can watch it work (the main thread stays clean). */
+async function onOpenTask(conversationId: number) {
+  const instance = store.instances.find(i => i.conversationId === conversationId)
   if (instance) await store.switchInstance(instance.id)
 }
 
