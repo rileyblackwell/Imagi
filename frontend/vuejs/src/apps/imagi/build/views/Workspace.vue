@@ -507,8 +507,10 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
       id: userMessageId
     })
 
-    // Auto-title from first user prompt (mirror backend behaviour for UI snappiness)
-    if (!instance.title) {
+    // Auto-title from first user prompt (mirror backend behaviour for UI
+    // snappiness). Not for the lead thread: it renders as "Main agent" and its
+    // name is never shown, so naming it would be a write nobody reads.
+    if (!instance.title && instance.kind !== 'lead') {
       const firstLine = promptText.trim().split('\n')[0] || ''
       void store.renameInstance(instanceId, firstLine.slice(0, 80))
     }

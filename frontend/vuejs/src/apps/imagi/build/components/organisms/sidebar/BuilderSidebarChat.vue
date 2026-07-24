@@ -1,6 +1,9 @@
 <template>
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-    <!-- Header: manager toggle + instance title. Version restores live
+    <!-- Header: manager toggle + who you're talking to. There is only one
+         thread the user drives, so it is simply "Main agent" — no conversation
+         name to track. A subagent's read-only thread keeps its own name, which
+         is how you tell it apart from the main one. Version restores live
          inline in the transcript (the per-message checkpoint chips), so the
          header carries no history controls. -->
     <div class="shrink-0 relative flex items-center gap-2 px-3 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
@@ -18,7 +21,7 @@
         </div>
       </div>
       <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">
-        {{ activeInstance?.title || 'New instance' }}
+        {{ headerTitle }}
       </div>
       <!-- A background task's thread is a read-only record: the user directs
            everything from the main thread, so say which one they're in. -->
@@ -364,6 +367,13 @@ const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 // read-only record of what a background subagent did.
 const isTaskThread = computed(() => activeInstance.value?.kind === 'task')
 const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
+
+// The main thread is always just "the main agent" — its conversation name is
+// never surfaced, so there is nothing for the user to name or keep track of.
+// Subagent threads show their own name so it is obvious which one is open.
+const headerTitle = computed(() =>
+  isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : 'Main agent'
+)
 
 async function goToLead() {
   const lead = store.leadInstance

@@ -122,17 +122,16 @@ export const useAgentStore = defineStore('agent', {
       return state.instances.find(i => i.kind === 'lead' && !i.archivedAt) || null
     },
 
-    /** Tasks still being worked on, newest first. A running task always
-     *  belongs here — a re-prompted 'ready' task flips back to active
-     *  server-side before the local status resyncs. Tasks parked on a
-     *  question ('input') stay too: they are live work waiting on the user,
-     *  not finished work. */
-    taskFeedInstances(state): AgentInstance[] {
+    /** Every subagent whose work is not finished yet, newest first: running,
+     *  parked on a question, or done but not yet accepted/discarded. They are
+     *  one list because they are one thing to the user — an agent still on
+     *  the hook. What separates them is a status line, not a section. */
+    activeAgentInstances(state): AgentInstance[] {
       return state.instances
         .filter(
           i => i.kind === 'task' && !i.archivedAt &&
             (i.reviewStatus === 'active' || i.reviewStatus === 'input' ||
-              (i.reviewStatus === 'ready' && i.isProcessing))
+              i.reviewStatus === 'ready')
         )
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     },
@@ -142,14 +141,6 @@ export const useAgentStore = defineStore('agent', {
       return state.checkIns[0] ?? null
     },
 
-    /** Finished tasks whose worktree awaits an accept/dismiss decision.
-     *  Excludes running tasks: accepting mid-run would just 409. */
-    reviewInboxInstances(state): AgentInstance[] {
-      return state.instances.filter(
-        i => i.reviewStatus === 'ready' && !i.archivedAt && !i.isProcessing
-      )
-    },
-
     /** Tasks the lead dispatched whose run has not started yet. */
     pendingDispatchInstances(state): AgentInstance[] {
       return state.instances.filter(
@@ -157,11 +148,12 @@ export const useAgentStore = defineStore('agent', {
       )
     },
 
-    /** Everything demoted out of the live team view: archived threads,
-     *  legacy plain chats, tasks already accepted or dismissed — plus any
-     *  duplicate live lead (a backend race can leave two): it matches no
-     *  other section, so History is where it stays reachable for
-     *  archiving/deleting instead of becoming an invisible orphan. */
+    /** Subagents whose work is done with — accepted, discarded, or archived —
+     *  plus legacy plain chats and any duplicate live lead (a backend race can
+     *  leave two): it matches no other section, so History is where it stays
+     *  reachable for archiving/deleting instead of becoming an invisible
+     *  orphan. The live lead is the main agent's own thread and never
+     *  appears here; the manager is only ever about the subagents. */
     historyInstances(state): AgentInstance[] {
       const primaryLead =
         state.instances.find(i => i.kind === 'lead' && !i.archivedAt) || null

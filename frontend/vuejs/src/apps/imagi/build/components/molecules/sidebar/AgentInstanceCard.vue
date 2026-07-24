@@ -20,9 +20,15 @@
               : 'font-medium text-blue-950/80 dark:text-blue-100/75 group-hover:text-blue-950 dark:group-hover:text-white'
           ]"
         >
-          {{ instance.title || 'Untitled instance' }}
+          {{ instance.title || 'Untitled agent' }}
         </div>
-        <div class="flex items-center gap-1.5 mt-1 text-[10px] text-blue-950/40 dark:text-blue-100/45">
+        <!-- What this agent is doing right now. Active agents share one list,
+             so the status is what tells them apart. -->
+        <div class="flex items-center gap-1 mt-1 text-[10px]" :class="status.tone">
+          <i :class="[status.icon, 'text-[9px]']"></i>
+          <span class="truncate">{{ status.label }}</span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5 text-[10px] text-blue-950/40 dark:text-blue-100/45">
           <span>{{ relativeTime(instance.updatedAt) }}</span>
           <!-- Conversation-wide token total; null means never captured, so
                nothing renders (unknown, not "0 tokens") -->
@@ -31,10 +37,6 @@
             :title="`${instance.totalTokens.toLocaleString()} tokens used`"
           >
             · {{ formatTokens(instance.totalTokens) }} tokens
-          </span>
-          <span v-if="instance.isProcessing" class="ml-1 flex items-center gap-1 text-blue-600 dark:text-blue-300">
-            <i class="fas fa-circle-notch fa-spin text-[9px]"></i>
-            <span>running</span>
           </span>
         </div>
       </div>
@@ -73,14 +75,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import type { AgentInstance } from '../../../types/services'
 
-defineProps<{
+const props = defineProps<{
   instance: AgentInstance
   isActive: boolean
   isArchived?: boolean
 }>()
+
+/**
+ * One line describing where this agent stands. Running beats everything (a
+ * re-prompted agent is working again whatever its last outcome was), then the
+ * states that want the user, then the settled ones.
+ */
+const status = computed(() => {
+  const instance = props.instance
+  if (instance.isProcessing) {
+    return {
+      label: 'Working…',
+      icon: 'fas fa-circle-notch fa-spin',
+      tone: 'text-blue-600 dark:text-blue-300',
+    }
+  }
+  if (instance.archivedAt) {
+    return {
+      label: 'Archived',
+      icon: 'fas fa-box-archive',
+      tone: 'text-blue-950/40 dark:text-blue-100/40',
+    }
+  }
+  switch (instance.reviewStatus) {
+    case 'input':
+      return {
+        label: 'Asked you a question',
+        icon: 'fas fa-circle-question',
+        tone: 'text-blue-950/60 dark:text-blue-100/60',
+      }
+    case 'ready':
+      return {
+        label: 'Finished — waiting on you',
+        icon: 'fas fa-check',
+        tone: 'text-blue-950/60 dark:text-blue-100/60',
+      }
+    case 'accepted':
+      return {
+        label: 'Added to your app',
+        icon: 'fas fa-check-double',
+        tone: 'text-blue-950/40 dark:text-blue-100/40',
+      }
+    case 'dismissed':
+      return {
+        label: 'Discarded',
+        icon: 'fas fa-xmark',
+        tone: 'text-blue-950/40 dark:text-blue-100/40',
+      }
+    case 'active':
+      // A dispatched agent between creation and its run starting.
+      return {
+        label: 'Starting…',
+        icon: 'fas fa-hourglass-start',
+        tone: 'text-blue-950/45 dark:text-blue-100/45',
+      }
+    default:
+      return {
+        label: 'Idle',
+        icon: 'fas fa-comments',
+        tone: 'text-blue-950/40 dark:text-blue-100/40',
+      }
+  }
+})
 
 const emit = defineEmits<{
   (e: 'select'): void

@@ -522,10 +522,15 @@ class ImagiAgentService:
 
         Runs once — only when the just-persisted assistant message is the
         conversation's first reply — so later turns leave the established name
-        alone. Returns the new title, or None to leave the provisional
-        first-line title (set in add_user_message) in place.
+        alone. Skipped for the lead thread: it is simply "the main agent" in
+        the workspace and its name is never shown, so naming it would spend a
+        model call on a string nobody reads. Returns the new title, or None to
+        leave the provisional first-line title (set in add_user_message) in
+        place.
         """
         try:
+            if getattr(conversation, 'kind', 'chat') == 'lead':
+                return None
             if conversation.messages.filter(role="assistant").count() != 1:
                 return None
             title = generate_conversation_title(user_input, response_content)
