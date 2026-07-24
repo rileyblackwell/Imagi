@@ -7,9 +7,22 @@ agent. The build runs in a background thread so project creation stays
 fast; by the time the user enters build mode the workspace already has a
 tailored starting point instead of the generic scaffold.
 
+It runs the same way every other piece of building work does: the project's
+main thread (the 'lead' conversation) opens with the founder's brief and
+dispatches it to a background subagent (a 'task' conversation). That gives
+the first build the machinery every task already has — it builds in its own
+git worktree, so the project the preview serves is never half-written, and
+its result is merged in one step when it is finished and sound.
+
+"Sound" is enforced, not hoped for: a build cut short by its turn or cost cap
+routinely leaves a page importing a component it never wrote, and Vite serves
+that as a "Failed to resolve import" error instead of the app. Before the
+worktree is merged, the frontend's import graph is checked; a build with
+dangling references gets follow-up repair runs, and one that still doesn't
+resolve is never merged — the project keeps its clean, working scaffold.
+
 Build progress is tracked on the existing Project.generation_status field
-('generating' -> 'completed'/'failed'), and the run is persisted as an
-"Initial build" agent conversation so it shows up in the workspace chat.
+('generating' -> 'completed'/'failed').
 """
 
 import logging
@@ -20,6 +33,18 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+# Shown in the workspace as the subagent's thread name.
+TASK_TITLE = 'Initial build'
+
+# The lead thread's one-line acknowledgement, mirroring how it reports any
+# dispatch it makes. Written directly rather than generated: the lead's only
+# job here is to hand the brief over, and a model call to produce one fixed
+# sentence would just add latency and cost to project creation.
+LEAD_ACK = (
+    "On it — I've kicked off a subagent to build the first version of your app. "
+    "You can watch it work in its thread; I'll let you know when it's done."
+)
 
 
 def build_initial_prompt(name: str, description: str, design_preferences: str = "") -> str:
@@ -48,6 +73,23 @@ Business description (written by the founder):
         "what you built."
     )
     return prompt
+
+
+def build_repair_prompt(problems) -> str:
+    """Ask the subagent to fix imports that point at files it never created."""
+    from apps.Imagi.Build.services.frontend_integrity import describe_unresolved_imports
+
+    return (
+        "Your build is not finished: the frontend imports files that do not "
+        "exist, so the app fails to load with a \"Failed to resolve import\" "
+        "error. Fix every one of these:\n\n"
+        f"{describe_unresolved_imports(problems)}\n\n"
+        "For each: either create the missing file properly, or remove the "
+        "import and whatever depends on it (including its route entry). Do not "
+        "start any new pages or features — this run is only to make what you "
+        "already built load cleanly. Verify with grep_files/read_file that every "
+        "path you reference exists, then summarize what you fixed."
+    )
 
 
 def start_initial_build(project, user) -> bool:
@@ -82,60 +124,121 @@ def start_initial_build(project, user) -> bool:
     return True
 
 
+def _ensure_lead_conversation(service, user, project_id, model):
+    """The project's main thread, created if this is its first use.
+
+    The workspace converges on the same row (its create endpoint returns an
+    existing live lead rather than making a second one), so opening it here
+    means the founder finds the first build already in their main thread
+    instead of an empty workspace.
+    """
+    from apps.Imagi.Build.models import AgentConversation
+
+    lead = AgentConversation.objects.filter(
+        user=user, project_id=project_id, kind='lead', archived_at__isnull=True
+    ).order_by('created_at').first()
+    if lead is not None:
+        return lead
+    return service.create_conversation(
+        user, model, project_id=project_id, title='Main thread', kind='lead'
+    )
+
+
+def _open_lead_thread(service, lead, prompt, task):
+    """Record the dispatch in the main thread, the way a real one reads.
+
+    The founder's brief becomes the opening user message and the lead's
+    acknowledgement carries a reference to the subagent's thread, so the
+    transcript and its "watch the subagent" link match every later dispatch.
+    """
+    from apps.Imagi.Build.services.base_agent import (
+        build_message_metadata,
+        dispatch_task_refs,
+    )
+
+    service.add_user_message(lead, prompt)
+    service.add_assistant_message(
+        lead,
+        LEAD_ACK,
+        build_message_metadata(
+            dispatched_tasks=dispatch_task_refs(
+                [{'conversation_id': task.id, 'title': task.title}]
+            )
+        ),
+    )
+
+
+def _create_build_task(user, lead, project_id, model, prompt):
+    """Create the subagent conversation the first build runs in.
+
+    An ordinary kind='task' child of the lead: it gets a git worktree of its
+    own, auto-applies when it finishes cleanly, and reports back through the
+    lead's check-in queue — all of it existing machinery.
+    """
+    from apps.Imagi.Build.models import AgentConversation, SystemPrompt
+    from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
+
+    task = AgentConversation.objects.create(
+        user=user,
+        model_name=model,
+        project_id=project_id,
+        mode='agent',
+        title=TASK_TITLE,
+        kind='task',
+        parent=lead,
+        review_status='active',
+        queued_prompt=prompt,
+    )
+    SystemPrompt.objects.create(
+        conversation=task, content=INITIAL_BUILD_INSTRUCTIONS
+    )
+    return task
+
+
 def _run_initial_build(project_id: int, user_id: int) -> None:
-    """Thread body: run the coding agent with the business description prompt."""
+    """Thread body: dispatch the first build to a subagent and land its work."""
     close_old_connections()
     from ..models import Project
 
     try:
         from django.contrib.auth import get_user_model
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
-        from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
 
         project = Project.objects.get(pk=project_id)
         user = get_user_model().objects.get(pk=user_id)
 
         builder = getattr(settings, 'IMAGI_BUILDER', {})
+        model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
 
-        service = ImagiAgentService()
-        conversation = service.create_conversation(
-            user,
-            service.model,
-            project_id=project_id,
-            title='Initial build',
-            kind='initial_build',
-            system_prompt=INITIAL_BUILD_INSTRUCTIONS,
+        # agent_kind pins the first-build persona (its prompt and design
+        # direction) onto what is otherwise a plain background task.
+        service = ImagiAgentService(model=model, agent_kind='initial_build')
+
+        prompt = build_initial_prompt(
+            project.name,
+            project.description,
+            getattr(project, 'design_preferences', ''),
         )
 
-        result = service.process(
-            user_input=build_initial_prompt(
-                project.name,
-                project.description,
-                getattr(project, 'design_preferences', ''),
-            ),
-            user=user,
-            project_id=project_id,
-            conversation_id=conversation.id,
-            max_turns=builder.get('INITIAL_BUILD_MAX_TURNS'),
-            cost_budget_usd=builder.get('INITIAL_BUILD_COST_BUDGET_USD'),
-        )
+        lead = _ensure_lead_conversation(service, user, project_id, model)
+        task = _create_build_task(user, lead, project_id, model, prompt)
+        _open_lead_thread(service, lead, prompt, task)
 
-        if result.get('success'):
+        applied = _build_and_apply(service, task, user, project_id, prompt, builder)
+
+        if applied:
             Project.objects.filter(pk=project_id).update(
                 generation_status='completed',
                 last_generated_at=timezone.now(),
             )
-            logger.info(
-                "Initial AI build completed for project %s (files changed: %s)",
-                project_id,
-                result.get('files_changed'),
-            )
+            logger.info("Initial AI build completed and applied for project %s", project_id)
         else:
+            # The project still holds its complete, working scaffold — the
+            # unmerged build sits in the workspace for the user to look at.
             Project.objects.filter(pk=project_id).update(generation_status='failed')
             logger.error(
-                "Initial AI build failed for project %s: %s",
+                "Initial AI build for project %s was not applied; project kept its scaffold",
                 project_id,
-                result.get('error'),
             )
     except Exception:
         logger.exception("Initial AI build crashed for project %s", project_id)
@@ -145,3 +248,76 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             pass
     finally:
         close_old_connections()
+
+
+def _build_and_apply(service, task, user, project_id, prompt, builder):
+    """Run the build, repairing dangling imports until the work can be applied.
+
+    Each run ends in the usual task finalization, which merges the worktree
+    only when its frontend actually resolves. So "was it applied?" is read
+    back off the conversation, and anything left unmerged with unresolved
+    imports gets a targeted repair run. Returns whether the work landed in
+    the project.
+    """
+    from apps.Imagi.Build.services.frontend_integrity import find_unresolved_imports
+
+    attempts = builder.get('INITIAL_BUILD_REPAIR_ATTEMPTS', 2)
+    user_input = prompt
+    max_turns = builder.get('INITIAL_BUILD_MAX_TURNS')
+    cost_budget = builder.get('INITIAL_BUILD_COST_BUDGET_USD')
+
+    for attempt in range(attempts + 1):
+        result = service.process(
+            user_input=user_input,
+            user=user,
+            project_id=project_id,
+            conversation_id=task.id,
+            max_turns=max_turns,
+            cost_budget_usd=cost_budget,
+        )
+        if not result.get('success'):
+            logger.error(
+                "Initial AI build run failed for project %s: %s",
+                project_id,
+                result.get('error'),
+            )
+            return False
+
+        task.refresh_from_db()
+        if task.review_status == 'accepted':
+            return True
+
+        # Not applied. Unresolved imports are the one cause worth another run;
+        # anything else (a merge conflict, a git failure) needs the user.
+        problems = find_unresolved_imports(task.worktree_path)
+        if not problems:
+            logger.error(
+                "Initial AI build for project %s finished but could not be applied "
+                "(review status %r)",
+                project_id,
+                task.review_status,
+            )
+            return False
+        if attempt >= attempts:
+            logger.error(
+                "Initial AI build for project %s still has %d unresolved import(s) "
+                "after %d repair attempt(s)",
+                project_id,
+                len(problems),
+                attempts,
+            )
+            return False
+
+        logger.warning(
+            "Initial AI build for project %s left %d unresolved import(s); "
+            "starting repair run %d/%d",
+            project_id,
+            len(problems),
+            attempt + 1,
+            attempts,
+        )
+        user_input = build_repair_prompt(problems)
+        max_turns = builder.get('INITIAL_BUILD_REPAIR_MAX_TURNS')
+        cost_budget = builder.get('INITIAL_BUILD_REPAIR_COST_BUDGET_USD')
+
+    return False

@@ -717,6 +717,93 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         self.assertNotEqual(task.worktree_path, '')
         self.assertFalse(os.path.exists(os.path.join(self.repo, 'feature.txt')))
 
+    def _worktree_with_frontend(self, task, home_view_source):
+        """Give a task a worktree whose frontend holds one generated view."""
+        worktree = VersionControlService().create_task_worktree(
+            self.repo, task.id
+        )['worktree_path']
+        views_dir = os.path.join(
+            worktree, 'frontend', 'vuejs', 'src', 'apps', 'home', 'views'
+        )
+        os.makedirs(views_dir, exist_ok=True)
+        with open(os.path.join(views_dir, 'HomeView.vue'), 'w') as f:
+            f.write(home_view_source)
+        task.worktree_path = worktree
+        task.save(update_fields=['worktree_path'])
+        return worktree
+
+    def test_auto_apply_defers_to_review_when_the_frontend_has_dangling_imports(self):
+        # A run cut short by its turn or cost cap leaves a page importing a
+        # component it never wrote. Merging that takes the project's preview
+        # down with a "Failed to resolve import" error, so it is parked for
+        # review and the canonical tree keeps what already works.
+        task = self._task()
+        self._worktree_with_frontend(
+            task,
+            "<script setup lang=\"ts\">\n"
+            "import SiteHeader from '@/shared/components/SiteHeader.vue'\n"
+            "</script>\n",
+        )
+
+        self.service._finalize_task_run(task, self._context(), 'Built the landing page.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'ready')
+        self.assertNotEqual(task.worktree_path, '')
+        self.assertFalse(
+            os.path.exists(os.path.join(self.repo, 'frontend', 'vuejs', 'src'))
+        )
+
+    def test_auto_apply_proceeds_when_every_import_resolves(self):
+        task = self._task()
+        worktree = self._worktree_with_frontend(
+            task,
+            "<script setup lang=\"ts\">\n"
+            "import SiteHeader from '@/shared/components/SiteHeader.vue'\n"
+            "import { ref } from 'vue'\n"
+            "</script>\n",
+        )
+        shared_dir = os.path.join(worktree, 'frontend', 'vuejs', 'src', 'shared', 'components')
+        os.makedirs(shared_dir, exist_ok=True)
+        with open(os.path.join(shared_dir, 'SiteHeader.vue'), 'w') as f:
+            f.write('<template><header /></template>\n')
+
+        self.service._finalize_task_run(task, self._context(), 'Built the landing page.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'accepted')
+        self.assertTrue(os.path.exists(os.path.join(
+            self.repo, 'frontend', 'vuejs', 'src', 'shared', 'components', 'SiteHeader.vue'
+        )))
+
+    def test_capped_run_still_routes_the_task_back(self):
+        # A run stopped by its turn or cost cap has already written files; if
+        # it did not finalize, the task would sit at 'active' forever — never
+        # applied, never reviewed, and never reported to the user.
+        from agents import MaxTurnsExceeded
+
+        task = self._task()
+        self._worktree_with_change(task)
+
+        with patch.object(
+            self.service, '_prepare_run',
+            return_value=(task, self._context(), [{'role': 'user', 'content': 'go'}]),
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.Runner.run_sync',
+            side_effect=MaxTurnsExceeded('out of turns'),
+        ):
+            result = self.service.process(
+                user_input='go', user=self.user, project_id=self.project.id,
+                conversation_id=task.id,
+            )
+
+        self.assertTrue(result.get('capped'))
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'accepted')
+        self.assertTrue(
+            AgentCheckIn.objects.filter(conversation=task, status='pending').exists()
+        )
+
     def test_auto_apply_defers_to_review_while_a_canonical_run_is_live(self):
         task = self._task()
         self._worktree_with_change(task)

@@ -450,7 +450,12 @@ class ImagiAgentService:
     construction, and the run loop around that agent.
     """
 
-    def __init__(self, model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None):
+    def __init__(
+        self,
+        model: str = DEFAULT_MODEL,
+        reasoning_effort: Optional[str] = None,
+        agent_kind: Optional[str] = None,
+    ):
         """
         Initialize the agent service.
 
@@ -458,9 +463,16 @@ class ImagiAgentService:
             model: The OpenAI model to use (default: gpt-5.6-terra)
             reasoning_effort: How much reasoning the model should use
                 ('low', 'medium', 'high'). None uses the model default.
+            agent_kind: Run the agent in this role regardless of the
+                conversation's own kind. The initial build uses it to get the
+                first-build persona (INITIAL_BUILD_INSTRUCTIONS) while its
+                conversation stays an ordinary kind='task' — so it keeps the
+                worktree isolation, review lifecycle and check-in routing every
+                other dispatched task has. None follows the conversation.
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
+        self.agent_kind = agent_kind
         # Agents cached per conversation kind: lead runs carry the delegation
         # tool, task runs carry ask_user (+ its stop behavior).
         self._agents: Dict[str, Agent] = {}
@@ -786,8 +798,10 @@ class ImagiAgentService:
             current_file=current_file,
         )
         # The `agent` property builds the kind-matched variant (delegation
-        # tools for lead, ask_user for task) from here on.
-        self._run_kind = conversation.kind
+        # tools for lead, ask_user for task) from here on. An explicit
+        # agent_kind wins: it selects the persona while the conversation keeps
+        # its own kind for isolation and lifecycle.
+        self._run_kind = self.agent_kind or conversation.kind
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.
@@ -942,15 +956,18 @@ class ImagiAgentService:
 
         Returns True when the changes were applied (the task is now
         'accepted'); False when we deliberately leave it for a manual review —
-        a live canonical run we must not merge across, a merge conflict, a
-        stale base, or any git-level failure. Best-effort by contract: it never
-        raises, so any trouble simply parks the task at 'ready' for the user.
+        a broken frontend import graph, a live canonical run we must not merge
+        across, a merge conflict, a stale base, or any git-level failure.
+        Best-effort by contract: it never raises, so any trouble simply parks
+        the task at 'ready' for the user.
         """
         user = getattr(conversation, 'user', None)
         project_id = getattr(conversation, 'project_id', None)
         # The merge rewrites the canonical tree, so it must not race a chat or
         # lead run editing it — the same guard the accept endpoint applies.
         if user is not None and self._project_has_live_canonical_run(user, project_id):
+            return False
+        if self._worktree_import_problems(conversation):
             return False
         try:
             from ..api.views import _apply_task_worktree, _conversation_project
@@ -961,6 +978,36 @@ class ImagiAgentService:
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not auto-apply task worktree: {e}")
             return False
+
+    def _worktree_import_problems(self, conversation) -> List[Dict[str, str]]:
+        """Frontend imports in the task's worktree that point at missing files.
+
+        A run cut short by its turn or cost cap routinely leaves a view or
+        route referencing a component it never wrote. Merging that would take
+        the project's preview down with a "Failed to resolve import" error, so
+        such a task is parked for review instead of applied. Best-effort: if
+        the check itself cannot run, it reports no problems rather than
+        blocking an otherwise fine merge.
+        """
+        worktree_path = getattr(conversation, 'worktree_path', '') or ''
+        if not worktree_path:
+            return []
+        try:
+            from .frontend_integrity import find_unresolved_imports
+            problems = find_unresolved_imports(worktree_path)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not check frontend imports before applying: {e}")
+            return []
+        if problems:
+            logger.warning(
+                "Not auto-applying conversation %s: %d unresolved frontend import(s), "
+                "first is %s -> %s",
+                getattr(conversation, 'id', None),
+                len(problems),
+                problems[0]['file'],
+                problems[0]['import'],
+            )
+        return problems
 
     def _clear_run_started(self, conversation) -> None:
         """Best-effort: mark the conversation's run as finished.
@@ -1269,6 +1316,7 @@ class ImagiAgentService:
             return {"success": False, "error": "Project ID is required"}
 
         conversation = None
+        context = None
         run_state: Dict[str, Any] = {}
         try:
             if not user_input:
@@ -1347,6 +1395,11 @@ class ImagiAgentService:
                     self.add_assistant_message(conversation, capped_note)
                 except Exception:  # pragma: no cover - best effort persistence
                     logger.warning("Could not persist capped-run note", exc_info=True)
+                # A capped run is a finished run: its files are on disk, so it
+                # routes back to the main thread like any other. Without this a
+                # capped task would sit at 'active' forever — never applied,
+                # never reviewed, and never reported to the user.
+                self._finalize_task_run(conversation, context, capped_note)
             return {
                 "success": True,
                 "capped": True,
