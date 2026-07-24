@@ -14,8 +14,10 @@ import tempfile
 from django.test import TestCase
 
 from apps.Imagi.Build.services.frontend_integrity import (
+    describe_auth_link_problems,
     describe_router_contract_problems,
     describe_unresolved_imports,
+    find_auth_link_problems,
     find_router_contract_problems,
     find_unresolved_imports,
 )
@@ -291,3 +293,84 @@ class FrontendIntegrityTests(TestCase):
         problems = [{'file': f'{i}.vue', 'import': './x.vue'} for i in range(40)]
         described = describe_unresolved_imports(problems)
         self.assertIn('and 15 more', described)
+
+
+class AuthLinkTests(TestCase):
+    """Whether the built home page still reaches the prebuilt auth pages.
+
+    The scaffold ships a home page linking to both; a first build rewrites
+    that page wholesale, and one that drops the links leaves the founder with
+    sign-in and register pages nothing points at.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix='imagi-auth-links-')
+        self.src = os.path.join(self.root, 'frontend', 'vuejs', 'src')
+        os.makedirs(self.src)
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+    def _write(self, rel_path, content):
+        path = os.path.join(self.src, rel_path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as f:
+            f.write(content)
+        return path
+
+    def _scaffold_auth_app(self):
+        self._write('apps/auth/views/SignInView.vue', "<template><form /></template>\n")
+
+    def test_a_page_keeping_both_links_is_clean(self):
+        self._scaffold_auth_app()
+        self._write(
+            'apps/home/views/HomeView.vue',
+            "<template>\n"
+            "  <router-link to=\"/auth/signin\">Sign in</router-link>\n"
+            "  <router-link to=\"/auth/register\">Start free</router-link>\n"
+            "</template>\n",
+        )
+        self.assertEqual(find_auth_link_problems(self.root), [])
+
+    def test_a_dropped_link_is_reported(self):
+        self._scaffold_auth_app()
+        self._write(
+            'apps/home/views/HomeView.vue',
+            "<template><router-link to=\"/auth/signin\">Sign in</router-link></template>\n",
+        )
+        self.assertEqual(
+            find_auth_link_problems(self.root), [{'path': '/auth/register'}]
+        )
+
+    def test_a_page_that_dropped_auth_entirely_reports_both(self):
+        self._scaffold_auth_app()
+        self._write('apps/home/views/HomeView.vue', "<template><h1>Beanline</h1></template>\n")
+        self.assertEqual(
+            [p['path'] for p in find_auth_link_problems(self.root)],
+            ['/auth/signin', '/auth/register'],
+        )
+
+    def test_links_count_from_anywhere_in_the_app(self):
+        # A build that put its header in a component of its own still gives the
+        # founder a way in, so it is not reported.
+        self._scaffold_auth_app()
+        self._write('apps/home/views/HomeView.vue', "<template><SiteHeader /></template>\n")
+        self._write(
+            'apps/home/components/SiteHeader.vue',
+            "<template>\n"
+            "  <router-link to=\"/auth/signin\">Sign in</router-link>\n"
+            "  <router-link to=\"/auth/register\">Join</router-link>\n"
+            "</template>\n",
+        )
+        self.assertEqual(find_auth_link_problems(self.root), [])
+
+    def test_a_project_without_an_auth_app_is_not_reported(self):
+        # Nothing to link to: this check reports a link that was lost, not one
+        # that never existed.
+        self._write('apps/home/views/HomeView.vue', "<template><h1>Beanline</h1></template>\n")
+        self.assertEqual(find_auth_link_problems(self.root), [])
+
+    def test_no_frontend_is_not_an_auth_problem(self):
+        self.assertEqual(find_auth_link_problems(tempfile.mkdtemp()), [])
+
+    def test_description_names_the_lost_route(self):
+        described = describe_auth_link_problems([{'path': '/auth/register'}])
+        self.assertIn('/auth/register', described)
