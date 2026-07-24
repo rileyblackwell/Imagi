@@ -403,59 +403,136 @@ class InitialBuildServiceTests(TestCase):
         mock_thread.assert_called_once()
         mock_thread.return_value.start.assert_called_once()
 
-    def _run_with_agent_result(self, result):
-        from unittest.mock import Mock
+    def _run_build(self, outcomes, unresolved=()):
+        """Drive a full initial build with the agent run itself stubbed out.
+
+        Everything around the model call is real — the lead and task
+        conversations, their messages, and the applied/not-applied decision
+        read back off the task — so these tests exercise the actual wiring.
+
+        Args:
+            outcomes: one entry per expected run. 'accept' stands in for a run
+                whose worktree merged cleanly (the real finalization sets
+                review_status='accepted'), 'leave' for one that finished
+                without being applied, and 'fail' for a failed run.
+            unresolved: dangling imports the integrity check should report on
+                an unapplied worktree, which is what triggers a repair run.
+
+        Returns the kwargs of every process() call made.
+        """
         from apps.Imagi.ProjectManager.services import initial_build_service
+        from apps.Imagi.Build.models import AgentConversation
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
 
-        # spec= the real class so this test fails if the service API drifts
-        # (a bare Mock once hid a rename that broke every initial build).
-        fake_service = Mock(spec=ImagiAgentService)
-        fake_service.model = 'gpt-5.6-sol'
-        fake_service.create_conversation.return_value = Mock(id=42)
-        fake_service.process.return_value = result
+        calls = []
+        pending = list(outcomes)
 
-        with patch(
-            'apps.Imagi.Build.services.base_agent.ImagiAgentService',
-            return_value=fake_service,
+        def fake_process(_self, **kwargs):
+            calls.append(kwargs)
+            outcome = pending.pop(0) if pending else 'leave'
+            if outcome == 'fail':
+                return {'success': False, 'error': 'model error'}
+            if outcome == 'accept':
+                AgentConversation.objects.filter(
+                    id=kwargs['conversation_id']
+                ).update(review_status='accepted')
+            else:
+                AgentConversation.objects.filter(
+                    id=kwargs['conversation_id']
+                ).update(review_status='ready')
+            return {'success': True, 'files_changed': []}
+
+        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=list(unresolved),
         ):
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
-        return fake_service
+        return calls
 
-    def test_run_success_marks_completed_and_prompts_with_business_details(self):
-        fake_service = self._run_with_agent_result(
-            {'success': True, 'files_changed': ['frontend/vuejs/src/apps/home/views/Home.vue']}
-        )
+    def test_applied_build_marks_completed_and_prompts_with_business_details(self):
+        calls = self._run_build(['accept'])
 
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
         self.assertIsNotNone(self.project.last_generated_at)
 
         # The prompt must carry the business name and description into the agent.
-        prompt = fake_service.process.call_args.kwargs['user_input']
+        self.assertEqual(len(calls), 1)
+        prompt = calls[0]['user_input']
         self.assertIn('Beanline', prompt)
         self.assertIn('coffee roastery', prompt)
 
-        # The conversation runs as the dedicated initial-build role, carrying
-        # the initial-build system prompt.
-        from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
-        conv_kwargs = fake_service.create_conversation.call_args.kwargs
-        self.assertEqual(fake_service.create_conversation.call_args.args,
-                         (self.user, 'gpt-5.6-sol'))
-        self.assertEqual(conv_kwargs['project_id'], self.project.pk)
-        self.assertEqual(conv_kwargs['title'], 'Initial build')
-        self.assertEqual(conv_kwargs['kind'], 'initial_build')
-        self.assertEqual(conv_kwargs['system_prompt'], INITIAL_BUILD_INSTRUCTIONS)
-
         # The run must be bounded by the initial-build turn and cost caps.
-        proc_kwargs = fake_service.process.call_args.kwargs
-        self.assertEqual(proc_kwargs['cost_budget_usd'],
+        self.assertEqual(calls[0]['cost_budget_usd'],
                          settings.IMAGI_BUILDER['INITIAL_BUILD_COST_BUDGET_USD'])
-        self.assertEqual(proc_kwargs['max_turns'],
+        self.assertEqual(calls[0]['max_turns'],
                          settings.IMAGI_BUILDER['INITIAL_BUILD_MAX_TURNS'])
 
+    def test_build_runs_as_a_subagent_dispatched_from_the_main_thread(self):
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
+
+        calls = self._run_build(['accept'])
+
+        lead = AgentConversation.objects.get(
+            user=self.user, project_id=self.project.pk, kind='lead'
+        )
+        task = AgentConversation.objects.get(
+            user=self.user, project_id=self.project.pk, kind='task'
+        )
+        # The build is an ordinary background task of the project's main
+        # thread, so it inherits the worktree isolation and review lifecycle
+        # every dispatched task has.
+        self.assertEqual(task.parent_id, lead.id)
+        self.assertEqual(task.title, 'Initial build')
+        self.assertEqual(task.system_prompt.content, INITIAL_BUILD_INSTRUCTIONS)
+        self.assertEqual(calls[0]['conversation_id'], task.id)
+
+        # The main thread opens with the founder's brief and a one-line
+        # acknowledgement linking to the subagent's thread.
+        messages = list(lead.messages.order_by('created_at'))
+        self.assertEqual([m.role for m in messages], ['user', 'assistant'])
+        self.assertIn('Beanline', messages[0].content)
+        self.assertEqual(
+            messages[1].metadata['dispatched_tasks'],
+            [{'conversation_id': task.id, 'title': 'Initial build'}],
+        )
+
+    def test_build_runs_on_the_configured_initial_build_model(self):
+        from apps.Imagi.Build.models import AgentConversation
+
+        self._run_build(['accept'])
+
+        task = AgentConversation.objects.get(
+            user=self.user, project_id=self.project.pk, kind='task'
+        )
+        self.assertEqual(
+            task.model_name, settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL']
+        )
+
+    def test_reuses_an_existing_main_thread(self):
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
+
+        existing = ImagiAgentService().create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.pk, kind='lead'
+        )
+        self._run_build(['accept'])
+
+        # A second live lead would violate the single-lead invariant.
+        self.assertEqual(
+            AgentConversation.objects.filter(
+                user=self.user, project_id=self.project.pk, kind='lead'
+            ).count(),
+            1,
+        )
+        task = AgentConversation.objects.get(
+            user=self.user, project_id=self.project.pk, kind='task'
+        )
+        self.assertEqual(task.parent_id, existing.id)
+
     def test_run_failure_marks_failed(self):
-        self._run_with_agent_result({'success': False, 'error': 'model error'})
+        self._run_build(['fail'])
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'failed')
 
@@ -463,20 +540,57 @@ class InitialBuildServiceTests(TestCase):
         self.project.design_preferences = 'Warm, earthy palette; minimal, lots of whitespace'
         self.project.save(update_fields=['design_preferences'])
 
-        fake_service = self._run_with_agent_result({'success': True, 'files_changed': []})
+        calls = self._run_build(['accept'])
 
-        prompt = fake_service.process.call_args.kwargs['user_input']
-        self.assertIn('Warm, earthy palette', prompt)
+        self.assertIn('Warm, earthy palette', calls[0]['user_input'])
 
-    def test_capped_run_still_marks_completed(self):
-        # A run stopped by the turn/cost cap returns success with capped=True;
-        # the files it produced are on disk, so the build counts as completed.
-        fake_service = self._run_with_agent_result(
-            {'success': True, 'capped': True, 'files_changed': []}
+    def test_dangling_imports_trigger_a_repair_run_before_applying(self):
+        # A build cut short by its cost cap can leave a page importing a
+        # component it never wrote. That must not reach the project: the
+        # subagent gets a repair run naming the broken references first.
+        calls = self._run_build(
+            ['leave', 'accept'],
+            unresolved=[{
+                'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
+                'import': '@/shared/components/SiteHeader.vue',
+            }],
         )
+
+        self.assertEqual(len(calls), 2)
+        repair_prompt = calls[1]['user_input']
+        self.assertIn('@/shared/components/SiteHeader.vue', repair_prompt)
+        self.assertIn('HomeView.vue', repair_prompt)
+        # Repairs run on their own tighter budget.
+        self.assertEqual(calls[1]['cost_budget_usd'],
+                         settings.IMAGI_BUILDER['INITIAL_BUILD_REPAIR_COST_BUDGET_USD'])
+        self.assertEqual(calls[1]['max_turns'],
+                         settings.IMAGI_BUILDER['INITIAL_BUILD_REPAIR_MAX_TURNS'])
+
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
-        self.assertTrue(fake_service.process.called)
+
+    def test_unrepairable_build_is_not_applied(self):
+        # After the repair budget is spent the build is abandoned rather than
+        # merged, so the project keeps the scaffold its preview can serve.
+        attempts = settings.IMAGI_BUILDER['INITIAL_BUILD_REPAIR_ATTEMPTS']
+        calls = self._run_build(
+            ['leave'] * (attempts + 1),
+            unresolved=[{
+                'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
+                'import': '@/shared/components/SiteHeader.vue',
+            }],
+        )
+
+        self.assertEqual(len(calls), attempts + 1)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'failed')
+
+    def test_unapplied_build_without_dangling_imports_is_not_retried(self):
+        # A merge conflict or git failure is not something another run fixes.
+        calls = self._run_build(['leave'], unresolved=[])
+        self.assertEqual(len(calls), 1)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'failed')
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)

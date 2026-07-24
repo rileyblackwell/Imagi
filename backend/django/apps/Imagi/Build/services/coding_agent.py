@@ -126,6 +126,7 @@ INITIAL_BUILD_GUIDANCE = """Building the first version:
 - Authentication is already done for you: the auth app (sign-in and register pages plus its backend) is prebuilt and secure. Do NOT rebuild, restyle, or modify the auth app beyond leaving its links in place.
 - Do NOT build payment, checkout, cart, or subscription-billing functionality even if the business sells something — the founder installs secure, prebuilt payment pages later from their Sell workspace. Design the marketing/product pages with a clear call-to-action instead of wiring real payments.
 - Work efficiently on a tight build budget: build a cohesive set of pages that looks great and covers the core of the business, then stop. Don't pad it out with dozens of pages or half-finished features — a strong, complete first impression beats a sprawling unfinished one.
+- Finish each page completely before starting the next one, and never leave a reference dangling: every file you import and every component you register must already exist by the time you move on. A single import of a file you didn't write makes the whole app fail to load with a "Failed to resolve import" error, and a build in that state is discarded rather than shown to the founder. If you are running low on budget, stop cleanly — a smaller app that loads beats a bigger one that doesn't.
 - When you finish, briefly summarize what you built. The founder reads it as the first message in their workspace."""
 
 # Full prompt for the initial build role.
