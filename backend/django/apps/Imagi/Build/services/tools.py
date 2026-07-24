@@ -767,19 +767,22 @@ def update_plan(ctx: RunContextWrapper, steps: List[PlanStep]) -> str:
 def dispatch_task(ctx: RunContextWrapper, description: str, title: str = "", drafts: int = 1) -> str:
     """Dispatch a self-contained task to a background subagent that builds it in an isolated copy of the project, in parallel with this conversation.
 
-    Use for well-scoped features or fixes that don't need this conversation's
-    back-and-forth, or when the user wants several things (or several drafts of
-    one thing) built at once. A single-draft subagent applies its changes to
-    the project when it finishes and reports back to this thread as a "done"
-    notification; it only interrupts sooner if it has a question. (Multi-draft
-    variants are built to compare, so those wait for the user to pick one.) Do
-    NOT dispatch trivial edits you can do faster yourself, and never wait for a
+    Call this for ANY building work — a feature, a fix, a style tweak, a copy
+    change, large or small. You have no file-editing tools, so every change
+    goes through here. Dispatch immediately rather than pre-reading the project
+    to "scope" it: the subagent is a full coding agent that finds the relevant
+    files itself, and calling this first is what starts the work and frees this
+    thread. A single-draft subagent applies its changes to the project when it
+    finishes and reports back to this thread as a "done" notification; it only
+    interrupts sooner if it has a question. (Multi-draft variants are built to
+    compare, so those wait for the user to pick one.) Never wait for a
     dispatched task.
 
     Args:
         description: The brief for the subagent, written like a ticket for an
-            engineer who has not read this conversation: the goal, relevant
-            files or pages if known, and what "done" looks like.
+            engineer who has not read this conversation: the goal, what "done"
+            looks like, and any files or pages the user named or you already
+            know (do not go read the project just to fill this in).
         title: Optional short task name shown in the workspace (defaults to the
             brief's first line).
         drafts: How many parallel variants to build (1-3). Use 2 or 3 only when
