@@ -8,7 +8,7 @@
   <component
     :is="isBuildLocked ? 'div' : 'router-link'"
     :to="isBuildLocked ? undefined : target"
-    class="crisp-card group relative flex flex-col h-full p-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+    class="crisp-card group relative flex flex-col h-full p-7 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
     :class="[
       isBuildLocked
         ? 'building-card items-center text-center cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
@@ -53,26 +53,26 @@
 
     <!-- ==================== DEFAULT STATE ==================== -->
     <template v-else>
-      <!-- Icon -->
+      <!-- Icon chip: solid ink with a porcelain glyph and a soft top sheen -->
       <div
-        class="relative w-12 h-12 rounded-xl flex items-center justify-center mb-6"
+        class="card-tile relative w-12 h-12 rounded-xl flex items-center justify-center mb-7 transition-transform duration-300"
         :class="tone.tile"
       >
-        <i :class="['fas', tool.icon, tone.icon]" class="text-lg"></i>
+        <span class="tile-sheen pointer-events-none absolute inset-0 rounded-xl" aria-hidden="true"></span>
+        <i :class="['fas', tool.icon, tone.glyph]" class="relative text-lg"></i>
       </div>
 
       <!-- Name + tagline -->
       <h3 class="relative text-[17px] font-semibold text-blue-950 dark:text-white mb-1.5 tracking-[-0.01em] transition-colors duration-300">
         {{ tool.name }}
       </h3>
-      <p class="relative text-sm text-blue-950/60 dark:text-blue-100/60 leading-relaxed transition-colors duration-300">
+      <p class="relative text-sm text-blue-950/55 dark:text-blue-100/55 leading-relaxed transition-colors duration-300">
         {{ tool.tagline }}
       </p>
 
-      <!-- CTA -->
+      <!-- CTA: muted ink at rest, resolves to full ink on hover -->
       <div
-        class="relative flex items-center w-full text-[13px] font-medium mt-auto pt-5 border-t border-blue-950/[0.06] dark:border-white/[0.07]"
-        :class="tone.icon"
+        class="relative flex items-center w-full text-[13px] font-medium mt-auto pt-5 border-t border-blue-950/[0.06] dark:border-white/[0.07] text-blue-950/55 dark:text-blue-100/50 group-hover:text-blue-950 dark:group-hover:text-white transition-colors duration-200"
       >
         <span>{{ tool.status === 'available' ? 'Open workspace' : 'Preview' }}</span>
         <i class="fas fa-arrow-right text-[11px] ml-auto group-hover:translate-x-0.5 transition-transform duration-200"></i>
@@ -93,8 +93,9 @@ const props = defineProps<{
   buildStatus?: 'pending' | 'generating' | 'completed' | 'failed' | null
 }>()
 
-// Every hub card uses Imagi's orange brand tone (icon tile, border, and CTA).
-const tone = computed(() => hubCardTones.orange)
+// Every hub card wears the restrained ink tone (solid ink chip, neutral border,
+// muted ink CTA) so the four repeated cards stay calm and professional.
+const tone = computed(() => hubCardTones.ink)
 
 /**
  * The initial AI build is still running. While it is, the Build card is locked:
@@ -155,6 +156,21 @@ const target = computed<RouteLocationRaw>(() => {
     0 2px 4px rgba(0, 0, 0, 0.55),
     0 8px 18px -4px rgba(0, 0, 0, 0.5),
     0 20px 40px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- Icon chip ---- */
+/* Glossy top highlight so the solid ink chip reads as a polished object. */
+.tile-sheen {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%);
+}
+
+:global(.dark) .tile-sheen {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 60%);
+}
+
+/* Chip lifts subtly with the card on hover. */
+.crisp-card:hover .card-tile {
+  transform: scale(1.06);
 }
 
 /* ---- Building state ---- */
@@ -230,6 +246,10 @@ const target = computed<RouteLocationRaw>(() => {
 
   /* No hover lift for users who prefer reduced motion */
   .crisp-card:hover {
+    transform: none;
+  }
+
+  .crisp-card:hover .card-tile {
     transform: none;
   }
 }
