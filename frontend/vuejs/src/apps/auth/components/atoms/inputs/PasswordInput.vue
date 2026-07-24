@@ -21,13 +21,11 @@
                text-blue-950 dark:text-white
                placeholder-blue-950/40 dark:placeholder-blue-100/35
                disabled:opacity-50 disabled:cursor-not-allowed
-               transition-all duration-200
-               border bg-white/70 dark:bg-white/[0.04] backdrop-blur-sm
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
-        :class="{
-          'border-red-500/50 dark:border-red-400/40 bg-red-50 dark:bg-red-500/5': hasError,
-          'border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25': !hasError
-        }"
+               transition-colors duration-200
+               border bg-white/70 dark:bg-white/[0.04] backdrop-blur-sm"
+        :class="[
+          hasError ? `bg-red-50 dark:bg-red-500/5 ${fieldFocusError}` : `${fieldBorder} ${fieldFocus}`
+        ]"
       >
       <button
         type="button"
@@ -47,6 +45,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { fieldBorder, fieldFocus, fieldFocusError } from '@/shared/styles/forms'
 
 const isVisible = ref(false)
 

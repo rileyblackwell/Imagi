@@ -6,7 +6,7 @@
         <span class="text-blue-950/60 dark:text-blue-100/55 mr-2 transition-colors duration-300">Filter:</span>
         <select
           v-model="filter"
-          class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] text-blue-950 dark:text-white rounded-lg px-3 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
+          class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25 text-blue-950 dark:text-white rounded-lg px-3 py-2 transition-colors duration-200 focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45"
         >
           <option value="all">All Transactions</option>
           <option value="completed">Completed</option>
@@ -18,7 +18,7 @@
         <span class="text-blue-950/60 dark:text-blue-100/55 mr-2 transition-colors duration-300">Sort:</span>
         <select
           v-model="sort"
-          class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] text-blue-950 dark:text-white rounded-lg px-3 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
+          class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25 text-blue-950 dark:text-white rounded-lg px-3 py-2 transition-colors duration-200 focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45"
         >
           <option value="date-desc">Newest First</option>
           <option value="date-asc">Oldest First</option>

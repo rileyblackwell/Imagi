@@ -16,10 +16,10 @@
                  border-blue-950/[0.25] dark:border-white/25
                  bg-white/70 dark:bg-white/[0.05]
                  text-blue-950 dark:text-blue-400
-                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]
                  disabled:opacity-50 disabled:cursor-not-allowed
                  transition-all duration-300
                  checked:bg-blue-950 checked:border-blue-950 dark:checked:bg-blue-400 dark:checked:border-blue-400"
+          :class="controlFocus"
         >
       </Field>
     </div>
@@ -34,6 +34,7 @@
 
 <script setup>
 import { Field, ErrorMessage } from 'vee-validate'
+import { controlFocus } from '@/shared/styles/forms'
 
 defineProps({
   name: {
