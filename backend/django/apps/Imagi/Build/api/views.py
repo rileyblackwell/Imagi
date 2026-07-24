@@ -9,6 +9,7 @@ and Agents sub-apps.
 
 import json
 import logging
+import re
 import traceback
 from datetime import timedelta
 from rest_framework import status
@@ -1244,11 +1245,38 @@ def _conversation_total_tokens(conversation):
     return total
 
 
+PREVIEW_LIMIT = 240
+
+
+def _message_preview(text: str) -> str:
+    """A message's gist on one line: markdown chrome off, lines run together.
+
+    Not just the first line — a subagent's sign-off routinely opens with a
+    heading ("Here's what I built:") and puts the substance underneath, and
+    this preview is what the main thread's dispatch card reports as the
+    result. Whatever it drops is one click away in the thread itself.
+    """
+    parts = []
+    length = 0
+    for raw in (text or '').splitlines():
+        line = raw.strip()
+        # Rules, fences and other pure-punctuation lines carry no content
+        if not line or not line.strip('-=*_#`~ '):
+            continue
+        line = line.lstrip('#>* ').replace('**', '').replace('`', '')
+        line = re.sub(r'^(?:[-*+]|\d+\.)\s+', '', line)
+        if not line:
+            continue
+        parts.append(line)
+        length += len(line) + 1
+        if length >= PREVIEW_LIMIT:
+            break
+    return ' '.join(parts)[:PREVIEW_LIMIT]
+
+
 def _serialize_conversation(conversation):
     last_message = conversation.messages.order_by('-created_at').first()
-    preview = ''
-    if last_message and last_message.content:
-        preview = last_message.content.strip().splitlines()[0][:140]
+    preview = _message_preview(last_message.content) if last_message else ''
     return {
         'id': conversation.id,
         'title': conversation.title or '',
@@ -1751,6 +1779,20 @@ def check_ins_list(request):
     status_param = request.query_params.get('status', 'pending')
     if status_param != 'all':
         qs = qs.filter(status=status_param)
+    if status_param == 'pending':
+        # A task that merged itself reports in the main thread's transcript,
+        # not here. Entries filed before that (a "done" card for work already
+        # in the app) would read as a decision the user still owes, so they
+        # are cleared on sight instead of shown.
+        applied = [
+            ci.id for ci in qs
+            if ci.kind == 'ready' and ci.conversation.review_status == 'accepted'
+        ]
+        if applied:
+            AgentCheckIn.objects.filter(id__in=applied).update(
+                status='resolved', resolved_at=timezone.now()
+            )
+            qs = qs.exclude(id__in=applied)
     data = [_serialize_check_in(ci) for ci in qs.order_by('created_at')]
     return Response(data, status=status.HTTP_200_OK)
 

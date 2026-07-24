@@ -1103,3 +1103,34 @@ class ProjectMemoryTests(SimpleTestCase):
         memory = load_project_memory(self.root)
         self.assertIn('[truncated]', memory)
         self.assertLess(len(memory), PROJECT_MEMORY_MAX_CHARS + 200)
+
+
+class MessagePreviewTests(SimpleTestCase):
+    """The one-line gist the main thread's dispatch card reports as a result."""
+
+    def _preview(self, text):
+        from apps.Imagi.Build.api.views import _message_preview
+        return _message_preview(text)
+
+    def test_reads_past_a_heading_line_to_the_substance(self):
+        # A subagent's sign-off routinely opens with a header and puts what it
+        # actually did underneath — stopping at line one would report nothing.
+        preview = self._preview(
+            "Here's what I built:\n\n"
+            "- A pricing page with three tiers\n"
+            "- A contact form that validates on submit\n"
+        )
+        self.assertIn('A pricing page with three tiers', preview)
+        self.assertIn('A contact form', preview)
+
+    def test_strips_markdown_chrome(self):
+        preview = self._preview("## Done\n\n**Added** the `/contact` route.\n---\n")
+        self.assertEqual(preview, 'Done Added the /contact route.')
+
+    def test_caps_the_length(self):
+        preview = self._preview('word ' * 400)
+        self.assertLessEqual(len(preview), 240)
+
+    def test_empty_message_previews_as_empty(self):
+        self.assertEqual(self._preview(''), '')
+        self.assertEqual(self._preview('\n\n---\n'), '')

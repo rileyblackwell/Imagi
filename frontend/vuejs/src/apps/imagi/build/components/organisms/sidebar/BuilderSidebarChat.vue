@@ -345,6 +345,8 @@ const emit = defineEmits<{
   (e: 'check-in-accept', checkIn: CheckInDto): void
   /** Discard a finished background task's work */
   (e: 'check-in-dismiss', checkIn: CheckInDto): void
+  /** Look in on a subagent — it opens in the Subagents pane, never here */
+  (e: 'open-task', conversationId: number): void
 }>()
 
 const store = useAgentStore()
@@ -405,16 +407,14 @@ function onSkipCheckIn(checkIn: CheckInDto) {
 }
 
 /** Open the task's read-only thread to see what it actually did. */
-async function onViewCheckIn(checkIn: CheckInDto) {
-  const instance = store.instances.find(i => i.conversationId === checkIn.task.id)
-  if (instance) await store.switchInstance(instance.id)
+function onViewCheckIn(checkIn: CheckInDto) {
+  emit('open-task', checkIn.task.id)
 }
 
 /** A dispatch card in the transcript was clicked — open that subagent's
- *  thread so the user can watch it work (the main thread stays clean). */
-async function onOpenTask(conversationId: number) {
-  const instance = store.instances.find(i => i.conversationId === conversationId)
-  if (instance) await store.switchInstance(instance.id)
+ *  thread over in the Subagents pane, so this thread keeps its place. */
+function onOpenTask(conversationId: number) {
+  emit('open-task', conversationId)
 }
 
 // Restores git-reset the canonical working tree. Only canonical-tree
@@ -634,29 +634,20 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
     return true
   })
   
+  // Spread, never a field whitelist: everything a message carries beyond the
+  // four fields defaulted here — activity feed, plan, files-changed chip, cost
+  // caption, dispatch cards, checkpoint — is the transcript's content, and a
+  // whitelist silently drops whatever it was not updated to know about.
   const validMessages = filteredMessages
     .filter(m => m && typeof m === 'object' && m.role)
-    .map(m => {
-      const content = m.content || ''
-      const messageId = m.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-      
-      return {
-        role: m.role,
-        content: content,
-        code: m.code || '',
-        timestamp: m.timestamp || new Date().toISOString(),
-        id: messageId,
-        // Run telemetry rides along or the transcript loses its activity
-        // feed, plan, files-changed chip and cost caption.
-        plan: m.plan,
-        activity: m.activity,
-        filesChanged: m.filesChanged,
-        usage: m.usage,
-        dbId: m.dbId,
-        checkpoint: m.checkpoint
-      }
-    }) as AIMessage[]
-  
+    .map(m => ({
+      ...m,
+      content: m.content || '',
+      code: m.code || '',
+      timestamp: m.timestamp || new Date().toISOString(),
+      id: m.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    })) as AIMessage[]
+
   return validMessages
 }
 

@@ -53,6 +53,7 @@
                 @restore-checkpoint="onRestoreCheckpoint"
                 @check-in-accept="handleCheckInAccept"
                 @check-in-dismiss="handleCheckInDismiss"
+                @open-task="openSubagent"
               />
             </KeepAlive>
           </Transition>
@@ -241,7 +242,9 @@ const activeSidebarPane = computed<SidebarView>(() =>
   isMobile.value ? (mobileView.value === 'manager' ? 'manager' : 'chat') : sidebarView.value
 )
 
-/** An instance was clicked in the manager — open its conversation.
+/** A thread the user can talk in was clicked in the manager — open its
+ *  conversation in the chat pane. Subagents don't come through here: they
+ *  open inside the Subagents pane itself.
  *  The 'select' emit is the ONLY path that flips the pane to chat: the
  *  active instance also changes programmatically (archive/delete falling
  *  back to the lead, loadInstances regenerating local ids), and those must
@@ -249,6 +252,17 @@ const activeSidebarPane = computed<SidebarView>(() =>
 function handleManagerSelect() {
   setSidebarView('chat')
   if (isMobile.value) mobileView.value = 'chat'
+}
+
+/** Look in on a subagent from the main thread (a dispatch card, a check-in's
+ *  open arrow). It reads in the Subagents pane, so the main thread stays
+ *  exactly where the user left it — draft and all. */
+async function openSubagent(conversationId: number) {
+  const instance = store.instances.find(i => i.conversationId === conversationId)
+  if (!instance) return
+  setSidebarView('manager')
+  if (isMobile.value) mobileView.value = 'manager'
+  await store.openSubagent(instance.id)
 }
 
 /** An accepted task's worktree just merged into the canonical tree —

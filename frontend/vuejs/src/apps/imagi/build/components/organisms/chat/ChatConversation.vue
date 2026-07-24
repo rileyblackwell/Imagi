@@ -67,7 +67,7 @@
                   v-for="task in message.dispatchedTasks"
                   :key="task.conversationId"
                   type="button"
-                  class="dispatch-card group flex items-center gap-2.5 w-full rounded-xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-2 text-left transition-colors hover:bg-blue-100/60 dark:hover:bg-white/[0.07]"
+                  class="dispatch-card group flex items-start gap-2.5 w-full rounded-xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-2 text-left transition-colors hover:bg-blue-100/60 dark:hover:bg-white/[0.07]"
                   :title="`Open this subagent's thread`"
                   @click="emit('open-task', task.conversationId)"
                 >
@@ -81,8 +81,17 @@
                     <span class="block text-[10px] text-blue-950/45 dark:text-white/40">
                       {{ dispatchStatus(task.conversationId) }}
                     </span>
+                    <!-- What the subagent actually did. A finished task is
+                         reported here and nowhere else — there is no card to
+                         accept or clear, so this line is the record. -->
+                    <span
+                      v-if="dispatchSummary(task.conversationId)"
+                      class="mt-1 text-[11px] leading-snug text-blue-950/65 dark:text-white/55 line-clamp-3"
+                    >
+                      {{ dispatchSummary(task.conversationId) }}
+                    </span>
                   </span>
-                  <i class="fas fa-chevron-right text-[10px] text-blue-950/30 dark:text-white/30 group-hover:text-blue-950/60 dark:group-hover:text-white/60 transition-colors shrink-0"></i>
+                  <i class="fas fa-chevron-right text-[10px] mt-0.5 text-blue-950/30 dark:text-white/30 group-hover:text-blue-950/60 dark:group-hover:text-white/60 transition-colors shrink-0"></i>
                 </button>
               </div>
               <div v-if="message.filesChanged?.length" class="mt-2">
@@ -209,6 +218,15 @@ function dispatchStatus(conversationId: number): string {
     case 'dismissed': return 'Discarded'
     default: return 'Starting…'
   }
+}
+
+/** What a finished subagent says it accomplished — its closing line, which is
+ *  the whole report now that a self-merging task queues nothing. Nothing while
+ *  it is still working: a mid-run line would read as a result. */
+function dispatchSummary(conversationId: number): string {
+  const instance = agentStore.instances.find(i => i.conversationId === conversationId)
+  if (!instance || instance.isProcessing) return ''
+  return instance.lastMessagePreview || ''
 }
 
 // Refs and reactive state
