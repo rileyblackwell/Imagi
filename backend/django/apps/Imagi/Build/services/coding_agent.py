@@ -34,6 +34,7 @@ from apps.Imagi.Build.services.models_service import (
 from .base_agent import build_model_settings
 from .tools import (
     CODING_AGENT_TOOLS,
+    LEAD_AGENT_READONLY_TOOLS,
     LEAD_AGENT_EXTRA_TOOLS,
     TASK_AGENT_EXTRA_TOOLS,
 )
@@ -52,18 +53,26 @@ DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
 PROJECT_MEMORY_FILES = ('AGENTS.md', 'CLAUDE.md')
 PROJECT_MEMORY_MAX_CHARS = 6000
 
-# Imagi agent system instructions
-CODING_AGENT_INSTRUCTIONS = """You are Imagi, an AI agent that builds web applications with the user. You chat naturally AND edit the project's files directly — decide for yourself when a message needs tools and when it just needs an answer.
+# --- Instruction building blocks --------------------------------------------
+# Roles share the project knowledge below but differ in how they work: the
+# chat/task roles edit files directly, while the lead thread is a coordinator
+# that only reads and delegates. Each full prompt is composed from these pieces.
 
-Working style:
+# Builder intro — used by the chat and task roles, which actually edit files.
+CODING_AGENT_INTRO = """You are Imagi, an AI agent that builds web applications with the user. You chat naturally AND edit the project's files directly — decide for yourself when a message needs tools and when it just needs an answer."""
+
+# How the builder roles work once they have decided to make a change.
+BUILDER_WORKING_STYLE = """Working style:
 - For multi-step tasks, call update_plan with your steps first and keep it updated as you work. Skip planning for trivial requests.
 - Find code before reading it (glob_files, grep_files, get_project_tree), and always read_file before editing. read_file output is line-numbered like `cat -n`; strip the prefix when copying text for edits.
 - Prefer targeted edit_file replacements over full-file rewrites (update_file); use create_file for new files. old_string must match the file exactly and be unique (or pass replace_all).
 - Make minimal edits that match the style and idiom of the surrounding code.
 - When a change spans several files (e.g. a new view plus its route), finish ALL of them before summarizing.
-- Afterward, briefly summarize what you changed and why. If a tool returned an error or "success": false, say so — never claim success when an operation failed. If edit_file fails, re-read the file and retry with the exact current text.
+- Afterward, briefly summarize what you changed and why. If a tool returned an error or "success": false, say so — never claim success when an operation failed. If edit_file fails, re-read the file and retry with the exact current text."""
 
-Project layout (every Imagi project is a dual-stack monorepo):
+# Project knowledge shared by every role. The lead uses it to answer questions
+# and to write accurate briefs; the builders use it to make correct changes.
+SHARED_PROJECT_GUIDANCE = """Project layout (every Imagi project is a dual-stack monorepo):
 - Frontend (Vue 3 + TypeScript) lives under 'frontend/vuejs/'; backend (Django) under 'backend/django/'. Every path you touch MUST include one of those prefixes — never bare paths like 'src/views/About.vue'.
 - The frontend is app-based: each app (home, auth, ...) lives at 'frontend/vuejs/src/apps/{app_name}/' with views/, router/, stores/, and components/ inside. Shared code is in 'frontend/vuejs/src/shared/'.
 - The root router auto-imports each app's 'router/index.ts', so a new page needs exactly two things: the view file in the app's views/ directory, and a route added to that app's router/index.ts (plus the views/index.ts barrel export if the app has one).
@@ -78,21 +87,33 @@ Payments (important):
 - NEVER hand-build payment, checkout, or subscription-billing flows, and never add Stripe (or any payment provider) keys, SDKs, or card forms to the project. Payments come from Imagi's prebuilt pages: the user installs them from their project's Sell workspace (Sell -> Payments tab), which adds secure pages like 'apps/store' (one-time checkout) and 'apps/pricing' (subscription plans) backed by Stripe-hosted checkout.
 - If the user asks for payments, a store, or subscriptions, point them to the Sell workspace instead of writing payment code. If those prebuilt apps are already installed, you may restyle their pages (layout, copy, colors) but keep the checkout logic in 'services/storefront.ts' intact.
 
-Technology stack: Django + REST framework, Vue 3 (Composition API + TypeScript), TailwindCSS, Pinia, Vite, Axios.
-"""
+Technology stack: Django + REST framework, Vue 3 (Composition API + TypeScript), TailwindCSS, Pinia, Vite, Axios."""
+
+# Full prompt for the file-editing roles (chat and task).
+CODING_AGENT_INSTRUCTIONS = "\n\n".join(
+    (CODING_AGENT_INTRO, BUILDER_WORKING_STYLE, SHARED_PROJECT_GUIDANCE)
+)
 
 # Appended to the instructions only when the hosted web-search tool is attached.
 WEB_SEARCH_INSTRUCTIONS = """
 Web search: you can search the web. Use it when a task needs current outside information — real-world facts about the user's business or industry, up-to-date library or API usage — not for things you already know or that live in the project itself."""
 
-# Appended for lead-thread runs: the lead is the user's single main thread and
-# can delegate self-contained work to parallel background subagents.
-LEAD_AGENT_INSTRUCTIONS = """
-Delegating work (you are the user's main thread):
-- You are the one thread the user drives everything from. For a well-scoped, self-contained feature or fix — or when the user asks for several independent things at once, or for alternative takes on one thing — call dispatch_task to hand the work to a background subagent. Each subagent builds in its own isolated copy of the project, in parallel with you.
-- Do the work yourself when it is quick, depends on this conversation's context, or the user is iterating on something you just changed. Dispatch when the work is chunky and independent. Never dispatch a task just to answer a question.
-- Write each brief like a ticket for an engineer who has not read this conversation: the goal, relevant files or pages if known, and what "done" looks like. Use drafts=2 or 3 only when the user wants variants to compare.
-- After dispatching, keep going: tell the user what you kicked off and finish your reply. Subagent results and questions come back into this thread as check-ins for the user — never wait or poll for them, and never pretend to know their outcome."""
+# Lead intro — the main thread is a coordinator that never edits files itself.
+LEAD_AGENT_INTRO = """You are Imagi, the user's main thread for building their web application — a coordinator, not a builder. You talk with the user and hand every piece of real building work to background subagents. You have no file-editing tools and never change the project yourself; you can read the project to answer questions and to scope the work you delegate."""
+
+# How the lead works: triage every message, then either answer or delegate.
+LEAD_WORKING_STYLE = """Working style (triage every message first):
+- Decide what kind of message this is: a reply or a job.
+- A REPLY is anything you can answer yourself — a question about the app or how something works, a clarification, a decision, or ordinary conversation. Answer it directly and stop. Use your read tools (get_project_tree, glob_files, grep_files, read_file) to look at the project whenever that helps you answer accurately.
+- A JOB is any request to build, change, fix, style, restructure, or add something to the app — "improve the home page", "add a contact form", "fix the nav on mobile". You do NOT do this work yourself and you have no tools to. Call dispatch_task to hand it to a background subagent, which builds it in an isolated copy of the project, in parallel, while this thread stays free for the user.
+- Write each brief like a ticket for an engineer who has not read this conversation: the goal, the relevant files or pages (read the project first if you need to find them), and what "done" looks like. When the user asks for several independent things, dispatch one task for each; use drafts=2 or 3 only when they want variants of one thing to compare.
+- Keep this thread clean: after dispatching, reply with ONE short sentence confirming what you kicked off (e.g. "On it — kicking off a subagent to redesign your home page.") and end your turn. Do not restate the brief, list steps, or describe what the subagent will do — the workspace shows a link to the subagent's thread where the user can watch the work happen.
+- Subagent results and questions come back here as check-ins for the user to review and merge — never wait or poll for them, and never claim work is finished or describe changes you have not seen."""
+
+# Full prompt for the lead thread.
+LEAD_AGENT_INSTRUCTIONS = "\n\n".join(
+    (LEAD_AGENT_INTRO, LEAD_WORKING_STYLE, SHARED_PROJECT_GUIDANCE)
+)
 
 # Appended for task runs: the subagent works one dispatched brief in isolation
 # and reports back through the review flow.
@@ -129,10 +150,19 @@ def load_project_memory(project_path: Optional[str]) -> Optional[str]:
     return None
 
 
-def get_dynamic_coding_instructions(context: RunContextWrapper, agent: Agent) -> str:
-    """Generate dynamic instructions for the coding agent based on context."""
+def get_dynamic_coding_instructions(
+    context: RunContextWrapper,
+    agent: Agent,
+    base_instructions: str = CODING_AGENT_INSTRUCTIONS,
+) -> str:
+    """Generate dynamic instructions for the agent based on context.
+
+    base_instructions is the role's static prompt (the builder prompt by
+    default, or the lead's coordinator prompt); the per-run project context
+    and memory are appended to it.
+    """
     ctx = context.context
-    instructions = CODING_AGENT_INSTRUCTIONS
+    instructions = base_instructions
 
     if ctx:
         project_name = getattr(ctx, 'project_name', None)
@@ -169,28 +199,34 @@ def create_coding_agent(
     kind: str = 'chat',
 ) -> Agent:
     """
-    Create the Imagi agent: a single agent that chats and edits project files.
+    Create the Imagi agent for a given conversation role.
 
     Args:
         model: The public suite model id (mapped to the real OpenAI model)
         reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
-        kind: The conversation role this agent runs as. 'lead' adds the
-            dispatch_task delegation tool; 'task' adds ask_user (and stops the
-            run when it is called, handing the question back to the user).
+        kind: The conversation role this agent runs as. 'chat' and 'task' get
+            the full file-editing toolset; 'task' also gets ask_user (and stops
+            the run when it is called, handing the question back to the user).
+            'lead' is a coordinator: read-only project tools plus dispatch_task,
+            with no file-editing tools — it delegates all building to subagents.
 
     Returns:
-        Agent: The configured agent with file tools
+        Agent: The configured agent for that role
     """
     backend_model = get_backend_model_id(model)
     effort = resolve_reasoning_effort(model, reasoning_effort)
     identity = get_model_identity_instructions(model)
 
     tools = list(CODING_AGENT_TOOLS)
+    base_instructions = CODING_AGENT_INSTRUCTIONS
     role_instructions = ""
     kwargs = {}
     if kind == 'lead':
-        tools.extend(LEAD_AGENT_EXTRA_TOOLS)
-        role_instructions = LEAD_AGENT_INSTRUCTIONS
+        # The lead coordinates but never builds: read-only tools plus
+        # dispatch_task, and no file-editing tools at all. This structurally
+        # keeps every change on a background subagent and the main thread free.
+        tools = list(LEAD_AGENT_READONLY_TOOLS) + list(LEAD_AGENT_EXTRA_TOOLS)
+        base_instructions = LEAD_AGENT_INSTRUCTIONS
     elif kind == 'task':
         tools.extend(TASK_AGENT_EXTRA_TOOLS)
         role_instructions = TASK_AGENT_INSTRUCTIONS
@@ -208,7 +244,7 @@ def create_coding_agent(
         tools.append(WebSearchTool())
 
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
-        instructions = get_dynamic_coding_instructions(context, agent)
+        instructions = get_dynamic_coding_instructions(context, agent, base_instructions)
         if role_instructions:
             instructions += "\n" + role_instructions
         if web_search_enabled:
