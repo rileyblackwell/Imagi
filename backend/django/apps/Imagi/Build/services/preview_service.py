@@ -24,6 +24,31 @@ NPM_INSTALL_TIMEOUT = 600
 # serialize instead of corrupting node_modules under each other.
 NPM_INSTALL_LOCK_DIRNAME = '.imagi_npm_install.lock'
 
+# The only variables a generated project's dev server, and any npm lifecycle
+# script it runs, inherit from Imagi. The code under these processes is written
+# by the user (directly, or by the agent on their behalf), so Imagi's own
+# environment — DJANGO_SECRET_KEY, DATABASE_URL, the Stripe and OpenAI keys —
+# is not handed to it. Anything the child genuinely needs is passed explicitly
+# by the caller instead of arriving through inheritance.
+CHILD_ENV_PASSTHROUGH = (
+    'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL',
+    'TMPDIR', 'TEMP', 'TMP',
+    'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'TERM',
+    'SSL_CERT_FILE', 'SSL_CERT_DIR', 'SYSTEMROOT',
+)
+
+
+def child_env(**overrides):
+    """Build the environment for a generated project's subprocess.
+
+    Starts from the allowlist above rather than ``os.environ.copy()``, so
+    nothing secret leaks into user-authored code.
+    """
+    env = {k: v for k, v in os.environ.items() if k in CHILD_ENV_PASSTHROUGH}
+    env.setdefault('PATH', os.defpath)
+    env.update({k: v for k, v in overrides.items() if v is not None})
+    return env
+
 
 @contextlib.contextmanager
 def npm_install_lock(frontend_path, timeout=NPM_INSTALL_TIMEOUT):
@@ -245,8 +270,7 @@ class PreviewService:
             logger.info(f"Using Django project: {project_name}")
 
             # Set up environment
-            env = os.environ.copy()
-            env['DJANGO_SETTINGS_MODULE'] = f"{project_name}.settings"
+            env = child_env(DJANGO_SETTINGS_MODULE=f"{project_name}.settings")
 
             # Find available port for backend (avoiding conflict with main project on 8000)
             self.backend_port = self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
@@ -320,9 +344,10 @@ class PreviewService:
 
             # Set up environment for Vite. VITE_BACKEND_URL points the generated
             # app's /api proxy at its own Django backend rather than the default.
-            env = os.environ.copy()
-            env['PORT'] = str(self.frontend_port)
-            env['VITE_BACKEND_URL'] = f"http://localhost:{self.backend_port}"
+            env = child_env(
+                PORT=str(self.frontend_port),
+                VITE_BACKEND_URL=f"http://localhost:{self.backend_port}",
+            )
 
             # Ensure PID file directory exists
             os.makedirs(os.path.dirname(self.frontend_pid_file), exist_ok=True)
@@ -395,12 +420,15 @@ class PreviewService:
                 # Even if the install we waited on finished, run npm install
                 # ourselves: it is a fast no-op on a complete node_modules and
                 # repairs a partial one left by a failed/killed installer.
+                # package.json here is user-editable, so its lifecycle scripts
+                # run under the same restricted environment as the dev servers.
                 result = subprocess.run(
                     [npm, 'install'],
                     cwd=frontend_path,
                     capture_output=True,
                     text=True,
                     timeout=NPM_INSTALL_TIMEOUT,
+                    env=child_env(),
                 )
         except subprocess.TimeoutExpired:
             return f"npm install timed out after {NPM_INSTALL_TIMEOUT} seconds"
@@ -462,9 +490,10 @@ class PreviewService:
         project_name = os.path.basename(self.project.project_path)
 
         # Set up environment
-        env = os.environ.copy()
-        env['PYTHONPATH'] = self.project.project_path
-        env['DJANGO_SETTINGS_MODULE'] = f"{project_name}.settings"
+        env = child_env(
+            PYTHONPATH=self.project.project_path,
+            DJANGO_SETTINGS_MODULE=f"{project_name}.settings",
+        )
 
         # Start the development server
         with open(self.backend_log_file, 'w') as log_fh:

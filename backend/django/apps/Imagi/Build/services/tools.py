@@ -29,6 +29,7 @@ from apps.Imagi.Build.services.view_file_service import ViewFileService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
 from apps.Imagi.Build.services.delete_file_service import DeleteFileService
 from apps.Imagi.Build.services.directory_service import DirectoryService
+from apps.Imagi.Build.services.safe_paths import resolve_within
 
 logger = logging.getLogger(__name__)
 
@@ -122,11 +123,7 @@ def resolve_safe_path(project, file_path: str) -> str:
     segments or absolute paths), so tools can never read or write outside the
     user's project directory.
     """
-    root = os.path.realpath(project.project_path)
-    full = os.path.realpath(os.path.join(root, file_path))
-    if full != root and not full.startswith(root + os.sep):
-        raise ValueError(f"Path '{file_path}' is outside the project directory")
-    return full
+    return resolve_within(project.project_path, file_path)
 
 
 def infer_file_type(file_path: str) -> str:

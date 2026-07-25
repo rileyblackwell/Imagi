@@ -33,6 +33,7 @@ from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
 from ..services.models_service import get_model_by_id
+from ..services.safe_paths import resolve_safe
 from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
@@ -131,14 +132,17 @@ class FileContentView(APIView):
             # Get content from request
             content = request.data.get('content', '')
             
-            # Create parent directories if needed
+            # Create parent directories if needed. file_path is the raw
+            # <path:file_path> URL segment, so it is confined to the project
+            # before anything is created on disk.
             import os
             dir_path = os.path.dirname(file_path)
             if dir_path:
+                target_dir = resolve_safe(project.project_path, dir_path)
                 try:
                     # Create all necessary parent directories
                     logger.info(f"Creating directory structure for {file_path}: {dir_path}")
-                    os.makedirs(os.path.join(project.project_path, dir_path), exist_ok=True)
+                    os.makedirs(target_dir, exist_ok=True)
                 except Exception as dir_error:
                     logger.error(f"Error creating directory structure: {str(dir_error)}")
                     # Continue anyway as the file creation might still succeed

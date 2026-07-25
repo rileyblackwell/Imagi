@@ -38,28 +38,51 @@ class CreditService:
     def add_credits(self, user, amount: float, transaction_obj=None) -> Dict[str, Any]:
         """
         Add credits to a user's balance.
-        
+
+        When a transaction is supplied, crediting it is idempotent: the
+        transaction row is locked and re-read, and an already-completed one is
+        never credited a second time. A single purchase can otherwise be
+        credited twice — ``process_payment`` confirms the PaymentIntent inline
+        and credits, and Stripe then delivers ``payment_intent.succeeded`` for
+        the same intent — and two concurrent deliveries would otherwise race.
+
         Args:
             user: The user
             amount: The amount to add
             transaction_obj: Optional transaction object to update
-            
+
         Returns:
             Dict with the new balance and success status
         """
         try:
             with transaction.atomic():
-                balance, created = CreditBalance.objects.get_or_create(user=user)
-                
+                if transaction_obj:
+                    locked = type(transaction_obj).objects.select_for_update().get(
+                        pk=transaction_obj.pk
+                    )
+                    if locked.status == 'completed':
+                        logger.info(
+                            f"Transaction {locked.pk} already credited; skipping duplicate"
+                        )
+                        balance, _ = CreditBalance.objects.get_or_create(user=user)
+                        return {
+                            'success': True,
+                            'new_balance': float(balance.balance),
+                            'credits_added': 0,
+                            'duplicate': True,
+                        }
+
+                balance, created = CreditBalance.objects.select_for_update().get_or_create(user=user)
+
                 # Update balance
                 balance.balance = Decimal(str(float(balance.balance) + amount))
                 balance.save()
-                
+
                 # Update transaction if provided
                 if transaction_obj:
                     transaction_obj.status = 'completed'
                     transaction_obj.save()
-                
+
             return {
                 'success': True,
                 'new_balance': float(balance.balance),

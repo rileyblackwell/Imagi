@@ -6,6 +6,7 @@ import os
 import logging
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Imagi.ProjectManager.models import Project
+from .safe_paths import resolve_safe
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,8 @@ class DeleteFileService:
         """Delete a file."""
         try:
             project_path = self.get_project_path(project_id)
-            full_path = os.path.join(project_path, file_path)
-            
+            full_path = resolve_safe(project_path, file_path)
+
             if not os.path.exists(full_path) or not os.path.isfile(full_path):
                 raise NotFound(f"File not found: {file_path}")
             
