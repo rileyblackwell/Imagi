@@ -1001,13 +1001,12 @@ class InitialBuildAgentTests(SimpleTestCase):
             INITIAL_BUILD_INSTRUCTIONS,
         )
 
-    def test_prompt_scopes_the_build_to_the_home_page_alone(self):
+    def test_prompt_scopes_each_subagent_to_a_single_file(self):
         # Half a minute buys one good write. Anything split across files can be
-        # cut off mid-way holding a dangling import, which discards the build.
-        self.assertIn(
-            'frontend/vuejs/src/apps/home/views/HomeView.vue',
-            INITIAL_BUILD_INSTRUCTIONS,
-        )
+        # cut off mid-way holding a dangling import, which discards the page —
+        # and with several subagents running at once, a stray edit outside your
+        # own file also collides with a sibling's work at merge time.
+        self.assertIn('Your job is ONE file', INITIAL_BUILD_INSTRUCTIONS)
         for rule in (
             'Do NOT create component files',
             'do NOT add other pages',
@@ -1015,17 +1014,45 @@ class InitialBuildAgentTests(SimpleTestCase):
         ):
             self.assertIn(rule, INITIAL_BUILD_INSTRUCTIONS)
 
-    def test_prompt_wires_in_the_prebuilt_auth_pages(self):
-        # The auth app is prebuilt and left untouched; the first build's job is
-        # to bring its two pages into the home page it writes.
+    def test_every_first_build_page_is_described_in_the_shared_prompt(self):
+        # Each subagent needs to know the other pages exist and where they
+        # live, so it can link them in its own header and footer without
+        # touching a file it does not own.
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            PAGE_BRIEFS,
+        )
+
+        for page in PAGE_BRIEFS:
+            self.assertIn(page.view_path, INITIAL_BUILD_INSTRUCTIONS)
+
+    def test_the_home_brief_wires_in_the_prebuilt_auth_pages(self):
+        # The auth app is prebuilt and left untouched; bringing its two pages
+        # into the site is the home page's job specifically, so it lives in
+        # that page's brief rather than in the prompt every page shares.
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            PAGE_BRIEFS,
+        )
+
+        home = PAGE_BRIEFS[0]
+        self.assertEqual(home.slug, 'home')
         for path in ("'/auth/signin'", "'/auth/register'"):
-            self.assertIn(path, INITIAL_BUILD_INSTRUCTIONS)
-        self.assertIn('useAuthStore', INITIAL_BUILD_INSTRUCTIONS)
+            self.assertIn(path, home.requirements)
+        self.assertIn('useAuthStore', home.requirements)
         self.assertIn(
             "Do NOT open, restyle, or modify anything under "
             "'frontend/vuejs/src/apps/auth/'",
-            INITIAL_BUILD_INSTRUCTIONS,
+            home.requirements,
         )
+
+    def test_the_other_pages_are_told_to_leave_auth_to_home(self):
+        # Two pages both writing an auth header is duplicated work at best; at
+        # worst the about page invents its own sign-in flow.
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            PAGE_BRIEFS,
+        )
+
+        for page in PAGE_BRIEFS[1:]:
+            self.assertIn('Do not import the auth store', page.requirements)
 
     def test_initial_build_runs_at_its_configured_effort(self):
         # Set explicitly for the role, so a per-request effort meant for the

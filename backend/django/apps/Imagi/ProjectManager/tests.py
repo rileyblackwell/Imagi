@@ -11,12 +11,13 @@ does not pollute the repository or depend on npm/Django scaffolding.
 import os
 import shutil
 import tempfile
+import threading
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -370,8 +371,18 @@ class ProjectManagerAPITests(APITestCase):
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
-class InitialBuildServiceTests(TestCase):
-    """Tests for the initial AI build kicked off at project creation."""
+class InitialBuildServiceTests(TransactionTestCase):
+    """Tests for the initial AI build kicked off at project creation.
+
+    A TransactionTestCase rather than a TestCase because the build fans its
+    pages out across worker threads: those threads open their own database
+    connections, which cannot see data still sitting in an uncommitted test
+    transaction.
+
+    Most of these cover per-page behaviour (repairs, deadlines, what does and
+    does not get merged), so they pin the build to the home page alone and stay
+    deterministic. The fan-out itself is covered by ParallelInitialBuildTests.
+    """
 
     def setUp(self):
         self.user = User.objects.create_user(username='owner', password='pw123456')
@@ -403,7 +414,7 @@ class InitialBuildServiceTests(TestCase):
         mock_thread.assert_called_once()
         mock_thread.return_value.start.assert_called_once()
 
-    def _run_build(self, outcomes, unresolved=()):
+    def _run_build(self, outcomes, unresolved=(), pages=('home',)):
         """Drive a full initial build with the agent run itself stubbed out.
 
         Everything around the model call is real — the lead and task
@@ -417,6 +428,9 @@ class InitialBuildServiceTests(TestCase):
                 without being applied, and 'fail' for a failed run.
             unresolved: dangling imports the integrity check should report on
                 an unapplied worktree, which is what triggers a repair run.
+            pages: which pages the build covers. Defaults to home alone, so a
+                test about repair or deadline behaviour drives one subagent and
+                the run order stays deterministic.
 
         Returns the kwargs of every process() call made.
         """
@@ -442,7 +456,10 @@ class InitialBuildServiceTests(TestCase):
                 ).update(review_status='ready')
             return {'success': True, 'files_changed': []}
 
-        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+        builder = {**settings.IMAGI_BUILDER, 'INITIAL_BUILD_PAGES': list(pages)}
+        with override_settings(IMAGI_BUILDER=builder), patch.object(
+            ImagiAgentService, 'process', fake_process
+        ), patch(
             'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
             return_value=list(unresolved),
         ):
@@ -484,7 +501,7 @@ class InitialBuildServiceTests(TestCase):
         # thread, so it inherits the worktree isolation and review lifecycle
         # every dispatched task has.
         self.assertEqual(task.parent_id, lead.id)
-        self.assertEqual(task.title, 'Initial build')
+        self.assertEqual(task.title, 'Initial build — home page')
         self.assertEqual(task.system_prompt.content, INITIAL_BUILD_INSTRUCTIONS)
         self.assertEqual(calls[0]['conversation_id'], task.id)
 
@@ -495,7 +512,7 @@ class InitialBuildServiceTests(TestCase):
         self.assertIn('Beanline', messages[0].content)
         self.assertEqual(
             messages[1].metadata['dispatched_tasks'],
-            [{'conversation_id': task.id, 'title': 'Initial build'}],
+            [{'conversation_id': task.id, 'title': 'Initial build — home page'}],
         )
 
     def test_build_runs_on_the_configured_initial_build_model(self):
@@ -723,30 +740,289 @@ class InitialBuildServiceTests(TestCase):
 
     def test_repair_is_skipped_when_too_little_time_remains(self):
         # Starting a repair that will be killed mid-edit tends to leave more
-        # dangling references than it fixes, so a build with no time left keeps
+        # dangling references than it fixes, so a page with no time left keeps
         # its scaffold instead.
+        #
+        # Driven through _build_and_apply with an all-but-expired deadline
+        # rather than by faking the clock: time.monotonic is module-global, so
+        # patching it also feeds Django's own connection bookkeeping and the
+        # scripted readings stop lining up with this code's.
+        import time as real_time
+
+        from apps.Imagi.Build.models import AgentConversation
         from apps.Imagi.ProjectManager.services import initial_build_service
 
-        budget = settings.IMAGI_BUILDER['INITIAL_BUILD_TIME_BUDGET_S']
         min_repair = settings.IMAGI_BUILDER['INITIAL_BUILD_MIN_REPAIR_SECONDS']
-        # First reading sets the deadline; the second is checked before repair,
-        # by which point less than the repair minimum is left.
-        clock = iter([0.0, budget - (min_repair / 2)])
+        task = AgentConversation.objects.create(
+            user=self.user,
+            model_name='gpt-5.6-terra',
+            project_id=self.project.pk,
+            mode='agent',
+            title='Initial build — home page',
+            kind='task',
+            review_status='active',
+        )
 
-        with patch.object(
-            initial_build_service.time, 'monotonic', side_effect=lambda: next(clock)
+        calls = []
+
+        class FakeService:
+            def process(self, **kwargs):
+                calls.append(kwargs)
+                AgentConversation.objects.filter(id=task.id).update(
+                    review_status='ready'
+                )
+                return {'success': True, 'files_changed': []}
+
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=[{
+                'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
+                'import': '@/shared/components/SiteHeader.vue',
+            }],
         ):
-            calls = self._run_build(
-                ['leave', 'accept'],
-                unresolved=[{
-                    'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
-                    'import': '@/shared/components/SiteHeader.vue',
-                }],
+            applied = initial_build_service._build_and_apply(
+                FakeService(),
+                task,
+                self.user,
+                self.project.pk,
+                'brief',
+                settings.IMAGI_BUILDER,
+                deadline_at=real_time.monotonic() + (min_repair / 2),
             )
 
         self.assertEqual(len(calls), 1, 'a repair ran with no time budget left')
+        self.assertFalse(applied)
+
+
+class ParallelInitialBuildTests(TransactionTestCase):
+    """The first build fans out across pages instead of writing just one.
+
+    A sequential build can only produce one page inside the founder's
+    half-minute wait. Dispatching a subagent per page spends that same half
+    minute on all of them at once — which only works if the pages stay
+    genuinely independent: one file each, one deadline for the lot, and no page
+    able to take another down with it.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.project = Project.objects.create(
+            user=self.user, name='Beanline', description=VALID_DESCRIPTION
+        )
+
+    def _run(self, outcome_by_slug=None):
+        """Run a full three-page build, stubbing out only the model call.
+
+        outcome_by_slug maps a page slug to 'accept' (its worktree merged),
+        'leave' (finished but unmerged) or 'fail' (the run errored); anything
+        unnamed accepts. Returns the process() kwargs keyed by page slug.
+        """
+        from apps.Imagi.ProjectManager.services import initial_build_service
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
+
+        outcome_by_slug = outcome_by_slug or {}
+        calls = {}
+
+        def slug_of(conversation_id):
+            title = AgentConversation.objects.get(id=conversation_id).title
+            return title.rsplit('—', 1)[-1].strip().split(' ')[0]
+
+        def fake_process(_self, **kwargs):
+            slug = slug_of(kwargs['conversation_id'])
+            calls.setdefault(slug, []).append(kwargs)
+            outcome = outcome_by_slug.get(slug, 'accept')
+            if outcome == 'fail':
+                return {'success': False, 'error': 'model error'}
+            AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
+                review_status='accepted' if outcome == 'accept' else 'ready'
+            )
+            return {'success': True, 'files_changed': []}
+
+        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=[],
+        ):
+            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
+        return calls
+
+    def test_every_page_gets_its_own_subagent_and_its_own_file(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
+
+        calls = self._run()
+
+        self.assertEqual(set(calls), {'home', 'about', 'contact'})
+        # Each subagent is told to rewrite its own view and no other.
+        for page in PAGE_BRIEFS:
+            prompt = calls[page.slug][0]['user_input']
+            self.assertIn(page.view_path, prompt)
+            for other in PAGE_BRIEFS:
+                if other.slug != page.slug:
+                    self.assertNotIn(other.view_path, prompt)
+
+    def test_no_two_pages_are_given_the_same_file(self):
+        # The merge-safety invariant: the three worktrees are merged one after
+        # another, so two agents writing the same path would conflict and lose
+        # somebody's page.
+        from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
+
+        paths = [p.view_path for p in PAGE_BRIEFS]
+        self.assertEqual(len(paths), len(set(paths)))
+
+    def test_pages_run_against_one_shared_deadline(self):
+        # The founder waits for the slowest page, not the sum of all three, so
+        # the clock has to start once for the whole build rather than per page.
+        calls = self._run()
+
+        deadlines = {
+            call['deadline_at'] for runs in calls.values() for call in runs
+        }
+        self.assertEqual(len(deadlines), 1, 'each page got its own deadline')
+        self.assertIsNotNone(next(iter(deadlines)))
+
+    def test_all_three_subagents_are_dispatched_from_the_one_main_thread(self):
+        from apps.Imagi.Build.models import AgentConversation
+
+        self._run()
+
+        leads = AgentConversation.objects.filter(
+            user=self.user, project_id=self.project.pk, kind='lead'
+        )
+        self.assertEqual(leads.count(), 1)
+        lead = leads.get()
+        tasks = AgentConversation.objects.filter(
+            user=self.user, project_id=self.project.pk, kind='task'
+        )
+        self.assertEqual(tasks.count(), 3)
+        self.assertTrue(all(t.parent_id == lead.id for t in tasks))
+
+        # The thread opens with the founder's brief and one acknowledgement
+        # carrying a link to every subagent thread it started.
+        messages = list(lead.messages.order_by('created_at'))
+        self.assertEqual([m.role for m in messages], ['user', 'assistant'])
+        self.assertIn('Beanline', messages[0].content)
+        dispatched = messages[1].metadata['dispatched_tasks']
+        self.assertEqual(
+            {d['conversation_id'] for d in dispatched},
+            set(tasks.values_list('id', flat=True)),
+        )
+
+    def test_a_page_that_fails_does_not_stop_its_siblings(self):
+        # Pages stand alone: one agent erroring out must not cost the founder
+        # the other two, and the build still counts as completed.
+        calls = self._run({'about': 'fail'})
+
+        self.assertEqual(set(calls), {'home', 'about', 'contact'})
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_a_page_left_unmerged_does_not_stop_its_siblings(self):
+        calls = self._run({'contact': 'leave'})
+
+        self.assertEqual(set(calls), {'home', 'about', 'contact'})
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_the_build_fails_only_when_no_page_lands(self):
+        self._run({'home': 'fail', 'about': 'fail', 'contact': 'fail'})
+
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'failed')
+
+    def test_the_page_set_is_configurable(self):
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        builder = {**settings.IMAGI_BUILDER, 'INITIAL_BUILD_PAGES': ['home', 'contact']}
+        with override_settings(IMAGI_BUILDER=builder):
+            calls = self._run()
+        self.assertEqual(set(calls), {'home', 'contact'})
+
+    def test_an_unknown_page_never_leaves_the_build_with_nothing_to_do(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            _pages_to_build,
+        )
+
+        pages = _pages_to_build({'INITIAL_BUILD_PAGES': ['nonsense']})
+        self.assertEqual([p.slug for p in pages], ['home'])
+
+
+class ConcurrentWorktreeSetupTests(TransactionTestCase):
+    """Several subagents claiming worktrees on a brand-new project at once.
+
+    Seen live: all three of a first build's pages reached `git init` on the
+    same fresh directory together and two died with "Failed to initialize git
+    repository". The repo lock could not cover it because it keyed on '.git',
+    which does not exist yet at exactly that moment.
+    """
+
+    def setUp(self):
+        self.project_dir = tempfile.mkdtemp(prefix='imagi_concurrent_git_')
+        with open(os.path.join(self.project_dir, 'seed.txt'), 'w') as f:
+            f.write('scaffold\n')
+
+    def tearDown(self):
+        shutil.rmtree(self.project_dir, ignore_errors=True)
+
+    def test_the_repo_lock_covers_creating_the_repo(self):
+        from apps.Imagi.Build.services.version_control_service import (
+            canonical_repo_lock,
+        )
+
+        # A directory with no repo in it must still be lockable, or the one
+        # moment that needs serializing most is the one moment left unguarded.
+        holder_entered = threading.Event()
+        second_acquired = threading.Event()
+
+        def hold():
+            with canonical_repo_lock(self.project_dir):
+                holder_entered.set()
+                second_acquired.wait(timeout=0.5)
+
+        def contend():
+            with canonical_repo_lock(self.project_dir):
+                second_acquired.set()
+
+        holder = threading.Thread(target=hold)
+        holder.start()
+        self.assertTrue(holder_entered.wait(timeout=5))
+        contender = threading.Thread(target=contend)
+        contender.start()
+        # The contender must NOT get in while the holder has it.
+        self.assertFalse(
+            second_acquired.wait(timeout=0.2),
+            'the lock let a second holder in on a repo-less project directory',
+        )
+        holder.join(timeout=5)
+        contender.join(timeout=5)
+        self.assertTrue(second_acquired.is_set())
+
+    def test_parallel_worktree_creation_on_a_fresh_project_all_succeed(self):
+        from apps.Imagi.Build.services.version_control_service import (
+            VersionControlService,
+        )
+
+        results = {}
+
+        def make(conversation_id):
+            results[conversation_id] = VersionControlService().create_task_worktree(
+                self.project_dir, conversation_id
+            )
+
+        threads = [
+            threading.Thread(target=make, args=(cid,)) for cid in (901, 902, 903)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=60)
+
+        self.assertEqual(len(results), 3)
+        for cid, result in results.items():
+            self.assertTrue(
+                result.get('success'),
+                f'worktree {cid} failed: {result.get("message")}',
+            )
+            self.assertTrue(os.path.isdir(result['worktree_path']))
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
@@ -829,6 +1105,36 @@ class ScaffoldWiringTests(TestCase):
         )
 
         self.assertEqual(find_auth_link_problems(self.project.project_path), [])
+
+    def test_every_first_build_page_is_scaffolded_and_routed(self):
+        # Each page subagent rewrites one already-routed view. If the scaffold
+        # were missing, the agent would have to create its own route file too —
+        # two files, and a run cut off between them leaves a dangling import
+        # that discards the page.
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            PAGE_BRIEFS,
+        )
+
+        for page in PAGE_BRIEFS:
+            view = os.path.join(self.project.project_path, page.view_path)
+            self.assertTrue(
+                os.path.isfile(view), f'{page.slug} view missing: {page.view_path}'
+            )
+            app_dir = os.path.dirname(os.path.dirname(view))
+            router = self._read(app_dir, 'router', 'index.ts')
+            self.assertIn(f"path: '{page.route}'", router)
+            self.assertIn('export { routes }', router)
+
+    def test_page_apps_are_frontend_only(self):
+        # about/contact are static marketing pages: giving them a Django app
+        # would add INSTALLED_APPS entries and migrations for nothing.
+        for app in ('about', 'contact'):
+            self.assertTrue(os.path.isdir(os.path.join(
+                self.project.project_path, 'frontend', 'vuejs', 'src', 'apps', app
+            )))
+            self.assertFalse(os.path.isdir(os.path.join(
+                self.backend_root, 'apps', app
+            )))
 
     def test_scaffolded_files_are_mirrored_to_database(self):
         # Disk is the source of truth; the DB mirror should hold the same

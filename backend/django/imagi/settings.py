@@ -157,6 +157,17 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+            # The initial build runs one agent per page concurrently, so several
+            # threads now write here at once — which SQLite's default rollback
+            # journal handles badly: a single writer blocks readers too, and a
+            # blocked writer gives up with "database is locked". WAL lets
+            # readers run through a write, and the longer timeout makes a
+            # contended writer wait its turn instead of failing the page it was
+            # building. Development only; production is Postgres above.
+            'OPTIONS': {
+                'init_command': 'PRAGMA journal_mode=WAL;',
+                'timeout': 20,
+            },
         }
     }
 
@@ -273,25 +284,37 @@ IMAGI_BUILDER = {
     # project already holds a working home + auth scaffold from the moment it is
     # created, so a build that stops early degrades to "less tailoring", never
     # to a broken or empty app.
-    # The target is a 30-second wait, so the agent's own run gets 28: the
-    # founder additionally waits on the work either side of it (worktree setup,
-    # then the merge and database mirror on the way out) — measured at ~2s
-    # combined. Half a minute is what the scope below is sized for: one
-    # self-contained home page, which is all a founder needs to see to know the
-    # build understood their business.
+    # The target is a 30-second wait, so the agents' own runs get 28: the
+    # founder additionally waits on the work either side of them (worktree
+    # setup, then the merges and database mirror on the way out) — measured at
+    # ~2s combined.
+    #
+    # The budget is shared by every page, not spent per page: the pages below
+    # are built CONCURRENTLY, one subagent each, so half a minute buys all of
+    # them rather than just one. Wall clock is the slowest page; what scales
+    # with the list is spend, roughly linearly (three pages ≈ three times the
+    # tokens), which is why COST_BUDGET_USD below is per page.
     'INITIAL_BUILD_MODEL': 'gpt-5.6-terra',
     'INITIAL_BUILD_TIME_BUDGET_S': 28,
+    # Pages the first build writes, one subagent per entry, each owning a
+    # single already-routed view file (see initial_build_service.PAGE_BRIEFS
+    # for the briefs and prebuilt_apps/pages.py for the scaffold they rewrite).
+    # Empty or unset builds all of them; trimming the list is the direct lever
+    # on what a project creation costs.
+    'INITIAL_BUILD_PAGES': ['home', 'about', 'contact'],
     # First builds create UI from a description rather than reasoning about
     # existing code, so they run at low effort: it roughly halves per-turn
     # latency, which buys more pages inside the time budget than deeper
     # reasoning does.
     'INITIAL_BUILD_REASONING_EFFORT': 'low',
     # Cost and turns are runaway backstops now, not the operative limit — the
-    # time budget stops a normal build long before either binds. NOTE: the cost
-    # figure is priced with the *suite retail* rates in models_service (what a
-    # run is displayed as costing), which are a multiple of the underlying API
-    # price — so this is deliberately well above real expected spend. Sized so
-    # it never cuts a build short on its own; time does that.
+    # time budget stops a normal build long before either binds. Both are PER
+    # PAGE, so the ceiling for a whole build is this times the page count.
+    # NOTE: the cost figure is priced with the *suite retail* rates in
+    # models_service (what a run is displayed as costing), which are a multiple
+    # of the underlying API price — so this is deliberately well above real
+    # expected spend. Sized so it never cuts a build short on its own; time
+    # does that.
     'INITIAL_BUILD_COST_BUDGET_USD': 1.50,
     'INITIAL_BUILD_MAX_TURNS': 12,
     # A build that stops at a cap can leave a page importing a component it

@@ -54,6 +54,34 @@ class ProjectCreationService:
             except Exception as app_err:
                 logger.warning(f"Failed to ensure default apps: {app_err}")
 
+            # Ensure the frontend-only page apps (about, contact). The initial
+            # build gives each of its parallel subagents one of these views to
+            # rewrite, so the routes must already resolve before it starts.
+            try:
+                create_app_service = CreateAppService(user=self.user)
+                pages_result = create_app_service.ensure_page_apps(project_id=str(project.id))
+                logger.info(f"Page apps ensure result: {pages_result}")
+            except Exception as page_err:
+                logger.warning(f"Failed to ensure page apps: {page_err}")
+
+            # Put the finished scaffold under git before anything else touches
+            # it. The repo is created lazily otherwise, on whichever agent run
+            # first needs a worktree — which the initial build now reaches from
+            # several page subagents at once, all racing to 'git init' the same
+            # directory. Creating it here means they each find a repo that is
+            # already there, with the clean scaffold as its first commit.
+            try:
+                from apps.Imagi.Build.services.version_control_service import (
+                    VersionControlService,
+                )
+                if not VersionControlService().initialize_repo(project_path):
+                    logger.warning(
+                        f"Could not initialize a git repository at {project_path}; "
+                        "the first agent run will retry"
+                    )
+            except Exception as git_err:
+                logger.warning(f"Failed to initialize the project repository: {git_err}")
+
             # Store the database copy of every scaffolded file, so the
             # project can be served (and rebuilt on disk) from the database.
             try:
