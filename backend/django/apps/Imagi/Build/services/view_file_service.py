@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Imagi.ProjectManager.models import Project
+from .safe_paths import resolve_safe
 
 logger = logging.getLogger(__name__)
 
@@ -345,10 +346,10 @@ class ViewFileService:
         """Update the content of a file."""
         try:
             project_path = self.get_project_path(project_id)
-            full_path = os.path.join(project_path, file_path)
-            
+            full_path = resolve_safe(project_path, file_path)
+
             # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(os.path.abspath(full_path)), exist_ok=True)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
             
             # Write content to file with UTF-8 encoding
             with open(full_path, 'w', encoding='utf-8') as f:
@@ -383,11 +384,11 @@ class ViewFileService:
         """Get details about a specific file."""
         try:
             project_path = self.get_project_path(project_id)
-            full_path = os.path.join(project_path, file_path)
-            
+            full_path = resolve_safe(project_path, file_path)
+
             if not os.path.exists(full_path) or not os.path.isfile(full_path):
                 raise NotFound(f"File not found: {file_path}")
-            
+
             # Get file stats
             stats = os.stat(full_path)
             
@@ -416,7 +417,7 @@ class ViewFileService:
         """
         try:
             project_path = self.get_project_path(project_id)
-            full_path = os.path.join(project_path, file_path)
+            full_path = resolve_safe(project_path, file_path)
 
             if not os.path.exists(full_path) or not os.path.isfile(full_path):
                 project = self._resolve_project(project_id)

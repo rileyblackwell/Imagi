@@ -132,6 +132,35 @@ class CreditServiceTests(APITestCase):
         txn.refresh_from_db()
         self.assertEqual(txn.status, 'completed')
 
+    def test_crediting_the_same_transaction_twice_is_a_no_op(self):
+        # process_payment credits inline and Stripe then delivers
+        # payment_intent.succeeded for the same intent — the second credit for
+        # one transaction must not add a second helping of credits.
+        txn = Transaction.objects.create(
+            user=self.user, amount=Decimal('30'), transaction_type='purchase',
+            status='pending', stripe_payment_intent_id='pi_dupe',
+        )
+        self.service.add_credits(self.user, 30.0, txn)
+        second = self.service.add_credits(self.user, 30.0, txn)
+
+        self.assertTrue(second['success'])
+        self.assertTrue(second.get('duplicate'))
+        self.assertEqual(second['credits_added'], 0)
+        self.assertEqual(self.service.get_balance(self.user), 30.0)
+
+    def test_webhook_does_not_recredit_a_completed_transaction(self):
+        from apps.Payments.api.views import handle_payment_intent_succeeded
+
+        txn = Transaction.objects.create(
+            user=self.user, amount=Decimal('25'), transaction_type='purchase',
+            status='pending', stripe_payment_intent_id='pi_webhook',
+        )
+        self.service.add_credits(self.user, 25.0, txn)
+
+        handle_payment_intent_succeeded(SimpleNamespace(id='pi_webhook'))
+
+        self.assertEqual(self.service.get_balance(self.user), 25.0)
+
     def test_deduct_credits_reduces_balance_and_records_usage(self):
         self.service.add_credits(self.user, 50.0)
         result = self.service.deduct_credits(self.user, 20.0, 'Model run')

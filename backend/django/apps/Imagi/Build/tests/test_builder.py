@@ -29,6 +29,7 @@ from apps.Imagi.Build.services.browser_preview_service import (
 )
 from apps.Imagi.Build.services.create_app_service import CreateAppService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
+from apps.Imagi.Build.services.preview_service import child_env
 from apps.Imagi.Build.services.codegen.prebuilt_apps import PREBUILT_MAP
 
 
@@ -247,6 +248,88 @@ class BuilderAPITests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['content'], 'the content')
+
+
+class FilePathContainmentTests(APITestCase):
+    """Paths from the request body and the URL stay inside the project.
+
+    Owning a project must not be a licence to reach the rest of the filesystem:
+    both the create-file body's `path` and the `<path:file_path>` URL segment
+    are attacker-controlled, and `<path:...>` matches `..` segments verbatim.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='pathuser', password='testpass123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+
+        self.sandbox = tempfile.mkdtemp(prefix='builder_sandbox_')
+        self.addCleanup(lambda: shutil.rmtree(self.sandbox, ignore_errors=True))
+        self.project_root = os.path.join(self.sandbox, 'project')
+        os.makedirs(self.project_root)
+        self.project = PMProject.objects.create(
+            user=self.user, name="Path Project", project_path=self.project_root
+        )
+
+        # A file belonging to nobody in particular, next to the project
+        self.outsider = os.path.join(self.sandbox, 'outside.txt')
+        with open(self.outsider, 'w', encoding='utf-8') as f:
+            f.write('original')
+
+    def test_create_file_rejects_traversal_in_path(self):
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': '../outside.txt', 'content': 'pwned'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        with open(self.outsider, encoding='utf-8') as f:
+            self.assertEqual(f.read(), 'original')
+
+    def test_create_file_rejects_absolute_path(self):
+        # os.path.join drops the project root entirely for an absolute path
+        target = os.path.join(self.sandbox, 'absolute.txt')
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': target, 'content': 'pwned'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(os.path.exists(target))
+
+    def test_file_content_write_rejects_traversal(self):
+        resp = self.client.post(
+            reverse('api-file-content', args=[self.project.id, '../outside.txt']),
+            {'content': 'pwned'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        with open(self.outsider, encoding='utf-8') as f:
+            self.assertEqual(f.read(), 'original')
+
+    def test_file_content_read_rejects_traversal(self):
+        resp = self.client.get(
+            reverse('api-file-content', args=[self.project.id, '../outside.txt'])
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_delete_file_rejects_traversal(self):
+        resp = self.client.delete(
+            reverse('api-delete-file', args=[self.project.id, '../outside.txt'])
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(os.path.exists(self.outsider))
+
+    def test_traversal_that_lands_back_inside_is_allowed(self):
+        # Containment is about where the path resolves, not whether it is tidy
+        relative_path = 'frontend/../src/App.vue'
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': relative_path, 'content': 'fine'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(os.path.exists(os.path.join(self.project_root, 'src/App.vue')))
 
 
 class CreateFileServiceTests(TestCase):
@@ -500,3 +583,37 @@ class PreviewEndpointTests(APITestCase):
         )
         resp = self.client.get(reverse('api-preview-frame', args=[other_project.id]))
         self.assertEqual(resp.status_code, 404)
+
+
+class PreviewChildEnvTests(TestCase):
+    """A generated project's processes must not inherit Imagi's secrets.
+
+    The code under a preview is written by the user (or by the agent on their
+    behalf) and runs in this same container, so the environment it is handed is
+    an allowlist rather than a copy of Imagi's own.
+    """
+
+    def test_platform_secrets_are_not_passed_through(self):
+        secrets = {
+            'DJANGO_SECRET_KEY': 'super-secret',
+            'DATABASE_URL': 'postgres://user:pw@host/db',
+            'STRIPE_SECRET_KEY': 'sk_live_xxx',
+            'STRIPE_WEBHOOK_SECRET': 'whsec_xxx',
+            'OPENAI_KEY': 'sk-openai',
+        }
+        with patch.dict(os.environ, secrets):
+            env = child_env()
+        for name in secrets:
+            self.assertNotIn(name, env)
+
+    def test_essentials_survive_and_overrides_apply(self):
+        with patch.dict(os.environ, {'PATH': '/usr/bin', 'HOME': '/home/app'}):
+            env = child_env(PORT='5174', VITE_BACKEND_URL='http://localhost:8081')
+        self.assertEqual(env['PATH'], '/usr/bin')
+        self.assertEqual(env['HOME'], '/home/app')
+        self.assertEqual(env['PORT'], '5174')
+        self.assertEqual(env['VITE_BACKEND_URL'], 'http://localhost:8081')
+
+    def test_path_is_never_empty(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(child_env()['PATH'])

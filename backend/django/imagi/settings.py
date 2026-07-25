@@ -249,6 +249,17 @@ CSRF_COOKIE_HTTPONLY = False  # frontend reads it from document.cookie
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+# TLS terminates at the edge and nginx forwards X-Forwarded-Proto, so Django
+# needs to be told about it — without this request.is_secure() is always False
+# behind the proxy and the flags below would never apply. Off in DEBUG, where
+# the dev servers are plain HTTP.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+# SECURE_SSL_REDIRECT is deliberately left off: the edge already serves HTTPS
+# only, while the Railway healthcheck and the backend<->workspace calls travel
+# plain HTTP over *.railway.internal, and a redirect would break both.
+
 
 # Stripe / Payments
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')

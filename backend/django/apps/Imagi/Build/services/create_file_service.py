@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Imagi.ProjectManager.models import Project
+from .safe_paths import resolve_safe
 
 logger = logging.getLogger(__name__)
 
@@ -258,11 +259,12 @@ const emit = defineEmits<{{
                             file_name = os.path.basename(file_path)
                             file_path = f"static/css/{file_name}"
             
-            # Create full file path
-            full_file_path = os.path.join(project_path, file_path)
-            
+            # Resolve inside the project — file_path comes straight from the
+            # request body, so it can carry '..' segments or be absolute.
+            full_file_path = resolve_safe(project_path, file_path)
+
             # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(os.path.abspath(full_file_path)), exist_ok=True)
+            os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
             
             # Generate default content if none provided or if content is whitespace-only
             if not content or not content.strip():

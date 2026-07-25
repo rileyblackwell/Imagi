@@ -797,7 +797,14 @@ def handle_payment_intent_succeeded(payment_intent):
         if not transaction:
             logger.warning(f"Transaction not found for payment intent {payment_intent.id}")
             return
-        
+
+        # process_payment confirms the intent inline and credits immediately, so
+        # this webhook usually arrives for a transaction that is already paid up.
+        # add_credits enforces this too; checking here keeps the log honest.
+        if transaction.status == 'completed':
+            logger.info(f"Transaction for payment intent {payment_intent.id} already credited")
+            return
+
         # Add credits to user's balance
         credit_service.add_credits(transaction.user, float(transaction.amount), transaction)
         
