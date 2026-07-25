@@ -29,10 +29,13 @@ __pycache__/
 *.py[cod]
 *.so
 *.egg-info/
-build/
-# ...but the Imagi "build" product is source, not a build artifact — keep it tracked.
-!backend/django/apps/Imagi/Build/
-!frontend/vuejs/src/apps/imagi/build/
+# Anchored on purpose. A bare `build/` also matches the Imagi "build" product
+# (frontend/vuejs/src/apps/imagi/build/), which is source, not an artifact.
+# Un-ignoring it with `!` satisfies git but NOT ripgrep, which drops the whole
+# directory when it reads this file as a *parent* ignore — so `rg` run from
+# frontend/vuejs/ finds none of those 48 files.
+/build/
+backend/django/build/
 .venv/
 venv/
 

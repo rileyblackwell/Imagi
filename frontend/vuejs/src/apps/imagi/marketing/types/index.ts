@@ -1,6 +1,6 @@
 /**
  * Types for the Marketing module — mirrors the Django Marketing app API
- * (backend/django/apps/Marketing).
+ * (backend/django/apps/Imagi/Marketing).
  */
 
 export interface MarketingSettings {

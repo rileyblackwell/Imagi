@@ -1,6 +1,6 @@
 /**
  * Types for the Operate module — mirrors the Django Operate app API
- * (backend/django/apps/Operate).
+ * (backend/django/apps/Imagi/Operate).
  */
 
 export type TransactionKind = 'income' | 'expense'
