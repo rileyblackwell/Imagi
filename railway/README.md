@@ -15,6 +15,15 @@ otherwise, and a stale tier serving old code is the cause of "my change isn't
 live in prod, sometimes". Compare `/api/v1/ops/web/version/` against
 `/api/v1/ops/workspace/version/` to check: same `commit` means no drift.
 
+Those same two responses carry `missing_binaries`, which answers the other
+question a healthy-looking-but-broken tier raises: whether the container has the
+programs the build workspace shells out to (`git`, `node`, `npm`, `chromium`).
+They come from the image, not the code, so a correct commit can still be unable
+to build anything — which is what happened when `git` was absent and every
+dispatched subagent died on `git worktree` with nothing visible in the UI. A
+non-empty `missing_binaries` on the workspace tier means fix
+`backend/django/Dockerfile`, not the deploy.
+
 ## Wiring these files to the services
 
 Railway only picks a config file up automatically when it is `railway.json` or
