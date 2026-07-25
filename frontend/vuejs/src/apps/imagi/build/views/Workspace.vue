@@ -142,6 +142,9 @@ import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
 import { useWindowSize } from '@/shared/composables/useWindowSize'
 import { useConfirm } from '../composables/useConfirm'
+// The pane-swap transition below is timed with the workspace's shared
+// motion tokens, so this view loads them too.
+import '../styles/workspace.css'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/imagi/build/layouts'
@@ -1264,21 +1267,34 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* Manager <-> chat pane swap: a light fade+slide. The preview lives in the
-   main content area and is untouched by this transition. */
-.sidebar-view-enter-active,
+/* Manager <-> chat pane swap. The preview lives in the main content area and
+   is untouched by this transition.
+
+   out-in, so the two panes never overlap in the sidebar's clipped column —
+   which means the user waits through both halves. The leave is therefore
+   kept short and the enter carries the weight: the outgoing pane slips away
+   quickly, the incoming one settles. Both ride the workspace's shared easing
+   so this swap decays at the same rate as everything inside the panes. */
+.sidebar-view-enter-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-out);
+}
+
 .sidebar-view-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity var(--iw-dur-1) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
 }
 
 .sidebar-view-enter-from {
   opacity: 0;
-  transform: translateX(8px);
+  transform: translateX(12px) scale(0.995);
 }
 
 .sidebar-view-leave-to {
   opacity: 0;
-  transform: translateX(-8px);
+  transform: translateX(-10px) scale(0.995);
 }
 
 /* Refined minimal scrollbar - Matching Homepage */

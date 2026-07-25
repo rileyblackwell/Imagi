@@ -8,11 +8,17 @@
   agent's check-in queue, so this pane's whole job is legibility.
 -->
 <template>
-  <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div class="iw-surface relative overflow-hidden h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+    <!-- Opening a subagent is a navigation, so it moves like one: the list
+         slides out to the left as the thread comes in from the right, and
+         back the other way on the return. The leaving pane is taken out of
+         flow (see .pane-nav-leave-active) so the two cross in place rather
+         than one waiting for the other to finish. -->
+    <Transition :name="opened ? 'pane-nav-push' : 'pane-nav-pop'">
     <!-- Reading one subagent's thread. It happens here rather than in the chat
          pane on purpose: a subagent is something you look in on, so opening one
          must not displace the thread you are actually talking in. -->
-    <template v-if="opened">
+    <div v-if="opened" key="opened" class="pane-nav-view flex flex-col h-full">
       <WorkspacePaneHeader
         icon="fas fa-robot"
         tone="muted"
@@ -49,16 +55,16 @@
           </p>
           <button
             type="button"
-            class="btn-back mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 transition-all duration-200"
+            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950"
             @click="closeOpened"
           >
             Back to subagents
           </button>
         </div>
       </div>
-    </template>
+    </div>
 
-    <template v-else>
+    <div v-else key="list" class="pane-nav-view flex flex-col h-full">
     <!-- Header: the same plate the chat pane wears, switching back the other
          way. The status line reports the fleet, which is what the removed
          "view only" badge was gesturing at — except it carries real news. -->
@@ -88,7 +94,7 @@
     </div>
 
     <!-- Team view -->
-    <div class="flex-1 min-h-0 overflow-y-auto px-2 py-2">
+    <div class="iw-scroll flex-1 min-h-0 overflow-y-auto px-2 py-2">
       <!-- Loading: the shape of the list, before the list -->
       <div v-if="store.instancesLoading && store.instances.length === 0" class="space-y-1.5 pt-1">
         <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ '--stagger': `${n * 90}ms` }">
@@ -112,7 +118,19 @@
           <span class="section-head__rule"></span>
         </div>
 
-        <div v-if="activeAgents.length > 0" class="space-y-1">
+        <!-- The crew reorders itself as agents finish and new ones are
+             dispatched. TransitionGroup makes that a movement rather than a
+             re-render: a new agent falls in, a settled one fades out of the
+             column, and everyone in between slides to their new place. The
+             per-card --stagger becomes the enter delay, so a batch of
+             parallel takes arrives in sequence instead of all at once. -->
+        <TransitionGroup
+          v-if="activeAgents.length > 0"
+          name="agent-list"
+          tag="div"
+          class="agent-list"
+          appear
+        >
           <InstanceCard
             v-for="(instance, i) in activeAgents"
             :key="instance.id"
@@ -123,7 +141,7 @@
             :variant-count="variantPlace(instance).count"
             @select="handleSelect(instance)"
           />
-        </div>
+        </TransitionGroup>
 
         <!-- Nothing running: say what would put something here -->
         <div v-else class="empty-plate">
@@ -148,29 +166,38 @@
             <span class="section-head__count">{{ history.length }}</span>
             <span class="section-head__rule"></span>
           </button>
-          <div v-if="showHistory" class="space-y-1">
-            <InstanceCard
-              v-for="(instance, i) in history"
-              :key="instance.id"
-              :instance="instance"
-              :index="i"
-              :is-active="instance.id === store.openedSubagentId || instance.id === store.activeInstanceId"
-              :is-archived="!!instance.archivedAt"
-              @select="handleSelect(instance)"
-            />
-          </div>
+          <!-- Unfolds to its own height instead of appearing. Still behind
+               v-if, so a collapsed History costs nothing until it is opened. -->
+          <FoldTransition>
+            <div v-if="showHistory" class="agent-list">
+              <InstanceCard
+                v-for="(instance, i) in history"
+                :key="instance.id"
+                :instance="instance"
+                :index="i"
+                :is-active="instance.id === store.openedSubagentId || instance.id === store.activeInstanceId"
+                :is-archived="!!instance.archivedAt"
+                @select="handleSelect(instance)"
+              />
+            </div>
+          </FoldTransition>
         </template>
       </template>
     </div>
-    </template>
+    </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
+// This pane's half of the workspace's shared motion + material vocabulary
+// (see BuilderSidebarChat for why each pane imports it directly).
+import '../../../styles/workspace.css'
 import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
+import FoldTransition from '../../molecules/common/FoldTransition.vue'
 import { ChatConversation } from '../../organisms/chat'
 import type { AgentInstance } from '../../../types/services'
 
@@ -283,6 +310,54 @@ async function openByConversation(conversationId: number) {
 </script>
 
 <style scoped>
+/* ── Pane navigation ────────────────────────────────────────────────────── */
+
+/* Each view fills the pane. The one on its way out is lifted out of flow so
+   both occupy the same box while they cross — otherwise the incoming view
+   would stack below the outgoing one and the pane would visibly grow to twice
+   its height mid-transition. */
+.pane-nav-view {
+  width: 100%;
+}
+
+.pane-nav-push-enter-active,
+.pane-nav-push-leave-active,
+.pane-nav-pop-enter-active,
+.pane-nav-pop-leave-active {
+  transition:
+    opacity var(--iw-dur-3) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-out);
+}
+
+.pane-nav-push-leave-active,
+.pane-nav-pop-leave-active {
+  position: absolute;
+  inset: 0;
+}
+
+/* Push (opening a subagent): the thread arrives from the right, the list
+   recedes to the left — the deeper view comes forward. */
+.pane-nav-push-enter-from {
+  opacity: 0;
+  transform: translateX(14px);
+}
+
+.pane-nav-push-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+/* Pop (back to the crew): the same movement, reversed. */
+.pane-nav-pop-enter-from {
+  opacity: 0;
+  transform: translateX(-14px);
+}
+
+.pane-nav-pop-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
 /* ── Fleet meter ────────────────────────────────────────────────────────── */
 
 .fleet-meter {
@@ -294,10 +369,13 @@ async function openByConversation(conversationId: number) {
   box-sizing: content-box;
 }
 
+/* Re-proportioning is the slowest thing in the pane on purpose: the bar is
+   reporting a change in the crew's shape, and a bar that snaps to a new
+   division reads as a glitch rather than as news. */
 .fleet-meter__seg {
   flex-basis: 0;
   border-radius: 9999px;
-  transition: flex-grow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: flex-grow var(--iw-dur-4) var(--iw-ease-out);
 }
 
 /* Same three tones the card rails use, so the bar reads as a key to the list */
@@ -343,6 +421,53 @@ async function openByConversation(conversationId: number) {
   to { background-position: 0 0; }
 }
 
+/* ── The crew, as a moving list ─────────────────────────────────────────── */
+
+/* gap rather than margin utilities: leaving cards are taken out of flow, and
+   a margin-based rhythm would collapse around them as they go. */
+.agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* A card joining the crew drops into place; the per-card --stagger spaces a
+   batch of parallel takes so they arrive as a sequence. */
+.agent-list-enter-active {
+  transition:
+    opacity var(--iw-dur-3) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-spring);
+  transition-delay: var(--stagger, 0ms);
+}
+
+.agent-list-enter-from {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+}
+
+/* Leaving is quicker and quieter than arriving — a settled agent should not
+   take the eye with it on the way out. */
+.agent-list-leave-active {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.agent-list-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+/* The rest of the column closing the gap. This is the move that makes the
+   list feel like objects rather than rows. */
+.agent-list-move {
+  transition: transform var(--iw-dur-4) var(--iw-ease-out);
+}
+
+
 /* ── Section heads ──────────────────────────────────────────────────────── */
 
 /* Uppercase micro-label, its count, then a hairline running to the edge —
@@ -359,9 +484,9 @@ async function openByConversation(conversationId: number) {
 
 .section-head--button {
   margin-top: 0.75rem;
-  border-radius: 0.375rem;
+  border-radius: var(--iw-r-xs);
   cursor: pointer;
-  transition: background-color 0.18s ease;
+  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .section-head--button:hover {
@@ -374,7 +499,7 @@ async function openByConversation(conversationId: number) {
 
 .section-head--button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45);
+  box-shadow: var(--iw-focus-ring);
 }
 
 .section-head__label {
@@ -383,7 +508,7 @@ async function openByConversation(conversationId: number) {
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: rgba(23, 37, 84, 0.45);
-  transition: color 0.18s ease;
+  transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dark .section-head__label {
@@ -407,6 +532,9 @@ async function openByConversation(conversationId: number) {
   background: rgba(23, 37, 84, 0.06);
   color: rgba(23, 37, 84, 0.5);
   line-height: 0.9375rem;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dark .section-head__count {
@@ -427,7 +555,7 @@ async function openByConversation(conversationId: number) {
 .section-head__chevron {
   font-size: 0.5rem;
   color: rgba(23, 37, 84, 0.35);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--iw-dur-3) var(--iw-ease-inout);
 }
 
 .dark .section-head__chevron {
@@ -446,9 +574,17 @@ async function openByConversation(conversationId: number) {
   margin: 0.125rem 0.125rem 0;
   padding: 1.125rem 0.875rem 1.25rem;
   border: 1px dashed rgba(23, 37, 84, 0.14);
-  border-radius: 0.75rem;
+  border-radius: var(--iw-r-md);
   background: linear-gradient(180deg, rgba(239, 246, 255, 0.55) 0%, rgba(239, 246, 255, 0) 100%);
   text-align: center;
+  animation: plate-in var(--iw-dur-4) var(--iw-ease-out) both;
+}
+
+/* The pane settling into "nothing running" should feel like the list coming
+   to rest, not like an error state flashing up. */
+@keyframes plate-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
 }
 
 .dark .empty-plate {
@@ -508,10 +644,10 @@ async function openByConversation(conversationId: number) {
   gap: 0.625rem;
   padding: 0.5rem 0.5rem 0.5rem 0.75rem;
   border: 1px solid rgba(23, 37, 84, 0.06);
-  border-radius: 0.625rem;
+  border-radius: var(--iw-r-md);
   overflow: hidden;
   opacity: 0;
-  animation: skeleton-in 0.4s ease both;
+  animation: skeleton-in var(--iw-dur-3) var(--iw-ease-out) both;
   animation-delay: var(--stagger, 0ms);
 }
 
@@ -573,11 +709,13 @@ async function openByConversation(conversationId: number) {
 @media (prefers-reduced-motion: reduce) {
   .fleet-meter__seg--working,
   .skeleton-line,
-  .skeleton-card {
+  .skeleton-card,
+  .empty-plate {
     animation: none;
   }
 
-  .skeleton-card {
+  .skeleton-card,
+  .empty-plate {
     opacity: 1;
   }
 }
@@ -585,21 +723,25 @@ async function openByConversation(conversationId: number) {
 /* Navy ink primary — the same recipe the chat pane's back button wears */
 .btn-back {
   background: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.2),
-    0 3px 8px -2px rgba(23, 37, 84, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
 }
 
 .btn-back:hover {
   background: theme('colors.blue.900');
+  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-back:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 .dark .btn-back {
   background: #f3ede2;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 3px 8px -2px rgba(0, 0, 0, 0.45);
 }
 
 .dark .btn-back:hover {
