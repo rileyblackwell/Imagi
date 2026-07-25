@@ -1,6 +1,6 @@
 /**
  * Types for the Sell module — mirrors the Django Sell app API
- * (backend/django/apps/Sell).
+ * (backend/django/apps/Imagi/Sell).
  */
 
 export interface SellSettings {
