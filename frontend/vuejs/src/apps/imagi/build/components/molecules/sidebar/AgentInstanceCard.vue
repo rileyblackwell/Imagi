@@ -171,18 +171,22 @@ function relativeTime(iso: string): string {
   align-items: flex-start;
   gap: 0.375rem;
   padding: 0.4375rem 0.5rem 0.4375rem 0.75rem;
-  border-radius: 0.625rem;
+  border-radius: var(--iw-r-md);
   border: 1px solid rgba(23, 37, 84, 0.07);
   background: rgba(239, 246, 255, 0.4);
+  box-shadow: none;
   cursor: pointer;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Transform is animated on its own line: hover raises the card and the
+     press pushes it back down, and both need to compose without fighting the
+     colour fade's timing. */
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-  animation: agent-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: var(--stagger, 0ms);
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dark .agent-card {
@@ -192,10 +196,14 @@ function relativeTime(iso: string): string {
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* Hover lifts the card off the column rather than nudging it sideways: a
+   sideways shift re-lays the text out by a pixel, which reads as a wobble in
+   a list this dense. Rising is silent. */
 .agent-card:hover {
   background: rgba(239, 246, 255, 0.95);
-  border-color: rgba(23, 37, 84, 0.14);
-  transform: translateX(1px);
+  border-color: rgba(23, 37, 84, 0.13);
+  box-shadow: var(--iw-shadow-2);
+  transform: translateY(-1px);
 }
 
 .dark .agent-card:hover {
@@ -203,13 +211,17 @@ function relativeTime(iso: string): string {
   border-color: rgba(255, 255, 255, 0.17);
 }
 
-.agent-card:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45);
+/* And the press puts it back down, slightly compressed — the whole row
+   behaves like one physical control. */
+.agent-card:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--iw-shadow-1);
+  transition-duration: var(--iw-dur-1);
 }
 
-.dark .agent-card:focus-visible {
-  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.5);
+.agent-card:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 /* Selected — the soft baby-blue wash the workspace uses for "you are here" */
@@ -218,13 +230,17 @@ function relativeTime(iso: string): string {
   background: linear-gradient(155deg, rgba(219, 238, 255, 0.9) 0%, rgba(183, 221, 247, 0.45) 100%);
   box-shadow:
     0 1px 2px rgba(30, 58, 138, 0.08),
-    0 3px 8px -3px rgba(30, 58, 138, 0.12),
+    0 4px 12px -5px rgba(30, 58, 138, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .agent-card--active:hover {
   background: linear-gradient(155deg, rgba(219, 238, 255, 1) 0%, rgba(183, 221, 247, 0.55) 100%);
   border-color: rgba(147, 197, 253, 1);
+  box-shadow:
+    0 2px 4px rgba(30, 58, 138, 0.1),
+    0 10px 24px -10px rgba(30, 58, 138, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .dark .agent-card--active,
@@ -238,6 +254,7 @@ function relativeTime(iso: string): string {
 
 .agent-card--archived {
   opacity: 0.72;
+  transition: opacity var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .agent-card--archived:hover {
@@ -253,6 +270,7 @@ function relativeTime(iso: string): string {
   bottom: 0;
   width: 0.1875rem;
   background: var(--rail);
+  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
 }
 
 /* Live run: ink travels down the rail, and the card breathes with the faintest
@@ -267,6 +285,25 @@ function relativeTime(iso: string): string {
   --status: theme('colors.blue.300');
 }
 
+/* The glow the rail casts into the card — light bleeding off a lit edge, so a
+   working agent is legible from the corner of the eye without the row having
+   to shout. Sits under the content (::before on the card itself). */
+.agent-card--working::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.09) 0%, rgba(59, 130, 246, 0) 100%);
+  animation: rail-breathe 3.2s var(--iw-ease-ambient) infinite;
+}
+
+.dark .agent-card--working::before {
+  background: linear-gradient(90deg, rgba(147, 197, 253, 0.1) 0%, rgba(147, 197, 253, 0) 100%);
+}
+
 .agent-card--working .agent-card__rail::after {
   content: '';
   position: absolute;
@@ -278,7 +315,7 @@ function relativeTime(iso: string): string {
     theme('colors.blue.400') 60%,
     transparent 100%
   );
-  animation: rail-travel 2.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: rail-travel 2.6s var(--iw-ease-ambient) infinite;
 }
 
 .dark .agent-card--working .agent-card__rail::after {
@@ -335,7 +372,11 @@ function relativeTime(iso: string): string {
 
 /* ── Contents ───────────────────────────────────────────────────────────── */
 
+/* Above the working card's edge glow, which is absolutely positioned and
+   would otherwise paint over this static content. */
 .agent-card__body {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
 }
@@ -355,7 +396,7 @@ function relativeTime(iso: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color 0.2s ease;
+  transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dark .agent-card__title {
@@ -395,6 +436,8 @@ function relativeTime(iso: string): string {
   color: rgba(219, 234, 254, 0.6);
 }
 
+/* "Finished while you were away" — it arrives with a small pop so a card that
+   gains one while you are looking at the list actually announces itself. */
 .agent-card__unread {
   flex-shrink: 0;
   width: 0.375rem;
@@ -403,11 +446,17 @@ function relativeTime(iso: string): string {
   border-radius: 9999px;
   background: theme('colors.blue.950');
   box-shadow: 0 0 0 2px rgba(219, 238, 255, 0.9);
+  animation: unread-in var(--iw-dur-3) var(--iw-ease-spring) both;
 }
 
 .dark .agent-card__unread {
   background: #f3ede2;
   box-shadow: 0 0 0 2px rgba(10, 10, 10, 0.9);
+}
+
+@keyframes unread-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: none; }
 }
 
 .agent-card__status {
@@ -418,7 +467,7 @@ function relativeTime(iso: string): string {
   font-size: 0.625rem;
   line-height: 1.35;
   color: var(--status);
-  transition: color 0.2s ease;
+  transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
 .agent-card__status-icon {
@@ -451,13 +500,17 @@ function relativeTime(iso: string): string {
 
 /* Quiet until hover — the row is clickable, but it does not advertise it */
 .agent-card__chevron {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   align-self: center;
   font-size: 0.5rem;
   color: rgba(23, 37, 84, 0.3);
   opacity: 0;
-  transform: translateX(-3px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dark .agent-card__chevron {
@@ -478,14 +531,15 @@ function relativeTime(iso: string): string {
   100% { transform: translateY(100%); }
 }
 
-@keyframes agent-card-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
+@keyframes rail-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .agent-card {
+  .agent-card--working::before {
     animation: none;
+    opacity: 0.8;
   }
 
   .agent-card--working .agent-card__rail::after {
@@ -493,7 +547,8 @@ function relativeTime(iso: string): string {
     background: theme('colors.blue.500');
   }
 
-  .agent-card:hover {
+  .agent-card:hover,
+  .agent-card:active {
     transform: none;
   }
 }

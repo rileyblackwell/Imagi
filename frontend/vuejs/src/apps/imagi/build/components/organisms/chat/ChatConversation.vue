@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col relative z-10 transition-colors duration-300" :class="{'mode-transition': disableAllAnimations}">
     <!-- Messages Container -->
-    <div ref="messagesContainer" class="flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
+    <div ref="messagesContainer" class="iw-scroll iw-surface flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
       <!-- Empty state: one quiet line, nothing to dismiss or click -->
       <div v-if="!processedMessages.length" class="h-full flex items-center justify-center px-6 py-4 text-center min-h-0">
         <p class="text-xs text-blue-950/45 dark:text-blue-100/45 max-w-[230px] leading-relaxed">
@@ -16,7 +16,7 @@
             <div v-if="message.role === 'user'"
               class="msg-row user-row group flex flex-col items-end"
               :class="{ 'animate-message-in': message.isNew }"
-              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
+              :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
               <div class="user-bubble">
                 <p class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ message.content }}</p>
               </div>
@@ -29,7 +29,7 @@
               <button
                 v-if="message.checkpoint && message.dbId && restoreAllowed"
                 type="button"
-                class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-blue-950/40 dark:text-white/35 hover:text-blue-950/75 dark:hover:text-white/75 hover:bg-blue-50/80 dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150"
+                class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-blue-950/40 dark:text-white/35 hover:text-blue-950/75 dark:hover:text-white/75 hover:bg-blue-50/80 dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                 title="Restore your app and this conversation to the moment before this message"
                 @click="emit('restore-checkpoint', message)"
               >
@@ -42,7 +42,7 @@
             <div v-else-if="message.role === 'assistant'"
               class="msg-row assistant-response"
               :class="{ 'animate-message-in': message.isNew }"
-              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
+              :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
               <AgentActivityFeed
                 v-if="message.activity?.length"
                 :steps="message.activity"
@@ -67,7 +67,7 @@
                   v-for="task in message.dispatchedTasks"
                   :key="task.conversationId"
                   type="button"
-                  class="dispatch-card group flex items-start gap-2.5 w-full rounded-xl border border-blue-950/[0.08] dark:border-white/[0.12] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-2 text-left transition-colors hover:bg-blue-100/60 dark:hover:bg-white/[0.07]"
+                  class="dispatch-card group flex items-start gap-2.5 w-full border border-blue-950/[0.08] dark:border-white/[0.12] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-2 text-left hover:bg-blue-100/60 dark:hover:bg-white/[0.07]"
                   :title="`Open this subagent's thread`"
                   @click="emit('open-task', task.conversationId)"
                 >
@@ -91,7 +91,7 @@
                       {{ dispatchSummary(task.conversationId) }}
                     </span>
                   </span>
-                  <i class="fas fa-chevron-right text-[10px] mt-0.5 text-blue-950/30 dark:text-white/30 group-hover:text-blue-950/60 dark:group-hover:text-white/60 transition-colors shrink-0"></i>
+                  <i class="fas fa-chevron-right dispatch-chevron text-[10px] mt-0.5 text-blue-950/30 dark:text-white/30 group-hover:text-blue-950/60 dark:group-hover:text-white/60 shrink-0"></i>
                 </button>
               </div>
               <div v-if="message.filesChanged?.length" class="mt-2">
@@ -119,7 +119,7 @@
             <div v-else-if="message.role === 'system'"
               class="msg-row flex justify-center"
               :class="{ 'animate-fade-in': message.isNew }"
-              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
+              :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
               <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
             </div>
 
@@ -127,19 +127,27 @@
             <div v-else
               class="msg-row flex justify-center"
               :class="{ 'animate-message-in': message.isNew }"
-              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
+              :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
               <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
             </div>
           </template>
 
           <!-- Agent activity indicator. Hidden while the reply itself is
-               streaming in — the growing message already shows progress. -->
-          <div v-if="showActivityIndicator" class="msg-row assistant-response animate-fade-in">
-            <div class="agent-status flex items-center gap-2.5">
-              <span class="status-orb"></span>
-              <span class="status-shimmer text-sm font-medium">{{ props.statusText || 'Working…' }}</span>
+               streaming in — the growing message already shows progress.
+               It fades both ways: when the reply starts arriving this hands
+               over to the text rather than vanishing out from under it. -->
+          <Transition name="status">
+            <div v-if="showActivityIndicator" class="msg-row assistant-response">
+              <div class="agent-status flex items-center gap-2.5">
+                <span class="status-orb"></span>
+                <!-- Keyed on the reading so each new step cross-fades in
+                     place, the same way the pane masthead's status does. -->
+                <Transition name="status-text" mode="out-in">
+                  <span :key="statusLabel" class="status-shimmer text-sm font-medium">{{ statusLabel }}</span>
+                </Transition>
+              </div>
             </div>
-          </div>
+          </Transition>
         </div>
       </template>
     </div>
@@ -164,6 +172,8 @@ marked.setOptions({
 interface ProcessedMessage extends AIMessage {
   isNew?: boolean;
   isTyping?: boolean;
+  /** Milliseconds this message waits before playing its entrance */
+  enterDelay?: number;
 }
 
 const props = defineProps<{
@@ -193,6 +203,10 @@ const showActivityIndicator = computed(() => {
   const last = props.messages[props.messages.length - 1]
   return !(last?.role === 'assistant' && (last.content || '').trim().length > 0)
 })
+
+/** The indicator's current reading, with the generic fallback applied once so
+ *  the cross-fade keys off the text actually on screen. */
+const statusLabel = computed(() => props.statusText || 'Working…')
 
 const emit = defineEmits<{
   (e: 'apply-code', code: string): void
@@ -234,17 +248,31 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const previousMessageCount = ref(0)
 const disableAllAnimations = ref(false)
 
+/** How far apart consecutive arrivals are spaced, and how many get spaced. */
+const ENTER_STAGGER_MS = 60
+const ENTER_STAGGER_MAX = 4
+
 // Process messages to add isNew flag for animations
 const processedMessages = computed<ProcessedMessage[]>(() => {
+  const firstNew = previousMessageCount.value
   return props.messages.map((message, index) => {
     // Only mark messages as new if they're newly added and animations
     // aren't globally disabled
-    const isNew = (index >= previousMessageCount.value)
-      && !disableAllAnimations.value;
+    const isNew = (index >= firstNew) && !disableAllAnimations.value;
+
+    // The stagger counts from the first *new* message, not from the top of
+    // the conversation. Keyed off the absolute index it grew with the
+    // transcript — message 40 of a long thread waited two seconds to fade in,
+    // which read as the reply having stalled. Capped as well, so a batch
+    // arriving at once still resolves promptly.
+    const enterDelay = isNew
+      ? Math.min(index - firstNew, ENTER_STAGGER_MAX) * ENTER_STAGGER_MS
+      : 0;
 
     return {
       ...message,
-      isNew
+      isNew,
+      enterDelay
     };
   });
 });
@@ -420,11 +448,59 @@ const copyToClipboard = (code: string) => {
   margin-top: 1rem;
 }
 
+/* A subagent handed off mid-reply. It is the one clickable object inside the
+   transcript, so it behaves like the cards in the crew ledger do: rises to
+   meet the pointer, gives under the press. */
+.dispatch-card {
+  border-radius: var(--iw-r-lg);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dispatch-card:hover {
+  border-color: rgba(23, 37, 84, 0.14);
+  box-shadow: var(--iw-shadow-2);
+  transform: translateY(-1px);
+}
+
+.dark .dispatch-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dispatch-card:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: var(--iw-shadow-1);
+  transition-duration: var(--iw-dur-1);
+}
+
+.dispatch-card:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
+}
+
+.dispatch-chevron {
+  transition:
+    color var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dispatch-card:hover .dispatch-chevron {
+  transform: translateX(2px);
+}
+
 /* Dispatch-card chip: same navy-ink / cream pairing as the check-in queue. */
 .dispatch-chip {
   background: rgba(23, 37, 84, 0.08);
   box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
   color: rgba(23, 37, 84, 0.8);
+  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dispatch-card:hover .dispatch-chip {
+  background: rgba(23, 37, 84, 0.12);
 }
 
 .dark .dispatch-chip {
@@ -433,8 +509,25 @@ const copyToClipboard = (code: string) => {
   color: rgba(243, 237, 226, 0.9);
 }
 
+.dark .dispatch-card:hover .dispatch-chip {
+  background: rgba(243, 237, 226, 0.18);
+}
+
 .msg-row + .user-row {
   margin-top: 2rem;
+}
+
+/* Quiet until the turn is hovered, then it fades up in place. */
+.restore-chip {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.restore-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 /* Touch screens have no hover: keep the restore chip faintly visible so the
@@ -449,10 +542,11 @@ const copyToClipboard = (code: string) => {
 .user-bubble {
   max-width: 85%;
   padding: 0.625rem 0.875rem;
-  border-radius: 1rem;
-  border-bottom-right-radius: 0.375rem;
+  border-radius: var(--iw-r-lg);
+  border-bottom-right-radius: var(--iw-r-xs);
   background-color: theme('colors.blue.50');
   border: 1px solid rgba(191, 219, 254, 0.6);
+  box-shadow: var(--iw-shadow-1);
   color: theme('colors.blue.950');
   /* Long unbroken strings (paths, URLs) wrap instead of widening the chat
      and dragging in a horizontal scrollbar. */
@@ -493,7 +587,7 @@ const copyToClipboard = (code: string) => {
 .prose :deep(pre) {
   background: rgba(239, 246, 255, 0.6);
   border: 1px solid theme('colors.blue.100');
-  border-radius: 0.625rem;
+  border-radius: var(--iw-r-md);
   padding: 0.75rem 0.875rem;
   margin: 0.75rem 0;
   overflow-x: auto;
@@ -596,15 +690,16 @@ const copyToClipboard = (code: string) => {
   margin-bottom: 0.5rem;
 }
 
-/* Message animations */
+/* Message animations. A message settles up into place with a trace of
+   overshoot — closer to something being set down than to a fade. */
 @keyframes message-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -618,69 +713,84 @@ const copyToClipboard = (code: string) => {
 }
 
 .animate-message-in {
-  animation: message-in 0.3s ease-out forwards;
+  animation: message-in var(--iw-dur-3) var(--iw-ease-spring) both;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
+  animation: fade-in var(--iw-dur-3) var(--iw-ease-out) both;
 }
 
-/* Minimal scrollbar */
-.overflow-y-auto {
-  scrollbar-width: thin;
+/* The indicator hands over to the streaming reply rather than blinking out */
+.status-enter-active,
+.status-leave-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+.status-enter-from,
+.status-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
 }
 
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: transparent;
+/* And each reading of it cross-fades in place */
+.status-text-enter-active,
+.status-text-leave-active {
+  transition:
+    opacity var(--iw-dur-1) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
+.status-text-enter-from {
+  opacity: 0;
+  transform: translateY(3px);
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.15);
+.status-text-leave-to {
+  opacity: 0;
+  transform: translateY(-3px);
 }
 
-:root.dark .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-:root.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* Agent activity indicator: a softly breathing orb next to status text with
-   a light shimmer sweeping across it. */
+/* Agent activity indicator: a lit orb radiating a halo, next to status text
+   with a shimmer sweeping across it. Same construction as the pane
+   masthead's live dot — the orb holds steady while the halo travels — so
+   "something is running" looks identical wherever it is reported. */
 .status-orb {
+  position: relative;
   flex-shrink: 0;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #93c5fd, #3b82f6);
-  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
-  animation: orb-breathe 2s ease-in-out infinite;
+  animation: orb-breathe 2.4s var(--iw-ease-ambient) infinite;
+}
+
+.status-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: theme('colors.blue.500');
+  animation: orb-halo 2.4s var(--iw-ease-ambient) infinite;
 }
 
 .dark .status-orb {
   background: radial-gradient(circle at 30% 30%, #bfdbfe, #60a5fa);
-  box-shadow: 0 0 0 0 rgba(147, 197, 253, 0.3);
+}
+
+.dark .status-orb::after {
+  background: theme('colors.blue.300');
 }
 
 @keyframes orb-breathe {
-  0%, 100% {
-    transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
-  }
-  50% {
-    transform: scale(1);
-    box-shadow: 0 0 0 5px rgba(59, 130, 246, 0);
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes orb-halo {
+  0% { opacity: 0.4; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(2.6); }
 }
 
 .status-shimmer {
@@ -718,10 +828,15 @@ const copyToClipboard = (code: string) => {
 
 @media (prefers-reduced-motion: reduce) {
   .status-orb,
+  .status-orb::after,
   .status-shimmer,
   .animate-message-in,
   .animate-fade-in {
     animation: none;
+  }
+
+  .status-orb::after {
+    opacity: 0;
   }
 
   .status-shimmer {

@@ -49,7 +49,7 @@
               type="button"
               title="Open this task"
               aria-label="Open this task"
-              class="check-in__open"
+              class="check-in__open iw-press"
               @click="emit('view', current)"
             >
               <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
@@ -93,7 +93,7 @@
               <button
                 type="button"
                 :disabled="!answer.trim()"
-                class="btn-primary flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-200"
+                class="btn-primary iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                 :class="answer.trim()
                   ? 'btn-primary--active text-[#fdf9f2] dark:text-blue-950'
                   : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12]'"
@@ -104,7 +104,7 @@
               <button
                 type="button"
                 title="Deal with this later"
-                class="btn-ghost rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+                class="btn-ghost iw-press rounded-full px-2.5 py-1 text-[11px] font-medium"
                 @click="emit('skip', current)"
               >
                 Later
@@ -120,7 +120,7 @@
             <button
               type="button"
               :disabled="busy"
-              class="btn-primary btn-primary--active flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 transition-all duration-200 disabled:opacity-50"
+              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 disabled:opacity-50"
               @click="emit('accept', current)"
             >
               <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>
@@ -129,7 +129,7 @@
             <button
               type="button"
               :disabled="busy"
-              class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
+              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium disabled:opacity-50"
               @click="emit('dismiss', current)"
             >
               Discard
@@ -140,14 +140,14 @@
           <div v-else class="flex items-center gap-1.5 mt-2">
             <button
               type="button"
-              class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
               @click="emit('view', current)"
             >
               See what happened
             </button>
             <button
               type="button"
-              class="btn-ghost flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
               @click="emit('skip', current)"
             >
               Dismiss
@@ -294,17 +294,24 @@ function sendAnswer() {
 /* ── The pile ───────────────────────────────────────────────────────────── */
 
 /* Two hairline layers peeking out below the card: the queue has depth, and
-   the depth is worth seeing without opening anything. */
+   the depth is worth seeing without opening anything.
+
+   Both layers are always drawn and revealed by opacity rather than being
+   created by the class — a pseudo-element that springs into existence cannot
+   be transitioned, and the pile gaining a layer should look like something
+   sliding under the card, not like a line appearing from nowhere. */
 .queue-stack {
   position: relative;
+  padding-bottom: 0;
+  transition: padding-bottom var(--iw-dur-3) var(--iw-ease-out);
 }
 
 .queue-stack.is-stacked {
   padding-bottom: 0.3125rem;
 }
 
-.queue-stack.is-stacked::before,
-.queue-stack.is-deep::after {
+.queue-stack::before,
+.queue-stack::after {
   content: '';
   position: absolute;
   left: 0.375rem;
@@ -312,28 +319,43 @@ function sendAnswer() {
   height: 0.625rem;
   border: 1px solid rgba(23, 37, 84, 0.09);
   border-top: none;
-  border-radius: 0 0 0.625rem 0.625rem;
+  border-radius: 0 0 var(--iw-r-md) var(--iw-r-md);
   background: rgba(239, 246, 255, 0.7);
+  opacity: 0;
+  transform: translateY(-0.25rem);
+  transition:
+    opacity var(--iw-dur-3) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.dark .queue-stack.is-stacked::before,
-.dark .queue-stack.is-deep::after {
+.dark .queue-stack::before,
+.dark .queue-stack::after {
   border-color: rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.queue-stack.is-stacked::before {
+.queue-stack::before {
   bottom: 0.0625rem;
   z-index: 1;
 }
 
+.queue-stack.is-stacked::before {
+  opacity: 1;
+  transform: none;
+}
+
 /* The second layer only appears once three or more are queued — it would be a
    lie about the pile's depth otherwise. */
-.queue-stack.is-deep::after {
+.queue-stack::after {
   bottom: -0.125rem;
   left: 0.6875rem;
   right: 0.6875rem;
   z-index: 0;
+}
+
+.queue-stack.is-deep::after {
+  opacity: 1;
+  transform: none;
 }
 
 /* ── The card ───────────────────────────────────────────────────────────── */
@@ -345,11 +367,17 @@ function sendAnswer() {
   position: relative;
   z-index: 2;
   display: flex;
-  border-radius: 0.75rem;
+  border-radius: var(--iw-r-md);
   border: 1px solid rgba(23, 37, 84, 0.1);
   background: rgba(239, 246, 255, 0.75);
+  box-shadow: var(--iw-shadow-1);
   overflow: hidden;
-  animation: check-in-arrive 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  animation: check-in-arrive var(--iw-dur-4) var(--iw-ease-spring) both;
+  transition:
+    border-color var(--iw-dur-3) var(--iw-ease-out),
+    background-color var(--iw-dur-3) var(--iw-ease-out);
 }
 
 .dark .check-in {
@@ -436,9 +464,17 @@ function sendAnswer() {
   width: 1.25rem;
   height: 1.25rem;
   margin: -0.0625rem -0.125rem 0 0;
-  border-radius: 0.375rem;
+  border-radius: var(--iw-r-xs);
   color: rgba(23, 37, 84, 0.35);
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.check-in__open:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 .check-in__open:hover {
@@ -487,7 +523,7 @@ function sendAnswer() {
   font-size: 0.625rem;
   font-weight: 500;
   color: rgba(23, 37, 84, 0.45);
-  transition: color 0.18s ease;
+  transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .check-in__more:hover {
@@ -503,9 +539,11 @@ function sendAnswer() {
 }
 
 /* A check-in lands rather than blinks — the card is keyed on the check-in id,
-   so each new one plays this as it takes the front of the queue. */
+   so each new one plays this as it takes the front of the queue. It rises
+   slightly out of the pile it was waiting in, which is where the next one
+   genuinely comes from. */
 @keyframes check-in-arrive {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
   to { opacity: 1; transform: none; }
 }
 
@@ -515,35 +553,42 @@ function sendAnswer() {
 
 /* ── Buttons (the workspace's navy-ink pairing, unchanged) ──────────────── */
 
+/* Both buttons share one transition contract, so the pair reacts as a pair —
+   .iw-press supplies the scale under the pointer on top of this. */
+.btn-primary,
+.btn-ghost {
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
+}
+
 /* Navy ink primary - matching the composer's send button */
 .btn-primary--active {
   background: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.2),
-    0 3px 8px -2px rgba(23, 37, 84, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .btn-primary--active:hover:not(:disabled) {
   background: theme('colors.blue.900');
-  box-shadow:
-    0 2px 3px rgba(23, 37, 84, 0.22),
-    0 5px 12px -2px rgba(23, 37, 84, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dark .btn-primary--active {
   background: #f3ede2;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 3px 8px -2px rgba(0, 0, 0, 0.45);
 }
 
 .dark .btn-primary--active:hover:not(:disabled) {
   background: #ffffff;
-  box-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.4),
-    0 5px 12px -2px rgba(0, 0, 0, 0.5);
 }
 
 /* Ghost secondary - quiet outline that only tints on hover */
@@ -555,6 +600,7 @@ function sendAnswer() {
 
 .btn-ghost:hover:not(:disabled) {
   background: rgba(239, 246, 255, 0.9);
+  border-color: rgba(147, 197, 253, 0.9);
   color: rgb(23, 37, 84);
 }
 
@@ -585,13 +631,18 @@ function sendAnswer() {
   background: rgba(245, 158, 11, 0.12);
 }
 
+/* Focus is a ring rather than a border swap: the field's edge stays where it
+   was and gains a halo, so nothing shifts by a pixel as you click into it. */
 .answer-textarea {
-  transition: border-color 0.18s ease;
+  transition:
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out);
   outline: none;
 }
 
 .answer-textarea:focus {
   border-color: rgba(23, 37, 84, 0.45);
+  box-shadow: 0 0 0 3px rgba(var(--iw-accent), 0.14);
 }
 
 .dark .answer-textarea:focus {

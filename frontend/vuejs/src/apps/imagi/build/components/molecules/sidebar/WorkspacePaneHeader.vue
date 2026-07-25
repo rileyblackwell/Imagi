@@ -20,7 +20,16 @@
 
     <div class="flex-1 min-w-0">
       <h2 class="pane-title truncate">{{ title }}</h2>
-      <p v-if="status" class="pane-status truncate">{{ status }}</p>
+      <!-- The status line is the most-changing text in the workspace ("Reading
+           files…" → "Editing…" → "Ready when you are"). Swapping it in place
+           reads as a flicker; cross-fading reads as the same line being
+           updated, which is what it is. Keyed on the text so each new reading
+           gets its own fade. -->
+      <div v-if="status" class="pane-status-line">
+        <Transition name="pane-status" mode="out-in">
+          <p :key="status" class="pane-status truncate">{{ status }}</p>
+        </Transition>
+      </div>
     </div>
 
     <!-- Desktop pane switch. Mobile navigates from the navbar switcher, so
@@ -28,7 +37,7 @@
     <button
       v-if="switchLabel"
       type="button"
-      class="pane-switch group max-md:hidden"
+      class="pane-switch iw-press group max-md:hidden"
       :aria-label="`Switch to ${switchLabel}`"
       @click="emit('switch')"
     >
@@ -44,8 +53,12 @@
         <span v-if="switchLive" class="pane-switch-pulse" aria-hidden="true"></span>
       </span>
       <span class="pane-switch-label">{{ switchLabel }}</span>
-      <!-- Ambient count of what is waiting on the other side -->
-      <span v-if="switchCount" class="pane-switch-count">{{ switchCount }}</span>
+      <!-- Ambient count of what is waiting on the other side. Keyed on the
+           number so it springs when the fleet grows instead of silently
+           becoming a different digit. -->
+      <Transition name="pane-count" mode="out-in">
+        <span v-if="switchCount" :key="switchCount" class="pane-switch-count">{{ switchCount }}</span>
+      </Transition>
       <i
         v-if="switchDirection === 'forward'"
         class="fas fa-chevron-right pane-switch-chevron"
@@ -81,16 +94,46 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 </script>
 
 <style scoped>
-/* The plate: a hairline rule plus the faintest wash, so the header reads as
-   its own surface rather than the transcript's first row. */
+/* The plate: a translucent material rather than a painted strip. The pane
+   scrolls beneath it, so the masthead takes its colour from whatever is
+   passing underneath — saturated and blurred past legibility — and closes
+   with a true hairline. This is what keeps the header feeling like a layer
+   above the transcript instead of its first row. */
 .pane-header {
-  background: linear-gradient(180deg, rgba(239, 246, 255, 0.5) 0%, rgba(239, 246, 255, 0) 100%);
-  border-bottom: 1px solid rgba(23, 37, 84, 0.08);
+  position: relative;
+  z-index: 20;
+  background: var(--iw-material-bg);
+  -webkit-backdrop-filter: var(--iw-material-filter);
+  backdrop-filter: var(--iw-material-filter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.dark .pane-header {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 100%);
-  border-bottom-color: rgba(255, 255, 255, 0.12);
+/* The separator is drawn rather than bordered: at 1px a border rounds up to a
+   full device pixel on retina and reads as a line; a scaled pseudo-element
+   stays a true hairline at any density. */
+.pane-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--iw-hairline);
+  transform: scaleY(0.5);
+  transform-origin: bottom;
+}
+
+/* No backdrop-filter (older Firefox, some Linux GPUs): fall back to the
+   opaque wash the header used to carry, so it never turns see-through. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pane-header {
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.92) 0%, rgba(239, 246, 255, 0.6) 100%);
+  }
+
+  .dark .pane-header {
+    background: linear-gradient(180deg, rgba(24, 24, 27, 0.96) 0%, rgba(18, 18, 20, 0.85) 100%);
+  }
 }
 
 /* Mark: navy ink for the thread you drive, a quiet tint for panes you watch */
@@ -100,8 +143,11 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   justify-content: center;
   width: 1.875rem;
   height: 1.875rem;
-  border-radius: 0.625rem;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border-radius: var(--iw-r-md);
+  transition:
+    transform var(--iw-dur-2) var(--iw-ease-spring),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    background-color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .pane-mark--primary {
@@ -109,8 +155,8 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   color: #fdf9f2;
   box-shadow:
     0 1px 2px rgba(23, 37, 84, 0.22),
-    0 3px 8px -3px rgba(23, 37, 84, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    0 4px 12px -4px rgba(23, 37, 84, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .dark .pane-mark--primary {
@@ -118,7 +164,7 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   color: theme('colors.blue.950');
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.4),
-    0 3px 8px -3px rgba(0, 0, 0, 0.45);
+    0 4px 12px -4px rgba(0, 0, 0, 0.5);
 }
 
 .pane-mark--muted {
@@ -133,7 +179,10 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Live-run dot, ringed against the header so it reads on either surface */
+/* Live-run dot, ringed against the header so it reads on either surface. The
+   dot itself holds steady — a marker that flickers looks like a rendering
+   fault — and a halo breathes outward from under it. Reads as a signal
+   radiating rather than a light being switched. */
 .pane-pulse {
   position: absolute;
   right: -1px;
@@ -142,23 +191,41 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   height: 0.5rem;
   border-radius: 9999px;
   background: theme('colors.blue.500');
-  box-shadow: 0 0 0 2px #ffffff;
-  animation: pane-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(var(--iw-surface), 1);
+  animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
+}
+
+.pane-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: pane-pulse-halo 2.4s var(--iw-ease-ambient) infinite;
 }
 
 .dark .pane-pulse {
   background: theme('colors.blue.300');
-  box-shadow: 0 0 0 2px #0a0a0a;
 }
 
-@keyframes pane-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.86); }
+@keyframes pane-pulse-core {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.78; }
+}
+
+@keyframes pane-pulse-halo {
+  0% { opacity: 0.45; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(2.4); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pane-pulse,
-  .pane-switch-pulse { animation: none; }
+  .pane-pulse::after,
+  .pane-switch-pulse,
+  .pane-switch-pulse::after { animation: none; }
+
+  .pane-pulse::after,
+  .pane-switch-pulse::after { opacity: 0; }
 }
 
 /* The name carries the brand serif (Fraunces) — the same face as the Imagi
@@ -179,6 +246,12 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   color: rgba(255, 255, 255, 0.94);
 }
 
+/* Reserves the line's height so the masthead never resizes underneath a
+   cross-fade — the two readings swap inside a box that does not move. */
+.pane-status-line {
+  min-height: 0.9375rem;
+}
+
 .pane-status {
   margin-top: 0.0625rem;
   font-size: 0.65625rem;
@@ -191,7 +264,28 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   color: rgba(219, 234, 254, 0.45);
 }
 
-/* Switch: names its destination instead of hiding behind a tooltip */
+/* One reading giving way to the next: down and out, up and in — the direction
+   of a line being replaced from below. */
+.pane-status-enter-active,
+.pane-status-leave-active {
+  transition:
+    opacity var(--iw-dur-1) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.pane-status-enter-from {
+  opacity: 0;
+  transform: translateY(3px);
+}
+
+.pane-status-leave-to {
+  opacity: 0;
+  transform: translateY(-3px);
+}
+
+/* Switch: names its destination instead of hiding behind a tooltip. Rests
+   flush with the masthead and lifts on hover — a control that comes to meet
+   the pointer, then gives under the press (.iw-press). */
 .pane-switch {
   display: inline-flex;
   align-items: center;
@@ -205,23 +299,33 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   font-size: 0.6875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  box-shadow: var(--iw-shadow-1);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .pane-switch:hover {
   background: #ffffff;
-  border-color: rgba(23, 37, 84, 0.2);
+  border-color: rgba(23, 37, 84, 0.18);
   color: theme('colors.blue.950');
+  box-shadow: var(--iw-shadow-2);
   transform: translateY(-1px);
 }
 
+/* .iw-press owns the pressed scale; the lift simply returns to rest under it */
 .pane-switch:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.97);
+  box-shadow: var(--iw-shadow-1);
+  transition-duration: var(--iw-dur-1);
 }
 
 .pane-switch:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: var(--iw-focus-ring);
 }
 
 .dark .pane-switch {
@@ -236,10 +340,6 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   color: #ffffff;
 }
 
-.dark .pane-switch:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
-}
-
 .pane-switch-icon-wrap {
   position: relative;
   display: inline-flex;
@@ -249,6 +349,11 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 .pane-switch-icon {
   font-size: 0.625rem;
   opacity: 0.7;
+  transition: opacity var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.pane-switch:hover .pane-switch-icon {
+  opacity: 0.95;
 }
 
 /* Same pulse as the pane mark, sized down for the switch icon — the link to a
@@ -261,19 +366,29 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   height: 0.375rem;
   border-radius: 9999px;
   background: theme('colors.blue.500');
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
-  animation: pane-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(var(--iw-surface), 0.9);
+  animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
+}
+
+.pane-switch-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: pane-pulse-halo 2.4s var(--iw-ease-ambient) infinite;
 }
 
 .dark .pane-switch-pulse {
   background: theme('colors.blue.300');
-  box-shadow: 0 0 0 2px rgba(10, 10, 10, 0.9);
 }
 
 .pane-switch-chevron {
   font-size: 0.5rem;
   opacity: 0.45;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform var(--iw-dur-2) var(--iw-ease-out),
+    opacity var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .pane-switch:hover .pane-switch-chevron {
@@ -281,11 +396,11 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 }
 
 .group:hover .fa-chevron-right.pane-switch-chevron {
-  transform: translateX(1px);
+  transform: translateX(2px);
 }
 
 .group:hover .fa-chevron-left.pane-switch-chevron {
-  transform: translateX(-1px);
+  transform: translateX(-2px);
 }
 
 .pane-switch-label {
@@ -313,5 +428,29 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 .dark .pane-switch-count {
   background: #f3ede2;
   color: theme('colors.blue.950');
+}
+
+/* The badge springs in rather than appearing already there — the one place in
+   the masthead where a change in the number is itself the news. */
+.pane-count-enter-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-spring);
+}
+
+.pane-count-leave-active {
+  transition:
+    opacity var(--iw-dur-1) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.pane-count-enter-from {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.pane-count-leave-to {
+  opacity: 0;
+  transform: scale(0.7);
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div v-if="!isCollapsed" class="iw-surface flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
     <!-- Header: who you're talking to, and a way over to the agents. There is
          only one thread the user drives, so it is simply "Main agent" — no
          conversation name to track. A subagent's read-only thread keeps its
@@ -44,13 +44,19 @@
          so a panel anchored to its narrow button couldn't fit. -->
     <div class="shrink-0 relative bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <!-- Model slider panel (opens upward above the composer): one slider
-           across the three models, faster → smarter -->
+           across the three models, faster → smarter.
+
+           The three panels share one popover treatment: a translucent
+           material that grows out of the chip that opened it (transform-origin
+           sits at the bottom edge), so opening reads as the control
+           unfolding rather than a card being dealt onto the pane. -->
+      <Transition name="popover">
       <div
         v-if="modelOpen"
         ref="modelPanel"
-        class="absolute bottom-full left-2 right-2 mb-1 z-50 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+        class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
       >
-        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+        <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
             Model
           </span>
@@ -79,14 +85,16 @@
           </p>
         </div>
       </div>
+      </Transition>
 
       <!-- Reasoning effort slider panel (opens upward above the composer) -->
+      <Transition name="popover">
       <div
         v-if="effortOpen"
         ref="effortPanel"
-        class="absolute bottom-full left-2 right-2 mb-1 z-50 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+        class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
       >
-        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+        <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
             Reasoning
           </span>
@@ -115,14 +123,16 @@
           </p>
         </div>
       </div>
+      </Transition>
 
       <!-- Usage limits panel (opens upward above the composer) -->
+      <Transition name="popover">
       <div
         v-if="usageOpen"
         ref="usagePanel"
-        class="absolute bottom-full left-2 right-2 mb-1 z-50 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl overflow-hidden"
+        class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
       >
-        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+        <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
             Usage
           </span>
@@ -133,7 +143,7 @@
         <!-- Body scrolls on short viewports (like the version-history list)
              so the panel never grows past the top of the sidebar; the calc
              budget covers the navbar + composer + panel header. -->
-        <div class="max-h-[min(20rem,calc(100vh-19rem))] overflow-y-auto">
+        <div class="iw-scroll max-h-[min(20rem,calc(100vh-19rem))] overflow-y-auto">
           <div class="px-3 py-2.5 space-y-3">
             <div v-for="meter in usageMeters" :key="meter.key">
               <div class="flex items-baseline justify-between gap-2">
@@ -155,6 +165,7 @@
           </div>
         </div>
       </div>
+      </Transition>
 
       <!-- A background task's thread is read-only: it is driven by the main
            thread (dispatch, and answers relayed from the check-in queue), so
@@ -167,7 +178,7 @@
           </p>
           <button
             type="button"
-            class="btn-back-to-lead mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 transition-all duration-200"
+            class="btn-back-to-lead iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950"
             @click="goToLead"
           >
             Back to main thread
@@ -188,10 +199,13 @@
           @view="onViewCheckIn"
         />
 
-        <!-- Queued prompt: one message held while the agent works -->
+        <!-- Queued prompt: one message held while the agent works. It slides
+             in above the composer and slides back out when it fires, so the
+             hand-off from "held" to "sent" is something you watch happen. -->
+        <Transition name="queued">
         <div
           v-if="activeInstance?.queuedPrompt"
-          class="flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
+          class="queued-row flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
         >
           <i class="fas fa-hourglass-half text-[10px] text-blue-950/40 dark:text-white/40 shrink-0"></i>
           <div class="flex-1 min-w-0">
@@ -204,12 +218,13 @@
             type="button"
             title="Cancel queued message"
             aria-label="Cancel queued message"
-            class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-blue-950/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-blue-950/70 dark:hover:text-white/70 transition-colors"
+            class="queued-cancel iw-press shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-blue-950/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-blue-950/70 dark:hover:text-white/70"
             @click="cancelQueuedPrompt"
           >
             <i class="fas fa-times text-[10px]"></i>
           </button>
         </div>
+        </Transition>
 
         <!-- Input shell: textarea on top, controls toolbar below -->
         <div class="chat-input-shell rounded-2xl bg-blue-50/40 dark:bg-white/[0.03] border border-blue-950/[0.08] dark:border-white/[0.14] shadow-sm">
@@ -239,7 +254,7 @@
                   aria-label="Model"
                   :aria-expanded="modelOpen"
                   :disabled="!activeInstance"
-                  class="control-chip"
+                  class="control-chip iw-press"
                   :class="{ 'control-chip--active': modelOpen }"
                   @click="toggleModel"
                 >
@@ -257,7 +272,7 @@
                   aria-label="Reasoning effort"
                   :aria-expanded="effortOpen"
                   :disabled="!activeInstance"
-                  class="control-chip"
+                  class="control-chip iw-press"
                   :class="{ 'control-chip--active': effortOpen }"
                   @click="toggleEffort"
                 >
@@ -274,7 +289,7 @@
                   title="Plan usage limits"
                   aria-label="Usage limits"
                   :aria-expanded="usageOpen"
-                  class="control-chip"
+                  class="control-chip iw-press"
                   :class="{ 'control-chip--active': usageOpen }"
                   @click="toggleUsage"
                 >
@@ -290,7 +305,7 @@
               @click="handleStopClick"
               aria-label="Stop agent"
               title="Stop agent"
-              class="btn-send btn-send--active flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300 text-[#fdf9f2] dark:text-blue-950"
+              class="btn-send btn-send--active iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full text-[#fdf9f2] dark:text-blue-950"
             >
               <i class="fas fa-stop text-sm"></i>
             </button>
@@ -301,7 +316,7 @@
               @click="handlePrompt"
               :disabled="!prompt.trim() || !activeInstance"
               aria-label="Send message"
-              class="btn-send flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+              class="btn-send iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
               :class="prompt.trim() && activeInstance
                 ? 'btn-send--active text-[#fdf9f2] dark:text-blue-950'
                 : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-blue-100/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
@@ -318,6 +333,11 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
+// The workspace's shared motion + material vocabulary (curves, durations,
+// radii, elevation, focus ring). Imported by each pane that spends it rather
+// than by an ancestor layout: a var(--iw-*) with no token behind it resolves
+// to nothing, which would leave this pane's popovers transparent.
+import '../../../styles/workspace.css'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
 import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
@@ -718,17 +738,111 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 </script>
 
 <style scoped>
-/* Input shell wraps the textarea + controls toolbar as one field */
+/* ── Popovers ───────────────────────────────────────────────────────────── */
+
+/* Model, reasoning and usage share one surface: a translucent material lifted
+   off the composer, so the transcript behind it stays present as colour. */
+.popover {
+  border-radius: var(--iw-r-lg);
+  border: 1px solid var(--iw-material-border);
+  background: var(--iw-material-bg);
+  -webkit-backdrop-filter: var(--iw-material-filter);
+  backdrop-filter: var(--iw-material-filter);
+  box-shadow: var(--iw-shadow-3);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .popover {
+    background: #ffffff;
+  }
+
+  .dark .popover {
+    background: #0f0f0f;
+  }
+}
+
+.popover__head {
+  border-bottom: 1px solid var(--iw-hairline);
+}
+
+/* Grows from its bottom edge — the edge nearest the chip that opened it — so
+   the panel reads as unfolding out of the control rather than arriving from
+   somewhere off-screen. Closing is faster than opening: dismissals should
+   feel immediate, arrivals deliberate. */
+.popover-enter-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-spring);
+  transform-origin: bottom center;
+}
+
+.popover-leave-active {
+  transition:
+    opacity var(--iw-dur-1) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+  transform-origin: bottom center;
+}
+
+.popover-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+}
+
+.popover-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+}
+
+/* ── Composer ───────────────────────────────────────────────────────────── */
+
+/* Input shell wraps the textarea + controls toolbar as one field. Focus adds
+   a soft halo outside the existing edge rather than thickening the border,
+   so the field never changes size as you click into it. */
 .chat-input-shell {
-  transition: border-color 0.18s ease;
+  transition:
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .chat-input-shell:focus-within {
-  border-color: rgba(23, 37, 84, 0.45);
+  border-color: rgba(23, 37, 84, 0.4);
+  box-shadow: 0 0 0 3px rgba(var(--iw-accent), 0.13);
 }
 
 .dark .chat-input-shell:focus-within {
-  border-color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Queued prompt ──────────────────────────────────────────────────────── */
+
+/* Held above the composer while the agent works. It opens and closes its own
+   space (grid rows) so the composer glides down and back rather than jumping
+   when a message is queued or fires. */
+.queued-enter-active,
+.queued-leave-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-out),
+    margin-bottom var(--iw-dur-3) var(--iw-ease-out);
+}
+
+.queued-enter-from,
+.queued-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  margin-bottom: -2.25rem;
+}
+
+.queued-cancel {
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.queued-cancel:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 /* Control chip: the compact model / reasoning / usage buttons. Ghost until
@@ -739,7 +853,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   gap: 0.3rem;
   max-width: 100%;
   padding: 0.3rem 0.55rem;
-  border-radius: 0.5rem;
+  border-radius: var(--iw-r-sm);
   border: 1px solid transparent;
   background-color: transparent;
   color: rgba(23, 37, 84, 0.75);
@@ -747,7 +861,11 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   font-weight: 500;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
   outline: none;
 }
 
@@ -767,7 +885,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 }
 
 .control-chip:focus-visible {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: var(--iw-focus-ring);
 }
 
 .dark .control-chip {
@@ -782,10 +900,6 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 .dark .control-chip--active {
   background-color: rgba(255, 255, 255, 0.1);
   color: #ffffff;
-}
-
-.dark .control-chip:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
 }
 
 .control-chip-icon {
@@ -804,7 +918,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   font-size: 0.5rem;
   opacity: 0.6;
   flex-shrink: 0;
-  transition: transform 0.18s ease;
+  transition: transform var(--iw-dur-3) var(--iw-ease-inout);
 }
 
 /* Faster ↔ smarter slider: navy ink track + thumb (cream in dark), matching
@@ -829,6 +943,8 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   cursor: not-allowed;
 }
 
+/* The thumb grows to meet the pointer and compresses under the press — the
+   same contract every other control in the workspace honours. */
 .control-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -837,13 +953,20 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   border-radius: 9999px;
   background: theme('colors.blue.950');
   border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(23, 37, 84, 0.35);
+  box-shadow: var(--iw-shadow-2);
   cursor: pointer;
-  transition: transform 0.15s ease;
+  transition:
+    transform var(--iw-dur-1) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.control-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.12);
+.control-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: var(--iw-shadow-3);
+}
+
+.control-slider:active::-webkit-slider-thumb {
+  transform: scale(1.05);
 }
 
 .control-slider::-moz-range-thumb {
@@ -852,16 +975,21 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   border-radius: 9999px;
   background: theme('colors.blue.950');
   border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(23, 37, 84, 0.35);
+  box-shadow: var(--iw-shadow-2);
   cursor: pointer;
+  transition: transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.control-slider:hover::-moz-range-thumb {
+  transform: scale(1.15);
 }
 
 .control-slider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 4px rgba(var(--iw-accent), 0.35);
 }
 
 .control-slider:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 4px rgba(var(--iw-accent), 0.35);
 }
 
 .dark .control-slider::-webkit-slider-thumb {
@@ -895,7 +1023,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   left: 0;
   border-radius: 9999px;
   background: theme('colors.blue.950');
-  transition: width 0.3s ease;
+  transition: width var(--iw-dur-4) var(--iw-ease-out);
 }
 
 .dark .usage-meter-fill {
@@ -924,86 +1052,65 @@ textarea:active {
    recipe as the composer's send button */
 .btn-back-to-lead {
   background: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.2),
-    0 3px 8px -2px rgba(23, 37, 84, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
 }
 
 .btn-back-to-lead:hover {
   background: theme('colors.blue.900');
+  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-back-to-lead:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 .dark .btn-back-to-lead {
   background: #f3ede2;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 3px 8px -2px rgba(0, 0, 0, 0.45);
 }
 
 .dark .btn-back-to-lead:hover {
   background: #ffffff;
 }
 
-/* Navy ink send button - matching the site's primary "Start Building" button */
+/* Navy ink send button - matching the site's primary "Start Building" button.
+   Send and stop are the same button in two states, so the swap between them
+   is a colour and shadow change on one shape rather than two controls trading
+   places. */
 .btn-send {
-  transform: translateY(0) translateZ(0);
+  transform: translateZ(0);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.btn-send:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 .btn-send--active {
   background: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.2),
-    0 3px 8px -2px rgba(23, 37, 84, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .btn-send--active:hover {
   background: theme('colors.blue.900');
-  box-shadow:
-    0 2px 3px rgba(23, 37, 84, 0.22),
-    0 5px 12px -2px rgba(23, 37, 84, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dark .btn-send--active {
   background: #f3ede2;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 3px 8px -2px rgba(0, 0, 0, 0.45);
 }
 
 .dark .btn-send--active:hover {
   background: #ffffff;
-  box-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.4),
-    0 5px 12px -2px rgba(0, 0, 0, 0.5);
-}
-
-/* Refined minimal scrollbar - matching homepage */
-:deep(::-webkit-scrollbar) {
-  width: 8px;
-}
-
-:deep(::-webkit-scrollbar-track) {
-  background: transparent;
-}
-
-:deep(::-webkit-scrollbar-thumb) {
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-:deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-:root.dark :deep(::-webkit-scrollbar-thumb) {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-:root.dark :deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(255, 255, 255, 0.2);
 }
 </style>
