@@ -69,20 +69,27 @@ def task_base_ref(conversation_id: int) -> str:
 def canonical_repo_lock(project_path):
     """Serialize canonical-repo git mutations for one project.
 
-    An exclusive flock on the project's .git directory: two near-simultaneous
-    task dispatches (or a dispatch racing a merge) would otherwise collide on
-    .git/index.lock and fail nondeterministically. When the repo does not
-    exist yet there is nothing to contend on, so the lock is skipped.
+    An exclusive flock on the project's own directory: two near-simultaneous
+    task dispatches (the initial build fires one per page, and the best-of-N
+    form fires several without awaiting), or a dispatch racing a merge, would
+    otherwise collide on .git/index.lock and fail nondeterministically.
+
+    Deliberately locks the project directory rather than '.git': the moment
+    with the *most* contention is the one before any repo exists, when several
+    dispatches for a brand-new project all reach `git init` at once. A lock
+    keyed on '.git' cannot cover that — it is not there yet to be locked —
+    which showed up as "Failed to initialize git repository" on all but one of
+    a first build's pages. The project directory always exists, so this covers
+    repo creation too.
     """
-    git_dir = os.path.join(project_path, '.git')
     fd = None
     try:
-        if os.path.isdir(git_dir):
+        if os.path.isdir(project_path):
             try:
-                fd = os.open(git_dir, os.O_RDONLY)
+                fd = os.open(project_path, os.O_RDONLY)
                 fcntl.flock(fd, fcntl.LOCK_EX)
             except OSError as e:  # pragma: no cover - defensive
-                logger.warning(f"Could not lock repo at {git_dir}: {e}")
+                logger.warning(f"Could not lock repo at {project_path}: {e}")
                 if fd is not None:
                     os.close(fd)
                     fd = None
