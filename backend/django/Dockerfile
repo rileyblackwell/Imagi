@@ -9,8 +9,16 @@ WORKDIR /app
 # projects run their Vite + Django dev servers inside this container, and a
 # headless Chromium renders them for the workspace UI — the same setup used
 # in local development, which is what makes preview work on Railway.
+#
+# git is load-bearing, not a convenience: every generated project is a git repo
+# (VersionControlService), and every subagent run builds in a git worktree
+# forked from it. Without the binary, `git init` at project creation and
+# `create_task_worktree` on each run both die with "No such file or directory:
+# 'git'", so dispatched subagents fail the instant they start — a failure a
+# developer never sees, because their machine has git and the container does
+# not.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl gnupg ca-certificates \
+    && apt-get install -y --no-install-recommends curl gnupg ca-certificates git \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs chromium \
     && rm -rf /var/lib/apt/lists/*
