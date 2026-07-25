@@ -338,7 +338,7 @@ import { useAgentStore } from '../../../stores/agentStore'
 // than by an ancestor layout: a var(--iw-*) with no token behind it resolves
 // to nothing, which would leave this pane's popovers transparent.
 import '../../../styles/workspace.css'
-import { useUsageStore, formatResetTime, formatUsd } from '@/shared/stores/usage'
+import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
 import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
@@ -544,11 +544,10 @@ const usageMeters = computed(() => {
     key,
     label,
     percent,
-    // Dollars spent against the window's allowance — the unit the plan is
-    // actually sold in. Unknown usage stays an em-dash, never $0.
-    usedText: win && win.usedUsd !== null && win.limitUsd !== null
-      ? `${formatUsd(win.usedUsd)} of ${formatUsd(win.limitUsd)}`
-      : '—',
+    // How much of the window's allowance is gone, on a 0-100 scale — the
+    // dollar figures behind it stay out of the workspace. Unknown usage
+    // stays an em-dash, never 0%.
+    usedText: percent !== null ? `${percent}% used` : '—',
     resetsAt: formatResetTime(win?.resetsAt ?? null),
   }))
 })
