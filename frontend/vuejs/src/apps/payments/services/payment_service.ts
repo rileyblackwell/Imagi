@@ -1,25 +1,26 @@
 import api from '@/shared/services/api'
 import type { AxiosError } from 'axios'
-import type { 
-  PaymentIntentRequest, 
-  PaymentIntent, 
-  BalanceResponse, 
-  TransactionsResponse, 
+import type {
+  TransactionsResponse,
   TransactionFilter,
   PaymentMethod,
-  Plan,
   PaymentData,
   SessionResponse,
   SessionStatus,
-  ErrorMessages 
+  ErrorMessages
 } from '../types'
 
+/**
+ * Billing API client.
+ *
+ * Only subscriptions are sold, so there is no balance to read, no credits to
+ * check or deduct, and no one-time purchase flow. Usage is metered against
+ * the plan allowance and read from GET /v1/payments/usage/ by the usage store.
+ */
 interface IPaymentService {
   apiUrl: string;
-  createPaymentIntent(data: PaymentIntentRequest): Promise<PaymentIntent>;
-  getBalance(): Promise<BalanceResponse>;
   getTransactions(filters?: TransactionFilter): Promise<TransactionsResponse>;
-  // Additional method signatures...
+  createCheckoutSession(data: PaymentData): Promise<SessionResponse>;
 }
 
 class PaymentService implements IPaymentService {
@@ -33,42 +34,6 @@ class PaymentService implements IPaymentService {
   }
 
   /**
-   * Create a payment intent for processing
-   */
-  async createPaymentIntent(data: PaymentIntentRequest): Promise<PaymentIntent> {
-    try {
-      const response = await api.post('/v1/payments/create-intent/', {
-        amount: data.amount,
-        currency: data.currency || 'usd'
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Get the current user's credit balance
-   */
-  async getBalance(): Promise<BalanceResponse> {
-    try {
-      const response = await api.get('/v1/payments/balance/')
-      return response.data
-    } catch (error: any) {
-      console.error('Error fetching balance:', error)
-      
-      // Enhanced error reporting with better context
-      if (error.response) {
-        console.error(`Balance request failed with status ${error.response.status}:`, error.response.data)
-      } else if (error.request) {
-        console.error('No response received from balance request')
-      } 
-      
-      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch balance')
-    }
-  }
-
-  /**
    * Get the user's transaction history with filtering
    */
   async getTransactions(filters?: TransactionFilter): Promise<TransactionsResponse> {
@@ -78,70 +43,13 @@ class PaymentService implements IPaymentService {
       if (filters?.status) params.append('status', filters.status)
       if (filters?.sortBy) params.append('sort_by', filters.sortBy)
       if (filters?.sortOrder) params.append('sort_order', filters.sortOrder)
-      
+
       const queryString = params.toString() ? `?${params.toString()}` : ''
       const response = await api.get(`/v1/payments/transactions/${queryString}`)
       return response.data
     } catch (error: any) {
       console.error('Error fetching transactions:', error)
       throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch transactions')
-    }
-  }
-
-  /**
-   * Get a specific transaction by ID
-   */
-  async getTransaction(id: string): Promise<any> {
-    try {
-      const response = await api.get(`/v1/payments/transactions/${id}/`)
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Process payment directly
-   */
-  async processPayment(amount: number, paymentMethodId: string): Promise<any> {
-    try {
-      const response = await api.post('/v1/payments/process/', {
-        amount,
-        // Backend expects camelCase: paymentMethodId
-        paymentMethodId: paymentMethodId
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Confirm a payment intent
-   */
-  async confirmPayment(paymentIntentId: string, paymentMethodId?: string): Promise<any> {
-    try {
-      const response = await api.post('/v1/payments/confirm-payment/', {
-        payment_intent_id: paymentIntentId,
-        payment_method_id: paymentMethodId
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-  
-  /**
-   * Verify payment status
-   */
-  async verifyPayment(paymentIntentId: string): Promise<any> {
-    try {
-      const response = await api.post('/v1/payments/verify/', {
-        payment_intent_id: paymentIntentId
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
     }
   }
 
@@ -184,14 +92,12 @@ class PaymentService implements IPaymentService {
   }
 
   /**
-   * Create a checkout session (subscription or one-time payment)
+   * Create a subscription checkout session for a plan's Stripe lookup_key
    */
   async createCheckoutSession(data: PaymentData): Promise<SessionResponse> {
     try {
       const response = await api.post('/v1/payments/create-checkout-session/', {
-        amount: data.amount,
         lookup_key: data.lookup_key,
-        plan_id: data.plan_id,
         success_url: data.success_url || window.location.origin + '/payments/success',
         cancel_url: data.cancel_url || window.location.origin + '/payments/cancel'
       })
@@ -230,74 +136,6 @@ class PaymentService implements IPaymentService {
   }
 
   /**
-   * Get available plans
-   */
-  async getPlans(): Promise<Plan[]> {
-    try {
-      const response = await api.get('/v1/payments/plans/')
-      return response.data.plans || []
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Get available credit packages
-   */
-  async getPackages(): Promise<any[]> {
-    try {
-      const response = await api.get('/v1/payments/packages/')
-      return response.data.packages || []
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Verify webhook signature
-   */
-  async verifyWebhook(signature: string, payload: string): Promise<any> {
-    try {
-      const response = await api.post('/v1/payments/verify-webhook/', {
-        signature,
-        payload
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Check if user has sufficient credits
-   */
-  async checkCredits(amount: number): Promise<{ hasCredits: boolean; currentBalance: number }> {
-    try {
-      const response = await api.post('/v1/payments/check-credits/', {
-        amount
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Deduct credits from user account
-   */
-  async deductCredits(amount: number, description?: string): Promise<{ success: boolean; newBalance: number }> {
-    try {
-      const response = await api.post('/v1/payments/deduct-credits/', {
-        amount,
-        description
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
    * Handle API errors with better messaging
    */
   handleError(error: AxiosError | Error): Error {
@@ -310,7 +148,7 @@ class PaymentService implements IPaymentService {
       const message = data?.message || data?.error || this.getErrorMessageByStatus(status)
       return new Error(message)
     }
-    
+
     // If it's a network error or other non-response error
     return error instanceof Error ? error : new Error('An unknown error occurred')
   }
@@ -334,4 +172,4 @@ class PaymentService implements IPaymentService {
   }
 }
 
-export default PaymentService 
+export default PaymentService

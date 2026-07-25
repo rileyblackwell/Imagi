@@ -7,7 +7,7 @@
         <!-- Clean section title -->
         <div class="mb-8">
           <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-2 transition-colors duration-300">{{ title }}</h2>
-          <p class="text-blue-950/65 dark:text-blue-100/65 transition-colors duration-300">Token-based pricing for AI models</p>
+          <p class="text-blue-950/65 dark:text-blue-100/65 transition-colors duration-300">What each model draws from your plan's usage allowance</p>
         </div>
 
         <div class="grid grid-cols-1 gap-4">
@@ -42,7 +42,7 @@
             <svg class="w-5 h-5 text-blue-600 dark:text-blue-300 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
-            <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-relaxed transition-colors duration-300">Pricing is based on tokens processed. Input tokens (prompts) and output tokens (responses) are charged separately per million tokens. Credits are automatically deducted from your account balance.</p>
+            <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-relaxed transition-colors duration-300">Usage is metered by tokens processed, priced per million. Input tokens (your prompts and the files the agent reads) and output tokens (its replies and edits) count separately, and a higher reasoning effort produces more output tokens. The total is drawn from your plan's usage allowance — nothing is charged per run.</p>
           </div>
         </div>
       </div>
@@ -66,21 +66,9 @@ const props = defineProps({
   },
   models: {
     type: Array as () => PricingModel[],
+    // The GPT 5.6 suite, mirroring the backend's models_service.MODELS —
+    // these prices are what the metering actually charges the allowance.
     default: () => [
-      { 
-        id: 'opus-4.5', 
-        name: 'Opus 4.5', 
-        inputPrice: 10,
-        outputPrice: 25,
-        description: 'Premium model for the most demanding tasks'
-      },
-      { 
-        id: 'claude-sonnet-4.5-20250514', 
-        name: 'Claude Sonnet 4.5', 
-        inputPrice: 2,
-        outputPrice: 15,
-        description: 'Anthropic\'s advanced model for nuanced tasks'
-      },
       {
         id: 'gpt-5.6-sol',
         name: 'GPT 5.6 Sol',

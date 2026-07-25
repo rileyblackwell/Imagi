@@ -29,31 +29,29 @@
                 <i class="fas fa-check text-3xl text-emerald-600 dark:text-emerald-300"></i>
               </div>
               <h1 class="font-display text-4xl sm:text-5xl font-semibold text-blue-950 dark:text-white mb-4 tracking-[-0.02em] leading-[1.05] text-balance">
-                {{ isSubscription ? 'Subscription Activated!' : 'Payment Successful!' }}
+                Subscription Activated!
               </h1>
               <p class="text-xl text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
-                {{ isSubscription ? 'Your subscription is now active. Welcome aboard!' : 'Thank you for your payment.' }}
+                Your subscription is now active. Welcome aboard!
               </p>
             </div>
 
             <!-- Success Details Card -->
             <div class="crisp-card rounded-2xl bg-emerald-50/80 dark:bg-emerald-400/[0.07] border border-emerald-200/70 dark:border-emerald-300/[0.18] backdrop-blur-sm p-8 text-center">
-              <p v-if="isSubscription" class="text-lg text-emerald-900 dark:text-emerald-100">
+              <p class="text-lg text-emerald-900 dark:text-emerald-100">
                 Your plan is now active. You can manage your subscription at any time.
               </p>
-              <p v-else class="text-lg text-emerald-900 dark:text-emerald-100 mb-3">
-                We've added <span class="font-semibold text-2xl">{{ creditsAdded }}</span> credits to your account!
-              </p>
-              <div v-if="!isSubscription" class="mt-6 pt-6 border-t border-emerald-200/70 dark:border-emerald-300/[0.18]">
-                <p class="text-emerald-700 dark:text-emerald-300/80">Your new balance</p>
-                <p class="font-display text-3xl font-semibold tabular-nums text-emerald-900 dark:text-emerald-100 mt-2">${{ balance.toLocaleString() }}</p>
+              <!-- The webhook grants the plan, so it may land a moment after
+                   this page does; show the allowance only once it has. -->
+              <div v-if="planSummary" class="mt-6 pt-6 border-t border-emerald-200/70 dark:border-emerald-300/[0.18]">
+                <p class="text-emerald-700 dark:text-emerald-300/80">Your plan</p>
+                <p class="font-display text-3xl font-semibold text-emerald-900 dark:text-emerald-100 mt-2">{{ planSummary }}</p>
               </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
               <button
-                v-if="isSubscription"
                 @click="manageSubscription"
                 :disabled="portalLoading"
                 class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-medium bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
@@ -63,10 +61,7 @@
               </button>
               <router-link
                 to="/imagi/projects"
-                class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
-                :class="isSubscription
-                  ? 'border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] transition-colors'
-                  : 'bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)]'"
+                class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-medium transition-all duration-200 border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
               >
                 <i class="fas fa-rocket"></i>
                 <span>Start Building</span>
@@ -106,13 +101,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePaymentStore } from '../stores/payments'
+import { useUsageStore, formatUsd } from '@/shared/stores/usage'
 import PaymentService from '../services/payment_service'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 
 const paymentStore = usePaymentStore()
+const usageStore = useUsageStore()
 const paymentService = new PaymentService()
 const route = useRoute()
 
@@ -120,10 +117,17 @@ const route = useRoute()
 const isLoading = ref(true)
 const error = ref('')
 const paymentProcessed = ref(false)
-const isSubscription = ref(false)
-const creditsAdded = ref(0)
-const balance = ref(0)
 const portalLoading = ref(false)
+
+/** "Pro — $10 of usage per week", or null until the plan webhook has landed.
+ *  Quoted per week because that is the window the meter actually enforces. */
+const planSummary = computed(() => {
+  const plan = usageStore.plan
+  if (!plan || plan.id === 'free') return null
+  const limits = usageStore.plans.find((p) => p.id === plan.id)
+  if (!limits || limits.weeklyUsd === null) return plan.name
+  return `${plan.name} — ${formatUsd(limits.weeklyUsd)} of usage per week`
+})
 
 const manageSubscription = async () => {
   try {
@@ -156,15 +160,10 @@ onMounted(async () => {
 
       if (status.status === 'complete') {
         paymentProcessed.value = true
-        creditsAdded.value = status.credits_added || 0
-
-        // Detect subscription vs one-time from the session mode
-        isSubscription.value = status.mode === 'subscription'
-
-        if (!isSubscription.value) {
-          await paymentStore.initializePayments()
-          balance.value = paymentStore.balance ?? 0
-        }
+        // Stripe's subscription webhook grants the plan; read it back so the
+        // page can name the allowance. It may not have landed yet, in which
+        // case planSummary stays null rather than claiming the free tier.
+        await usageStore.fetchUsage()
       } else {
         error.value = 'Your payment is still being processed. Please check back later.'
       }

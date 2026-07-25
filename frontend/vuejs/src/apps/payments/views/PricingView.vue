@@ -25,7 +25,7 @@
             Choose your <em class="pricing-accent not-italic">plan</em>
           </h1>
           <p class="pricing-rise text-xl text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty max-w-3xl mx-auto transition-colors duration-300" style="animation-delay: 180ms">
-            Start free, then upgrade as you grow. Usage refreshes on a rolling 5-hour session and a weekly limit — pick the plan that fits how much you build.
+            Start free, then upgrade as you grow. Every plan includes a monthly amount of AI usage, metered as you build and delivered through a rolling 5-hour session and weekly window.
           </p>
         </div>
 
@@ -60,23 +60,20 @@
           />
         </div>
 
-        <!-- On-Demand Section -->
+        <!-- How usage is metered -->
         <div class="mb-16">
           <!-- Hairline divider -->
           <div class="section-divider mb-12 md:mb-16" aria-hidden="true"></div>
-          <div class="text-center mb-8">
+          <div class="text-center mb-8 max-w-2xl mx-auto">
             <h2 class="font-display text-2xl sm:text-3xl font-semibold text-blue-950 dark:text-white tracking-[-0.015em] leading-[1.08] mb-2 transition-colors duration-300">
-              Need extra usage?
+              How usage is measured
             </h2>
             <p class="text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">
-              Purchase additional credits on demand, anytime.
+              Your allowance is spent as you build, priced by the model you pick and how
+              hard you ask it to think. Lighter models and lower reasoning effort go
+              further; the flagship model at high effort goes fastest. You can watch
+              what's left at any time from the usage meter in the builder.
             </p>
-          </div>
-          <div class="max-w-3xl mx-auto">
-            <OnDemandCard
-              :loading="loadingOnDemand"
-              @purchase="handleOnDemandPurchase"
-            />
           </div>
         </div>
 
@@ -101,28 +98,33 @@ import { useAuthStore } from '@/shared/stores/auth'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 import PaymentService from '../services/payment_service'
 import SubscriptionTierCard from '../components/molecules/cards/SubscriptionTierCard/SubscriptionTierCard.vue'
-import OnDemandCard from '../components/molecules/cards/OnDemandCard/OnDemandCard.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const paymentService = new PaymentService()
 
 const loadingTier = ref<string | null>(null)
-const loadingOnDemand = ref(false)
 const error = ref('')
 
+// The monthly figure in `features` is the headline we sell; the sessionLimit
+// and weeklyLimit lines are how it is actually delivered, and those two must
+// mirror the backend plan registry (Payments' services/plans.py) — the
+// backend knows only those windows and is what enforces them. The weekly
+// figures are set generously against the monthly headline rather than
+// dividing it thinly, so four weeks add up to more than the monthly number.
+// `price` is the Stripe subscription price, separate from the allowance.
 const tiers: Tier[] = [
   {
     name: 'Free',
     price: 0,
     lookupKey: null,
     cta: 'Start for free',
-    sessionLimit: 'Basic usage every 5 hours',
-    weeklyLimit: 'Limited weekly usage',
+    sessionLimit: '$0.50 of usage every 5 hours',
+    weeklyLimit: '$2.50 of usage per week',
     features: [
       'Access to the core AI builder',
+      '$5 of AI usage per month',
       '1 active project',
-      'Standard models',
       'Community support',
     ],
     isPopular: false,
@@ -132,12 +134,12 @@ const tiers: Tier[] = [
     price: 20,
     lookupKey: 'pro_monthly',
     cta: 'Get Started',
-    sessionLimit: 'More usage every 5 hours',
-    weeklyLimit: 'Full weekly usage',
+    sessionLimit: '$2 of usage every 5 hours',
+    weeklyLimit: '$10 of usage per week',
     features: [
       'Everything in Free',
+      '$20 of AI usage per month',
       'Unlimited projects',
-      'Advanced models',
       'Priority support',
     ],
     isPopular: true,
@@ -146,18 +148,19 @@ const tiers: Tier[] = [
     name: 'Max',
     cta: 'Get Started',
     isPopular: false,
-    // A single Max plan with selectable usage options, mirroring Claude's Max tier.
+    // A single Max plan with selectable usage options, mirroring Claude's Max
+    // tier. "5×"/"20×" are literal multiples of Pro's allowance.
     options: [
       {
         label: '5× usage',
         price: 100,
         lookupKey: 'max_5x_monthly',
-        sessionLimit: '5× more usage every 5 hours',
-        weeklyLimit: '5× higher weekly limit',
+        sessionLimit: '$10 of usage every 5 hours',
+        weeklyLimit: '$50 of usage per week',
         features: [
           'Everything in Pro',
+          '$100 of AI usage per month',
           '5× more usage than Pro',
-          'Higher output limits',
           'Early access to new features',
         ],
       },
@@ -165,12 +168,12 @@ const tiers: Tier[] = [
         label: '20× usage',
         price: 200,
         lookupKey: 'max_20x_monthly',
-        sessionLimit: '20× more usage every 5 hours',
-        weeklyLimit: '20× higher weekly limit',
+        sessionLimit: '$40 of usage every 5 hours',
+        weeklyLimit: '$200 of usage per week',
         features: [
           'Everything in Pro',
+          '$400 of AI usage per month',
           '20× more usage than Pro',
-          'Highest output limits',
           'Priority access at peak times',
         ],
       },
@@ -237,33 +240,6 @@ const handleSubscribe = async (tier: Tier, lookupKey: string | null) => {
     error.value = err.message || 'Failed to create checkout session. Please try again.'
   } finally {
     loadingTier.value = null
-  }
-}
-
-const handleOnDemandPurchase = async (amount: number) => {
-  error.value = ''
-
-  if (!authStore.isAuthenticated) {
-    router.push({ path: '/auth/signin', query: { redirect: '/payments/pricing' } })
-    return
-  }
-
-  try {
-    loadingOnDemand.value = true
-
-    const response = await paymentService.createCheckoutSession({
-      amount,
-      success_url: window.location.origin + '/payments/success',
-      cancel_url: window.location.origin + '/payments/cancel',
-    })
-
-    if (response.checkout_url) {
-      window.location.href = response.checkout_url
-    }
-  } catch (err: any) {
-    error.value = err.message || 'Failed to create checkout session. Please try again.'
-  } finally {
-    loadingOnDemand.value = false
   }
 }
 </script>

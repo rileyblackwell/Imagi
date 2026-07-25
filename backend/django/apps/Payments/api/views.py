@@ -1,5 +1,12 @@
 """
 API views for the Payments app.
+
+Access is sold as subscription plans with a metered dollar allowance, so this
+surface covers subscribing (Checkout), managing the subscription (Billing
+Portal), reporting usage against the plan allowance, and the Stripe webhook
+that keeps the plan in sync. There is no spendable balance to top up: the
+prepaid-credit endpoints were removed along with the balance they drew from.
+The history endpoints remain read-only views of past credit purchases.
 """
 
 import stripe
@@ -11,16 +18,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
 
-from ..models import CreditBalance, Subscription
+from ..models import StripeCustomer, Subscription
 from ..services.stripe_service import StripeService
-from ..services.credit_service import CreditService
 from ..services.transaction_service import TransactionService
 from ..services.payment_method_service import PaymentMethodService
 from ..services.plans import DEFAULT_PLAN_ID, PLANS, list_plans, plan_id_for_lookup_key
 from ..services.usage_service import get_usage_status
 from .serializers import (
     TransactionSerializer,
-    CreditPackageSerializer,
     PaymentHistorySerializer,
 )
 
@@ -28,23 +33,9 @@ logger = logging.getLogger(__name__)
 
 # Initialize services
 stripe_service = StripeService()
-credit_service = CreditService()
 transaction_service = TransactionService()
 payment_method_service = PaymentMethodService()
 
-class CreditBalanceView(APIView):
-    """Get user's credit balance."""
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        try:
-            balance = credit_service.get_balance(request.user)
-            return Response({
-                'balance': balance
-            })
-        except Exception:
-            logger.exception("Error fetching balance")
-            raise
 
 class UsageStatusView(APIView):
     """Get the user's plan, rolling usage windows, and the plan registry."""
@@ -60,29 +51,15 @@ class UsageStatusView(APIView):
             logger.exception("Error fetching usage status")
             raise
 
-class CreditPackagesView(APIView):
-    """Get available credit packages."""
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        try:
-            packages = transaction_service.get_credit_packages()
-            serializer = CreditPackageSerializer(packages, many=True)
-            return Response({
-                'packages': serializer.data
-            })
-        except Exception:
-            logger.exception("Error fetching packages")
-            raise
 
 class PaymentHistoryView(generics.ListAPIView):
-    """List user's payment history."""
+    """List the user's historical credit purchases."""
     permission_classes = [IsAuthenticated]
     serializer_class = PaymentHistorySerializer
 
     def get_queryset(self):
         return transaction_service.get_payment_history(self.request.user)
-    
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
@@ -90,8 +67,9 @@ class PaymentHistoryView(generics.ListAPIView):
             'payments': serializer.data
         })
 
+
 class TransactionHistoryView(generics.ListAPIView):
-    """List user's transaction history with optional filtering."""
+    """List the user's transaction history with optional filtering."""
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated]
 
@@ -99,16 +77,16 @@ class TransactionHistoryView(generics.ListAPIView):
         status_filter = self.request.query_params.get('status')
         sort_by = self.request.query_params.get('sort_by', 'created_at')
         sort_order = self.request.query_params.get('sort_order', 'desc')
-        
+
         result = transaction_service.get_transactions(
             self.request.user,
             status=status_filter,
             sort_by=sort_by,
             sort_order=sort_order
         )
-        
+
         return result['transactions']
-    
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
@@ -117,285 +95,42 @@ class TransactionHistoryView(generics.ListAPIView):
             'total_count': queryset.count()
         })
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def create_payment_intent(request):
-    """Create a Stripe PaymentIntent for credit purchase."""
-    try:
-        amount = request.data.get('amount')
-        if not amount:
-            return Response({
-                'error': 'Amount is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Validate amount
-        amount = float(amount)
-        if amount < 5 or amount > 1000:
-            return Response({
-                'error': 'Amount must be between $5 and $1,000'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create a payment intent
-        metadata = {
-            'user_id': str(request.user.id),
-            'credits': str(amount)
-        }
-        
-        # Use direct payment instead
-        payment_method_id = request.data.get('payment_method_id')
-        if not payment_method_id:
-            return Response({
-                'error': 'Payment method ID is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        intent = stripe_service.create_direct_payment(amount, payment_method_id, metadata)
-        
-        # Create a transaction record
-        transaction_service.create_purchase_transaction(
-            request.user, 
-            amount, 
-            stripe_payment_intent_id=intent.id
-        )
-        
-        return Response({
-            'clientSecret': intent.client_secret
-        })
-        
-    except ValueError:
-        return Response({
-            'error': 'Invalid amount format'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        logger.exception("Error creating payment intent")
-        raise
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def process_payment(request):
-    """Process payment and add credits to user's account."""
-    try:
-        amount = request.data.get('amount')
-        payment_method_id = request.data.get('paymentMethodId')
-        
-        if not amount or not payment_method_id:
-            return Response({
-                'error': 'Amount and payment method ID are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        amount = float(amount)
-        
-        # Create payment intent with immediate confirmation
-        metadata = {
-            'user_id': str(request.user.id),
-            'credits': str(amount)
-        }
-        
-        intent = stripe_service.create_direct_payment(amount, payment_method_id, metadata)
-        
-        # Create transaction record
-        transaction = transaction_service.create_purchase_transaction(
-            request.user,
-            amount,
-            stripe_payment_intent_id=intent.id
-        )
-        
-        # If payment intent succeeded immediately, update balance
-        if intent.status == 'succeeded':
-            result = credit_service.add_credits(request.user, amount, transaction)
-            
-            return Response({
-                'success': True,
-                'message': 'Payment processed successfully',
-                'new_balance': result['new_balance'],
-                'credits_added': amount
-            })
-        
-        # If payment needs additional actions
-        return Response({
-            'requires_action': True,
-            'payment_intent_client_secret': intent.client_secret
-        })
-        
-    except stripe.error.CardError as e:
-        return Response({
-            'error': e.user_message
-        }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        logger.exception("Error processing payment")
-        raise
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def confirm_payment(request):
-    """Confirm a successful payment and add credits to user's balance."""
-    try:
-        payment_intent_id = request.data.get('payment_intent_id')
-        if not payment_intent_id:
-            return Response({
-                'error': 'Payment intent ID is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get the transaction
-        transaction = transaction_service.get_transaction_by_payment_intent(
-            request.user, payment_intent_id
-        )
-        
-        if not transaction:
-            return Response({
-                'error': 'Transaction not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        if transaction.status == 'completed':
-            return Response({
-                'message': 'Payment already processed',
-                'balance': credit_service.get_balance(request.user)
-            })
-        
-        # Verify payment with Stripe
-        payment_intent = stripe_service.get_payment_intent(payment_intent_id)
-        if payment_intent.status != 'succeeded':
-            return Response({
-                'error': 'Payment not successful'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Add credits to user's balance
-        result = credit_service.add_credits(request.user, float(transaction.amount), transaction)
-        
-        return Response({
-            'message': 'Payment processed successfully',
-            'credits_added': float(transaction.amount),
-            'new_balance': result['new_balance']
-        })
-        
-    except Exception:
-        logger.exception("Error confirming payment")
-        raise
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def verify_payment(request):
-    """Verify a payment was successful."""
-    try:
-        payment_intent_id = request.data.get('payment_intent_id')
-        if not payment_intent_id:
-            return Response({
-                'error': 'Payment intent ID is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Verify payment with Stripe
-        payment_intent = stripe_service.get_payment_intent(payment_intent_id)
-        
-        # Get the transaction if it exists
-        transaction = transaction_service.get_transaction_by_payment_intent(
-            request.user, payment_intent_id
-        )
-        
-        if not transaction:
-            return Response({
-                'error': 'Transaction not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-            
-        # If payment succeeded but transaction not updated
-        if payment_intent.status == 'succeeded' and transaction.status != 'completed':
-            result = credit_service.add_credits(request.user, float(transaction.amount), transaction)
-            
-            return Response({
-                'success': True,
-                'status': 'completed',
-                'credits_added': float(transaction.amount),
-                'new_balance': result['new_balance']
-            })
-            
-        return Response({
-            'success': True,
-            'status': transaction.status,
-            'payment_intent_status': payment_intent.status
-        })
-        
-    except stripe.error.StripeError as e:
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        logger.exception("Error verifying payment")
-        raise
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def check_credits(request):
-    """Check if user has sufficient credits for an operation."""
-    try:
-        required_credits = float(request.data.get('required_credits', 0))
-        
-        result = credit_service.check_credits(request.user, required_credits)
-        
-        if not result['success']:
-            return Response({
-                'error': result['error']
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response(result)
-        
-    except Exception:
-        logger.exception("Error checking credits")
-        raise
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def deduct_credits(request):
-    """Deduct credits from user's balance for service usage."""
-    try:
-        credits_to_deduct = float(request.data.get('credits', 0))
-        
-        result = credit_service.deduct_credits(
-            request.user, 
-            credits_to_deduct, 
-            transaction_description=request.data.get('description')
-        )
-        
-        if not result['success']:
-            if 'No credit balance found' in result.get('error', ''):
-                return Response({
-                    'error': 'No credit balance found'
-                }, status=status.HTTP_404_NOT_FOUND)
-            elif 'Insufficient credits' in result.get('error', ''):
-                return Response({
-                    'error': 'Insufficient credits'
-                }, status=status.HTTP_402_PAYMENT_REQUIRED)
-            else:
-                return Response({
-                    'error': result['error']
-                }, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response({
-            'message': 'Credits deducted successfully',
-            'new_balance': result['new_balance']
-        })
-        
-    except Exception:
-        logger.exception("Error deducting credits")
-        raise
 
 class PaymentMethodsView(APIView):
     """Get user's saved payment methods."""
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         try:
             # Get customer ID
             customer_id = payment_method_service.get_stripe_customer_id(request.user)
-            
+
             if not customer_id:
                 return Response([])
-                
+
             # Get payment methods from Stripe
             payment_methods = stripe_service.list_payment_methods(customer_id)
-            
+
             return Response(payment_methods)
-                
+
         except Exception:
             logger.exception("Error fetching payment methods")
             raise
+
+
+def _ensure_stripe_customer(user):
+    """The user's Stripe customer id, creating the customer on first need."""
+    customer_id = payment_method_service.get_stripe_customer_id(user)
+    if customer_id:
+        return customer_id
+    customer = stripe_service.create_customer(
+        email=user.email,
+        name=f"{user.first_name} {user.last_name}".strip() or user.username,
+        metadata={'user_id': str(user.id)}
+    )
+    payment_method_service.set_stripe_customer_id(user, customer.id)
+    return customer.id
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -404,7 +139,7 @@ def setup_customer(request):
     try:
         # Check if user already has a Stripe customer ID
         customer_id = payment_method_service.get_stripe_customer_id(request.user)
-        
+
         if customer_id:
             try:
                 # Verify customer exists
@@ -415,7 +150,7 @@ def setup_customer(request):
             except stripe.error.InvalidRequestError:
                 # Customer doesn't exist in Stripe, create new one
                 pass
-                
+
         # Create a new customer
         customer = stripe_service.create_customer(
             email=request.user.email,
@@ -424,17 +159,18 @@ def setup_customer(request):
                 'user_id': str(request.user.id)
             }
         )
-        
-        # Save customer ID to user profile
+
+        # Save customer ID against the user
         payment_method_service.set_stripe_customer_id(request.user, customer.id)
-        
+
         return Response({
             'customer_id': customer.id
         })
-        
+
     except Exception:
         logger.exception("Error setting up customer")
         raise
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -446,25 +182,12 @@ def attach_payment_method(request):
             return Response({
                 'error': 'Payment method ID is required'
             }, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Ensure user has a Stripe customer
-        customer_id = payment_method_service.get_stripe_customer_id(request.user)
-        
-        if not customer_id:
-            # Create a customer first
-            customer = stripe_service.create_customer(
-                email=request.user.email,
-                name=f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
-                metadata={
-                    'user_id': str(request.user.id)
-                }
-            )
-            customer_id = customer.id
-            payment_method_service.set_stripe_customer_id(request.user, customer_id)
-            
+
+        customer_id = _ensure_stripe_customer(request.user)
+
         # Attach payment method to customer
         payment_method = stripe_service.attach_payment_method(payment_method_id, customer_id)
-        
+
         # Store payment method details
         card = payment_method.card
         payment_method_service.create_payment_method(request.user, {
@@ -474,12 +197,12 @@ def attach_payment_method(request):
             'exp_month': card.exp_month,
             'exp_year': card.exp_year
         })
-        
+
         return Response({
             'success': True,
             'payment_method': payment_method
         })
-        
+
     except stripe.error.StripeError as e:
         return Response({
             'error': str(e)
@@ -488,108 +211,69 @@ def attach_payment_method(request):
         logger.exception("Error attaching payment method")
         raise
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_checkout_session(request):
-    """Create a Stripe Checkout Session for subscriptions or one-time purchases."""
+    """Create a Stripe Checkout Session for a subscription plan.
+
+    Subscriptions are the only thing that can be bought: a plan grants a
+    metered usage allowance, so there is no one-time purchase mode.
+    """
     try:
-        amount = request.data.get('amount')
         lookup_key = request.data.get('lookup_key')
         success_url = request.data.get('success_url', f"{settings.FRONTEND_URL}/payments/success")
         cancel_url = request.data.get('cancel_url', f"{settings.FRONTEND_URL}/payments/cancel")
 
-        if not amount and not lookup_key:
+        if not lookup_key:
             return Response({
-                'error': 'Either amount or lookup_key is required'
+                'error': 'lookup_key is required'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Determine mode and build line items
-        if lookup_key:
-            # Subscription flow: look up price by lookup_key (Stripe's recommended pattern)
-            prices = stripe.Price.list(
-                lookup_keys=[lookup_key],
-                expand=['data.product'],
-            )
+        # Refuse lookup_keys that don't name a plan we meter, rather than
+        # selling a subscription the webhook would later fail to resolve.
+        if plan_id_for_lookup_key(lookup_key) is None:
+            return Response({
+                'error': f'Unknown plan for lookup_key: {lookup_key}'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-            if not prices.data:
-                return Response({
-                    'error': f'No price found for lookup_key: {lookup_key}'
-                }, status=status.HTTP_404_NOT_FOUND)
+        # Look up the price by lookup_key (Stripe's recommended pattern)
+        prices = stripe.Price.list(
+            lookup_keys=[lookup_key],
+            expand=['data.product'],
+        )
 
-            price_id = prices.data[0].id
-            mode = 'subscription'
+        if not prices.data:
+            return Response({
+                'error': f'No price found for lookup_key: {lookup_key}'
+            }, status=status.HTTP_404_NOT_FOUND)
 
-            line_items = [{'price': price_id, 'quantity': 1}]
-            metadata = {
-                'user_id': str(request.user.id),
-                'lookup_key': lookup_key,
-            }
+        line_items = [{'price': prices.data[0].id, 'quantity': 1}]
+        metadata = {
+            'user_id': str(request.user.id),
+            'lookup_key': lookup_key,
+        }
 
-            # Ensure user has a Stripe customer (required for subscription mode)
-            customer_id = payment_method_service.get_stripe_customer_id(request.user)
-            if not customer_id:
-                customer = stripe_service.create_customer(
-                    email=request.user.email,
-                    name=f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
-                    metadata={'user_id': str(request.user.id)}
-                )
-                customer_id = customer.id
-                payment_method_service.set_stripe_customer_id(request.user, customer_id)
+        # Subscription mode requires a customer
+        customer_id = _ensure_stripe_customer(request.user)
 
-            # Append session_id to success URL per Stripe pattern
-            success_url_with_session = f"{success_url}?success=true&session_id={{CHECKOUT_SESSION_ID}}"
+        # Append session_id to success URL per Stripe pattern
+        success_url_with_session = f"{success_url}?success=true&session_id={{CHECKOUT_SESSION_ID}}"
 
-            checkout_session = stripe_service.create_checkout_session(
-                line_items=line_items,
-                metadata=metadata,
-                success_url=success_url_with_session,
-                cancel_url=cancel_url,
-                mode=mode,
-                customer=customer_id,
-            )
-        else:
-            # On-demand one-time payment flow
-            amount = float(amount)
-            if amount < 5 or amount > 1000:
-                return Response({
-                    'error': 'Amount must be between $5 and $1,000'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            credits = amount  # 1:1 ratio
-            price = stripe_service.create_price(
-                unit_amount=int(amount * 100),
-                metadata={'credits': str(credits)}
-            )
-
-            line_items = [{'price': price.id, 'quantity': 1}]
-            metadata = {
-                'user_id': str(request.user.id),
-                'credits': str(credits),
-            }
-
-            success_url_with_session = f"{success_url}?success=true&session_id={{CHECKOUT_SESSION_ID}}"
-
-            # Optionally attach customer for on-demand too
-            customer_id = payment_method_service.get_stripe_customer_id(request.user)
-
-            checkout_session = stripe_service.create_checkout_session(
-                line_items=line_items,
-                metadata=metadata,
-                success_url=success_url_with_session,
-                cancel_url=cancel_url,
-                mode='payment',
-                customer=customer_id if customer_id else None,
-            )
+        checkout_session = stripe_service.create_checkout_session(
+            line_items=line_items,
+            metadata=metadata,
+            success_url=success_url_with_session,
+            cancel_url=cancel_url,
+            mode='subscription',
+            customer=customer_id,
+        )
 
         return Response({
             'session_id': checkout_session.id,
             'checkout_url': checkout_session.url
         })
 
-    except ValueError:
-        return Response({
-            'error': 'Invalid amount format'
-        }, status=status.HTTP_400_BAD_REQUEST)
     except Exception:
         logger.exception("Error creating checkout session")
         raise
@@ -617,66 +301,40 @@ def create_portal_session(request):
         logger.exception("Error creating portal session")
         raise
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_session_status(request):
-    """Get the status of a Stripe Checkout Session."""
+    """Get the status of a Stripe Checkout Session.
+
+    Purely informational for the success page — the plan itself is granted by
+    the subscription webhook, never by this call.
+    """
     try:
         session_id = request.query_params.get('session_id')
         if not session_id:
             return Response({
                 'error': 'Session ID is required'
             }, status=status.HTTP_400_BAD_REQUEST)
-            
+
         # Retrieve session from Stripe
         session = stripe_service.get_session_status(session_id)
 
-        # Enforce object-level ownership: the session must belong to the caller.
-        # Without this, any authenticated user who obtains another user's
-        # session_id (it is exposed in the success-page URL) could claim that
-        # user's purchased credits to their own balance.
+        # Enforce object-level ownership: the session must belong to the
+        # caller. session_id is exposed in the success-page URL, so without
+        # this any authenticated user holding another user's id could read
+        # that user's checkout.
         if session.metadata.get('user_id') != str(request.user.id):
             return Response({
                 'error': 'Session not found'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if payment succeeded
-        if session.payment_status == 'paid':
-            # Subscription sessions are handled by webhooks, just confirm success
-            if session.mode == 'subscription':
-                return Response({
-                    'status': 'complete',
-                    'payment_status': session.payment_status,
-                    'mode': session.mode,
-                    'credits_added': 0,
-                })
-
-            # One-time payment: find or create the transaction and add credits
-            transaction = transaction_service.get_transaction_by_checkout_session(session_id)
-
-            if not transaction:
-                credits = float(session.metadata.get('credits', 0))
-                transaction = transaction_service.create_purchase_transaction(
-                    request.user,
-                    credits,
-                    stripe_checkout_session_id=session_id,
-                    description=f'Purchase of {credits} credits via Checkout'
-                )
-                credit_service.add_credits(request.user, credits, transaction)
-
-            return Response({
-                'status': 'complete',
-                'payment_status': session.payment_status,
-                'mode': session.mode,
-                'credits_added': float(transaction.amount)
-            })
-
         return Response({
-            'status': 'pending',
+            'status': 'complete' if session.payment_status == 'paid' else 'pending',
             'payment_status': session.payment_status,
             'mode': session.mode,
         })
-        
+
     except stripe.error.StripeError as e:
         return Response({
             'error': str(e)
@@ -685,59 +343,6 @@ def get_session_status(request):
         logger.exception("Error checking session status")
         raise
 
-class PlansView(generics.ListAPIView):
-    """List available subscription plans."""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        try:
-            # Retrieve plans from Stripe
-            plans = stripe_service.list_plans()
-            
-            # Format for response
-            formatted_plans = []
-            for plan in plans:
-                formatted_plans.append({
-                    'id': plan.id,
-                    'name': plan.nickname or 'Subscription',
-                    'price': plan.unit_amount / 100,
-                    'currency': plan.currency,
-                    'interval': plan.recurring.interval,
-                    'credits': float(plan.metadata.get('credits', 0)) if plan.metadata else 0
-                })
-                
-            return Response(formatted_plans)
-            
-        except Exception:
-            logger.exception("Error fetching plans")
-            raise
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def verify_webhook(request):
-    """Verify a webhook event from Stripe."""
-    try:
-        event_id = request.data.get('event_id')
-        if not event_id:
-            return Response({
-                'error': 'Event ID is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Retrieve event from Stripe
-        event = stripe.Event.retrieve(event_id)
-        
-        return Response({
-            'verified': True,
-            'event_type': event.type
-        })
-        
-    except stripe.error.StripeError as e:
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        logger.exception("Error verifying webhook")
-        raise
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -747,13 +352,12 @@ def webhook(request):
     Authenticated by Stripe's signature (verify_webhook_event) rather than a
     logged-in session, so it must bypass the DRF default IsAuthenticated —
     otherwise Stripe's unauthenticated POST is rejected and the webhook never
-    runs (which would leave the ownership-checked, idempotent crediting path
-    dead and force all crediting through the synchronous session-status call).
+    runs, which is the only path that grants and revokes plans.
     """
     try:
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-        
+
         try:
             event = stripe_service.verify_webhook_event(
                 payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
@@ -764,17 +368,8 @@ def webhook(request):
         except stripe.error.SignatureVerificationError:
             logger.error("Invalid webhook signature")
             return Response(status=status.HTTP_400_BAD_REQUEST)
-            
-        # Handle specific event types
-        if event.type == 'payment_intent.succeeded':
-            payment_intent = event.data.object
-            handle_payment_intent_succeeded(payment_intent)
-            
-        elif event.type == 'checkout.session.completed':
-            session = event.data.object
-            handle_checkout_session_completed(session)
 
-        elif event.type in (
+        if event.type in (
             'customer.subscription.created',
             'customer.subscription.updated',
             'customer.subscription.deleted',
@@ -783,83 +378,11 @@ def webhook(request):
 
         # Return success response
         return Response({'status': 'success'})
-        
+
     except Exception:
         logger.exception("Webhook error")
         raise
 
-def handle_payment_intent_succeeded(payment_intent):
-    """Handle a successful payment intent."""
-    try:
-        # Find the transaction
-        transaction = transaction_service.get_transaction_by_payment_intent(None, payment_intent.id)
-        
-        if not transaction:
-            logger.warning(f"Transaction not found for payment intent {payment_intent.id}")
-            return
-
-        # process_payment confirms the intent inline and credits immediately, so
-        # this webhook usually arrives for a transaction that is already paid up.
-        # add_credits enforces this too; checking here keeps the log honest.
-        if transaction.status == 'completed':
-            logger.info(f"Transaction for payment intent {payment_intent.id} already credited")
-            return
-
-        # Add credits to user's balance
-        credit_service.add_credits(transaction.user, float(transaction.amount), transaction)
-        
-        logger.info(f"Credits added via webhook: {transaction.amount} for user {transaction.user.id}")
-        
-    except Exception as e:
-        logger.error(f"Error handling payment intent succeeded: {str(e)}")
-
-def handle_checkout_session_completed(session):
-    """Handle a completed checkout session."""
-    try:
-        # Skip if not paid
-        if session.payment_status != 'paid':
-            return
-            
-        # Extract user ID and credits from metadata
-        user_id = session.metadata.get('user_id')
-        credits = float(session.metadata.get('credits', 0))
-        
-        if not user_id or credits <= 0:
-            logger.warning(f"Invalid metadata in checkout session {session.id}")
-            return
-            
-        # Check if transaction already exists
-        transaction = transaction_service.get_transaction_by_checkout_session(session.id)
-        
-        if transaction:
-            logger.info(f"Transaction already exists for session {session.id}")
-            return
-            
-        # Get user model
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
-        # Get user
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            logger.error(f"User {user_id} not found for checkout session {session.id}")
-            return
-            
-        # Create transaction and add credits
-        transaction = transaction_service.create_purchase_transaction(
-            user,
-            credits,
-            stripe_checkout_session_id=session.id,
-            description=f'Purchase of {credits} credits via Checkout'
-        )
-        
-        credit_service.add_credits(user, credits, transaction)
-
-        logger.info(f"Credits added via checkout: {credits} for user {user_id}")
-
-    except Exception as e:
-        logger.error(f"Error handling checkout session completed: {str(e)}")
 
 def _resolve_subscription_plan_id(subscription):
     """Map a Stripe subscription to a plan id, or None when unrecognized.
@@ -879,11 +402,12 @@ def _resolve_subscription_plan_id(subscription):
         return plan
     return None
 
+
 def handle_subscription_event(event_type, subscription):
     """Sync a user's Subscription row from a Stripe subscription event.
 
     Only ever called from the signature-verified webhook path. The user is
-    resolved through CreditBalance.stripe_customer_id — the single store of
+    resolved through StripeCustomer.stripe_customer_id — the single store of
     the Stripe customer id.
 
     A customer can have several Stripe subscriptions at once (the upgrade
@@ -895,16 +419,16 @@ def handle_subscription_event(event_type, subscription):
     """
     try:
         customer_id = subscription.get('customer')
-        credit_balance = (
-            CreditBalance.objects.filter(stripe_customer_id=customer_id).first()
+        stripe_customer = (
+            StripeCustomer.objects.filter(stripe_customer_id=customer_id).first()
             if customer_id else None
         )
-        if credit_balance is None:
+        if stripe_customer is None:
             logger.warning(
                 f"Subscription event {event_type} for unknown Stripe customer {customer_id}"
             )
             return
-        user = credit_balance.user
+        user = stripe_customer.user
 
         event_sub_id = subscription.get('id') or ''
         stored = Subscription.objects.filter(user=user).first()
@@ -960,7 +484,7 @@ def handle_subscription_event(event_type, subscription):
                 )
                 return
             # incomplete / incomplete_expired / unpaid / canceled / paused:
-            # never keep paid limits for a subscription that isn't paying.
+            # never keep a paid allowance for a subscription that isn't paying.
             Subscription.objects.update_or_create(
                 user=user,
                 defaults={
@@ -994,4 +518,4 @@ def handle_subscription_event(event_type, subscription):
         logger.info(f"Subscription {event_type}: user {user.id} on plan {plan_id}")
 
     except Exception as e:
-        logger.error(f"Error handling subscription event {event_type}: {str(e)}") 
+        logger.error(f"Error handling subscription event {event_type}: {str(e)}")

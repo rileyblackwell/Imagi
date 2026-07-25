@@ -2,9 +2,12 @@ import { defineStore } from 'pinia'
 import api from '@/shared/services/api'
 
 /**
- * Plan usage-limit store: the user's plan plus the 5-hour / weekly rolling
- * token windows from GET /api/v1/payments/usage/. This replaces the dollar
- * balance as the workspace's spend surface.
+ * Plan usage store: the user's plan plus the 5-hour / weekly rolling usage
+ * windows from GET /api/v1/payments/usage/.
+ *
+ * Usage is metered in dollars of model spend, not tokens — a pricier model or
+ * a heavier reasoning effort draws the allowance down faster. This is the
+ * workspace's only spend surface; there is no dollar balance to top up.
  *
  * All snake_case -> camelCase mapping happens here, and "absent means
  * unknown" is preserved: fields the backend did not report stay null and
@@ -12,10 +15,10 @@ import api from '@/shared/services/api'
  */
 
 export interface UsageWindow {
-  /** Tokens used inside the window; null = unknown, never "free" */
-  used: number | null
-  /** The plan's token limit for this window; null = unknown */
-  limit: number | null
+  /** Dollars of usage inside the window; null = unknown, never "free" */
+  usedUsd: number | null
+  /** The plan's dollar allowance for this window; null = unknown */
+  limitUsd: number | null
   /** When the oldest counted activity ages out (ISO); null while nothing counts */
   resetsAt: string | null
 }
@@ -25,12 +28,13 @@ export interface UsagePlan {
   name: string
 }
 
-/** One entry of the plan registry (for showing what other plans allow). */
+/** One entry of the plan registry (for showing what other plans allow).
+ *  Only the two enforced windows exist — there is no monthly figure. */
 export interface UsagePlanLimits {
   id: string
   name: string
-  fiveHourTokens: number | null
-  weeklyTokens: number | null
+  weeklyUsd: number | null
+  fiveHourUsd: number | null
 }
 
 interface UsageState {
@@ -42,26 +46,29 @@ interface UsageState {
   error: string | null
 }
 
+function toNumber(value: any): number | null {
+  return typeof value === 'number' && !isNaN(value) ? value : null
+}
+
 function toWindow(raw: any): UsageWindow | null {
   if (!raw || typeof raw !== 'object') return null
   return {
-    used: typeof raw.used === 'number' ? raw.used : null,
-    limit: typeof raw.limit === 'number' ? raw.limit : null,
+    usedUsd: toNumber(raw.used_usd),
+    limitUsd: toNumber(raw.limit_usd),
     resetsAt: typeof raw.resets_at === 'string' ? raw.resets_at : null,
   }
 }
 
-/** Compact token count for meters: 850, 12.3k, 2M. */
-export function formatCompactTokens(count: number): string {
-  if (count >= 1_000_000) {
-    const millions = count / 1_000_000
-    return `${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M`
-  }
-  if (count >= 1_000) {
-    const thousands = count / 1_000
-    return `${thousands >= 10 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k`
-  }
-  return String(count)
+/**
+ * Dollar amount for meters and allowances. Whole dollars stay clean ($20),
+ * and anything smaller keeps two decimals ($1.25) — but a nonzero amount
+ * under a cent shows as "<$0.01" rather than rounding to $0.00, which would
+ * read as "you've used nothing".
+ */
+export function formatUsd(amount: number): string {
+  if (amount > 0 && amount < 0.01) return '<$0.01'
+  if (Number.isInteger(amount)) return `$${amount}`
+  return `$${amount.toFixed(2)}`
 }
 
 /** Human wording for a window's reset moment ("3:45 PM" / "Jul 24, 3:45 PM"). */
@@ -89,26 +96,27 @@ export const useUsageStore = defineStore('usage', {
   }),
 
   getters: {
-    /** Percent of the 5-hour window used (0-100), null while unknown. */
+    /** Percent of the 5-hour allowance used (0-100), null while unknown. */
     fiveHourPercent(state): number | null {
       const w = state.fiveHour
-      if (!w || w.used === null || w.limit === null || w.limit <= 0) return null
-      return Math.min(100, Math.round((w.used / w.limit) * 100))
+      if (!w || w.usedUsd === null || w.limitUsd === null || w.limitUsd <= 0) return null
+      return Math.min(100, Math.round((w.usedUsd / w.limitUsd) * 100))
     },
 
-    /** Percent of the weekly window used (0-100), null while unknown. */
+    /** Percent of the weekly allowance used (0-100), null while unknown. */
     weeklyPercent(state): number | null {
       const w = state.weekly
-      if (!w || w.used === null || w.limit === null || w.limit <= 0) return null
-      return Math.min(100, Math.round((w.used / w.limit) * 100))
+      if (!w || w.usedUsd === null || w.limitUsd === null || w.limitUsd <= 0) return null
+      return Math.min(100, Math.round((w.usedUsd / w.limitUsd) * 100))
     },
 
     /** The first exhausted window ('5h' before 'week', matching the backend
-     *  check order), or null while under both limits. Unknown data never
+     *  check order), or null while under both allowances. Unknown data never
      *  reports exhausted (absent means unknown, not over-limit). */
     exceededWindow(state): '5h' | 'week' | null {
       const over = (w: UsageWindow | null) =>
-        !!w && w.used !== null && w.limit !== null && w.limit > 0 && w.used >= w.limit
+        !!w && w.usedUsd !== null && w.limitUsd !== null && w.limitUsd > 0
+          && w.usedUsd >= w.limitUsd
       if (over(state.fiveHour)) return '5h'
       if (over(state.weekly)) return 'week'
       return null
@@ -131,8 +139,8 @@ export const useUsageStore = defineStore('usage', {
           ? data.plans.map((p: any): UsagePlanLimits => ({
               id: String(p?.id ?? ''),
               name: String(p?.name ?? p?.id ?? ''),
-              fiveHourTokens: typeof p?.five_hour_tokens === 'number' ? p.five_hour_tokens : null,
-              weeklyTokens: typeof p?.weekly_tokens === 'number' ? p.weekly_tokens : null,
+              weeklyUsd: toNumber(p?.weekly_usd),
+              fiveHourUsd: toNumber(p?.five_hour_usd),
             }))
           : []
         this.fiveHour = toWindow(data.windows?.five_hour)

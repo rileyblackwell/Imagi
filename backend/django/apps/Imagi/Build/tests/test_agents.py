@@ -495,6 +495,12 @@ class ProcessStreamTests(TestCase):
         self.assertEqual(usage_event.output_tokens, 100_000)
         self.assertEqual(usage_event.total_tokens, 1_100_000)
         self.assertEqual(usage_event.conversation_id, 7)
+        # Metering is by cost, so the run's computed price — not its token
+        # count — is what draws down the plan allowance.
+        self.assertEqual(
+            float(usage_event.cost_usd),
+            compute_cost_usd(self.service.model, 1_000_000, 100_000),
+        )
 
     def test_done_event_omits_usage_when_unavailable(self):
         # The fake run exposes no context_wrapper, mirroring an SDK result
@@ -633,8 +639,8 @@ class AgentStreamEndpointTests(TestCase):
         # Subscription row, so their plan is the default 'free' tier.
         UsageEvent.objects.create(
             user=self.user, model_name='gpt-5.6-terra',
-            input_tokens=PLANS['free']['five_hour_tokens'], output_tokens=0,
-            total_tokens=PLANS['free']['five_hour_tokens'],
+            input_tokens=1_000_000, output_tokens=0, total_tokens=1_000_000,
+            cost_usd=PLANS['free']['five_hour_usd'],
         )
         token = Token.objects.create(user=self.user)
         resp = self.client.post(

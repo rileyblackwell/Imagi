@@ -1,11 +1,16 @@
-// This file helps TypeScript recognize the types directory as a module.
-// Merged from index.d.ts
+// Billing types.
+//
+// Access is sold as subscriptions with a metered dollar allowance, so there is
+// no balance, no credit package, and no one-time purchase flow here. Plan and
+// usage types live with the usage store (@/shared/stores/usage).
+
 export interface Toast {
   id: number;
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
 }
 
+/** A historical credit purchase. Nothing writes these any more. */
 export interface Transaction {
   id: string;
   amount: number;
@@ -15,29 +20,14 @@ export interface Transaction {
   created_at: string;
   stripe_payment_intent_id?: string;
   stripe_checkout_session_id?: string;
+  model?: string | null;
+  request_type?: string | null;
 }
 
 export interface TransactionFilter {
   status?: string;
   sortBy?: string;
   sortOrder?: string;
-}
-
-export interface PaymentIntentData {
-  amount: number;
-  plan_id?: string;
-}
-
-export interface CheckoutSessionData {
-  amount: number;
-  plan_id?: string;
-  currency?: string;
-  return_url?: string;
-}
-
-export interface PaymentIntent {
-  clientSecret: string;
-  id?: string;
 }
 
 export interface PaymentMethod {
@@ -50,47 +40,16 @@ export interface PaymentMethod {
   is_default: boolean;
 }
 
-export interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  interval: string;
-  credits: number;
-}
-
-export interface PaymentResponse {
-  success: boolean;
-  message?: string;
-  transaction?: Transaction;
-  error?: string;
-}
-
-export interface PaymentIntentRequest {
-  amount: number;
-  currency?: string;
-}
-
+/** A subscription checkout, identified by the plan's Stripe price lookup_key. */
 export interface PaymentData {
-  amount?: number;
-  plan_id?: string;
-  lookup_key?: string;
+  lookup_key: string;
   success_url?: string;
   cancel_url?: string;
-}
-
-export interface BalanceResponse {
-  balance: number;
 }
 
 export interface TransactionsResponse {
   transactions: Transaction[];
   total_count: number;
-}
-
-export interface PaymentIntentResponse {
-  clientSecret: string;
-  id: string;
 }
 
 export interface SessionResponse {
@@ -101,30 +60,11 @@ export interface SessionResponse {
 export interface SessionStatus {
   status: 'complete' | 'pending';
   payment_status: string;
-  mode?: 'payment' | 'subscription';
-  credits_added?: number;
+  mode?: 'subscription';
 }
 
 export interface ErrorMessages {
   [key: number]: string;
-}
-
-export interface CreditPackage {
-  id: string;
-  name: string;
-  price: number;
-  credits: number;
-  amount: number;
-  description?: string;
-  is_active: boolean;
-}
-
-export interface PaymentState {
-  balance: number;
-  transactions: Transaction[];
-  packages: CreditPackage[];
-  loading: boolean;
-  error: string | null;
 }
 
 export interface PaymentDetail {
@@ -145,8 +85,3 @@ export const SORT_OPTIONS = [
   { label: 'Amount (Highest First)', value: 'amount_desc' },
   { label: 'Amount (Lowest First)', value: 'amount_asc' }
 ];
-
-// Re-export all types from models.ts, store.ts, and services.ts for ergonomic imports.
-export * from './models';
-export * from './store';
-export * from './services';

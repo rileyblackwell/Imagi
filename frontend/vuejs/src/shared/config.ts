@@ -41,8 +41,7 @@ const config = {
 
   // Payment Configuration
   payments: {
-    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
-    creditsPerDollar: 10
+    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
   },
   
   // Feature Flags

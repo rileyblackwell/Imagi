@@ -21,9 +21,7 @@ export interface Activity {
 export interface DashboardStats {
   projectCount: number;
   activeBuildCount: number;
-  creditsUsed: number;
   apiCallCount: number;
-  creditsRemaining: number;
   totalBuilds: number;
   successRate: number;
   lastUpdateTime: string;

@@ -752,6 +752,9 @@ class ImagiAgentService:
                 model or self.model,
                 usage.get('input_tokens'),
                 usage.get('output_tokens'),
+                # Absent when the model had no pricing; Payments then meters
+                # the run conservatively instead of treating it as free.
+                cost_usd=usage.get('cost_usd'),
                 conversation_id=conversation.id if conversation else None,
             )
         except Exception as e:

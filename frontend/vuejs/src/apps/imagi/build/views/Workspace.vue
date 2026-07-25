@@ -730,8 +730,8 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
         store.addMessageToInstance(instanceId, {
           role: 'assistant',
           content: resetsAt
-            ? `Usage limit reached — resets ${resetsAt}. Upgrade your plan for a higher limit.`
-            : 'Usage limit reached — usage frees up as older activity ages out of the window. Upgrade your plan for a higher limit.',
+            ? `Usage allowance spent — frees up ${resetsAt}. A lighter model or lower reasoning effort goes further, or upgrade your plan for more.`
+            : 'Usage allowance spent — it frees up as older activity ages out of the window. A lighter model or lower reasoning effort goes further, or upgrade your plan for more.',
           timestamp: new Date().toISOString(),
           id: `system-limit-${Date.now()}`
         })

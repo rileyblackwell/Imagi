@@ -129,7 +129,7 @@
           <DocsNavigationCard
             to="/docs/plans"
             title="Plans & Usage"
-            description="Understand plans, usage limits, credits, and billing."
+            description="Understand plans, usage allowances, and billing."
           />
         </div>
       </section>
