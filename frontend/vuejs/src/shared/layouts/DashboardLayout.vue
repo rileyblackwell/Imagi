@@ -19,13 +19,13 @@
            page. On mobile it drops below the navbar and becomes an off-canvas
            drawer that floats over the content. -->
       <aside
-        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col max-md:top-16 border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
+        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col max-md:top-nav border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
         :class="[
           asideWidthClass,
           // The stacked frame drops the panel below the full-width top bar so
           // the bar's toggle + wordmark own the true top-left corner; other
           // sections keep the panel flush to the top on desktop.
-          stackedNav ? 'top-16' : 'md:top-0',
+          stackedNav ? 'top-nav' : 'md:top-0',
           isSidebarCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
         ]"
         :aria-hidden="isSidebarCollapsed ? 'true' : undefined"
@@ -139,7 +139,7 @@
 
         <!-- Main content area -->
         <main
-          class="flex-1 flex flex-col relative pt-16 bg-white dark:bg-[#0a0a0a] overflow-hidden"
+          class="flex-1 flex flex-col relative pt-nav bg-white dark:bg-[#0a0a0a] overflow-hidden"
           :class="appShell ? 'min-h-0' : ''"
         >
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
@@ -160,7 +160,7 @@
       >
         <div
           v-if="!isSidebarCollapsed"
-          class="md:hidden fixed top-16 left-0 right-0 bottom-0 z-20 bg-blue-950/25 dark:bg-black/45 backdrop-blur-[1px]"
+          class="md:hidden fixed top-nav left-0 right-0 bottom-0 z-20 bg-blue-950/25 dark:bg-black/45 backdrop-blur-[1px]"
           aria-hidden="true"
           @click="setSidebarCollapsed(true)"
         ></div>

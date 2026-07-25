@@ -1,6 +1,9 @@
 <template>
   <nav class="crisp-nav fixed w-full z-50 font-body bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-blue-950/[0.08] dark:border-white/[0.08] transition-colors duration-300">
     <div class="relative px-6 sm:px-8 lg:px-12" :class="fluid ? 'w-full' : 'max-w-7xl mx-auto'">
+      <!-- The bar is fixed, so everything below it is pushed down by the
+           `nav` spacing token (tailwind.config.js) — this row's height plus
+           the hairline above. Change one and change the other. -->
       <div class="relative flex items-center h-14">
         <!-- Left section -->
         <div class="flex items-center z-10">

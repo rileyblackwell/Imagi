@@ -64,6 +64,12 @@ export default {
       },
       spacing: {
         'header': '64px',
+        // The fixed top bar's true height: BaseNavbar's h-14 row plus its 1px
+        // bottom hairline. Anything that sits under the bar (the shell's
+        // sidebar, main content and mobile scrim) offsets by this, so the
+        // panels sit flush against it instead of leaving a dead strip.
+        // Keep in sync with the row height in BaseNavbar.vue.
+        'nav': 'calc(3.5rem + 1px)',
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out forwards',
