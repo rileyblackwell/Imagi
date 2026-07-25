@@ -1,9 +1,10 @@
 """
 Tests for the Payments app.
 
-Covers the models, the credit / transaction / payment-method services (all
-pure database logic, Stripe never touched), and the API endpoints. Endpoints
-that reach Stripe are exercised with the Stripe service mocked out.
+Covers the models, the transaction / payment-method services (pure database
+logic, Stripe never touched), the dollar-denominated usage metering, and the
+API endpoints. Endpoints that reach Stripe are exercised with the Stripe
+service mocked out.
 """
 
 from datetime import timedelta
@@ -19,17 +20,20 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from apps.Payments.models import (
-    CreditBalance,
-    CreditPackage,
     Payment,
     PaymentMethod,
+    StripeCustomer,
     Subscription,
     Transaction,
     UsageEvent,
 )
-from apps.Payments.services.credit_service import CreditService
 from apps.Payments.services.payment_method_service import PaymentMethodService
-from apps.Payments.services.plans import PLANS, get_plan, get_plan_for_user
+from apps.Payments.services.plans import (
+    PLANS,
+    SESSIONS_PER_WEEK,
+    get_plan,
+    get_plan_for_user,
+)
 from apps.Payments.services.transaction_service import TransactionService
 from apps.Payments.services.usage_service import (
     FIVE_HOUR_WINDOW,
@@ -51,6 +55,17 @@ def make_user(username='user1', **kwargs):
     )
 
 
+def make_transaction(user, amount, **kwargs):
+    """A historical purchase row (nothing in the app writes these now)."""
+    return Transaction.objects.create(
+        user=user,
+        amount=Decimal(str(amount)),
+        transaction_type=kwargs.pop('transaction_type', 'purchase'),
+        status=kwargs.pop('status', 'pending'),
+        **kwargs,
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Models
 # --------------------------------------------------------------------------- #
@@ -65,24 +80,11 @@ class TransactionModelTests(APITestCase):
         self.user = make_user()
 
     def test_purchase_gets_default_description(self):
-        txn = Transaction.objects.create(
-            user=self.user, amount=Decimal('20'), transaction_type='purchase',
-            status='completed',
-        )
+        txn = make_transaction(self.user, 20, status='completed')
         self.assertIn('Credit purchase', txn.description)
 
-    def test_usage_gets_default_description(self):
-        txn = Transaction.objects.create(
-            user=self.user, amount=Decimal('-5'), transaction_type='usage',
-            status='completed',
-        )
-        self.assertIn('Usage', txn.description)
-
     def test_explicit_description_is_preserved(self):
-        txn = Transaction.objects.create(
-            user=self.user, amount=Decimal('20'), transaction_type='purchase',
-            status='completed', description='Custom note',
-        )
+        txn = make_transaction(self.user, 20, description='Custom note')
         self.assertEqual(txn.description, 'Custom note')
 
 
@@ -106,154 +108,34 @@ class PaymentMethodModelTests(APITestCase):
 
 
 # --------------------------------------------------------------------------- #
-# CreditService
-# --------------------------------------------------------------------------- #
-class CreditServiceTests(APITestCase):
-    def setUp(self):
-        self.user = make_user()
-        self.service = CreditService()
-
-    def test_get_balance_creates_zero_balance(self):
-        self.assertEqual(self.service.get_balance(self.user), 0.0)
-        self.assertTrue(CreditBalance.objects.filter(user=self.user).exists())
-
-    def test_add_credits_increases_balance(self):
-        result = self.service.add_credits(self.user, 30.0)
-        self.assertTrue(result['success'])
-        self.assertEqual(result['new_balance'], 30.0)
-        self.assertEqual(self.service.get_balance(self.user), 30.0)
-
-    def test_add_credits_marks_transaction_completed(self):
-        txn = Transaction.objects.create(
-            user=self.user, amount=Decimal('30'), transaction_type='purchase',
-            status='pending',
-        )
-        self.service.add_credits(self.user, 30.0, txn)
-        txn.refresh_from_db()
-        self.assertEqual(txn.status, 'completed')
-
-    def test_crediting_the_same_transaction_twice_is_a_no_op(self):
-        # process_payment credits inline and Stripe then delivers
-        # payment_intent.succeeded for the same intent — the second credit for
-        # one transaction must not add a second helping of credits.
-        txn = Transaction.objects.create(
-            user=self.user, amount=Decimal('30'), transaction_type='purchase',
-            status='pending', stripe_payment_intent_id='pi_dupe',
-        )
-        self.service.add_credits(self.user, 30.0, txn)
-        second = self.service.add_credits(self.user, 30.0, txn)
-
-        self.assertTrue(second['success'])
-        self.assertTrue(second.get('duplicate'))
-        self.assertEqual(second['credits_added'], 0)
-        self.assertEqual(self.service.get_balance(self.user), 30.0)
-
-    def test_webhook_does_not_recredit_a_completed_transaction(self):
-        from apps.Payments.api.views import handle_payment_intent_succeeded
-
-        txn = Transaction.objects.create(
-            user=self.user, amount=Decimal('25'), transaction_type='purchase',
-            status='pending', stripe_payment_intent_id='pi_webhook',
-        )
-        self.service.add_credits(self.user, 25.0, txn)
-
-        handle_payment_intent_succeeded(SimpleNamespace(id='pi_webhook'))
-
-        self.assertEqual(self.service.get_balance(self.user), 25.0)
-
-    def test_deduct_credits_reduces_balance_and_records_usage(self):
-        self.service.add_credits(self.user, 50.0)
-        result = self.service.deduct_credits(self.user, 20.0, 'Model run')
-        self.assertTrue(result['success'])
-        self.assertAlmostEqual(result['new_balance'], 30.0, places=2)
-        # A negative usage transaction should have been recorded.
-        usage = Transaction.objects.filter(user=self.user, transaction_type='usage')
-        self.assertEqual(usage.count(), 1)
-        self.assertEqual(usage.first().amount, Decimal('-20.0'))
-
-    def test_deduct_more_than_balance_fails(self):
-        self.service.add_credits(self.user, 5.0)
-        result = self.service.deduct_credits(self.user, 20.0)
-        self.assertFalse(result['success'])
-        self.assertEqual(result['error'], 'Insufficient credits')
-        # Balance is untouched.
-        self.assertEqual(self.service.get_balance(self.user), 5.0)
-
-    def test_deduct_non_positive_amount_fails(self):
-        result = self.service.deduct_credits(self.user, 0)
-        self.assertFalse(result['success'])
-
-    def test_check_credits_reports_sufficiency(self):
-        self.service.add_credits(self.user, 10.0)
-        ok = self.service.check_credits(self.user, 5.0)
-        self.assertTrue(ok['has_sufficient'])
-        short = self.service.check_credits(self.user, 25.0)
-        self.assertFalse(short['has_sufficient'])
-        self.assertAlmostEqual(short['needed_credits'], 15.0, places=2)
-
-
-# --------------------------------------------------------------------------- #
-# TransactionService
+# TransactionService (read-only history)
 # --------------------------------------------------------------------------- #
 class TransactionServiceTests(APITestCase):
     def setUp(self):
         self.user = make_user()
         self.service = TransactionService()
 
-    def test_create_purchase_transaction(self):
-        txn = self.service.create_purchase_transaction(
-            self.user, 40.0, stripe_payment_intent_id='pi_123'
-        )
-        self.assertEqual(txn.transaction_type, 'purchase')
-        self.assertEqual(txn.status, 'pending')
-        self.assertEqual(txn.stripe_payment_intent_id, 'pi_123')
-
-    def test_create_usage_transaction_stores_negative_amount(self):
-        txn = self.service.create_usage_transaction(self.user, 3.0)
-        self.assertIsNotNone(txn)
-        self.assertEqual(txn.amount, Decimal('-3.0'))
-        self.assertEqual(txn.transaction_type, 'usage')
-
     def test_get_payment_history_only_returns_completed_purchases(self):
-        self.service.create_purchase_transaction(self.user, 10.0)  # pending
-        done = self.service.create_purchase_transaction(self.user, 20.0)
-        done.status = 'completed'
-        done.save()
-        self.service.create_usage_transaction(self.user, 5.0)  # usage
+        make_transaction(self.user, 10)  # pending
+        done = make_transaction(self.user, 20, status='completed')
+        make_transaction(self.user, -5, transaction_type='usage', status='completed')
         history = self.service.get_payment_history(self.user)
         self.assertEqual(list(history), [done])
 
     def test_get_transactions_filters_by_status(self):
-        a = self.service.create_purchase_transaction(self.user, 10.0)
-        a.status = 'completed'
-        a.save()
-        self.service.create_purchase_transaction(self.user, 20.0)  # pending
+        a = make_transaction(self.user, 10, status='completed')
+        make_transaction(self.user, 20)  # pending
         result = self.service.get_transactions(self.user, status='completed')
         self.assertEqual(result['count'], 1)
         self.assertEqual(list(result['transactions']), [a])
 
     def test_lookup_by_payment_intent(self):
-        txn = self.service.create_purchase_transaction(
-            self.user, 10.0, stripe_payment_intent_id='pi_abc'
-        )
+        txn = make_transaction(self.user, 10, stripe_payment_intent_id='pi_abc')
         found = self.service.get_transaction_by_payment_intent(self.user, 'pi_abc')
         self.assertEqual(found, txn)
         self.assertIsNone(
             self.service.get_transaction_by_payment_intent(self.user, 'pi_missing')
         )
-
-    def test_get_credit_packages_excludes_inactive_by_default(self):
-        CreditPackage.objects.create(
-            id='starter', name='Starter', amount=Decimal('10'),
-            credits=Decimal('10'), is_active=True,
-        )
-        CreditPackage.objects.create(
-            id='legacy', name='Legacy', amount=Decimal('5'),
-            credits=Decimal('5'), is_active=False,
-        )
-        packages = self.service.get_credit_packages()
-        self.assertEqual([p.id for p in packages], ['starter'])
-        self.assertEqual(len(self.service.get_credit_packages(include_inactive=True)), 2)
 
 
 # --------------------------------------------------------------------------- #
@@ -334,6 +216,38 @@ class PlanRegistryTests(APITestCase):
         Subscription.objects.create(user=self.user, plan='discontinued')
         self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
+    def test_weekly_allowances_are_the_advertised_dollar_figures(self):
+        self.assertEqual(PLANS['free']['weekly_usd'], 2.5)
+        self.assertEqual(PLANS['pro']['weekly_usd'], 10)
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 50)
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 200)
+
+    def test_max_tiers_are_literal_multiples_of_pro(self):
+        # "5x"/"20x" name the usage multiple, so they must actually hold.
+        pro = PLANS['pro']['weekly_usd']
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 5 * pro)
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 20 * pro)
+
+    def test_five_hour_window_is_derived_from_the_weekly_allowance(self):
+        for plan in PLANS.values():
+            self.assertAlmostEqual(
+                plan['five_hour_usd'], plan['weekly_usd'] / SESSIONS_PER_WEEK, places=2
+            )
+
+    def test_plans_carry_no_figure_the_meter_does_not_enforce(self):
+        # Only the 5-hour and weekly windows are checked, so those are the
+        # only allowances a plan may advertise — a monthly figure would be a
+        # number we publish but never enforce.
+        for plan in PLANS.values():
+            self.assertEqual(
+                set(plan), {'id', 'name', 'weekly_usd', 'five_hour_usd'}
+            )
+
+    def test_one_session_cannot_drain_the_week(self):
+        # The burst window smooths load; it must stay a fraction of the week.
+        for plan in PLANS.values():
+            self.assertLess(plan['five_hour_usd'], plan['weekly_usd'])
+
 
 # --------------------------------------------------------------------------- #
 # Usage metering
@@ -342,9 +256,12 @@ class RecordUsageTests(APITestCase):
     def setUp(self):
         self.user = make_user()
 
-    def test_records_event_with_total(self):
-        event = record_usage(self.user, 'gpt-5.6-terra', 1000, 200, conversation_id=7)
+    def test_records_event_with_total_and_cost(self):
+        event = record_usage(
+            self.user, 'gpt-5.6-terra', 1000, 200, cost_usd=0.006, conversation_id=7
+        )
         self.assertEqual(event.total_tokens, 1200)
+        self.assertEqual(event.cost_usd, Decimal('0.006000'))
         self.assertEqual(event.conversation_id, 7)
         self.assertEqual(UsageEvent.objects.count(), 1)
 
@@ -355,17 +272,27 @@ class RecordUsageTests(APITestCase):
         self.assertEqual(UsageEvent.objects.count(), 0)
 
     def test_records_when_only_one_count_present(self):
-        event = record_usage(self.user, 'gpt-5.6-terra', 500, None)
+        event = record_usage(self.user, 'gpt-5.6-terra', 500, None, cost_usd=0.0015)
         self.assertEqual(event.total_tokens, 500)
+
+    def test_unpriced_run_falls_back_to_the_priciest_rate(self):
+        # A run we couldn't price must never meter as free — it is charged at
+        # the most expensive tier's rate instead.
+        event = record_usage(self.user, 'mystery-model', 1_000_000, 0)
+        self.assertEqual(event.cost_usd, Decimal('6.000000'))
+
+    def test_sub_cent_cost_is_not_rounded_away(self):
+        event = record_usage(self.user, 'gpt-5.6-luna', 100, 10, cost_usd=0.00015)
+        self.assertEqual(event.cost_usd, Decimal('0.000150'))
 
 
 class UsageWindowTests(APITestCase):
     def setUp(self):
         self.user = make_user()
 
-    def _event(self, tokens, age):
-        """Create a usage event backdated by `age`."""
-        event = record_usage(self.user, 'gpt-5.6-terra', tokens, 0)
+    def _event(self, cost, age):
+        """Create a usage event of the given cost, backdated by `age`."""
+        event = record_usage(self.user, 'gpt-5.6-terra', 1000, 0, cost_usd=cost)
         UsageEvent.objects.filter(pk=event.pk).update(
             created_at=timezone.now() - age
         )
@@ -374,32 +301,32 @@ class UsageWindowTests(APITestCase):
     def test_windows_empty_without_events(self):
         status_payload = get_usage_status(self.user)
         for window in status_payload['windows'].values():
-            self.assertEqual(window['used'], 0)
+            self.assertEqual(window['used_usd'], 0)
             self.assertIsNone(window['resets_at'])
         self.assertEqual(status_payload['plan']['id'], 'free')
         self.assertEqual(
-            status_payload['windows']['five_hour']['limit'],
-            PLANS['free']['five_hour_tokens'],
+            status_payload['windows']['five_hour']['limit_usd'],
+            PLANS['free']['five_hour_usd'],
         )
 
     def test_five_hour_boundary_event_counts_weekly_only(self):
         # Just past the 5-hour window but well inside the weekly one.
-        self._event(1_000, timedelta(hours=5, minutes=1))
+        self._event(0.10, timedelta(hours=5, minutes=1))
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['five_hour']['used'], 0)
-        self.assertEqual(windows['weekly']['used'], 1_000)
+        self.assertEqual(windows['five_hour']['used_usd'], 0)
+        self.assertEqual(windows['weekly']['used_usd'], 0.10)
 
     def test_event_older_than_a_week_counts_nowhere(self):
-        self._event(1_000, timedelta(days=7, minutes=1))
+        self._event(0.10, timedelta(days=7, minutes=1))
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['five_hour']['used'], 0)
-        self.assertEqual(windows['weekly']['used'], 0)
+        self.assertEqual(windows['five_hour']['used_usd'], 0)
+        self.assertEqual(windows['weekly']['used_usd'], 0)
 
     def test_used_sums_events_and_resets_at_tracks_oldest(self):
-        oldest = self._event(1_000, timedelta(hours=2))
-        self._event(500, timedelta(hours=1))
+        oldest = self._event(0.10, timedelta(hours=2))
+        self._event(0.05, timedelta(hours=1))
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['five_hour']['used'], 1_500)
+        self.assertEqual(windows['five_hour']['used_usd'], 0.15)
         self.assertEqual(
             windows['five_hour']['resets_at'],
             (oldest.created_at + FIVE_HOUR_WINDOW).isoformat(),
@@ -411,24 +338,35 @@ class UsageWindowTests(APITestCase):
 
     def test_other_users_events_do_not_count(self):
         other = make_user('other')
-        record_usage(other, 'gpt-5.6-terra', 9_999, 0)
+        record_usage(other, 'gpt-5.6-terra', 9_999, 0, cost_usd=5.0)
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['weekly']['used'], 0)
+        self.assertEqual(windows['weekly']['used_usd'], 0)
+
+    def test_pricier_model_draws_the_allowance_down_faster(self):
+        # The same token count on different models costs different amounts —
+        # that is the whole reason metering is by cost rather than tokens.
+        record_usage(self.user, 'gpt-5.6-luna', 1_000_000, 0, cost_usd=1.0)
+        cheap = get_usage_status(self.user)['windows']['weekly']['used_usd']
+        record_usage(self.user, 'gpt-5.6-sol', 1_000_000, 0, cost_usd=6.0)
+        both = get_usage_status(self.user)['windows']['weekly']['used_usd']
+        self.assertEqual(cheap, 1.0)
+        self.assertEqual(both - cheap, 6.0)
 
 
 class CheckUsageAllowedTests(APITestCase):
     def setUp(self):
         self.user = make_user()
 
-    def test_allowed_under_limits(self):
-        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0)
+    def test_allowed_under_allowance(self):
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0, cost_usd=0.01)
         allowed, payload = check_usage_allowed(self.user)
         self.assertTrue(allowed)
         self.assertEqual(payload['plan']['id'], 'free')
 
-    def test_refused_over_five_hour_limit(self):
+    def test_refused_over_five_hour_allowance(self):
         record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['free']['five_hour_tokens'], 0
+            self.user, 'gpt-5.6-terra', 1_000, 0,
+            cost_usd=PLANS['free']['five_hour_usd'],
         )
         allowed, payload = check_usage_allowed(self.user)
         self.assertFalse(allowed)
@@ -437,10 +375,11 @@ class CheckUsageAllowedTests(APITestCase):
         self.assertIsNotNone(payload['resets_at'])
         self.assertIn('detail', payload)
 
-    def test_refused_over_weekly_limit(self):
-        # Spread beyond the 5-hour window so only the weekly limit trips.
+    def test_refused_over_weekly_allowance(self):
+        # Spread beyond the 5-hour window so only the weekly allowance trips.
         event = record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['free']['weekly_tokens'], 0
+            self.user, 'gpt-5.6-terra', 1_000, 0,
+            cost_usd=PLANS['free']['weekly_usd'],
         )
         UsageEvent.objects.filter(pk=event.pk).update(
             created_at=timezone.now() - timedelta(days=1)
@@ -449,13 +388,29 @@ class CheckUsageAllowedTests(APITestCase):
         self.assertFalse(allowed)
         self.assertEqual(payload['window'], 'week')
 
-    def test_higher_plan_raises_the_limit(self):
+    def test_higher_plan_raises_the_allowance(self):
         Subscription.objects.create(user=self.user, plan='pro')
         record_usage(
-            self.user, 'gpt-5.6-terra', PLANS['free']['five_hour_tokens'], 0
+            self.user, 'gpt-5.6-terra', 1_000, 0,
+            cost_usd=PLANS['free']['five_hour_usd'],
         )
         allowed, _ = check_usage_allowed(self.user)
         self.assertTrue(allowed)
+
+    def test_max_20x_allowance_is_twenty_times_pro(self):
+        # A spend that exhausts Pro's week is a twentieth of Max 20x's.
+        Subscription.objects.create(user=self.user, plan='max_20x')
+        event = record_usage(
+            self.user, 'gpt-5.6-sol', 1_000, 0,
+            cost_usd=PLANS['pro']['weekly_usd'],
+        )
+        UsageEvent.objects.filter(pk=event.pk).update(
+            created_at=timezone.now() - timedelta(days=1)
+        )
+        allowed, payload = check_usage_allowed(self.user)
+        self.assertTrue(allowed)
+        weekly = payload['windows']['weekly']
+        self.assertEqual(weekly['limit_usd'], 20 * PLANS['pro']['weekly_usd'])
 
 
 # --------------------------------------------------------------------------- #
@@ -466,7 +421,7 @@ class SubscriptionWebhookTests(APITestCase):
 
     def setUp(self):
         self.user = make_user()
-        CreditBalance.objects.create(user=self.user, stripe_customer_id='cus_42')
+        StripeCustomer.objects.create(user=self.user, stripe_customer_id='cus_42')
         self.url = reverse('api-stripe-webhook')
 
     def _post_event(self, event_type, subscription):
@@ -659,74 +614,30 @@ class PaymentsAPITests(APITestCase):
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
 
-    def test_balance_endpoint_requires_auth(self):
-        self.client.credentials()  # drop auth
-        resp = self.client.get(reverse('api-credit-balance'))
-        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_balance_endpoint_returns_balance(self):
-        CreditService().add_credits(self.user, 42.0)
-        resp = self.client.get(reverse('api-credit-balance'))
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data['balance'], 42.0)
-
     def test_usage_endpoint_requires_auth(self):
         self.client.credentials()  # drop auth
         resp = self.client.get(reverse('api-usage-status'))
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_usage_endpoint_returns_status_and_plan_registry(self):
-        record_usage(self.user, 'gpt-5.6-terra', 1_000, 500)
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 500, cost_usd=0.0105)
         resp = self.client.get(reverse('api-usage-status'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['plan']['id'], 'free')
-        self.assertEqual(resp.data['windows']['five_hour']['used'], 1_500)
-        self.assertEqual(resp.data['windows']['weekly']['used'], 1_500)
+        self.assertEqual(resp.data['windows']['five_hour']['used_usd'], 0.0105)
+        self.assertEqual(resp.data['windows']['weekly']['used_usd'], 0.0105)
         # The registry rides along so the frontend can render plan options.
         self.assertEqual(
             [p['id'] for p in resp.data['plans']],
             ['free', 'pro', 'max_5x', 'max_20x'],
         )
         self.assertEqual(
-            resp.data['plans'][0]['weekly_tokens'],
-            PLANS['free']['weekly_tokens'],
+            resp.data['plans'][0]['weekly_usd'],
+            PLANS['free']['weekly_usd'],
         )
-
-    def test_check_credits_endpoint(self):
-        CreditService().add_credits(self.user, 10.0)
-        resp = self.client.post(
-            reverse('api-check-credits'), {'required_credits': 5}
-        )
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data['has_sufficient'])
-
-    def test_deduct_credits_endpoint_success(self):
-        CreditService().add_credits(self.user, 10.0)
-        resp = self.client.post(
-            reverse('api-deduct-credits'), {'credits': 4, 'description': 'run'}
-        )
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertAlmostEqual(resp.data['new_balance'], 6.0, places=2)
-
-    def test_deduct_credits_insufficient_returns_402(self):
-        CreditService().add_credits(self.user, 1.0)
-        resp = self.client.post(reverse('api-deduct-credits'), {'credits': 5})
-        self.assertEqual(resp.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-
-    def test_packages_endpoint(self):
-        CreditPackage.objects.create(
-            id='starter', name='Starter', amount=Decimal('10'),
-            credits=Decimal('10'), is_active=True,
-        )
-        resp = self.client.get(reverse('api-credit-packages'))
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(resp.data['packages']), 1)
 
     def test_history_endpoint_returns_completed_purchases(self):
-        svc = TransactionService()
-        done = svc.create_purchase_transaction(self.user, 15.0)
-        done.status = 'completed'
-        done.save()
+        make_transaction(self.user, 15, status='completed')
         resp = self.client.get(reverse('api-payment-history'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(len(resp.data['payments']), 1)
@@ -735,28 +646,60 @@ class PaymentsAPITests(APITestCase):
 
     def test_transactions_endpoint_scoped_to_user(self):
         other = make_user('intruder')
-        TransactionService().create_purchase_transaction(other, 99.0)
-        TransactionService().create_purchase_transaction(self.user, 15.0)
+        make_transaction(other, 99)
+        make_transaction(self.user, 15)
         resp = self.client.get(reverse('api-transaction-history'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['total_count'], 1)
 
+    def test_prepaid_credit_endpoints_are_gone(self):
+        # The dollar-balance system was removed; these must not come back
+        # silently, because nothing debits a balance any more.
+        from django.urls.exceptions import NoReverseMatch
+
+        for name in (
+            'api-credit-balance', 'api-check-credits', 'api-deduct-credits',
+            'api-credit-packages', 'api-process-payment',
+        ):
+            with self.assertRaises(NoReverseMatch):
+                reverse(name)
+
+
+class CheckoutSessionTests(APITestCase):
+    def setUp(self):
+        self.user = make_user()
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+        self.url = reverse('api-create-checkout-session')
+
+    @patch('apps.Payments.api.views.stripe.Price.list')
     @patch('apps.Payments.api.views.stripe_service')
-    def test_process_payment_adds_credits_on_success(self, mock_stripe):
-        intent = MagicMock()
-        intent.id = 'pi_success'
-        intent.status = 'succeeded'
-        intent.client_secret = 'secret_123'
-        mock_stripe.create_direct_payment.return_value = intent
+    def test_subscription_checkout_uses_lookup_key(self, mock_stripe, mock_prices):
+        mock_prices.return_value = SimpleNamespace(
+            data=[SimpleNamespace(id='price_pro')]
+        )
+        mock_stripe.create_customer.return_value = MagicMock(id='cus_new')
+        session = MagicMock()
+        session.id = 'cs_1'
+        session.url = 'https://checkout.stripe.test/cs_1'
+        mock_stripe.create_checkout_session.return_value = session
 
-        resp = self.client.post(reverse('api-process-payment'), {
-            'amount': 20, 'paymentMethodId': 'pm_card',
-        })
+        resp = self.client.post(self.url, {'lookup_key': 'pro_monthly'})
+
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data['success'])
-        self.assertEqual(resp.data['new_balance'], 20.0)
-        self.assertEqual(CreditService().get_balance(self.user), 20.0)
+        self.assertEqual(resp.data['session_id'], 'cs_1')
+        kwargs = mock_stripe.create_checkout_session.call_args.kwargs
+        self.assertEqual(kwargs['mode'], 'subscription')
+        self.assertEqual(kwargs['customer'], 'cus_new')
 
-    def test_process_payment_requires_amount_and_method(self):
-        resp = self.client.post(reverse('api-process-payment'), {'amount': 20})
+    def test_lookup_key_is_required(self):
+        # There is no one-time purchase mode any more, so an amount alone is
+        # not a valid checkout.
+        resp = self.client.post(self.url, {'amount': 20})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unknown_lookup_key_is_refused(self):
+        # Selling a price the webhook can't resolve would take money without
+        # granting a plan.
+        resp = self.client.post(self.url, {'lookup_key': 'mystery_monthly'})
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

@@ -15,13 +15,26 @@ def check_usage_allowed(user):
     return check(user)
 
 
-def record_usage(user, model_name, input_tokens, output_tokens, conversation_id=None):
-    """Record a run's token usage — see Payments' usage_service.record_usage."""
+def record_usage(
+    user,
+    model_name,
+    input_tokens,
+    output_tokens,
+    cost_usd=None,
+    conversation_id=None,
+):
+    """Record a run's usage and metered cost — see usage_service.record_usage.
+
+    cost_usd is what the run draws from the plan allowance; passing None means
+    the run could not be priced, and Payments meters it conservatively rather
+    than as free.
+    """
     from apps.Payments.services.usage_service import record_usage as record
     return record(
         user,
         model_name,
         input_tokens,
         output_tokens,
+        cost_usd=cost_usd,
         conversation_id=conversation_id,
     )

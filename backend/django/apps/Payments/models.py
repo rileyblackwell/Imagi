@@ -1,45 +1,20 @@
 """
 Models for the Payments app.
+
+Access is sold as subscription plans with a metered dollar allowance
+(services/plans.py + services/usage_service.py). Payment, CreditPackage and
+Transaction are retained as the historical record of money that changed hands
+under the earlier prepaid-credit model; nothing writes new credit balances and
+no balance is spendable.
 """
 
 from django.db import models
 from django.conf import settings
-from django.core.validators import MinValueValidator
 from decimal import Decimal
 
-# Create your models here.
-
-class AIModel(models.Model):
-    """Model to track different AI models and their costs"""
-    name = models.CharField(max_length=50, unique=True)
-    cost_per_use = models.DecimalField(max_digits=6, decimal_places=4)
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'payments_ai_model'
-
-    def __str__(self):
-        return f"{self.name} (${self.cost_per_use} per use)"
-
-class AIModelUsage(models.Model):
-    """Model to track AI model usage by users"""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    model = models.ForeignKey(AIModel, on_delete=models.PROTECT)
-    used_at = models.DateTimeField(auto_now_add=True)
-    cost = models.DecimalField(max_digits=6, decimal_places=4)
-    success = models.BooleanField(default=True)
-    context = models.JSONField(default=dict)  # Store additional usage context
-
-    class Meta:
-        db_table = 'payments_ai_model_usage'
-
-    def __str__(self):
-        return f"{self.user.email} used {self.model.name} at {self.used_at}"
 
 class CreditPackage(models.Model):
+    """Historical prepaid credit package. Retained for existing Payment rows."""
     id = models.CharField(max_length=50, primary_key=True)  # e.g., 'starter', 'pro', 'enterprise'
     name = models.CharField(max_length=100)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -57,6 +32,8 @@ class CreditPackage(models.Model):
         return f"{self.name} (${self.amount} - ${self.credits} credits)"
 
 class Payment(models.Model):
+    """Historical record of a completed one-time credit purchase."""
+
     PAYMENT_STATUS = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
@@ -118,68 +95,47 @@ class PaymentMethod(models.Model):
         
         super().save(*args, **kwargs)
 
-class CreditBalance(models.Model):
+class StripeCustomer(models.Model):
     """
-    Tracks a user's credit balance.
+    Links a user to their Stripe customer.
+
+    Formerly CreditBalance, which also held a spendable dollar balance. Access
+    is now metered against a plan allowance rather than drawn from a balance,
+    so all this row does is remember the Stripe customer — which subscription
+    checkout, the billing portal, and the subscription webhook all resolve
+    through.
     """
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='credit_balance'
-    )
-    balance = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))]
+        related_name='stripe_customer'
     )
     stripe_customer_id = models.CharField(max_length=255, blank=True, default='')
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.username}'s balance: {self.balance} credits"
+        return f"{self.user.username} -> {self.stripe_customer_id or '(none)'}"
 
     class Meta:
-        verbose_name = 'Credit Balance'
-        verbose_name_plural = 'Credit Balances'
-
-class CreditPlan(models.Model):
-    """
-    Represents a credit purchase plan.
-    """
-    name = models.CharField(max_length=100)
-    credits = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))]
-    )
-    price_cents = models.PositiveIntegerField()
-    stripe_price_id = models.CharField(max_length=100, unique=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.name} - {self.credits} credits for ${self.price_cents/100}"
-
-    class Meta:
-        verbose_name = 'Credit Plan'
-        verbose_name_plural = 'Credit Plans'
-        ordering = ['price_cents']
+        verbose_name = 'Stripe Customer'
+        verbose_name_plural = 'Stripe Customers'
 
 class Subscription(models.Model):
     """
     A user's subscription plan, kept in sync with Stripe by the webhook.
 
-    Plan definitions (names, token limits) live in services/plans.py; this row
-    stores only which plan the user is on. Users without a row are on the
-    default 'free' plan.
+    Plan definitions (names, dollar allowances) live in services/plans.py;
+    this row stores only which plan the user is on. Users without a row are on
+    the default 'free' plan.
     """
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='subscription'
     )
+    # Literal rather than services.plans.DEFAULT_PLAN_ID: importing the plan
+    # registry here would pull the whole services package (and Stripe) in at
+    # model-import time. get_plan() maps any unknown value back to 'free'.
     plan = models.CharField(max_length=50, default='free')
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -196,12 +152,12 @@ class Subscription(models.Model):
 
 class UsageEvent(models.Model):
     """
-    Append-only record of one agent run's token usage.
+    Append-only record of one agent run's usage and metered cost.
 
     Written by the Build agent after each run whose usage was captured (runs
     with unknown usage are never recorded — absent means unknown, not free).
-    Rolling-window plan limits are computed by summing these rows, so no row
-    locking is needed for concurrent runs.
+    Rolling-window plan allowances are computed by summing cost_usd over these
+    rows, so no row locking is needed for concurrent runs.
     """
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -213,6 +169,12 @@ class UsageEvent(models.Model):
     input_tokens = models.BigIntegerField(default=0)
     output_tokens = models.BigIntegerField(default=0)
     total_tokens = models.BigIntegerField(default=0)
+    # What this run drew from the plan allowance. 6 decimal places because a
+    # short run on the cheapest model costs well under a cent, and rounding
+    # those to zero would make small runs free.
+    cost_usd = models.DecimalField(
+        max_digits=12, decimal_places=6, default=Decimal('0')
+    )
     # Plain int (not FK) mirroring Build's AgentConversation.project_id style;
     # usage rows must survive conversation deletion for honest metering.
     conversation_id = models.IntegerField(null=True, blank=True)
@@ -226,7 +188,10 @@ class UsageEvent(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.username} used {self.total_tokens} tokens ({self.model_name})"
+        return (
+            f"{self.user.username} used ${self.cost_usd} "
+            f"({self.total_tokens} tokens, {self.model_name})"
+        )
 
 
 class Transaction(models.Model):

@@ -14,7 +14,7 @@ class ProjectAdmin(admin.ModelAdmin):
         'last_generated_at',
         'is_active',
         'user_transactions',
-        'user_balance'
+        'user_plan'
     )
     list_filter = (
         'is_active',
@@ -83,19 +83,20 @@ class ProjectAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">Transactions</a>', url)
     user_transactions.short_description = 'Transactions'
 
-    def user_balance(self, obj):
-        """Link to user's balance."""
+    def user_plan(self, obj):
+        """Link to the owner's subscription plan."""
         try:
-            from apps.Payments.models import CreditBalance
-            balance = CreditBalance.objects.filter(user=obj.user).first()
-            if balance:
-                url = reverse('admin:Payments_creditbalance_change', args=[balance.id])
-                return format_html('<a href="{}">{} credits</a>', url, balance.balance)
-            else:
-                return "0 credits"
-        except:
+            from apps.Payments.models import Subscription
+            from apps.Payments.services.plans import get_plan
+
+            subscription = Subscription.objects.filter(user=obj.user).first()
+            if not subscription:
+                return get_plan(None)['name']
+            url = reverse('admin:Payments_subscription_change', args=[subscription.id])
+            return format_html('<a href="{}">{}</a>', url, get_plan(subscription.plan)['name'])
+        except Exception:
             return "N/A"
-    user_balance.short_description = 'Balance'
+    user_plan.short_description = 'Plan'
 
     def has_delete_permission(self, request, obj=None):
         """Only allow hard deletion through admin interface."""

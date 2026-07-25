@@ -137,7 +137,7 @@
             Usage
           </span>
           <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
-            {{ usageStore.plan ? `${usageStore.plan.name} plan` : '—' }}
+            {{ planSummary }}
           </span>
         </div>
         <!-- Body scrolls on short viewports (like the version-history list)
@@ -338,7 +338,7 @@ import { useAgentStore } from '../../../stores/agentStore'
 // than by an ancestor layout: a var(--iw-*) with no token behind it resolves
 // to nothing, which would leave this pane's popovers transparent.
 import '../../../styles/workspace.css'
-import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
+import { useUsageStore, formatResetTime, formatUsd } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
 import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
@@ -527,6 +527,12 @@ function toggleEffort() {
   effortOpen.value = next
 }
 
+/** "Pro plan" — em-dash while the plan is unknown. The allowances belong to
+ *  the two window meters below, not here. */
+const planSummary = computed(() =>
+  usageStore.plan ? `${usageStore.plan.name} plan` : '—'
+)
+
 /** The two rolling-window meters. Missing data renders as unknown (em-dash,
  *  no bar) — never as 0%. */
 const usageMeters = computed(() => {
@@ -538,9 +544,11 @@ const usageMeters = computed(() => {
     key,
     label,
     percent,
-    // Just the percentage used — no raw token counts (matches Claude Code's
-    // 5-hour / weekly session limits). Unknown usage stays an em-dash.
-    usedText: percent !== null ? `${percent}% used` : '—',
+    // Dollars spent against the window's allowance — the unit the plan is
+    // actually sold in. Unknown usage stays an em-dash, never $0.
+    usedText: win && win.usedUsd !== null && win.limitUsd !== null
+      ? `${formatUsd(win.usedUsd)} of ${formatUsd(win.limitUsd)}`
+      : '—',
     resetsAt: formatResetTime(win?.resetsAt ?? null),
   }))
 })

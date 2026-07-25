@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from django.db import transaction
 
-from ..models import PaymentMethod, CreditBalance
+from ..models import PaymentMethod, StripeCustomer
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ class PaymentMethodService:
             The Stripe customer ID or None if not set
         """
         try:
-            balance, _ = CreditBalance.objects.get_or_create(user=user)
-            return balance.stripe_customer_id or None
+            customer, _ = StripeCustomer.objects.get_or_create(user=user)
+            return customer.stripe_customer_id or None
 
         except Exception as e:
             logger.error(f"Error getting Stripe customer ID: {str(e)}")
@@ -43,9 +43,9 @@ class PaymentMethodService:
             True if successful, False otherwise
         """
         try:
-            balance, _ = CreditBalance.objects.get_or_create(user=user)
-            balance.stripe_customer_id = customer_id
-            balance.save(update_fields=['stripe_customer_id', 'last_updated'])
+            customer, _ = StripeCustomer.objects.get_or_create(user=user)
+            customer.stripe_customer_id = customer_id
+            customer.save(update_fields=['stripe_customer_id', 'last_updated'])
             return True
 
         except Exception as e:
