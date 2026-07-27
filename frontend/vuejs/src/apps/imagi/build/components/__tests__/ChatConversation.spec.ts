@@ -100,27 +100,63 @@ describe('ChatConversation dispatch card', () => {
     return mount(ChatConversation, { props: { messages: [user('hi'), reply] } })
   }
 
-  it('reports what a finished subagent did, and that it landed', () => {
-    // A task that merged itself queues nothing, so this card is the whole
-    // report — it has to say both what happened and where the work went.
-    const wrapper = withSubagent({
-      reviewStatus: 'accepted',
-      lastMessagePreview: 'Added a /contact route with a validated form.',
-    })
-
-    const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Added to your app')
-    expect(card.text()).toContain('Added a /contact route with a validated form.')
-  })
-
-  it('says nothing about results while the subagent is still working', () => {
+  it('names the task and says it is being worked on', () => {
     const wrapper = withSubagent({
       isProcessing: true,
       lastMessagePreview: 'Reading the router…',
     })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Working in the background…')
+    expect(card.classes()).toContain('dispatch-card--working')
+    expect(card.text()).toContain('Contact page')
+    expect(card.text()).toContain('Working on this now…')
+    // Mid-run chatter is not a result; the card stays a status, not a log.
     expect(card.text()).not.toContain('Reading the router…')
+  })
+
+  it('turns into a confirmation once the work lands', () => {
+    // The card is the notice, not the transcript: it confirms the named task
+    // landed, and the subagent's full account stays in its own thread (one
+    // click away) rather than being pasted into the main thread.
+    const wrapper = withSubagent({
+      reviewStatus: 'accepted',
+      lastMessagePreview: 'Added a /contact route with a validated form.',
+    })
+
+    const card = wrapper.find('.dispatch-card')
+    expect(card.classes()).toContain('dispatch-card--done')
+    expect(card.text()).toContain('Contact page')
+    expect(card.text()).toContain('Done')
+    expect(card.text()).not.toContain('Added a /contact route with a validated form.')
+  })
+
+  it('surfaces a subagent that is blocked on a question', () => {
+    // The question is answered in the check-in queue above the composer, but
+    // it has to be readable from the card too — a status line alone cannot be
+    // acted on.
+    const wrapper = withSubagent({
+      reviewStatus: 'input',
+      lastMessagePreview: 'Should the form email you or open a ticket?',
+    })
+
+    const card = wrapper.find('.dispatch-card')
+    expect(card.classes()).toContain('dispatch-card--asking')
+    expect(card.text()).toContain('Needs an answer from you')
+    expect(card.text()).toContain('Should the form email you or open a ticket?')
+  })
+
+  it('falls back to starting when the store has no instance yet', () => {
+    // A reloaded transcript renders its cards before the instances load.
+    const store = useAgentStore()
+    store.instances = []
+    const reply: AIMessage = {
+      ...assistant('On it.'),
+      dispatchedTasks: [{ conversationId: 7, title: 'Contact page' }],
+    }
+    const wrapper = mount(ChatConversation, { props: { messages: [user('hi'), reply] } })
+
+    const card = wrapper.find('.dispatch-card')
+    expect(card.text()).toContain('Contact page')
+    expect(card.text()).toContain('Starting…')
   })
 })
