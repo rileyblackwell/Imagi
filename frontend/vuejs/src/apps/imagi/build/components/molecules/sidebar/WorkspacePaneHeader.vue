@@ -9,13 +9,22 @@
 -->
 <template>
   <div class="pane-header shrink-0 flex items-center gap-2.5 px-3.5 py-2.5">
-    <!-- Identity: mark + name + what's happening right now -->
-    <div class="relative shrink-0">
-      <div :class="['pane-mark', tone === 'primary' ? 'pane-mark--primary' : 'pane-mark--muted']">
+    <!-- Identity: mark + name + what's happening right now. A pane can go
+         without a mark (a subagent's thread names its task and needs no badge
+         beside it); the live dot then stands on its own where the mark was. -->
+    <div v-if="icon || live" class="relative shrink-0">
+      <div
+        v-if="icon"
+        :class="['pane-mark', tone === 'primary' ? 'pane-mark--primary' : 'pane-mark--muted']"
+      >
         <i :class="[icon, 'text-[11px]']"></i>
       </div>
       <!-- A run is live in this pane -->
-      <span v-if="live" class="pane-pulse" aria-hidden="true"></span>
+      <span
+        v-if="live"
+        :class="['pane-pulse', icon ? '' : 'pane-pulse--bare']"
+        aria-hidden="true"
+      ></span>
     </div>
 
     <div class="flex-1 min-w-0">
@@ -70,8 +79,9 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    /** Font Awesome classes for the pane's mark */
-    icon: string
+    /** Font Awesome classes for the pane's mark. Omit for a pane whose title
+     *  already identifies it — the plate then leads with the name. */
+    icon?: string
     /** 'primary' is the thread the user drives; 'muted' is everything observed */
     tone?: 'primary' | 'muted'
     title: string
@@ -206,6 +216,15 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 
 .dark .pane-pulse {
   background: theme('colors.blue.300');
+}
+
+/* With no mark to sit against, the dot holds the same left edge the mark did
+   so the title does not shift between a pane that has one and a pane that
+   does not. */
+.pane-pulse--bare {
+  position: static;
+  display: block;
+  margin: 0 0.6875rem;
 }
 
 @keyframes pane-pulse-core {

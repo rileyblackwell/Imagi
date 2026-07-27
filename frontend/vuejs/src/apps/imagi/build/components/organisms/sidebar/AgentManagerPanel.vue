@@ -20,7 +20,6 @@
          must not displace the thread you are actually talking in. -->
     <div v-if="opened" key="opened" class="pane-nav-view flex flex-col h-full">
       <WorkspacePaneHeader
-        icon="fas fa-robot"
         tone="muted"
         :title="opened.title || 'Background agent'"
         :status="openedStatus"

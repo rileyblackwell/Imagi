@@ -8,7 +8,7 @@
          per-message checkpoint chips), so the header carries no history
          controls. -->
     <WorkspacePaneHeader
-      :icon="isTaskThread ? 'fas fa-robot' : 'fas fa-comments'"
+      :icon="isTaskThread ? undefined : 'fas fa-comments'"
       :tone="isTaskThread ? 'muted' : 'primary'"
       :title="headerTitle"
       :status="headerStatus"
@@ -33,6 +33,7 @@
         :is-processing="!!activeInstance?.isProcessing"
         :status-text="activeInstance?.statusText || ''"
         :can-restore="canRestoreCheckpoints"
+        :show-activity="!isLeadThread"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         @open-task="onOpenTask"
         class="flex-1"

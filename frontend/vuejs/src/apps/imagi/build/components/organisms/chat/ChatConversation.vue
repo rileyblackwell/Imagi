@@ -44,7 +44,7 @@
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
               <AgentActivityFeed
-                v-if="message.activity?.length"
+                v-if="activityVisible && message.activity?.length"
                 :steps="message.activity"
                 :streaming="isStreamingMessage(index)"
                 class="mb-2.5"
@@ -61,38 +61,16 @@
               />
               <!-- Subagents this reply kicked off. The work streams in their
                    own threads — the main thread keeps just these cards, each
-                   one click from watching the subagent build. -->
+                   one saying what its subagent is building and where that
+                   stands, and each one click from watching it happen. -->
               <div v-if="message.dispatchedTasks?.length" class="mt-2 flex flex-col gap-1.5">
-                <button
+                <DispatchCard
                   v-for="task in message.dispatchedTasks"
                   :key="task.conversationId"
-                  type="button"
-                  class="dispatch-card group flex items-start gap-2.5 w-full border border-blue-950/[0.08] dark:border-white/[0.12] bg-blue-50/50 dark:bg-white/[0.04] px-3 py-2 text-left hover:bg-blue-100/60 dark:hover:bg-white/[0.07]"
-                  :title="`Open this subagent's thread`"
-                  @click="emit('open-task', task.conversationId)"
-                >
-                  <span class="dispatch-chip flex items-center justify-center w-6 h-6 rounded-lg shrink-0">
-                    <i class="fas fa-robot text-[10px]"></i>
-                  </span>
-                  <span class="flex-1 min-w-0">
-                    <span class="block text-[12px] font-semibold text-blue-950/85 dark:text-white/85 truncate">
-                      {{ task.title || 'Background subagent' }}
-                    </span>
-                    <span class="block text-[10px] text-blue-950/45 dark:text-white/40">
-                      {{ dispatchStatus(task.conversationId) }}
-                    </span>
-                    <!-- What the subagent actually did. A finished task is
-                         reported here and nowhere else — there is no card to
-                         accept or clear, so this line is the record. -->
-                    <span
-                      v-if="dispatchSummary(task.conversationId)"
-                      class="mt-1 text-[11px] leading-snug text-blue-950/65 dark:text-white/55 line-clamp-3"
-                    >
-                      {{ dispatchSummary(task.conversationId) }}
-                    </span>
-                  </span>
-                  <i class="fas fa-chevron-right dispatch-chevron text-[10px] mt-0.5 text-blue-950/30 dark:text-white/30 group-hover:text-blue-950/60 dark:group-hover:text-white/60 shrink-0"></i>
-                </button>
+                  :title="task.title"
+                  :instance="dispatchInstance(task.conversationId)"
+                  @open="emit('open-task', task.conversationId)"
+                />
               </div>
               <div v-if="message.filesChanged?.length" class="mt-2">
                 <span
@@ -158,9 +136,10 @@
 import { marked } from 'marked'
 import DOMPurify from 'isomorphic-dompurify'
 import { ref, nextTick, watch, onMounted, onBeforeUnmount, computed } from 'vue'
-import type { AIMessage } from '@/apps/imagi/build/types/services'
+import type { AgentInstance, AIMessage } from '@/apps/imagi/build/types/services'
 import AgentActivityFeed from '@/apps/imagi/build/components/molecules/chat/AgentActivityFeed.vue'
 import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/AgentPlanChecklist.vue'
+import DispatchCard from '@/apps/imagi/build/components/molecules/chat/DispatchCard.vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
 
 marked.setOptions({
@@ -185,7 +164,15 @@ const props = defineProps<{
    *  live in a worktree, not the canonical timeline) and while a
    *  canonical-tree run is live. Omitted = fall back to !isProcessing. */
   canRestore?: boolean
+  /** Whether to show the per-reply tool-activity feed. Off on the main thread,
+   *  where the lead's only tool call is the hand-off itself and the dispatch
+   *  card below already reports it — a "Completed 1 step" fold under every
+   *  reply is a second, emptier telling of the same thing. Defaults on, so a
+   *  subagent's transcript still shows how it worked. */
+  showActivity?: boolean
 }>()
+
+const activityVisible = computed(() => props.showActivity !== false)
 
 const restoreAllowed = computed(() =>
   props.canRestore !== undefined ? props.canRestore : !props.isProcessing
@@ -220,27 +207,11 @@ const emit = defineEmits<{
 // progresses (working → finished → added), without threading props through.
 const agentStore = useAgentStore()
 
-/** Status line for a dispatch card. Mirrors the manager's card wording. */
-function dispatchStatus(conversationId: number): string {
-  const instance = agentStore.instances.find(i => i.conversationId === conversationId)
-  if (!instance) return 'Subagent'
-  if (instance.isProcessing) return 'Working in the background…'
-  switch (instance.reviewStatus) {
-    case 'input': return 'Asked you a question'
-    case 'ready': return 'Finished — waiting on you'
-    case 'accepted': return 'Added to your app'
-    case 'dismissed': return 'Discarded'
-    default: return 'Starting…'
-  }
-}
-
-/** What a finished subagent says it accomplished — its closing line, which is
- *  the whole report now that a self-merging task queues nothing. Nothing while
- *  it is still working: a mid-run line would read as a result. */
-function dispatchSummary(conversationId: number): string {
-  const instance = agentStore.instances.find(i => i.conversationId === conversationId)
-  if (!instance || instance.isProcessing) return ''
-  return instance.lastMessagePreview || ''
+/** The live subagent behind a dispatch card, or null before the store has it
+ *  (a card rendered straight from a reloaded transcript, or a dispatch whose
+ *  instance has not been adopted yet) — the card falls back to "Starting…". */
+function dispatchInstance(conversationId: number): AgentInstance | null {
+  return agentStore.instances.find(i => i.conversationId === conversationId) ?? null
 }
 
 // Refs and reactive state
@@ -446,71 +417,6 @@ const copyToClipboard = (code: string) => {
    user bubble opens a turn with extra breathing room above it. */
 .msg-row + .msg-row {
   margin-top: 1rem;
-}
-
-/* A subagent handed off mid-reply. It is the one clickable object inside the
-   transcript, so it behaves like the cards in the crew ledger do: rises to
-   meet the pointer, gives under the press. */
-.dispatch-card {
-  border-radius: var(--iw-r-lg);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card:hover {
-  border-color: rgba(23, 37, 84, 0.14);
-  box-shadow: var(--iw-shadow-2);
-  transform: translateY(-1px);
-}
-
-.dark .dispatch-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.dispatch-card:active {
-  transform: translateY(0) scale(0.99);
-  box-shadow: var(--iw-shadow-1);
-  transition-duration: var(--iw-dur-1);
-}
-
-.dispatch-card:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dispatch-chevron {
-  transition:
-    color var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card:hover .dispatch-chevron {
-  transform: translateX(2px);
-}
-
-/* Dispatch-card chip: same navy-ink / cream pairing as the check-in queue. */
-.dispatch-chip {
-  background: rgba(23, 37, 84, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.8);
-  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card:hover .dispatch-chip {
-  background: rgba(23, 37, 84, 0.12);
-}
-
-.dark .dispatch-chip {
-  background: rgba(243, 237, 226, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  color: rgba(243, 237, 226, 0.9);
-}
-
-.dark .dispatch-card:hover .dispatch-chip {
-  background: rgba(243, 237, 226, 0.18);
 }
 
 .msg-row + .user-row {
