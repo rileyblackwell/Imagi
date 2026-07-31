@@ -3,9 +3,12 @@
 Agents working in a preview browser need to get past /auth/signin to see
 anything behind authentication, and the dev database is gitignored — so a fresh
 clone or a reset DB has no account to log in with. This recreates a known one on
-demand. The credentials are documented in CLAUDE.md; they are deliberately
-public and worthless, and this command exists so they never have to be typed
-into a registration form by hand.
+demand, so credentials never have to be typed into a registration form by hand.
+
+The account this normally seeds is `imagi-dev`, whose password lives outside the
+repo in `~/.config/imagi/test-credentials.env` (see CLAUDE.md). Source that file
+and pass --password "$IMAGI_DEV_PASSWORD" to match it. The built-in defaults below
+are a public, worthless fallback for a machine that has no such file yet.
 
 Local only, and enforced rather than merely documented:
   - DEBUG must be on. This is the check that gates production, which runs with
@@ -21,7 +24,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from rest_framework.authtoken.models import Token
 
-# Kept in sync with the "Dev login" section of CLAUDE.md.
+# Fallback only; the seeded account is normally imagi-dev, from the credentials
+# file above.
 DEV_USERNAME = 'devuser'
 DEV_EMAIL = 'devuser@localhost.invalid'  # .invalid is reserved; can never be a real mailbox
 DEV_PASSWORD = 'imagi-local-dev-only'
@@ -65,5 +69,5 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"{'Created' if created else 'Reset'} dev login '{username}' "
-            f"(password documented in CLAUDE.md). Sign in at /auth/signin."
+            f"— sign in at /auth/signin with this username, not the email."
         ))
