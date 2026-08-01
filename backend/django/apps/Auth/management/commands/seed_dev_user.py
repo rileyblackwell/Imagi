@@ -18,6 +18,8 @@ Local only, and enforced rather than merely documented:
     at a real database and must refuse.
 """
 
+import json
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
@@ -38,6 +40,25 @@ class Command(BaseCommand):
         parser.add_argument('--username', default=DEV_USERNAME)
         parser.add_argument('--email', default=DEV_EMAIL)
         parser.add_argument('--password', default=DEV_PASSWORD)
+        parser.add_argument(
+            '--print-token',
+            action='store_true',
+            help=(
+                "Print the account's DRF token as JSON instead of the usual summary. "
+                'Lets a preview-browser agent authenticate by seeding localStorage '
+                'directly, so no password is ever typed into the sign-in form.'
+            ),
+        )
+        parser.add_argument(
+            '--no-reset',
+            action='store_true',
+            help=(
+                'Leave an existing account\'s password and email alone; only ensure it '
+                'has a token. Without this, --username imagi-dev would overwrite the '
+                'credentials documented in ~/.config/imagi/test-credentials.env with '
+                'the fallback defaults. Fails if the account does not exist yet.'
+            ),
+        )
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
@@ -55,17 +76,39 @@ class Command(BaseCommand):
         username = options['username']
         User = get_user_model()
 
-        with transaction.atomic():
-            user, created = User.objects.get_or_create(
-                username=username,
-                defaults={'email': options['email']},
-            )
-            # Always reset, so a half-remembered password from an earlier run
-            # can't leave the documented credentials wrong.
-            user.email = options['email']
-            user.set_password(options['password'])
-            user.save()
-            Token.objects.get_or_create(user=user)
+        if options['no_reset']:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                raise CommandError(
+                    f"No account '{username}' to read a token from. Drop --no-reset to "
+                    'create it, passing --password to match your credentials file.'
+                )
+            token, _ = Token.objects.get_or_create(user=user)
+            created = False
+        else:
+            with transaction.atomic():
+                user, created = User.objects.get_or_create(
+                    username=username,
+                    defaults={'email': options['email']},
+                )
+                # Always reset, so a half-remembered password from an earlier run
+                # can't leave the documented credentials wrong.
+                user.email = options['email']
+                user.set_password(options['password'])
+                user.save()
+                token, _ = Token.objects.get_or_create(user=user)
+
+        if options['print_token']:
+            # Same shape the login endpoint returns, so the caller can drop it
+            # straight into the frontend's `token` / `user` localStorage keys.
+            from apps.Auth.api.serializers import UserSerializer
+
+            self.stdout.write(json.dumps({
+                'token': token.key,
+                'user': UserSerializer(user).data,
+            }))
+            return
 
         self.stdout.write(self.style.SUCCESS(
             f"{'Created' if created else 'Reset'} dev login '{username}' "

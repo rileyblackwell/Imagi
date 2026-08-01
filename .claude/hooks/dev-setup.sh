@@ -8,6 +8,7 @@
 #   all            - everything (used by the SessionStart hook to pre-warm)
 #   serve-frontend - install, then run the Vite dev server (launch.json)
 #   serve-backend  - install, then run uvicorn and publish its port (launch.json)
+#   dev-token      - print the dev account's auth token as JSON (see CLAUDE.md)
 #
 # Installs are guarded by an atomic mkdir lock so the background hook run and a
 # foreground preview_start run can't clobber each other's node_modules / venv.
@@ -110,6 +111,42 @@ install_backend() {
   with_lock backend bash -c "cd '$ROOT/backend/django' && pipenv install && pipenv run python manage.py migrate"
 }
 
+# Print {"token": ..., "user": ...} for the local dev account, so an agent in a
+# preview browser can authenticate by seeding localStorage instead of typing a
+# password into the sign-in form. See CLAUDE.md ("Signing in").
+#
+# Runs from this script rather than being called directly because `pipenv run`
+# has to happen inside backend/django — invoked from the repo root it would
+# create a stray Pipfile and an empty virtualenv there.
+dev_token() {
+  local user="${IMAGI_DEV_USERNAME:-imagi-dev}"
+  cd "$ROOT/backend/django" || return 1
+
+  # Existing account: read its token without touching password or email.
+  local out
+  out="$(pipenv run python manage.py seed_dev_user --username "$user" --no-reset --print-token 2>/dev/null)"
+  if [ -n "$out" ]; then
+    echo "$out"
+    return 0
+  fi
+
+  # Fresh or reset DB: create the account first, matching the password in the
+  # credentials file so the browser sign-in form keeps working for humans too.
+  local creds="$HOME/.config/imagi/test-credentials.env"
+  if [ ! -f "$creds" ]; then
+    log "no account '$user' and no $creds to create it from." >&2
+    log "run: pipenv run python manage.py seed_dev_user --username $user --password <pw>" >&2
+    return 1
+  fi
+  # shellcheck disable=SC1090
+  set -a; . "$creds"; set +a
+  pipenv run python manage.py seed_dev_user \
+    --username "$user" \
+    --email "${user}@localhost.invalid" \
+    --password "${IMAGI_DEV_PASSWORD:?not set in $creds}" \
+    --print-token 2>/dev/null
+}
+
 serve_frontend() {
   install_frontend
   cd "$ROOT/frontend/vuejs"
@@ -144,5 +181,6 @@ case "${1:-all}" in
   all)            link_db; link_env; install_frontend; install_backend ;;
   serve-frontend) serve_frontend ;;
   serve-backend)  serve_backend ;;
+  dev-token)      dev_token ;;
   *)              log "unknown target: ${1:-}"; exit 1 ;;
 esac

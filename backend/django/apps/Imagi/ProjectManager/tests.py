@@ -8,6 +8,7 @@ performed by ProjectCreationService is mocked out so the suite stays fast and
 does not pollute the repository or depend on npm/Django scaffolding.
 """
 
+import importlib
 import os
 import shutil
 import tempfile
@@ -70,6 +71,55 @@ class ProjectModelTests(TestCase):
         self.assertIn(self.user.username, project.project_path)
         self.assertIn(project.slug, project.project_path)
 
+    def test_generated_directory_is_stored_relative(self):
+        # The whole point of project_dir: nothing machine-specific on the row.
+        project = Project.objects.create(user=self.user, name='Relative App')
+        self.assertEqual(
+            project.project_dir, os.path.join(self.user.username, project.slug)
+        )
+        self.assertFalse(os.path.isabs(project.project_dir))
+
+    def test_project_path_follows_the_configured_root(self):
+        # A row written under one root resolves under whichever root is
+        # configured when it is read — the portability this replaced absolute
+        # paths to get.
+        project = Project.objects.create(user=self.user, name='Portable App')
+        stored = project.project_dir
+
+        with override_settings(PROJECTS_ROOT='/somewhere/else'):
+            project.refresh_from_db()
+            self.assertEqual(
+                project.project_path, os.path.join('/somewhere/else', stored)
+            )
+
+    def test_assigning_a_path_under_the_root_stores_it_relative(self):
+        with override_settings(PROJECTS_ROOT='/roots/projects'):
+            project = Project(user=self.user, name='Assigned App')
+            project.project_path = '/roots/projects/owner/assigned-app'
+            self.assertEqual(project.project_dir, 'owner/assigned-app')
+            self.assertEqual(
+                project.project_path, '/roots/projects/owner/assigned-app'
+            )
+
+    def test_a_path_outside_the_root_is_kept_absolute(self):
+        # Tests and PROJECTS_ROOT overrides point projects at temp directories;
+        # those cannot be expressed relative to the root and must survive
+        # round-tripping unchanged.
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Project.objects.create(
+                user=self.user, name='Outside App', project_path=tmp
+            )
+            project.refresh_from_db()
+            self.assertEqual(project.project_dir, tmp)
+            self.assertEqual(project.project_path, tmp)
+
+    def test_blank_path_round_trips_as_empty(self):
+        project = Project(user=self.user, name='Empty App')
+        project.project_path = ''
+        self.assertEqual(project.project_dir, '')
+        self.assertEqual(project.project_path, '')
+
+
     def test_clean_rejects_short_names(self):
         project = Project(user=self.user, name='ab')
         with self.assertRaises(ValidationError):
@@ -87,6 +137,46 @@ class ProjectModelTests(TestCase):
         pid = project.id
         project.delete(hard_delete=True)
         self.assertFalse(Project.objects.filter(id=pid).exists())
+
+
+class ProjectDirMigrationTests(TestCase):
+    """The 0005 data step that converted stored absolute paths to relative.
+
+    Exercised directly rather than through the migration executor: the point
+    worth pinning is the path arithmetic, which had to work for rows written by
+    a *different* checkout than the one running the migration.
+    """
+
+    def _convert(self, stored):
+        # importlib because the module name starts with a digit.
+        mod = importlib.import_module(
+            'apps.Imagi.ProjectManager.migrations.'
+            '0005_project_dir_relative_to_projects_root'
+        )
+        marker = stored.find(mod._ROOT_MARKER)
+        if marker == -1:
+            return stored
+        return stored[marker + len(mod._ROOT_MARKER):]
+
+    def test_path_from_another_checkout_becomes_relative(self):
+        # The case that motivated the change: the row was written by a git
+        # worktree that is not the one running the migration, so relpath()
+        # against the local root would have produced '../..' escapes.
+        stored = (
+            '/Users/dev/proj/.claude/worktrees/some-branch/backend/django/'
+            'apps/Imagi/Build/imagi_projects/9/My_App_20260731145400'
+        )
+        self.assertEqual(self._convert(stored), '9/My_App_20260731145400')
+
+    def test_path_under_the_production_root_becomes_relative(self):
+        stored = '/home/imagi/.imagi/projects/imagi_projects/4/Shop_20260101000000'
+        self.assertEqual(self._convert(stored), '4/Shop_20260101000000')
+
+    def test_path_without_the_marker_is_left_absolute(self):
+        # Temp directories from old test runs have no imagi_projects segment;
+        # they stay absolute and the model returns them unchanged.
+        stored = '/var/folders/sc/T/exploit_a1k9cxnt/project'
+        self.assertEqual(self._convert(stored), stored)
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)

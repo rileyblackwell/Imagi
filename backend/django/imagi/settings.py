@@ -355,15 +355,19 @@ IMAGI_BUILDER = {
 # development and production. The database (Build.ProjectFile rows) keeps a
 # mirror of these files for debugging (browsable from the Build module) and
 # as a backup from which a missing working copy can be rehydrated.
-#  - In development it lives inside the Build module so generated projects are
-#    easy to browse while testing the agent (the path is gitignored).
-#  - In production it lives outside the repository so git operations (clean,
-#    fresh clones, worktrees) never touch it.
-_DEFAULT_PROJECTS_ROOT = (
-    str(BASE_DIR / 'apps' / 'Imagi' / 'Build' / 'imagi_projects')
-    if DEBUG
-    else os.path.expanduser('~/.imagi/projects')
-)
+# Kept outside the repository in every environment so git operations (clean,
+# fresh clones, worktrees) never touch it.
+#  - This used to live under BASE_DIR in development, so generated projects were
+#    easy to browse while testing the agent. That cost more than it was worth:
+#    every git worktree got its own copy, so the same project was duplicated
+#    across checkouts (hundreds of MB), and because Project rows stored an
+#    absolute path, a project created in one worktree resolved into that
+#    worktree forever — deleting it stranded the files. Paths are now stored
+#    relative to this root (see Project.project_dir), so one shared directory
+#    serves every checkout. Browse it directly at ~/.imagi/projects.
+#  - Same reasoning that already moved FRONTEND_DEP_STORE_ROOT out of the
+#    checkout below.
+_DEFAULT_PROJECTS_ROOT = os.path.expanduser('~/.imagi/projects')
 PROJECTS_ROOT = os.path.expanduser(
     os.environ.get('PROJECTS_ROOT', _DEFAULT_PROJECTS_ROOT)
 )
