@@ -6,7 +6,7 @@ campaign sending (with Twilio mocked), and webhook processing.
 import base64
 import hashlib
 import hmac
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient, APITestCase

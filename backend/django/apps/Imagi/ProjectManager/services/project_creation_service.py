@@ -222,7 +222,7 @@ class ProjectCreationService:
         logger.info(f"Creating VueJS frontend at: {frontend_path}")
         tpl.create_vuejs_frontend_files(frontend_path, project_name, project_description)
         # Install npm dependencies in background
-        npm_thread = self._install_vuejs_dependencies(frontend_path)
+        self._install_vuejs_dependencies(frontend_path)
     
     
     

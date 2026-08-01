@@ -8,7 +8,7 @@ history pages keep working.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from django.db.models import QuerySet
 
 from ..models import Transaction
@@ -18,28 +18,6 @@ logger = logging.getLogger(__name__)
 class TransactionService:
     """Read-only access to historical payment transactions."""
 
-    def get_transaction_by_payment_intent(self, user, payment_intent_id: str) -> Optional[Transaction]:
-        """
-        Get a transaction by payment intent ID.
-        
-        Args:
-            user: The user (optional, can be None to search across all users)
-            payment_intent_id: The Stripe payment intent ID
-            
-        Returns:
-            The transaction if found, None otherwise
-        """
-        try:
-            query = {'stripe_payment_intent_id': payment_intent_id}
-            if user:
-                query['user'] = user
-                
-            return Transaction.objects.filter(**query).first()
-            
-        except Exception as e:
-            logger.error(f"Error getting transaction by payment intent: {str(e)}")
-            return None
-            
     def get_payment_history(self, user, limit: int = None) -> QuerySet:
         """
         Get payment history for a user.
@@ -109,19 +87,3 @@ class TransactionService:
                 'transactions': Transaction.objects.none(),
                 'count': 0
             }
-            
-    def get_transaction_by_checkout_session(self, session_id: str) -> Optional[Transaction]:
-        """
-        Get a transaction by Stripe Checkout Session ID.
-
-        Args:
-            session_id: The Stripe Checkout Session ID
-
-        Returns:
-            The transaction if found, None otherwise
-        """
-        try:
-            return Transaction.objects.filter(stripe_checkout_session_id=session_id).first()
-        except Exception as e:
-            logger.error(f"Error getting transaction by checkout session: {str(e)}")
-            return None

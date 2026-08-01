@@ -55,7 +55,7 @@ const togglePassword = () => {
 
 const inputType = computed(() => isVisible.value ? 'text' : 'password')
 
-const props = defineProps({
+defineProps({
   modelValue: {
     type: String,
     default: ''

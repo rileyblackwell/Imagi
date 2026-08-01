@@ -3,8 +3,7 @@ Service for managing user payment methods.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from django.db import transaction
+from typing import Dict, Any, Optional
 
 from ..models import PaymentMethod, StripeCustomer
 
@@ -87,94 +86,3 @@ class PaymentMethodService:
         except Exception as e:
             logger.error(f"Error creating payment method: {str(e)}")
             raise
-            
-    def get_payment_methods(self, user) -> List[PaymentMethod]:
-        """
-        Get a user's payment methods.
-        
-        Args:
-            user: The user
-            
-        Returns:
-            List of payment methods
-        """
-        try:
-            return list(PaymentMethod.objects.filter(user=user).order_by('-is_default', '-created_at'))
-            
-        except Exception as e:
-            logger.error(f"Error getting payment methods: {str(e)}")
-            return []
-            
-    def get_default_payment_method(self, user) -> Optional[PaymentMethod]:
-        """
-        Get a user's default payment method.
-        
-        Args:
-            user: The user
-            
-        Returns:
-            The default payment method or None if not found
-        """
-        try:
-            return PaymentMethod.objects.filter(user=user, is_default=True).first()
-            
-        except Exception as e:
-            logger.error(f"Error getting default payment method: {str(e)}")
-            return None
-            
-    def set_default_payment_method(self, user, payment_method_id: str) -> bool:
-        """
-        Set a payment method as the default.
-        
-        Args:
-            user: The user
-            payment_method_id: The payment method ID
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            with transaction.atomic():
-                # Clear existing default
-                PaymentMethod.objects.filter(user=user, is_default=True).update(is_default=False)
-                
-                # Set new default
-                method = PaymentMethod.objects.get(user=user, payment_method_id=payment_method_id)
-                method.is_default = True
-                method.save()
-                
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error setting default payment method: {str(e)}")
-            return False
-            
-    def delete_payment_method(self, user, payment_method_id: str) -> bool:
-        """
-        Delete a payment method.
-        
-        Args:
-            user: The user
-            payment_method_id: The payment method ID
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            method = PaymentMethod.objects.get(user=user, payment_method_id=payment_method_id)
-            
-            # If this is the default method, find a new default
-            if method.is_default:
-                next_method = PaymentMethod.objects.filter(user=user).exclude(payment_method_id=payment_method_id).first()
-                if next_method:
-                    next_method.is_default = True
-                    next_method.save()
-                    
-            method.delete()
-            return True
-            
-        except PaymentMethod.DoesNotExist:
-            return False
-        except Exception as e:
-            logger.error(f"Error deleting payment method: {str(e)}")
-            return False 

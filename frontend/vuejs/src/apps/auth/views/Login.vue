@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Form, Field, ErrorMessage } from 'vee-validate'
+import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { LoginFormValues } from '@/apps/auth/types/form'
@@ -132,7 +132,7 @@ const onSubmit = async (values: LoginFormValues) => {
       await router.push({ path: '/' })
     }
   } catch (error: unknown) {
-    serverError.value = formatAuthError(error, 'login')
+    serverError.value = formatAuthError(error)
   } finally {
     isSubmitting.value = false
     document.body.style.cursor = 'default'

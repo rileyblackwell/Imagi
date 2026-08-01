@@ -310,22 +310,6 @@ export const FileService = {
       console.error('File API - error deleting file:', error)
       throw error
     }
-  },
-  
-  /**
-   * Undo file changes
-   */
-  async undoFileChanges(projectId: string, filePath: string): Promise<string> {
-    console.debug('File API - undoing file changes:', { projectId, filePath })
-    
-    try {
-      const response = await api.post(`/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/undo/`)
-      
-      return response.data?.content || ''
-    } catch (error) {
-      console.error('File API - error undoing file changes:', error)
-      throw error
-    }
   }
 }
 

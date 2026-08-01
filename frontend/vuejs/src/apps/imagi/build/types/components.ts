@@ -2,21 +2,6 @@
 import type { EditorLanguage } from '@/shared/types/editor'
 import { v4 as uuidv4 } from 'uuid'
 
-// Editor / UI types
-export type EditorMode = 'split' | 'editor' | 'preview'
-
-/**
- * Type for files displayed in the interface
- */
-export interface SelectedFile {
-  path: string;
-  type: string;
-  content?: string;
-  lastModified?: string;
-  id?: string;
-  name?: string;
-}
-
 /**
  * Project file type
  */
@@ -51,32 +36,6 @@ export interface Project {
 }
 
 /**
- * Project Type for legacy compatibility
- */
-export interface ProjectType {
-  id: string | number;
-  name: string;
-  description?: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-/**
- * Project data for creating projects
- */
-export interface ProjectData {
-  name: string;
-  description?: string;
-}
-
-/**
- * Properties for ProjectListItem component
- */
-export interface ProjectListItemProps {
-  project: Project;
-}
-
-/**
  * Properties for ProjectList component
  */
 export interface ProjectListProps {
@@ -84,18 +43,6 @@ export interface ProjectListProps {
   isLoading: boolean;
   error: string;
 }
-
-/**
- * Status classes for project status display
- */
-export interface StatusClasses {
-  [key: string]: string;
-  active: string;
-  draft: string;
-  archived: string;
-}
-
-export type ProjectStatus = 'active' | 'draft' | 'archived';
 
 /**
  * Normalize a project object from the API

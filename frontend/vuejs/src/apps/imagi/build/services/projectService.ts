@@ -3,8 +3,7 @@ import type { Project } from '../types/components'
 
 // Define cache keys
 const CACHE_KEYS = {
-  PROJECTS: 'imagi_cached_projects',
-  PROJECT_PREFIX: 'imagi_project_'
+  PROJECTS: 'imagi_cached_projects'
 }
 
 /**
@@ -349,14 +348,6 @@ export const ProjectService = {
     } catch (e) {
       console.warn('Error clearing projects cache:', e)
     }
-  },
-
-  /**
-   * Public method to clear projects cache
-   * Used by store when immediate cache invalidation is needed
-   */
-  clearProjectsCache() {
-    this._clearProjectsCache()
   },
 
   /**

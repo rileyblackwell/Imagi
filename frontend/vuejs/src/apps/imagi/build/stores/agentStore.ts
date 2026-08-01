@@ -14,7 +14,6 @@ import type {
 import { DEFAULT_REASONING_EFFORT } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { ProjectFile } from '../types/components'
-import { FileService } from '../services/fileService'
 import { AgentService } from '../services/agentService'
 
 const DEFAULT_MODEL_ID = 'gpt-5.6-terra'
@@ -98,7 +97,6 @@ export const useAgentStore = defineStore('agent', {
     activeInstanceId: null,
     openedSubagentId: null,
     files: [],
-    unsavedChanges: false,
     error: null,
     instancesLoading: false,
     checkIns: [],
@@ -108,14 +106,6 @@ export const useAgentStore = defineStore('agent', {
     activeInstance(state): AgentInstance | null {
       if (!state.activeInstanceId) return null
       return state.instances.find(i => i.id === state.activeInstanceId) || null
-    },
-
-    activeInstances(state): AgentInstance[] {
-      return state.instances.filter(i => !i.archivedAt)
-    },
-
-    archivedInstances(state): AgentInstance[] {
-      return state.instances.filter(i => !!i.archivedAt)
     },
 
     /** The project's one pinned lead thread (ensured by loadInstances). */
@@ -142,11 +132,6 @@ export const useAgentStore = defineStore('agent', {
               i.reviewStatus === 'ready')
         )
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    },
-
-    /** The next check-in the user should deal with (FIFO), or null. */
-    nextCheckIn(state): CheckInDto | null {
-      return state.checkIns[0] ?? null
     },
 
     /** Tasks the lead dispatched whose run has not started yet. */
@@ -180,24 +165,6 @@ export const useAgentStore = defineStore('agent', {
       return state.instances.filter(i => i.isProcessing).length
     },
 
-    selectedModel(state): AIModel | undefined {
-      const active = state.instances.find(i => i.id === state.activeInstanceId)
-      return state.availableModels.find(m => m.id === active?.selectedModelId)
-    },
-
-    // Back-compat getters delegating to active instance
-    selectedModelId(): string | null {
-      return this.activeInstance?.selectedModelId ?? null
-    },
-    conversation(): AIMessage[] {
-      return this.activeInstance?.conversation ?? []
-    },
-    selectedFile(): ProjectFile | null {
-      return (this.activeInstance?.selectedFile as ProjectFile | null) ?? null
-    },
-    isProcessing(): boolean {
-      return !!this.activeInstance?.isProcessing
-    },
   },
 
   actions: {
@@ -969,46 +936,8 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    updateFile(file: ProjectFile) {
-      const index = this.files.findIndex(f => f.path === file.path)
-      if (index >= 0) this.files[index] = { ...this.files[index], ...file }
-    },
-
-    setUnsavedChanges(value: boolean) {
-      this.unsavedChanges = value
-    },
-
-    // --- Legacy shims (for any callers still using the singleton API) ---
-    setSelectedFile(file: ProjectFile | null) {
-      if (this.activeInstanceId) this.setInstanceFile(this.activeInstanceId, file)
-    },
-
-    selectFile(file: ProjectFile | null) {
-      this.setSelectedFile(file)
-    },
-
     setProcessing(value: boolean) {
       if (this.activeInstanceId) this.setInstanceProcessing(this.activeInstanceId, value)
-    },
-
-    addMessage(message: AIMessage) {
-      if (this.activeInstanceId) this.addMessageToInstance(this.activeInstanceId, message)
-    },
-
-    async undoFileChanges() {
-      const active = this.activeInstance
-      if (!this.projectId) throw new Error('No project selected')
-      if (!active?.selectedFile) throw new Error('No file selected')
-      this.setInstanceProcessing(active.id, true)
-      try {
-        const updatedContent = await FileService.undoFileChanges(this.projectId, active.selectedFile.path)
-        if (updatedContent) {
-          this.setInstanceFile(active.id, { ...active.selectedFile, content: updatedContent } as ProjectFile)
-        }
-        return true
-      } finally {
-        this.setInstanceProcessing(active.id, false)
-      }
     },
   }
 })

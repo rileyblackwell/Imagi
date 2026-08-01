@@ -16,16 +16,6 @@ import type { EditorLanguage } from '@/shared/types/editor'
 export function useBuilderMode() {
   const store = useAgentStore()
 
-  const updateFile = async (projectId: string, filePath: string, content: string) => {
-    try {
-      await FileService.updateFileContent(projectId, filePath, content)
-      store.$patch({ unsavedChanges: false })
-    } catch (err) {
-      store.$patch({ error: 'Failed to save file changes' })
-      throw err
-    }
-  }
-
   const createFile = async (options: CreateFileOptions | string, typeOrOptions?: string, content = '') => {
     try {
       let name: string
@@ -103,7 +93,6 @@ export function useBuilderMode() {
   }
 
   return {
-    updateFile,
     createFile,
     loadModels
   }

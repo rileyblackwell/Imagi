@@ -1,7 +1,4 @@
 import { configure, defineRule } from 'vee-validate'
-import { required, email } from '@vee-validate/rules'
-import { localize } from '@vee-validate/i18n'
-import type { App } from 'vue'
 
 // Define base rules
 defineRule('required', () => true)
@@ -77,7 +74,7 @@ const errorMessages = {
   'default': 'An unexpected error occurred. Please try again.'
 } as const
 
-export const formatAuthError = (error: unknown, context: 'login' | 'register' = 'login'): string => {
+export const formatAuthError = (error: unknown): string => {
   if (!error) return errorMessages.default
   
   if (error instanceof Error) {
@@ -147,7 +144,7 @@ export const formatAuthError = (error: unknown, context: 'login' | 'register' = 
 }
 
 export const validationPlugin = {
-  install: (app: App) => {
+  install: () => {
     configure({
       validateOnInput: false,
       validateOnBlur: false,
@@ -157,5 +154,3 @@ export const validationPlugin = {
     })
   }
 }
-
-export { defineRule, errorMessages }

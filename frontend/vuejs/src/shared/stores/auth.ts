@@ -91,19 +91,6 @@ export const useAuthStore = defineStore('global-auth', () => {
       clearStoredAuth()
     }
   }
-  
-  // Function to restore auth state from localStorage without API calls
-  // Used primarily during browser navigation events
-  const restoreAuthState = (userData: User, authToken: string) => {
-    user.value = userData
-    token.value = authToken
-    isAuthenticated.value = true
-    
-    // Set axios default auth header
-    axios.defaults.headers.common['Authorization'] = `Token ${authToken}`
-    
-    console.log('Auth state restored from localStorage')
-  }
 
   // Helper to clear stored authentication data
   const clearStoredAuth = () => {
@@ -192,46 +179,6 @@ export const useAuthStore = defineStore('global-auth', () => {
       } finally {
         loading.value = false
         initialized.value = true
-        // Clear the pending auth check
-        setTimeout(() => {
-          pendingAuthCheck.value = null
-        }, 0)
-      }
-    })()
-    
-    // Store the promise for reuse during concurrent calls
-    pendingAuthCheck.value = authCheckPromise
-    return authCheckPromise
-  }
-
-  // Method to check auth status without side effects
-  const checkAuth = async (): Promise<boolean> => {
-    // Use cached value if available and recent
-    const now = Date.now()
-    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
-      return isAuthenticated.value
-    }
-    
-    // If there's a pending auth check, return that promise
-    if (pendingAuthCheck.value) {
-      return pendingAuthCheck.value
-    }
-    
-    if (!token.value) return false
-    
-    // Create a new auth check promise
-    const authCheckPromise = (async () => {
-      try {
-        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-        const response = await api.get('/v1/auth/init/')
-        const authStatus = !!response.data.isAuthenticated
-        
-        // Update the last check time
-        lastInitTime.value = now
-        return authStatus
-      } catch {
-        return false
-      } finally {
         // Clear the pending auth check
         setTimeout(() => {
           pendingAuthCheck.value = null
@@ -347,9 +294,7 @@ export const useAuthStore = defineStore('global-auth', () => {
     
     // Actions
     setAuthState,
-    restoreAuthState,
     initAuth,
-    checkAuth,
     validateAuth,
     clearAuth,
     logout,

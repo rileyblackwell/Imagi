@@ -39,7 +39,7 @@ export function extractError(error: unknown, fallback = 'Something went wrong'):
   return message || fallback
 }
 
-export const OperateService = {
+const OperateService = {
   // -- Dashboard --------------------------------------------------------------
   async getDashboard(projectId: number): Promise<DashboardPayload> {
     const { data } = await api.get(`${base(projectId)}/dashboard/`)

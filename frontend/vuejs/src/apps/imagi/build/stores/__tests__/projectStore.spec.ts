@@ -5,7 +5,6 @@ import { setActivePinia, createPinia } from 'pinia'
 const apiMock = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
 vi.mock('@/shared/services/api', () => ({
   default: apiMock,
-  getCsrfToken: vi.fn(),
 }))
 
 // Mock the project service (all static methods).

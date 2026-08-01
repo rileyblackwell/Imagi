@@ -15,7 +15,6 @@ export interface AgentState {
    *  thread must never move the thread the user is talking in. */
   openedSubagentId: string | null;
   files: ProjectFile[];
-  unsavedChanges: boolean;
   error: string | null;
   instancesLoading: boolean;
   /** Pending check-ins from background tasks, oldest first — the main
