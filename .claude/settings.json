@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bash .claude/hooks/dev-setup.sh *)"
+      "Bash(bash .claude/hooks/dev-setup.sh *)",
+      "Bash(bash .claude/skills/dev-preview/scripts/dev-session.sh *)"
     ]
   },
   "hooks": {

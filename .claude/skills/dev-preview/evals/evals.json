@@ -1,0 +1,33 @@
+{
+  "skill_name": "dev-preview",
+  "notes": "Runs drive the shared preview browser pane, so these are executed serially rather than in parallel — concurrent agents would fight over the same tab and the results would be meaningless.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "open-build-workspace",
+      "prompt": "Log in to the Imagi dev app and get me to the build workspace for the Agent Manager Test project. Screenshot it once you're there.",
+      "expected_output": "Lands on http://localhost:<fe>/imagi/workspace/agent-manager-test, signed in, workspace rendered. Report file states the final URL.",
+      "files": [],
+      "assertions": [
+        "Final URL path is /imagi/workspace/agent-manager-test (slugified, not the display name with spaces)",
+        "Signed in by seeding a token into localStorage rather than typing a password into the sign-in form",
+        "Started servers via preview_start rather than npm run dev or manage.py runserver",
+        "Verified the landed URL with location.href instead of trusting navigate's return message",
+        "Ends signed in on the workspace, not bounced to /imagi/projects"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "diagnose-slug-bounce",
+      "prompt": "I tried to open http://localhost:5173/imagi/workspace/Agent%20Manager%20Test in the preview browser and it just dumps me back on the projects list. Auth problem? Figure out what's actually going on and get me to the right page.",
+      "expected_output": "Identifies the slug rule as the cause (not auth), gives the correct URL, and lands on it.",
+      "files": [],
+      "assertions": [
+        "Correctly identifies the cause as the slug rule, not an authentication failure",
+        "States the correct slugified URL /imagi/workspace/agent-manager-test",
+        "Actually navigates to the corrected URL and confirms it loaded",
+        "Does not send the user down an auth/token debugging path as the primary explanation"
+      ]
+    }
+  ]
+}
