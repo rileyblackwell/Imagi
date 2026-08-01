@@ -55,11 +55,6 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.user.email} - ${self.amount:.2f} (${self.credits:.2f} credits)"
 
-    @classmethod
-    def calculate_credits(cls, amount):
-        """Calculate credits from dollar amount (1:1 ratio)"""
-        return Decimal(str(amount))
-
 class PaymentMethod(models.Model):
     """
     Stores user payment methods from Stripe.
