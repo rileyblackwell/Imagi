@@ -322,6 +322,27 @@ class ProjectManagerAPITests(APITestCase):
         names = [p['name'] for p in resp.data['results']]
         self.assertEqual(names, ['Mine One'])
 
+    def test_list_exposes_the_slug_the_frontend_routes_on(self):
+        # Two names one user may legitimately hold that derive to the same
+        # slug on the client. The API has to send the disambiguated slugs, or
+        # the two projects share a URL and one becomes unreachable.
+        Project.objects.create(user=self.user, name='My App')
+        Project.objects.create(user=self.user, name='My-App')
+        resp = self.client.get(reverse('project_manager:project-list'))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        slugs = sorted(p['slug'] for p in resp.data['results'])
+        self.assertEqual(slugs, ['my-app', 'my-app-1'])
+
+    def test_slug_is_read_only(self):
+        project = Project.objects.create(user=self.user, name='Rename Me')
+        resp = self.client.patch(
+            reverse('project_manager:project-detail', args=[project.pk]),
+            {'slug': 'hijacked'},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        project.refresh_from_db()
+        self.assertEqual(project.slug, 'rename-me')
+
     @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
     @patch(
         'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'

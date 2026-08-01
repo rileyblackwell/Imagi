@@ -54,9 +54,28 @@ describe('project store', () => {
       expect(store.getProjectBySlug('nope')).toBeUndefined()
     })
 
+    it('keeps the backend slug through normalization and routes on it', () => {
+      const store = useProjectStore()
+      store.updateProjects([
+        { id: 1, name: 'My App', slug: 'my-app' },
+        { id: 2, name: 'My-App', slug: 'my-app-1' },
+      ])
+      expect(store.projects[1].slug).toBe('my-app-1')
+      // Both names derive to 'my-app'; the backend slug is what separates them.
+      expect(store.getProjectBySlug('my-app')?.id).toBe('1')
+      expect(store.getProjectBySlug('my-app-1')?.id).toBe('2')
+    })
+
     it('derives a slug for a project', () => {
       const store = useProjectStore()
       expect(store.getSlugForProject({ name: 'Some Thing' } as any)).toBe('some-thing')
+    })
+
+    it('prefers the backend slug when getting a project slug', () => {
+      const store = useProjectStore()
+      expect(
+        store.getSlugForProject({ name: 'Some Thing', slug: 'some-thing-2' } as any)
+      ).toBe('some-thing-2')
     })
   })
 

@@ -23,6 +23,8 @@ export interface ProjectFile {
 export interface Project {
   id: string | number;
   name: string;
+  /** Backend-assigned, unique across projects. What the routes key on. */
+  slug?: string;
   description?: string;
   created_at: string;
   updated_at?: string;
@@ -57,6 +59,9 @@ export function normalizeProject(data: any): Project {
   return {
     id: id,
     name: (data.name || 'Untitled Project').trim(),
+    // Left undefined rather than '' when absent, so the slug helpers can tell
+    // "the API did not send one" from a real value and fall back to the name.
+    slug: data.slug || undefined,
     description: (data.description || '').trim(),
     created_at: data.created_at || data.createdAt || new Date().toISOString(),
     updated_at: data.updated_at || data.updatedAt || new Date().toISOString(),
