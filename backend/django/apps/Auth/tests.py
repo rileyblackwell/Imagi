@@ -5,7 +5,13 @@ Covers the registration/user serializers and every authentication API
 endpoint (csrf, signin, register, logout, init, user-update).
 """
 
+import json
+from io import StringIO
+
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -219,3 +225,60 @@ class UserUpdateViewTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, 'new@example.com')
+
+
+@override_settings(DEBUG=True)
+class SeedDevUserCommandTests(TestCase):
+    """The local sign-in helper behind `dev-setup.sh dev-token`.
+
+    --no-reset exists so reading a token can't silently rewrite the credentials
+    in ~/.config/imagi/test-credentials.env; that is what these pin down.
+
+    DEBUG is forced on for the class because the test runner sets it False, and
+    the command refuses to run without it — that guard is what keeps this
+    local-only, so it is asserted explicitly below rather than disabled.
+    """
+
+    def _run(self, **kwargs):
+        out = StringIO()
+        call_command('seed_dev_user', stdout=out, **kwargs)
+        return out.getvalue()
+
+    def test_print_token_emits_token_and_user_as_json(self):
+        payload = json.loads(self._run(username='kim', password='pw-123', print_token=True))
+        self.assertEqual(payload['user']['username'], 'kim')
+        self.assertEqual(payload['token'], Token.objects.get(user__username='kim').key)
+
+    def test_no_reset_leaves_password_and_email_untouched(self):
+        User.objects.create_user(
+            username='kim', email='kim@real.example', password='the-real-password'
+        )
+
+        payload = json.loads(self._run(username='kim', no_reset=True, print_token=True))
+
+        user = User.objects.get(username='kim')
+        self.assertTrue(user.check_password('the-real-password'))
+        self.assertEqual(user.email, 'kim@real.example')
+        self.assertEqual(payload['token'], Token.objects.get(user=user).key)
+
+    def test_without_no_reset_an_existing_account_is_overwritten(self):
+        # The documented escape hatch — and the reason --no-reset is the default
+        # path for dev-token.
+        User.objects.create_user(
+            username='kim', email='kim@real.example', password='the-real-password'
+        )
+
+        self._run(username='kim', password='fallback-pw', email='kim@localhost.invalid')
+
+        user = User.objects.get(username='kim')
+        self.assertTrue(user.check_password('fallback-pw'))
+        self.assertEqual(user.email, 'kim@localhost.invalid')
+
+    def test_no_reset_fails_when_the_account_does_not_exist(self):
+        with self.assertRaises(CommandError):
+            self._run(username='nobody', no_reset=True, print_token=True)
+
+    @override_settings(DEBUG=False)
+    def test_refuses_to_run_outside_debug(self):
+        with self.assertRaises(CommandError):
+            self._run(username='kim', password='pw-123')

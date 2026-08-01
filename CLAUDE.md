@@ -23,6 +23,32 @@ Dev and prod test credentials live outside the repo in `~/.config/imagi/test-cre
 set -a; . ~/.config/imagi/test-credentials.env; set +a
 ```
 
+### Signing in during development
+
+Don't type the password into the sign-in form. Get the dev account's auth token
+and seed it into the frontend's storage instead:
+
+```bash
+bash .claude/hooks/dev-setup.sh dev-token
+```
+
+That prints `{"token": ..., "user": ...}` in exactly the shape `/auth/signin`
+returns. Run it from anywhere in the worktree — it resolves its own paths, and
+it is pre-approved in `.claude/settings.json` so it won't prompt. It reads the
+existing account without touching it, and creates the account from the
+credentials file above if the DB was reset. Then, in the preview browser:
+
+```js
+localStorage.setItem('token', JSON.stringify({ value: TOKEN, expires: Date.now() + 864e5 }))
+localStorage.setItem('user', JSON.stringify(USER))
+```
+
+Navigate after setting both — `frontend/vuejs/src/shared/stores/auth.ts` reads
+them on store init. The underlying command is
+`apps/Auth/management/commands/seed_dev_user.py`; call it directly only to
+create or reset an account, and pass `--password "$IMAGI_DEV_PASSWORD"` when you
+do, or it will overwrite the documented credentials with its fallback defaults.
+
 ## Verification
 
 Don't report work as done until it has been verified two ways.
