@@ -1142,3 +1142,64 @@ class ScaffoldWiringTests(TestCase):
         paths = set(self.project.files.values_list('path', flat=True))
         self.assertIn('backend/django/apps/auth/api/urls.py', paths)
         self.assertIn('frontend/vuejs/src/apps/home/views/HomeView.vue', paths)
+
+
+class ProjectNameValidationTests(APITestCase):
+    """A project name must never be usable as a filesystem path fragment.
+
+    The preview services key their sidecar files on the project id now, so a
+    crafted name no longer escapes anything; this keeps one out of the database
+    in the first place, and out of the log lines and directory basenames the
+    name still reaches.
+    """
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='namer', email='namer@example.com', password='correct-horse-9'
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _create(self, name):
+        return self.client.post(
+            reverse('project_manager:project-create'),
+            {'name': name, 'description': 'A shop that sells useful things online.'},
+            format='json',
+        )
+
+    def test_traversal_name_is_rejected_on_create(self):
+        resp = self._create('../9/Their Shop')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('name', resp.data)
+
+    def test_absolute_name_is_rejected_on_create(self):
+        resp = self._create('/etc/cron.d/x')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_backslash_name_is_rejected_on_create(self):
+        resp = self._create(r'..\9\Their Shop')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_control_character_name_is_rejected_on_create(self):
+        resp = self._create('Shop\x00evil')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_ordinary_name_is_accepted(self):
+        with patch('apps.Imagi.ProjectManager.api.views.ProjectCreationService'), \
+                patch('apps.Imagi.ProjectManager.api.views.start_initial_build'):
+            resp = self._create('My Corner Shop')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+    def test_rename_to_a_traversal_name_is_rejected(self):
+        # The update path is the one an attacker actually uses: create a
+        # normal project, then PATCH the name.
+        with patch('apps.Imagi.ProjectManager.api.views.ProjectCreationService'), \
+                patch('apps.Imagi.ProjectManager.api.views.start_initial_build'):
+            created = self._create('My Corner Shop')
+        project_id = created.data['id']
+
+        resp = self.client.patch(
+            reverse('project_manager:project-detail', kwargs={'pk': project_id}),
+            {'name': '../9/Their Shop'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

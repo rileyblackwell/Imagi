@@ -12,6 +12,7 @@ API reference: https://developers.facebook.com/docs/marketing-apis
 """
 
 import logging
+import re
 
 import requests
 
@@ -37,6 +38,19 @@ CONVERSION_ACTION_TYPES = {
 }
 
 
+def _scrub_token(text: str) -> str:
+    """Redact any access token that still made it into a message.
+
+    Belt-and-braces alongside sending the token as a header: a caller passing
+    one through ``params``, or a Graph API error echoing it back, must not put
+    a live ads_management credential into the log stream.
+    """
+    return _TOKEN_IN_TEXT_RE.sub(r'\1[REDACTED]', text)
+
+
+_TOKEN_IN_TEXT_RE = re.compile(r'(access_token=)[^&\s\'"]+')
+
+
 class MetaAdsError(Exception):
     """Raised when the Graph API can't be reached or returns an error."""
 
@@ -57,17 +71,27 @@ class MetaAdsClient:
     def _request(self, method: str, path: str, params=None, data=None) -> dict:
         url = f'{API_BASE}/{path.lstrip("/")}'
         params = dict(params or {})
-        params['access_token'] = self.access_token
         try:
+            # Bearer header, not a query parameter: urllib3's retry/connection
+            # errors embed the full request URL in their message, so a token in
+            # the query string ends up verbatim in logs and in the error text
+            # this raises back to the API caller.
             response = requests.request(
                 method, url,
                 params=params,
                 data=data,
+                headers={'Authorization': f'Bearer {self.access_token}'},
                 timeout=REQUEST_TIMEOUT,
             )
         except requests.RequestException as exc:
-            logger.warning(f'Meta Ads request failed: {exc}')
-            raise MetaAdsError(f'Could not reach the Meta API: {exc}') from exc
+            # Never format the raw exception: log its type and a scrubbed
+            # message, and hand the caller a message with no credential in it.
+            logger.warning(
+                'Meta Ads request failed: %s: %s',
+                type(exc).__name__,
+                _scrub_token(str(exc)),
+            )
+            raise MetaAdsError('Could not reach the Meta API.') from exc
 
         try:
             payload = response.json()

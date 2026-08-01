@@ -29,6 +29,7 @@ from .models import (
     decrypt_secret,
     encrypt_secret,
 )
+from .services.sell_service import SellService, SellServiceError
 from .services.stripe_client import StripeClientError
 
 User = get_user_model()
@@ -350,6 +351,45 @@ class CheckoutTests(SellAPITestCase):
             'success_url': 'javascript:alert(1)',
         }, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_checkout_rejects_foreign_redirect_origin(self, MockStripe):
+        # This endpoint is unauthenticated and the project id is a sequential
+        # integer, so a free-form redirect let anyone mint a Checkout link on
+        # the merchant's real Stripe account that drops the paying customer on
+        # an attacker's page.
+        self.mock_session(MockStripe)
+        latte = self.add_product()
+        with override_settings(FRONTEND_URL='https://app.imagi.test'):
+            response = self.public_client.post(self.checkout_url, {
+                'items': [{'product_id': latte.id}],
+                'success_url': 'https://evil.example/receipt',
+            }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.project.sell_orders.count(), 0)
+
+    def test_checkout_accepts_a_path_and_resolves_it_against_frontend_url(self, MockStripe):
+        session = self.mock_session(MockStripe)
+        latte = self.add_product()
+        with override_settings(FRONTEND_URL='https://app.imagi.test'):
+            response = self.public_client.post(self.checkout_url, {
+                'items': [{'product_id': latte.id}],
+                'success_url': '/thanks',
+            }, format='json')
+        self.assertEqual(response.status_code, 201)
+        kwargs = session.call_args.kwargs
+        self.assertEqual(kwargs['success_url'], 'https://app.imagi.test/thanks')
+
+    def test_service_rejects_foreign_origin_even_when_called_directly(self, MockStripe):
+        # Defense in depth: a future caller reaching the service directly must
+        # not be able to reintroduce the open redirect.
+        self.mock_session(MockStripe)
+        latte = self.add_product()
+        with override_settings(FRONTEND_URL='https://app.imagi.test'):
+            with self.assertRaises(SellServiceError):
+                SellService(self.project).create_checkout(
+                    [{'product_id': latte.id}],
+                    success_url='https://evil.example/receipt',
+                )
 
     def test_checkout_requires_stripe_configuration(self, MockStripe):
         SellSettings.objects.filter(project=self.project).delete()

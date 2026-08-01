@@ -34,7 +34,7 @@ import subprocess
 
 from django.conf import settings
 
-from .preview_service import NPM_INSTALL_TIMEOUT, npm_install_lock
+from .preview_service import NPM_INSTALL_TIMEOUT, child_env, npm_install_lock
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,27 @@ def _read_package_json(package_json_path):
         return None
 
 
+def _store_package_json(package_json):
+    """The package.json a store slot installs from: dependencies only.
+
+    A slot is shared by every project whose dependency set hashes the same, so
+    it must never carry a single project's ``scripts`` — that block is
+    user-authored and npm would run its install lifecycle here. Only the
+    sections :func:`dependency_signature` hashes are carried across, which is
+    also exactly what the resolved tree depends on.
+    """
+    staged = {
+        'name': 'imagi-frontend-dep-store',
+        'version': '0.0.0',
+        'private': True,
+    }
+    for section in _DEP_SECTIONS:
+        value = package_json.get(section)
+        if value:
+            staged[section] = value
+    return staged
+
+
 def ensure_store(package_json_path):
     """Ensure the shared node_modules for this package.json exists.
 
@@ -123,23 +144,32 @@ def ensure_store(package_json_path):
         if os.path.isdir(node_modules):
             return node_modules
 
-        # Install from a copy of the project's package.json so the store slot
-        # is self-describing and a stray future `npm install` there stays
-        # consistent. package-lock is intentionally not carried across.
+        # Install from a normalized package.json — the dependency sections only,
+        # never the project's own — so the slot is self-describing, a stray
+        # future `npm install` there stays consistent, and no project's
+        # ``scripts`` block reaches this shared, cross-tenant install.
+        # package-lock is intentionally not carried across.
         try:
-            shutil.copyfile(package_json_path, os.path.join(slot, 'package.json'))
+            with open(os.path.join(slot, 'package.json'), 'w') as f:
+                json.dump(_store_package_json(package_json), f, indent=2)
         except OSError as e:
             logger.warning(f"Could not stage package.json into {slot}: {e}")
             return None
 
         logger.info(f"Building shared frontend dependency store: {slot}")
         try:
+            # --ignore-scripts: the store only needs the resolved tree, and its
+            # node_modules is symlinked into every project sharing the slot.
+            # child_env(): a dependency's install script must never see Imagi's
+            # own environment (DJANGO_SECRET_KEY, DATABASE_URL, Stripe/OpenAI
+            # keys), matching PreviewService._ensure_frontend_dependencies.
             result = subprocess.run(
-                [npm, 'install', '--no-audit', '--no-fund'],
+                [npm, 'install', '--no-audit', '--no-fund', '--ignore-scripts'],
                 cwd=slot,
                 capture_output=True,
                 text=True,
                 timeout=NPM_INSTALL_TIMEOUT,
+                env=child_env(),
             )
         except subprocess.TimeoutExpired:
             logger.error(f"Shared store npm install timed out in {slot}")

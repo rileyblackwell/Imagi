@@ -265,12 +265,13 @@ export const AuthAPI = {
     try {
       logoutPromise = api.post(`${API_PATH}/logout/`, {})
       await logoutPromise
-      
+    } finally {
+      // Drop the stored credential whether or not the server call succeeded:
+      // a failed request must not leave a usable token in localStorage. The
+      // error still propagates so the caller can tell the user the
+      // server-side token may not have been revoked.
       localStorage.removeItem('token')
       // The shared API client will handle removing the Authorization header
-    } catch (error) {
-      throw error
-    } finally {
       logoutPromise = null
     }
   }

@@ -858,6 +858,24 @@ async def agent_stream(request):
         if busy:
             return JsonResponse({'detail': 'agent_busy'}, status=409)
 
+    # Concurrency ceiling, checked with the allowance below: the allowance is
+    # read before a run and written after it, so unbounded parallel runs would
+    # each be admitted against the same pre-run total.
+    running = await sync_to_async(_user_running_run_count)(
+        user, exclude_conversation_id=conversation_id
+    )
+    if running >= MAX_CONCURRENT_RUNS_PER_USER:
+        return JsonResponse(
+            {
+                'error': 'too_many_concurrent_runs',
+                'detail': (
+                    'You already have the maximum number of agent runs in '
+                    'progress. Wait for one to finish and try again.'
+                ),
+            },
+            status=429,
+        )
+
     # Plan usage limits: refuse before the stream opens, following the same
     # pre-stream JSON contract as the agent_busy 409 above.
     allowed, limit_payload = await sync_to_async(check_usage_allowed)(user)
@@ -904,6 +922,12 @@ async def agent_stream(request):
 # measures silence since the last event, not total run duration.
 RUN_STALENESS_WINDOW = timedelta(minutes=10)
 
+# Ceiling on one user's simultaneously-running agent runs, across every project
+# and conversation kind. Task runs are meant to run in parallel with the lead
+# and each other, so this is deliberately above 1 — it exists to bound the
+# usage-allowance overshoot in _user_running_run_count, not to serialize work.
+MAX_CONCURRENT_RUNS_PER_USER = 3
+
 
 def _conversation_is_running(conversation):
     started = conversation.run_started_at
@@ -933,6 +957,23 @@ def _project_has_running_conversation(
     if exclude_conversation_id:
         qs = qs.exclude(id=exclude_conversation_id)
     return qs.exists()
+
+
+def _user_running_run_count(user, exclude_conversation_id=None):
+    """How many of this user's runs are in flight, across every project.
+
+    The plan allowance is checked before a run and only debited after it, so
+    concurrent runs all read the same pre-run total and all pass. Capping the
+    number in flight bounds how far past the allowance that can carry: without
+    it a user can start arbitrarily many runs on a single window's headroom.
+    Uses the same fresh-run_started_at signal (and staleness window) as the
+    agent_busy guards, so a crashed worker cannot wedge a user out.
+    """
+    threshold = timezone.now() - RUN_STALENESS_WINDOW
+    qs = AgentConversation.objects.filter(user=user, run_started_at__gt=threshold)
+    if exclude_conversation_id:
+        qs = qs.exclude(id=exclude_conversation_id)
+    return qs.count()
 
 
 def _conversation_total_tokens(conversation):

@@ -13,6 +13,8 @@ from django.conf import settings as django_settings
 from django.db import transaction
 from django.utils import timezone
 
+from imagi.redirect_urls import UnsafeRedirectError, resolve_redirect_url
+
 from ..models import Customer, Order, OrderItem
 from .stripe_client import StripeClient, StripeClientError
 
@@ -110,9 +112,23 @@ class SellService:
 
         Prices always come from the project's catalog — never from the
         caller — so a tampered request can't change what gets charged.
+
+        The redirect URLs are confined to this app's own origin here as well as
+        at the view, so a future caller cannot reintroduce the open redirect by
+        reaching the service directly.
         """
         client = self._client()
         customer_email = (customer_email or '').strip().lower()
+
+        try:
+            success_url = resolve_redirect_url(
+                success_url, default_success_url(self.project.id)
+            )
+            cancel_url = resolve_redirect_url(
+                cancel_url, default_cancel_url(self.project.id)
+            )
+        except UnsafeRedirectError as exc:
+            raise SellServiceError(str(exc)) from exc
 
         if not isinstance(items, list) or not items:
             raise SellServiceError('Provide a non-empty "items" list.')
@@ -191,8 +207,8 @@ class SellService:
         try:
             session = client.create_checkout_session(
                 line_items=line_items,
-                success_url=success_url or default_success_url(self.project.id),
-                cancel_url=cancel_url or default_cancel_url(self.project.id),
+                success_url=success_url,
+                cancel_url=cancel_url,
                 metadata={
                     'imagi_project_id': str(self.project.id),
                     'imagi_order_id': str(order.id),
