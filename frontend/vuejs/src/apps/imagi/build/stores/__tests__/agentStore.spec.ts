@@ -19,7 +19,6 @@ vi.mock('../../services/agentService', () => ({ AgentService: agentService }))
 
 const fileService = vi.hoisted(() => ({
   getProjectFiles: vi.fn(),
-  undoFileChanges: vi.fn(),
 }))
 vi.mock('../../services/fileService', () => ({ FileService: fileService }))
 

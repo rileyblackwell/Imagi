@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ error: string | null | undefined }>()
+defineProps<{ error: string | null | undefined }>()
 </script>
 
 <style scoped>

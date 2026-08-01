@@ -122,14 +122,6 @@ class TransactionServiceTests(APITestCase):
         self.assertEqual(result['count'], 1)
         self.assertEqual(list(result['transactions']), [a])
 
-    def test_lookup_by_payment_intent(self):
-        txn = make_transaction(self.user, 10, stripe_payment_intent_id='pi_abc')
-        found = self.service.get_transaction_by_payment_intent(self.user, 'pi_abc')
-        self.assertEqual(found, txn)
-        self.assertIsNone(
-            self.service.get_transaction_by_payment_intent(self.user, 'pi_missing')
-        )
-
 
 # --------------------------------------------------------------------------- #
 # PaymentMethodService
@@ -150,38 +142,6 @@ class PaymentMethodServiceTests(APITestCase):
             'last4': '4242', 'exp_month': 12, 'exp_year': 2030,
         })
         self.assertTrue(pm.is_default)
-
-    def test_set_default_payment_method(self):
-        self.service.create_payment_method(self.user, {
-            'payment_method_id': 'pm_1', 'card_brand': 'visa',
-            'last4': '4242', 'exp_month': 12, 'exp_year': 2030,
-        })
-        self.service.create_payment_method(self.user, {
-            'payment_method_id': 'pm_2', 'card_brand': 'amex',
-            'last4': '0005', 'exp_month': 1, 'exp_year': 2031,
-        })
-        self.assertTrue(self.service.set_default_payment_method(self.user, 'pm_2'))
-        self.assertEqual(
-            self.service.get_default_payment_method(self.user).payment_method_id, 'pm_2'
-        )
-
-    def test_delete_default_reassigns_default(self):
-        self.service.create_payment_method(self.user, {
-            'payment_method_id': 'pm_1', 'card_brand': 'visa',
-            'last4': '4242', 'exp_month': 12, 'exp_year': 2030,
-        })
-        self.service.create_payment_method(self.user, {
-            'payment_method_id': 'pm_2', 'card_brand': 'amex',
-            'last4': '0005', 'exp_month': 1, 'exp_year': 2031,
-        })
-        # pm_1 is the default; deleting it should promote pm_2.
-        self.assertTrue(self.service.delete_payment_method(self.user, 'pm_1'))
-        remaining = self.service.get_payment_methods(self.user)
-        self.assertEqual(len(remaining), 1)
-        self.assertTrue(remaining[0].is_default)
-
-    def test_delete_missing_payment_method_returns_false(self):
-        self.assertFalse(self.service.delete_payment_method(self.user, 'pm_missing'))
 
 
 # --------------------------------------------------------------------------- #

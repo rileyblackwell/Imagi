@@ -262,7 +262,7 @@ const handleSubmit = async (values: RegisterFormValues) => {
     
     await router.push('/')
   } catch (error: unknown) {
-    serverError.value = formatAuthError(error, 'register')
+    serverError.value = formatAuthError(error)
   } finally {
     isSubmitting.value = false
     document.body.style.cursor = 'default'

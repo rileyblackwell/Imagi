@@ -32,15 +32,6 @@ export interface AIModel {
 }
 
 /**
- * Undo Response
- */
-export interface UndoResponse {
-  success: boolean;
-  message: string;
-  details?: any;
-}
-
-/**
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
@@ -147,35 +138,6 @@ export const REASONING_EFFORTS: ReasoningEffortOption[] = [
 ];
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
-
-// Types for API responses
-export interface APIErrorResponse {
-  error?: string;
-  message?: string;
-  detail?: string;
-}
-
-export interface APIPagination {
-  count: number;
-  next: string | null;
-  previous: string | null;
-}
-
-export interface APIListResponse<T> {
-  data: T[];
-  pagination?: APIPagination;
-}
-
-export interface APIDetailResponse<T> {
-  data: T;
-  message?: string;
-}
-
-export interface APIResponse<T> {
-  data: T;
-  message?: string;
-  error?: string;
-}
 
 // Conversation / agent instance types
 
@@ -323,14 +285,6 @@ export interface AIMessage {
    * control (conversation and files rewind together).
    */
   checkpoint?: string;
-}
-
-export interface AIGenerationResponse {
-  code?: string;
-  response?: string;
-  messages?: AIMessage[];
-  success: boolean;
-  error?: string;
 }
 
 /**

@@ -129,7 +129,7 @@ export const businessTools: BusinessTool[] = [
   },
 ]
 
-export type HubTone = 'ink' | 'blue'
+export type HubTone = 'ink'
 
 /**
  * Static treatment for the project-hub cards (ToolCategoryCard).
@@ -139,9 +139,7 @@ export type HubTone = 'ink' | 'blue'
  * ink as the `Imagi.` wordmark — rather than a warm accent. Each card carries a
  * solid ink icon chip with a porcelain glyph; the blue brand color is held back
  * and appears only as a whisper on hover (see the card's border/CTA). This keeps
- * four repeated cards calm and premium instead of loud. The `blue` tone is kept
- * available should a surface want the softer cool treatment used on the home
- * KeyFeatures cards.
+ * four repeated cards calm and premium instead of loud.
  *
  * Static literal strings for the Tailwind JIT (see note at the top of the file).
  */
@@ -158,21 +156,11 @@ export const hubCardTones: Record<HubTone, {
     tile: 'bg-blue-950 dark:bg-white ring-1 ring-blue-950/10 dark:ring-white/10',
     glyph: 'text-[#fdf9f2] dark:text-blue-950',
   },
-  blue: {
-    card: 'border-blue-200/70 dark:border-blue-300/[0.14]',
-    tile: 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18]',
-    glyph: 'text-blue-600 dark:text-blue-300',
-  },
 }
 
 /** Look up a tool by its URL slug (for coming-soon routes). */
 export function getToolBySlug(slug: string): BusinessTool | undefined {
   return businessTools.find(tool => tool.slug === slug)
-}
-
-/** Look up a tool by its id. */
-export function getToolById(id: string): BusinessTool | undefined {
-  return businessTools.find(tool => tool.id === id)
 }
 
 /**

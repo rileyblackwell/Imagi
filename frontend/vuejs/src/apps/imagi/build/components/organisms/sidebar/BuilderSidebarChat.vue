@@ -347,7 +347,6 @@ import { REASONING_EFFORTS } from '../../../types/services'
 
 // Props
 const props = defineProps<{
-  selectedApp: any
   onPromptSubmit: (prompt: string) => Promise<void>
   onModelSelect: (modelId: string) => Promise<void>
   onEffortSelect: (effort: ReasoningEffort) => Promise<void>
@@ -634,23 +633,6 @@ function onEffortSlider(e: Event) {
   if (option && option.id !== activeInstance.value?.selectedEffort) {
     void handleEffortSelect(option.id)
   }
-}
-
-// Helper to get friendly display name from file path
-function getDisplayName(path: string): string {
-  if (!path) return ''
-  const parts = path.split('/')
-  const filename = parts[parts.length - 1] ?? ''
-  return filename.replace(/\.(vue|ts|js|tsx|jsx)$/, '')
-}
-
-// Helper to determine item kind from path
-function getItemKind(path: string): string {
-  if (!path) return 'item'
-  if (/\/views\//i.test(path)) return 'page'
-  if (/\/components\//i.test(path)) return 'block'
-  if (/\/stores\//i.test(path)) return 'data store'
-  return 'item'
 }
 
 const promptPlaceholder = computed(() => 'Ask me to build, edit, or explain anything in your project...')

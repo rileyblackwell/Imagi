@@ -63,7 +63,6 @@ export default {
         ],
       },
       spacing: {
-        'header': '64px',
         // The fixed top bar's true height: BaseNavbar's h-14 row plus its 1px
         // bottom hairline. Anything that sits under the bar (the shell's
         // sidebar, main content and mobile scrim) offsets by this, so the
@@ -74,9 +73,6 @@ export default {
       animation: {
         'fade-in': 'fade-in 0.5s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
-        'shimmer': 'shimmer 2s linear infinite',
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
         'fade-in': {
@@ -87,28 +83,6 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        'shimmer': {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-        'float': {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
-        },
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'rainbow-gradient': 'linear-gradient(90deg, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899)',
-        'rainbow-gradient-subtle': 'linear-gradient(90deg, rgba(249,115,22,0.5), rgba(234,179,8,0.5), rgba(34,197,94,0.5), rgba(6,182,212,0.5), rgba(59,130,246,0.5), rgba(139,92,246,0.5), rgba(236,72,153,0.5))',
-      },
-      backdropBlur: {
-        xs: '2px',
-      },
-      boxShadow: {
-        'glow': '0 0 20px rgba(59, 130, 246, 0.15)',
-        'glow-lg': '0 0 40px rgba(59, 130, 246, 0.2)',
-        'inner-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
       },
     },
   },

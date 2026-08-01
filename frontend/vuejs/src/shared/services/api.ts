@@ -108,14 +108,5 @@ api.interceptors.response.use(
   }
 )
 
-// CSRF token helper
-export async function getCsrfToken(): Promise<void> {
-  try {
-    await api.get('/v1/auth/csrf/')
-  } catch (error) {
-    console.warn('Failed to fetch CSRF token:', error)
-  }
-}
-
 // Export the configured API client
 export default api

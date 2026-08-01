@@ -33,7 +33,6 @@ interface SellState {
   templates: PaymentTemplate[]
   templatesLoading: boolean
   products: Product[]
-  productsTotal: number
   productsLoading: boolean
   orders: Order[]
   ordersTotal: number
@@ -53,7 +52,6 @@ export const useSellStore = defineStore('sell', {
     templates: [],
     templatesLoading: false,
     products: [],
-    productsTotal: 0,
     productsLoading: false,
     orders: [],
     ordersTotal: 0,
@@ -145,9 +143,8 @@ export const useSellStore = defineStore('sell', {
       const projectId = this.requireProject()
       this.productsLoading = true
       try {
-        const { products, total } = await SellService.listProducts(projectId, params)
+        const { products } = await SellService.listProducts(projectId, params)
         this.products = products
-        this.productsTotal = total
       } finally {
         this.productsLoading = false
       }
@@ -167,7 +164,6 @@ export const useSellStore = defineStore('sell', {
     async deleteProduct(productId: number): Promise<void> {
       await SellService.deleteProduct(this.requireProject(), productId)
       this.products = this.products.filter(p => p.id !== productId)
-      this.productsTotal = Math.max(this.productsTotal - 1, 0)
     },
 
     async createPaymentLink(productId: number, quantity = 1): Promise<PaymentLinkResult> {

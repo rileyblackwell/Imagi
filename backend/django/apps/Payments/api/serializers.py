@@ -1,13 +1,13 @@
 """
 Serializers for the Payments app API.
 
-Only the read-only history and payment-method surfaces need serializers: plans
-and usage are code-defined dicts (services/plans.py) rather than models, and
-there is no longer a balance to serialize.
+Only the read-only history surfaces need serializers: plans and usage are
+code-defined dicts (services/plans.py) rather than models, and there is no
+longer a balance to serialize.
 """
 
 from rest_framework import serializers
-from ..models import Transaction, Payment, PaymentMethod
+from ..models import Transaction
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -68,29 +68,3 @@ class PaymentHistorySerializer(serializers.ModelSerializer):
             if len(parts) > 1 and ':' in parts[1]:
                 return parts[1].split(':')[0].strip()
         return None
-
-
-class PaymentMethodSerializer(serializers.ModelSerializer):
-    """Serializer for saved payment methods."""
-
-    class Meta:
-        model = PaymentMethod
-        fields = ['id', 'user', 'payment_method_id', 'card_brand', 'last4',
-                 'exp_month', 'exp_year', 'is_default', 'created_at']
-        read_only_fields = ['id', 'created_at']
-
-    def to_representation(self, instance):
-        """Format payment method data as expected by frontend."""
-        representation = super().to_representation(instance)
-        # Add friendly display name
-        representation['display_name'] = f"{instance.card_brand} •••• {instance.last4}"
-        return representation
-
-
-class PaymentSerializer(serializers.ModelSerializer):
-    package_name = serializers.CharField(source='package.name', read_only=True)
-
-    class Meta:
-        model = Payment
-        fields = ['id', 'amount', 'credits', 'status', 'created_at', 'package_name']
-        read_only_fields = ['status', 'created_at']

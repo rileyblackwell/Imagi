@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col relative z-10 transition-colors duration-300" :class="{'mode-transition': disableAllAnimations}">
+  <div class="h-full flex flex-col relative z-10 transition-colors duration-300">
     <!-- Messages Container -->
     <div ref="messagesContainer" class="iw-scroll iw-surface flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
       <!-- Empty state: one quiet line, nothing to dismiss or click -->
@@ -196,7 +196,6 @@ const showActivityIndicator = computed(() => {
 const statusLabel = computed(() => props.statusText || 'Working…')
 
 const emit = defineEmits<{
-  (e: 'apply-code', code: string): void
   (e: 'restore-checkpoint', message: AIMessage): void
   /** A dispatch card was clicked — open that subagent's thread */
   (e: 'open-task', conversationId: number): void
@@ -217,7 +216,6 @@ function dispatchInstance(conversationId: number): AgentInstance | null {
 // Refs and reactive state
 const messagesContainer = ref<HTMLElement | null>(null)
 const previousMessageCount = ref(0)
-const disableAllAnimations = ref(false)
 
 /** How far apart consecutive arrivals are spaced, and how many get spaced. */
 const ENTER_STAGGER_MS = 60
@@ -227,9 +225,8 @@ const ENTER_STAGGER_MAX = 4
 const processedMessages = computed<ProcessedMessage[]>(() => {
   const firstNew = previousMessageCount.value
   return props.messages.map((message, index) => {
-    // Only mark messages as new if they're newly added and animations
-    // aren't globally disabled
-    const isNew = (index >= firstNew) && !disableAllAnimations.value;
+    // Only mark messages as new if they're newly added
+    const isNew = index >= firstNew;
 
     // The stagger counts from the first *new* message, not from the top of
     // the conversation. Keyed off the absolute index it grew with the
@@ -327,18 +324,6 @@ onBeforeUnmount(() => {
   }
 })
 
-// Utility functions
-const formatTimestamp = (timestamp: string | number) => {
-  if (!timestamp) return ''
-  
-  try {
-    const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  } catch (e) {
-    return ''
-  }
-}
-
 // Rendered-HTML cache: markdown parsing + sanitization run once per
 // (message, size), so a streaming delta only re-renders the growing message
 // instead of the whole conversation. Never evicted — conversations are
@@ -399,16 +384,6 @@ const formatTokens = (total: number): string => {
     return `${thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k tokens`
   }
   return `${total.toLocaleString()} tokens`
-}
-
-const copyToClipboard = (code: string) => {
-  navigator.clipboard.writeText(code)
-    .then(() => {
-      console.log('Code copied to clipboard')
-    })
-    .catch(err => {
-      console.error('Could not copy code:', err)
-    })
 }
 </script>
 

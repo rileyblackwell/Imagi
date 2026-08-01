@@ -27,11 +27,9 @@ interface OperateState {
   dashboard: DashboardPayload | null
   dashboardLoading: boolean
   transactions: Transaction[]
-  transactionsTotal: number
   transactionsSummary: LedgerSummary | null
   transactionsLoading: boolean
   invoices: Invoice[]
-  invoicesTotal: number
   invoicesLoading: boolean
   tasks: OperationsTask[]
   taskCounts: TaskCounts | null
@@ -44,11 +42,9 @@ export const useOperateStore = defineStore('operate', {
     dashboard: null,
     dashboardLoading: false,
     transactions: [],
-    transactionsTotal: 0,
     transactionsSummary: null,
     transactionsLoading: false,
     invoices: [],
-    invoicesTotal: 0,
     invoicesLoading: false,
     tasks: [],
     taskCounts: null,
@@ -90,9 +86,8 @@ export const useOperateStore = defineStore('operate', {
       const projectId = this.requireProject()
       this.transactionsLoading = true
       try {
-        const { transactions, total, summary } = await OperateService.listTransactions(projectId, params)
+        const { transactions, summary } = await OperateService.listTransactions(projectId, params)
         this.transactions = transactions
-        this.transactionsTotal = total
         this.transactionsSummary = summary
       } finally {
         this.transactionsLoading = false
@@ -113,7 +108,6 @@ export const useOperateStore = defineStore('operate', {
     async deleteTransaction(transactionId: number): Promise<void> {
       await OperateService.deleteTransaction(this.requireProject(), transactionId)
       this.transactions = this.transactions.filter(t => t.id !== transactionId)
-      this.transactionsTotal = Math.max(this.transactionsTotal - 1, 0)
     },
 
     // -- Invoices ------------------------------------------------------------------
@@ -121,9 +115,8 @@ export const useOperateStore = defineStore('operate', {
       const projectId = this.requireProject()
       this.invoicesLoading = true
       try {
-        const { invoices, total } = await OperateService.listInvoices(projectId, params)
+        const { invoices } = await OperateService.listInvoices(projectId, params)
         this.invoices = invoices
-        this.invoicesTotal = total
       } finally {
         this.invoicesLoading = false
       }
@@ -143,7 +136,6 @@ export const useOperateStore = defineStore('operate', {
     async deleteInvoice(invoiceId: number): Promise<void> {
       await OperateService.deleteInvoice(this.requireProject(), invoiceId)
       this.invoices = this.invoices.filter(i => i.id !== invoiceId)
-      this.invoicesTotal = Math.max(this.invoicesTotal - 1, 0)
     },
 
     async setInvoiceStatus(invoiceId: number, status: InvoiceStatus): Promise<Invoice> {

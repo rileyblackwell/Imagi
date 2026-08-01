@@ -42,7 +42,7 @@ export function extractError(error: unknown, fallback = 'Something went wrong'):
   return message || fallback
 }
 
-export const SellService = {
+const SellService = {
   // -- Settings -------------------------------------------------------------
   async getSettings(projectId: number): Promise<SellSettings> {
     const { data } = await api.get(`${base(projectId)}/settings/`)
@@ -114,11 +114,6 @@ export const SellService = {
   ): Promise<{ orders: Order[]; total: number }> {
     const { data } = await api.get(`${base(projectId)}/orders/`, { params })
     return data
-  },
-
-  async getOrder(projectId: number, orderId: number): Promise<Order> {
-    const { data } = await api.get(`${base(projectId)}/orders/${orderId}/`)
-    return data.order
   },
 
   async fulfillOrder(projectId: number, orderId: number): Promise<Order> {

@@ -42,14 +42,12 @@ interface MarketingState {
   contactsLoading: boolean
   tags: TagCount[]
   campaigns: Campaign[]
-  campaignsTotal: number
   campaignsLoading: boolean
   conversations: Conversation[]
   conversationsLoading: boolean
   adConnections: AdConnection[]
   adsSummary: AdsSummary | null
   adCampaigns: AdCampaign[]
-  adCampaignsTotal: number
   adCampaignsLoading: boolean
   adsSyncing: boolean
 }
@@ -66,14 +64,12 @@ export const useMarketingStore = defineStore('marketing', {
     contactsLoading: false,
     tags: [],
     campaigns: [],
-    campaignsTotal: 0,
     campaignsLoading: false,
     conversations: [],
     conversationsLoading: false,
     adConnections: [],
     adsSummary: null,
     adCampaigns: [],
-    adCampaignsTotal: 0,
     adCampaignsLoading: false,
     adsSyncing: false,
   }),
@@ -180,9 +176,8 @@ export const useMarketingStore = defineStore('marketing', {
       const projectId = this.requireProject()
       this.campaignsLoading = true
       try {
-        const { campaigns, total } = await MarketingService.listCampaigns(projectId, params)
+        const { campaigns } = await MarketingService.listCampaigns(projectId, params)
         this.campaigns = campaigns
-        this.campaignsTotal = total
       } finally {
         this.campaignsLoading = false
       }
@@ -203,7 +198,6 @@ export const useMarketingStore = defineStore('marketing', {
     async deleteCampaign(campaignId: number): Promise<void> {
       await MarketingService.deleteCampaign(this.requireProject(), campaignId)
       this.campaigns = this.campaigns.filter(c => c.id !== campaignId)
-      this.campaignsTotal = Math.max(this.campaignsTotal - 1, 0)
     },
 
     async previewRecipients(campaignId: number): Promise<number> {
@@ -277,9 +271,8 @@ export const useMarketingStore = defineStore('marketing', {
       const projectId = this.requireProject()
       this.adCampaignsLoading = true
       try {
-        const { campaigns, total, summary } = await MarketingService.listAdCampaigns(projectId, params)
+        const { campaigns, summary } = await MarketingService.listAdCampaigns(projectId, params)
         this.adCampaigns = campaigns
-        this.adCampaignsTotal = total
         this.adsSummary = summary
       } finally {
         this.adCampaignsLoading = false
@@ -292,7 +285,6 @@ export const useMarketingStore = defineStore('marketing', {
       try {
         const result = await MarketingService.syncAds(projectId)
         this.adCampaigns = result.campaigns
-        this.adCampaignsTotal = result.campaigns.length
         this.adsSummary = result.summary
         return result
       } finally {

@@ -20,12 +20,6 @@ export interface AuthState {
   initialized: boolean;
 }
 
-// API Types
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-}
-
 // Service Types
 export interface LoginCredentials {
   username: string;
@@ -45,6 +39,3 @@ export interface AuthResponse {
   token: string;
   user: User;
 }
-
-export type LoginResponse = ApiResponse<AuthResponse>;
-export type RegisterResponse = ApiResponse<AuthResponse>;

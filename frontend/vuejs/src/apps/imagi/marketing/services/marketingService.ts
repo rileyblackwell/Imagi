@@ -48,7 +48,7 @@ export function extractError(error: unknown, fallback = 'Something went wrong'):
   return message || fallback
 }
 
-export const MarketingService = {
+const MarketingService = {
   // -- Settings -------------------------------------------------------------
   async getSettings(projectId: number): Promise<MarketingSettings> {
     const { data } = await api.get(`${base(projectId)}/settings/`)

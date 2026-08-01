@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { AuthAPI } from '../services/api'
 import { useAuthStore as useGlobalAuthStore } from '@/shared/stores/auth'
-import type { LoginCredentials, AuthResponse, UserRegistrationData, User } from '../types/auth'
+import type { LoginCredentials, AuthResponse, UserRegistrationData } from '../types/auth'
 
 /**
  * Auth module store for handling authentication-specific processes
@@ -106,37 +106,10 @@ export const useAuthStore = defineStore('auth-module', () => {
       if (router) {
         await router.push('/')
       }
-    } catch (err) {
+    } catch {
       // Silently handle logout errors
     } finally {
       isLoggingOut.value = false
-    }
-  }
-
-  /**
-   * Update user profile
-   * Delegates to global auth store
-   */
-  const updateUser = async (userData: Partial<User>): Promise<User> => {
-    try {
-      loading.value = true
-      error.value = null
-      
-      const response = await AuthAPI.updateUser(userData)
-      
-      // Update global user state if successful
-      if (response?.data) {
-        // We only update the user object in global state, not the token
-        globalAuthStore.setAuthState(response.data, globalAuthStore.token)
-        return response.data
-      }
-      
-      throw new Error('Failed to update user profile')
-    } catch (err: any) {
-      error.value = err.message || 'Failed to update profile'
-      throw err
-    } finally {
-      loading.value = false
     }
   }
 
@@ -171,7 +144,6 @@ export const useAuthStore = defineStore('auth-module', () => {
     login,
     register,
     logout,
-    updateUser,
     initAuth,
     clearError
   }

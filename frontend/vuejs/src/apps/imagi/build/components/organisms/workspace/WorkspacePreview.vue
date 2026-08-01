@@ -1125,9 +1125,7 @@ watch(
   }
 )
 
-// Kept for existing callers of this component's public API.
-const loadPreview = startPreview
-defineExpose({ reload, loadPreview, navigateTo })
+defineExpose({ reload })
 </script>
 
 <style scoped>

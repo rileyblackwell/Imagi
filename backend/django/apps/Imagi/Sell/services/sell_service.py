@@ -13,7 +13,7 @@ from django.conf import settings as django_settings
 from django.db import transaction
 from django.utils import timezone
 
-from ..models import Customer, Order, OrderItem, Product
+from ..models import Customer, Order, OrderItem
 from .stripe_client import StripeClient, StripeClientError
 
 logger = logging.getLogger(__name__)
