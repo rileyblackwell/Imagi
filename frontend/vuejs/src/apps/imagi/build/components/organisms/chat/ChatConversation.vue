@@ -155,7 +155,12 @@ interface ProcessedMessage extends AIMessage {
   enterDelay?: number;
 }
 
-const props = defineProps<{
+/* Both show* flags are declared through withDefaults on purpose. Vue casts an
+   absent Boolean prop to false, so a type-only optional `showActivity?: boolean`
+   defaulted OFF — the opposite of what its own comment promised, which is why
+   subagent transcripts were quietly dropping their activity feed. Naming the
+   default here is what makes "omit it and you get it" true. */
+const props = withDefaults(defineProps<{
   messages: AIMessage[]
   isProcessing?: boolean
   /** What the agent is doing right now; empty while its reply is streaming. */
@@ -170,9 +175,15 @@ const props = defineProps<{
    *  reply is a second, emptier telling of the same thing. Defaults on, so a
    *  subagent's transcript still shows how it worked. */
   showActivity?: boolean
-}>()
+  /** Whether the transcript carries its own "Working…" line. Off on the main
+   *  thread, where the masthead a few pixels above is already reporting the
+   *  same run — and reporting it from a fixed place, rather than from the
+   *  bottom of a transcript the user may have scrolled away from. Subagent
+   *  threads keep it: their masthead names the subagent, not the run. */
+  showStatus?: boolean
+}>(), { showActivity: true, showStatus: true })
 
-const activityVisible = computed(() => props.showActivity !== false)
+const activityVisible = computed(() => props.showActivity)
 
 const restoreAllowed = computed(() =>
   props.canRestore !== undefined ? props.canRestore : !props.isProcessing
@@ -185,6 +196,7 @@ const restoreAllowed = computed(() =>
  * A tool call mid-run sets statusText again, which brings the indicator back.
  */
 const showActivityIndicator = computed(() => {
+  if (!props.showStatus) return false
   if (!props.isProcessing) return false
   if (props.statusText) return true
   const last = props.messages[props.messages.length - 1]

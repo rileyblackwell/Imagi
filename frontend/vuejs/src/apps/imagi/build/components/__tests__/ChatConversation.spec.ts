@@ -55,6 +55,13 @@ describe('ChatConversation activity indicator', () => {
     expect(indicatorText(wrapper)).toBe('Editing project files…')
   })
 
+  it('stays out of the transcript when the pane reports the run itself', () => {
+    // The main thread's masthead carries the status line, so a second one
+    // trailing the transcript would say the same thing twice.
+    const wrapper = mountWith({ isProcessing: true, statusText: 'Thinking…', showStatus: false })
+    expect(indicatorText(wrapper)).toBeNull()
+  })
+
   it('hides when the run is over', () => {
     const wrapper = mountWith({
       isProcessing: false,

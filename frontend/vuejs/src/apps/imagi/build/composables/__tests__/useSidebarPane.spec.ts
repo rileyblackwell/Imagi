@@ -53,6 +53,25 @@ describe('useSidebarPane', () => {
   })
 
   describe('the navbar switcher', () => {
+    it('offers all three views, each named in words', () => {
+      // The switcher is the only way across on a phone — including out of the
+      // preview, the one view with no masthead of its own — so every view has
+      // to be reachable from it, and labelled the way its pane names itself.
+      const { mobileViewOptions } = useSidebarPane(ref(true))
+
+      expect(mobileViewOptions.map(o => o.value)).toEqual(['chat', 'manager', 'browser'])
+      expect(mobileViewOptions.map(o => o.label)).toEqual(['Main agent', 'Subagents', 'Preview'])
+    })
+
+    it('tracks which view is selected, so the switcher can mark it', () => {
+      const { selectMobileView, mobileView } = useSidebarPane(ref(true))
+
+      selectMobileView('browser')
+      expect(mobileView.value).toBe('browser')
+      selectMobileView('manager')
+      expect(mobileView.value).toBe('manager')
+    })
+
     it('collapses the sidebar only for the preview', () => {
       const { selectMobileView } = useSidebarPane(ref(true))
       const collapsed: boolean[] = []

@@ -32,6 +32,7 @@
         :status-text="activeInstance?.statusText || ''"
         :can-restore="canRestoreCheckpoints"
         :show-activity="!isLeadThread"
+        :show-status="!isLeadThread"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         @open-task="onOpenTask"
         class="flex-1"

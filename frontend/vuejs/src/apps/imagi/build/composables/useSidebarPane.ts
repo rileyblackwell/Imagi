@@ -4,8 +4,10 @@ import { computed, ref, type Ref } from 'vue'
  * Which pane the workspace sidebar shows, across both layouts.
  *
  * There are two of these panes — the agent manager and the active instance's
- * chat — and never both at once. Desktop toggles between them; mobile adds the
- * preview as a third full-screen view, driven by the navbar switcher.
+ * chat — and never both at once. Desktop toggles between them with the pane
+ * masthead's switch; mobile adds the preview as a third full-screen view and
+ * moves between all three from the navbar's segmented switcher, which is the
+ * only such control at that width (the mastheads drop theirs).
  *
  * The two layouts read different state (`sidebarView` on desktop, `mobileView`
  * on mobile), which is the trap this composable exists to close: a switch made
@@ -31,9 +33,12 @@ function readStored(key: string): string | null {
   }
 }
 
+/** The three full-screen views mobile switches between, in a fixed order so a
+ *  destination keeps its position as the current view changes. Labels match the
+ *  pane mastheads word for word — 'Main agent' is the chat pane's own title. */
 export const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string }> = [
+  { value: 'chat', label: 'Main agent', icon: 'fas fa-comments' },
   { value: 'manager', label: 'Subagents', icon: 'fas fa-layer-group' },
-  { value: 'chat', label: 'Chat', icon: 'fas fa-comment-dots' },
   { value: 'browser', label: 'Preview', icon: 'fas fa-globe' },
 ]
 

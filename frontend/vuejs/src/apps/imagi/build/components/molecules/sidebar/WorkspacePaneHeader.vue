@@ -10,13 +10,35 @@
   same height — so the top of the workspace reads as one bar rather than two
   panes that happen to be adjacent.
 
+  The identity sits centred on the plate — it is what the pane is, not one more
+  control, and the eye should find it in the same place whatever is bolted to
+  either side of it.
+
   The right-hand control names the pane it switches to and how much is
   happening over there. That count is the point: you can see background work
-  piling up without leaving the thread you're in.
+  piling up without leaving the thread you're in. It is desktop-only; on a
+  phone the navbar switcher above reaches all three views at once.
 -->
 <template>
-  <div class="pane-header shrink-0 flex items-center gap-2">
-    <div class="flex-1 min-w-0">
+  <div class="pane-header shrink-0">
+    <!-- Left column: a ghost of the switch, and load-bearing. Reserving the
+         same width the real control takes on the right is what puts the
+         identity at the true centre of the plate — an empty gutter gets
+         squeezed by a long title and the name drifts left of centre. It is
+         inert in every sense: invisible, unhittable, and skipped by
+         assistive tech. -->
+    <div class="pane-header-gutter" aria-hidden="true">
+      <span v-if="switchLabel" class="pane-switch pane-switch--ghost">
+        <i class="fas fa-chevron-left pane-switch-chevron"></i>
+        <span class="pane-switch-icon-wrap">
+          <i :class="[switchIcon, 'pane-switch-icon']"></i>
+        </span>
+        <span class="pane-switch-label">{{ switchLabel }}</span>
+        <span v-if="switchCount" class="pane-switch-count">{{ switchCount }}</span>
+      </span>
+    </div>
+
+    <div class="pane-identity">
       <h2 class="pane-title truncate">{{ title }}</h2>
 
       <!-- Where this pane stands: a state dot, then the reading. The dot is
@@ -38,9 +60,10 @@
       </div>
     </div>
 
-    <!-- Pane switch, on every size. Mobile also has the navbar switcher, but
-         that one is up in the chrome: a reader deep in a thread reaches for
-         the control on the pane itself, and it has to take them across. -->
+    <!-- Pane switch — the desktop control, where this masthead is the only
+         place to change panes. Mobile has the navbar switcher instead, which
+         reaches all three views (the preview included) rather than just the
+         other pane, so carrying both there would be two controls for one job. -->
     <button
       v-if="switchLabel"
       type="button"
@@ -116,8 +139,19 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 .pane-header {
   position: relative;
   z-index: 20;
+  /* Three columns, the outer two equal: whatever the switch occupies on the
+     right is mirrored by the gutter on the left, so the identity is centred on
+     the plate itself. Mobile hides the switch and both outer columns collapse
+     to nothing — the identity stays centred either way, without the layout
+     needing to know which case it is in. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  /* Tight, because the two reserved columns spend this plate's width twice
+     over: every pixel here comes off the status line in the middle. */
+  gap: 0.25rem;
   min-height: 3.0625rem;
-  padding: 0.4375rem 0.75rem;
+  padding: 0.4375rem 0.5rem;
   background: var(--iw-material-bg);
   -webkit-backdrop-filter: var(--iw-material-filter);
   backdrop-filter: var(--iw-material-filter);
@@ -157,6 +191,29 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
    another line of bold UI sans. Set at the preview nameplate's size and optical
    axis, because the two are the same thing on opposite sides of the divider:
    what you are looking at, named. */
+/* The gutter holds the switch's ghost: it occupies the width, paints nothing,
+   and takes no clicks. `visibility: hidden` rather than `display: none`
+   precisely because the box still has to be measured. */
+/* No min-width:0 here on purpose: the ghost's width IS this column's floor,
+   which is what stops a long title from squeezing the left side and pulling
+   the name off centre. The title gives way instead, which it is built to do. */
+.pane-header-gutter {
+  display: flex;
+}
+
+.pane-switch--ghost {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The identity block: name over reading, centred as one object. It takes only
+   the width it needs (the grid's `auto` column) and truncates rather than
+   pushing the switch off the plate. */
+.pane-identity {
+  min-width: 0;
+  text-align: center;
+}
+
 .pane-title {
   font-family: theme('fontFamily.display');
   font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
@@ -177,6 +234,7 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 .pane-status-line {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.3125rem;
   min-height: 0.9375rem;
   margin-top: 0.125rem;
@@ -292,6 +350,7 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 .pane-switch {
   display: inline-flex;
   align-items: center;
+  justify-self: end;
   gap: 0.3125rem;
   flex-shrink: 0;
   height: 1.75rem;
@@ -309,6 +368,17 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
     border-color var(--iw-dur-2) var(--iw-ease-out),
     color var(--iw-dur-2) var(--iw-ease-out),
     box-shadow var(--iw-dur-2) var(--iw-ease-out);
+}
+
+/* Desktop only, and stated here rather than with a `max-md:hidden` utility:
+   the scoped `.pane-switch[data-v-…]` rule above outranks a single-class
+   Tailwind utility, so the utility would have been silently ignored. Below the
+   md breakpoint the navbar switcher is the way across — it reaches the preview
+   too, which this control cannot. */
+@media (max-width: 767px) {
+  .pane-switch {
+    display: none;
+  }
 }
 
 .pane-switch:hover {
