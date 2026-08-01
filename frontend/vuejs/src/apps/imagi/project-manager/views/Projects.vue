@@ -305,7 +305,7 @@ import { useNotificationStore } from '@/shared/stores/notificationStore'
 import { useProjectSearch } from '../composables/useProjectSearch'
 import type { Project } from '@/apps/imagi/build/types/components'
 import { normalizeProject } from '@/apps/imagi/build/types/components'
-import { toSlug } from '@/apps/imagi/build/utils/slug'
+import { projectSlug } from '@/apps/imagi/build/utils/slug'
 import { ConfirmModal } from '@/apps/imagi/build/components/organisms/modals'
 
 
@@ -451,7 +451,7 @@ async function createProject() {
     // Navigate immediately to the project hub for the newly created project
     router.push({
       name: 'project-hub',
-      params: { projectName: toSlug(newProject.name) }
+      params: { projectName: projectSlug(newProject) }
     })
     
   } catch (error: any) {
@@ -532,7 +532,7 @@ const confirmDelete = async (project: Project) => {
 
   // Check if user is currently in the workspace for this project
   const isCurrentlyInWorkspace = router.currentRoute.value.name === 'builder-workspace' &&
-                                 router.currentRoute.value.params.projectName === toSlug(project.name)
+                                 router.currentRoute.value.params.projectName === projectSlug(project)
 
   try {
     // The store owns the delete: it optimistically removes the project from the

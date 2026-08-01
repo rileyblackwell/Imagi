@@ -111,7 +111,7 @@ import { useRoute } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
-import { matchesSlug } from '@/apps/imagi/build/utils/slug'
+import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
 import type { Project } from '@/apps/imagi/build/types/components'
 import { useMarketingStore } from '../stores/marketing'
 import { ui } from '../utils/ui'
@@ -130,7 +130,7 @@ const isInitializing = ref(true)
 const isLoading = computed(() => projectStore.loading || isInitializing.value)
 
 const project = computed<Project | null>(() => {
-  return projectStore.projects.find(p => matchesSlug(p.name, props.projectName)) || null
+  return findProjectBySlug(projectStore.projects, props.projectName) || null
 })
 
 interface Tab { name: string; label: string; icon: string; children?: string[] }

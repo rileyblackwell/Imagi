@@ -99,7 +99,7 @@ import { ProjectService } from '@/apps/imagi/build/services/projectService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { ToolCategoryCard } from '../components/organisms/hub'
 import { businessTools } from '../utils/businessTools'
-import { matchesSlug } from '@/apps/imagi/build/utils/slug'
+import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
 import type { Project } from '@/apps/imagi/build/types/components'
 
 const props = defineProps<{
@@ -115,7 +115,7 @@ const projectSlug = computed(() => props.projectName)
 const isLoading = computed(() => projectStore.loading || isInitializing.value)
 
 const project = computed<Project | null>(() => {
-  return projectStore.projects.find(p => matchesSlug(p.name, props.projectName)) || null
+  return findProjectBySlug(projectStore.projects, props.projectName) || null
 })
 
 async function loadProject() {

@@ -23,11 +23,18 @@ def validate_project_name(value):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    """Serializer for reading project data."""
+    """Serializer for reading project data.
+
+    The slug is exposed because the frontend routes on it (/imagi/workspace/
+    <slug> and the sibling module workspaces). It is the authoritative one the
+    model generates and disambiguates, so two projects whose names collapse to
+    the same slug still address distinctly; deriving it on the client instead
+    would collide.
+    """
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'design_preferences', 'created_at', 'updated_at', 'is_active']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'design_preferences', 'created_at', 'updated_at', 'is_active']
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
 
     def validate_name(self, value):
         """Applies on the writable update path (PATCH /projects/<pk>/)."""
