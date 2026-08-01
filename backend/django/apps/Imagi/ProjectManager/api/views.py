@@ -76,18 +76,6 @@ class ProjectDeleteView(generics.DestroyAPIView):
         service.delete_project(project)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-class UndoActionView(generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, project_id, action_id):
-        service = ProjectManagementService(request.user)
-        project = service.get_project(project_id)
-        if not project:
-            raise NotFound('Project not found')
-            
-        service.undo_last_action(project)
-        return Response(status=status.HTTP_200_OK)
-
 class ProjectInitializeView(APIView):
     """
     Initialize a project with Django project structure.

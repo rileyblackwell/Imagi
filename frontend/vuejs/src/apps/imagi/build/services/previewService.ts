@@ -109,20 +109,6 @@ export const PreviewService = {
     }
   },
 
-  /** Current session state; running=false when nothing is up (never throws 409). */
-  async status(projectId: string): Promise<PreviewFrame> {
-    try {
-      const response = await api.get(`/v1/builder/${projectId}/preview/`)
-      return response.data
-    } catch (error) {
-      rethrow(error)
-    }
-  },
-
-  async stop(projectId: string): Promise<void> {
-    await api.delete(`/v1/builder/${projectId}/preview/`)
-  },
-
   /** The project's apps and pages, derived from its real Vue routers. */
   async pages(projectId: string): Promise<PreviewApp[]> {
     try {

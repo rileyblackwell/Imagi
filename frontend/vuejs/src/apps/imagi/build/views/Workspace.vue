@@ -42,7 +42,6 @@
                 key="chat"
                 ref="chatRef"
                 class="h-full w-full"
-                :selected-app="null"
                 :on-prompt-submit="handlePrompt"
                 :on-model-select="handleModelSelect"
                 :on-effort-select="handleEffortSelect"
@@ -126,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
@@ -136,7 +135,6 @@ import { AgentService, toolCallToActivityStep } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { BuilderCreationService } from '../services/builderCreationService'
 import { VersionControlService } from '../services/versionControlService'
-import { RouterUpdateService } from '../services/routerUpdateService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
@@ -161,13 +159,8 @@ import ConfirmModal from '../components/organisms/modals/ConfirmModal.vue'
 defineOptions({ name: 'Workspace' })
 
 // Types
-import type { ProjectFile } from '../types/components'
 import type { AIMessage } from '../types/index'
 import type { CheckInDto, DispatchedTaskRef, ReasoningEffort } from '../types/services'
-import { matchesSlug, toSlug } from '../utils/slug'
-
-// Ensure all services use the shared API client with proper timeout configurations
-const AI_TIMEOUT = 90000 // 90 seconds for AI processing
 
 const route = useRoute()
 const router = useRouter()
@@ -176,25 +169,13 @@ const projectStore = useProjectStore()
 const projectId = ref<string>('')
 // Hosts the one ConfirmModal instance the whole workspace shares.
 const confirmModal = useConfirm()
-// The embedded preview pane; exposes reload/loadPreview/navigateTo.
+// The embedded preview pane; exposes reload.
 const previewRef = ref<InstanceType<typeof WorkspacePreview> | null>(null)
 // The chat panel; exposes setPromptText for the checkpoint-restore flow.
 const chatRef = ref<InstanceType<typeof BuilderSidebarChat> | null>(null)
 const {
-  createFile,
   loadModels,
 } = useBuilderMode()
-
-// Constants
-const fileTypes = {
-  'vue': 'Vue Component',
-  'ts': 'TypeScript',
-  'js': 'JavaScript',
-  'css': 'CSS',
-  'html': 'HTML',
-  'json': 'JSON',
-  'md': 'Markdown'
-}
 
 // Which pane fills the sidebar (persisted): the agent manager (team view)
 // or the active instance's chat — never both. Tolerates the old
@@ -399,47 +380,6 @@ async function onRestoreCheckpoint(message: AIMessage) {
 
 // Navigation items for sidebar
 const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
-
-// Computed properties
-const currentProject = computed(() => {
-  return projectStore.currentProject || null
-})
-
-// Display name for the Project Web App title
-const projectTitle = computed(() => {
-  const name = currentProject.value && (currentProject.value as any).name
-  return name && String(name).trim() ? String(name) : ''
-})
-
-// Sanitized project title for display (remove 'spacex')
-const sanitizedProjectTitle = computed(() => {
-  const title = projectTitle.value || ''
-  const cleaned = title.replace(/spacex/ig, '').trim()
-  return cleaned || ''
-})
-
-// Sanitized navbar project name and description (remove 'spacex')
-const navbarNameSanitized = computed(() => {
-  const raw = currentProject.value && (currentProject.value as any).name
-    ? String((currentProject.value as any).name)
-    : ''
-  return raw.trim()
-})
-
-const navbarDescSanitized = computed(() => {
-  const raw = currentProject.value && (currentProject.value as any).description
-    ? String((currentProject.value as any).description)
-    : ''
-  return raw.trim()
-})
-
-// Helper function to get just the filename
-function getFileName(path: string): string {
-  if (!path) return 'this file'
-  const parts = path.split('/')
-  return parts[parts.length - 1] ?? 'this file'
-}
-
 
 // Create a git commit after successful code changes
 function createCommitFromPrompt(filePath: string, prompt: string) {
@@ -827,100 +767,6 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   store.setInstanceEffort(instance.id, effort)
 }
 
-async function handleFileSelect(file: ProjectFile) {
-  // Ensure selected file is set on the active instance
-  const instance = store.activeInstance
-  if (instance) store.setInstanceFile(instance.id, file)
-  await nextTick()
-}
-
-async function handleFileCreate(data: { name: string; type: string; content?: string }) {
-  try {
-    const created = await createFile({
-      projectId: projectId.value,
-      ...data
-    })
-
-    const createdPath = created?.path || ''
-    const requestedPath = data?.name || ''
-    const pathForMatch = createdPath || requestedPath
-    const appMatch = pathForMatch.match(/src\/apps\/([^/]+)/i)
-
-    // Determine file type for notification message
-    const fileName = pathForMatch.split('/').pop() || 'file'
-    const isView = data.name.includes('/views/')
-    const isComponent = data.name.includes('/components/')
-    const fileTypeLabel = isView ? 'View' : isComponent ? 'Component' : 'File'
-
-    // If a view was created under an app, auto-register it in that app's router
-    const viewInAppRegex = /(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/[^/]+\/views\/[^/]+\.vue$/i
-    if (pathForMatch && viewInAppRegex.test(pathForMatch)) {
-      try {
-        await RouterUpdateService.addViewRoute(projectId.value, pathForMatch)
-      } catch (e) {
-        console.warn('Failed to auto-add route for created view:', pathForMatch, e)
-      }
-    }
-    
-    // Force refresh file list after creating a new file to ensure it appears in the explorer
-    console.debug('File created, refreshing file list from backend...')
-    await loadProjectFiles(true)
-
-    await nextTick()
-    
-    // Automatically commit the file creation
-    VersionControlService.commitAfterFileOperation(
-      projectId.value,
-      created?.path || data.name,
-      `Created ${created?.path || data.name}`
-    )
-    
-    // Show success notification
-    const { showNotification } = useNotification()
-    showNotification({
-      type: 'success',
-      message: `${fileTypeLabel} "${fileName}" created successfully`,
-      duration: 3000
-    })
-  } catch (error) {
-    console.error('Error creating file:', error)
-    
-    // Show error notification
-    const { showNotification } = useNotification()
-    showNotification({
-      type: 'error',
-      message: `Failed to create file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      duration: 5000
-    })
-  }
-}
-
-async function handleFileDelete(file: ProjectFile) {
-  try {
-    await FileService.deleteFile(projectId.value, file.path)
-    
-    // Force refresh file list after deleting a file to ensure it's removed from the explorer
-    console.debug('File deleted, refreshing file list from backend...')
-    await loadProjectFiles(true)
-    
-    // If the deleted file was selected in any instance, clear that selection
-    for (const inst of store.instances) {
-      if (inst.selectedFile && inst.selectedFile.path === file.path) {
-        store.setInstanceFile(inst.id, null)
-      }
-    }
-    
-    // Automatically commit the file deletion
-    VersionControlService.commitAfterFileOperation(
-      projectId.value,
-      file.path,
-      `Deleted ${file.path}`
-    )
-  } catch (error) {
-    console.error('Error deleting file:', error)
-  }
-}
-
 // Ensure default apps exist for every new project
 async function ensureDefaultApps() {
   try {
@@ -1257,16 +1103,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 /* Manager <-> chat pane swap. The preview lives in the main content area and
    is untouched by this transition.
 
@@ -1322,10 +1158,5 @@ onBeforeUnmount(() => {
 
 :root.dark :deep(::-webkit-scrollbar-thumb:hover) {
   background: rgba(255, 255, 255, 0.2);
-}
-
-/* Safe area padding for mobile */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 </style>

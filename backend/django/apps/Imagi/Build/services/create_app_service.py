@@ -618,7 +618,7 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
         lines = urls_src.splitlines()
         out = []
         inserted = False
-        for i, line in enumerate(lines):
+        for line in lines:
             out.append(line)
             # Heuristic: append after the existing app URL includes block
             if line.strip().startswith("# App URLs") and not inserted:

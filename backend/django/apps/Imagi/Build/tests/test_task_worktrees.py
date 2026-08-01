@@ -12,7 +12,6 @@ import os
 import shutil
 import subprocess
 import tempfile
-from types import SimpleNamespace
 
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User

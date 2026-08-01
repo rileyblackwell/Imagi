@@ -23,11 +23,7 @@ from .views import (
     VersionControlHistoryView, VersionControlResetView,
     CreateAppView,
     ProjectDirectoriesView,
-    ProjectLayoutView,
-    CreateDirectoryView,
-    DeleteDirectoryView,
     # Agent views
-    agent,
     agent_stream,
     conversations_list_create,
     conversation_detail,
@@ -43,8 +39,6 @@ from .views import (
 builder_patterns = [
     # Builder workspace endpoints
     path('<int:project_id>/directories/', ProjectDirectoriesView.as_view(), name='api-project-directories'),
-    path('<int:project_id>/directories/create/', CreateDirectoryView.as_view(), name='api-create-directory'),
-    path('<int:project_id>/directories/<path:dir_path>/delete/', DeleteDirectoryView.as_view(), name='api-delete-directory'),
     # Browser preview: a headless Chromium on the backend renders the
     # project's dev servers; the client streams frames and sends input.
     path('<int:project_id>/preview/', PreviewSessionView.as_view(), name='api-preview'),
@@ -67,13 +61,9 @@ builder_patterns = [
 
     # App creation endpoint
     path('<int:project_id>/apps/create/', CreateAppView.as_view(), name='api-create-app'),
-
-    # Layout management endpoint
-    path('<int:project_id>/layout/', ProjectLayoutView.as_view(), name='api-project-layout'),
 ]
 
 agents_patterns = [
-    path('agent/', agent, name='agent'),
     path('agent/stream/', agent_stream, name='agent_stream'),
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),

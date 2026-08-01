@@ -1,4 +1,4 @@
-import type { RouteRecordRaw, NavigationGuardWithThis } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
 import Home from '@/apps/home/views/Home.vue'
 import About from '@/apps/home/views/About.vue'
 import Privacy from '@/apps/home/views/PrivacyPolicy.vue'
@@ -42,12 +42,6 @@ const routes: RouteRecordRaw[] = [
     }
   }
 ]
-
-// Route guard with proper TypeScript typing
-export const beforeEnter: NavigationGuardWithThis<undefined> = (to, from, next) => {
-  // Add any route guards specific to the home app
-  next()
-}
 
 export { routes }
 export default routes

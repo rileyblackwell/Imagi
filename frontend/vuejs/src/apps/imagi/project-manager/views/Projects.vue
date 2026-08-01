@@ -292,7 +292,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount, onMounted, onActivated } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, onActivated } from 'vue'
 import { fieldShell } from '@/shared/styles/forms'
 import { useRouter } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
@@ -613,19 +613,6 @@ onBeforeUnmount(() => {
   // Drop any pending deletion-banner auto-dismiss timer.
   if (deleteBannerTimer) clearTimeout(deleteBannerTimer)
 })
-
-// Watch auth store authentication status
-watch(
-  () => authStore.isAuthenticated,
-  (newAuthStatus) => {
-    console.debug('Auth state changed:', newAuthStatus)
-    if (newAuthStatus) {
-      // Don't automatically fetch projects when auth state changes
-      // Projects will be fetched when needed by the component's normal flow
-      // This prevents unnecessary API calls immediately after login
-    }
-  }
-)
 </script>
 
 <style scoped>

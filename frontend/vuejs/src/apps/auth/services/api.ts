@@ -1,9 +1,8 @@
 import api from '@/shared/services/api'
-import type { 
-  User, 
-  LoginCredentials, 
-  AuthResponse, 
-  UserRegistrationData 
+import type {
+  LoginCredentials,
+  AuthResponse,
+  UserRegistrationData
 } from '@/apps/auth/types/auth'
 
 // API Configuration
@@ -78,10 +77,6 @@ export const AuthAPI = {
     }
     
     return csrfToken
-  },
-
-  async init(): Promise<{ data: { isAuthenticated: boolean; user: User } }> {
-    return await api.get(`${API_PATH}/init/`)
   },
 
   async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
@@ -278,10 +273,5 @@ export const AuthAPI = {
     } finally {
       logoutPromise = null
     }
-  },
-
-  async updateUser(userData: Partial<User>): Promise<{ data: User }> {
-    const response = await api.patch(`${API_PATH}/user/`, userData)
-    return response
   }
 }

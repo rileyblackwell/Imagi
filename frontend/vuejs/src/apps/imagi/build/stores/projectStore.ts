@@ -665,24 +665,13 @@ export const useProjectStore = defineStore('builder', () => {
     isLoading.value = isLoadingState // Update both for compatibility
   }
 
-  /**
-   * Clear the projects cache
-   * Used when immediate cache invalidation is needed
-   */
-  function clearProjectsCache() {
-    ProjectService.clearProjectsCache()
-  }
-
   return {
     // State
     projects,
-    projectsMap,
     currentProject,
     loading,
     error,
     initialized,
-    lastFetch,
-    isLoading,
     isAuthenticated,
 
     // Getters
@@ -698,10 +687,7 @@ export const useProjectStore = defineStore('builder', () => {
     fetchProjects,
     createProject,
     deleteProject,
-    handleError,
     clearError,
-    setLoading,
-    fetchProject,
-    clearProjectsCache
+    fetchProject
   }
 })

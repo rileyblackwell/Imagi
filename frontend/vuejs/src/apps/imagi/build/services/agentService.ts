@@ -328,58 +328,6 @@ export const AgentService = {
     return ModelsService.formatError(error);
   },
 
-  async getVersionHistory(projectId: string): Promise<VersionControlResponse> {
-    if (!projectId) {
-      throw new Error('Project ID is required')
-    }
-
-    try {
-      const response = await api.get(`/v1/builder/${projectId}/versions/`)
-
-      return {
-        success: response.data.success !== false,
-        versions: response.data.versions || [],
-        error: response.data.error || null
-      }
-    } catch (error: any) {
-      console.error('Error getting version history:', error)
-      return {
-        success: false,
-        versions: [],
-        error: this.formatError(error)
-      }
-    }
-  },
-
-  async resetToVersion(projectId: string, commitHash: string): Promise<VersionControlResponse> {
-    if (!projectId || !commitHash) {
-      throw new Error('Project ID and commit hash are required')
-    }
-
-    try {
-      const response = await api.post(`/v1/builder/${projectId}/versions/reset/`, {
-        commit_hash: commitHash
-      })
-
-      return {
-        success: response.data.success !== false,
-        message: response.data.message || 'Project reset successful',
-        error: response.data.error || null
-      }
-    } catch (error: any) {
-      console.error('Error resetting to version:', error)
-      return {
-        success: false,
-        versions: [],
-        // Restores are refused while an agent run holds the project
-        // (agent_busy contract) — say so instead of a generic failure.
-        error: error?.response?.status === 409
-          ? 'Another agent is still working on this project — wait for it to finish or stop it.'
-          : this.formatError(error)
-      }
-    }
-  },
-
   async createVersion(projectId: string, data: { file_path?: string, description?: string }): Promise<VersionControlResponse> {
     if (!projectId) {
       throw new Error('Project ID is required')

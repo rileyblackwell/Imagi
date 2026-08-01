@@ -10,7 +10,6 @@ const apiMock = vi.hoisted(() => ({
 }))
 vi.mock('@/shared/services/api', () => ({
   default: apiMock,
-  getCsrfToken: vi.fn(),
 }))
 
 import { useAuthStore } from '@/shared/stores/auth'

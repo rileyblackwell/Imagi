@@ -28,7 +28,6 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
 import { BaseLayout } from '@/shared/layouts'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
 import HomeNavbar from '@/apps/home/components/organisms/navigation/HomeNavbar.vue'
@@ -47,18 +46,6 @@ export default {
       type: Boolean,
       default: false
     }
-  },
-  setup() {
-    const isEntered = ref(false)
-
-    onMounted(() => {
-      // Set isEntered to true after mount to trigger initial animation
-      setTimeout(() => {
-        isEntered.value = true
-      }, 100)
-    })
-
-    return { isEntered }
   },
   methods: {
     beforeEnter(el) {

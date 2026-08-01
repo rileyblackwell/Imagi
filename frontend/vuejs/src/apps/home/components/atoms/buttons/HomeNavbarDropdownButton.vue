@@ -44,7 +44,7 @@
 </template>
 
 <script>
-import { defineComponent, computed, ref } from 'vue'
+import { defineComponent, computed } from 'vue'
 
 export default defineComponent({
   name: 'HomeNavbarDropdownButton',

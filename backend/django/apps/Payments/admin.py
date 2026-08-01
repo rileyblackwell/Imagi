@@ -88,10 +88,6 @@ class PaymentAdmin(admin.ModelAdmin):
         return obj.user.email
     user_email.short_description = 'Email'
 
-    def get_amount_display(self, obj):
-        return f"${obj.amount:.2f}"
-    get_amount_display.short_description = 'Amount'
-
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):

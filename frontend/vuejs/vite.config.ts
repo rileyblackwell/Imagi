@@ -149,17 +149,14 @@ export default defineConfig({
     extensions: ['.ts', '.js', '.vue', '.json'],
   },
   optimizeDeps: {
-    // Pre-bundle these at server startup instead of letting Vite discover them
-    // mid-load. The vee-validate rule/i18n packages are pulled in by the
-    // validation plugin but aren't reliably caught by Vite's dep scanner, so on
-    // a cold optimize cache they were discovered on the first page load —
-    // triggering a re-optimize + full reload that intermittently rendered a
-    // blank page (fixed only by a manual refresh). Listing them here removes the
-    // mid-load reload entirely.
+    // Pre-bundle this at server startup instead of letting Vite discover it
+    // mid-load. vee-validate is pulled in by the validation plugin but isn't
+    // reliably caught by Vite's dep scanner, so on a cold optimize cache it was
+    // discovered on the first page load — triggering a re-optimize + full
+    // reload that intermittently rendered a blank page (fixed only by a manual
+    // refresh). Listing it here removes the mid-load reload entirely.
     include: [
       'vee-validate',
-      '@vee-validate/rules',
-      '@vee-validate/i18n',
     ],
   },
 })

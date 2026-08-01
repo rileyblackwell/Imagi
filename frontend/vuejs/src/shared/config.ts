@@ -23,33 +23,7 @@ const config = {
     // Development: Vite dev server proxies /api/* to http://localhost:8000
     // Production: Nginx proxies /api/* to http://backend.railway.internal:8000
     return '/api'
-  })(),
-  
-  // Authentication Configuration
-  auth: {
-    tokenKey: 'token',
-    refreshTokenKey: 'refreshToken',
-    tokenType: 'Bearer'
-  },
-  
-  // App Configuration
-  app: {
-    name: 'Imagi',
-    description: 'Natural language to code platform',
-    version: '1.0.0'
-  },
-
-  // Payment Configuration
-  payments: {
-    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
-  },
-  
-  // Feature Flags
-  features: {
-    enablePasswordReset: true,
-    enableSocialAuth: false,
-    enableTwoFactorAuth: false
-  }
+  })()
 }
 
 export default config 

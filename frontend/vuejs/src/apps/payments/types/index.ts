@@ -4,12 +4,6 @@
 // no balance, no credit package, and no one-time purchase flow here. Plan and
 // usage types live with the usage store (@/shared/stores/usage).
 
-export interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-}
-
 /** A historical credit purchase. Nothing writes these any more. */
 export interface Transaction {
   id: string;
@@ -66,22 +60,3 @@ export interface SessionStatus {
 export interface ErrorMessages {
   [key: number]: string;
 }
-
-export interface PaymentDetail {
-  label: string;
-  value: string | number;
-}
-
-export const PAYMENT_STATUS_OPTIONS = [
-  { label: 'All Transactions', value: 'all' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Failed', value: 'failed' }
-];
-
-export const SORT_OPTIONS = [
-  { label: 'Date (Newest First)', value: 'date_desc' },
-  { label: 'Date (Oldest First)', value: 'date_asc' },
-  { label: 'Amount (Highest First)', value: 'amount_desc' },
-  { label: 'Amount (Lowest First)', value: 'amount_asc' }
-];

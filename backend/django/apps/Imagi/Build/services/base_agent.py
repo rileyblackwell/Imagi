@@ -1649,15 +1649,3 @@ class ImagiAgentService:
                 conversation = run_state.get("conversation")
             if conversation is not None:
                 self._clear_run_started(conversation)
-
-
-# Singleton instance
-_agent_service_instance: Optional[ImagiAgentService] = None
-
-
-def get_agent_service(model: str = DEFAULT_MODEL) -> ImagiAgentService:
-    """Get or create the singleton agent service instance."""
-    global _agent_service_instance
-    if _agent_service_instance is None or _agent_service_instance.model != model:
-        _agent_service_instance = ImagiAgentService(model=model)
-    return _agent_service_instance

@@ -380,34 +380,6 @@ class ViewFileService:
             logger.error(f"Error updating file: {str(e)}")
             raise
     
-    def get_file_details(self, file_path, project_id=None):
-        """Get details about a specific file."""
-        try:
-            project_path = self.get_project_path(project_id)
-            full_path = resolve_safe(project_path, file_path)
-
-            if not os.path.exists(full_path) or not os.path.isfile(full_path):
-                raise NotFound(f"File not found: {file_path}")
-
-            # Get file stats
-            stats = os.stat(full_path)
-            
-            # Generate a unique ID for the file
-            file_id = str(uuid.uuid4())
-            
-            return {
-                'id': file_id,
-                'name': os.path.basename(file_path),
-                'path': file_path,
-                'type': self._get_file_type(file_path),
-                'size': os.path.getsize(full_path),
-                'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
-                'content': self.get_file_content(file_path, project_id)
-            }
-        except Exception as e:
-            logger.error(f"Error getting file details: {str(e)}")
-            raise
-    
     def get_file_content(self, file_path, project_id=None):
         """Get the content of a file.
 
