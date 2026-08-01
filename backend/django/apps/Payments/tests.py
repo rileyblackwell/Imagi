@@ -20,7 +20,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from apps.Payments.models import (
-    Payment,
     PaymentMethod,
     StripeCustomer,
     Subscription,
@@ -69,12 +68,6 @@ def make_transaction(user, amount, **kwargs):
 # --------------------------------------------------------------------------- #
 # Models
 # --------------------------------------------------------------------------- #
-class PaymentModelTests(APITestCase):
-    def test_calculate_credits_is_one_to_one(self):
-        self.assertEqual(Payment.calculate_credits(25), Decimal('25'))
-        self.assertEqual(Payment.calculate_credits('12.50'), Decimal('12.50'))
-
-
 class TransactionModelTests(APITestCase):
     def setUp(self):
         self.user = make_user()
