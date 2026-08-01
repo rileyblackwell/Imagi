@@ -3,9 +3,9 @@
 
   The main agent and the subagents are two views of one workspace, so they wear
   the same plate: a mark identifying the pane, its name in the brand serif, a
-  live status line, and — on desktop — a pill that names the pane it switches
-  to and how much is happening over there. That count is the point: you can
-  see background work piling up without leaving the thread you're in.
+  live status line, and a pill that names the pane it switches to and how much
+  is happening over there. That count is the point: you can see background work
+  piling up without leaving the thread you're in.
 -->
 <template>
   <div class="pane-header shrink-0 flex items-center gap-2.5 px-3.5 py-2.5">
@@ -41,12 +41,13 @@
       </div>
     </div>
 
-    <!-- Desktop pane switch. Mobile navigates from the navbar switcher, so
-         this would be a second control for the same job. -->
+    <!-- Pane switch, on every size. Mobile also has the navbar switcher, but
+         that one is up in the chrome: a reader deep in a thread reaches for
+         the control on the pane itself, and it has to take them across. -->
     <button
       v-if="switchLabel"
       type="button"
-      class="pane-switch iw-press group max-md:hidden"
+      class="pane-switch iw-press group"
       :aria-label="`Switch to ${switchLabel}`"
       @click="emit('switch')"
     >

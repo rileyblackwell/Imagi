@@ -142,6 +142,7 @@ import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
 import { useWindowSize } from '@/shared/composables/useWindowSize'
 import { useConfirm } from '../composables/useConfirm'
+import { useSidebarPane } from '../composables/useSidebarPane'
 // The pane-swap transition below is timed with the workspace's shared
 // motion tokens, so this view loads them too.
 import '../styles/workspace.css'
@@ -196,54 +197,18 @@ const fileTypes = {
   'md': 'Markdown'
 }
 
-// Which pane fills the sidebar (persisted): the agent manager (team view)
-// or the active instance's chat — never both. Tolerates the old
-// 'builderAgentManagerOpen' key's absence; that key is no longer written.
-const SIDEBAR_VIEW_STORAGE_KEY = 'builderSidebarView'
-type SidebarView = 'manager' | 'chat'
-const sidebarView = ref<SidebarView>(
-  (typeof localStorage !== 'undefined' &&
-    localStorage.getItem(SIDEBAR_VIEW_STORAGE_KEY)) === 'manager' ? 'manager' : 'chat'
-)
-function setSidebarView(view: SidebarView) {
-  sidebarView.value = view
-  try {
-    localStorage.setItem(SIDEBAR_VIEW_STORAGE_KEY, view)
-  } catch {}
-}
-
-// Mobile view switcher: on phones the manager, chat and preview each fill the
-// screen one at a time instead of being crammed side by side.
+// Which pane fills the sidebar — the agent manager (team view) or the active
+// instance's chat, never both — plus the mobile switcher that adds the preview
+// as a third full-screen view. See useSidebarPane for why both layouts' state
+// moves together.
 const { isMobile } = useWindowSize()
-type MobileView = 'manager' | 'chat' | 'browser'
-// The sidebar's collapsed state is persisted (see storage-key on
-// BuilderLayout). Start on the view that matches it, otherwise a reload after
-// choosing the browser would highlight "chat" while showing the browser.
-const mobileView = ref<MobileView>(
-  (typeof localStorage !== 'undefined' &&
-    localStorage.getItem('builderWorkspaceSidebarCollapsed') === 'true') ? 'browser' : 'chat'
-)
-const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string }> = [
-  { value: 'manager', label: 'Subagents', icon: 'fas fa-layer-group' },
-  { value: 'chat', label: 'Chat', icon: 'fas fa-comment-dots' },
-  { value: 'browser', label: 'Preview', icon: 'fas fa-globe' },
-]
-function selectMobileView(view: MobileView, setSidebarCollapsed?: (collapsed: boolean) => void) {
-  mobileView.value = view
-  // Manager/chat are the same panes desktop toggles between; keep the
-  // persisted desktop view in step so a rotation doesn't swap panes.
-  if (view !== 'browser') setSidebarView(view)
-  // The browser lives in the main content area, so it shows when the sidebar
-  // (manager + chat) is collapsed off-screen; manager/chat show when it's open.
-  setSidebarCollapsed?.(view === 'browser')
-}
-
-// The single pane the sidebar renders right now. Mobile keeps its own
-// three-way switcher ('browser' maps to a collapsed sidebar, which hides
-// both panes); desktop follows the persisted sidebarView.
-const activeSidebarPane = computed<SidebarView>(() =>
-  isMobile.value ? (mobileView.value === 'manager' ? 'manager' : 'chat') : sidebarView.value
-)
+const {
+  mobileView,
+  mobileViewOptions,
+  setSidebarView,
+  selectMobileView,
+  activeSidebarPane,
+} = useSidebarPane(isMobile)
 
 /** A thread the user can talk in was clicked in the manager — open its
  *  conversation in the chat pane. Subagents don't come through here: they
@@ -254,7 +219,6 @@ const activeSidebarPane = computed<SidebarView>(() =>
  *  never yank the user out of the manager mid-triage. */
 function handleManagerSelect() {
   setSidebarView('chat')
-  if (isMobile.value) mobileView.value = 'chat'
 }
 
 /** Look in on a subagent from the main thread (a dispatch card, a check-in's
@@ -264,7 +228,6 @@ async function openSubagent(conversationId: number) {
   const instance = store.instances.find(i => i.conversationId === conversationId)
   if (!instance) return
   setSidebarView('manager')
-  if (isMobile.value) mobileView.value = 'manager'
   await store.openSubagent(instance.id)
 }
 
