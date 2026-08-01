@@ -5,6 +5,7 @@ Service for interacting with the Stripe API.
 import stripe
 import logging
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -190,7 +191,20 @@ class StripeService:
             
         Returns:
             The verified event
+
+        Raises:
+            ImproperlyConfigured: when no signing secret is configured. Stripe's
+                library HMACs with whatever key it is given, including a
+                zero-length one, so an unset STRIPE_WEBHOOK_SECRET would leave
+                the signature computable by anyone — and this is the only path
+                that writes Subscription rows. Fail closed instead.
         """
+        if not webhook_secret:
+            logger.error("STRIPE_WEBHOOK_SECRET is not configured - refusing to verify webhook")
+            raise ImproperlyConfigured(
+                "STRIPE_WEBHOOK_SECRET is not set; webhook signatures cannot be verified."
+            )
+
         try:
             event = stripe.Webhook.construct_event(
                 payload, signature, webhook_secret

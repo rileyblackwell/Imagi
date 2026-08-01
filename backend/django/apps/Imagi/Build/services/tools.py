@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import time
 from typing import List, Optional
 from typing_extensions import TypedDict
 
@@ -45,6 +46,72 @@ READ_MAX_LINE_CHARS = 500        # long lines are truncated
 GREP_MAX_RESULTS = 50
 GLOB_MAX_RESULTS = 200
 GREP_MAX_FILE_BYTES = 1_000_000  # skip files larger than ~1MB when searching
+GREP_MAX_PATTERN_CHARS = 250     # a search pattern longer than this is not a search
+GREP_MAX_LINE_CHARS = 4_000      # chars of any one line handed to the regex
+GREP_TIME_BUDGET_SECONDS = 10    # wall-clock ceiling for one grep_files call
+
+
+def _has_nested_quantifier(pattern: str) -> bool:
+    """Whether a quantified group's body is itself quantified — the ``(a+)+`` shape.
+
+    That construct is what turns a regex into exponential backtracking, and the
+    stdlib ``re`` module offers no match timeout. This runs in an SDK tool
+    worker thread, where a signal-based alarm is unavailable (signals only fire
+    on the main thread), so a pattern that could hang is refused before it is
+    compiled rather than interrupted afterwards.
+
+    Deliberately conservative: ``{`` counts as a quantifier even where it is a
+    literal brace, so a handful of harmless patterns are refused too.
+    """
+    open_groups: list[bool] = []  # per open group: does its body hold a quantifier?
+    i = 0
+    n = len(pattern)
+    in_class = False
+    while i < n:
+        ch = pattern[i]
+        if ch == '\\':
+            i += 2
+            continue
+        if in_class:
+            if ch == ']':
+                in_class = False
+            i += 1
+            continue
+        if ch == '[':
+            in_class = True
+        elif ch == '(':
+            open_groups.append(False)
+        elif ch == ')':
+            if open_groups:
+                body_quantified = open_groups.pop()
+                nxt = pattern[i + 1] if i + 1 < n else ''
+                group_quantified = nxt in ('*', '+', '{')
+                if group_quantified and body_quantified:
+                    return True
+                if group_quantified and open_groups:
+                    open_groups[-1] = True
+        elif ch in ('*', '+', '{') and open_groups:
+            open_groups[-1] = True
+        i += 1
+    return False
+
+
+def _compile_search_pattern(pattern: str):
+    """Compile a user-supplied search pattern, refusing the hazardous shapes."""
+    if len(pattern) > GREP_MAX_PATTERN_CHARS:
+        raise ValueError(
+            f"Search pattern is too long (limit {GREP_MAX_PATTERN_CHARS} characters)."
+        )
+    if _has_nested_quantifier(pattern):
+        raise ValueError(
+            "Search pattern nests a quantifier inside a quantified group "
+            "(for example '(a+)+'), which can take exponential time. "
+            "Rewrite it without the nested repetition."
+        )
+    try:
+        return re.compile(pattern)
+    except re.error as exc:
+        raise ValueError(f"Invalid search pattern: {exc}") from exc
 
 # File extension to type mapping (for CreateFileService)
 _EXT_TYPE_MAP = {
@@ -312,7 +379,7 @@ def grep_impl(
 
     Returns matches as {file, line, text} entries, capped at max_results.
     """
-    regex = re.compile(pattern)
+    regex = _compile_search_pattern(pattern)
     search_root = resolve_safe_path(project, path) if path else os.path.realpath(project.project_path)
     if not os.path.isdir(search_root):
         raise ValueError(f"Search path '{path}' is not a directory in the project")
@@ -321,6 +388,7 @@ def grep_impl(
     matches = []
     files_scanned = 0
     truncated = False
+    deadline = time.monotonic() + GREP_TIME_BUDGET_SECONDS
 
     for abs_path, _ in _iter_project_files(search_root):
         rel_to_project = os.path.relpath(abs_path, project_root)
@@ -336,8 +404,14 @@ def grep_impl(
             continue
 
         files_scanned += 1
+        if time.monotonic() > deadline:
+            truncated = True
+            break
         for lineno, line in enumerate(text.splitlines(), start=1):
-            if regex.search(line):
+            # Bound the work any single search() call can do. Together with the
+            # pattern check in _compile_search_pattern this keeps one crafted
+            # file plus one crafted pattern from pinning a worker thread.
+            if regex.search(line[:GREP_MAX_LINE_CHARS]):
                 snippet = line.strip()
                 if len(snippet) > READ_MAX_LINE_CHARS:
                     snippet = snippet[:READ_MAX_LINE_CHARS] + '…'

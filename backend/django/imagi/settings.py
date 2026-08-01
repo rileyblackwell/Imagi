@@ -227,6 +227,15 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 25,
     # Log unexpected errors and return a safe generic 500 (never leak str(exc)).
     'EXCEPTION_HANDLER': 'imagi.exception_handler.api_exception_handler',
+    # Rates for the throttles applied per view (apps.Auth.api.throttles,
+    # apps.Imagi.Sell.api.throttles). No DEFAULT_THROTTLE_CLASSES: only the
+    # endpoints an anonymous caller can abuse are limited, so authenticated
+    # product traffic is untouched.
+    'DEFAULT_THROTTLE_RATES': {
+        'auth_signin': '10/min',
+        'auth_register': '20/hour',
+        'storefront_checkout': '30/hour',
+    },
 }
 
 
@@ -263,6 +272,9 @@ CSRF_COOKIE_SECURE = not DEBUG
 
 # Stripe / Payments
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+# Empty means "not configured", never "verify with an empty key": the webhook
+# view and StripeService.verify_webhook_event both refuse to run without it,
+# and apps.Payments.apps.stripe_webhook_secret_check reports it at deploy time.
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import api from '@/shared/services/api'
+import { clearAppDataCaches } from '@/shared/services/appCaches'
 import type { User } from '@/apps/auth/types/auth'
 
 // Define token data structure interface
@@ -97,7 +98,12 @@ export const useAuthStore = defineStore('global-auth', () => {
     // Clear localStorage items
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    
+
+    // App data caches keyed to the session that fetched them. The project
+    // cache holds names, descriptions and server-side paths, so leaving it
+    // behind showed one user's projects to the next person on this browser.
+    clearAppDataCaches()
+
     // Also clear any potential session/auth cookies
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
     document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'

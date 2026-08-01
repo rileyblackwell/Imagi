@@ -1,9 +1,26 @@
 import api from '@/shared/services/api'
+import { PROJECTS_CACHE_PREFIX } from '@/shared/services/appCaches'
 import type { Project } from '../types/components'
 
-// Define cache keys
-const CACHE_KEYS = {
-  PROJECTS: 'imagi_cached_projects'
+/**
+ * The cache key for the signed-in user.
+ *
+ * Namespaced by user id so one account's project list can never be served to
+ * the next account signing in on the same browser profile. Falls back to the
+ * unsuffixed key only when no user is stored, which the auth teardown also
+ * sweeps.
+ */
+function projectsCacheKey(): string {
+  try {
+    const raw = localStorage.getItem('user')
+    const userId = raw ? JSON.parse(raw)?.id : null
+    if (userId != null) {
+      return `${PROJECTS_CACHE_PREFIX}:${userId}`
+    }
+  } catch (e) {
+    console.warn('Error reading user for cache key:', e)
+  }
+  return PROJECTS_CACHE_PREFIX
 }
 
 /**
@@ -19,7 +36,7 @@ export const ProjectService = {
   // Cache management helpers
   _getCachedProjects() {
     try {
-      const cached = localStorage.getItem(CACHE_KEYS.PROJECTS)
+      const cached = localStorage.getItem(projectsCacheKey())
       if (cached) {
         return JSON.parse(cached)
       }
@@ -28,11 +45,11 @@ export const ProjectService = {
     }
     return null
   },
-  
+
   _cacheProjects(projects: Array<Project> | Array<any>) {
     try {
       if (Array.isArray(projects)) {
-        localStorage.setItem(CACHE_KEYS.PROJECTS, JSON.stringify(projects))
+        localStorage.setItem(projectsCacheKey(), JSON.stringify(projects))
         console.debug('Projects cached successfully:', projects.length)
       }
     } catch (e) {
@@ -75,14 +92,10 @@ export const ProjectService = {
         console.warn('Error reading token from localStorage:', e)
       }
       
-      // If still no auth header after attempting to set it
+      // If still no auth header after attempting to set it, refuse. Serving
+      // the cache to a caller with no credential handed the previous session's
+      // project list to whoever loaded the page next.
       if (!api.defaults.headers.common['Authorization']) {
-        // Try to get projects from local cache as fallback
-        const cachedProjects = this._getCachedProjects()
-        if (cachedProjects) {
-          return cachedProjects
-        }
-        
         throw new Error('You must be logged in to view projects')
       }
     }
@@ -343,7 +356,7 @@ export const ProjectService = {
    */
   _clearProjectsCache() {
     try {
-      localStorage.removeItem(CACHE_KEYS.PROJECTS)
+      localStorage.removeItem(projectsCacheKey())
       console.debug('Projects cache cleared')
     } catch (e) {
       console.warn('Error clearing projects cache:', e)

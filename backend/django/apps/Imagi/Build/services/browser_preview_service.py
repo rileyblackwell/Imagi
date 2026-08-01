@@ -37,6 +37,7 @@ from .preview_service import (
     BROWSER_PROFILE_SUFFIX,
     BROWSER_STATE_SUFFIX,
     PreviewService,
+    sidecar_stem,
 )
 
 logger = logging.getLogger(__name__)
@@ -290,11 +291,15 @@ class BrowserPreviewService:
         self.servers = PreviewService(project)
         self.pid_dir = self.servers.pid_dir
 
-        name = project.name
-        self.pid_file = os.path.join(self.pid_dir, f"{name}{BROWSER_PID_SUFFIX}")
-        self.log_file = os.path.join(self.pid_dir, f"{name}{BROWSER_LOG_SUFFIX}")
-        self.state_file = os.path.join(self.pid_dir, f"{name}{BROWSER_STATE_SUFFIX}")
-        self.profile_dir = os.path.join(self.pid_dir, f"{name}{BROWSER_PROFILE_SUFFIX}")
+        # Keyed on the project id, never project.name: the ownership check in
+        # the views validates the Project row, not a path derived from it, so a
+        # name spelling another user's directory would have made _load_state()
+        # hand back that user's live CDP session.
+        stem = sidecar_stem(project)
+        self.pid_file = os.path.join(self.pid_dir, f"{stem}{BROWSER_PID_SUFFIX}")
+        self.log_file = os.path.join(self.pid_dir, f"{stem}{BROWSER_LOG_SUFFIX}")
+        self.state_file = os.path.join(self.pid_dir, f"{stem}{BROWSER_STATE_SUFFIX}")
+        self.profile_dir = os.path.join(self.pid_dir, f"{stem}{BROWSER_PROFILE_SUFFIX}")
 
     # ------------------------------------------------------------------
     # Session lifecycle

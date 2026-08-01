@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 
@@ -6,6 +7,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 
 # External programs the build workspace shells out to, and what breaks without
 # each. Every one of these is present on a developer's machine and has to be
@@ -48,13 +51,21 @@ def _binary_status():
 
 
 def _database_status():
-    """Cheap connectivity probe shared by the health and version endpoints."""
+    """Cheap connectivity probe shared by the health and version endpoints.
+
+    Both callers are AllowAny, so the driver's exception text never reaches the
+    response: a libpq connection failure names the internal database host, its
+    address, port and role, which is exactly what an attacker wants and exactly
+    when they can get it. The detail goes to the logs instead, matching the
+    policy imagi.exception_handler enforces everywhere else.
+    """
     try:
         User = get_user_model()
         User.objects.exists()
         return 'connected'
-    except Exception as e:
-        return f'error: {str(e)}'
+    except Exception:
+        logger.exception("Database connectivity probe failed")
+        return 'error'
 
 
 @api_view(['GET'])

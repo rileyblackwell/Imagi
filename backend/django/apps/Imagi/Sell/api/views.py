@@ -23,11 +23,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.Imagi.ProjectManager.models import Project
+from imagi.redirect_urls import UnsafeRedirectError, resolve_redirect_url
 
 from ..models import Customer, Order, Product, SellSettings
 from ..services.payment_templates import install_template, list_templates
-from ..services.sell_service import SellService, SellServiceError
+from ..services.sell_service import (
+    SellService,
+    SellServiceError,
+    default_cancel_url,
+    default_success_url,
+)
 from ..services.stripe_client import construct_webhook_event
+from .throttles import StorefrontCheckoutThrottle
 from .serializers import (
     CustomerSerializer,
     OrderSerializer,
@@ -436,16 +443,27 @@ class PublicCheckoutView(PublicView):
     the catalog, never from the request.
     """
 
+    throttle_classes = [StorefrontCheckoutThrottle]
+
     def post(self, request, project_id):
         project = self.get_public_project(project_id)
-        success_url = str(request.data.get('success_url', '') or '')
-        cancel_url = str(request.data.get('cancel_url', '') or '')
-        for url in (success_url, cancel_url):
-            if url and not url.startswith(('http://', 'https://')):
-                return Response(
-                    {'error': 'success_url and cancel_url must be absolute http(s) URLs.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        # This endpoint is unauthenticated and the project id is a sequential
+        # integer, so anyone can mint a Checkout session on any merchant's
+        # Stripe account. A free-form redirect target would let them choose
+        # where the paying customer lands — the merchant's real branded Stripe
+        # page handing the customer to an attacker's "receipt" form. Only this
+        # app's own origin, or a path inside it, is accepted.
+        try:
+            success_url = resolve_redirect_url(
+                request.data.get('success_url'),
+                default_success_url(project.id),
+            )
+            cancel_url = resolve_redirect_url(
+                request.data.get('cancel_url'),
+                default_cancel_url(project.id),
+            )
+        except UnsafeRedirectError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         try:
             order = SellService(project).create_checkout(
                 request.data.get('items'),

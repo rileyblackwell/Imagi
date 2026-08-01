@@ -4,6 +4,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, APIException
 from rest_framework.views import APIView
+from apps.Payments.services.usage_service import check_usage_allowed
 from ..services import ProjectCreationService, ProjectManagementService, start_initial_build
 from .serializers import (
     ProjectSerializer,
@@ -27,7 +28,16 @@ class ProjectCreateView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
+        # Creating a project starts a full agent build (start_initial_build
+        # below), so it draws on the plan allowance exactly like a chat run and
+        # is gated the same way. Without this the endpoint is an unmetered run
+        # channel: agent_stream was the only caller of check_usage_allowed, so
+        # a user out of allowance could keep building by creating projects.
+        allowed, limit_payload = check_usage_allowed(request.user)
+        if not allowed:
+            return Response(limit_payload, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         project = None
         try:
             project = serializer.save()  # Don't pass user here, handle it in serializer

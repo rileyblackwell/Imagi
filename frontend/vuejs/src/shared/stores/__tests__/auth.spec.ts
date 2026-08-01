@@ -94,6 +94,21 @@ describe('auth store', () => {
       await store.logout()
       expect(store.isAuthenticated).toBe(false)
     })
+
+    it('clears cached project data so the next session cannot read it', async () => {
+      // The cache holds project names, descriptions and server-side paths for
+      // whoever was signed in; leaving it behind showed one user's projects to
+      // the next person on the same browser profile.
+      const store = useAuthStore()
+      store.setAuthState(sampleUser, 'tok-123')
+      localStorage.setItem('imagi_cached_projects', JSON.stringify([{ id: 1 }]))
+      localStorage.setItem('imagi_cached_projects:1', JSON.stringify([{ id: 1 }]))
+
+      await store.clearAuth()
+
+      expect(localStorage.getItem('imagi_cached_projects')).toBeNull()
+      expect(localStorage.getItem('imagi_cached_projects:1')).toBeNull()
+    })
   })
 
   describe('stored token hydration', () => {

@@ -13,6 +13,8 @@ import logging
 import json
 from django.conf import settings
 
+from .safe_paths import UnsafePathError, resolve_within
+
 logger = logging.getLogger(__name__)
 
 # npm install for a freshly scaffolded frontend can legitimately take minutes
@@ -89,7 +91,7 @@ def npm_install_lock(frontend_path, timeout=NPM_INSTALL_TIMEOUT):
                 pass
 
 # The per-project files this service keeps beside the project directory, by
-# filename suffix. They are named after project.name, not the timestamped
+# filename suffix. They are keyed on the project id, not the timestamped
 # directory, so deleting the directory does not remove them. The _browser.*
 # files belong to BrowserPreviewService (which imports these constants);
 # they are listed here so cleanup sweeps the whole preview session.
@@ -98,6 +100,33 @@ LOG_SUFFIXES = ('_frontend.log', '_backend.log', '_browser.log')
 PORTS_SUFFIX = '_preview_ports.json'
 BROWSER_STATE_SUFFIX = '_browser.json'
 BROWSER_PROFILE_SUFFIX = '_browser_profile'
+
+
+def sidecar_stem(project):
+    """The filename stem for a project's sidecar files.
+
+    Keyed on the immutable project id, never ``project.name``: the name is a
+    free-form field the owner can set and rename through the ProjectManager
+    API, and interpolating it into a path let a crafted name (``../7/Their
+    Shop``, or an outright absolute path) escape the user's own directory —
+    writing logs and PID files anywhere, reading a planted PID to kill, and
+    rmtree-ing a directory of the attacker's choosing.
+    """
+    return str(project.id)
+
+
+def sidecar_path(pid_dir, stem, suffix):
+    """Build one sidecar path, confined to ``pid_dir``.
+
+    Returns ``None`` when the stem would resolve outside the directory, which
+    is how the legacy name-keyed spellings swept by
+    :meth:`PreviewService.cleanup_project_files` are kept harmless.
+    """
+    try:
+        return resolve_within(pid_dir, f"{stem}{suffix}")
+    except UnsafePathError:
+        logger.warning(f"Refusing sidecar path outside {pid_dir}: {stem}{suffix}")
+        return None
 
 
 class PreviewService:
@@ -112,15 +141,18 @@ class PreviewService:
         self.pid_dir = os.path.join(settings.PROJECTS_ROOT, str(project.user.id))
         os.makedirs(self.pid_dir, exist_ok=True)
 
-        self.frontend_pid_file = os.path.join(self.pid_dir, f"{project.name}_frontend.pid")
-        self.backend_pid_file = os.path.join(self.pid_dir, f"{project.name}_backend.pid")
+        # Keyed on the project id, so no spelling of project.name can steer any
+        # of these paths out of this user's directory (see sidecar_stem).
+        stem = sidecar_stem(project)
+        self.frontend_pid_file = os.path.join(self.pid_dir, f"{stem}_frontend.pid")
+        self.backend_pid_file = os.path.join(self.pid_dir, f"{stem}_backend.pid")
         # Records the ports the servers were actually started on, so stopping
         # only ever touches those ports (never someone else's dev server).
-        self.ports_file = os.path.join(self.pid_dir, f"{project.name}{PORTS_SUFFIX}")
+        self.ports_file = os.path.join(self.pid_dir, f"{stem}{PORTS_SUFFIX}")
         # Dev server output goes to log files: piping to subprocess.PIPE without
         # draining would freeze the servers once the pipe buffer fills.
-        self.frontend_log_file = os.path.join(self.pid_dir, f"{project.name}_frontend.log")
-        self.backend_log_file = os.path.join(self.pid_dir, f"{project.name}_backend.log")
+        self.frontend_log_file = os.path.join(self.pid_dir, f"{stem}_frontend.log")
+        self.backend_log_file = os.path.join(self.pid_dir, f"{stem}_backend.log")
 
     def ensure_preview(self):
         """Start the dev servers only if a healthy preview is not already up.
@@ -615,10 +647,12 @@ class PreviewService:
         """Stop the servers and remove every file this service wrote for the project.
 
         For deleting a project, where stop_preview() is not enough: it leaves the
-        logs behind (deliberately, so a stopped server's output stays readable)
-        and only knows the project's current name. Older releases wrote these
-        files under sanitized spellings of the name, so callers can pass
-        name_variants to sweep those too.
+        logs behind (deliberately, so a stopped server's output stays readable).
+        Releases before the sidecars were keyed on the project id wrote these
+        files under the project name, and older ones under sanitized spellings
+        of it, so callers can pass name_variants to sweep those too. Every
+        variant is a user-controlled string, so each path it produces is
+        confined to pid_dir and dropped if it points anywhere else.
         """
         try:
             self.stop_preview()
@@ -627,18 +661,22 @@ class PreviewService:
             # servers are already gone or unkillable.
             logger.warning(f"Error stopping preview while cleaning up {self.project.name}: {e}")
 
-        for name in name_variants or [self.project.name]:
+        stems = [sidecar_stem(self.project)] + list(name_variants or [self.project.name])
+        for stem in stems:
             for suffix in PID_SUFFIXES:
-                # stop_preview already cleared the current-name PID files; this
+                # stop_preview already cleared the current PID files; this
                 # catches legacy and renamed leftovers, killing what they name.
+                path = sidecar_path(self.pid_dir, stem, suffix)
+                if not path:
+                    continue
                 try:
-                    self._kill_from_pid_file(os.path.join(self.pid_dir, f"{name}{suffix}"))
+                    self._kill_from_pid_file(path)
                 except Exception as e:
-                    logger.warning(f"Error stopping process from {name}{suffix}: {e}")
+                    logger.warning(f"Error stopping process from {stem}{suffix}: {e}")
 
             for suffix in LOG_SUFFIXES + (PORTS_SUFFIX, BROWSER_STATE_SUFFIX):
-                path = os.path.join(self.pid_dir, f"{name}{suffix}")
-                if not os.path.exists(path):
+                path = sidecar_path(self.pid_dir, stem, suffix)
+                if not path or not os.path.exists(path):
                     continue
                 try:
                     os.remove(path)
@@ -646,7 +684,9 @@ class PreviewService:
                 except OSError as e:
                     logger.warning(f"Failed to delete project file {path}: {e}")
 
-            shutil.rmtree(os.path.join(self.pid_dir, f"{name}{BROWSER_PROFILE_SUFFIX}"), ignore_errors=True)
+            profile_dir = sidecar_path(self.pid_dir, stem, BROWSER_PROFILE_SUFFIX)
+            if profile_dir:
+                shutil.rmtree(profile_dir, ignore_errors=True)
 
     def _stop_vuejs_frontend(self, port=None):
         """Stop VueJS frontend server."""

@@ -91,25 +91,40 @@ export const useAuthStore = defineStore('auth-module', () => {
   const logout = async (router?: any): Promise<void> => {
     if (isLoggingOut.value) return
 
+    let serverLogoutFailed = false
+
     try {
       isLoggingOut.value = true
       lastAuthAction.value = 'logout'
-      
+
       if (globalAuthStore.isAuthenticated) {
         await AuthAPI.logout()
       }
-      
-      // Clear global auth state
-      await globalAuthStore.clearAuth()
-      
-      // Redirect to home page using Vue Router for SPA navigation if router is provided
-      if (router) {
-        await router.push('/')
-      }
-    } catch {
-      // Silently handle logout errors
+    } catch (err) {
+      // The server-side token deletion did not happen, so the token may still
+      // be valid. Recorded rather than swallowed: the local teardown below
+      // runs either way, but the user needs to know the session may live on.
+      serverLogoutFailed = true
+      console.error('Sign-out request failed; clearing this browser anyway', err)
     } finally {
-      isLoggingOut.value = false
+      // Unconditional: a failed request must never leave the browser holding a
+      // live token. Signing out on a shared machine and staying signed in is
+      // the failure this ordering exists to prevent.
+      try {
+        await globalAuthStore.clearAuth()
+        if (router) {
+          await router.push('/')
+        }
+      } finally {
+        isLoggingOut.value = false
+      }
+    }
+
+    if (serverLogoutFailed) {
+      throw new Error(
+        'You have been signed out on this device, but the server could not be reached. ' +
+        'If you are on a shared computer, sign in again and sign out to fully revoke access.'
+      )
     }
   }
 

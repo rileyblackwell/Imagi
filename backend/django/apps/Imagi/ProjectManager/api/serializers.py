@@ -1,12 +1,37 @@
 from rest_framework import serializers
 from ..models import Project
 
+
+def validate_project_name(value):
+    """Reject names that could steer a filesystem path.
+
+    The services keyed their sidecar files on the project id rather than the
+    name, so a crafted name no longer escapes anything; this keeps such a name
+    out of the database in the first place, and out of the log lines and
+    directory basenames the name still reaches.
+    """
+    value = (value or '').strip()
+    if not value:
+        raise serializers.ValidationError("Project name cannot be blank.")
+    if '/' in value or '\\' in value or '\x00' in value:
+        raise serializers.ValidationError("Project name cannot contain path separators.")
+    if value == '..' or value.startswith('../') or value.startswith('..\\'):
+        raise serializers.ValidationError("Project name cannot be a relative path.")
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        raise serializers.ValidationError("Project name cannot contain control characters.")
+    return value
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     """Serializer for reading project data."""
     class Meta:
         model = Project
         fields = ['id', 'name', 'description', 'design_preferences', 'created_at', 'updated_at', 'is_active']
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        """Applies on the writable update path (PATCH /projects/<pk>/)."""
+        return validate_project_name(value)
 
 # The description seeds the initial AI build, so it has to carry enough
 # signal for the agent to work with. Mirrored by the creation form.
@@ -25,7 +50,8 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         fields = ['name', 'description', 'design_preferences']
 
     def validate_name(self, value):
-        """Validate project name is unique for user."""
+        """Validate project name is safe and unique for user."""
+        value = validate_project_name(value)
         user = self.context['request'].user
         if Project.objects.filter(user=user, name=value, is_active=True).exists():
             raise serializers.ValidationError("A project with this name already exists.")

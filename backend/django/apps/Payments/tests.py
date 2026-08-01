@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -381,9 +382,33 @@ class SubscriptionWebhookTests(APITestCase):
         event = SimpleNamespace(
             type=event_type, data=SimpleNamespace(object=subscription)
         )
-        with patch('apps.Payments.api.views.stripe_service') as mock_stripe:
-            mock_stripe.verify_webhook_event.return_value = event
-            return self.client.post(self.url, {}, HTTP_STRIPE_SIGNATURE='sig')
+        # A signing secret must be configured for the webhook to run at all —
+        # see test_webhook_without_signing_secret_is_rejected.
+        with override_settings(STRIPE_WEBHOOK_SECRET='whsec_test'):
+            with patch('apps.Payments.api.views.stripe_service') as mock_stripe:
+                mock_stripe.verify_webhook_event.return_value = event
+                return self.client.post(self.url, {}, HTTP_STRIPE_SIGNATURE='sig')
+
+    def test_webhook_without_signing_secret_is_rejected(self):
+        """No STRIPE_WEBHOOK_SECRET means no verifiable signature, so no event.
+
+        Stripe's library HMACs with whatever key it is handed, including an
+        empty one, so an unset secret would leave this unauthenticated,
+        plan-granting endpoint forgeable by anyone. It must fail closed.
+        """
+        event = SimpleNamespace(
+            type='customer.subscription.created',
+            data=SimpleNamespace(object=self._subscription(lookup_key='max_20x_monthly')),
+        )
+        with override_settings(STRIPE_WEBHOOK_SECRET=''):
+            with patch('apps.Payments.api.views.stripe_service') as mock_stripe:
+                mock_stripe.verify_webhook_event.return_value = event
+                resp = self.client.post(self.url, {}, HTTP_STRIPE_SIGNATURE='sig')
+
+        self.assertEqual(resp.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        # And crucially, no plan was granted.
+        self.assertFalse(Subscription.objects.filter(user=self.user).exists())
+        mock_stripe.verify_webhook_event.assert_not_called()
 
     def _subscription(self, lookup_key=None, metadata=None, customer='cus_42',
                       sub_id='sub_1', sub_status='active'):
@@ -656,3 +681,67 @@ class CheckoutSessionTests(APITestCase):
         # granting a plan.
         resp = self.client.post(self.url, {'lookup_key': 'mystery_monthly'})
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class RedirectUrlAllowlistTests(APITestCase):
+    """Caller-supplied Stripe redirect targets are confined to this app's origin."""
+
+    def setUp(self):
+        self.user = make_user()
+        self.client.force_authenticate(user=self.user)
+        self.url = reverse('api-create-checkout-session')
+
+    @override_settings(FRONTEND_URL='https://app.imagi.test')
+    def test_foreign_origin_is_rejected(self):
+        # The resulting checkout.stripe.com page carries Imagi's real merchant
+        # branding, so its redirect must not be attacker-chosen.
+        resp = self.client.post(self.url, {
+            'lookup_key': 'pro_monthly',
+            'cancel_url': 'https://imagi-billing.example/signin',
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('not allowed', resp.data['error'])
+
+    @override_settings(FRONTEND_URL='https://app.imagi.test')
+    def test_protocol_relative_url_is_rejected(self):
+        resp = self.client.post(self.url, {
+            'lookup_key': 'pro_monthly',
+            'success_url': '//evil.example/receipt',
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(FRONTEND_URL='https://app.imagi.test')
+    @patch('apps.Payments.api.views.stripe_service')
+    @patch('apps.Payments.api.views.stripe')
+    @patch('apps.Payments.api.views._ensure_stripe_customer', return_value='cus_1')
+    def test_same_origin_url_is_accepted(self, _cust, mock_stripe, mock_service):
+        mock_stripe.Price.list.return_value = SimpleNamespace(
+            data=[SimpleNamespace(id='price_1')]
+        )
+        mock_service.create_checkout_session.return_value = SimpleNamespace(
+            id='cs_1', url='https://checkout.stripe.com/c/pay/cs_1'
+        )
+        resp = self.client.post(self.url, {
+            'lookup_key': 'pro_monthly',
+            'cancel_url': 'https://app.imagi.test/payments/cancel',
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    @override_settings(FRONTEND_URL='https://app.imagi.test')
+    @patch('apps.Payments.api.views.stripe_service')
+    @patch('apps.Payments.api.views.stripe')
+    @patch('apps.Payments.api.views._ensure_stripe_customer', return_value='cus_1')
+    def test_relative_path_is_resolved_against_frontend_url(self, _cust, mock_stripe, mock_service):
+        mock_stripe.Price.list.return_value = SimpleNamespace(
+            data=[SimpleNamespace(id='price_1')]
+        )
+        mock_service.create_checkout_session.return_value = SimpleNamespace(
+            id='cs_1', url='https://checkout.stripe.com/c/pay/cs_1'
+        )
+        resp = self.client.post(self.url, {
+            'lookup_key': 'pro_monthly',
+            'cancel_url': '/payments/goodbye',
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        kwargs = mock_service.create_checkout_session.call_args.kwargs
+        self.assertEqual(kwargs['cancel_url'], 'https://app.imagi.test/payments/goodbye')

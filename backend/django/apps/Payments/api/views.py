@@ -18,6 +18,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
 
+from imagi.redirect_urls import UnsafeRedirectError, resolve_redirect_url
+
 from ..models import StripeCustomer, Subscription
 from ..services.stripe_service import StripeService
 from ..services.transaction_service import TransactionService
@@ -222,8 +224,19 @@ def create_checkout_session(request):
     """
     try:
         lookup_key = request.data.get('lookup_key')
-        success_url = request.data.get('success_url', f"{settings.FRONTEND_URL}/payments/success")
-        cancel_url = request.data.get('cancel_url', f"{settings.FRONTEND_URL}/payments/cancel")
+        # Confined to this app's own origin: a checkout.stripe.com page under
+        # Imagi's merchant branding must not redirect anywhere else.
+        try:
+            success_url = resolve_redirect_url(
+                request.data.get('success_url'),
+                f"{settings.FRONTEND_URL}/payments/success",
+            )
+            cancel_url = resolve_redirect_url(
+                request.data.get('cancel_url'),
+                f"{settings.FRONTEND_URL}/payments/cancel",
+            )
+        except UnsafeRedirectError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not lookup_key:
             return Response({
@@ -290,7 +303,13 @@ def create_portal_session(request):
                 'error': 'No Stripe customer found. Please subscribe to a plan first.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        return_url = request.data.get('return_url', f"{settings.FRONTEND_URL}/payments/pricing")
+        try:
+            return_url = resolve_redirect_url(
+                request.data.get('return_url'),
+                f"{settings.FRONTEND_URL}/payments/pricing",
+            )
+        except UnsafeRedirectError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         portal_session = stripe_service.create_portal_session(customer_id, return_url)
         return Response({
@@ -354,6 +373,15 @@ def webhook(request):
     otherwise Stripe's unauthenticated POST is rejected and the webhook never
     runs, which is the only path that grants and revokes plans.
     """
+    # Fail closed on a missing signing secret: without it every event on this
+    # unauthenticated, plan-granting endpoint would be forgeable.
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        logger.error("STRIPE_WEBHOOK_SECRET is not configured - rejecting webhook")
+        return Response(
+            {'error': 'Webhook signature verification is not configured.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
     try:
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
