@@ -56,7 +56,9 @@ class ProjectAdmin(admin.ModelAdmin):
             'fields': ('is_active', 'generation_status')
         }),
         ('Generated Content', {
-            'fields': ('project_path',)
+            # project_dir is what's stored; project_path shows where it lands
+            # under this machine's PROJECTS_ROOT.
+            'fields': ('project_dir', 'project_path')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at', 'last_generated_at'),

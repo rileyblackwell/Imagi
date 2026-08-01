@@ -43,9 +43,17 @@ class Project(models.Model):
         default=True,
         help_text="Soft deletion status"
     )
-    project_path = models.CharField(
+    project_dir = models.CharField(
         max_length=500,
-        help_text="Absolute path to project directory"
+        blank=True,
+        help_text=(
+            "Project directory, relative to settings.PROJECTS_ROOT. Stored "
+            "relative so a project created in one checkout still resolves in "
+            "another; read it through the project_path property, which joins "
+            "it to the configured root. A path outside that root (a temp "
+            "directory in tests, a legacy row) is stored absolute and returned "
+            "unchanged."
+        )
     )
     last_generated_at = models.DateTimeField(
         null=True,
@@ -83,6 +91,40 @@ class Project(models.Model):
     def __str__(self):
         return f"{self.name} ({self.user.username})"
 
+    @property
+    def project_path(self):
+        """Absolute path to the project directory on this machine.
+
+        Everything outside this model works in absolute paths; only storage is
+        relative. Returns '' for a project whose directory has not been
+        assigned yet, matching the old CharField's empty default.
+        """
+        if not self.project_dir:
+            return ''
+        if os.path.isabs(self.project_dir):
+            return self.project_dir
+        return os.path.join(django_settings.PROJECTS_ROOT, self.project_dir)
+
+    @project_path.setter
+    def project_path(self, value):
+        """Store an absolute path, relative to PROJECTS_ROOT where possible.
+
+        Django's Model.__init__ routes property kwargs through here, so
+        `Project(project_path=...)` and `objects.create(project_path=...)` keep
+        working. Paths outside the root — pytest temp directories, a project
+        pinned somewhere by PROJECTS_ROOT env override — cannot be expressed
+        relative to it and are kept absolute.
+        """
+        if not value:
+            self.project_dir = ''
+            return
+        root = os.path.abspath(django_settings.PROJECTS_ROOT)
+        candidate = os.path.abspath(value)
+        if candidate == root or candidate.startswith(root + os.sep):
+            self.project_dir = os.path.relpath(candidate, root)
+        else:
+            self.project_dir = value
+
     def save(self, *args, **kwargs):
         # Generate slug from name if not set
         if not self.slug:
@@ -97,14 +139,10 @@ class Project(models.Model):
                 
             self.slug = slug
         
-        # Generate project path if not set
-        if not self.project_path:
-            base_path = os.path.join(
-                django_settings.PROJECTS_ROOT,
-                self.user.username,
-                self.slug
-            )
-            self.project_path = base_path
+        # Generate project directory if not set. Built relative directly —
+        # a new project always belongs under PROJECTS_ROOT.
+        if not self.project_dir:
+            self.project_dir = os.path.join(self.user.username, self.slug)
 
         super().save(*args, **kwargs)
 
@@ -115,14 +153,16 @@ class Project(models.Model):
                 'name': 'Project name must be at least 3 characters long'
             })
         
-        # Ensure project path is unique
-        if self.project_path:
+        # Ensure project directory is unique. Compared on the stored relative
+        # value, so two checkouts resolving the same project don't read as a
+        # collision.
+        if self.project_dir:
             exists = Project.objects.filter(
-                project_path=self.project_path
+                project_dir=self.project_dir
             ).exclude(id=self.id).exists()
             if exists:
                 raise ValidationError({
-                    'project_path': 'Project path already exists'
+                    'project_dir': 'Project path already exists'
                 })
 
     def delete(self, *args, **kwargs):
