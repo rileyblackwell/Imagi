@@ -1,42 +1,39 @@
 <!--
   WorkspacePaneHeader.vue — the masthead shared by the two sidebar panes.
 
-  The main agent and the subagents are two views of one workspace, so they wear
-  the same plate: a mark identifying the pane, its name in the brand serif, a
-  live status line, and a pill that names the pane it switches to and how much
-  is happening over there. That count is the point: you can see background work
+  Built from the same parts as everything under it. A pane names itself in the
+  brand serif and then says where it stands on a second line led by a state
+  dot — the identical construction the crew cards use (title, then a marked
+  status line), in the identical monochrome vocabulary: blue while a run is
+  live, navy ink when something wants you, faint ink at rest. The plate itself
+  matches the preview toolbar across the divider — same wash, same hairline,
+  same height — so the top of the workspace reads as one bar rather than two
+  panes that happen to be adjacent.
+
+  The right-hand control names the pane it switches to and how much is
+  happening over there. That count is the point: you can see background work
   piling up without leaving the thread you're in.
 -->
 <template>
-  <div class="pane-header shrink-0 flex items-center gap-2.5 px-3.5 py-2.5">
-    <!-- Identity: mark + name + what's happening right now. A pane can go
-         without a mark (a subagent's thread names its task and needs no badge
-         beside it); the live dot then stands on its own where the mark was. -->
-    <div v-if="icon || live" class="relative shrink-0">
-      <div
-        v-if="icon"
-        :class="['pane-mark', tone === 'primary' ? 'pane-mark--primary' : 'pane-mark--muted']"
-      >
-        <i :class="[icon, 'text-[11px]']"></i>
-      </div>
-      <!-- A run is live in this pane -->
-      <span
-        v-if="live"
-        :class="['pane-pulse', icon ? '' : 'pane-pulse--bare']"
-        aria-hidden="true"
-      ></span>
-    </div>
-
+  <div class="pane-header shrink-0 flex items-center gap-2">
     <div class="flex-1 min-w-0">
       <h2 class="pane-title truncate">{{ title }}</h2>
-      <!-- The status line is the most-changing text in the workspace ("Reading
-           files…" → "Editing…" → "Ready when you are"). Swapping it in place
-           reads as a flicker; cross-fading reads as the same line being
-           updated, which is what it is. Keyed on the text so each new reading
-           gets its own fade. -->
+
+      <!-- Where this pane stands: a state dot, then the reading. The dot is
+           the pane's only status marker — it replaced a filled identity badge
+           that carried the navy-ink recipe reserved for actions, and a
+           separate live pulse. One object, one job.
+
+           The status line is the most-changing text in the workspace
+           ("Reading files…" → "Editing…" → "Ready when you are"). Swapping it
+           in place reads as a flicker; cross-fading reads as the same line
+           being updated, which is what it is. Keyed on the text so each new
+           reading gets its own fade — the dot sits outside, because state
+           outlives any one wording of it. -->
       <div v-if="status" class="pane-status-line">
+        <span :class="['pane-dot', `pane-dot--${state}`]" aria-hidden="true"></span>
         <Transition name="pane-status" mode="out-in">
-          <p :key="status" class="pane-status truncate">{{ status }}</p>
+          <p :key="status" :class="['pane-status', `pane-status--${state}`]">{{ status }}</p>
         </Transition>
       </div>
     </div>
@@ -56,7 +53,7 @@
         class="fas fa-chevron-left pane-switch-chevron"
       ></i>
       <!-- The destination has a live run (a subagent working over there): the
-           icon carries the same pulse the pane mark uses, so the link to the
+           icon carries the same dot the status line uses, so the link to the
            working subagent is always visible from the thread you're in. -->
       <span class="pane-switch-icon-wrap">
         <i :class="[switchIcon, 'pane-switch-icon']"></i>
@@ -80,16 +77,17 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    /** Font Awesome classes for the pane's mark. Omit for a pane whose title
-     *  already identifies it — the plate then leads with the name. */
-    icon?: string
-    /** 'primary' is the thread the user drives; 'muted' is everything observed */
-    tone?: 'primary' | 'muted'
     title: string
+    /**
+     * Where the pane stands, in the crew ledger's own vocabulary — the same
+     * three tokens an agent card keys its rail and status colour off, so a
+     * pane and the cards inside it never describe one state two ways.
+     * 'working' outranks the rest: a pane with a live run is working whatever
+     * else is queued behind it.
+     */
+    state?: 'working' | 'waiting' | 'idle'
     /** One line on what this pane is doing right now */
     status?: string
-    /** A run is live here — the mark gets a pulsing dot */
-    live?: boolean
     switchIcon?: string
     switchLabel?: string
     /** A run is live in the pane this switches to — the switch icon pulses */
@@ -98,7 +96,7 @@ withDefaults(
     switchCount?: number
     switchDirection?: 'forward' | 'back'
   }>(),
-  { tone: 'muted', switchDirection: 'forward' }
+  { state: 'idle', switchDirection: 'forward' }
 )
 
 const emit = defineEmits<{ (e: 'switch'): void }>()
@@ -109,10 +107,17 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
    scrolls beneath it, so the masthead takes its colour from whatever is
    passing underneath — saturated and blurred past legibility — and closes
    with a true hairline. This is what keeps the header feeling like a layer
-   above the transcript instead of its first row. */
+   above the transcript instead of its first row.
+
+   Its metrics are the preview toolbar's (.pv-bar), to the pixel: the two sit
+   shoulder to shoulder at the top of the workspace, and a four-pixel
+   difference in height put a visible step in the hairline running between
+   them. */
 .pane-header {
   position: relative;
   z-index: 20;
+  min-height: 3.0625rem;
+  padding: 0.4375rem 0.75rem;
   background: var(--iw-material-bg);
   -webkit-backdrop-filter: var(--iw-material-filter);
   backdrop-filter: var(--iw-material-filter);
@@ -147,66 +152,66 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   }
 }
 
-/* Mark: navy ink for the thread you drive, a quiet tint for panes you watch */
-.pane-mark {
+/* The name carries the brand serif (Fraunces) — the same face as the Imagi
+   mark — so the workspace chrome speaks in the product's own voice instead of
+   another line of bold UI sans. Set at the preview nameplate's size and optical
+   axis, because the two are the same thing on opposite sides of the divider:
+   what you are looking at, named. */
+.pane-title {
+  font-family: theme('fontFamily.display');
+  font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.008em;
+  color: theme('colors.blue.950');
+}
+
+.dark .pane-title {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+/* Marker + reading, on the crew card's status-line metrics. Reserves its own
+   height so the masthead never resizes underneath a cross-fade — the two
+   readings swap inside a box that does not move. */
+.pane-status-line {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 1.875rem;
-  height: 1.875rem;
-  border-radius: var(--iw-r-md);
-  transition:
-    transform var(--iw-dur-2) var(--iw-ease-spring),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    background-color var(--iw-dur-2) var(--iw-ease-out);
+  gap: 0.3125rem;
+  min-height: 0.9375rem;
+  margin-top: 0.125rem;
 }
 
-.pane-mark--primary {
-  background: theme('colors.blue.950');
-  color: #fdf9f2;
-  box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.22),
-    0 4px 12px -4px rgba(23, 37, 84, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.dark .pane-mark--primary {
-  background: #f3ede2;
-  color: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 4px 12px -4px rgba(0, 0, 0, 0.5);
-}
-
-.pane-mark--muted {
-  background: rgba(23, 37, 84, 0.07);
-  color: rgba(23, 37, 84, 0.7);
-  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.07);
-}
-
-.dark .pane-mark--muted {
-  background: rgba(243, 237, 226, 0.1);
-  color: rgba(243, 237, 226, 0.8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-/* Live-run dot, ringed against the header so it reads on either surface. The
-   dot itself holds steady — a marker that flickers looks like a rendering
-   fault — and a halo breathes outward from under it. Reads as a signal
-   radiating rather than a light being switched. */
-.pane-pulse {
-  position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 0.5rem;
-  height: 0.5rem;
+/* State as a dot, in the preview's dot family and the crew ledger's colours:
+   blue for a live run, navy ink for something that wants you, faint ink at
+   rest. Sized and seated so it reads as punctuation on the line rather than
+   as a badge beside it. */
+.pane-dot {
+  flex-shrink: 0;
+  width: 0.4375rem;
+  height: 0.4375rem;
   border-radius: 9999px;
+  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
+}
+
+.pane-dot--idle {
+  background: rgba(23, 37, 84, 0.22);
+}
+
+.pane-dot--waiting {
+  background: theme('colors.blue.950');
+}
+
+/* A live run: the dot itself holds steady — a marker that flickers looks like
+   a rendering fault — and a halo breathes outward from under it. Reads as a
+   signal radiating rather than a light being switched. */
+.pane-dot--working {
+  position: relative;
   background: theme('colors.blue.500');
-  box-shadow: 0 0 0 2px rgba(var(--iw-surface), 1);
   animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
 }
 
-.pane-pulse::after {
+.pane-dot--working::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -215,18 +220,9 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   animation: pane-pulse-halo 2.4s var(--iw-ease-ambient) infinite;
 }
 
-.dark .pane-pulse {
-  background: theme('colors.blue.300');
-}
-
-/* With no mark to sit against, the dot holds the same left edge the mark did
-   so the title does not shift between a pane that has one and a pane that
-   does not. */
-.pane-pulse--bare {
-  position: static;
-  display: block;
-  margin: 0 0.6875rem;
-}
+.dark .pane-dot--idle { background: rgba(255, 255, 255, 0.22); }
+.dark .pane-dot--waiting { background: #f3ede2; }
+.dark .pane-dot--working { background: theme('colors.blue.300'); }
 
 @keyframes pane-pulse-core {
   0%, 100% { opacity: 1; }
@@ -239,50 +235,35 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane-pulse,
-  .pane-pulse::after,
+  .pane-dot--working,
+  .pane-dot--working::after,
   .pane-switch-pulse,
   .pane-switch-pulse::after { animation: none; }
 
-  .pane-pulse::after,
+  .pane-dot--working::after,
   .pane-switch-pulse::after { opacity: 0; }
 }
 
-/* The name carries the brand serif (Fraunces) — the same face as the Imagi
-   mark — so the workspace chrome speaks in the product's own voice instead of
-   another line of bold UI sans. Softened and slightly wonky on its variable
-   axes to keep it warm at this size. */
-.pane-title {
-  font-family: theme('fontFamily.display');
-  font-variation-settings: 'opsz' 20, 'SOFT' 24, 'WONK' 1;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.011em;
-  color: theme('colors.blue.950');
-}
-
-.dark .pane-title {
-  color: rgba(255, 255, 255, 0.94);
-}
-
-/* Reserves the line's height so the masthead never resizes underneath a
-   cross-fade — the two readings swap inside a box that does not move. */
-.pane-status-line {
-  min-height: 0.9375rem;
-}
-
+/* The reading itself takes the state's ink, exactly as a card's status line
+   does — a header that stayed uniformly grey while every row beneath it
+   coloured its own status was the loudest thing out of step here. */
 .pane-status {
-  margin-top: 0.0625rem;
-  font-size: 0.65625rem;
-  line-height: 1.3;
-  letter-spacing: 0.005em;
-  color: rgba(23, 37, 84, 0.45);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.625rem;
+  line-height: 1.35;
+  transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.dark .pane-status {
-  color: rgba(219, 234, 254, 0.45);
-}
+.pane-status--idle { color: rgba(23, 37, 84, 0.42); }
+.pane-status--waiting { color: rgba(23, 37, 84, 0.78); }
+.pane-status--working { color: theme('colors.blue.600'); }
+
+.dark .pane-status--idle { color: rgba(219, 234, 254, 0.4); }
+.dark .pane-status--waiting { color: rgba(243, 237, 226, 0.85); }
+.dark .pane-status--working { color: theme('colors.blue.300'); }
 
 /* One reading giving way to the next: down and out, up and in — the direction
    of a line being replaced from below. */
@@ -303,44 +284,38 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   transform: translateY(-3px);
 }
 
-/* Switch: names its destination instead of hiding behind a tooltip. Rests
-   flush with the masthead and lifts on hover — a control that comes to meet
-   the pointer, then gives under the press (.iw-press). */
+/* Switch: names its destination instead of hiding behind a tooltip. Wears the
+   preview plate's bordered material and sits at the height of the preview's
+   nav buttons, so the two panes' chrome uses one elevation model — the button
+   used to lift off the plate on hover while everything opposite it stayed
+   seated. It still gives under the press (.iw-press). */
 .pane-switch {
   display: inline-flex;
   align-items: center;
   gap: 0.3125rem;
   flex-shrink: 0;
-  padding: 0.3125rem 0.5625rem;
+  height: 1.75rem;
+  padding: 0 0.5625rem;
   border-radius: 9999px;
   border: 1px solid rgba(23, 37, 84, 0.1);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   color: rgba(23, 37, 84, 0.72);
   font-size: 0.6875rem;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: var(--iw-shadow-1);
+  box-shadow: inset 0 1px 0 #ffffff;
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
     border-color var(--iw-dur-2) var(--iw-ease-out),
     color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
+    box-shadow var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .pane-switch:hover {
   background: #ffffff;
-  border-color: rgba(23, 37, 84, 0.18);
+  border-color: rgba(23, 37, 84, 0.22);
   color: theme('colors.blue.950');
-  box-shadow: var(--iw-shadow-2);
-  transform: translateY(-1px);
-}
-
-/* .iw-press owns the pressed scale; the lift simply returns to rest under it */
-.pane-switch:active {
-  transform: translateY(0) scale(0.97);
-  box-shadow: var(--iw-shadow-1);
-  transition-duration: var(--iw-dur-1);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(23, 37, 84, 0.08);
 }
 
 .pane-switch:focus-visible {
@@ -350,14 +325,16 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 
 .dark .pane-switch {
   border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.045);
   color: rgba(219, 234, 254, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .dark .pane-switch:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.26);
   color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .pane-switch-icon-wrap {
@@ -376,7 +353,7 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   opacity: 0.95;
 }
 
-/* Same pulse as the pane mark, sized down for the switch icon — the link to a
+/* Same dot as the status line, sized down for the switch icon — the link to a
    working subagent reads as live without stealing attention. */
 .pane-switch-pulse {
   position: absolute;
@@ -427,8 +404,9 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   white-space: nowrap;
 }
 
-/* Count of what is waiting on the other side — navy ink so it reads as a
-   real number to deal with, not a decorative dot. */
+/* Count of what is waiting on the other side — navy ink, the recipe this
+   workspace keeps for things you act on. It is the one element in the
+   masthead that earns it. */
 .pane-switch-count {
   display: inline-flex;
   align-items: center;

@@ -20,10 +20,9 @@
          must not displace the thread you are actually talking in. -->
     <div v-if="opened" key="opened" class="pane-nav-view flex flex-col h-full">
       <WorkspacePaneHeader
-        tone="muted"
         :title="opened.title || 'Background agent'"
         :status="openedStatus"
-        :live="!!opened.isProcessing"
+        :state="openedState"
         switch-icon="fas fa-layer-group"
         switch-label="Subagents"
         switch-direction="back"
@@ -68,11 +67,9 @@
          way. The status line reports the fleet, which is what the removed
          "view only" badge was gesturing at — except it carries real news. -->
     <WorkspacePaneHeader
-      icon="fas fa-layer-group"
-      tone="muted"
       title="Subagents"
       :status="fleetStatus"
-      :live="workingCount > 0"
+      :state="fleetState"
       switch-icon="fas fa-comments"
       switch-label="Main agent"
       :switch-count="store.checkIns.length"
@@ -229,6 +226,13 @@ const fleetStatus = computed(() => {
   return `${total} ${total === 1 ? 'agent' : 'agents'} waiting on you`
 })
 
+/** The dot beside that line. Live work outranks the rest — the same precedence
+ *  a card applies to its own rail. */
+const fleetState = computed<'working' | 'waiting' | 'idle'>(() => {
+  if (workingCount.value > 0) return 'working'
+  return activeAgents.value.length > 0 ? 'waiting' : 'idle'
+})
+
 /**
  * The meter's segments, in the order the eye should read them: live work
  * first, then what wants the user, then what has not started. Empty segments
@@ -280,6 +284,15 @@ const openedStatus = computed(() => {
     case 'dismissed': return 'Discarded'
     default: return 'Read only'
   }
+})
+
+/** …and the dot that leads it, keyed the same way its card is. */
+const openedState = computed<'working' | 'waiting' | 'idle'>(() => {
+  const instance = opened.value
+  if (instance?.isProcessing) return 'working'
+  return instance?.reviewStatus === 'input' || instance?.reviewStatus === 'ready'
+    ? 'waiting'
+    : 'idle'
 })
 
 /**
