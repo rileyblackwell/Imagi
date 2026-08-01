@@ -3,16 +3,14 @@
     <!-- Header: who you're talking to, and a way over to the agents. There is
          only one thread the user drives, so it is simply "Main agent" — no
          conversation name to track. A subagent's read-only thread keeps its
-         own name and a muted mark, which is how you tell the two apart at a
-         glance. Version restores live inline in the transcript (the
+         own name, and its status line says so, which is how you tell the two
+         apart at a glance. Version restores live inline in the transcript (the
          per-message checkpoint chips), so the header carries no history
          controls. -->
     <WorkspacePaneHeader
-      :icon="isTaskThread ? undefined : 'fas fa-comments'"
-      :tone="isTaskThread ? 'muted' : 'primary'"
       :title="headerTitle"
       :status="headerStatus"
-      :live="!!activeInstance?.isProcessing"
+      :state="headerState"
       switch-icon="fas fa-layer-group"
       switch-label="Subagents"
       :switch-live="store.activeAgentInstances.some(i => i.isProcessing)"
@@ -410,6 +408,20 @@ const headerStatus = computed(() => {
     return `${waiting} ${waiting === 1 ? 'agent is' : 'agents are'} waiting on you`
   }
   return 'Ready when you are'
+})
+
+/** The dot beside that line, in the crew ledger's three-token vocabulary. It
+ *  has to agree with the wording above: a live run reads 'working', anything
+ *  that wants the user reads 'waiting', everything settled reads 'idle'. */
+const headerState = computed<'working' | 'waiting' | 'idle'>(() => {
+  const instance = activeInstance.value
+  if (instance?.isProcessing) return 'working'
+  if (isTaskThread.value) {
+    return instance?.reviewStatus === 'input' || instance?.reviewStatus === 'ready'
+      ? 'waiting'
+      : 'idle'
+  }
+  return store.checkIns.length > 0 ? 'waiting' : 'idle'
 })
 
 async function goToLead() {
