@@ -152,8 +152,9 @@
               <div class="flex items-center gap-2">
                 <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.inbound_webhook_url }}</code>
                 <button
+                  :class="ui.iconBtn"
                   type="button"
-                  class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
+                  class="w-8 h-8 shrink-0"
                   title="Copy"
                   @click="copy(settings.inbound_webhook_url)"
                 >
@@ -169,8 +170,9 @@
               <div class="flex items-center gap-2">
                 <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.status_callback_url }}</code>
                 <button
+                  :class="ui.iconBtn"
                   type="button"
-                  class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
+                  class="w-8 h-8 shrink-0"
                   title="Copy"
                   @click="copy(settings.status_callback_url)"
                 >

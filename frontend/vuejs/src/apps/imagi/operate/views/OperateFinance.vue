@@ -79,16 +79,18 @@
         </p>
         <div class="flex items-center gap-1">
           <button
+            :class="ui.iconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200 focus-ring"
+            class="w-8 h-8"
             aria-label="Edit transaction"
             @click="openEdit(transaction)"
           >
             <i class="fas fa-pen text-xs"></i>
           </button>
           <button
+            :class="ui.dangerIconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
+            class="w-8 h-8"
             aria-label="Delete transaction"
             @click="confirmDelete(transaction)"
           >

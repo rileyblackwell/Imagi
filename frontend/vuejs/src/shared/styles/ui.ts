@@ -65,8 +65,15 @@ export const ui = {
   /** Destructive actions. Same hairline shape, red ink — never a solid red fill. */
   dangerBtn: `${pill} border border-red-200/80 dark:border-red-400/25 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-300 dark:hover:border-red-400/40 ${focusRing} ${disabledState}`,
 
-  /** A quiet square icon button — toolbar and table-row actions. */
-  iconBtn: `inline-flex items-center justify-center rounded-lg text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.08] transition-colors duration-200 ${focusRing}`,
+  /**
+   * A quiet square icon button — toolbar and table-row actions. Size stays on
+   * the element (`w-8 h-8`, `w-9 h-9`, …) because it varies by context; only
+   * the ink and the hover wash are shared.
+   */
+  iconBtn: `inline-flex items-center justify-center rounded-lg text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200 ${focusRing}`,
+
+  /** The destructive twin: the same button, reddening on hover. */
+  dangerIconBtn: `inline-flex items-center justify-center rounded-lg text-blue-950/50 dark:text-blue-100/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 ${focusRing}`,
 
   /** Inline feedback boxes. */
   errorBox: 'p-3.5 rounded-xl border border-red-200/80 dark:border-red-400/25 bg-red-50/80 dark:bg-red-500/10 text-sm text-red-700 dark:text-red-300',

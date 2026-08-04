@@ -36,8 +36,9 @@
         <div class="flex items-center justify-between px-4 py-3 border-b border-blue-200/60 dark:border-white/[0.08]">
           <h2 class="text-sm font-semibold text-blue-950 dark:text-white">Conversations</h2>
           <button
+            :class="ui.iconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
+            class="w-8 h-8"
             title="Refresh"
             @click="refresh"
           >

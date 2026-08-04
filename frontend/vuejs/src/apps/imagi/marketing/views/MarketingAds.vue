@@ -122,9 +122,10 @@
                 <td class="px-5 py-3.5">
                   <div class="flex items-center justify-end gap-1.5">
                     <button
+                      :class="ui.iconBtn"
                       v-if="campaign.status === 'active' || campaign.status === 'paused'"
                       type="button"
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 disabled:opacity-40 focus-ring"
+                      class="w-8 h-8 disabled:opacity-40 focus-ring"
                       :title="campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'"
                       :disabled="togglingId === campaign.id"
                       @click="toggle(campaign)"
@@ -132,10 +133,11 @@
                       <i :class="['fas', togglingId === campaign.id ? 'fa-circle-notch animate-spin motion-reduce:animate-none' : campaign.status === 'active' ? 'fa-pause' : 'fa-play']" class="text-xs"></i>
                     </button>
                     <a
+                      :class="ui.iconBtn"
                       :href="campaign.manager_url"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
+                      class="w-8 h-8"
                       :title="`Open in ${AD_PROVIDERS[campaign.provider].consoleLabel}`"
                     >
                       <i class="fas fa-arrow-up-right-from-square text-xs"></i>
