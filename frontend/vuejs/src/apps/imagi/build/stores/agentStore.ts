@@ -61,6 +61,19 @@ function newLocalId(): string {
   return `inst-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
+/** A dispatched brief as one status line. The server trims briefs the same
+ *  way (_conversation_brief); this covers the window before the first DTO
+ *  refresh, when the only copy of the brief is the one the dispatch carried. */
+const BRIEF_LINE_LIMIT = 160
+function briefLine(brief: string): string {
+  return (brief || '')
+    .split('\n')
+    .map(line => line.replace(/^[#>*\-\s]+/, '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, BRIEF_LINE_LIMIT)
+}
+
 function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): AgentInstance {
   return {
     id: newLocalId(),
@@ -82,6 +95,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     archivedAt: dto.archived_at,
     updatedAt: dto.updated_at,
     lastMessagePreview: dto.last_message_preview || '',
+    brief: dto.brief || dto.queued_prompt || '',
     messagesLoaded: false,
     hasUnread: false,
     queuedPrompt: null,
@@ -326,6 +340,10 @@ export const useAgentStore = defineStore('agent', {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               last_message_preview: '',
+              // What it is about to work on, straight from the dispatch —
+              // the card reports it from the first frame, without waiting for
+              // the conversation DTO the run end fetches.
+              brief: briefLine(task.brief),
               is_running: false,
               total_tokens: null,
             },
@@ -469,6 +487,7 @@ export const useAgentStore = defineStore('agent', {
             await this.ensureMessagesLoaded(instance.id)
             instance.updatedAt = dto.updated_at
             instance.lastMessagePreview = dto.last_message_preview || ''
+            if (dto.brief) instance.brief = dto.brief
             // A finished task may now be ready for review; sync the
             // review-lifecycle fields the run end changed server-side.
             instance.reviewStatus = dto.review_status || ''
@@ -689,6 +708,9 @@ export const useAgentStore = defineStore('agent', {
         instance.archivedAt = dto.archived_at
         instance.updatedAt = dto.updated_at
         instance.lastMessagePreview = dto.last_message_preview || ''
+        // Keep the locally-carried brief if the server has none to give (a
+        // dispatch whose run has not written its opening message yet).
+        if (dto.brief) instance.brief = dto.brief
       } catch (e) {
         console.error('Failed to refresh conversation', instance.conversationId, e)
       }

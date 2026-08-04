@@ -46,6 +46,7 @@ function makeInstance(overrides: Partial<AgentInstance> = {}): AgentInstance {
     archivedAt: null,
     updatedAt: new Date().toISOString(),
     lastMessagePreview: '',
+    brief: '',
     messagesLoaded: true,
     hasUnread: false,
     queuedPrompt: null,

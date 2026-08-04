@@ -1167,3 +1167,57 @@ class MessagePreviewTests(SimpleTestCase):
     def test_empty_message_previews_as_empty(self):
         self.assertEqual(self._preview(''), '')
         self.assertEqual(self._preview('\n\n---\n'), '')
+
+
+class ConversationBriefTests(TestCase):
+    """What a task was asked to do — the line its card shows while it runs."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='briefs', password='pw123456')
+        self.client.force_login(self.user)
+
+    def _task(self, **kwargs):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1,
+            kind='task', **kwargs
+        )
+
+    def _brief(self, conversation):
+        resp = self.client.get(reverse('conversation_detail', args=[conversation.id]))
+        self.assertEqual(resp.status_code, 200)
+        return resp.json()['brief']
+
+    def test_brief_comes_from_the_queued_prompt_before_the_run_fires(self):
+        task = self._task(queued_prompt='Add a contact page so customers can reach you.')
+        self.assertEqual(
+            self._brief(task), 'Add a contact page so customers can reach you.'
+        )
+
+    def test_brief_survives_the_run_that_clears_the_queued_prompt(self):
+        # queued_prompt is cleared the moment the run starts, which is exactly
+        # when the card needs the brief — so the opening message is the copy
+        # that has to answer.
+        task = self._task(queued_prompt='')
+        AgentMessage.objects.create(
+            conversation=task, role='user',
+            content='Add a contact page so customers can reach you.',
+        )
+        AgentMessage.objects.create(
+            conversation=task, role='assistant', content='Working on it.'
+        )
+        self.assertEqual(
+            self._brief(task), 'Add a contact page so customers can reach you.'
+        )
+
+    def test_brief_is_trimmed_to_a_status_line(self):
+        task = self._task(queued_prompt='Goal: ' + 'x' * 400)
+        self.assertLessEqual(len(self._brief(task)), 160)
+
+    def test_chat_threads_have_no_brief(self):
+        # An ordinary thread's opening message is the user talking, which is
+        # not a status line about anything.
+        chat = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='chat'
+        )
+        AgentMessage.objects.create(conversation=chat, role='user', content='hey')
+        self.assertEqual(self._brief(chat), '')

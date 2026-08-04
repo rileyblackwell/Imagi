@@ -95,6 +95,7 @@ describe('ChatConversation dispatch card', () => {
       archivedAt: null,
       updatedAt: '2026-01-01T00:00:00Z',
       lastMessagePreview: '',
+      brief: '',
       messagesLoaded: true,
       hasUnread: false,
       queuedPrompt: null,
@@ -107,9 +108,10 @@ describe('ChatConversation dispatch card', () => {
     return mount(ChatConversation, { props: { messages: [user('hi'), reply] } })
   }
 
-  it('names the task and says it is being worked on', () => {
+  it('says what it is working on while it works', () => {
     const wrapper = withSubagent({
       isProcessing: true,
+      brief: 'Add a contact page so customers can get in touch.',
       lastMessagePreview: 'Reading the router…',
     })
 
@@ -117,24 +119,56 @@ describe('ChatConversation dispatch card', () => {
     expect(card.classes()).toContain('dispatch-card--working')
     expect(card.text()).toContain('Contact page')
     expect(card.text()).toContain('Working on this now…')
-    // Mid-run chatter is not a result; the card stays a status, not a log.
+    expect(card.text()).toContain('Add a contact page so customers can get in touch.')
+    // Mid-run chatter is not what it is working on; the card reports the job,
+    // not the keystrokes.
     expect(card.text()).not.toContain('Reading the router…')
+  })
+
+  it('says what a dispatched task will work on before its run fires', () => {
+    const wrapper = withSubagent({
+      reviewStatus: 'active',
+      brief: 'Add a contact page so customers can get in touch.',
+    })
+
+    const card = wrapper.find('.dispatch-card')
+    expect(card.text()).toContain('Starting…')
+    expect(card.text()).toContain('Add a contact page so customers can get in touch.')
   })
 
   it('reports the subagent complete, with what it did', () => {
     // The completion says two things: that the subagent is done, and — in its
     // own words — what it built. "Added to your app" told the user where the
-    // work went but never what it was.
+    // work went but never what it was. The brief the working card was showing
+    // is replaced by the result: the same line, now reporting the outcome.
     const wrapper = withSubagent({
       reviewStatus: 'accepted',
-      lastMessagePreview: 'Added a /contact route with a validated form.',
+      brief: 'Add a contact page so customers can get in touch.',
+      lastMessagePreview:
+        'Your site now has a contact page. Visitors can send you a message '
+        + 'without leaving the site, and it turns away obviously bad addresses '
+        + 'before sending.',
     })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--done')
     expect(card.text()).toContain('Contact page')
     expect(card.text()).toContain('Subagent complete')
-    expect(card.text()).toContain('Added a /contact route with a validated form.')
+    expect(card.text()).toContain('Your site now has a contact page.')
+    expect(card.text()).not.toContain('Add a contact page so customers can get in touch.')
+  })
+
+  it('falls back to the brief when a finished task left no summary', () => {
+    // A run that died before its sign-off still has to say what it was for —
+    // a green "complete" over an empty line tells the user nothing.
+    const wrapper = withSubagent({
+      reviewStatus: 'accepted',
+      brief: 'Add a contact page so customers can get in touch.',
+      lastMessagePreview: '',
+    })
+
+    expect(wrapper.find('.dispatch-card').text())
+      .toContain('Add a contact page so customers can get in touch.')
   })
 
   it('describes the work on a completion that still wants a review', () => {
