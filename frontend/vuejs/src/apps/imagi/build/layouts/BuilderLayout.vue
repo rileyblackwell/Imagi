@@ -9,8 +9,13 @@
     app-shell
     hide-toggle-on-mobile
   >
-    <template #sidebar-content="{ isSidebarCollapsed, toggleSidebar }">
-      <slot name="sidebar-content" :collapsed="isSidebarCollapsed" :toggle-sidebar="toggleSidebar"></slot>
+    <template #sidebar-content="{ isSidebarCollapsed, toggleSidebar, setSidebarCollapsed }">
+      <slot
+        name="sidebar-content"
+        :collapsed="isSidebarCollapsed"
+        :toggle-sidebar="toggleSidebar"
+        :set-sidebar-collapsed="setSidebarCollapsed"
+      ></slot>
     </template>
 
     <!-- Pass through any navbar content from parent, forwarding sidebar controls -->
@@ -24,9 +29,12 @@
       <slot name="navbar-right" v-bind="slotProps"></slot>
     </template>
 
-    <template #default="{ isSidebarCollapsed }">
+    <template #default="{ isSidebarCollapsed, setSidebarCollapsed }">
       <div class="flex flex-col h-full w-full">
-        <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
+        <slot
+          :isSidebarCollapsed="isSidebarCollapsed"
+          :setSidebarCollapsed="setSidebarCollapsed"
+        ></slot>
       </div>
     </template>
   </DashboardLayout>

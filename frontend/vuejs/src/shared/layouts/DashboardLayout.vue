@@ -71,7 +71,12 @@
 
         <!-- Custom Sidebar Content -->
         <div class="flex-1 min-h-0 overflow-hidden">
-          <slot name="sidebar-content" :isSidebarCollapsed="isSidebarCollapsed" :toggleSidebar="toggleSidebar"></slot>
+          <slot
+            name="sidebar-content"
+            :isSidebarCollapsed="isSidebarCollapsed"
+            :toggleSidebar="toggleSidebar"
+            :setSidebarCollapsed="setSidebarCollapsed"
+          ></slot>
         </div>
 
         <!-- Bottom Actions -->
@@ -142,7 +147,13 @@
           class="flex-1 flex flex-col relative pt-nav bg-white dark:bg-[#0a0a0a] overflow-hidden"
           :class="appShell ? 'min-h-0' : ''"
         >
-          <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
+          <!-- setSidebarCollapsed reaches the content because the panel can be
+               collapsed away entirely: whatever fills this slot may then be the
+               only thing on screen, and needs its own way to bring it back. -->
+          <slot
+            :isSidebarCollapsed="isSidebarCollapsed"
+            :setSidebarCollapsed="setSidebarCollapsed"
+          ></slot>
         </main>
 
         <!-- Footer (hidden for full-screen app-shell views like the builder);

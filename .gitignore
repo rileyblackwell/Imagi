@@ -42,6 +42,9 @@ venv/
 # Django
 backend/django/db.sqlite3
 backend/django/db.sqlite3-journal
+# WAL mode's side files — they appear next to the dev DB whenever it is served.
+backend/django/db.sqlite3-wal
+backend/django/db.sqlite3-shm
 backend/django/media/
 backend/django/staticfiles/
 backend/django/apps/Imagi/Build/imagi_projects/

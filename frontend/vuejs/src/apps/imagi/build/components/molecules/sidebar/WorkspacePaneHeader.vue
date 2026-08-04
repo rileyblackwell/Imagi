@@ -14,28 +14,41 @@
   control, and the eye should find it in the same place whatever is bolted to
   either side of it.
 
-  The right-hand control names the pane it switches to and how much is
+  The right-hand controls name the panes they switch to and how much is
   happening over there. That count is the point: you can see background work
-  piling up without leaving the thread you're in. It is desktop-only; on a
-  phone the navbar switcher above reaches all three views at once.
+  piling up without leaving the thread you're in. They are the only way across
+  at every width — a phone gets the same pills in the same place, plus the ones
+  marked `mobileOnly` for destinations that are already on screen on desktop
+  (the preview, which sits beside the panes there and replaces them here).
 -->
 <template>
   <div class="pane-header shrink-0">
-    <!-- Left column: a ghost of the switch, and load-bearing. Reserving the
-         same width the real control takes on the right is what puts the
+    <!-- Left column: a ghost of the switch cluster, and load-bearing. Reserving
+         the same width the real controls take on the right is what puts the
          identity at the true centre of the plate — an empty gutter gets
          squeezed by a long title and the name drifts left of centre. It is
          inert in every sense: invisible, unhittable, and skipped by
-         assistive tech. -->
+         assistive tech.
+
+         Desktop only: a phone cannot spend its width twice over with two
+         switches on the plate, so the identity gives up true centring there
+         and reads from the left instead (see the mobile block in the styles). -->
     <div class="pane-header-gutter" aria-hidden="true">
-      <span v-if="switchLabel" class="pane-switch pane-switch--ghost">
-        <i class="fas fa-chevron-left pane-switch-chevron"></i>
-        <span class="pane-switch-icon-wrap">
-          <i :class="[switchIcon, 'pane-switch-icon']"></i>
+      <div class="pane-switches pane-switches--ghost">
+        <span
+          v-for="s in switches"
+          :key="s.id"
+          :class="['pane-switch', s.mobileOnly && 'pane-switch--mobile']"
+        >
+          <i v-if="s.direction === 'back'" class="fas fa-chevron-left pane-switch-chevron"></i>
+          <span class="pane-switch-icon-wrap">
+            <i :class="[s.icon, 'pane-switch-icon']"></i>
+          </span>
+          <span class="pane-switch-label">{{ s.label }}</span>
+          <span v-if="s.count" class="pane-switch-count">{{ s.count }}</span>
+          <i v-if="s.direction !== 'back'" class="fas fa-chevron-right pane-switch-chevron"></i>
         </span>
-        <span class="pane-switch-label">{{ switchLabel }}</span>
-        <span v-if="switchCount" class="pane-switch-count">{{ switchCount }}</span>
-      </span>
+      </div>
     </div>
 
     <div class="pane-identity">
@@ -60,40 +73,42 @@
       </div>
     </div>
 
-    <!-- Pane switch — the desktop control, where this masthead is the only
-         place to change panes. Mobile has the navbar switcher instead, which
-         reaches all three views (the preview included) rather than just the
-         other pane, so carrying both there would be two controls for one job. -->
-    <button
-      v-if="switchLabel"
-      type="button"
-      class="pane-switch iw-press group"
-      :aria-label="`Switch to ${switchLabel}`"
-      @click="emit('switch')"
-    >
-      <i
-        v-if="switchDirection === 'back'"
-        class="fas fa-chevron-left pane-switch-chevron"
-      ></i>
-      <!-- The destination has a live run (a subagent working over there): the
-           icon carries the same dot the status line uses, so the link to the
-           working subagent is always visible from the thread you're in. -->
-      <span class="pane-switch-icon-wrap">
-        <i :class="[switchIcon, 'pane-switch-icon']"></i>
-        <span v-if="switchLive" class="pane-switch-pulse" aria-hidden="true"></span>
-      </span>
-      <span class="pane-switch-label">{{ switchLabel }}</span>
-      <!-- Ambient count of what is waiting on the other side. Keyed on the
-           number so it springs when the fleet grows instead of silently
-           becoming a different digit. -->
-      <Transition name="pane-count" mode="out-in">
-        <span v-if="switchCount" :key="switchCount" class="pane-switch-count">{{ switchCount }}</span>
-      </Transition>
-      <i
-        v-if="switchDirection === 'forward'"
-        class="fas fa-chevron-right pane-switch-chevron"
-      ></i>
-    </button>
+    <!-- Pane switches — the only way across the workspace, at every width. The
+         cluster is ordered the way the workspace nests: the pane you'd step
+         into first sits nearest the identity. -->
+    <div class="pane-switches">
+      <button
+        v-for="s in switches"
+        :key="s.id"
+        type="button"
+        :class="['pane-switch', 'iw-press', 'group', s.mobileOnly && 'pane-switch--mobile']"
+        :aria-label="`Switch to ${s.label}`"
+        @click="emit('switch', s.id)"
+      >
+        <i
+          v-if="s.direction === 'back'"
+          class="fas fa-chevron-left pane-switch-chevron"
+        ></i>
+        <!-- The destination has a live run (a subagent working over there): the
+             icon carries the same dot the status line uses, so the link to the
+             working subagent is always visible from the thread you're in. -->
+        <span class="pane-switch-icon-wrap">
+          <i :class="[s.icon, 'pane-switch-icon']"></i>
+          <span v-if="s.live" class="pane-switch-pulse" aria-hidden="true"></span>
+        </span>
+        <span class="pane-switch-label">{{ s.label }}</span>
+        <!-- Ambient count of what is waiting on the other side. Keyed on the
+             number so it springs when the fleet grows instead of silently
+             becoming a different digit. -->
+        <Transition name="pane-count" mode="out-in">
+          <span v-if="s.count" :key="s.count" class="pane-switch-count">{{ s.count }}</span>
+        </Transition>
+        <i
+          v-if="s.direction !== 'back'"
+          class="fas fa-chevron-right pane-switch-chevron"
+        ></i>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -111,18 +126,32 @@ withDefaults(
     state?: 'working' | 'waiting' | 'idle'
     /** One line on what this pane is doing right now */
     status?: string
-    switchIcon?: string
-    switchLabel?: string
-    /** A run is live in the pane this switches to — the switch icon pulses */
-    switchLive?: boolean
-    /** Badge on the switch: how much is waiting in the other pane */
-    switchCount?: number
-    switchDirection?: 'forward' | 'back'
+    /** Where you can go from this pane, left to right. */
+    switches?: Array<{
+      /** Emitted back on click — the caller's name for the destination */
+      id: string
+      icon: string
+      label: string
+      /** A run is live over there — the switch icon carries a pulse */
+      live?: boolean
+      /** Badge: how much is going on in the destination pane. Each caller picks
+       *  what it counts, but it must always be something you'd act on — 0 is
+       *  "nothing over there" and draws nothing. */
+      count?: number
+      /** 'back' puts the chevron in front; anything else points forward */
+      direction?: 'forward' | 'back'
+      /**
+       * Only offered below the md breakpoint. For destinations that are
+       * already on screen on desktop — the preview sits beside the panes
+       * there, so a button to "go to" it would be a button to go nowhere.
+       */
+      mobileOnly?: boolean
+    }>
   }>(),
-  { state: 'idle', switchDirection: 'forward' }
+  { state: 'idle', switches: () => [] }
 )
 
-const emit = defineEmits<{ (e: 'switch'): void }>()
+const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 </script>
 
 <style scoped>
@@ -139,11 +168,9 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
 .pane-header {
   position: relative;
   z-index: 20;
-  /* Three columns, the outer two equal: whatever the switch occupies on the
+  /* Three columns, the outer two equal: whatever the switches occupy on the
      right is mirrored by the gutter on the left, so the identity is centred on
-     the plate itself. Mobile hides the switch and both outer columns collapse
-     to nothing — the identity stays centred either way, without the layout
-     needing to know which case it is in. */
+     the plate itself. */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -201,7 +228,7 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
   display: flex;
 }
 
-.pane-switch--ghost {
+.pane-switches--ghost {
   visibility: hidden;
   pointer-events: none;
 }
@@ -347,10 +374,20 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
    nav buttons, so the two panes' chrome uses one elevation model — the button
    used to lift off the plate on hover while everything opposite it stayed
    seated. It still gives under the press (.iw-press). */
+/* The cluster: however many destinations this pane offers, seated as one
+   object on the right so the plate reads as identity-then-exits rather than a
+   row of loose buttons. */
+.pane-switches {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 0.3125rem;
+  min-width: 0;
+}
+
 .pane-switch {
   display: inline-flex;
   align-items: center;
-  justify-self: end;
   gap: 0.3125rem;
   flex-shrink: 0;
   height: 1.75rem;
@@ -370,13 +407,55 @@ const emit = defineEmits<{ (e: 'switch'): void }>()
     box-shadow var(--iw-dur-2) var(--iw-ease-out);
 }
 
-/* Desktop only, and stated here rather than with a `max-md:hidden` utility:
-   the scoped `.pane-switch[data-v-…]` rule above outranks a single-class
-   Tailwind utility, so the utility would have been silently ignored. Below the
-   md breakpoint the navbar switcher is the way across — it reaches the preview
-   too, which this control cannot. */
+/* A destination that is already on screen on desktop (the preview, which sits
+   beside the panes there) — offered only where it actually replaces this pane.
+   Stated here rather than with a `md:hidden` utility: the scoped
+   `.pane-switch[data-v-…]` rule above outranks a single-class Tailwind
+   utility, so the utility would have been silently ignored. */
+@media (min-width: 768px) {
+  .pane-switch--mobile {
+    display: none;
+  }
+}
+
+/* Phones. The plate now carries up to two switches, and a 360px-wide sidebar
+   cannot both seat them and reserve their width again on the left. So the
+   ghost gutter goes, and with it true centring: the identity reads from the
+   left — the app-bar arrangement — and the switches keep the right. Everything
+   tightens by a couple of pixels to buy the title back some room. */
 @media (max-width: 767px) {
+  .pane-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pane-header-gutter {
+    display: none;
+  }
+
+  .pane-identity {
+    text-align: left;
+  }
+
+  .pane-status-line {
+    justify-content: flex-start;
+  }
+
+  .pane-switches {
+    gap: 0.25rem;
+  }
+
   .pane-switch {
+    height: 1.625rem;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+  }
+}
+
+/* The narrowest phones still in circulation (320px): the chevrons are the
+   first thing to go — the icon and the word already say where the button
+   leads, and dropping them hands ~24px back to the pane's own name. */
+@media (max-width: 359px) {
+  .pane-switch-chevron {
     display: none;
   }
 }

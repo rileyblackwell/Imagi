@@ -1,29 +1,25 @@
-import { computed, ref, type Ref } from 'vue'
+import { ref } from 'vue'
 
 /**
- * Which pane the workspace sidebar shows, across both layouts.
+ * Which pane the workspace sidebar shows, and how the preview relates to it.
  *
- * There are two of these panes — the agent manager and the active instance's
- * chat — and never both at once. Desktop toggles between them with the pane
- * masthead's switch; mobile adds the preview as a third full-screen view and
- * moves between all three from the navbar's segmented switcher, which is the
- * only such control at that width (the mastheads drop theirs).
+ * There are two panes — the agent manager and the active instance's chat — and
+ * never both at once. The preview is not a third pane: it lives in the main
+ * content area, so it is simply what you see when the sidebar is collapsed. On
+ * desktop the sidebar is open beside it; on a phone the sidebar covers it, so
+ * "go to the preview" and "collapse the sidebar" are the same act.
  *
- * The two layouts read different state (`sidebarView` on desktop, `mobileView`
- * on mobile), which is the trap this composable exists to close: a switch made
- * from inside a pane has to move both, or it changes the pane on one layout and
- * silently does nothing on the other.
+ * That is the whole model, and it is deliberately the same one at every width:
+ * mobile used to carry a second piece of state (a navbar switcher naming one of
+ * three views) which had to be kept in lockstep with this one, and any writer
+ * that forgot changed the pane on one layout while doing nothing on the other.
  */
 
 export type SidebarView = 'manager' | 'chat'
-export type MobileView = SidebarView | 'browser'
 
-// Persisted so the workspace reopens on the pane you left it on. Tolerates the
-// old 'builderAgentManagerOpen' key's absence; that key is no longer written.
+/** Persisted so the workspace reopens on the pane you left it on. Tolerates the
+ *  old 'builderAgentManagerOpen' key's absence; that key is no longer written. */
 const SIDEBAR_VIEW_STORAGE_KEY = 'builderSidebarView'
-// Owned by BuilderLayout (see its storage-key prop); read here only to pick the
-// mobile view that matches it on first paint.
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'builderWorkspaceSidebarCollapsed'
 
 function readStored(key: string): string | null {
   try {
@@ -33,67 +29,45 @@ function readStored(key: string): string | null {
   }
 }
 
-/** The three full-screen views mobile switches between, in a fixed order so a
- *  destination keeps its position as the current view changes. Labels match the
- *  pane mastheads word for word — 'Main agent' is the chat pane's own title. */
-export const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string }> = [
-  { value: 'chat', label: 'Main agent', icon: 'fas fa-comments' },
-  { value: 'manager', label: 'Subagents', icon: 'fas fa-layer-group' },
-  { value: 'browser', label: 'Preview', icon: 'fas fa-globe' },
-]
+/** Collapse state is owned by BuilderLayout (see its storage-key prop) and
+ *  handed to us as a setter, so the preview stays one thing the layout knows
+ *  about rather than a view this composable has to mirror. */
+type SetCollapsed = (collapsed: boolean) => void
 
-export function useSidebarPane(isMobile: Ref<boolean>) {
+export function useSidebarPane() {
   const sidebarView = ref<SidebarView>(
     readStored(SIDEBAR_VIEW_STORAGE_KEY) === 'manager' ? 'manager' : 'chat'
   )
 
-  // Start on the view matching the persisted collapsed state, otherwise a
-  // reload after choosing the browser would highlight "chat" while showing it.
-  const mobileView = ref<MobileView>(
-    readStored(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true' ? 'browser' : 'chat'
-  )
-
-  /** Swap the pane the sidebar shows. The single writer for both pieces of
-   *  state, so a switch made from inside a pane — the masthead's switch pill,
-   *  picking a thread in the manager, opening a subagent from a dispatch card —
-   *  lands on whichever one the current layout is rendering.
-   *  'browser' is left alone: it means the sidebar is collapsed off-screen, and
-   *  naming a pane the user can't see would light up the wrong navbar tab. */
+  /** Swap the pane the sidebar shows. The single writer, so a switch made from
+   *  inside a pane — the masthead's switch pill, picking a thread in the
+   *  manager, opening a subagent from a dispatch card — always lands. */
   function setSidebarView(view: SidebarView) {
     sidebarView.value = view
-    if (mobileView.value !== 'browser') mobileView.value = view
     try {
       localStorage.setItem(SIDEBAR_VIEW_STORAGE_KEY, view)
     } catch {}
   }
 
-  /** The navbar switcher picked a view. `setSidebarCollapsed` comes from the
-   *  layout: the browser lives in the main content area, so it shows when the
-   *  sidebar is collapsed off-screen and the two panes show when it is open. */
-  function selectMobileView(
-    view: MobileView,
-    setSidebarCollapsed?: (collapsed: boolean) => void
-  ) {
-    mobileView.value = view
-    // Manager/chat are the same panes desktop toggles between; keep the
-    // persisted desktop view in step so a rotation doesn't swap panes.
-    if (view !== 'browser') setSidebarView(view)
-    setSidebarCollapsed?.(view === 'browser')
+  /** Go and watch the app being built. The pane underneath is left alone: it is
+   *  what you come back to, and coming back should not have moved it. */
+  function showPreview(setSidebarCollapsed: SetCollapsed) {
+    setSidebarCollapsed(true)
   }
 
-  /** The single pane the sidebar renders right now. On mobile 'browser' means
-   *  the sidebar is collapsed and neither pane is visible, so it falls through
-   *  to chat — what the user returns to when they reopen the sidebar. */
-  const activeSidebarPane = computed<SidebarView>(() =>
-    isMobile.value ? (mobileView.value === 'manager' ? 'manager' : 'chat') : sidebarView.value
-  )
+  /** Come back from the preview to a pane — the preview's return pill, and the
+   *  desktop case where the sidebar was collapsed. Naming the pane and opening
+   *  the sidebar are one act: either alone lands you somewhere you didn't ask
+   *  for. */
+  function showPane(view: SidebarView, setSidebarCollapsed: SetCollapsed) {
+    setSidebarView(view)
+    setSidebarCollapsed(false)
+  }
 
   return {
     sidebarView,
-    mobileView,
-    mobileViewOptions,
     setSidebarView,
-    selectMobileView,
-    activeSidebarPane,
+    showPreview,
+    showPane,
   }
 }
