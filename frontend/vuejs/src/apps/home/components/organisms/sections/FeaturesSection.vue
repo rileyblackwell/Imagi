@@ -1,9 +1,9 @@
 <!--
   Step 01 — Build.
 
-  Three ruled columns, each with a short checklist. Deliberately quiet: the hero
-  already showed the workspace, so this section explains it rather than
-  re-illustrating it.
+  Three ruled columns explaining the workspace, then a screenshot of the real
+  thing. The shot lives here rather than in the hero because this is the
+  section that describes what it shows.
 -->
 <template>
   <section class="relative py-20 md:py-28">
@@ -46,6 +46,18 @@
           </ul>
         </div>
       </div>
+
+      <!-- The workspace itself, illustrating the three columns above it -->
+      <div v-reveal="{ delay: 120 }" class="mt-16 md:mt-20">
+        <ProductShot
+          src="/product/build-workspace.webp"
+          alt="The Imagi build workspace: a conversation with the agent on the left, and on the right the live stock-tracking app it wrote — a portfolio snapshot with AAPL and TSLA prices and AI-written summaries."
+          :width="2400"
+          :height="1500"
+          label="imagi — build workspace"
+          caption="A real project mid-conversation: “Ticker Insights”, a stock tracker with AI-written summaries, built from a description and running live beside the chat."
+        />
+      </div>
     </div>
   </section>
 </template>
@@ -53,11 +65,11 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
-import { HomeCardIcon } from '@/apps/home/components/atoms'
+import { HomeCardIcon, ProductShot } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'FeaturesSection',
-  components: { HomeCardIcon },
+  components: { HomeCardIcon, ProductShot },
   directives: { reveal },
   props: {
     features: {
@@ -87,88 +99,5 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
-.rule-cols {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.75rem;
-}
-
-/* Columns stretch to a common height and the checklist is pushed to the
-   bottom, so the hairline above it lands on the same baseline in all three
-   regardless of how long each description runs. */
-.rule-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.rule-col .checklist {
-  margin-top: auto;
-}
-
-@media (min-width: 768px) {
-  .rule-cols {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    align-items: stretch;
-  }
-
-  .rule-col {
-    padding: 0 2rem 0 0;
-  }
-
-  .rule-col + .rule-col {
-    padding-left: 2rem;
-    border-left: 1px solid var(--rule);
-  }
-}
-
-/* Size comes from HomeCardIcon's own scoped rule — only the ink is ours. */
-.rule-col__icon {
-  color: var(--accent);
-}
-
-.rule-col__title {
-  margin-top: 1.1rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.rule-col__body {
-  margin-top: 0.65rem;
-  /* Floor for the gap the checklist's `margin-top: auto` would otherwise
-     collapse to in the tallest column. */
-  margin-bottom: 1.4rem;
-  font-size: 0.9375rem;
-  line-height: 1.65;
-  color: var(--ink-55);
-  text-wrap: pretty;
-}
-
-.checklist {
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--rule);
-  display: grid;
-  gap: 0.65rem;
-}
-
-.checklist li {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--ink-70);
-}
-
-.checklist__tick {
-  flex: none;
-  width: 0.3rem;
-  height: 0.3rem;
-  border-radius: 999px;
-  background: var(--accent);
-  transform: translateY(-0.15em);
-}
-</style>
+<!-- Layout comes entirely from .rule-cols / .checklist in
+     shared/styles/editorial.css -->

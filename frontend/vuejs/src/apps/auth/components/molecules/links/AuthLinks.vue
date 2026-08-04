@@ -3,12 +3,12 @@
     <!-- Enhanced Links Section -->
     <div class="text-center">
       <!-- Alternate Auth Action -->
-      <p class="text-blue-950/65 dark:text-blue-100/65 text-sm transition-colors duration-300">
+      <p class="text-sm" style="color: var(--ink-55)">
         <template v-if="isLoginPage">
           New to Imagi?
           <router-link
             to="/auth/register"
-            class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 ml-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="auth-link"
           >
             Create an account
           </router-link>
@@ -17,7 +17,7 @@
           Already have an account?
           <router-link
             to="/auth/signin"
-            class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 ml-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="auth-link"
           >
             Sign in here
           </router-link>
@@ -34,3 +34,23 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/auth/signin')
 </script>
+
+<style scoped>
+.auth-link {
+  margin-left: 0.25rem;
+  font-weight: 500;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: 1px;
+  transition: border-color 0.18s ease;
+}
+
+.auth-link:hover {
+  border-bottom-color: var(--accent);
+}
+
+.auth-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+</style>

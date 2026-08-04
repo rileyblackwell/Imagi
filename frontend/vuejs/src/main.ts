@@ -12,6 +12,10 @@ import config from '@/shared/config'
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
 
+// Design system for the public pages (home, about, pricing, docs, legal,
+// auth). Scoped to `.editorial`, so the signed-in app is unaffected.
+import '@/shared/styles/editorial.css'
+
 // Import Font Awesome icons
 import {
   faUser,

@@ -9,10 +9,10 @@
 
       <!-- What is Imagi -->
       <section class="mb-16">
-        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
+        <h2 class="display text-3xl sm:text-4xl mb-6">
           What is Imagi?
         </h2>
-        <div class="space-y-4 text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed transition-colors duration-300">
+        <div class="lede space-y-4 text-lg">
           <p>
             Imagi is an all-in-one platform for building and running a business. First, you build your
             web application with AI-powered tools: design visually, chat with AI to plan and write code,
@@ -28,10 +28,10 @@
 
       <!-- Who is it for -->
       <section class="mb-16">
-        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-8 tracking-[-0.015em] transition-colors duration-300">
+        <h2 class="display text-3xl sm:text-4xl mb-8">
           Who is it for?
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="rule-cols">
           <DocsCard title="Startup Founders">
             Go from idea to a running business without hiring a team—build your product, then find customers and grow revenue.
           </DocsCard>
@@ -46,14 +46,14 @@
 
       <!-- How Does Imagi Work -->
       <section class="mb-16">
-        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
+        <h2 class="display text-3xl sm:text-4xl mb-6">
           How Does Imagi Work?
         </h2>
-        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="lede text-lg mb-8">
           Imagi brings everything you need to build and run a business into one seamless platform. You start by
           building your web app, then use built-in tools to operate and grow your business:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rule-cols rule-cols--2">
           <DocsCard title="Build">
             Describe what you want in plain language and Imagi's AI agents generate the pages, styling, and logic
             for your product—refining it live in an interactive preview, with no coding or server setup required.
@@ -75,14 +75,14 @@
 
       <!-- Why Choose Imagi -->
       <section class="mb-16">
-        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
+        <h2 class="display text-3xl sm:text-4xl mb-6">
           Why Choose Imagi?
         </h2>
-        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="lede text-lg mb-8">
           Imagi is built on the principle that starting and running a business should be accessible to everyone,
           not just those with technical teams and big budgets. Here's what sets us apart:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rule-cols rule-cols--2">
           <DocsCard title="Everything in One Place">
             Build your product and run marketing, sales, and finance from a single platform. No more stitching
             together a dozen separate subscriptions to keep your business running.
@@ -104,13 +104,13 @@
 
       <!-- Learn More Section -->
       <section class="mb-16">
-        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
+        <h2 class="display text-3xl sm:text-4xl mb-6">
           Learn More
         </h2>
-        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="lede text-lg mb-8">
           Ready to dive deeper? Explore these guides to learn more about using Imagi:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rule-cols rule-cols--2">
           <DocsNavigationCard
             to="/docs/building"
             title="Building with AI"

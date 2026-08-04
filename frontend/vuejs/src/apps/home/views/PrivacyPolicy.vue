@@ -1,100 +1,60 @@
-<!-- Privacy Policy Page - warm porcelain editorial design -->
+<!--
+  Privacy policy.
+
+  Long-form legal text on the editorial prose surface: a narrow measure, a
+  hairline before each section, and no cards. Styling comes from the .prose
+  rules in shared/styles/editorial.css, so this file carries none of its own.
+-->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="home-page relative min-h-screen overflow-hidden font-body transition-colors duration-500">
-
-      <!-- Grain texture over the whole canvas -->
+    <div class="editorial relative min-h-screen font-body">
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
-      <!-- Main Content -->
       <main class="relative z-10">
-        <!-- Hero Section -->
-        <section class="relative pt-32 pb-16 sm:pt-40 sm:pb-20 md:pt-48 md:pb-24 px-6 sm:px-8 lg:px-12 transition-colors duration-500">
 
-          <!-- One soft apricot wash behind the headline -->
-          <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div class="wash-warm absolute -top-32 left-1/2 -translate-x-1/2 w-[820px] h-[520px]"></div>
-          </div>
-
-          <div class="relative max-w-4xl mx-auto text-center">
-            <!-- Editorial kicker: tracked small caps flanked by fading hairline rules -->
-            <div class="hero-item flex items-center justify-center gap-4 mb-8" style="animation-delay: 0ms">
-              <span aria-hidden="true" class="hidden sm:block h-px w-12 md:w-16 bg-gradient-to-l from-blue-950/25 to-transparent dark:from-white/25"></span>
-              <span class="flex items-center gap-3">
-                <span aria-hidden="true" class="w-1 h-1 rotate-45 bg-orange-500/80 dark:bg-orange-400/80"></span>
-                <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.25em] sm:tracking-[0.3em] leading-none text-blue-950/70 dark:text-blue-100/55 whitespace-nowrap">Legal</span>
-                <span aria-hidden="true" class="w-1 h-1 rotate-45 bg-orange-500/80 dark:bg-orange-400/80"></span>
-              </span>
-              <span aria-hidden="true" class="hidden sm:block h-px w-12 md:w-16 bg-gradient-to-r from-blue-950/25 to-transparent dark:from-white/25"></span>
-            </div>
-
-            <!-- Hero title -->
-            <h1 class="hero-item font-display font-semibold text-[2.9rem] sm:text-6xl md:text-7xl mb-7 tracking-[-0.02em] leading-[1.05] text-balance text-blue-950 dark:text-white transition-colors duration-300" style="animation-delay: 90ms">
+        <!-- Masthead -->
+        <section class="relative pt-32 sm:pt-40 md:pt-44 pb-4">
+          <div class="prose-shell">
+            <p class="eyebrow">
+              <span class="eyebrow__rule" aria-hidden="true"></span>
+              <span>Legal</span>
+            </p>
+            <h1 class="display mt-7 text-[2.5rem] sm:text-5xl md:text-[3.4rem]">
               Privacy Policy
             </h1>
-
-            <!-- Description -->
-            <p class="hero-item text-lg sm:text-xl text-blue-950/65 dark:text-blue-100/65 max-w-3xl mx-auto leading-relaxed text-pretty mb-8 transition-colors duration-300" style="animation-delay: 180ms">
-              We are committed to protecting your privacy and ensuring the security of your personal information.
+            <p class="lede mt-6 text-lg">
+              How Imagi handles your data — what we collect, how it is stored, who it is shared with, and the control you have over it.
             </p>
-
-            <!-- Folio line: serif italic between hairlines -->
-            <p class="hero-item flex items-center justify-center gap-4 text-sm" style="animation-delay: 270ms">
-              <span aria-hidden="true" class="h-px w-10 bg-blue-950/20 dark:bg-white/20"></span>
-              <span class="font-display italic text-blue-950/70 dark:text-blue-100/55">Last updated: June 18, 2026</span>
-              <span aria-hidden="true" class="h-px w-10 bg-blue-950/20 dark:bg-white/20"></span>
+            <p class="mt-8 pt-5 text-sm" style="border-top: 1px solid var(--rule); color: var(--ink-40)">
+              Last updated: June 18, 2026
             </p>
           </div>
         </section>
 
-        <!-- Content Sections -->
-        <section v-for="(section, index) in sections" :key="index"
-                 class="relative py-14 md:py-16 px-6 sm:px-8 lg:px-12 transition-colors duration-500">
-          <div class="relative max-w-3xl mx-auto">
-            <!-- Hairline divider -->
-            <div class="section-divider mb-12 md:mb-14" aria-hidden="true"></div>
-
-            <!-- Section header -->
-            <div class="mb-10">
-              <p
-                class="inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs font-semibold uppercase tracking-[0.18em] mb-6 transition-colors duration-300"
-                :class="index % 2 === 0
-                  ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
-                  : 'border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300'"
-              >
-                {{ parseBadge(section.badge).eyebrow }}
-              </p>
-              <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-4 tracking-[-0.015em] leading-[1.1] text-balance transition-colors duration-300">
+        <!-- Sections -->
+        <section class="relative pt-6 pb-20 md:pb-28">
+          <div class="prose-shell prose">
+            <template v-for="section in sections" :key="section.badge">
+              <h2>
+                <span class="sec-num">{{ parseBadge(section.badge).eyebrow }}</span>
                 {{ parseBadge(section.badge).title }}
               </h2>
-              <p v-if="section.description" class="text-lg text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
-                {{ section.description }}
-              </p>
-            </div>
+              <p v-if="section.description">{{ section.description }}</p>
 
-            <!-- Content as cards -->
-            <div v-if="section.items" class="space-y-4">
-              <div v-for="(item, itemIndex) in section.items" :key="itemIndex"
-                   class="crisp-card relative p-6 sm:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] border backdrop-blur-sm transition-colors duration-300"
-                   :class="itemIndex % 2 === 1 ? 'border-orange-200/70 dark:border-orange-300/[0.14]' : 'border-blue-200/70 dark:border-blue-300/[0.14]'">
-                <h3 class="text-lg sm:text-xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300 mb-3">
-                  {{ item.title }}
-                </h3>
-                <p class="text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
-                  {{ item.text }}
-                </p>
-              </div>
-            </div>
+              <template v-if="section.items">
+                <template v-for="item in section.items" :key="item.title">
+                  <h3>{{ item.title }}</h3>
+                  <p>{{ item.text }}</p>
+                </template>
+              </template>
+            </template>
           </div>
         </section>
 
-        <!-- CTA Section -->
         <CTASection
-          title="Ready to Start Building?"
-          description="Your data stays private and secure. Just describe your idea, and let Imagi do the rest."
-          primaryButtonText="Start Building"
-          primaryButtonTo="/imagi/projects"
-          :showSecondaryButton="true"
+          title="Ready to start?"
+          description="Your data stays yours. Describe what you want to build, and have a working web app the same afternoon."
+          primaryButtonText="Start building"
           secondaryButtonText="Terms of Service"
           secondaryButtonTo="/terms"
         />
@@ -307,143 +267,16 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* One continuous warm-porcelain canvas ending on the footer's background
-   (footer is bg-white / dark #0a0a0a) */
-.home-page {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-:root.dark .home-page,
-.dark .home-page {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
-}
-
-/* Fine film grain keeps large soft gradients from banding and adds texture */
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.035;
-  mix-blend-mode: multiply;
-}
-
-:root.dark .grain-overlay,
-.dark .grain-overlay {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-}
-
-.home-page :deep(h1),
-.home-page :deep(h2),
-.home-page :deep(h3) {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
-}
-
-/* Staggered entrance: each .hero-item rises in sequence on page load */
-.hero-item {
-  animation: hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes hero-rise {
-  from {
-    opacity: 0;
-    transform: translateY(22px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-item {
-    animation: none;
-  }
-}
-
-/* Soft warm wash over the porcelain canvas */
-.wash-warm {
-  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.13), rgba(251, 146, 60, 0.04) 55%, transparent 75%);
-  filter: blur(44px);
-}
-
-.dark .wash-warm {
-  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.07), rgba(251, 146, 60, 0.02) 55%, transparent 75%);
-}
-
-/* Hairline gradient divider that fades at the edges */
-.section-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(23, 37, 84, 0.12), transparent);
-}
-
-.dark .section-divider {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-}
-
-/* Crisp, sharply-defined cards: hairline edge + tight layered shadow */
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
-}
-
-.dark .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
-}
-
-/* Refined minimal scrollbar */
-:deep(::-webkit-scrollbar) {
-  width: 8px;
-}
-
-:deep(::-webkit-scrollbar-track) {
-  background: transparent;
-}
-
-:deep(::-webkit-scrollbar-thumb) {
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-:deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-:root.dark :deep(::-webkit-scrollbar-thumb) {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-:root.dark :deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Smooth scroll behavior */
-:deep(html) {
-  scroll-behavior: smooth;
-}
-</style>
-
-<!-- Unscoped: brand-tinted selection (mirrors Home.vue so the page works standalone) -->
-<style>
-.home-page ::selection {
-  background: rgba(158, 205, 243, 0.55);
-  color: #172554;
-}
-
-.dark .home-page ::selection {
-  background: rgba(96, 165, 250, 0.4);
-  color: #eff6ff;
+/* The section number sits above its heading as a small tracked label rather
+   than inside a pill, matching the eyebrows used across the site. */
+.sec-num {
+  display: block;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.85rem;
 }
 </style>
