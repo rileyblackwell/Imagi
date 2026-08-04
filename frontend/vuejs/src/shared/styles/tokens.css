@@ -133,6 +133,25 @@
    Text fields deliberately do NOT use this — they draw a single deepening
    border instead. See shared/styles/forms.ts for why. */
 
+/* The blanket default. Buttons, links and cards get the ring without asking;
+   native form fields are excluded because they own their focus treatment (a
+   single deepening border — see forms.ts), and an outline on top of that reads
+   as two edges: a grey border inside a blue ring.
+
+   Wrapped in :where() so it carries zero specificity — any component can
+   override it with a single class, and `.focus-ring` below still wins.
+
+   This lived in BaseLayout as a `[&_*:focus-visible:not(input)…]` arbitrary
+   variant, which meant it stopped at the layout's slot: a modal teleported to
+   <body> fell outside it, and so did the notification toast, which had no
+   focus treatment at all as a result. */
+:where(*):focus-visible:not(input):not(textarea):not(select) {
+  outline: 2px solid var(--app-focus-tint);
+  outline-offset: 2px;
+}
+
+/* The explicit form, for a control that wants the ring stated at the call site
+   rather than inherited — and for anything the blanket rule excludes. */
 .focus-ring:focus-visible {
   outline: 2px solid var(--app-focus-tint);
   outline-offset: 2px;
@@ -143,6 +162,41 @@
 .focus-ring-inset:focus-visible {
   outline: 2px solid var(--app-focus-tint);
   outline-offset: -2px;
+}
+
+/* --- Scrollbar -----------------------------------------------------------
+   A thin ink scrollbar, so a scrolling panel does not drop a chunk of stock
+   grey chrome into a warm porcelain page. */
+
+.app-scroll {
+  scrollbar-width: thin;
+}
+
+.app-scroll::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.app-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-scroll::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  background: rgba(var(--app-ink), 0.15);
+}
+
+.app-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--app-ink), 0.25);
+}
+
+/* Dark thumbs sit on near-black, where the same alpha reads brighter. */
+.dark .app-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .app-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* --- Text rendering -------------------------------------------------------
