@@ -1,5 +1,5 @@
 <template>
-  <nav class="crisp-nav fixed w-full z-50 font-body bg-canvas/80 backdrop-blur-xl border-b border-blue-950/[0.08] dark:border-white/[0.08] transition-colors duration-300">
+  <nav class="crisp-nav crisp-text fixed w-full z-50 font-body bg-canvas/80 backdrop-blur-xl border-b border-blue-950/[0.08] dark:border-white/[0.08] transition-colors duration-300">
     <div class="relative px-6 sm:px-8 lg:px-12" :class="fluid ? 'w-full' : 'max-w-7xl mx-auto'">
       <!-- The bar is fixed, so everything below it is pushed down by the
            `nav` spacing token (tailwind.config.js) — this row's height plus
@@ -50,9 +50,6 @@ defineProps({
 <style scoped>
 /* Crisp, sharp text rendering + hairline separator that stays 1px at any DPI */
 .crisp-nav {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   box-shadow: 0 1px 0 0 rgba(15, 23, 42, 0.02);
 }
 

@@ -36,7 +36,7 @@ withDefaults(
 <style scoped>
 .docs-header {
   margin-bottom: 3rem;
-  animation: docs-header-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: docs-header-rise 0.8s var(--app-ease) both;
 }
 
 @media (min-width: 768px) {

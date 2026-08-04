@@ -31,7 +31,7 @@
         queue.length > 2 ? 'is-deep' : ''
       ]"
     >
-      <article :key="current.id" :class="['check-in', `check-in--${tone}`]">
+      <article :key="current.id" :class="['check-in iw-surface', `check-in--${tone}`]">
         <span class="check-in__rail" aria-hidden="true"></span>
 
         <div class="check-in__body">
@@ -372,8 +372,6 @@ function sendAnswer() {
   background: rgba(239, 246, 255, 0.75);
   box-shadow: var(--iw-shadow-1);
   overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   animation: check-in-arrive var(--iw-dur-4) var(--iw-ease-spring) both;
   transition:
     border-color var(--iw-dur-3) var(--iw-ease-out),

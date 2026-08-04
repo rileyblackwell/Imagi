@@ -13,7 +13,7 @@
 -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="hub-page relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
+    <div class="hub-page crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
       <!-- Grain texture over the porcelain canvas -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
@@ -199,9 +199,6 @@ onBeforeUnmount(stopBuildStatusPolling)
    (footer is bg-white / dark #0a0a0a) — matches Home.vue */
 .hub-page {
   background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 .dark .hub-page {

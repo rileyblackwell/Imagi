@@ -2,7 +2,7 @@
 <template>
   <DefaultLayout>
     <!-- Main Content -->
-    <div class="payment-layout relative min-h-screen font-body transition-colors duration-500">
+    <div class="payment-layout crisp-text relative min-h-screen font-body transition-colors duration-500">
       <!-- Grain texture over the whole canvas -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
       <main class="relative z-10 min-h-screen">
@@ -30,9 +30,6 @@ export default defineComponent({
    so the page hands off seamlessly. */
 .payment-layout {
   background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 :root.dark .payment-layout,

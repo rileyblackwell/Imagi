@@ -63,6 +63,6 @@ defineEmits<{ (e: 'toggle'): void }>()
 }
 
 .toggle-fill {
-  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.22s var(--app-ease);
 }
 </style>

@@ -11,7 +11,7 @@
 <template>
   <article
     :class="[
-      'agent-card group',
+      'agent-card iw-surface group',
       `agent-card--${status.state}`,
       isActive ? 'agent-card--active' : '',
       isArchived ? 'agent-card--archived' : ''
@@ -177,8 +177,6 @@ function relativeTime(iso: string): string {
   box-shadow: none;
   cursor: pointer;
   overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   /* Transform is animated on its own line: hover raises the card and the
      press pushes it back down, and both need to compose without fighting the
      colour fade's timing. */

@@ -295,14 +295,14 @@ onMounted(() => {
    the content margin and navbar offset animate in lockstep on the same curve
    (matching the home page's reveal easing), so nothing tears or lags. */
 .sidebar-panel {
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.32s var(--app-ease);
   will-change: transform;
 }
 
 .content-shell,
 .navbar-shell {
-  transition: margin 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    left 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: margin 0.32s var(--app-ease),
+    left 0.32s var(--app-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -317,18 +317,12 @@ onMounted(() => {
    fill — reads as selected without shouting, matching the home page's card
    language. */
 .nav-item-active {
-  background: #ffffff;
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.05),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 3px 8px -3px rgba(15, 23, 42, 0.12);
+  background: rgb(var(--app-paper-raised));
+  box-shadow: var(--app-shadow-pill);
 }
 
 :global(.dark) .nav-item-active {
   background: rgba(255, 255, 255, 0.07);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* No tap flash on the toggle; keyboard focus shows the canonical ring via

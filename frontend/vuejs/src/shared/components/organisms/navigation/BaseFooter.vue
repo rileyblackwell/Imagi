@@ -1,5 +1,5 @@
 <template>
-  <footer class="crisp-footer relative font-body bg-canvas border-t border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
+  <footer class="crisp-footer crisp-text relative font-body bg-canvas border-t border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
     <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
       
       <!-- Main footer content -->
@@ -116,8 +116,5 @@ const currentYear = computed(() => new Date().getFullYear())
 <style scoped>
 /* Crisp, sharp text rendering for the footer */
 .crisp-footer {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 </style>
