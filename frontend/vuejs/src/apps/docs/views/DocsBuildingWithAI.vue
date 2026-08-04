@@ -9,19 +9,19 @@
 
       <!-- Overview -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           The Build Workspace
         </h2>
         <div class="space-y-4 text-[color:var(--ink-55)] text-lg leading-relaxed mb-8 transition-colors duration-300">
           <p>
-            <strong class="font-semibold text-[color:var(--ink)]">Build</strong> is where you turn an idea into a
+            <strong class="ink-strong">Build</strong> is where you turn an idea into a
             working web application. Instead of writing code, you describe what you want in plain language and Imagi's
             AI agents generate the pages, styling, and logic for you—then refine them as you give feedback.
           </p>
           <p>
-            The workspace has two halves. On the left is your <strong class="font-semibold text-[color:var(--ink)]">conversation</strong>
+            The workspace has two halves. On the left is your <strong class="ink-strong">conversation</strong>
             with the agent (and the Agent Manager, for running several agents at once). On the right is a
-            <strong class="font-semibold text-[color:var(--ink)]">live, interactive preview</strong> of your actual
+            <strong class="ink-strong">live, interactive preview</strong> of your actual
             running app that updates as the agent works.
           </p>
         </div>
@@ -40,28 +40,28 @@
 
       <!-- Getting started steps -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Getting Started
         </h2>
 
         <DocsStepCard :number="1" title="Create a Project">
           <p class="text-lg leading-relaxed mb-6">
-            From your Projects page, give your project a <strong class="font-semibold text-[color:var(--ink)]">Business Name</strong>
-            and a <strong class="font-semibold text-[color:var(--ink)]">Business Description</strong>. The description matters:
+            From your Projects page, give your project a <strong class="ink-strong">Business Name</strong>
+            and a <strong class="ink-strong">Business Description</strong>. The description matters:
             Imagi's AI uses it to build the very first version of your app, so describe what your business does, who its
             customers are, and how you'll sell.
           </p>
-          <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 transition-colors duration-300">
-            <h4 class="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] mt-0 mb-3 transition-colors duration-300">
+          <div class="callout">
+            <h4 class="callout__title">
               Behind the scenes
             </h4>
-            <p class="text-lg text-[color:var(--ink-55)] mb-0 leading-relaxed">
+            <p class="callout__body">
               As soon as you create a project, Imagi runs an AI build in the background to generate a tailored first
               version from your description. Your project hub shows a "Building your app" state, and the Build workspace
               opens automatically the moment that first build is ready.
             </p>
           </div>
-          <div class="w-full h-px bg-[color:var(--rule)] my-6" aria-hidden="true"></div>
+          <div class="section-rule my-6" aria-hidden="true"></div>
           <router-link
             to="/imagi/projects"
             class="btn-primary group"
@@ -97,8 +97,8 @@
             </li>
           </ul>
           <p class="text-lg leading-relaxed">
-            Before you send, you can choose which AI <strong class="font-semibold text-[color:var(--ink)]">model</strong>
-            and how much <strong class="font-semibold text-[color:var(--ink)]">reasoning effort</strong> to use for the
+            Before you send, you can choose which AI <strong class="ink-strong">model</strong>
+            and how much <strong class="ink-strong">reasoning effort</strong> to use for the
             task. See <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>
             for how to pick.
           </p>
@@ -108,12 +108,12 @@
           <p class="text-lg leading-relaxed mb-6">
             The agent doesn't just reply—it builds. As it works you'll see a live status line
             (<em class="font-display italic">"Planning…," "Reading project files…," "Editing project files…"</em>)
-            and an <strong class="font-semibold text-[color:var(--ink)]">activity feed</strong> that checks off each
-            step it takes in plain language. For bigger requests it posts a <strong class="font-semibold text-[color:var(--ink)]">plan
+            and an <strong class="ink-strong">activity feed</strong> that checks off each
+            step it takes in plain language. For bigger requests it posts a <strong class="ink-strong">plan
             checklist</strong> and ticks items off as it goes. When it finishes, a small chip shows how many files were updated.
           </p>
           <p class="text-lg leading-relaxed">
-            You stay in control the whole time: you can <strong class="font-semibold text-[color:var(--ink)]">stop</strong>
+            You stay in control the whole time: you can <strong class="ink-strong">stop</strong>
             a run at any point and keep what was already done, or queue a follow-up message that sends automatically when the
             current run finishes.
           </p>
@@ -124,7 +124,7 @@
             Your app runs live in the preview pane on the right—a real, interactive browser you can click, type, and scroll
             through, not a static mockup. It updates as the agent makes changes, and a built-in page selector lets you jump
             to any page in your app. If something in your app ever throws an error, a
-            <strong class="font-semibold text-[color:var(--ink)]">"Fix it"</strong> button hands the details straight
+            <strong class="ink-strong">"Fix it"</strong> button hands the details straight
             to the agent to investigate.
           </p>
         </DocsStepCard>
@@ -132,10 +132,10 @@
 
       <!-- How the agent works -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           How the AI Agent Works
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Behind a simple chat box, the agent works like a capable teammate—reading your project to understand it, making
           a plan, editing files, and checking the result. You see all of it in plain language, without needing to read code.
         </p>
@@ -160,11 +160,11 @@
 
       <!-- Agent Manager -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           The Agent Manager
         </h2>
-        <p class="lede text-lg mb-8">
-          For bigger builds, the <strong class="font-semibold text-[color:var(--ink)]">Agent Manager</strong> turns the
+        <p class="lede lede--section">
+          For bigger builds, the <strong class="ink-strong">Agent Manager</strong> turns the
           workspace into a small team of agents you direct. You steer the build from one main thread while dispatching
           side-jobs that run in parallel—each in its own isolated copy of your app, so nothing collides.
         </p>
@@ -182,8 +182,8 @@
             at the same request, so you can compare and pick the best.
           </DocsCard>
           <DocsCard title="Review &amp; accept">
-            Finished tasks wait for your decision. Review what each one changed, then <strong class="font-semibold text-[color:var(--ink)]">Accept</strong>
-            to merge it into your app or <strong class="font-semibold text-[color:var(--ink)]">Dismiss</strong> to
+            Finished tasks wait for your decision. Review what each one changed, then <strong class="ink-strong">Accept</strong>
+            to merge it into your app or <strong class="ink-strong">Dismiss</strong> to
             discard it—nothing touches your app until you say so.
           </DocsCard>
         </div>
@@ -191,10 +191,10 @@
 
       <!-- Checkpoints -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Never Lose Your Work
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Every message you send is a checkpoint. Imagi saves your app's state before the agent starts working, so you never
           have to think about saving—and you can always go back.
         </p>
@@ -212,7 +212,7 @@
 
       <!-- Next steps -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Next Steps
         </h2>
         <div class="rule-cols rule-cols--2">

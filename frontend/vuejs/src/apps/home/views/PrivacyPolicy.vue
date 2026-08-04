@@ -265,18 +265,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-/* The section number sits above its heading as a small tracked label rather
-   than inside a pill, matching the eyebrows used across the site. */
-.sec-num {
-  display: block;
-  font-family: 'Instrument Sans', system-ui, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 0.85rem;
-}
-</style>

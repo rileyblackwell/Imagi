@@ -12,6 +12,9 @@
  */
 
 .editorial {
+  /* The display face, named once. Four components had the stack written out. */
+  --font-display: 'Fraunces', Georgia, Cambria, 'Times New Roman', serif;
+
   /* Paper and ink. One accent, used sparingly — everything else is ink at a
      lower opacity, which is what keeps a page from looking decorated. */
   --paper: #fbfaf7;
@@ -134,7 +137,7 @@
 }
 
 .editorial .eyebrow__num {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
@@ -155,9 +158,23 @@
   background: var(--accent);
 }
 
+/* Section eyebrow used on its own line, above a heading — the numeral form the
+   legal pages use to letter their sections. Both of them had declared it
+   verbatim in their own <style> block. */
+.editorial .sec-num {
+  display: block;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.85rem;
+}
+
 /* Headline scale — Fraunces, tight, balanced */
 .editorial .display {
-  font-family: 'Fraunces', Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.06;
@@ -165,10 +182,68 @@
   text-wrap: balance;
 }
 
+/* The size a section headline takes on every page that has one. Twenty of them
+   were carrying `display text-3xl sm:text-4xl mb-6` by hand. */
+.editorial .display--section {
+  font-size: 1.875rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .editorial .display--section {
+    font-size: 2.25rem;
+  }
+}
+
 .editorial .lede {
   color: var(--ink-55);
   line-height: 1.65;
   text-wrap: pretty;
+}
+
+/* A lede introducing a section, at the size and spacing the docs pages use. */
+.editorial .lede--section {
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+}
+
+/* A word or phrase lifted out of body copy — the one emphasis the system has.
+   Thirty-three `<strong>` tags were spelling this out as a utility pair. */
+.editorial .ink-strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* --- Callout -------------------------------------------------------------
+   An aside inside running prose: "Behind the scenes", "What this costs".
+   Tinted panel, hairline edge, accent micro-caps title. */
+
+.editorial .callout {
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  background: rgba(239, 246, 255, 0.7);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .editorial .callout {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.editorial .callout__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.editorial .callout__body {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: var(--ink-55);
 }
 
 /* --- Long-form prose ----------------------------------------------------
@@ -180,7 +255,7 @@
 }
 
 .editorial .prose h2 {
-  font-family: 'Fraunces', Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.6rem;
   letter-spacing: -0.015em;
