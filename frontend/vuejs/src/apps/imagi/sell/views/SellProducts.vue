@@ -114,7 +114,7 @@
     </div>
 
     <!-- Create/edit modal -->
-    <SellModal
+    <BaseModal
       v-if="showForm"
       :title="editingProduct ? 'Edit product' : 'Add product'"
       @close="closeForm"
@@ -125,10 +125,10 @@
         @close="closeForm"
         @saved="onSaved"
       />
-    </SellModal>
+    </BaseModal>
 
     <!-- Delete confirmation -->
-    <SellModal v-if="deletingProduct" title="Delete product" @close="deletingProduct = null">
+    <BaseModal v-if="deletingProduct" title="Delete product" @close="deletingProduct = null">
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
         Delete “{{ deletingProduct.name }}”? Existing orders keep their history, but the
         product can no longer be bought. To stop selling it temporarily, edit it and
@@ -141,7 +141,7 @@
           Delete product
         </button>
       </div>
-    </SellModal>
+    </BaseModal>
   </div>
 </template>
 
@@ -149,7 +149,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ProductForm from '../components/ProductForm.vue'
-import SellModal from '../components/SellModal.vue'
+import { BaseModal } from '@/shared/components'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
 import type { Product } from '../types'

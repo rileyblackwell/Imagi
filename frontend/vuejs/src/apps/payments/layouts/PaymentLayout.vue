@@ -39,20 +39,6 @@ export default defineComponent({
 .dark .payment-layout {
   background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
 }
-
-/* Fine film grain keeps large soft gradients from banding and adds texture */
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.035;
-  mix-blend-mode: multiply;
-}
-
-:root.dark .grain-overlay,
-.dark .grain-overlay {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-}
 </style>
 
 <!-- Unscoped: brand-tinted text selection on payment pages -->

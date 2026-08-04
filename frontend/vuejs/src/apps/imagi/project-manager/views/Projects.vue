@@ -629,69 +629,6 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
 }
 
-/* Fine film grain keeps large soft gradients from banding and adds texture */
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.035;
-  mix-blend-mode: multiply;
-}
-
-.dark .grain-overlay {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-}
-
-/* Soft apricot wash behind the page header */
-.page-glow-warm {
-  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.13), rgba(251, 146, 60, 0.04) 55%, transparent 75%);
-  filter: blur(48px);
-}
-
-.dark .page-glow-warm {
-  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.07), rgba(251, 146, 60, 0.02) 55%, transparent 75%);
-}
-
-/* Italic serif accent with the hero's warm gradient ink */
-.accent-ink {
-  font-style: italic;
-  font-variation-settings: 'SOFT' 30, 'WONK' 1;
-  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  padding-right: 0.06em;
-}
-
-.dark .accent-ink {
-  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-/* Page-load rise: header and panels fade up in sequence */
-.rise-item {
-  animation: rise-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes rise-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rise-item {
-    animation: none;
-  }
-}
-
 /* Quiet native input decorations (rings are applied via focus-visible classes) */
 input, textarea {
   -webkit-appearance: none;
@@ -733,24 +670,6 @@ input, textarea {
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-
-/* Crisp, sharply-defined cards matching Home/About - hairline edge + tight layered shadow */
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
-}
-
-.dark .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
-}
-
 </style>
 
 <!-- Unscoped: brand-tinted text selection on the projects page -->

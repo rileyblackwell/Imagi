@@ -1,0 +1,235 @@
+/*
+ * tokens.css — the material and motion vocabulary the whole site shares.
+ *
+ * Imagi has two visual halves. The public pages wear the editorial surface
+ * (see editorial.css) and the signed-in app wears a denser tool UI, but both
+ * are cut from the same cloth: warm porcelain paper, navy ink, hairline rules,
+ * the same layered card shadow, the same film grain, the same focus ring.
+ *
+ * Everything in here used to be re-typed per file. The `crisp-card` shadow
+ * ladder alone was declared in eleven separate <style> blocks, `grain-overlay`
+ * in four, `rise-item` in three — each copy free to drift from the others, and
+ * several already had. This file is the one declaration; components spend
+ * these instead of inventing them.
+ *
+ * Loaded once, globally, from main.ts. Unlike editorial.css these rules are
+ * deliberately NOT scoped to an opt-in root class, because the whole point is
+ * that a card in the Sell workspace and a card on the pricing page cast the
+ * same shadow.
+ *
+ * Naming: plain class names for the materials (they read as design language in
+ * a template) and `--app-*` custom properties for the values, so they never
+ * collide with the workspace's `--iw-*` set (apps/imagi/build/styles/workspace.css)
+ * or the editorial surface's `--paper`/`--ink` set.
+ */
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────────────────
+     The paper the interface is printed on. `--app-surface` is the one that
+     matters at runtime: it is what a focus ring offsets against, and it is
+     re-declared by any container that puts a different colour behind its
+     children (a white card, a modal panel, the app canvas). Because it
+     cascades, a button never has to know what it is sitting on. */
+  --app-paper: #fdf9f2;          /* warm porcelain — the public + app canvas */
+  --app-paper-raised: #ffffff;   /* a card lifted off the paper */
+  --app-paper-inverted: #f3ede2; /* cream, the dark theme's button fill */
+  --app-canvas: #ffffff;         /* the signed-in app's main content area */
+  --app-surface: var(--app-paper);
+
+  /* ── Ink ──────────────────────────────────────────────────────────────────
+     Held as a raw triplet so components can tint from it at any opacity
+     rather than re-typing the rgb(). blue-950 in light, white in dark. */
+  --app-ink: 23, 37, 84;
+  --app-accent: 59, 130, 246;    /* blue-500 — focus, selection, links */
+
+  /* ── Elevation ────────────────────────────────────────────────────────────
+     A tight contact shadow plus progressively wider soft ones, so a raised
+     surface looks lit rather than outlined. This is the "crisp card" ladder
+     that gives the product its material. */
+  --app-shadow-card:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.1);
+  --app-shadow-card-hover:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.07),
+    0 8px 18px -4px rgba(15, 23, 42, 0.09),
+    0 20px 40px -12px rgba(15, 23, 42, 0.14);
+
+  /* ── Motion ───────────────────────────────────────────────────────────────
+     One curve for the whole site: leaves immediately, spends its time
+     settling. The sidebar glide, the page-load rise and the editorial scroll
+     reveal already all used this exact bezier independently. */
+  --app-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-dur-fast: 200ms;
+  --app-dur-slow: 700ms;
+
+  /* ── Grain ────────────────────────────────────────────────────────────────
+     Public pages and the project hub had drifted to 0.028 and 0.035; the
+     difference on a noise texture is invisible, so they now share one value. */
+  --app-grain-opacity: 0.032;
+  --app-grain-blend: multiply;
+}
+
+.dark {
+  --app-paper: #0c0c0e;
+  --app-paper-raised: #16161a;
+  --app-paper-inverted: #f3ede2;
+  --app-canvas: #0a0a0a;
+
+  --app-ink: 255, 255, 255;
+  --app-accent: 147, 197, 253; /* blue-300 — the dark theme's accent */
+
+  /* Dark surfaces take light rather than cast shade: mostly black, plus a
+     hairline of lift along the top edge. */
+  --app-shadow-card:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+  --app-shadow-card-hover:
+    0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 8px 18px -4px rgba(0, 0, 0, 0.5),
+    0 20px 40px -12px rgba(0, 0, 0, 0.6);
+
+  --app-grain-opacity: 0.048;
+  --app-grain-blend: overlay;
+}
+
+/* --- Surface context ------------------------------------------------------
+   Put one of these on a container and every focus ring inside it offsets
+   against the right colour automatically. Previously each button carried its
+   own `ring-offset-[#…]` literal, which is why ninety-odd of them existed in
+   four subtly different flavours. */
+
+.surface-paper {
+  --app-surface: var(--app-paper);
+}
+
+.surface-raised {
+  --app-surface: var(--app-paper-raised);
+}
+
+.surface-canvas {
+  --app-surface: var(--app-canvas);
+}
+
+/* --- Card ----------------------------------------------------------------
+   The crisp card: a hairline edge and a tight layered shadow. Borders and
+   background stay in Tailwind on the element (they vary by context); only the
+   shadow — the part everyone was copying — lives here. */
+
+.crisp-card {
+  box-shadow: var(--app-shadow-card);
+}
+
+/* Cards you can click. `--hover` deepens the shadow in place; `--lift` also
+   raises the card a couple of pixels. */
+.crisp-card--hover:hover,
+.crisp-card--lift:hover {
+  box-shadow: var(--app-shadow-card-hover);
+}
+
+.crisp-card--lift {
+  transition: transform var(--app-dur-fast) var(--app-ease),
+    box-shadow var(--app-dur-fast) var(--app-ease);
+}
+
+.crisp-card--lift:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crisp-card--lift {
+    transition: box-shadow var(--app-dur-fast) var(--app-ease);
+  }
+
+  .crisp-card--lift:hover {
+    transform: none;
+  }
+}
+
+/* --- Grain ---------------------------------------------------------------
+   Fine film grain over large flat washes, so they read as paper rather than
+   dead pixels — and so soft radial gradients do not band. Sits in an
+   absolutely positioned child, and never intercepts pointer events. */
+
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: var(--app-grain-opacity);
+  mix-blend-mode: var(--app-grain-blend);
+}
+
+/* --- Atmosphere ----------------------------------------------------------
+   One soft apricot wash behind a page header. The only ambient colour the
+   product uses; kept here so the two pages that want it agree on its size,
+   tint and blur. */
+
+.page-glow-warm {
+  background: radial-gradient(
+    closest-side,
+    rgba(251, 146, 60, 0.13),
+    rgba(251, 146, 60, 0.04) 55%,
+    transparent 75%
+  );
+  filter: blur(48px);
+}
+
+.dark .page-glow-warm {
+  background: radial-gradient(
+    closest-side,
+    rgba(251, 146, 60, 0.07),
+    rgba(251, 146, 60, 0.02) 55%,
+    transparent 75%
+  );
+}
+
+/* --- Accent ink ----------------------------------------------------------
+   The brand's one flourish: an italic serif word carrying a warm gradient.
+   Reserved for a single word in a page's headline — it stops working the
+   moment there are two of them on screen. */
+
+.accent-ink {
+  font-style: italic;
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-right: 0.06em;
+}
+
+.dark .accent-ink {
+  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* --- Page-load rise ------------------------------------------------------
+   Header and panels fade up in sequence on first paint. Stagger by setting
+   `animation-delay` on the element. */
+
+.rise-item {
+  animation: app-rise-up var(--app-dur-slow) var(--app-ease) both;
+}
+
+@keyframes app-rise-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-item {
+    animation: none;
+  }
+}

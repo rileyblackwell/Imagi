@@ -86,7 +86,7 @@
     </div>
 
     <!-- Add/edit modal -->
-    <SellModal v-if="showForm" :title="editingCustomer ? 'Edit customer' : 'Add customer'" @close="closeForm">
+    <BaseModal v-if="showForm" :title="editingCustomer ? 'Edit customer' : 'Add customer'" @close="closeForm">
       <form class="space-y-5" @submit.prevent="save">
         <div>
           <label :class="ui.label" for="customer-name">Name</label>
@@ -123,10 +123,10 @@
           </button>
         </div>
       </form>
-    </SellModal>
+    </BaseModal>
 
     <!-- Detail modal -->
-    <SellModal v-if="detailCustomer" :title="detailCustomer.display_name" wide @close="detailCustomer = null">
+    <BaseModal v-if="detailCustomer" :title="detailCustomer.display_name" wide @close="detailCustomer = null">
       <div class="space-y-5">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -181,14 +181,14 @@
           </button>
         </div>
       </div>
-    </SellModal>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import OrderStatusBadge from '../components/OrderStatusBadge.vue'
-import SellModal from '../components/SellModal.vue'
+import { BaseModal } from '@/shared/components'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
 import type { Customer, Order } from '../types'

@@ -148,7 +148,7 @@
     <div v-if="loadError" class="mt-4" :class="ui.errorBox">{{ loadError }}</div>
 
     <!-- Add / edit modal -->
-    <MarketingModal v-if="showForm" :title="editingContact ? 'Edit contact' : 'Add contact'" @close="closeForm">
+    <BaseModal v-if="showForm" :title="editingContact ? 'Edit contact' : 'Add contact'" @close="closeForm">
       <form class="space-y-4" @submit.prevent="saveContact">
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -200,10 +200,10 @@
           </button>
         </div>
       </form>
-    </MarketingModal>
+    </BaseModal>
 
     <!-- Import modal -->
-    <MarketingModal v-if="showImport" title="Import contacts" wide @close="closeImport">
+    <BaseModal v-if="showImport" title="Import contacts" wide @close="closeImport">
       <div class="space-y-4">
         <p class="text-sm text-blue-950/70 dark:text-blue-100/70">
           Paste one contact per line:
@@ -251,7 +251,7 @@
           </button>
         </div>
       </div>
-    </MarketingModal>
+    </BaseModal>
   </div>
 </template>
 
@@ -259,7 +259,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { debounce } from 'lodash-es'
-import MarketingModal from '../components/MarketingModal.vue'
+import { BaseModal } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'

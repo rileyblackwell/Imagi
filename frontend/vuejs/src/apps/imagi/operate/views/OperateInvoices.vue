@@ -144,17 +144,17 @@
     </section>
 
     <!-- Create/edit modal -->
-    <OperateModal
+    <BaseModal
       v-if="showForm"
       :title="editing ? `Edit ${editing.number}` : 'New invoice'"
       wide
       @close="closeForm"
     >
       <InvoiceForm :invoice="editing" @close="closeForm" @saved="onSaved" />
-    </OperateModal>
+    </BaseModal>
 
     <!-- Delete confirm -->
-    <OperateModal v-if="deleting" title="Delete invoice" @close="deleting = null">
+    <BaseModal v-if="deleting" title="Delete invoice" @close="deleting = null">
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
         Delete {{ deleting.number }} for {{ deleting.customer_name }}? This can't be undone.
       </p>
@@ -166,7 +166,7 @@
           Delete
         </button>
       </div>
-    </OperateModal>
+    </BaseModal>
   </div>
 </template>
 
@@ -174,7 +174,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import InvoiceForm from '../components/InvoiceForm.vue'
-import OperateModal from '../components/OperateModal.vue'
+import { BaseModal } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/operateService'
 import { useOperateStore } from '../stores/operate'

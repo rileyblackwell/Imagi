@@ -208,19 +208,6 @@ onBeforeUnmount(stopBuildStatusPolling)
   background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
 }
 
-/* Fine film grain keeps large soft gradients from banding and adds texture */
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.035;
-  mix-blend-mode: multiply;
-}
-
-.dark .grain-overlay {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-}
-
 /* Soft baby-blue wash behind the page header */
 .page-glow-cool {
   background: radial-gradient(closest-side, rgba(158, 205, 243, 0.2), rgba(158, 205, 243, 0.06) 55%, transparent 75%);
@@ -229,28 +216,6 @@ onBeforeUnmount(stopBuildStatusPolling)
 
 .dark .page-glow-cool {
   background: radial-gradient(closest-side, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.02) 55%, transparent 75%);
-}
-
-/* Page-load rise: header and grid fade up in sequence */
-.rise-item {
-  animation: rise-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes rise-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rise-item {
-    animation: none;
-  }
 }
 </style>
 

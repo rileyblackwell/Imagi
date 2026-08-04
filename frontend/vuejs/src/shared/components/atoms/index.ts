@@ -7,5 +7,9 @@
 export { default as ThemeToggle } from './buttons/ThemeToggle.vue'
 export { default as SidebarToggle } from './buttons/SidebarToggle.vue'
 
+// Status & Feedback
+export { default as StatusBadge } from './badges/StatusBadge.vue'
+export { default as LoadingSpinner } from './feedback/LoadingSpinner.vue'
+
 // Notifications System
 export { default as NotificationToast } from './notifications/NotificationToast.vue'

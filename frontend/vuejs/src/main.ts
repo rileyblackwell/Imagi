@@ -12,6 +12,12 @@ import config from '@/shared/config'
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
 
+// Material and motion the whole site shares: the crisp-card shadow ladder, the
+// film grain, the page-load rise, and the surface variable focus rings offset
+// against. Unscoped on purpose — a card in the Sell workspace and a card on the
+// pricing page are meant to cast the same shadow.
+import '@/shared/styles/tokens.css'
+
 // Design system for the public pages (home, about, pricing, docs, legal,
 // auth). Scoped to `.editorial`, so the signed-in app is unaffected.
 import '@/shared/styles/editorial.css'

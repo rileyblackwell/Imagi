@@ -1,18 +1,18 @@
 <!--
-  StatusBadge.vue - Colored pill for campaign and message statuses.
+  StatusBadge.vue - Maps Market's status vocabulary onto the shared pill.
+
+  The pill itself — shape, tone colours, the in-progress dot — lives in
+  shared/components/atoms/badges/StatusBadge.vue. All this file knows is which
+  Twilio and ad-platform statuses mean "went well" and which mean "failed".
 -->
 <template>
-  <span
-    class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap transition-colors duration-300"
-    :class="colorClasses"
-  >
-    <span v-if="pulse" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse motion-reduce:animate-none"></span>
-    {{ label }}
-  </span>
+  <BaseStatusBadge :tone="tone" :label="label" :pulse="pulse" />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { StatusBadge as BaseStatusBadge } from '@/shared/components'
+import type { StatusTone } from '@/shared/styles'
 
 const props = defineProps<{
   status: string
@@ -20,30 +20,22 @@ const props = defineProps<{
 
 // Campaign/consent statuses, raw Twilio message/call statuses, and normalized
 // ad campaign statuses, by tone.
-const GREEN = new Set(['sent', 'delivered', 'read', 'completed', 'received', 'subscribed', 'active'])
-const RED = new Set(['failed', 'undelivered', 'busy', 'no-answer'])
-const BLUE = new Set(['scheduled', 'accepted'])
-const AMBER = new Set(['sending', 'queued', 'initiated', 'ringing', 'in-progress', 'paused'])
+const SUCCESS = new Set(['sent', 'delivered', 'read', 'completed', 'received', 'subscribed', 'active'])
+const DANGER = new Set(['failed', 'undelivered', 'busy', 'no-answer'])
+const INFO = new Set(['scheduled', 'accepted'])
+const PENDING = new Set(['sending', 'queued', 'initiated', 'ringing', 'in-progress', 'paused'])
 
 const pulse = computed(() => props.status === 'sending' || props.status === 'in-progress')
 
 const label = computed(() => props.status.replace(/-/g, ' '))
 
-const colorClasses = computed(() => {
+const tone = computed<StatusTone>(() => {
   const status = props.status
-  if (GREEN.has(status)) {
-    return 'border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-  }
-  if (RED.has(status)) {
-    return 'border-red-200/80 dark:border-red-400/25 bg-red-50/80 dark:bg-red-500/10 text-red-600 dark:text-red-300'
-  }
-  if (BLUE.has(status)) {
-    return 'border-blue-200/80 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300'
-  }
-  if (AMBER.has(status)) {
-    return 'border-amber-200/80 dark:border-amber-400/25 bg-amber-50/80 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300'
-  }
+  if (SUCCESS.has(status)) return 'success'
+  if (DANGER.has(status)) return 'danger'
+  if (INFO.has(status)) return 'info'
+  if (PENDING.has(status)) return 'pending'
   // draft, canceled, unknown
-  return 'border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60'
+  return 'neutral'
 })
 </script>

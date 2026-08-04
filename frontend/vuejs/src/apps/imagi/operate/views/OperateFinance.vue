@@ -116,16 +116,16 @@
     </section>
 
     <!-- Create/edit modal -->
-    <OperateModal
+    <BaseModal
       v-if="showForm"
       :title="editing ? 'Edit transaction' : 'Record transaction'"
       @close="closeForm"
     >
       <TransactionForm :transaction="editing" @close="closeForm" @saved="onSaved" />
-    </OperateModal>
+    </BaseModal>
 
     <!-- Delete confirm -->
-    <OperateModal v-if="deleting" title="Delete transaction" @close="deleting = null">
+    <BaseModal v-if="deleting" title="Delete transaction" @close="deleting = null">
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
         Remove "{{ deleting.description }}" ({{ formatMoney(deleting.amount) }}) from the ledger? This can't be undone.
       </p>
@@ -137,14 +137,14 @@
           Delete
         </button>
       </div>
-    </OperateModal>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import OperateModal from '../components/OperateModal.vue'
+import { BaseModal } from '@/shared/components'
 import TransactionForm from '../components/TransactionForm.vue'
 import { extractError } from '../services/operateService'
 import { useOperateStore } from '../stores/operate'

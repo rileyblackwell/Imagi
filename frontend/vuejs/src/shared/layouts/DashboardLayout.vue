@@ -143,8 +143,10 @@
         </BaseNavbar>
 
         <!-- Main content area -->
+        <!-- `surface-canvas` tells every focus ring inside the app shell what
+             colour it is sitting on, so none of them has to name it. -->
         <main
-          class="flex-1 flex flex-col relative pt-nav bg-white dark:bg-[#0a0a0a] overflow-hidden"
+          class="surface-canvas flex-1 flex flex-col relative pt-nav bg-white dark:bg-[#0a0a0a] overflow-hidden"
           :class="appShell ? 'min-h-0' : ''"
         >
           <!-- setSidebarCollapsed reaches the content because the panel can be

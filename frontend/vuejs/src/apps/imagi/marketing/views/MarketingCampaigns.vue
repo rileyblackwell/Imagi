@@ -91,7 +91,7 @@
     <div v-if="loadError" class="mt-4" :class="ui.errorBox">{{ loadError }}</div>
 
     <!-- Create modal -->
-    <MarketingModal v-if="showCreate" title="New campaign" wide @close="closeCreate">
+    <BaseModal v-if="showCreate" title="New campaign" wide @close="closeCreate">
       <CampaignForm
         :tags="store.tags"
         :busy="creating"
@@ -100,7 +100,7 @@
         @submit="createCampaign"
         @cancel="closeCreate"
       />
-    </MarketingModal>
+    </BaseModal>
   </div>
 </template>
 
@@ -108,7 +108,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignForm from '../components/CampaignForm.vue'
-import MarketingModal from '../components/MarketingModal.vue'
+import { BaseModal } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'
