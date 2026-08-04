@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { ref } from 'vue'
 import { useSidebarPane } from '../useSidebarPane'
 
 describe('useSidebarPane', () => {
@@ -7,108 +6,75 @@ describe('useSidebarPane', () => {
     localStorage.clear()
   })
 
-  describe('the masthead switch works on every layout', () => {
-    // The regression this covers: the switch pill wrote only the desktop
-    // state, so on a phone — where the rendered pane is named by mobileView —
-    // pressing it changed nothing at all.
-    it('moves the rendered pane on mobile', () => {
-      const { setSidebarView, activeSidebarPane } = useSidebarPane(ref(true))
+  describe('the masthead switch', () => {
+    // One model at every width: the pane the sidebar renders is named by one
+    // ref, and the switch pill is its only writer. The regression this replaces
+    // came from having a second, mobile-only view state that a writer could
+    // forget — pressing the pill then changed the pane on one layout and did
+    // nothing at all on the other.
+    it('moves the rendered pane', () => {
+      const { setSidebarView, sidebarView } = useSidebarPane()
 
-      expect(activeSidebarPane.value).toBe('chat')
+      expect(sidebarView.value).toBe('chat')
       setSidebarView('manager')
-      expect(activeSidebarPane.value).toBe('manager')
+      expect(sidebarView.value).toBe('manager')
       setSidebarView('chat')
-      expect(activeSidebarPane.value).toBe('chat')
-    })
-
-    it('moves the rendered pane on desktop', () => {
-      const { setSidebarView, activeSidebarPane } = useSidebarPane(ref(false))
-
-      expect(activeSidebarPane.value).toBe('chat')
-      setSidebarView('manager')
-      expect(activeSidebarPane.value).toBe('manager')
-      setSidebarView('chat')
-      expect(activeSidebarPane.value).toBe('chat')
-    })
-
-    it('keeps the navbar switcher in step, so it highlights the pane on screen', () => {
-      const { setSidebarView, mobileView } = useSidebarPane(ref(true))
-
-      setSidebarView('manager')
-      expect(mobileView.value).toBe('manager')
+      expect(sidebarView.value).toBe('chat')
     })
   })
 
-  it('leaves the preview showing when a pane switch happens behind it', () => {
-    // 'browser' means the sidebar is collapsed off-screen. Naming a pane there
-    // would light up a navbar tab for something the user cannot see.
-    localStorage.setItem('builderWorkspaceSidebarCollapsed', 'true')
-    const { setSidebarView, mobileView, sidebarView } = useSidebarPane(ref(true))
-
-    expect(mobileView.value).toBe('browser')
-    setSidebarView('manager')
-    expect(mobileView.value).toBe('browser')
-    // ...but the pane waiting behind it did change.
-    expect(sidebarView.value).toBe('manager')
-  })
-
-  describe('the navbar switcher', () => {
-    it('offers all three views, each named in words', () => {
-      // The switcher is the only way across on a phone — including out of the
-      // preview, the one view with no masthead of its own — so every view has
-      // to be reachable from it, and labelled the way its pane names itself.
-      const { mobileViewOptions } = useSidebarPane(ref(true))
-
-      expect(mobileViewOptions.map(o => o.value)).toEqual(['chat', 'manager', 'browser'])
-      expect(mobileViewOptions.map(o => o.label)).toEqual(['Main agent', 'Subagents', 'Preview'])
-    })
-
-    it('tracks which view is selected, so the switcher can mark it', () => {
-      const { selectMobileView, mobileView } = useSidebarPane(ref(true))
-
-      selectMobileView('browser')
-      expect(mobileView.value).toBe('browser')
-      selectMobileView('manager')
-      expect(mobileView.value).toBe('manager')
-    })
-
-    it('collapses the sidebar only for the preview', () => {
-      const { selectMobileView } = useSidebarPane(ref(true))
+  describe('the preview', () => {
+    it('is reached by collapsing the sidebar, not by naming a third view', () => {
+      const { showPreview } = useSidebarPane()
       const collapsed: boolean[] = []
-      const setCollapsed = (v: boolean) => collapsed.push(v)
 
-      selectMobileView('browser', setCollapsed)
-      selectMobileView('manager', setCollapsed)
-      selectMobileView('chat', setCollapsed)
-
-      expect(collapsed).toEqual([true, false, false])
+      showPreview(v => collapsed.push(v))
+      expect(collapsed).toEqual([true])
     })
 
-    it('keeps the desktop pane in step, so a rotation does not swap panes', () => {
-      const { selectMobileView, sidebarView } = useSidebarPane(ref(true))
+    it('leaves the pane underneath alone, so coming back lands where you left', () => {
+      const { setSidebarView, showPreview, sidebarView } = useSidebarPane()
 
-      selectMobileView('manager')
+      setSidebarView('manager')
+      showPreview(() => {})
       expect(sidebarView.value).toBe('manager')
+    })
 
-      // The preview is not one of the two panes, so it leaves them alone.
-      selectMobileView('browser')
-      expect(sidebarView.value).toBe('manager')
+    it('opens the sidebar and names the pane in one act on the way back', () => {
+      // Either half alone lands somewhere the user didn't ask for: naming the
+      // pane without opening leaves the preview up, opening without naming
+      // reopens on whatever pane happened to be behind it.
+      const { setSidebarView, showPane, sidebarView } = useSidebarPane()
+      const collapsed: boolean[] = []
+
+      setSidebarView('manager')
+      showPane('chat', v => collapsed.push(v))
+
+      expect(sidebarView.value).toBe('chat')
+      expect(collapsed).toEqual([false])
     })
   })
 
   describe('persistence', () => {
     it('reopens on the pane the user left it on', () => {
-      const first = useSidebarPane(ref(false))
+      const first = useSidebarPane()
       first.setSidebarView('manager')
 
-      const reopened = useSidebarPane(ref(false))
-      expect(reopened.activeSidebarPane.value).toBe('manager')
+      const reopened = useSidebarPane()
+      expect(reopened.sidebarView.value).toBe('manager')
     })
 
-    it('starts on the preview when the sidebar was left collapsed', () => {
-      localStorage.setItem('builderWorkspaceSidebarCollapsed', 'true')
-      const { mobileView } = useSidebarPane(ref(true))
-      expect(mobileView.value).toBe('browser')
+    it('reopens on the chat pane when nothing was stored', () => {
+      expect(useSidebarPane().sidebarView.value).toBe('chat')
+    })
+
+    it('remembers a return from the preview, not the preview itself', () => {
+      // The preview is the layout's collapsed state, persisted under the
+      // layout's own key — this composable must not shadow it with a pane name.
+      const { showPane } = useSidebarPane()
+      showPane('manager', () => {})
+
+      expect(useSidebarPane().sidebarView.value).toBe('manager')
     })
   })
 })

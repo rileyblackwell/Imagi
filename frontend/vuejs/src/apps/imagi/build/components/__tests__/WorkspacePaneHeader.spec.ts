@@ -36,52 +36,112 @@ describe('WorkspacePaneHeader', () => {
     expect(wrapper.find('.pane-dot').exists()).toBe(false)
   })
 
-  it('omits the pane switch until it has somewhere to go', () => {
+  it('omits the pane switches until it has somewhere to go', () => {
     expect(mountWith({}).find('button.pane-switch').exists()).toBe(false)
   })
 
   it('keeps the identity in its own centred column, whatever sits beside it', () => {
-    const wrapper = mountWith({ status: 'Ready when you are', switchLabel: 'Subagents' })
+    const wrapper = mountWith({
+      status: 'Ready when you are',
+      switches: [{ id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents' }],
+    })
     expect(wrapper.find('.pane-identity .pane-title').exists()).toBe(true)
     expect(wrapper.find('.pane-identity .pane-status-line').exists()).toBe(true)
   })
 
-  it('mirrors the switch on the empty side, so the name sits at true centre', () => {
-    // The ghost exists only to occupy the switch's width on the left. It has
-    // to carry the same label (widths must match) and stay out of the
-    // accessibility tree and out of the click path.
-    const wrapper = mountWith({ switchLabel: 'Subagents', switchCount: 3 })
+  it('mirrors the whole switch cluster on the empty side, so the name sits at true centre', () => {
+    // The ghost exists only to occupy the switches' width on the left. Every
+    // switch has to be mirrored (widths must match), and the mirror stays out
+    // of the accessibility tree and out of the click path.
+    const wrapper = mountWith({
+      switches: [
+        { id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents', count: 3 },
+        { id: 'preview', icon: 'fas fa-globe', label: 'Preview', mobileOnly: true },
+      ],
+    })
     const gutter = wrapper.find('.pane-header-gutter')
 
     expect(gutter.attributes('aria-hidden')).toBe('true')
-    expect(gutter.find('.pane-switch-label').text()).toBe('Subagents')
+    expect(gutter.findAll('.pane-switch-label').map(l => l.text())).toEqual([
+      'Subagents',
+      'Preview',
+    ])
     expect(gutter.find('.pane-switch-count').text()).toBe('3')
     expect(gutter.find('button').exists()).toBe(false)
+    // The mirror has to hide on exactly the widths the real one does, or the
+    // gutter reserves room for a button that isn't there.
+    expect(gutter.findAll('.pane-switch')[1].classes()).toContain('pane-switch--mobile')
   })
 
   it('carries no ghost when there is no switch to mirror', () => {
     expect(mountWith({}).find('.pane-header-gutter .pane-switch').exists()).toBe(false)
   })
 
-  it('names its destination on the switch and emits on click', async () => {
-    const wrapper = mountWith({ switchLabel: 'Subagents', switchIcon: 'fas fa-layer-group' })
+  it('names its destination on the switch and emits that destination on click', async () => {
+    const wrapper = mountWith({
+      switches: [{ id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents' }],
+    })
     expect(wrapper.find('button.pane-switch .pane-switch-label').text()).toBe('Subagents')
     await wrapper.find('button.pane-switch').trigger('click')
-    expect(wrapper.emitted('switch')).toHaveLength(1)
+    expect(wrapper.emitted('switch')).toEqual([['manager']])
+  })
+
+  it('offers every destination it is given, and says which one was pressed', async () => {
+    // The main thread is the workspace's junction — two ways out of it — so the
+    // masthead has to tell them apart rather than emitting a bare "switch".
+    const wrapper = mountWith({
+      switches: [
+        { id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents' },
+        { id: 'preview', icon: 'fas fa-globe', label: 'Preview' },
+      ],
+    })
+    const buttons = wrapper.findAll('button.pane-switch')
+
+    expect(buttons).toHaveLength(2)
+    await buttons[1].trigger('click')
+    expect(wrapper.emitted('switch')).toEqual([['preview']])
+  })
+
+  it('points a back switch the other way', () => {
+    const wrapper = mountWith({
+      switches: [{ id: 'chat', icon: 'fas fa-comments', label: 'Main agent', direction: 'back' }],
+    })
+    const button = wrapper.find('button.pane-switch')
+
+    expect(button.find('.fa-chevron-left').exists()).toBe(true)
+    expect(button.find('.fa-chevron-right').exists()).toBe(false)
   })
 
   it('badges the switch with what is waiting on the other side', () => {
     expect(
-      mountWith({ switchLabel: 'Subagents', switchCount: 3 })
-        .find('button.pane-switch .pane-switch-count').text()
+      mountWith({
+        switches: [{ id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents', count: 3 }],
+      }).find('button.pane-switch .pane-switch-count').text()
     ).toBe('3')
   })
 
   it('carries no badge when the other pane is empty', () => {
     // 0 is "nothing over there", not a number worth drawing.
     expect(
-      mountWith({ switchLabel: 'Subagents', switchCount: 0 })
-        .find('button.pane-switch .pane-switch-count').exists()
+      mountWith({
+        switches: [{ id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents', count: 0 }],
+      }).find('button.pane-switch .pane-switch-count').exists()
     ).toBe(false)
+  })
+
+  it('marks a destination that is only offered on phones', () => {
+    // The preview sits beside the panes on desktop, so a button to "go to" it
+    // there would be a button to go nowhere. The marker class is what the
+    // stylesheet keys the md-and-up hide off.
+    const wrapper = mountWith({
+      switches: [
+        { id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents' },
+        { id: 'preview', icon: 'fas fa-globe', label: 'Preview', mobileOnly: true },
+      ],
+    })
+    const buttons = wrapper.findAll('button.pane-switch')
+
+    expect(buttons[0].classes()).not.toContain('pane-switch--mobile')
+    expect(buttons[1].classes()).toContain('pane-switch--mobile')
   })
 })

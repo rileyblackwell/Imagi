@@ -23,7 +23,7 @@
            to desktop) — the agent manager (team view) OR the active
            instance's chat. The preview lives in the main slot, so swapping
            panes never unmounts it. -->
-      <template #sidebar-content="{ collapsed }">
+      <template #sidebar-content="{ collapsed, setSidebarCollapsed }">
         <div v-if="!collapsed" class="h-full overflow-hidden">
           <!-- KeepAlive keeps the hidden pane's component state alive across
                swaps — most importantly the composer's typed-but-unsent draft,
@@ -31,7 +31,7 @@
           <Transition name="sidebar-view" mode="out-in">
             <KeepAlive>
               <AgentManagerPanel
-                v-if="activeSidebarPane === 'manager'"
+                v-if="sidebarView === 'manager'"
                 key="manager"
                 class="h-full w-full"
                 @select="handleManagerSelect"
@@ -48,6 +48,7 @@
                 :is-collapsed="false"
                 :resolving-check-in="resolvingCheckIn"
                 @toggle-manager="setSidebarView('manager')"
+                @open-preview="showPreview(setSidebarCollapsed)"
                 @stop="handleStop"
                 @restore-checkpoint="onRestoreCheckpoint"
                 @check-in-accept="handleCheckInAccept"
@@ -59,47 +60,11 @@
         </div>
       </template>
 
-      <!-- Mobile-only view switcher, centered in the navbar: the logo sits in
-           the top-left corner and the usage card in the top-right, with this
-           switcher centered between them. One view fills the screen at a time.
-
-           All three ride in one track, each named in words: a segmented
-           control says where you are and where you could go in the same
-           object, which is what a row of loose glyphs could not. The pane
-           mastheads drop their own switch at this width (see
-           WorkspacePaneHeader) so this is the only thing moving you around. -->
-      <template #navbar-center="{ setSidebarCollapsed }">
-        <div class="view-seg" role="tablist" aria-label="Workspace view">
-          <button
-            v-for="opt in mobileViewOptions"
-            :key="opt.value"
-            type="button"
-            role="tab"
-            :aria-selected="mobileView === opt.value"
-            :title="opt.label"
-            @click="selectMobileView(opt.value, setSidebarCollapsed)"
-            :class="['view-seg-btn', mobileView === opt.value && 'view-seg-btn--on']"
-          >
-            <span class="view-seg-icon-wrap">
-              <i :class="[opt.icon, 'view-seg-icon']"></i>
-              <!-- A subagent is running behind this tab — the same live dot the
-                   masthead's switch carries on desktop. -->
-              <span
-                v-if="opt.value === 'manager' && store.activeAgentInstances.some(i => i.isProcessing)"
-                class="view-seg-pulse"
-                aria-hidden="true"
-              ></span>
-            </span>
-            <span class="view-seg-label">{{ opt.label }}</span>
-          </button>
-        </div>
-      </template>
-
       <!-- Clean Main Content Area - fills the space below the navbar. Sized
            by the app-shell layout (h-full of the padded <main>) rather than a
            viewport calc, so it can never disagree with the shell and leave
            the page itself scrollable. -->
-      <template #default="{ isSidebarCollapsed }">
+      <template #default="{ isSidebarCollapsed, setSidebarCollapsed }">
         <div class="flex flex-col w-full h-full overflow-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500">
           <!-- Enhanced Error State Display -->
           <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
@@ -112,14 +77,21 @@
             <!-- paused mirrors the max-md:invisible class below: on mobile the
                  pane is hidden while the sidebar overlay is open, so frame
                  polling drops to a keep-alive. Desktop never pauses. -->
+            <!-- canReturnToChat is the collapsed state itself: collapsed means
+                 the panes are off-screen — every width, one rule — so the
+                 preview's toolbar carries the way back. With them open there is
+                 nothing to return to; the main agent is already beside it. -->
             <WorkspacePreview
               v-if="projectId"
               ref="previewRef"
               :project-id="projectId"
               :paused="isMobile && !isSidebarCollapsed"
+              :can-return-to-chat="isSidebarCollapsed"
+              :return-count="store.checkIns.length"
               class="flex-1 min-h-0"
               :class="isSidebarCollapsed ? '' : 'max-md:invisible'"
               @fix-error="handleFixError"
+              @return-to-chat="showPane('chat', setSidebarCollapsed)"
             />
           </div>
         </div>
@@ -183,17 +155,16 @@ const {
 } = useBuilderMode()
 
 // Which pane fills the sidebar — the agent manager (team view) or the active
-// instance's chat, never both — plus the mobile switcher that adds the preview
-// as a third full-screen view. See useSidebarPane for why both layouts' state
-// moves together.
+// instance's chat, never both. The preview is not a third pane: it is what the
+// main content area shows, so "go there" is "collapse the sidebar". isMobile is
+// only used to park the preview's polling while the sidebar covers it.
 const { isMobile } = useWindowSize()
 const {
-  mobileView,
-  mobileViewOptions,
+  sidebarView,
   setSidebarView,
-  selectMobileView,
-  activeSidebarPane,
-} = useSidebarPane(isMobile)
+  showPreview,
+  showPane,
+} = useSidebarPane()
 
 /** A thread the user can talk in was clicked in the manager — open its
  *  conversation in the chat pane. Subagents don't come through here: they
@@ -1098,154 +1069,6 @@ onBeforeUnmount(() => {
 .sidebar-view-leave-to {
   opacity: 0;
   transform: translateX(-10px) scale(0.995);
-}
-
-/* The mobile view switcher: one recessed track, three named segments, the
-   current one raised out of it. It wears the pane masthead's switch material
-   (.pane-switch) so the control that moves you between views looks the same on
-   both layouts — the difference is that here it also has to say where you
-   already are, which is the raised segment's job. */
-.view-seg {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(23, 37, 84, 0.1);
-  background: rgba(23, 37, 84, 0.045);
-  /* The navbar centres this slot on the whole bar, but the bar is not
-     symmetric: the wordmark occupies the left and nothing occupies the right.
-     Three named segments centred on the bar therefore run under the wordmark
-     at phone widths. Nudging right centres the control in the space it
-     actually has — the right side is empty, so there is nothing to hit. */
-  transform: translateX(1.75rem);
-}
-
-/* Phones only — and stated here rather than with a `md:hidden` utility, which
-   this scoped `.view-seg[data-v-…]` rule would have silently outranked. Above
-   the breakpoint the preview sits beside the panes and each masthead carries
-   its own switch, so there is nothing left for this to do. */
-@media (min-width: 768px) {
-  .view-seg {
-    display: none;
-  }
-}
-
-:root.dark .view-seg {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.view-seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-  height: 1.5rem;
-  padding: 0 0.4375rem;
-  border-radius: 9999px;
-  color: rgba(23, 37, 84, 0.55);
-  font-size: 0.625rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.view-seg-btn:hover {
-  color: theme('colors.blue.950');
-}
-
-.view-seg-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-/* The view you are on, lifted out of the track on the same white material the
-   masthead's switch uses. */
-.view-seg-btn--on {
-  background: #ffffff;
-  color: theme('colors.blue.700');
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(23, 37, 84, 0.1);
-}
-
-:root.dark .view-seg-btn {
-  color: rgba(219, 234, 254, 0.55);
-}
-
-:root.dark .view-seg-btn:hover {
-  color: #ffffff;
-}
-
-:root.dark .view-seg-btn--on {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  box-shadow: none;
-}
-
-.view-seg-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.view-seg-icon {
-  font-size: 0.625rem;
-  opacity: 0.75;
-}
-
-/* A subagent is running behind a tab you are not on — the same live dot the
-   masthead's switch carries on desktop, so "something is happening off-screen"
-   reads identically on both layouts. */
-.view-seg-pulse {
-  position: absolute;
-  top: -2px;
-  right: -3px;
-  width: 0.3125rem;
-  height: 0.3125rem;
-  border-radius: 9999px;
-  background: theme('colors.blue.500');
-  animation: view-seg-pulse 2.4s var(--iw-ease-ambient) infinite;
-}
-
-:root.dark .view-seg-pulse {
-  background: theme('colors.blue.300');
-}
-
-@keyframes view-seg-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .view-seg-pulse { animation: none; }
-}
-
-/* The words stay at every width — they are what makes this a switcher rather
-   than three glyphs to guess at. The icons are what give way first, on phones
-   too narrow to seat three labelled segments beside the logo. */
-@media (max-width: 389px) {
-  /* The glyph goes, not its wrapper: the wrapper still anchors the live dot,
-     which now reads as a mark in front of the word. */
-  .view-seg-icon {
-    display: none;
-  }
-}
-
-/* The narrowest phones still in circulation (320px): the three words only
-   clear the wordmark once the segments give up the last of their padding. */
-@media (max-width: 359px) {
-  .view-seg {
-    transform: translateX(2rem);
-  }
-
-  .view-seg-btn {
-    padding: 0 0.3125rem;
-  }
 }
 
 /* Refined minimal scrollbar - Matching Homepage */

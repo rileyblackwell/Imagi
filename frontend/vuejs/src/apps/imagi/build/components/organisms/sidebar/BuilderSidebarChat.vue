@@ -1,22 +1,22 @@
 <template>
   <div v-if="!isCollapsed" class="iw-surface flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-    <!-- Header: who you're talking to, and a way over to the agents. There is
+    <!-- Header: who you're talking to, and the ways out of here. There is
          only one thread the user drives, so it is simply "Main agent" — no
          conversation name to track. A subagent's read-only thread keeps its
          own name, and its status line says so, which is how you tell the two
          apart at a glance. Version restores live inline in the transcript (the
          per-message checkpoint chips), so the header carries no history
-         controls. -->
+         controls.
+
+         This is the workspace's junction: everything else in it is one hop
+         from here, which is why the main thread is the only pane offering more
+         than one destination. -->
     <WorkspacePaneHeader
       :title="headerTitle"
       :status="headerStatus"
       :state="headerState"
-      switch-icon="fas fa-layer-group"
-      switch-label="Subagents"
-      :switch-live="store.activeAgentInstances.some(i => i.isProcessing)"
-      :switch-count="store.activeAgentInstances.length"
-      switch-direction="forward"
-      @switch="$emit('toggleManager')"
+      :switches="paneSwitches"
+      @switch="onPaneSwitch"
     />
 
     <!-- Conversation Area (scrollable) -->
@@ -366,6 +366,9 @@ const emit = defineEmits<{
   (e: 'check-in-dismiss', checkIn: CheckInDto): void
   /** Look in on a subagent — it opens in the Subagents pane, never here */
   (e: 'open-task', conversationId: number): void
+  /** Go and watch the app being built. Only reachable from here below the md
+   *  breakpoint; on desktop the preview already sits beside this pane. */
+  (e: 'open-preview'): void
 }>()
 
 const store = useAgentStore()
@@ -384,6 +387,33 @@ const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
 const headerTitle = computed(() =>
   isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : 'Main agent'
 )
+
+/** Where you can go from the main thread. Subagents first — it is the nearer
+ *  room, and the one that reports back here. The preview is the outer wall of
+ *  the workspace, so it sits outermost; on desktop it is already on screen
+ *  beside this pane, which is what `mobileOnly` says. */
+const paneSwitches = computed(() => [
+  {
+    id: 'manager',
+    icon: 'fas fa-layer-group',
+    label: 'Subagents',
+    live: store.activeAgentInstances.some(i => i.isProcessing),
+    count: store.activeAgentInstances.length,
+    direction: 'forward' as const,
+  },
+  {
+    id: 'preview',
+    icon: 'fas fa-globe',
+    label: 'Preview',
+    direction: 'forward' as const,
+    mobileOnly: true,
+  },
+])
+
+function onPaneSwitch(id: string) {
+  if (id === 'manager') emit('toggleManager')
+  else if (id === 'preview') emit('open-preview')
+}
 
 /** The header's second line: what this thread is doing right now. On the main
  *  thread the queue takes precedence — agents waiting on you is the thing you

@@ -37,12 +37,16 @@
           <i class="fas fa-sync-alt" :class="{ 'fa-spin': busy }"></i>
         </button>
 
+        <!-- Home is the one control here that has a second door: the nameplate
+             beside it is also the page menu, and the home page is a row in it.
+             That is why it, and nothing else in this rail, stands down on the
+             narrowest phones (see the 359px block in the styles). -->
         <button
           type="button"
           @click="goHome"
           title="Go to home page"
           aria-label="Go to home page"
-          class="pv-nav"
+          class="pv-nav pv-nav--home"
         >
           <i class="fas fa-home"></i>
         </button>
@@ -117,6 +121,29 @@
           </div>
         </div>
       </div>
+
+      <!-- Back to the main agent. This pane has no masthead of its own, so the
+           workspace's one navigation idiom — a named pill on the right of the
+           plate, chevron leading, badged with what is waiting over there —
+           moves onto the toolbar rather than being reinvented here. It appears
+           exactly when the main agent is off-screen (a phone showing the
+           preview, or a desktop with the sidebar collapsed), which is the only
+           time "go back" means anything.
+
+           There is one destination and it is the main agent: the subagents are
+           reached through it, the same as everywhere else in the workspace. -->
+      <button
+        v-if="canReturnToChat"
+        type="button"
+        @click="emit('return-to-chat')"
+        class="pv-switch group shrink-0"
+        aria-label="Back to the main agent"
+      >
+        <i class="fas fa-chevron-left pv-switch-chevron"></i>
+        <i class="fas fa-comments pv-switch-icon"></i>
+        <span class="pv-switch-label">Main agent</span>
+        <span v-if="returnCount" class="pv-switch-count">{{ returnCount }}</span>
+      </button>
 
       <!-- Loading ribbon: rides the plate's bottom edge while the session is
            starting or a navigation is in flight. -->
@@ -252,11 +279,22 @@ const props = defineProps<{
   projectId: string
   /** Pane is hidden/backgrounded: keep the session warm but stop active work. */
   paused?: boolean
+  /**
+   * The main agent is off-screen — the sidebar is collapsed, which on a phone
+   * is what "you are on the preview" means and on desktop is what the toggle
+   * did. Offer the way back. When the panes are open there is nothing to
+   * return to: the main agent is already sitting next to this one.
+   */
+  canReturnToChat?: boolean
+  /** Badge on that return: how much is waiting for you back in the thread. */
+  returnCount?: number
 }>()
 
 const emit = defineEmits<{
   /** "Fix it" pressed on the console-error banner; text is the raw error. */
   (e: 'fix-error', text: string): void
+  /** Take me back to the main agent (the toolbar's return pill). */
+  (e: 'return-to-chat'): void
 }>()
 
 type Phase = 'idle' | 'starting' | 'ready' | 'stopped' | 'error'
@@ -1229,6 +1267,150 @@ defineExpose({ reload })
 
 .dark .pv-nav:focus-visible {
   box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+}
+
+/* --- Back to the main agent ---------------------------------------------- */
+
+/* Deliberately the pane masthead's switch (.pane-switch), part for part: same
+   material, same height, same right-hand seat, same chevron-then-icon-then-word
+   order. Moving between the workspace's views is one gesture, so it is one
+   object — it should not matter that the preview happens to be built by a
+   different component. */
+.pv-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  height: 1.75rem;
+  padding: 0 0.5625rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(23, 37, 84, 0.1);
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(23, 37, 84, 0.72);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 #ffffff;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.pv-switch:hover {
+  background: #ffffff;
+  border-color: rgba(23, 37, 84, 0.22);
+  color: theme('colors.blue.950');
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(23, 37, 84, 0.08);
+}
+
+.pv-switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.dark .pv-switch {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(219, 234, 254, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .pv-switch:hover {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .pv-switch:focus-visible {
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+}
+
+.pv-switch-chevron {
+  font-size: 0.5rem;
+  opacity: 0.45;
+  transition: transform 0.16s ease, opacity 0.16s ease;
+}
+
+.pv-switch:hover .pv-switch-chevron {
+  opacity: 0.8;
+  transform: translateX(-2px);
+}
+
+.pv-switch-icon {
+  font-size: 0.625rem;
+  opacity: 0.7;
+  transition: opacity 0.16s ease;
+}
+
+.pv-switch:hover .pv-switch-icon {
+  opacity: 0.95;
+}
+
+/* What is waiting back in the thread — the masthead's navy-ink badge, the
+   recipe this workspace keeps for things you act on. */
+.pv-switch-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.0625rem;
+  height: 1.0625rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: theme('colors.blue.950');
+  color: #fdf9f2;
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dark .pv-switch-count {
+  background: #f3ede2;
+  color: theme('colors.blue.950');
+}
+
+/* Phones: the toolbar now seats four nav glyphs, an address and a way out on
+   ~360px. Everything sheds a few pixels so the address keeps a readable share
+   — no control is dropped, because each one is the only way to do its job. */
+@media (max-width: 767px) {
+  .pv-bar {
+    gap: 0.375rem;
+    padding: 0.4375rem 0.5rem;
+  }
+
+  .pv-nav {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .pv-switch {
+    height: 1.625rem;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+  }
+}
+
+/* The narrowest phones (320px). The chevron goes, exactly as it does on the
+   pane mastheads at this width, and the nameplate gives up its padding — but
+   neither buys enough on its own, and an address you cannot read is not an
+   address. So Home stands down too: it is the only control on this bar that
+   has a second door (the nameplate is the page menu, and the home page is a
+   row in it), which is what makes it the one that can go. */
+@media (max-width: 359px) {
+  .pv-switch-chevron {
+    display: none;
+  }
+
+  .pv-nav--home {
+    display: none;
+  }
+
+  .pv-plate {
+    padding: 0 1.625rem 0 0.5rem;
+  }
+
+  .pv-plate-chevron {
+    right: 0.5rem;
+  }
 }
 
 /* --- The nameplate ------------------------------------------------------- */

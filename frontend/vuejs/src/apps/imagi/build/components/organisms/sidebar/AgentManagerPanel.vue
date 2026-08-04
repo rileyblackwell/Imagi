@@ -23,9 +23,7 @@
         :title="opened.title || 'Background agent'"
         :status="openedStatus"
         :state="openedState"
-        switch-icon="fas fa-layer-group"
-        switch-label="Subagents"
-        switch-direction="back"
+        :switches="[{ id: 'back', icon: 'fas fa-layer-group', label: 'Subagents', direction: 'back' }]"
         @switch="closeOpened"
       />
 
@@ -65,15 +63,23 @@
     <div v-else key="list" class="pane-nav-view flex flex-col h-full">
     <!-- Header: the same plate the chat pane wears, switching back the other
          way. The status line reports the fleet, which is what the removed
-         "view only" badge was gesturing at — except it carries real news. -->
+         "view only" badge was gesturing at — except it carries real news.
+
+         One destination, at every width, and deliberately so: this pane is
+         looking under the hood of the main thread, and the main thread is
+         where everything is driven from. The preview is a hop further out —
+         you get there through the main agent, the same as everything else. -->
     <WorkspacePaneHeader
       title="Subagents"
       :status="fleetStatus"
       :state="fleetState"
-      switch-icon="fas fa-comments"
-      switch-label="Main agent"
-      :switch-count="store.checkIns.length"
-      switch-direction="back"
+      :switches="[{
+        id: 'chat',
+        icon: 'fas fa-comments',
+        label: 'Main agent',
+        count: store.checkIns.length,
+        direction: 'back',
+      }]"
       @switch="emit('collapse')"
     />
 
