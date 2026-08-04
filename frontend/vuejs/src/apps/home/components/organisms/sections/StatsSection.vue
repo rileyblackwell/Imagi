@@ -1,74 +1,61 @@
-<!-- Stats Section - warm porcelain editorial design -->
+<!--
+  "Why Imagi" — the shape of the product, shown rather than asserted.
+
+  This is where the two-halves idea lands: a screenshot of the real project hub
+  (Build / Sell / Market / Operate), a spec row of the few numbers we can state
+  honestly, and the audiences as hairline-ruled columns instead of cards.
+-->
 <template>
-  <section id="why-imagi" class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 scroll-mt-14 transition-colors duration-500">
+  <section id="why-imagi" class="relative py-20 md:py-28 scroll-mt-14">
+    <div class="section-shell">
+      <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
 
-    <!-- Cool baby-blue wash behind the section -->
-    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-      <div class="section-wash-cool absolute -top-20 right-[-15%] w-[760px] h-[560px]"></div>
-    </div>
-
-    <div class="relative max-w-6xl mx-auto">
-
-      <!-- Hairline divider -->
-      <div class="section-divider mb-20 md:mb-24" aria-hidden="true"></div>
-
-      <!-- Editorial header: headline left, supporting copy right -->
-      <div v-reveal class="md:flex md:items-end md:justify-between gap-12 mb-14 md:mb-16">
+      <!-- Header: headline left, supporting copy right -->
+      <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
         <div class="max-w-xl">
-          <SectionLabel label="Why Imagi" tone="orange" class="mb-6" />
-          <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
-            Everything your business needs, <em class="section-accent not-italic">in one place</em>
+          <p class="eyebrow">
+            <span class="eyebrow__rule" aria-hidden="true"></span>
+            <span>Why Imagi</span>
+          </p>
+          <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
+            One project. Two halves.
           </h2>
         </div>
-        <p class="mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty transition-colors duration-300">
-          Your practical partner for building and running a business. We handle the technical complexity while you focus on your customers.
+        <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
+          Every business you start on Imagi gets a workspace to build its web app and a
+          set of tools to run the business behind it &mdash; not two products stitched together.
         </p>
       </div>
 
-      <!-- Stat band: spec-sheet panel with hairline dividers -->
-      <div v-reveal="{ delay: 90 }" class="crisp-card relative rounded-2xl bg-white/85 dark:bg-white/[0.045] border border-blue-950/[0.08] dark:border-white/[0.1] backdrop-blur-sm mb-6 overflow-hidden">
-        <div class="grid grid-cols-1 sm:grid-cols-2">
-          <div
-            v-for="(stat, index) in stats"
-            :key="index"
-            class="relative px-8 py-10 md:px-12"
-            :class="index > 0 ? 'border-t sm:border-t-0 sm:border-l border-blue-950/[0.07] dark:border-white/[0.08]' : ''"
-          >
-            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300/70 mb-3 transition-colors duration-300">{{ stat.label }}</p>
-            <div class="font-display text-5xl md:text-6xl font-semibold tracking-tight tabular-nums text-blue-950 dark:text-white transition-colors duration-300">
-              {{ stat.value }}<span v-if="stat.unit" class="text-3xl text-blue-950/60 dark:text-blue-100/60 ml-1.5 font-medium">{{ stat.unit }}</span>
-            </div>
-            <p v-if="stat.caption" class="mt-3 text-sm text-blue-950/70 dark:text-blue-100/55 transition-colors duration-300">{{ stat.caption }}</p>
-          </div>
-        </div>
+      <!-- The hub itself: four workspaces, one project -->
+      <div v-reveal="{ delay: 90 }" class="mt-14 md:mt-16">
+        <ProductShot
+          src="/product/project-hub.webp"
+          alt="The project hub for Ticker Insights, showing its four workspaces: Build, Sell, Market and Operate."
+          :width="2200"
+          :height="1031"
+          label="imagi — project hub"
+          caption="The hub for Ticker Insights. Build makes the product; Sell, Market and Operate run the business around it."
+        />
       </div>
 
-      <!-- Audience cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div
-          v-for="(metric, index) in metrics"
-          :key="index"
-          v-reveal="{ delay: 140 + index * 90 }"
-          class="lift-card group relative h-full p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] border backdrop-blur-sm transition-all duration-300"
-          :class="index % 2 === 1 ? 'border-orange-200/70 dark:border-orange-300/[0.14]' : 'border-blue-200/70 dark:border-blue-300/[0.14]'"
-        >
-          <!-- Icon -->
-          <div
-            class="icon-tile relative flex items-center justify-center w-12 h-12 rounded-xl mb-6 ring-1 transition-all duration-300"
-            :class="index % 2 === 1 ? 'bg-orange-100 dark:bg-orange-400/[0.14] ring-orange-900/[0.08] dark:ring-orange-300/[0.18]' : 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-blue-900/[0.08] dark:ring-blue-300/[0.18]'"
-          >
-            <HomeCardIcon :name="metric.icon" :class="index % 2 === 1 ? 'text-orange-600 dark:text-orange-300' : 'text-blue-600 dark:text-blue-300'" />
-          </div>
+      <!-- Spec row: only numbers we can actually stand behind -->
+      <dl v-reveal="{ delay: 120 }" class="spec-row mt-16 md:mt-20">
+        <div v-for="stat in stats" :key="stat.label" class="spec">
+          <dt class="spec__label">{{ stat.label }}</dt>
+          <dd class="spec__value display">
+            {{ stat.value }}<span v-if="stat.unit" class="spec__unit">{{ stat.unit }}</span>
+          </dd>
+          <p class="spec__caption">{{ stat.caption }}</p>
+        </div>
+      </dl>
 
-          <!-- Title -->
-          <h3 class="relative text-xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300 mb-3">
-            {{ metric.title }}
-          </h3>
-
-          <!-- Description -->
-          <p class="relative text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty transition-colors duration-300">
-            {{ metric.description }}
-          </p>
+      <!-- Audiences -->
+      <div v-reveal="{ delay: 150 }" class="rule-cols mt-16 md:mt-20">
+        <div v-for="metric in metrics" :key="metric.title" class="rule-col">
+          <HomeCardIcon :name="metric.icon" class="rule-col__icon" />
+          <h3 class="rule-col__title">{{ metric.title }}</h3>
+          <p class="rule-col__body">{{ metric.description }}</p>
         </div>
       </div>
     </div>
@@ -78,11 +65,11 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
-import { SectionLabel, HomeCardIcon } from '@/apps/home/components/atoms'
+import { HomeCardIcon, ProductShot } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'StatsSection',
-  components: { SectionLabel, HomeCardIcon },
+  components: { HomeCardIcon, ProductShot },
   directives: { reveal },
   props: {
     stats: {
@@ -91,14 +78,20 @@ export default defineComponent({
         {
           value: 'Free',
           unit: '',
-          label: 'Plans Starting At',
-          caption: 'Start free, then upgrade as you grow. Usage refreshes on a rolling 5-hour session and a weekly limit—cancel anytime.'
+          label: 'Plans start at',
+          caption: 'Usage refreshes on a rolling 5-hour session and a weekly limit. Upgrade as you grow, cancel anytime.'
         },
         {
           value: '30',
           unit: 'min',
-          label: 'Typical Build Time',
-          caption: 'From first prompt to a working app you can share.'
+          label: 'Typical build',
+          caption: 'From the first prompt to a working app you can open and share.'
+        },
+        {
+          value: '4',
+          unit: '',
+          label: 'Workspaces per project',
+          caption: 'Build, Sell, Market and Operate — all pointed at the same business.'
         }
       ]
     },
@@ -107,18 +100,18 @@ export default defineComponent({
       default: () => [
         {
           icon: 'founders',
-          title: 'Ideal for Founders',
-          description: 'Go from idea to a running business without a technical co-founder. Build your app, then find customers and grow revenue—all in one platform.'
+          title: 'Founders',
+          description: 'Go from idea to a running business without a technical co-founder. Build the app, then find customers and grow revenue in the same place.'
         },
         {
           icon: 'business',
-          title: 'Ideal for Small Businesses',
-          description: 'Get your business online and manage marketing, sales, and finances in one place—no need to stitch together a dozen separate tools.'
+          title: 'Small businesses',
+          description: 'Get online and keep marketing, sales and finances together, instead of stitching a dozen separate subscriptions into something that half works.'
         },
         {
           icon: 'teams',
-          title: 'Ideal for Teams',
-          description: 'Give your whole team the tools to launch products and run operations quickly, without waiting on engineering resources.'
+          title: 'Teams',
+          description: 'Ship products and run operations without queueing behind engineering for every change to the website.'
         }
       ]
     }
@@ -127,98 +120,106 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Hairline gradient divider that fades at the edges */
-.section-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(23, 37, 84, 0.12), transparent);
+/* Spec row — hairline-divided, spec-sheet cadence. No card, no shadow. */
+.spec-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--rule);
 }
 
-.dark .section-divider {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+.spec {
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--rule);
 }
 
-/* Soft cool wash */
-.section-wash-cool {
-  background: radial-gradient(closest-side, rgba(158, 205, 243, 0.2), rgba(158, 205, 243, 0.06) 55%, transparent 75%);
-  filter: blur(48px);
+@media (min-width: 768px) {
+  .spec-row {
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .spec {
+    padding: 2.25rem 2rem 2.25rem 0;
+    border-bottom: 0;
+  }
+
+  .spec + .spec {
+    padding-left: 2rem;
+    border-left: 1px solid var(--rule);
+  }
 }
 
-.dark .section-wash-cool {
-  background: radial-gradient(closest-side, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.02) 55%, transparent 75%);
+.spec__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-40);
 }
 
-/* Italic serif accent in blue ink */
-.section-accent {
-  font-style: italic;
-  font-variation-settings: 'SOFT' 30, 'WONK' 1;
-  background: linear-gradient(115deg, #1d4ed8 5%, #2563eb 55%, #0284c7 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  padding-right: 0.05em;
+.spec__value {
+  margin: 0.75rem 0 0;
+  font-size: 3rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-.dark .section-accent {
-  background: linear-gradient(115deg, #93c5fd 5%, #60a5fa 60%, #7dd3fc 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
+.spec__unit {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--ink-40);
+  margin-left: 0.3rem;
 }
 
-/* Crisp, sharply-defined cards: hairline edge + tight layered shadow */
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+.spec__caption {
+  margin-top: 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--ink-55);
+  text-wrap: pretty;
 }
 
-.dark .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+/* Ruled columns — the page's replacement for bordered feature cards */
+.rule-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
 }
 
-/* Cards that lift gently on hover */
-.lift-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+@media (min-width: 768px) {
+  .rule-cols {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+
+  .rule-col {
+    padding: 0 2rem 0 0;
+  }
+
+  .rule-col + .rule-col {
+    padding-left: 2rem;
+    border-left: 1px solid var(--rule);
+  }
 }
 
-.lift-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.04),
-    0 2px 4px rgba(15, 23, 42, 0.06),
-    0 10px 20px -4px rgba(15, 23, 42, 0.1),
-    0 24px 44px -12px rgba(15, 23, 42, 0.14);
+/* Size comes from HomeCardIcon's own scoped rule — only the ink is ours. */
+.rule-col__icon {
+  color: var(--accent);
 }
 
-.dark .lift-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+.rule-col__title {
+  margin-top: 1.1rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
-.dark .lift-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 12px 24px -4px rgba(0, 0, 0, 0.5),
-    0 28px 48px -12px rgba(0, 0, 0, 0.6);
-}
-
-/* Icon tile nudge on card hover */
-.lift-card:hover .icon-tile {
-  transform: scale(1.06) rotate(-3deg);
+.rule-col__body {
+  margin-top: 0.65rem;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ink-55);
+  text-wrap: pretty;
 }
 </style>

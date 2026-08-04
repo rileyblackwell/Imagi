@@ -1,8 +1,8 @@
 <!--
   SectionLabel — minimal editorial eyebrow for section headers.
-  The non-numbered sibling of StepBadge: a small tone diamond, a hairline, and a
-  tracked uppercase label. Shares the "marker → hairline → label" spine so every
-  section header across the site reads as one system. Tones: blue | orange.
+  A small tone diamond, a hairline, and a tracked uppercase label, sharing the
+  "marker → hairline → label" spine so every section header across the site
+  reads as one system. Tones: blue | orange.
 -->
 <template>
   <div class="inline-flex items-center gap-2.5 transition-colors duration-300">
