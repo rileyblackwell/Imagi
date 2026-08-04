@@ -1,13 +1,10 @@
 <template>
   <DashboardLayout
-    :navigationItems="[]"
     storageKey="docs_sidebar_collapsed"
     class="docs-layout"
     aside-width-class="w-64"
     content-offset-class="md:ml-64"
-    nav-offset-class="md:left-64"
     mobile-default-collapsed
-    full-width-nav
   >
     <!-- Section header: a quiet uppercase eyebrow, aligned with the nav labels
          below it (icon dropped for a cleaner, text-forward panel). -->

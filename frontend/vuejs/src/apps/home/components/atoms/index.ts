@@ -1,6 +1,2 @@
-export { default as IconButton } from './buttons/IconButton.vue'
-export { default as HomeNavbarButton } from './buttons/HomeNavbarButton.vue'
-export { default as HomeNavbarDropdownButton } from './buttons/HomeNavbarDropdownButton.vue'
-export { SectionLabel } from './badges'
 export { default as HomeCardIcon } from './icons/HomeCardIcon.vue'
 export { default as ProductShot } from './media/ProductShot.vue'

@@ -6,7 +6,7 @@
   rules in shared/styles/editorial.css, so this file carries none of its own.
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
+  <DefaultLayout>
     <div class="editorial relative min-h-screen font-body">
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 

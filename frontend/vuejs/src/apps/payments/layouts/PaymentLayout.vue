@@ -1,6 +1,6 @@
 <!-- Payment layout - warm porcelain editorial canvas shared by all payment pages -->
 <template>
-  <DefaultLayout>
+  <DefaultLayout minimal-nav>
     <!-- Main Content -->
     <div class="payment-layout page-canvas brand-selection crisp-text relative min-h-screen font-body transition-colors duration-500">
       <!-- Grain texture over the whole canvas -->

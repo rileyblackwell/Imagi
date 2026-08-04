@@ -28,35 +28,6 @@ export function formatMoney(value: number | string | null | undefined, currency 
   })
 }
 
-/** Format an ISO timestamp for display, e.g. "Jul 10, 3:42 PM". */
-export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-/** Format an ISO date (yyyy-mm-dd) for display, e.g. "Jul 10, 2026". */
-export function formatDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
-
-/** Today's date as yyyy-mm-dd in the user's local timezone (for date inputs). */
-export function todayISO(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
-}
+// Shared display formatters, re-exported so this module stays the single
+// import for everything a view in this tool needs.
+export { formatDateTime, formatDate, todayISO } from '@/shared/utils'

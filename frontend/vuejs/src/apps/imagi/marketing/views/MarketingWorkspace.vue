@@ -8,7 +8,7 @@
   Route: /imagi/project/:projectName/marketing
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
+  <DefaultLayout>
     <div class="page-canvas relative min-h-screen overflow-hidden">
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
         <div class="max-w-6xl mx-auto w-full">

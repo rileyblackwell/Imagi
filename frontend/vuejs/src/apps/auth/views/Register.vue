@@ -116,7 +116,6 @@
             <FormCheckbox 
               name="agreeToTerms" 
               :disabled="authStore.loading || isSubmitting"
-              :showError="false"
             >
               I agree to the
               <router-link to="/terms" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
@@ -161,13 +160,8 @@
     </Form>
 
     <!-- Auth Links -->
-    <div class="text-center pt-2">
-      <p class="text-blue-950/65 dark:text-blue-100/65 text-sm transition-colors duration-300">
-        Already have an account?
-        <router-link to="/auth/signin" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 ml-1 rounded-sm focus-ring">
-          Sign in
-        </router-link>
-      </p>
+    <div class="pt-2">
+      <AuthLinks />
     </div>
   </div>
 </template>
@@ -181,6 +175,7 @@ import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
 
 import { 
+  AuthLinks,
   PasswordInput,
   FormInput,
   FormCheckbox,

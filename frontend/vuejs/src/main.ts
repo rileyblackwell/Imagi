@@ -4,8 +4,6 @@ import App from './App.vue'
 import router from '@/router/index'
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
 
@@ -22,33 +20,10 @@ import '@/shared/styles/tokens.css'
 // auth). Scoped to `.editorial`, so the signed-in app is unaffected.
 import '@/shared/styles/editorial.css'
 
-// Import Font Awesome icons
-import {
-  faUser,
-  faLock,
-  faCircleNotch,
-  faExclamationCircle,
-  faCheckCircle,
-  faSpinner,
-  faEye,
-  faEyeSlash,
-  faSun,
-  faMoon
-} from '@fortawesome/free-solid-svg-icons'
-
-// Add icons to library
-library.add(
-  faUser,
-  faLock,
-  faCircleNotch,
-  faExclamationCircle,
-  faCheckCircle,
-  faSpinner,
-  faEye,
-  faEyeSlash,
-  faSun,
-  faMoon
-)
+// Note: icons are rendered as <i class="fas fa-…"> against the Font Awesome
+// stylesheet loaded in index.html. The Vue component packages were registered
+// here for a <font-awesome-icon> that no template ever used, so they and their
+// ten-icon library are gone.
 
 // Configure axios
 axios.defaults.baseURL = config.apiUrl
@@ -73,9 +48,6 @@ app.config.globalProperties.$axios = axios
 app.use(pinia)
 app.use(router)
 app.use(validationPlugin)
-
-// Register global components
-app.component('font-awesome-icon', FontAwesomeIcon)
 
 // Mount app
 app.mount('#app')

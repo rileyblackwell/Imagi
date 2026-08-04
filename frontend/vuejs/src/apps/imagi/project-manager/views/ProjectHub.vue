@@ -12,7 +12,7 @@
   shell — it does not implement any of the specific tools.
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
+  <DefaultLayout>
     <div class="hub-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
       <!-- Grain texture over the porcelain canvas -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>

@@ -15,10 +15,7 @@
       @confirm="confirmModal.handleConfirm"
       @cancel="confirmModal.handleCancel"
     />
-    <BuilderLayout
-      storage-key="builderWorkspaceSidebarCollapsed"
-      :navigation-items="navigationItems"
-    >
+    <BuilderLayout storage-key="builderWorkspaceSidebarCollapsed">
       <!-- Sidebar Content: one pane at a time (the mobile pattern promoted
            to desktop) — the agent manager (team view) OR the active
            instance's chat. The preview lives in the main slot, so swapping
@@ -114,7 +111,7 @@ import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
-import { useWindowSize } from '@/shared/composables/useWindowSize'
+import { useIsMobile } from '../composables/useWindowSize'
 import { useConfirm } from '../composables/useConfirm'
 import { useSidebarPane } from '../composables/useSidebarPane'
 // The pane-swap transition below is timed with the workspace's shared
@@ -158,7 +155,7 @@ const {
 // instance's chat, never both. The preview is not a third pane: it is what the
 // main content area shows, so "go there" is "collapse the sidebar". isMobile is
 // only used to park the preview's polling while the sidebar covers it.
-const { isMobile } = useWindowSize()
+const { isMobile } = useIsMobile()
 const {
   sidebarView,
   setSidebarView,
@@ -315,9 +312,6 @@ async function onRestoreCheckpoint(message: AIMessage) {
 
 // Local state
 
-
-// Navigation items for sidebar
-const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
 
 // Create a git commit after successful code changes
 function createCommitFromPrompt(filePath: string, prompt: string) {

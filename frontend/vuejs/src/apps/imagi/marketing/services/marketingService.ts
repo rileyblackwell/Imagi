@@ -28,25 +28,6 @@ import type {
 
 const base = (projectId: number) => `/v1/marketing/projects/${projectId}`
 
-/** Pull a readable message out of an axios/DRF error. */
-export function extractError(error: unknown, fallback = 'Something went wrong'): string {
-  const data = (error as { response?: { data?: unknown } })?.response?.data
-  if (typeof data === 'string') return fallback
-  if (data && typeof data === 'object') {
-    const payload = data as Record<string, unknown>
-    if (typeof payload.error === 'string') return payload.error
-    if (typeof payload.detail === 'string') return payload.detail
-    // DRF field errors: {"field": ["message", ...]}
-    for (const [field, value] of Object.entries(payload)) {
-      const first = Array.isArray(value) ? value[0] : value
-      if (typeof first === 'string') {
-        return field === 'non_field_errors' ? first : `${field.replace(/_/g, ' ')}: ${first}`
-      }
-    }
-  }
-  const message = (error as { message?: string })?.message
-  return message || fallback
-}
 
 const MarketingService = {
   // -- Settings -------------------------------------------------------------
@@ -224,3 +205,7 @@ const MarketingService = {
 }
 
 export default MarketingService
+
+// The shared implementation; re-exported so this module stays the one place
+// each tool's views import their error helper from.
+export { extractError } from '@/shared/utils'

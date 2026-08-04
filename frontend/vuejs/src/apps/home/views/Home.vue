@@ -11,7 +11,7 @@
   .editorial class every public page carries.
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
+  <DefaultLayout>
     <div class="editorial home-page relative min-h-screen font-body">
 
       <!-- Whisper of grain: keeps the flat paper from reading as dead pixels -->

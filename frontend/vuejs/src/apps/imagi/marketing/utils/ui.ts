@@ -59,15 +59,6 @@ export function formatCurrency(
   }
 }
 
-/** Format an ISO timestamp for display, e.g. "Jul 10, 3:42 PM". */
-export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+// Shared display formatters, re-exported so this module stays the single
+// import for everything a view in this tool needs.
+export { formatDateTime } from '@/shared/utils'

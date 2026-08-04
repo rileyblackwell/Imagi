@@ -17,19 +17,6 @@ export const ui = toolUi('emerald')
 /** Sell's accent, for components that need it directly (empty states). */
 export const accent = 'emerald' as const
 
-/** Format an ISO timestamp for display, e.g. "Jul 10, 3:42 PM". */
-export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
 /** Format an amount in the smallest currency unit, e.g. 1250 → "$12.50". */
 export function formatMoney(cents: number | null | undefined, currency = 'usd'): string {
   const amount = (cents ?? 0) / 100
@@ -42,3 +29,7 @@ export function formatMoney(cents: number | null | undefined, currency = 'usd'):
     return `$${amount.toFixed(2)}`
   }
 }
+
+// Shared display formatters, re-exported so this module stays the single
+// import for everything a view in this tool needs.
+export { formatDateTime } from '@/shared/utils'

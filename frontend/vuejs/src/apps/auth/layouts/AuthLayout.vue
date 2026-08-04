@@ -1,6 +1,6 @@
 <!-- Auth layout — the editorial surface, with the form in a hairline panel. -->
 <template>
-  <DefaultLayout>
+  <DefaultLayout minimal-nav>
     <div class="editorial auth-page min-h-screen relative font-body">
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 

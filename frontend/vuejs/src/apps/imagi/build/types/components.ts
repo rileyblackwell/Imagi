@@ -1,5 +1,5 @@
 // Types used in Vue components
-import type { EditorLanguage } from '@/shared/types/editor'
+import type { EditorLanguage } from './editor'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
