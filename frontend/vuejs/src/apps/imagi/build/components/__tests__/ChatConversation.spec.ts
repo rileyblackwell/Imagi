@@ -121,10 +121,10 @@ describe('ChatConversation dispatch card', () => {
     expect(card.text()).not.toContain('Reading the router…')
   })
 
-  it('turns into a confirmation once the work lands', () => {
-    // The card is the notice, not the transcript: it confirms the named task
-    // landed, and the subagent's full account stays in its own thread (one
-    // click away) rather than being pasted into the main thread.
+  it('reports the subagent complete, with what it did', () => {
+    // The completion says two things: that the subagent is done, and — in its
+    // own words — what it built. "Added to your app" told the user where the
+    // work went but never what it was.
     const wrapper = withSubagent({
       reviewStatus: 'accepted',
       lastMessagePreview: 'Added a /contact route with a validated form.',
@@ -133,8 +133,21 @@ describe('ChatConversation dispatch card', () => {
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--done')
     expect(card.text()).toContain('Contact page')
-    expect(card.text()).toContain('Done')
-    expect(card.text()).not.toContain('Added a /contact route with a validated form.')
+    expect(card.text()).toContain('Subagent complete')
+    expect(card.text()).toContain('Added a /contact route with a validated form.')
+  })
+
+  it('describes the work on a completion that still wants a review', () => {
+    // A task that could not merge itself parks at 'ready'. It is just as
+    // finished, so it reports the same way — plus the pending decision.
+    const wrapper = withSubagent({
+      reviewStatus: 'ready',
+      lastMessagePreview: 'Built two takes on the pricing table.',
+    })
+
+    const card = wrapper.find('.dispatch-card')
+    expect(card.text()).toContain('Subagent complete — waiting on you')
+    expect(card.text()).toContain('Built two takes on the pricing table.')
   })
 
   it('surfaces a subagent that is blocked on a question', () => {

@@ -215,7 +215,8 @@ const emit = defineEmits<{
 
 // Dispatch cards show the subagent's live state, so the store is read
 // directly — the card in an old reply keeps telling the truth as the task
-// progresses (working → finished → added), without threading props through.
+// progresses (working → complete, with its summary), without threading props
+// through.
 const agentStore = useAgentStore()
 
 /** The live subagent behind a dispatch card, or null before the store has it

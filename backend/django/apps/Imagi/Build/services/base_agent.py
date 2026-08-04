@@ -1030,9 +1030,10 @@ class ImagiAgentService:
 
         A run that ended on ask_user parks the task at 'input' and queues the
         question. A run that finished its work applies itself: a solo task
-        auto-merges into the project and queues nothing at all — its summary
-        and 'added to your app' outcome live on the dispatch card in the main
-        thread, which is a record to read rather than a card to clear. Variant
+        auto-merges into the project and queues nothing at all — its 'subagent
+        complete' outcome and the summary of what it did live on the dispatch
+        card in the main thread, which is a record to read rather than a card
+        to clear. Variant
         takes (built to compare) and any task whose auto-merge can't run
         cleanly fall back to a 'ready' review card the user picks or merges by
         hand. Either way the task never interrupts the user directly.
