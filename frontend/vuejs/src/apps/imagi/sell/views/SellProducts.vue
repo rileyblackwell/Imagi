@@ -28,9 +28,7 @@
     <div v-if="actionError" class="mb-4" :class="ui.errorBox">{{ actionError }}</div>
 
     <!-- Loading -->
-    <div v-if="store.productsLoading && !store.products.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-emerald-200 dark:border-emerald-300/30 border-t-emerald-600 dark:border-t-emerald-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.productsLoading && !store.products.length" />
 
     <!-- Catalog -->
     <div v-else-if="store.products.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -69,7 +67,7 @@
           <div class="flex flex-wrap items-center gap-2 mt-3">
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring disabled:opacity-50"
               :disabled="!product.is_active || linkLoadingId === product.id || !store.isConfigured"
               :title="store.isConfigured ? 'Create a Stripe Checkout link and copy it' : 'Connect Stripe in Settings first'"
               @click="copyPaymentLink(product.id)"
@@ -79,7 +77,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
               @click="openEdit(product)"
             >
               <i class="fas fa-pen"></i>
@@ -87,7 +85,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200/80 dark:border-red-400/25 hover:border-red-300 dark:hover:border-red-400/40 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200/80 dark:border-red-400/25 hover:border-red-300 dark:hover:border-red-400/40 transition-colors duration-150 focus-ring"
               @click="confirmDelete(product)"
             >
               <i class="fas fa-trash"></i>
@@ -99,19 +97,20 @@
     </div>
 
     <!-- Empty -->
-    <div v-else class="py-16 text-center" :class="ui.card">
-      <div class="w-14 h-14 mx-auto mb-4 text-xl" :class="ui.iconTile">
-        <i class="fas fa-box-open"></i>
-      </div>
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-2">No products yet</h3>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6 max-w-md mx-auto">
-        Add what your business sells. Each product gets a shareable Stripe Checkout link, and your app can list them through the storefront API.
-      </p>
-      <button type="button" :class="ui.primaryBtn" @click="openCreate">
-        <i class="fas fa-plus text-xs"></i>
-        Add your first product
-      </button>
-    </div>
+    <EmptyState
+      v-else
+      icon="fas fa-box-open"
+      title="No products yet"
+      description="Add what your business sells. Each product gets a shareable Stripe Checkout link, and your app can list them through the storefront API."
+      :accent="accent"
+    >
+      <template #action>
+        <button type="button" :class="ui.primaryBtn" @click="openCreate">
+          <i class="fas fa-plus text-xs"></i>
+          Add your first product
+        </button>
+      </template>
+    </EmptyState>
 
     <!-- Create/edit modal -->
     <BaseModal
@@ -147,13 +146,13 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { BaseModal, EmptyState, LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import ProductForm from '../components/ProductForm.vue'
-import { BaseModal } from '@/shared/components'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
 import type { Product } from '../types'
-import { formatMoney, ui } from '../utils/ui'
+import { accent, formatMoney, ui } from '../utils/ui'
 
 const route = useRoute()
 const store = useSellStore()

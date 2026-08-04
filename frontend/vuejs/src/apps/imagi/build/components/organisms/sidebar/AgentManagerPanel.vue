@@ -8,7 +8,7 @@
   agent's check-in queue, so this pane's whole job is legibility.
 -->
 <template>
-  <div class="iw-surface relative overflow-hidden h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div class="iw-surface relative overflow-hidden h-full bg-canvas transition-colors duration-300">
     <!-- Opening a subagent is a navigation, so it moves like one: the list
          slides out to the left as the thread comes in from the right, and
          back the other way on the return. The leaving pane is taken out of
@@ -51,7 +51,7 @@
           </p>
           <button
             type="button"
-            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950"
+            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
             @click="closeOpened"
           >
             Back to subagents

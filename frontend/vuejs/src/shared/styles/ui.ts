@@ -18,24 +18,24 @@
  *   1. Every class name must appear here in full, literal form. The Tailwind
  *      JIT compiler scans source text, so `text-blue-950/70` written out
  *      survives the production build and `text-blue-950/${n}` does not.
- *   2. Nothing here may hard-code the colour behind it. Focus rings offset
- *      against `--app-surface` (see tokens.css), which each surface declares
- *      for its children — that is what removed ninety-odd hand-maintained
- *      `ring-offset-[#0c0c0e]` literals.
+ *   2. Surfaces come from the theme, not from hex literals. `bg-paper` and
+ *      `bg-canvas` read tokens.css and are already theme-aware, so they need
+ *      no `dark:` twin — see tailwind.config.js.
  */
 
 import { fieldShell } from './forms'
 import { accentClasses, type ToolAccent } from './accents'
 
 /**
- * The one focus ring. Keyboard-only, offset from whatever surface the element
- * is sitting on, and never applied to text fields — those draw a single
- * deepening border instead (see forms.ts for why).
+ * The one focus ring — keyboard-only, offset from whatever surface the element
+ * is sitting on. Defined in tokens.css so a static `class="…"` attribute can
+ * use it too; this constant exists so class strings built in TypeScript read
+ * the same as the ones written in templates.
+ *
+ * Never applied to text fields: those draw a single deepening border instead
+ * (see forms.ts for why).
  */
-export const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 ' +
-  'focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 ' +
-  'focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-surface)]'
+export const focusRing = 'focus-ring'
 
 /** Applied to any control that can be switched off. */
 export const disabledState = 'disabled:opacity-50 disabled:cursor-not-allowed'
@@ -47,12 +47,8 @@ export const ui = {
   /**
    * A panel. Translucent porcelain over the page's grain, a hairline edge, and
    * the shared `crisp-card` shadow ladder from tokens.css.
-   *
-   * `surface-raised` means a button inside the card offsets its focus ring
-   * against the card rather than the page behind it — which is what everyone
-   * was approximating by hand with `ring-offset-white`.
    */
-  card: 'surface-raised crisp-card rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] transition-colors duration-300',
+  card: 'crisp-card rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] transition-colors duration-300',
 
   /** Field label: small, tracked, uppercase — quiet enough to stay out of the way. */
   label: 'block text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/70 dark:text-blue-100/55 mb-1.5 transition-colors duration-300',
@@ -61,7 +57,7 @@ export const ui = {
   input: `w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.06] text-blue-950 dark:text-white text-sm placeholder-blue-950/40 dark:placeholder-blue-100/30 ${fieldShell}`,
 
   /** The page's one strong action: solid ink in light, cream in dark. */
-  primaryBtn: `${pill} bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] ${focusRing} ${disabledState}`,
+  primaryBtn: `${pill} bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] ${focusRing} ${disabledState}`,
 
   /** Everything else: a hairline outline that warms on hover. */
   secondaryBtn: `${pill} border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] ${focusRing} ${disabledState}`,

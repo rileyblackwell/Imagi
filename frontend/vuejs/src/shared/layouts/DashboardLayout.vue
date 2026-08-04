@@ -19,7 +19,7 @@
            page. On mobile it drops below the navbar and becomes an off-canvas
            drawer that floats over the content. -->
       <aside
-        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col max-md:top-nav border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
+        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col max-md:top-nav border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-canvas/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
         :class="[
           asideWidthClass,
           // The stacked frame drops the panel below the full-width top bar so
@@ -51,7 +51,7 @@
               :key="item.name"
               :to="item.to"
               :class="[
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 focus-ring',
                 isActivePath(item)
                   ? 'nav-item-active text-blue-950 dark:text-white'
                   : 'text-blue-950/65 dark:text-blue-100/65 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white'
@@ -97,7 +97,7 @@
       >
         <!-- Navbar -->
         <BaseNavbar
-          class="navbar-shell fixed top-0 right-0 left-0 z-20 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
+          class="navbar-shell fixed top-0 right-0 left-0 z-20 bg-canvas/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
           :class="(isSidebarCollapsed || stackedNav) ? '' : navOffsetClass"
           :fluid="stackedNav"
         >
@@ -143,10 +143,8 @@
         </BaseNavbar>
 
         <!-- Main content area -->
-        <!-- `surface-canvas` tells every focus ring inside the app shell what
-             colour it is sitting on, so none of them has to name it. -->
         <main
-          class="surface-canvas flex-1 flex flex-col relative pt-nav bg-white dark:bg-[#0a0a0a] overflow-hidden"
+          class="flex-1 flex flex-col relative pt-nav bg-canvas overflow-hidden"
           :class="appShell ? 'min-h-0' : ''"
         >
           <!-- setSidebarCollapsed reaches the content because the panel can be

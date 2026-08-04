@@ -2,7 +2,7 @@
   <router-link
     v-if="project"
     :to="{ name: 'project-hub', params: { projectName: projectSlug(project) }}"
-    class="crisp-card group relative block px-5 py-4 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+    class="crisp-card group relative block px-5 py-4 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border transition-all duration-300 focus-ring"
     :class="isOrange
       ? 'border-orange-200/70 dark:border-orange-300/[0.14] hover:border-orange-300 dark:hover:border-orange-300/30'
       : 'border-blue-200/70 dark:border-blue-300/[0.14] hover:border-blue-300 dark:hover:border-blue-300/30'"
@@ -23,7 +23,7 @@
       <div class="flex items-center gap-1.5 flex-shrink-0">
         <button
           @click.stop.prevent="confirmDelete"
-          class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 focus-ring"
           aria-label="Delete project"
         >
           <i class="fas fa-trash-alt text-xs"></i>

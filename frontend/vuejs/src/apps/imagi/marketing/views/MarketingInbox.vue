@@ -5,9 +5,7 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="store.conversationsLoading && !store.conversations.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="store.conversationsLoading && !store.conversations.length" />
 
     <!-- Empty -->
     <div v-else-if="!store.conversations.length && !thread" class="flex flex-col items-center justify-center py-20 text-center">
@@ -39,7 +37,7 @@
           <h2 class="text-sm font-semibold text-blue-950 dark:text-white">Conversations</h2>
           <button
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
             title="Refresh"
             @click="refresh"
           >
@@ -51,7 +49,7 @@
             v-for="conversation in store.conversations"
             :key="conversation.id"
             type="button"
-            class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+            class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 transition-colors duration-150 focus-ring-inset"
             :class="selectedId === conversation.id
               ? 'bg-blue-50/80 dark:bg-blue-400/10'
               : 'hover:bg-blue-50/60 dark:hover:bg-white/[0.04]'"
@@ -104,7 +102,7 @@
                   <div
                     class="px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
                     :class="message.direction === 'outbound'
-                      ? 'bg-blue-950 text-[#fdf9f2] dark:bg-[#f3ede2] dark:text-blue-950 rounded-br-md'
+                      ? 'bg-blue-950 text-paper dark:bg-paper-inverted dark:text-blue-950 rounded-br-md'
                       : 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white border border-blue-200/60 dark:border-white/[0.08] rounded-bl-md'"
                   >
                     <span v-if="message.channel === 'voice'" class="block text-[11px] uppercase tracking-wide opacity-70 mb-0.5">
@@ -160,6 +158,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'

@@ -20,7 +20,7 @@
     </div>
     <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
       {{ description }}
-      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">Setup guide</a>.
+      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Setup guide</a>.
     </p>
 
     <p v-if="connection?.account_name" class="text-xs text-blue-950/50 dark:text-blue-100/50 mb-4 -mt-2">

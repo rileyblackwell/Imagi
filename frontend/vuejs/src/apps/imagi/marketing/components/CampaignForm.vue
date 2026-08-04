@@ -26,7 +26,7 @@
           v-for="option in channelOptions"
           :key="option.value"
           type="button"
-          class="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+          class="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 focus-ring"
           :class="form.channel === option.value
             ? 'border-blue-300 dark:border-blue-400/50 bg-blue-50/80 dark:bg-blue-400/10 ring-1 ring-blue-300/50 dark:ring-blue-400/30'
             : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-blue-300/70 dark:hover:border-blue-400/30'"
@@ -70,11 +70,11 @@
       <span :class="ui.label">Audience</span>
       <div class="space-y-2.5">
         <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
+          <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
           All subscribed contacts
         </label>
         <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
+          <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
           Contacts with any of these tags
         </label>
         <div v-if="form.audience_type === 'tags'" class="pl-6">
@@ -83,7 +83,7 @@
               v-for="tag in tags"
               :key="tag.tag"
               type="button"
-              class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 focus-ring"
               :class="isTagSelected(tag.tag)
                 ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
                 : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/70 dark:text-blue-100/70 hover:border-blue-300/70 dark:hover:border-blue-400/30'"

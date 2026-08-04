@@ -3,9 +3,9 @@
 
   This is the landing page for a single project (business). From here the user
   chooses how to work on it:
-    - Build   -> the AI app builder (real, existing workspace)
-    - Sell    -> sales tools (general template, coming soon)
-    - Market  -> marketing tools (general template, coming soon)
+    - Build -> the AI app builder (real, existing workspace)
+    - Sell -> sales tools (general template, coming soon)
+    - Market -> marketing tools (general template, coming soon)
     - Operate -> finance & operations tools (general template, coming soon)
 
   The categories are driven by utils/businessTools.ts. This view is a template
@@ -28,7 +28,7 @@
           <!-- Back link -->
           <router-link
             :to="{ name: 'projects' }"
-            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/70 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/70 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>All projects</span>
@@ -51,7 +51,7 @@
             <p class="text-blue-950/65 dark:text-blue-100/65 mb-8 max-w-md transition-colors duration-300">We couldn't find this project. It may have been deleted.</p>
             <router-link
               :to="{ name: 'projects' }"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
             >
               <i class="fas fa-arrow-left text-sm"></i>
               <span>Back to projects</span>

@@ -3,7 +3,7 @@
   <!-- min-h-dvh (not min-h-screen): 100vh overshoots the visible viewport on
        mobile while browser chrome is showing, which adds phantom page scroll
        that drags fixed-navbar layouts out of alignment. -->
-  <div class="flex flex-col min-h-dvh bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div class="flex flex-col min-h-dvh bg-canvas transition-colors duration-300">
     <!-- Custom scrollbar and focus styles using arbitrary values.
 
          The blanket focus-visible outline covers buttons, links and cards,

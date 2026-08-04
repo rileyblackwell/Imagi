@@ -88,5 +88,5 @@ export const hubCardTone = {
   /** Icon chip background + ring. */
   tile: 'bg-blue-950 dark:bg-white ring-1 ring-blue-950/10 dark:ring-white/10',
   /** Icon glyph colour, sitting on the chip. */
-  glyph: 'text-[#fdf9f2] dark:text-blue-950',
+  glyph: 'text-paper dark:text-blue-950',
 }

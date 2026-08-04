@@ -27,9 +27,7 @@
     <div v-if="actionError" class="mb-4" :class="ui.errorBox">{{ actionError }}</div>
 
     <!-- Loading -->
-    <div v-if="store.customersLoading && !store.customers.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-emerald-200 dark:border-emerald-300/30 border-t-emerald-600 dark:border-t-emerald-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.customersLoading && !store.customers.length" />
 
     <!-- Customers -->
     <div v-else-if="store.customers.length" class="space-y-3">
@@ -75,15 +73,13 @@
     </div>
 
     <!-- Empty -->
-    <div v-else class="py-16 text-center" :class="ui.card">
-      <div class="w-14 h-14 mx-auto mb-4 text-xl" :class="ui.iconTile">
-        <i class="fas fa-address-book"></i>
-      </div>
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-2">No customers yet</h3>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mx-auto">
-        Customers appear automatically when someone completes a checkout, or add them yourself.
-      </p>
-    </div>
+    <EmptyState
+      v-else
+      icon="fas fa-address-book"
+      title="No customers yet"
+      description="Customers appear automatically when someone completes a checkout, or add them yourself."
+      :accent="accent"
+    />
 
     <!-- Add/edit modal -->
     <BaseModal v-if="showForm" :title="editingCustomer ? 'Edit customer' : 'Add customer'" @close="closeForm">
@@ -187,12 +183,12 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { BaseModal, EmptyState, LoadingSpinner } from '@/shared/components'
 import OrderStatusBadge from '../components/OrderStatusBadge.vue'
-import { BaseModal } from '@/shared/components'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
 import type { Customer, Order } from '../types'
-import { formatDateTime, formatMoney, ui } from '../utils/ui'
+import { accent, formatDateTime, formatMoney, ui } from '../utils/ui'
 
 const store = useSellStore()
 

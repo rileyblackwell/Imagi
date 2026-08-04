@@ -9,9 +9,7 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="initialLoading" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="initialLoading" />
 
     <!-- Nothing connected yet -->
     <div v-else-if="!hasConnections" class="p-10 text-center" :class="ui.card">
@@ -55,7 +53,7 @@
             v-for="option in providerFilters"
             :key="option.value"
             type="button"
-            class="px-3.5 py-2 rounded-full text-sm font-medium border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="px-3.5 py-2 rounded-full text-sm font-medium border transition-colors duration-200 focus-ring"
             :class="providerFilter === option.value
               ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
               : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white'"
@@ -80,9 +78,7 @@
 
       <!-- Campaign table -->
       <section :class="ui.card">
-        <div v-if="store.adCampaignsLoading && !campaigns.length" class="flex justify-center py-16">
-          <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-        </div>
+        <LoadingSpinner v-if="store.adCampaignsLoading && !campaigns.length" />
 
         <div v-else-if="campaigns.length" class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -128,7 +124,7 @@
                     <button
                       v-if="campaign.status === 'active' || campaign.status === 'paused'"
                       type="button"
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 disabled:opacity-40 focus-ring"
                       :title="campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'"
                       :disabled="togglingId === campaign.id"
                       @click="toggle(campaign)"
@@ -139,7 +135,7 @@
                       :href="campaign.manager_url"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
                       :title="`Open in ${AD_PROVIDERS[campaign.provider].consoleLabel}`"
                     >
                       <i class="fas fa-arrow-up-right-from-square text-xs"></i>
@@ -167,9 +163,9 @@
       <!-- Where ads are created -->
       <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-4">
         New campaigns are created in
-        <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">Google Ads</a>
+        <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Google Ads</a>
         or
-        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">Meta Ads Manager</a>
+        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Meta Ads Manager</a>
         — once live, they appear here on the next sync.
       </p>
     </template>
@@ -178,6 +174,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'

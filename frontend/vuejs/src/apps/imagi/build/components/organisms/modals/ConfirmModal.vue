@@ -37,7 +37,7 @@
               <!-- Close button -->
               <button
                 type="button"
-                class="text-blue-950/40 hover:text-blue-950/70 dark:text-blue-100/50 dark:hover:text-white p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#101014]"
+                class="text-blue-950/40 hover:text-blue-950/70 dark:text-blue-100/50 dark:hover:text-white p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 focus-ring"
                 @click="handleCancel"
                 aria-label="Close"
               >
@@ -50,7 +50,7 @@
           <div class="px-6 py-4 bg-blue-50/60 dark:bg-white/[0.03] flex items-center justify-end gap-3">
             <button
               type="button"
-              class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#101014]"
+              class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 focus-ring"
               :class="cancelButtonClasses"
               @click="handleCancel"
               :disabled="isProcessing"
@@ -60,7 +60,7 @@
 
             <button
               type="button"
-              class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 min-w-[100px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#101014]"
+              class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 min-w-[100px] focus-ring"
               :class="confirmButtonClasses"
               @click="handleConfirm"
               :disabled="isProcessing"
@@ -198,7 +198,7 @@ const confirmButtonClasses = computed(() => {
     case 'success':
       return 'bg-green-600 dark:bg-green-600 border-transparent text-white hover:bg-green-700 dark:hover:bg-green-500 shadow-[0_1px_2px_rgba(20,83,45,0.2),0_3px_8px_-2px_rgba(20,83,45,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
     default:
-      return 'bg-blue-950 dark:bg-[#f3ede2] border-transparent text-[#fdf9f2] dark:text-blue-950 hover:bg-blue-900 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-blue-950 dark:bg-paper-inverted border-transparent text-paper dark:text-blue-950 hover:bg-blue-900 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
   }
 })
 

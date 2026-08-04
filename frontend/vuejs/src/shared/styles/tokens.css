@@ -25,22 +25,27 @@
 
 :root {
   /* ── Surfaces ─────────────────────────────────────────────────────────────
-     The paper the interface is printed on. `--app-surface` is the one that
-     matters at runtime: it is what a focus ring offsets against, and it is
-     re-declared by any container that puts a different colour behind its
-     children (a white card, a modal panel, the app canvas). Because it
-     cascades, a button never has to know what it is sitting on. */
-  --app-paper: #fdf9f2;          /* warm porcelain — the public + app canvas */
-  --app-paper-raised: #ffffff;   /* a card lifted off the paper */
-  --app-paper-inverted: #f3ede2; /* cream, the dark theme's button fill */
-  --app-canvas: #ffffff;         /* the signed-in app's main content area */
-  --app-surface: var(--app-paper);
+     The paper the interface is printed on. Four hex values that between them
+     appeared, written out by hand, some two hundred and forty times across the
+     tree — `#fdf9f2` alone in thirty-five files.
+
+     Held as space-separated RGB channels rather than hex, because that is the
+     form Tailwind needs to build `rgb(… / <alpha-value>)` colours from. They
+     are wired into tailwind.config.js as `paper`, `paper-raised`,
+     `paper-inverted` and `canvas`, so a template writes `bg-paper` — and gets
+     the right colour in both themes without a `dark:` twin, because the
+     variable itself changes below. */
+  --app-paper: 253 249 242;          /* warm porcelain — the default canvas */
+  --app-paper-raised: 255 255 255;   /* a card lifted off the paper */
+  --app-paper-inverted: 243 237 226; /* cream — the dark theme's button fill */
+  --app-canvas: 255 255 255;         /* the signed-in app's content area */
 
   /* ── Ink ──────────────────────────────────────────────────────────────────
-     Held as a raw triplet so components can tint from it at any opacity
+     Kept as channels too, so components can tint from them at any opacity
      rather than re-typing the rgb(). blue-950 in light, white in dark. */
   --app-ink: 23, 37, 84;
   --app-accent: 59, 130, 246;    /* blue-500 — focus, selection, links */
+  --app-focus-tint: rgba(var(--app-accent), 0.4);
 
   /* ── Elevation ────────────────────────────────────────────────────────────
      A tight contact shadow plus progressively wider soft ones, so a raised
@@ -73,13 +78,14 @@
 }
 
 .dark {
-  --app-paper: #0c0c0e;
-  --app-paper-raised: #16161a;
-  --app-paper-inverted: #f3ede2;
-  --app-canvas: #0a0a0a;
+  --app-paper: 12 12 14;
+  --app-paper-raised: 22 22 26;
+  --app-paper-inverted: 243 237 226; /* stays cream: it inverts the ink */
+  --app-canvas: 10 10 10;
 
   --app-ink: 255, 255, 255;
   --app-accent: 147, 197, 253; /* blue-300 — the dark theme's accent */
+  --app-focus-tint: rgba(var(--app-accent), 0.5);
 
   /* Dark surfaces take light rather than cast shade: mostly black, plus a
      hairline of lift along the top edge. */
@@ -98,22 +104,36 @@
   --app-grain-blend: overlay;
 }
 
-/* --- Surface context ------------------------------------------------------
-   Put one of these on a container and every focus ring inside it offsets
-   against the right colour automatically. Previously each button carried its
-   own `ring-offset-[#…]` literal, which is why ninety-odd of them existed in
-   four subtly different flavours. */
+/* --- Focus ---------------------------------------------------------------
+   The one ring: an accent outline, held a couple of pixels off the control.
+   Keyboard only — a mouse click should not light anything up.
 
-.surface-paper {
-  --app-surface: var(--app-paper);
+   Plain CSS rather than a Tailwind utility string, because most of the
+   ninety-odd copies it replaces lived in static `class="…"` attributes, which
+   cannot reference a TypeScript constant.
+
+   An outline rather than Tailwind's `ring-*`, for two reasons. A ring is a
+   box-shadow, so it replaces whatever shadow the element already had — the
+   primary button would flatten out the moment you tabbed to it. And a ring
+   needs to be told what colour to offset against, which is exactly the
+   `ring-offset-[#0c0c0e]` literal that was being maintained by hand in ninety
+   places; an outline just leaves a transparent gap and is right everywhere.
+   Outlines follow border-radius in every browser we support, so a pill still
+   gets a pill-shaped ring. This is also what the editorial buttons already do.
+
+   Text fields deliberately do NOT use this — they draw a single deepening
+   border instead. See shared/styles/forms.ts for why. */
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--app-focus-tint);
+  outline-offset: 2px;
 }
 
-.surface-raised {
-  --app-surface: var(--app-paper-raised);
-}
-
-.surface-canvas {
-  --app-surface: var(--app-canvas);
+/* For a control flush against the edge of a clipping container, where an
+   outward ring would be cut off. */
+.focus-ring-inset:focus-visible {
+  outline: 2px solid var(--app-focus-tint);
+  outline-offset: -2px;
 }
 
 /* --- Card ----------------------------------------------------------------

@@ -16,7 +16,7 @@
           <!-- Back link -->
           <router-link
             :to="{ name: 'project-hub', params: { projectName } }"
-            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>Project workspace</span>
@@ -86,7 +86,7 @@
                 v-for="tab in tabs"
                 :key="tab.name"
                 :to="{ name: tab.name, params: { projectName } }"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-inset"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-ring-inset"
                 :class="isActiveTab(tab)
                   ? 'border-emerald-500 dark:border-emerald-400 text-blue-950 dark:text-white'
                   : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"

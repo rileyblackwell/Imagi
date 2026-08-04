@@ -50,7 +50,7 @@
             It's live at the <code class="font-mono">{{ installedNotice.route }}</code> page of your app.
             <router-link
               :to="{ name: 'builder-workspace', params: { projectName: route.params.projectName } }"
-              class="rounded-sm underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+              class="rounded-sm underline hover:no-underline focus-ring"
             >
               Open the Build workspace
             </router-link>
@@ -61,9 +61,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.templatesLoading && !store.templates.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-emerald-200 dark:border-emerald-300/30 border-t-emerald-600 dark:border-t-emerald-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.templatesLoading && !store.templates.length" />
 
     <!-- Gallery -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -169,6 +167,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'

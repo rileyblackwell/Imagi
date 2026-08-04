@@ -34,7 +34,7 @@
         class="absolute inset-y-2 right-2 flex items-center justify-center w-9 my-auto rounded-lg
                text-blue-950/40 dark:text-blue-100/40
                hover:text-blue-950 dark:hover:text-white
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]
+               focus-ring
                transition-colors duration-200 z-10"
       >
         <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']"></i>

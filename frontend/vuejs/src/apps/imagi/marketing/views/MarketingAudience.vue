@@ -40,9 +40,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.contactsLoading && !store.contacts.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="store.contactsLoading && !store.contacts.length" />
 
     <!-- Table -->
     <section v-else-if="store.contacts.length" class="overflow-hidden" :class="ui.card">
@@ -88,14 +86,14 @@
                   <router-link
                     v-if="contact.consent === 'subscribed'"
                     :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName }, query: { contact: contact.id } }"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors duration-150 focus-ring"
                     title="Send a message"
                   >
                     <i class="fas fa-paper-plane text-xs"></i>
                   </router-link>
                   <button
                     type="button"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
                     title="Edit contact"
                     @click="openEdit(contact)"
                   >
@@ -103,7 +101,7 @@
                   </button>
                   <button
                     type="button"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-150 focus-ring"
                     title="Delete contact"
                     @click="removeContact(contact)"
                   >
@@ -182,7 +180,7 @@
         </div>
         <div v-if="editingContact">
           <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16161a]" />
+            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
             Subscribed to messages
           </label>
         </div>
@@ -259,7 +257,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { debounce } from 'lodash-es'
-import { BaseModal } from '@/shared/components'
+import { BaseModal, LoadingSpinner } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'

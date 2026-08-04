@@ -39,7 +39,7 @@
           v-for="(point, index) in points"
           :key="point.month"
           type="button"
-          class="flex-1 flex flex-col justify-end items-center group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+          class="flex-1 flex flex-col justify-end items-center group rounded-lg focus-ring"
           :aria-label="`${point.label}: income ${formatMoney(point.income)}, expenses ${formatMoney(point.expenses)}`"
           @mouseenter="hoveredIndex = index"
           @mouseleave="hoveredIndex = -1"

@@ -95,7 +95,7 @@
                 :disabled="!answer.trim()"
                 class="btn-primary iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                 :class="answer.trim()
-                  ? 'btn-primary--active text-[#fdf9f2] dark:text-blue-950'
+                  ? 'btn-primary--active text-paper dark:text-blue-950'
                   : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12]'"
                 @click="sendAnswer"
               >
@@ -120,7 +120,7 @@
             <button
               type="button"
               :disabled="busy"
-              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 disabled:opacity-50"
+              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-blue-950 disabled:opacity-50"
               @click="emit('accept', current)"
             >
               <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>

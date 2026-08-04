@@ -12,7 +12,7 @@
           v-for="option in statusFilters"
           :key="option.value"
           type="button"
-          class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+          class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-ring"
           :class="statusFilter === option.value
             ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
             : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
@@ -28,9 +28,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.campaignsLoading && !store.campaigns.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="store.campaignsLoading && !store.campaigns.length" />
 
     <!-- List -->
     <div v-else-if="store.campaigns.length" class="space-y-3">
@@ -38,7 +36,7 @@
         v-for="campaign in store.campaigns"
         :key="campaign.id"
         :to="{ name: 'marketing-campaign-detail', params: { projectName: route.params.projectName, campaignId: campaign.id } }"
-        class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+        class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 group focus-ring"
         :class="ui.card"
       >
         <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -108,7 +106,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignForm from '../components/CampaignForm.vue'
-import { BaseModal } from '@/shared/components'
+import { BaseModal, LoadingSpinner } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'

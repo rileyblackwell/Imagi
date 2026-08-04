@@ -6,9 +6,7 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="store.dashboardLoading && !dashboard" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.dashboardLoading && !dashboard" />
 
     <template v-else-if="dashboard">
       <!-- Headline stats -->
@@ -55,7 +53,7 @@
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Awaiting payment</h2>
             <router-link
               :to="{ name: 'operate-invoices', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               View all
             </router-link>
@@ -92,7 +90,7 @@
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Up next</h2>
             <router-link
               :to="{ name: 'operate-tasks', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               View all
             </router-link>
@@ -133,13 +131,13 @@
           <div class="flex items-center gap-4">
             <router-link
               :to="{ name: 'sell-overview', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               Open Sell
             </router-link>
             <router-link
               :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               Open Market
             </router-link>
@@ -169,6 +167,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import CashflowChart from '../components/CashflowChart.vue'
 import StatusBadge from '../components/StatusBadge.vue'

@@ -6,9 +6,7 @@
   dark panel colour (#16161a in two, #141418 in the third), which nobody chose
   — it drifted. That colour is now `--app-paper-raised` from tokens.css.
 
-  The panel declares `surface-raised`, so every focus ring inside it offsets
-  against the panel rather than the page behind it. That used to be done by
-  hand, with each control repeating `ring-offset-[#16161a]`.
+  Escape closes it, which none of the three originals did.
 -->
 <template>
   <Teleport to="body">
@@ -21,8 +19,7 @@
 
       <!-- Panel -->
       <div
-        ref="panel"
-        class="surface-raised relative w-full max-h-[88vh] overflow-y-auto crisp-card rounded-2xl bg-white dark:bg-[#16161a] border border-blue-200/70 dark:border-blue-300/[0.16] p-6"
+        class="relative w-full max-h-[88vh] overflow-y-auto crisp-card rounded-2xl bg-paper-raised border border-blue-200/70 dark:border-blue-300/[0.16] p-6"
         :class="wide ? 'max-w-2xl' : 'max-w-lg'"
         role="dialog"
         aria-modal="true"

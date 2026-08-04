@@ -9,7 +9,7 @@
 <template>
   <button
     type="button"
-    class="sidebar-toggle group inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-950/55 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.07] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+    class="sidebar-toggle group inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-950/55 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.05] dark:hover:bg-white/[0.07] transition-colors duration-200 focus-ring"
     :aria-pressed="open"
     :aria-label="open ? 'Hide sidebar' : 'Show sidebar'"
     :title="open ? 'Hide sidebar' : 'Show sidebar'"

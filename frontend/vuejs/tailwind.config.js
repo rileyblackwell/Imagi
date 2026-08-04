@@ -10,6 +10,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        // The product's surfaces, defined once in shared/styles/tokens.css and
+        // read from there. Each is theme-aware on its own — the custom property
+        // changes under `.dark` — so `bg-paper` is correct in both themes and
+        // needs no `dark:` twin. The `<alpha-value>` placeholder keeps opacity
+        // modifiers working, so `bg-canvas/80` still composes.
+        paper: 'rgb(var(--app-paper) / <alpha-value>)',
+        'paper-raised': 'rgb(var(--app-paper-raised) / <alpha-value>)',
+        'paper-inverted': 'rgb(var(--app-paper-inverted) / <alpha-value>)',
+        canvas: 'rgb(var(--app-canvas) / <alpha-value>)',
+
         // Clean neutral palette
         dark: {
           950: '#0a0a0a',

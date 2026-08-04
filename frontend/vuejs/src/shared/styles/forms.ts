@@ -47,11 +47,7 @@ export const fieldFocusError =
  * they keep an offset ring — but in ink rather than stock blue, and only for
  * keyboard focus.
  */
-export const controlFocus =
-  'focus-visible:outline-none focus-visible:ring-2 ' +
-  'focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 ' +
-  'focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] ' +
-  'dark:focus-visible:ring-offset-[#0c0c0e]'
+export const controlFocus = 'focus-ring'
 
 /** Everything a standard text field needs apart from its own sizing/colour. */
 export const fieldShell = `${fieldBorder} ${fieldFocus} transition-colors duration-200`

@@ -9,16 +9,14 @@
   <div>
     <router-link
       :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
-      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-ring"
     >
       <i class="fas fa-arrow-left text-xs"></i>
       <span>All campaigns</span>
     </router-link>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="loading" />
 
     <div v-else-if="loadError" :class="ui.errorBox">{{ loadError }}</div>
 
@@ -223,6 +221,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignForm from '../components/CampaignForm.vue'
 import StatusBadge from '../components/StatusBadge.vue'

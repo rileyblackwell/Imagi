@@ -65,7 +65,7 @@
            viewport calc, so it can never disagree with the shell and leave
            the page itself scrollable. -->
       <template #default="{ isSidebarCollapsed, setSidebarCollapsed }">
-        <div class="flex flex-col w-full h-full overflow-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500">
+        <div class="flex flex-col w-full h-full overflow-hidden bg-canvas relative transition-colors duration-500">
           <!-- Enhanced Error State Display -->
           <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
 
