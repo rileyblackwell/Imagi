@@ -26,7 +26,7 @@ from rest_framework.authtoken.models import Token
 from apps.Imagi.Build.api.views import _project_has_running_conversation
 from apps.Imagi.Build.models import AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
-    CAPPED_NOTE_MAX_FILES,
+    CAPPED_NOTE_MAX_PAGES,
     AgentContext,
     ImagiAgentService,
     RunBudgetExceeded,
@@ -1075,22 +1075,40 @@ class CappedRunNoteTests(SimpleTestCase):
     """What a capped run tells the user it built.
 
     A time-bounded first build ends at its cap as a matter of course, so this
-    note is the normal completion message in the subagent's thread.
+    note is the normal completion message in the subagent's thread — read by
+    the app's owner, so it names pages and never the files behind them.
     """
 
-    def test_note_lists_what_was_built(self):
+    def test_note_names_the_pages_that_were_built(self):
         note = _capped_run_note([
             'frontend/vuejs/src/apps/home/views/HomeView.vue',
-            'frontend/vuejs/src/apps/home/views/AboutView.vue',
+            'frontend/vuejs/src/apps/home/views/ContactUsView.vue',
         ])
-        self.assertIn('HomeView.vue', note)
-        self.assertIn('AboutView.vue', note)
+        self.assertIn('Home and Contact Us', note)
+        self.assertNotIn('.vue', note)
+        self.assertNotIn('frontend', note)
 
-    def test_long_file_lists_are_summarized(self):
-        files = [f'frontend/vuejs/src/apps/home/views/View{i}.vue' for i in range(20)]
+    def test_supporting_files_are_not_named(self):
+        note = _capped_run_note([
+            'frontend/vuejs/src/apps/home/views/HomeView.vue',
+            'frontend/vuejs/src/apps/home/router/index.ts',
+            'backend/django/apps/home/models.py',
+        ])
+        self.assertIn('Home page is built', note)
+        self.assertIn('holds them together', note)
+        self.assertNotIn('router', note)
+        self.assertNotIn('models', note)
+
+    def test_a_build_with_no_finished_page_says_so(self):
+        note = _capped_run_note(['frontend/vuejs/src/apps/home/router/index.ts'])
+        self.assertIn('groundwork', note)
+        self.assertNotIn('router', note)
+
+    def test_long_page_lists_are_summarized(self):
+        files = [f'frontend/vuejs/src/apps/home/views/Page{i}View.vue' for i in range(20)]
         note = _capped_run_note(files)
-        self.assertIn('View0.vue', note)
-        self.assertIn(f'and {20 - CAPPED_NOTE_MAX_FILES} more files', note)
+        self.assertIn('Page0', note)
+        self.assertIn(f'and {20 - CAPPED_NOTE_MAX_PAGES} more pages are built', note)
 
     def test_a_run_that_built_nothing_says_so(self):
         # Must not claim work it did not do — this is the message the user reads.
