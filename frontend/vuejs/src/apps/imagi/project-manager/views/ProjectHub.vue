@@ -92,54 +92,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
+
 import { ProjectService } from '@/apps/imagi/build/services/projectService'
-import { useAuthStore } from '@/shared/stores/auth'
+
 import { ToolCategoryCard } from '../components/organisms/hub'
 import { businessTools } from '../utils/businessTools'
-import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
-import type { Project } from '@/apps/imagi/build/types/components'
+import { useProjectFromSlug } from '@/apps/imagi/shared'
 
 const props = defineProps<{
   projectName: string
 }>()
 
-const projectStore = useProjectStore()
-const authStore = useAuthStore()
-
-const isInitializing = ref(true)
-
 const projectSlug = computed(() => props.projectName)
-const isLoading = computed(() => projectStore.loading || isInitializing.value)
-
-const project = computed<Project | null>(() => {
-  return findProjectBySlug(projectStore.projects, props.projectName) || null
-})
-
-async function loadProject() {
-  isInitializing.value = true
-  try {
-    if (!authStore.isAuthenticated) return
-    if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
-      projectStore.setAuthenticated(authStore.isAuthenticated)
-    }
-    // Ensure the projects list is loaded so we can resolve the slug.
-    if (!projectStore.projects.length) {
-      await projectStore.fetchProjects()
-    }
-  } catch (error) {
-    console.error('Failed to load project for hub:', error)
-  } finally {
-    isInitializing.value = false
-  }
-}
-
-onMounted(loadProject)
-
-// Reload if the route param changes (navigating between projects).
-watch(() => props.projectName, loadProject)
+const { project, isLoading } = useProjectFromSlug(projectSlug, 'the project hub')
 
 // --- Initial AI build status ---
 // Right after creation the backend runs the coding agent against the business

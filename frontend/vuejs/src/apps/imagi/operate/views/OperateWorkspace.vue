@@ -87,13 +87,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useProjectFromSlug } from '@/apps/imagi/shared'
 import { DefaultLayout } from '@/shared/layouts'
-import { useAuthStore } from '@/shared/stores/auth'
-import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
-import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
-import type { Project } from '@/apps/imagi/build/types/components'
 import { useOperateStore } from '../stores/operate'
 import { ui } from '../utils/ui'
 
@@ -102,17 +99,9 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-const authStore = useAuthStore()
-const projectStore = useProjectStore()
+
+const { project, isLoading } = useProjectFromSlug(() => props.projectName, 'the operate workspace')
 const operateStore = useOperateStore()
-
-const isInitializing = ref(true)
-
-const isLoading = computed(() => projectStore.loading || isInitializing.value)
-
-const project = computed<Project | null>(() => {
-  return findProjectBySlug(projectStore.projects, props.projectName) || null
-})
 
 interface Tab { name: string; label: string; icon: string }
 
@@ -123,23 +112,6 @@ const tabs: Tab[] = [
   { name: 'operate-tasks', label: 'Tasks', icon: 'fa-list-check' },
 ]
 
-async function loadProject() {
-  isInitializing.value = true
-  try {
-    if (!authStore.isAuthenticated) return
-    if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
-      projectStore.setAuthenticated(authStore.isAuthenticated)
-    }
-    if (!projectStore.projects.length) {
-      await projectStore.fetchProjects()
-    }
-  } catch (error) {
-    console.error('Failed to load project for operate workspace:', error)
-  } finally {
-    isInitializing.value = false
-  }
-}
-
 // Point the operate store at the resolved project so tab views can load data.
 watch(project, (resolved) => {
   if (resolved?.id != null) {
@@ -147,9 +119,6 @@ watch(project, (resolved) => {
   }
 }, { immediate: true })
 
-onMounted(loadProject)
-
-watch(() => props.projectName, loadProject)
 </script>
 
 <!-- Unscoped so the crisp-card treatment reaches the tab views rendered in

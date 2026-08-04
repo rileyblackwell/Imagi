@@ -106,13 +106,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useProjectFromSlug } from '@/apps/imagi/shared'
 import { DefaultLayout } from '@/shared/layouts'
-import { useAuthStore } from '@/shared/stores/auth'
-import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
-import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
-import type { Project } from '@/apps/imagi/build/types/components'
 import { useMarketingStore } from '../stores/marketing'
 import { ui } from '../utils/ui'
 
@@ -121,17 +118,9 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-const authStore = useAuthStore()
-const projectStore = useProjectStore()
+
+const { project, isLoading } = useProjectFromSlug(() => props.projectName, 'the marketing workspace')
 const marketingStore = useMarketingStore()
-
-const isInitializing = ref(true)
-
-const isLoading = computed(() => projectStore.loading || isInitializing.value)
-
-const project = computed<Project | null>(() => {
-  return findProjectBySlug(projectStore.projects, props.projectName) || null
-})
 
 interface Tab { name: string; label: string; icon: string; children?: string[] }
 
@@ -155,23 +144,6 @@ const showConnectBanner = computed(() =>
   && route.name !== 'marketing-settings'
 )
 
-async function loadProject() {
-  isInitializing.value = true
-  try {
-    if (!authStore.isAuthenticated) return
-    if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
-      projectStore.setAuthenticated(authStore.isAuthenticated)
-    }
-    if (!projectStore.projects.length) {
-      await projectStore.fetchProjects()
-    }
-  } catch (error) {
-    console.error('Failed to load project for marketing workspace:', error)
-  } finally {
-    isInitializing.value = false
-  }
-}
-
 // Point the marketing store at the resolved project and load settings once
 // (they drive the connect banner and the Settings tab).
 watch(project, async (resolved) => {
@@ -187,12 +159,7 @@ watch(project, async (resolved) => {
   }
 }, { immediate: true })
 
-onMounted(loadProject)
-
-watch(() => props.projectName, loadProject)
 </script>
-
-
 
 <!-- Unscoped so the crisp-card treatment reaches the tab views rendered in
      the child router-view. Matches the definition used on Home/hub cards. -->
