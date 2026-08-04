@@ -116,9 +116,9 @@ const status = computed(() => {
     case 'input':
       return { state: 'waiting' as const, label: 'Asked you a question', icon: 'fas fa-circle-question' }
     case 'ready':
-      return { state: 'waiting' as const, label: 'Finished — waiting on you', icon: 'fas fa-check' }
+      return { state: 'waiting' as const, label: 'Subagent complete — waiting on you', icon: 'fas fa-check' }
     case 'accepted':
-      return { state: 'settled' as const, label: 'Added to your app', icon: 'fas fa-check-double' }
+      return { state: 'settled' as const, label: 'Subagent complete', icon: 'fas fa-check-double' }
     case 'dismissed':
       return { state: 'settled' as const, label: 'Discarded', icon: 'fas fa-xmark' }
     case 'active':

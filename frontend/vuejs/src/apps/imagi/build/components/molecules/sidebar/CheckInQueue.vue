@@ -222,7 +222,7 @@ const kindLabel = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'Needs your answer'
     case 'error': return 'Stopped early'
-    default: return 'Finished — ready to review'
+    default: return 'Subagent complete — ready to review'
   }
 })
 

@@ -3,10 +3,11 @@
 
   One card per task the lead handed off. It says two things and nothing else:
   what the subagent is working on (its title is the task), and where that work
-  stands. While the run is live the card is lit and moving; when the work lands
-  it flips to a confirmation the user can read at a glance without going
-  anywhere. The subagent's full account of what it did stays one click away in
-  its own thread — this card is the notice, not the transcript.
+  stands. While the run is live the card is lit and moving; when the run ends
+  it reports that the subagent is complete and, in a line beneath, what it
+  actually did — the subagent's own sign-off, so the user learns the outcome
+  without opening anything. The full account stays one click away in its own
+  thread; this card carries the gist, not the transcript.
 
   It borrows the crew ledger's state vocabulary (AgentInstanceCard): a rail
   down the left edge, ink travelling while live, so a card here and a card
@@ -34,10 +35,12 @@
       <!-- Where it stands -->
       <span class="dispatch-card__status">{{ state.label }}</span>
 
-      <!-- The one thing worth spelling out inline: a question can't be acted
-           on from a status line, so it is shown here as well as in the queue
-           above the composer where it gets answered. -->
-      <span v-if="state.body" class="dispatch-card__question">{{ state.body }}</span>
+      <!-- The subagent's own words, for the two states where a status line
+           isn't enough: what it finished (a completion nobody can read from
+           "Done" alone) and what it is asking (a question can't be acted on
+           from a status line, so it appears here as well as in the queue above
+           the composer where it gets answered). -->
+      <span v-if="state.body" class="dispatch-card__detail">{{ state.body }}</span>
     </span>
 
     <i class="fas fa-chevron-right dispatch-card__chevron" aria-hidden="true"></i>
@@ -92,11 +95,19 @@ const state = computed(() => {
       return {
         tone: 'asking',
         icon: 'fas fa-check',
-        label: 'Finished — waiting on you',
-        body: '',
+        label: 'Subagent complete — waiting on you',
+        body: instance.lastMessagePreview || '',
       }
     case 'accepted':
-      return { tone: 'done', icon: 'fas fa-check', label: 'Done', body: '' }
+      return {
+        tone: 'done',
+        icon: 'fas fa-check',
+        label: 'Subagent complete',
+        // What it did, in its own words. The run is over, so the last message
+        // is its sign-off — the description of the work this card exists to
+        // deliver.
+        body: instance.lastMessagePreview || '',
+      }
     case 'dismissed':
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', body: '' }
     default:
@@ -259,9 +270,9 @@ const state = computed(() => {
 }
 
 /* Done. The ledger lets settled work recede, but here the flip from "working"
-   to "landed in your app" is the single moment this card exists to report, so
-   it arrives in green and says so — and plays a one-shot settle rather than
-   simply being repainted. */
+   to "complete, and here is what it did" is the single moment this card exists
+   to report, so it arrives in green and says so — and plays a one-shot settle
+   rather than simply being repainted. */
 .dispatch-card--done {
   --rail: theme('colors.green.600');
   --status: theme('colors.green.700');
@@ -367,7 +378,7 @@ const state = computed(() => {
   transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.dispatch-card__question {
+.dispatch-card__detail {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -379,8 +390,18 @@ const state = computed(() => {
   color: rgba(23, 37, 84, 0.65);
 }
 
-.dark .dispatch-card__question {
+.dark .dispatch-card__detail {
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* On a finished card the detail line is the payload, so it takes the state's
+   ink rather than the muted grey a pending question sits in. */
+.dispatch-card--done .dispatch-card__detail {
+  color: rgba(21, 128, 61, 0.85);
+}
+
+.dark .dispatch-card--done .dispatch-card__detail {
+  color: rgba(134, 239, 172, 0.8);
 }
 
 .dispatch-card__chevron {
