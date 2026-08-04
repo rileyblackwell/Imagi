@@ -1,13 +1,17 @@
 <!--
   DispatchCard.vue — a subagent, as it appears in the main thread.
 
-  One card per task the lead handed off. It says two things and nothing else:
-  what the subagent is working on (its title is the task), and where that work
-  stands. While the run is live the card is lit and moving; when the run ends
-  it reports that the subagent is complete and, in a line beneath, what it
-  actually did — the subagent's own sign-off, so the user learns the outcome
-  without opening anything. The full account stays one click away in its own
-  thread; this card carries the gist, not the transcript.
+  One card per task the lead handed off. Whatever state it is in, it says the
+  same three things: the task's name, what the work is in plain words, and
+  where it stands. While the run is live the card is lit and moving and the
+  plain words are the brief — what this subagent set out to do. When the run
+  ends they become the subagent's own summary of what it did.
+
+  Nothing on this card is technical: no file paths, no component names, no
+  step-by-step. That is deliberate. The person reading it is running a
+  business, not reviewing a diff, and the full account — files, tool calls,
+  the lot — is one click away in the subagent's own thread. This card is the
+  gist; the thread is the record.
 
   It borrows the crew ledger's state vocabulary (AgentInstanceCard): a rail
   down the left edge, ink travelling while live, so a card here and a card
@@ -29,17 +33,16 @@
     </span>
 
     <span class="dispatch-card__body">
-      <!-- What it is working on: the brief, in one line -->
+      <!-- The task's name -->
       <span class="dispatch-card__title">{{ title || 'Background subagent' }}</span>
 
       <!-- Where it stands -->
       <span class="dispatch-card__status">{{ state.label }}</span>
 
-      <!-- The subagent's own words, for the two states where a status line
-           isn't enough: what it finished (a completion nobody can read from
-           "Done" alone) and what it is asking (a question can't be acted on
-           from a status line, so it appears here as well as in the queue above
-           the composer where it gets answered). -->
+      <!-- The work in plain words: the brief while it runs, its summary once
+           it is done, its question when it is stuck. A status line alone can
+           be read without learning anything — this is the part that actually
+           tells the user what is happening to their app. -->
       <span v-if="state.body" class="dispatch-card__detail">{{ state.body }}</span>
     </span>
 
@@ -78,7 +81,10 @@ const state = computed(() => {
       tone: 'working',
       icon: 'fas fa-circle-notch fa-spin',
       label: 'Working on this now…',
-      body: '',
+      // What it set out to do. Deliberately the brief and not the agent's
+      // live status ("Editing project files…") — that says how it is working,
+      // which is exactly the kind of detail this card keeps out.
+      body: instance.brief || '',
     }
   }
   switch (instance.reviewStatus) {
@@ -96,7 +102,7 @@ const state = computed(() => {
         tone: 'asking',
         icon: 'fas fa-check',
         label: 'Subagent complete — waiting on you',
-        body: instance.lastMessagePreview || '',
+        body: instance.lastMessagePreview || instance.brief || '',
       }
     case 'accepted':
       return {
@@ -104,14 +110,21 @@ const state = computed(() => {
         icon: 'fas fa-check',
         label: 'Subagent complete',
         // What it did, in its own words. The run is over, so the last message
-        // is its sign-off — the description of the work this card exists to
-        // deliver.
-        body: instance.lastMessagePreview || '',
+        // is its sign-off — written as a plain summary for exactly this spot
+        // (see TASK_AGENT_INSTRUCTIONS). The brief is the standby for a task
+        // whose sign-off never landed, so the card is never blank.
+        body: instance.lastMessagePreview || instance.brief || '',
       }
     case 'dismissed':
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', body: '' }
     default:
-      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting…', body: '' }
+      // Dispatched, run not yet fired: the brief is all there is to report.
+      return {
+        tone: 'starting',
+        icon: 'fas fa-hourglass-start',
+        label: 'Starting…',
+        body: instance.brief || '',
+      }
   }
 })
 </script>
@@ -378,10 +391,13 @@ const state = computed(() => {
   transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
+/* Four lines holds the whole of a two-or-three-sentence summary at the widths
+   this pane is usually dragged to; anything longer was never meant for the
+   card and is why the thread is one click away. */
 .dispatch-card__detail {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-top: 0.25rem;
@@ -402,6 +418,16 @@ const state = computed(() => {
 
 .dark .dispatch-card--done .dispatch-card__detail {
   color: rgba(134, 239, 172, 0.8);
+}
+
+/* While the run is live the same line carries the brief, which is context
+   rather than news: two lines of it, a shade quieter, so the eye still goes
+   to the status. It grows into the summary when the run lands. */
+.dispatch-card--working .dispatch-card__detail,
+.dispatch-card--starting .dispatch-card__detail {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  opacity: 0.85;
 }
 
 .dispatch-card__chevron {

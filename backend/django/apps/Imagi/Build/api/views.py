@@ -1000,9 +1000,13 @@ def _conversation_total_tokens(conversation):
 
 
 PREVIEW_LIMIT = 240
+# A brief is a ticket written for the subagent, not a status line: it opens
+# with the goal and then spends paragraphs on specifics. The card only needs
+# the opening, so this is deliberately tighter than a result summary.
+BRIEF_LIMIT = 160
 
 
-def _message_preview(text: str) -> str:
+def _message_preview(text: str, limit: int = PREVIEW_LIMIT) -> str:
     """A message's gist on one line: markdown chrome off, lines run together.
 
     Not just the first line — a subagent's sign-off routinely opens with a
@@ -1023,9 +1027,25 @@ def _message_preview(text: str) -> str:
             continue
         parts.append(line)
         length += len(line) + 1
-        if length >= PREVIEW_LIMIT:
+        if length >= limit:
             break
-    return ' '.join(parts)[:PREVIEW_LIMIT]
+    return ' '.join(parts)[:limit]
+
+
+def _conversation_brief(conversation) -> str:
+    """What a task was asked to do, for the card that reports it working.
+
+    The lead's brief is the task's opening user message; queued_prompt holds
+    it only until the run starts, so the message is the durable copy and the
+    queued value is the fallback for a dispatch that has not fired yet.
+    Non-task threads have no brief — their opening message is the user simply
+    talking, which is not a status line.
+    """
+    if getattr(conversation, 'kind', 'chat') != 'task':
+        return ''
+    opening = conversation.messages.filter(role='user').order_by('created_at').first()
+    source = opening.content if opening else (conversation.queued_prompt or '')
+    return _message_preview(source, limit=BRIEF_LIMIT)
 
 
 def _serialize_conversation(conversation):
@@ -1047,6 +1067,9 @@ def _serialize_conversation(conversation):
         'created_at': conversation.created_at.isoformat(),
         'updated_at': conversation.updated_at.isoformat(),
         'last_message_preview': preview,
+        # What this task was asked to do — the dispatch card reports it while
+        # the run is live, where there is no result to show yet.
+        'brief': _conversation_brief(conversation),
         'is_running': _conversation_is_running(conversation),
         'total_tokens': _conversation_total_tokens(conversation),
         # A dispatched-but-not-yet-run task's brief: the client fires the run

@@ -176,7 +176,7 @@ Hard rules:
 - Write real copy for this business throughout — never lorem ipsum, never leftover scaffold text like "Welcome to your new project". Invent the specifics a real page needs (team names, addresses, hours, prices) only where the page would look unfinished without them, and keep them plausible for this business.
 - Do NOT build payment, checkout, cart, or subscription-billing functionality even if the business sells something — the founder installs secure, prebuilt payment pages later from their Sell workspace. Give the page a clear call to action instead of wiring real payments.
 - Do NOT add backend endpoints, stores, or API wiring. Your whole build is this one page.
-- When you finish, briefly summarize what you built. The founder reads it in their workspace.
+- When you finish, summarize what you built in two or three plain sentences, written for the founder rather than an engineer: what their page now says and does, not which file it lives in. That summary is what they read in their workspace.
 
 The scaffold you are starting from (already on disk — trust this instead of looking):
 - 'frontend/vuejs/src/apps/home/views/HomeView.vue' — placeholder landing page, routed at '/'.
@@ -224,7 +224,9 @@ LEAD_AGENT_INSTRUCTIONS = "\n\n".join(
 # and reports back through the review flow.
 TASK_AGENT_INSTRUCTIONS = """
 Working as a background subagent:
-- You are building one dispatched task in an isolated copy of the project. Work the brief to completion. When you finish, your changes are applied to the project automatically — the user is notified, not asked to approve. So end with a clear, concrete summary of what you changed and where (the files or pages you touched): that summary is the notification the user sees, so it must accurately reflect the work.
+- You are building one dispatched task in an isolated copy of the project. Work the brief to completion. When you finish, your changes are applied to the project automatically — the user is notified, not asked to approve.
+- End with a summary of what you did, and write it for the business owner, not for an engineer: two or three sentences, a short paragraph at the very most. Describe the change as they will experience it — what their site does now that it did not do before, and anything they should know about how you decided it. Do NOT name files, folders, components, routes, frameworks, or libraries, and do not narrate your process. This summary is the whole notification they get in their main thread; the full record of the work, files included, is already in this thread for them to open if they want it.
+- Accuracy comes before brevity. If a tool returned an error or "success": false, say plainly what did not work — never describe something as done when it failed.
 - If you are blocked on a decision only the user can make (ambiguous requirements, a real tradeoff between approaches, missing information), call ask_user with ONE clear, specific question; it ends your turn and the user's answer arrives as the next message. If a sensible default exists, do not ask — take the default and note it in your summary."""
 
 

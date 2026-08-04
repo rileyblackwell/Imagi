@@ -209,6 +209,8 @@ export interface ConversationDto {
   created_at: string;
   updated_at: string;
   last_message_preview: string;
+  /** What a task was asked to do, trimmed to a line. Empty for other kinds. */
+  brief?: string;
   /** True while a run is active server-side (staleness-guarded to 10 min) */
   is_running: boolean;
   /** Tokens used across the conversation; null when never captured (unknown, not free) */
@@ -241,6 +243,9 @@ export interface AgentInstance {
   archivedAt: string | null;
   updatedAt: string;
   lastMessagePreview: string;
+  /** A task's brief in one line — what it is working on, for the dispatch
+   *  card in the main thread while the run is still live. */
+  brief: string;
   messagesLoaded: boolean;
   /** Client-only: a run finished while this instance was not active */
   hasUnread?: boolean;
