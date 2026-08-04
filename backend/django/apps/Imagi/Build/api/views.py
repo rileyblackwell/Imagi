@@ -999,11 +999,12 @@ def _conversation_total_tokens(conversation):
     return total
 
 
-PREVIEW_LIMIT = 240
+PREVIEW_LIMIT = 300
 # A brief is a ticket written for the subagent, not a status line: it opens
-# with the goal and then spends paragraphs on specifics. The card only needs
-# the opening, so this is deliberately tighter than a result summary.
-BRIEF_LIMIT = 160
+# with the goal and then spends paragraphs on specifics. Only the opening is
+# ever shown, and only when the lead wrote no user-facing goal to show
+# instead, so this is deliberately tighter than a result summary.
+BRIEF_LIMIT = 200
 
 
 def _message_preview(text: str, limit: int = PREVIEW_LIMIT) -> str:
@@ -1033,16 +1034,23 @@ def _message_preview(text: str, limit: int = PREVIEW_LIMIT) -> str:
 
 
 def _conversation_brief(conversation) -> str:
-    """What a task was asked to do, for the card that reports it working.
+    """What a task was asked to do, in the words the user should read.
 
-    The lead's brief is the task's opening user message; queued_prompt holds
-    it only until the run starts, so the message is the durable copy and the
-    queued value is the fallback for a dispatch that has not fired yet.
-    Non-task threads have no brief — their opening message is the user simply
-    talking, which is not a status line.
+    The lead writes that as `goal` at dispatch, and it is the whole point of
+    the field, so it wins outright. Everything after it is a fallback for a
+    task that has none — a dispatch from before goals existed, or a lead that
+    skipped one: the brief, which says the right thing in an engineer's
+    register. That lives in the task's opening user message, with
+    queued_prompt covering the window before the run writes it.
+
+    Non-task threads have nothing to report — their opening message is the
+    user simply talking, which is not a description of any job.
     """
     if getattr(conversation, 'kind', 'chat') != 'task':
         return ''
+    goal = (getattr(conversation, 'goal', '') or '').strip()
+    if goal:
+        return goal
     opening = conversation.messages.filter(role='user').order_by('created_at').first()
     source = opening.content if opening else (conversation.queued_prompt or '')
     return _message_preview(source, limit=BRIEF_LIMIT)

@@ -343,7 +343,7 @@ export const useAgentStore = defineStore('agent', {
               // What it is about to work on, straight from the dispatch —
               // the card reports it from the first frame, without waiting for
               // the conversation DTO the run end fetches.
-              brief: briefLine(task.brief),
+              brief: task.goal || briefLine(task.brief),
               is_running: false,
               total_tokens: null,
             },

@@ -478,10 +478,15 @@ def _glob_to_regex(pattern: str) -> re.Pattern:
 # drafts, and briefs are capped so a runaway prompt can't bloat the queue.
 DISPATCH_MAX_DRAFTS = 3
 DISPATCH_BRIEF_MAX_CHARS = 4000
+# The user-facing goal is a card, not a document: a couple of sentences fit,
+# and a lead that writes an essay gets cut off rather than filling the thread.
+DISPATCH_GOAL_MAX_CHARS = 320
 ASK_USER_MAX_CHARS = 2000
 
 
-def dispatch_task_impl(ctx, description: str, title: str = '', drafts: int = 1) -> dict:
+def dispatch_task_impl(
+    ctx, description: str, goal: str = '', title: str = '', drafts: int = 1
+) -> dict:
     """Create background task conversations from the lead thread.
 
     Each task is a kind='task' child of the current lead conversation with the
@@ -498,6 +503,11 @@ def dispatch_task_impl(ctx, description: str, title: str = '', drafts: int = 1) 
         raise ValueError("description must describe the task to dispatch")
     if len(brief) > DISPATCH_BRIEF_MAX_CHARS:
         brief = brief[:DISPATCH_BRIEF_MAX_CHARS]
+
+    # The user-facing line. A lead that skips it leaves the card falling back
+    # to the brief, which is readable but written for an engineer — so this is
+    # optional to call, never optional to have.
+    user_goal = ' '.join((goal or '').split())[:DISPATCH_GOAL_MAX_CHARS]
 
     parent = AgentConversation.objects.filter(
         id=getattr(ctx, 'conversation_id', None), user_id=ctx.user_id
@@ -528,6 +538,7 @@ def dispatch_task_impl(ctx, description: str, title: str = '', drafts: int = 1) 
             review_status='active',
             variant_group=variant_group,
             queued_prompt=brief,
+            goal=user_goal,
         )
         SystemPrompt.objects.create(
             conversation=conversation, content=CODING_AGENT_INSTRUCTIONS
@@ -536,6 +547,7 @@ def dispatch_task_impl(ctx, description: str, title: str = '', drafts: int = 1) 
             'conversation_id': conversation.id,
             'title': provisional_title,
             'brief': brief,
+            'goal': user_goal,
             'variant_group': variant_group,
             'parent': parent.id,
             'model_name': conversation.model_name,
@@ -835,7 +847,13 @@ def update_plan(ctx: RunContextWrapper, steps: List[PlanStep]) -> str:
 
 
 @function_tool
-def dispatch_task(ctx: RunContextWrapper, description: str, title: str = "", drafts: int = 1) -> str:
+def dispatch_task(
+    ctx: RunContextWrapper,
+    description: str,
+    goal: str = "",
+    title: str = "",
+    drafts: int = 1,
+) -> str:
     """Dispatch a self-contained task to a background subagent that builds it in an isolated copy of the project, in parallel with this conversation.
 
     Call this for ANY building work — a feature, a fix, a style tweak, a copy
@@ -854,13 +872,22 @@ def dispatch_task(ctx: RunContextWrapper, description: str, title: str = "", dra
             engineer who has not read this conversation: the goal, what "done"
             looks like, and any files or pages the user named or you already
             know (do not go read the project just to fill this in).
+        goal: The same job described for the USER, not the engineer — one or
+            two plain sentences saying what this will do for their app, as you
+            would say it out loud ("Giving your home page a clearer opening
+            section and adding a place for customer reviews."). The user reads
+            this on a card in this thread for as long as the work runs, and it
+            stays there afterwards as what the subagent was asked for, so name
+            no files, folders, components, or libraries.
         title: Optional short task name shown in the workspace (defaults to the
             brief's first line).
         drafts: How many parallel variants to build (1-3). Use 2 or 3 only when
             the user wants alternative takes to compare.
     """
     try:
-        result = dispatch_task_impl(ctx.context, description, title=title, drafts=drafts)
+        result = dispatch_task_impl(
+            ctx.context, description, goal=goal, title=title, drafts=drafts
+        )
         return json.dumps(result)
     except Exception as e:
         logger.error(f"Error dispatching task: {e}")

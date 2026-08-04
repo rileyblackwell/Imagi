@@ -1,17 +1,22 @@
 <!--
   DispatchCard.vue — a subagent, as it appears in the main thread.
 
-  One card per task the lead handed off. Whatever state it is in, it says the
-  same three things: the task's name, what the work is in plain words, and
-  where it stands. While the run is live the card is lit and moving and the
-  plain words are the brief — what this subagent set out to do. When the run
-  ends they become the subagent's own summary of what it did.
+  One card per task the lead handed off, and it answers exactly the questions
+  the user has about it, in order: what is being done to my app, and is it
+  done yet? So the card is a state line and a description of the job, and
+  while the run is live that is the whole card. When it lands, one more thing
+  arrives — what the subagent actually did — and the job it was given stays
+  above it, because "complete" is only meaningful next to what was asked.
 
-  Nothing on this card is technical: no file paths, no component names, no
-  step-by-step. That is deliberate. The person reading it is running a
-  business, not reviewing a diff, and the full account — files, tool calls,
-  the lot — is one click away in the subagent's own thread. This card is the
-  gist; the thread is the record.
+  There is no separate title. A name and a description of the same task are
+  the same sentence written twice, and the name was the one being clipped to
+  an ellipsis on a phone. Everything here wraps and is read in full: a card
+  that hides the end of its own sentence is worse than a taller card.
+
+  Nothing on it is technical either — no file paths, no component names, no
+  step-by-step. The person reading is running a business, not reviewing a
+  diff, and the full account (files, tool calls, the lot) is one click away in
+  the subagent's own thread. This card is the gist; the thread is the record.
 
   It borrows the crew ledger's state vocabulary (AgentInstanceCard): a rail
   down the left edge, ink travelling while live, so a card here and a card
@@ -28,25 +33,27 @@
   >
     <span class="dispatch-card__rail" aria-hidden="true"></span>
 
-    <span class="dispatch-card__chip">
-      <i :class="state.icon"></i>
-    </span>
-
-    <span class="dispatch-card__body">
-      <!-- The task's name -->
-      <span class="dispatch-card__title">{{ title || 'Background subagent' }}</span>
+    <span class="dispatch-card__head">
+      <span class="dispatch-card__chip">
+        <i :class="state.icon"></i>
+      </span>
 
       <!-- Where it stands -->
       <span class="dispatch-card__status">{{ state.label }}</span>
 
-      <!-- The work in plain words: the brief while it runs, its summary once
-           it is done, its question when it is stuck. A status line alone can
-           be read without learning anything — this is the part that actually
-           tells the user what is happening to their app. -->
-      <span v-if="state.body" class="dispatch-card__detail">{{ state.body }}</span>
+      <i class="fas fa-chevron-right dispatch-card__chevron" aria-hidden="true"></i>
     </span>
 
-    <i class="fas fa-chevron-right dispatch-card__chevron" aria-hidden="true"></i>
+    <!-- The job, in the user's language. Present in every state, because it
+         is what the card is about — while the work runs it is the only thing
+         to say, and once the work lands it is what the result is a result
+         OF. -->
+    <span v-if="state.task" class="dispatch-card__task">{{ state.task }}</span>
+
+    <!-- What came back: the summary of the changes when it finished, or the
+         question when it stopped to ask. Only a finished (or stuck) subagent
+         has one, which is exactly why its arrival reads as news. -->
+    <span v-if="state.result" class="dispatch-card__result">{{ state.result }}</span>
   </button>
 </template>
 
@@ -55,8 +62,9 @@ import { computed } from 'vue'
 import type { AgentInstance } from '../../../types/services'
 
 const props = defineProps<{
-  /** The task's title from the transcript — survives a reload even when the
-   *  live instance has not loaded yet, so the card always names its work. */
+  /** The task's title from the transcript. The card describes its work from
+   *  the live instance; this is what it falls back to in the window before
+   *  the store has loaded one, so a reloaded thread is never a blank card. */
   title: string
   /** The live subagent behind this card, when the store knows about it. */
   instance?: AgentInstance | null
@@ -65,26 +73,30 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'open'): void }>()
 
 /**
- * Where this subagent stands, as the three things the card renders: a tone
- * (which drives every colour on the card), an icon, and a line of text.
+ * Where this subagent stands, as the four things the card renders: a tone
+ * (which drives every colour on it), an icon, the state in words, and — once
+ * there is one — what came back.
+ *
+ * `task` is deliberately not part of the switch: the job is the same job in
+ * every state, so it is read once, below, rather than repeated per branch.
  *
  * A live run beats every stored status — a task re-prompted after finishing is
  * working again whatever its last outcome was.
  */
-const state = computed(() => {
+const status = computed(() => {
   const instance = props.instance
   if (!instance) {
-    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting…', body: '' }
+    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting…', result: '' }
   }
   if (instance.isProcessing) {
     return {
       tone: 'working',
       icon: 'fas fa-circle-notch fa-spin',
       label: 'Working on this now…',
-      // What it set out to do. Deliberately the brief and not the agent's
-      // live status ("Editing project files…") — that says how it is working,
-      // which is exactly the kind of detail this card keeps out.
-      body: instance.brief || '',
+      // Nothing has come back yet, and the agent's live status ("Editing
+      // project files…") is not a result — it says how it is working, which
+      // is exactly the kind of detail this card keeps out.
+      result: '',
     }
   }
   switch (instance.reviewStatus) {
@@ -92,41 +104,42 @@ const state = computed(() => {
       return {
         tone: 'asking',
         icon: 'fas fa-circle-question',
+        label: 'Needs an answer from you',
         // The subagent stopped on ask_user, so its closing line is the
         // question itself.
-        label: 'Needs an answer from you',
-        body: instance.lastMessagePreview || '',
+        result: instance.lastMessagePreview || '',
       }
     case 'ready':
       return {
         tone: 'asking',
         icon: 'fas fa-check',
         label: 'Subagent complete — waiting on you',
-        body: instance.lastMessagePreview || instance.brief || '',
+        result: instance.lastMessagePreview || '',
       }
     case 'accepted':
       return {
         tone: 'done',
         icon: 'fas fa-check',
         label: 'Subagent complete',
-        // What it did, in its own words. The run is over, so the last message
-        // is its sign-off — written as a plain summary for exactly this spot
-        // (see TASK_AGENT_INSTRUCTIONS). The brief is the standby for a task
-        // whose sign-off never landed, so the card is never blank.
-        body: instance.lastMessagePreview || instance.brief || '',
+        // What it did, in its own words: the run is over, so the last message
+        // is its sign-off, written as a plain summary of the changes for
+        // exactly this spot (see TASK_AGENT_INSTRUCTIONS).
+        result: instance.lastMessagePreview || '',
       }
     case 'dismissed':
-      return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', body: '' }
+      return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }
     default:
-      // Dispatched, run not yet fired: the brief is all there is to report.
-      return {
-        tone: 'starting',
-        icon: 'fas fa-hourglass-start',
-        label: 'Starting…',
-        body: instance.brief || '',
-      }
+      // Dispatched, run not yet fired.
+      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting…', result: '' }
   }
 })
+
+const state = computed(() => ({
+  ...status.value,
+  // What this subagent was asked to do. The title is the standby for the
+  // moment before the instance loads — shorter, but never nothing.
+  task: props.instance?.brief || props.title || 'Background subagent',
+}))
 </script>
 
 <style scoped>
@@ -141,11 +154,14 @@ const state = computed(() => {
   --chip-fg: rgba(23, 37, 84, 0.8);
 
   position: relative;
+  /* Stacked, not two columns: the description is the card, and giving it the
+     full width is what lets it be read whole on a phone rather than clipped
+     into a column beside an icon. */
   display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
+  flex-direction: column;
+  gap: 0.3125rem;
   width: 100%;
-  padding: 0.5rem 0.625rem 0.5rem 0.875rem;
+  padding: 0.5rem 0.625rem 0.5625rem 0.875rem;
   border-radius: var(--iw-r-lg);
   border: 1px solid rgba(23, 37, 84, 0.08);
   background: rgba(239, 246, 255, 0.5);
@@ -353,88 +369,101 @@ const state = computed(() => {
     color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* Above the working state's edge glow, which would otherwise wash over it. */
-.dispatch-card__body {
+/* The state line: chip, words, and the affordance that says there is more
+   through here. One row, above the working state's edge glow, which would
+   otherwise wash over it. */
+.dispatch-card__head {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+}
+
+.dispatch-card__chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--iw-r-sm);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 0.5625rem;
+  transition:
+    background-color var(--iw-dur-3) var(--iw-ease-out),
+    color var(--iw-dur-3) var(--iw-ease-out);
+}
+
+/* Where it stands, in the state's own ink. Small caps: this is a label on the
+   card, and the description below it is the reading matter. */
+.dispatch-card__status {
   flex: 1;
   min-width: 0;
-}
-
-/* The task itself. Set in the brand serif like the crew ledger's byline, so
-   the thing being worked on reads as a name rather than a log line. */
-.dispatch-card__title {
-  display: block;
-  font-family: theme('fontFamily.display');
-  font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
-  font-size: 0.8125rem;
-  font-weight: 550;
+  font-size: 0.625rem;
+  font-weight: 650;
   line-height: 1.3;
-  letter-spacing: -0.006em;
-  color: rgba(23, 37, 84, 0.88);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dark .dispatch-card__title {
-  color: rgba(255, 255, 255, 0.86);
-}
-
-.dispatch-card__status {
-  display: block;
-  margin-top: 0.125rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--status);
   transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* Four lines holds the whole of a two-or-three-sentence summary at the widths
-   this pane is usually dragged to; anything longer was never meant for the
-   card and is why the thread is one click away. */
-.dispatch-card__detail {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-top: 0.25rem;
+/* The job. Set in the brand serif like the crew ledger's byline, so what is
+   being done to the app reads as the subject of the card. It wraps: no clamp,
+   no ellipsis — the whole sentence, at any width. */
+.dispatch-card__task {
+  position: relative;
+  z-index: 1;
+  font-family: theme('fontFamily.display');
+  font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.006em;
+  color: rgba(23, 37, 84, 0.88);
+  overflow-wrap: anywhere;
+}
+
+.dark .dispatch-card__task {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* What came back. Set apart from the job by a hairline rather than a label —
+   a rule reads as "and then this happened" without spending a line on saying
+   so. Also wraps in full. */
+.dispatch-card__result {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.0625rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid rgba(23, 37, 84, 0.08);
   font-size: 0.6875rem;
-  line-height: 1.45;
-  color: rgba(23, 37, 84, 0.65);
+  line-height: 1.5;
+  color: rgba(23, 37, 84, 0.7);
+  overflow-wrap: anywhere;
 }
 
-.dark .dispatch-card__detail {
-  color: rgba(255, 255, 255, 0.6);
+.dark .dispatch-card__result {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.62);
 }
 
-/* On a finished card the detail line is the payload, so it takes the state's
-   ink rather than the muted grey a pending question sits in. */
-.dispatch-card--done .dispatch-card__detail {
-  color: rgba(21, 128, 61, 0.85);
+/* On a finished card the result is the news, so it takes the state's ink
+   rather than the muted grey a pending question sits in. */
+.dispatch-card--done .dispatch-card__result {
+  border-top-color: rgba(22, 163, 74, 0.18);
+  color: rgba(21, 128, 61, 0.9);
 }
 
-.dark .dispatch-card--done .dispatch-card__detail {
-  color: rgba(134, 239, 172, 0.8);
-}
-
-/* While the run is live the same line carries the brief, which is context
-   rather than news: two lines of it, a shade quieter, so the eye still goes
-   to the status. It grows into the summary when the run lands. */
-.dispatch-card--working .dispatch-card__detail,
-.dispatch-card--starting .dispatch-card__detail {
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  opacity: 0.85;
+.dark .dispatch-card--done .dispatch-card__result {
+  border-top-color: rgba(74, 222, 128, 0.2);
+  color: rgba(134, 239, 172, 0.82);
 }
 
 .dispatch-card__chevron {
-  position: relative;
-  z-index: 1;
   flex-shrink: 0;
-  align-self: center;
   font-size: 0.625rem;
   color: rgba(23, 37, 84, 0.3);
   transition:
