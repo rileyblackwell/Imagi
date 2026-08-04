@@ -30,7 +30,7 @@
       </div>
 
       <div class="relative flex-1">
-        <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 tracking-tight">
+        <h3 :class="ui.headingText" class="mb-1.5 tracking-tight">
           Building your app
         </h3>
         <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
@@ -82,7 +82,7 @@
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { type BusinessTool } from '../../../utils/businessTools'
-import { hubCardTone } from '@/shared/styles'
+import { hubCardTone, ui } from '@/shared/styles'
 
 const props = defineProps<{
   tool: BusinessTool

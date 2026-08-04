@@ -44,10 +44,10 @@
             <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-base font-semibold text-blue-950 dark:text-white truncate group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200">
+            <p :class="ui.panelHeading" class="truncate group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200">
               {{ campaign.name }}
             </p>
-            <p class="text-sm text-blue-950/60 dark:text-blue-100/60 truncate">{{ campaign.body }}</p>
+            <p :class="ui.bodyText" class="truncate">{{ campaign.body }}</p>
           </div>
         </div>
         <div class="flex items-center gap-5 shrink-0">
@@ -55,11 +55,11 @@
             <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
               {{ campaign.stats.delivered }}/{{ campaign.stats.recipients }}
             </p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50">delivered</p>
+            <p :class="ui.hintText">delivered</p>
           </div>
           <div class="text-right hidden md:block">
             <p class="text-sm text-blue-950/70 dark:text-blue-100/70">{{ formatDateTime(campaign.scheduled_at || campaign.created_at) }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50">{{ campaign.scheduled_at ? 'scheduled for' : 'created' }}</p>
+            <p :class="ui.hintText">{{ campaign.scheduled_at ? 'scheduled for' : 'created' }}</p>
           </div>
           <StatusBadge :status="campaign.status" />
           <i class="fas fa-chevron-right text-xs text-blue-950/30 dark:text-blue-100/30 group-hover:translate-x-0.5 transition-transform duration-200"></i>
@@ -75,7 +75,7 @@
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">
         {{ statusFilter ? 'No campaigns with this status' : 'No campaigns yet' }}
       </h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mb-6">
+      <p :class="ui.bodyText" class="max-w-md mb-6">
         {{ statusFilter
           ? 'Try a different filter, or create a new campaign.'
           : 'Announce launches, promotions, and updates with an SMS blast or a voice broadcast to your audience.' }}

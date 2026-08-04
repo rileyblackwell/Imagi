@@ -41,7 +41,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ product.name }}</p>
-              <p class="text-sm text-blue-950/60 dark:text-blue-100/60 tabular-nums">
+              <p :class="ui.bodyText" class="tabular-nums">
                 {{ formatMoney(product.price_cents, store.currency) }}<span v-if="product.billing_interval === 'month'"> / month</span><span v-else-if="product.billing_interval === 'year'"> / year</span>
               </p>
             </div>
@@ -63,7 +63,7 @@
               </span>
             </div>
           </div>
-          <p v-if="product.description" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1 line-clamp-2">{{ product.description }}</p>
+          <p :class="ui.hintText" v-if="product.description" class="mt-1 line-clamp-2">{{ product.description }}</p>
           <div class="flex flex-wrap items-center gap-2 mt-3">
             <button
               type="button"

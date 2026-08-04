@@ -55,13 +55,13 @@
               <StatusBadge :status="invoice.is_overdue ? 'overdue' : invoice.status" />
             </div>
             <p class="text-sm text-blue-950/70 dark:text-blue-100/70 truncate">{{ invoice.customer_name }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-0.5">
+            <p :class="ui.hintText" class="mt-0.5">
               Issued {{ formatDate(invoice.issue_date) }}
               <template v-if="invoice.due_date"> · due {{ formatDate(invoice.due_date) }}</template>
               <template v-if="invoice.paid_at"> · paid {{ formatDateTime(invoice.paid_at) }}</template>
             </p>
           </div>
-          <p class="text-lg font-semibold text-blue-950 dark:text-white tabular-nums whitespace-nowrap">{{ formatMoney(invoice.total) }}</p>
+          <p :class="ui.headingText" class="tabular-nums whitespace-nowrap">{{ formatMoney(invoice.total) }}</p>
           <div class="flex flex-wrap items-center gap-2">
             <!-- Lifecycle actions -->
             <button v-if="invoice.status === 'draft'" type="button" :class="ui.primaryBtn" :disabled="busyId === invoice.id" @click="setStatus(invoice, 'sent')">

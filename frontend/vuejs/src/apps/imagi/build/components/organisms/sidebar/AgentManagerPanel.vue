@@ -86,7 +86,7 @@
     <!-- Fleet meter: the same numbers as the status line, drawn. Segments are
          proportional, so a glance says whether the crew is busy or the pile of
          work waiting on you is the bigger half. -->
-    <div v-if="activeAgents.length > 0" class="fleet-meter" :title="fleetStatus">
+    <div v-if="activeAgents.length> 0" class="fleet-meter" :title="fleetStatus">
       <span
         v-for="seg in fleetSegments"
         :key="seg.key"
@@ -127,7 +127,7 @@
              per-card --stagger becomes the enter delay, so a batch of
              parallel takes arrives in sequence instead of all at once. -->
         <TransitionGroup
-          v-if="activeAgents.length > 0"
+          v-if="activeAgents.length> 0"
           name="agent-list"
           tag="div"
           class="agent-list"
@@ -156,7 +156,7 @@
         </div>
 
         <!-- History: archived threads, legacy chats, resolved tasks -->
-        <template v-if="history.length > 0">
+        <template v-if="history.length> 0">
           <button
             type="button"
             class="section-head section-head--button"

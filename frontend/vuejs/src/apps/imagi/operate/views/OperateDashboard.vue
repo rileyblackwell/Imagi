@@ -17,7 +17,7 @@
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold tabular-nums" :class="stat.tone ?? 'text-blue-950 dark:text-white'">{{ stat.value }}</p>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1">{{ stat.caption }}</p>
+          <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
 
@@ -40,8 +40,8 @@
       <!-- Cash flow -->
       <section class="p-6 mb-6" :class="ui.card">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-blue-950 dark:text-white">Cash flow</h2>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50">last {{ dashboard.cashflow.length }} months</p>
+          <h2 :class="ui.panelHeading">Cash flow</h2>
+          <p :class="ui.hintText">last {{ dashboard.cashflow.length }} months</p>
         </div>
         <CashflowChart :points="dashboard.cashflow" />
       </section>
@@ -50,7 +50,7 @@
         <!-- Open invoices -->
         <section class="p-6" :class="ui.card">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-semibold text-blue-950 dark:text-white">Awaiting payment</h2>
+            <h2 :class="ui.panelHeading">Awaiting payment</h2>
             <router-link
               :to="{ name: 'operate-invoices', params: { projectName: route.params.projectName } }"
               class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
@@ -69,7 +69,7 @@
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ invoice.number }} · {{ invoice.customer_name }}</p>
-                <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+                <p :class="ui.hintText">
                   {{ formatMoney(invoice.total) }}<template v-if="invoice.due_date"> · due {{ formatDate(invoice.due_date) }}</template>
                 </p>
               </div>
@@ -77,7 +77,7 @@
             </div>
           </div>
           <div v-else class="py-10 text-center">
-            <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">No invoices awaiting payment.</p>
+            <p :class="ui.bodyText" class="mb-4">No invoices awaiting payment.</p>
             <router-link :to="{ name: 'operate-invoices', params: { projectName: route.params.projectName }, query: { new: '1' } }" :class="ui.secondaryBtn">
               Create an invoice
             </router-link>
@@ -87,7 +87,7 @@
         <!-- Upcoming tasks -->
         <section class="p-6" :class="ui.card">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-semibold text-blue-950 dark:text-white">Up next</h2>
+            <h2 :class="ui.panelHeading">Up next</h2>
             <router-link
               :to="{ name: 'operate-tasks', params: { projectName: route.params.projectName } }"
               class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
@@ -116,7 +116,7 @@
             </div>
           </div>
           <div v-else class="py-10 text-center">
-            <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">Nothing on the list. Add the work that keeps the business running.</p>
+            <p :class="ui.bodyText" class="mb-4">Nothing on the list. Add the work that keeps the business running.</p>
             <router-link :to="{ name: 'operate-tasks', params: { projectName: route.params.projectName }, query: { new: '1' } }" :class="ui.secondaryBtn">
               Add a task
             </router-link>
@@ -127,7 +127,7 @@
       <!-- Across your business -->
       <section class="p-6" :class="ui.card">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-blue-950 dark:text-white">Across your business</h2>
+          <h2 :class="ui.panelHeading">Across your business</h2>
           <div class="flex items-center gap-4">
             <router-link
               :to="{ name: 'sell-overview', params: { projectName: route.params.projectName } }"
@@ -150,10 +150,10 @@
               <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
             </div>
             <p class="text-xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-0.5">{{ stat.caption }}</p>
+            <p :class="ui.hintText" class="mt-0.5">{{ stat.caption }}</p>
           </div>
         </div>
-        <p v-if="!dashboard.sell.configured || !dashboard.marketing.configured" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-3">
+        <p :class="ui.hintText" v-if="!dashboard.sell.configured || !dashboard.marketing.configured" class="mt-3">
           <template v-if="!dashboard.sell.configured">Connect Stripe in the Sell workspace to start taking payments.</template>
           <template v-if="!dashboard.sell.configured && !dashboard.marketing.configured"> · </template>
           <template v-if="!dashboard.marketing.configured">Connect Twilio in the Market workspace to start reaching customers.</template>

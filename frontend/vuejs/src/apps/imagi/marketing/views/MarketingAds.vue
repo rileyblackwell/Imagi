@@ -17,7 +17,7 @@
         <i class="fas fa-rectangle-ad"></i>
       </div>
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">Bring your ad campaigns into Imagi</h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-lg mx-auto mb-7">
+      <p :class="ui.bodyText" class="max-w-lg mx-auto mb-7">
         Connect your Google Ads or Meta Ads account to see every campaign, its spend, and its
         results in one dashboard — and pause or resume campaigns without leaving Imagi.
       </p>
@@ -42,7 +42,7 @@
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1">{{ stat.caption }}</p>
+          <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
 
@@ -64,7 +64,7 @@
           </button>
         </div>
         <div class="flex-1"></div>
-        <p v-if="summary?.last_synced_at" class="text-xs text-blue-950/50 dark:text-blue-100/50">
+        <p :class="ui.hintText" v-if="summary?.last_synced_at">
           Synced {{ formatDateTime(summary.last_synced_at) }}
         </p>
         <button type="button" :class="ui.secondaryBtn" :disabled="store.adsSyncing" @click="sync">
@@ -85,14 +85,14 @@
             <thead>
               <tr class="border-b border-blue-200/60 dark:border-white/[0.08] text-left">
                 <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">Campaign</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">Status</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Budget/day</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Impressions</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Clicks</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">CTR</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Spend</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">CPC</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Conv.</th>
+                <th :class="ui.tableHead">Status</th>
+                <th :class="ui.tableHead" class="text-right">Budget/day</th>
+                <th :class="ui.tableHead" class="text-right">Impressions</th>
+                <th :class="ui.tableHead" class="text-right">Clicks</th>
+                <th :class="ui.tableHead" class="text-right">CTR</th>
+                <th :class="ui.tableHead" class="text-right">Spend</th>
+                <th :class="ui.tableHead" class="text-right">CPC</th>
+                <th :class="ui.tableHead" class="text-right">Conv.</th>
                 <th class="px-5 py-3.5"></th>
               </tr>
             </thead>
@@ -107,7 +107,7 @@
                     <i :class="AD_PROVIDERS[campaign.provider].icon" class="text-blue-950/50 dark:text-blue-100/50 shrink-0" :title="AD_PROVIDERS[campaign.provider].label"></i>
                     <div class="min-w-0">
                       <p class="font-medium text-blue-950 dark:text-white truncate max-w-56" :title="campaign.name">{{ campaign.name }}</p>
-                      <p v-if="campaign.objective" class="text-xs text-blue-950/50 dark:text-blue-100/50 truncate">{{ formatObjective(campaign.objective) }}</p>
+                      <p :class="ui.hintText" v-if="campaign.objective" class="truncate">{{ formatObjective(campaign.objective) }}</p>
                     </div>
                   </div>
                 </td>
@@ -148,7 +148,7 @@
         </div>
 
         <div v-else class="py-14 text-center px-6">
-          <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
+          <p :class="ui.bodyText" class="mb-5">
             {{ providerFilter
               ? `No ${AD_PROVIDERS[providerFilter].label} campaigns synced yet.`
               : 'No campaigns synced yet. Pull them in from your connected ad accounts.' }}
@@ -161,7 +161,7 @@
       </section>
 
       <!-- Where ads are created -->
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-4">
+      <p :class="ui.hintText" class="mt-4">
         New campaigns are created in
         <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Google Ads</a>
         or

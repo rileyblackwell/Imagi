@@ -64,7 +64,7 @@
             >
               <td class="px-5 py-3.5">
                 <p class="font-medium text-blue-950 dark:text-white">{{ contact.display_name }}</p>
-                <p v-if="contact.email" class="text-xs text-blue-950/50 dark:text-blue-100/50">{{ contact.email }}</p>
+                <p :class="ui.hintText" v-if="contact.email">{{ contact.email }}</p>
               </td>
               <td class="px-5 py-3.5 font-mono text-xs text-blue-950/70 dark:text-blue-100/70">{{ contact.phone_number }}</td>
               <td class="px-5 py-3.5">
@@ -113,7 +113,7 @@
           </tbody>
         </table>
       </div>
-      <div class="px-5 py-3 border-t border-blue-200/60 dark:border-white/[0.08] text-xs text-blue-950/50 dark:text-blue-100/50">
+      <div :class="ui.hintText" class="px-5 py-3 border-t border-blue-200/60 dark:border-white/[0.08]">
         {{ store.contacts.length }} of {{ store.contactsTotal }} contact{{ store.contactsTotal === 1 ? '' : 's' }}
       </div>
     </section>
@@ -126,7 +126,7 @@
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">
         {{ hasFilters ? 'No contacts match' : 'Build your audience' }}
       </h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mb-6">
+      <p :class="ui.bodyText" class="max-w-md mb-6">
         {{ hasFilters
           ? 'Try a different search or filter.'
           : 'Add the customers you have permission to text. Tag them to send targeted campaigns later.' }}
@@ -168,7 +168,7 @@
             placeholder="+15551234567"
             :class="ui.input"
           />
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">International format with country code (E.164).</p>
+          <p :class="ui.hintText" class="mt-1.5">International format with country code (E.164).</p>
         </div>
         <div>
           <label :class="ui.label" for="contact-email">Email <span class="normal-case tracking-normal font-normal">(optional)</span></label>
@@ -216,7 +216,7 @@
           class="font-mono text-xs"
           :class="ui.input"
         ></textarea>
-        <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+        <p :class="ui.hintText">
           {{ parsedImportRows.length }} contact{{ parsedImportRows.length === 1 ? '' : 's' }} ready to import.
           Duplicates and invalid numbers are skipped automatically.
         </p>
@@ -229,7 +229,7 @@
             <li v-for="(row, i) in importResult.skipped.slice(0, 8)" :key="i">
               Line {{ row.index + 1 }}{{ row.phone_number ? ` (${row.phone_number})` : '' }}: {{ row.reason }}
             </li>
-            <li v-if="importResult.skipped.length > 8">…and {{ importResult.skipped.length - 8 }} more skipped.</li>
+            <li v-if="importResult.skipped.length> 8">…and {{ importResult.skipped.length - 8 }} more skipped.</li>
           </ul>
         </div>
 

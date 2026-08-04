@@ -9,7 +9,7 @@
         </p>
       </div>
       
-      <template v-if="processedMessages.length > 0">
+      <template v-if="processedMessages.length> 0">
         <div class="max-w-3xl mx-auto">
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
             <!-- User Message: a single compact bubble that opens the turn -->
@@ -56,7 +56,7 @@
               />
               <div
                 class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm"
-                v-if="message.content && message.content.trim().length > 0"
+                v-if="message.content && message.content.trim().length> 0"
                 v-html="formatMessage(message, index)"
               />
               <!-- Subagents this reply kicked off. The work streams in their

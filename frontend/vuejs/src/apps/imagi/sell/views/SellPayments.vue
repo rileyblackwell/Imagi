@@ -79,8 +79,8 @@
           </span>
         </div>
 
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1">{{ template.name }}</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">{{ template.description }}</p>
+        <h2 :class="ui.panelHeading" class="mb-1">{{ template.name }}</h2>
+        <p :class="ui.bodyText" class="mb-4">{{ template.description }}</p>
 
         <ul class="space-y-2 mb-6">
           <li
@@ -103,7 +103,7 @@
             <i :class="['fas', installingKey === template.key ? 'fa-circle-notch animate-spin' : (template.installed ? 'fa-rotate' : 'fa-plus')]" class="text-xs"></i>
             {{ template.installed ? 'Reinstall' : 'Add to my app' }}
           </button>
-          <span class="text-xs text-blue-950/50 dark:text-blue-100/50 font-mono">{{ template.route }}</span>
+          <span :class="ui.hintText" class="font-mono">{{ template.route }}</span>
         </div>
       </div>
 
@@ -118,8 +118,8 @@
           </span>
         </div>
 
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1">Payment links</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">
+        <h2 :class="ui.panelHeading" class="mb-1">Payment links</h2>
+        <p :class="ui.bodyText" class="mb-4">
           No page needed — copy a secure Stripe Checkout link for any product and share it in a text,
           an email, or on social media.
         </p>
@@ -149,7 +149,7 @@
 
     <!-- How it stays secure -->
     <section class="mt-8 p-6" :class="ui.card">
-      <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-3">How these stay secure</h2>
+      <h2 :class="ui.panelHeading" class="mb-3">How these stay secure</h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div v-for="point in securityPoints" :key="point.title" class="flex items-start gap-3">
           <div class="w-9 h-9 shrink-0 text-sm" :class="ui.iconTile">

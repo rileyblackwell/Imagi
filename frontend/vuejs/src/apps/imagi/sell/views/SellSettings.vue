@@ -7,7 +7,7 @@
     <!-- Credentials form -->
     <section class="lg:col-span-2 p-6" :class="ui.card">
       <div class="flex items-center gap-3 mb-1.5">
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white">Stripe account</h2>
+        <h2 :class="ui.panelHeading">Stripe account</h2>
         <span
           v-if="settings?.is_configured"
           class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300"
@@ -16,7 +16,7 @@
           Connected
         </span>
       </div>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6">
+      <p :class="ui.bodyText" class="mb-6">
         Find these under
         <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" class="rounded-sm font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white underline underline-offset-2 decoration-blue-950/30 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-ring">Developers → API keys</a>
         in your Stripe dashboard. Payments go directly to your own Stripe account.
@@ -47,7 +47,7 @@
             class="font-mono text-xs"
             :class="ui.input"
           />
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+          <p :class="ui.hintText" class="mt-1.5">
             Stored encrypted and never shown again. Leave blank to keep the saved key.
           </p>
         </div>
@@ -63,7 +63,7 @@
               class="font-mono text-xs"
               :class="ui.input"
             />
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">Lets Stripe push payment updates to Imagi.</p>
+            <p :class="ui.hintText" class="mt-1.5">Lets Stripe push payment updates to Imagi.</p>
           </div>
           <div>
             <label :class="ui.label" for="sell-currency">Currency</label>
@@ -74,7 +74,7 @@
               <option value="cad">CAD — Canadian Dollar</option>
               <option value="aud">AUD — Australian Dollar</option>
             </select>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">Used for every product and checkout.</p>
+            <p :class="ui.hintText" class="mt-1.5">Used for every product and checkout.</p>
           </div>
         </div>
 
@@ -114,8 +114,8 @@
     <div class="space-y-6">
       <!-- Webhook -->
       <section class="p-6" :class="ui.card">
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1.5">Webhook</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">
+        <h2 :class="ui.panelHeading" class="mb-1.5">Webhook</h2>
+        <p :class="ui.bodyText" class="mb-4">
           Stripe pushes payment confirmations to this endpoint so orders update on their own.
         </p>
 
@@ -132,7 +132,7 @@
               <i :class="['fas', copied === settings.stripe_webhook_url ? 'fa-check' : 'fa-copy']" class="text-xs"></i>
             </button>
           </div>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-2">
+          <p :class="ui.hintText" class="mt-2">
             In Stripe: Developers → Webhooks → Add endpoint. Subscribe to
             <code class="font-mono">checkout.session.completed</code>,
             <code class="font-mono">checkout.session.expired</code>, and
@@ -149,8 +149,8 @@
 
       <!-- Storefront API -->
       <section class="p-6" :class="ui.card">
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1.5">Storefront API</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">
+        <h2 :class="ui.panelHeading" class="mb-1.5">Storefront API</h2>
+        <p :class="ui.bodyText" class="mb-4">
           Your generated app can sell through these endpoints — list products, then send
           customers to Stripe Checkout.
         </p>
@@ -162,7 +162,7 @@
           <div>
             <span :class="ui.label">Start a checkout</span>
             <code class="block px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">POST /api/v1/sell/storefront/{{ store.projectId }}/checkout/</code>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+            <p :class="ui.hintText" class="mt-1.5">
               Body: <code class="font-mono">{"items": [{"product_id": 1, "quantity": 2}]}</code> →
               returns a <code class="font-mono">checkout_url</code> to redirect the customer to.
             </p>

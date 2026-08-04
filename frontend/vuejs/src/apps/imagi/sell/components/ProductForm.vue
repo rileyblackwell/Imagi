@@ -44,7 +44,7 @@
           {{ option.label }}
         </button>
       </div>
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+      <p :class="ui.hintText" class="mt-1.5">
         {{ form.billing_interval === 'one_time'
           ? 'Charged once at checkout.'
           : 'Stripe bills the customer automatically each ' + (form.billing_interval === 'month' ? 'month' : 'year') + '.' }}
@@ -66,7 +66,7 @@
           placeholder="12.00"
           :class="ui.input"
         />
-        <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">At least 0.50 — Stripe's minimum charge.</p>
+        <p :class="ui.hintText" class="mt-1.5">At least 0.50 — Stripe's minimum charge.</p>
       </div>
       <div>
         <label :class="ui.label" for="product-image">Image URL <span class="normal-case tracking-normal font-normal">(optional)</span></label>
@@ -77,7 +77,7 @@
           placeholder="https://…"
           :class="ui.input"
         />
-        <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">Shown on the checkout page.</p>
+        <p :class="ui.hintText" class="mt-1.5">Shown on the checkout page.</p>
       </div>
     </div>
 

@@ -9,7 +9,7 @@
     <!-- Credentials form -->
     <section class="lg:col-span-2 p-6" :class="ui.card">
       <div class="flex items-center gap-3 mb-1.5">
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white">Twilio account</h2>
+        <h2 :class="ui.panelHeading">Twilio account</h2>
         <span
           v-if="settings?.is_configured"
           class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300"
@@ -18,7 +18,7 @@
           Connected
         </span>
       </div>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6">
+      <p :class="ui.bodyText" class="mb-6">
         Find these in the
         <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Twilio Console</a>.
         Messages and calls are sent from your own Twilio account.
@@ -49,7 +49,7 @@
             class="font-mono text-xs"
             :class="ui.input"
           />
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+          <p :class="ui.hintText" class="mt-1.5">
             Stored encrypted and never shown again. Leave blank to keep the saved token.
           </p>
         </div>
@@ -64,7 +64,7 @@
               class="font-mono text-xs"
               :class="ui.input"
             />
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">The sender for your messages and calls.</p>
+            <p :class="ui.hintText" class="mt-1.5">The sender for your messages and calls.</p>
           </div>
           <div>
             <label :class="ui.label" for="twilio-msid">Messaging Service SID <span class="normal-case tracking-normal font-normal">(optional)</span></label>
@@ -78,7 +78,7 @@
               class="font-mono text-xs"
               :class="ui.input"
             />
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">Required for scheduled campaigns.</p>
+            <p :class="ui.hintText" class="mt-1.5">Required for scheduled campaigns.</p>
           </div>
         </div>
         <div>
@@ -90,7 +90,7 @@
             <option value="Polly.Brian">Brian — male, British English</option>
             <option value="alice">Alice — classic</option>
           </select>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">Text-to-speech voice used for voice broadcasts.</p>
+          <p :class="ui.hintText" class="mt-1.5">Text-to-speech voice used for voice broadcasts.</p>
         </div>
 
         <div v-if="saveError" :class="ui.errorBox">{{ saveError }}</div>
@@ -140,8 +140,8 @@
     <div class="space-y-6">
       <!-- Webhooks -->
       <section class="p-6" :class="ui.card">
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1.5">Webhooks</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">
+        <h2 :class="ui.panelHeading" class="mb-1.5">Webhooks</h2>
+        <p :class="ui.bodyText" class="mb-4">
           Twilio pushes delivery updates and incoming texts to these endpoints.
         </p>
 
@@ -160,7 +160,7 @@
                   <i :class="['fas', copied === settings.inbound_webhook_url ? 'fa-check' : 'fa-copy']" class="text-xs"></i>
                 </button>
               </div>
-              <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+              <p :class="ui.hintText" class="mt-1.5">
                 Set as “A message comes in” on your Twilio number to receive replies in the inbox.
               </p>
             </div>
@@ -177,7 +177,7 @@
                   <i :class="['fas', copied === settings.status_callback_url ? 'fa-check' : 'fa-copy']" class="text-xs"></i>
                 </button>
               </div>
-              <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+              <p :class="ui.hintText" class="mt-1.5">
                 Attached automatically to outbound messages — nothing to configure.
               </p>
             </div>
@@ -192,7 +192,7 @@
 
       <!-- Compliance -->
       <section class="p-6" :class="ui.card">
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-3">Messaging rules</h2>
+        <h2 :class="ui.panelHeading" class="mb-3">Messaging rules</h2>
         <ul class="space-y-2.5 text-sm text-blue-950/70 dark:text-blue-100/70">
           <li class="flex gap-2.5">
             <i class="fas fa-circle-check text-emerald-600 dark:text-emerald-300 mt-0.5 text-xs"></i>
@@ -219,8 +219,8 @@
 
   <!-- Ad platforms -->
   <div class="mt-10">
-    <h2 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 transition-colors duration-300">Ad platforms</h2>
-    <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
+    <h2 :class="ui.headingText" class="mb-1.5 transition-colors duration-300">Ad platforms</h2>
+    <p :class="ui.bodyText" class="mb-5">
       Connect your ad accounts to watch campaign performance and pause or resume campaigns from the
       <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Ads tab</router-link>.
       Credentials are stored encrypted, and Imagi never creates or edits ads without you.

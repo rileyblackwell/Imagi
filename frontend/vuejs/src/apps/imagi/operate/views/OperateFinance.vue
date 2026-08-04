@@ -66,7 +66,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ transaction.description }}</p>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+          <p :class="ui.hintText">
             {{ CATEGORY_LABELS[transaction.category] ?? transaction.category }} · {{ formatDate(transaction.occurred_on) }}
             <template v-if="transaction.invoice_number"> · from {{ transaction.invoice_number }}</template>
           </p>

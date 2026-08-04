@@ -14,10 +14,10 @@
             autocomplete="username"
             placeholder="Create a username (min. 3 characters)"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && formSubmitCount > 0"
+            :hasError="!!errorMessage && formSubmitCount> 0"
           />
           <transition name="fade-up">
-            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div v-if="errorMessage && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>{{ errorMessage }}</span>
             </div>
@@ -38,10 +38,10 @@
             autocomplete="email"
             placeholder="Enter your email address"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && formSubmitCount > 0"
+            :hasError="!!errorMessage && formSubmitCount> 0"
           />
           <transition name="fade-up">
-            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div v-if="errorMessage && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>{{ errorMessage }}</span>
             </div>
@@ -62,7 +62,7 @@
               autocomplete="new-password"
               placeholder="Create password"
               :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && formSubmitCount > 0"
+              :hasError="!!errorMessage && formSubmitCount> 0"
             />
             <!-- Password requirements on a warm porcelain inset panel -->
             <div class="mt-4 p-4 rounded-xl
@@ -90,10 +90,10 @@
               autocomplete="new-password"
               placeholder="Confirm password"
               :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && formSubmitCount > 0"
+              :hasError="!!errorMessage && formSubmitCount> 0"
             />
             <transition name="fade-up">
-              <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+              <div v-if="errorMessage && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
                 <i class="fas fa-exclamation-circle text-xs"></i>
                 <span>{{ errorMessage }}</span>
               </div>
@@ -127,7 +127,7 @@
                 Privacy Policy
               </router-link>
             </FormCheckbox>
-            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>You must accept the terms to continue</span>
             </div>

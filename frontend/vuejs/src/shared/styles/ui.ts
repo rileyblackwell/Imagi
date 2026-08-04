@@ -77,10 +77,15 @@ export const ui = {
   tableHead: 'px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50',
   tableCell: 'px-4 py-3.5 text-sm text-blue-950/80 dark:text-blue-100/80',
 
-  /** Body copy inside a panel, and the muted note under a field. */
+  /**
+   * The type scale inside a panel, top to bottom. Three sizes and two ink
+   * levels cover every label, note and heading in the four workspaces — they
+   * were being written out as utility triples a hundred and sixteen times.
+   */
+  headingText: 'text-lg font-semibold text-blue-950 dark:text-white',
+  panelHeading: 'text-base font-semibold text-blue-950 dark:text-white',
   bodyText: 'text-sm text-blue-950/60 dark:text-blue-100/60',
   hintText: 'text-xs text-blue-950/50 dark:text-blue-100/50',
-  headingText: 'text-lg font-semibold text-blue-950 dark:text-white',
 }
 
 /** Class strings that carry a workspace's identity colour. */

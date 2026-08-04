@@ -162,7 +162,7 @@
                   <div class="flex items-end justify-between gap-3 mb-2">
                     <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
                     <span
-                      v-if="!isLoading && !error && displayedProjects.length > 0"
+                      v-if="!isLoading && !error && displayedProjects.length> 0"
                       class="inline-flex items-center px-2.5 py-1 mb-0.5 rounded-full border border-blue-200/60 dark:border-white/[0.14] bg-white/85 dark:bg-white/[0.04] text-xs font-medium text-blue-950/70 dark:text-blue-100/55 transition-colors duration-300"
                     >
                       {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
@@ -247,7 +247,7 @@
                   </div>
 
                   <!-- No Search Results -->
-                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex-1 flex flex-col items-center justify-center">
+                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length> 0" class="flex-1 flex flex-col items-center justify-center">
                     <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] flex items-center justify-center mb-4">
                       <i class="fas fa-search text-blue-600 dark:text-blue-300 text-lg"></i>
                     </div>

@@ -59,7 +59,7 @@
           : 'Hi {{first_name}}! Our summer sale starts Friday — reply for details.'"
         :class="ui.input"
       ></textarea>
-      <div class="flex items-center justify-between mt-1.5 text-xs text-blue-950/50 dark:text-blue-100/50">
+      <div :class="ui.hintText" class="flex items-center justify-between mt-1.5">
         <span>Personalize with <code class="font-mono">{{ '\{\{first_name\}\}' }}</code>, <code class="font-mono">{{ '\{\{last_name\}\}' }}</code>, <code class="font-mono">{{ '\{\{name\}\}' }}</code></span>
         <span v-if="form.channel === 'sms'">{{ form.body.length }}/1600 · ~{{ segmentCount }} segment{{ segmentCount === 1 ? '' : 's' }}</span>
       </div>
@@ -92,7 +92,7 @@
               {{ tag.tag }} <span class="opacity-60">· {{ tag.count }}</span>
             </button>
           </div>
-          <p v-else class="text-xs text-blue-950/50 dark:text-blue-100/50">
+          <p :class="ui.hintText" v-else>
             No tags yet — add tags to contacts in the Audience tab to segment your sends.
           </p>
         </div>

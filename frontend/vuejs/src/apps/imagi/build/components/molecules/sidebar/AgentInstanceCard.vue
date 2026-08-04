@@ -34,7 +34,7 @@
 
         <!-- One of several parallel takes on the same brief -->
         <span
-          v-if="variantCount && variantCount > 1"
+          v-if="variantCount && variantCount> 1"
           class="agent-card__take"
           :title="`Take ${variantIndex} of ${variantCount} on the same brief`"
         >{{ variantIndex }}/{{ variantCount }}</span>
@@ -59,7 +59,7 @@
         <span>{{ relativeTime(instance.updatedAt) }}</span>
         <!-- Conversation-wide token total; null means never captured, so
              nothing renders (unknown, not "0 tokens") -->
-        <template v-if="typeof instance.totalTokens === 'number' && instance.totalTokens > 0">
+        <template v-if="typeof instance.totalTokens === 'number' && instance.totalTokens> 0">
           <span class="agent-card__dot" aria-hidden="true"></span>
           <span :title="`${instance.totalTokens.toLocaleString()} tokens used`">
             {{ formatTokens(instance.totalTokens) }} tokens

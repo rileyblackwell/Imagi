@@ -37,7 +37,7 @@
               <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">
                 Order #{{ order.id }} · {{ itemsSummary(order) }}
               </p>
-              <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+              <p :class="ui.hintText">
                 {{ order.customer_name || order.customer_email || 'Customer pending' }} · {{ formatDateTime(order.created_at) }}
               </p>
             </div>
@@ -78,7 +78,7 @@
         </div>
       </div>
 
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 text-center pt-2">
+      <p :class="ui.hintText" class="text-center pt-2">
         Showing {{ store.orders.length }} of {{ store.ordersTotal }} order{{ store.ordersTotal === 1 ? '' : 's' }}
       </p>
     </div>

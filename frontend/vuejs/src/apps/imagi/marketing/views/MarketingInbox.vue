@@ -13,10 +13,10 @@
         <i class="fas fa-inbox"></i>
       </div>
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">No conversations yet</h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mb-2">
+      <p :class="ui.bodyText" class="max-w-md mb-2">
         Threads appear here once you message a contact or a customer texts your Twilio number.
       </p>
-      <p v-if="needsWebhookHint" class="text-xs text-blue-950/50 dark:text-blue-100/50 max-w-md mb-6">
+      <p :class="ui.hintText" v-if="needsWebhookHint" class="max-w-md mb-6">
         To receive incoming texts, point your Twilio number's messaging webhook at Imagi — see the Settings tab.
       </p>
       <router-link
@@ -81,7 +81,7 @@
           <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-blue-200/60 dark:border-white/[0.08]">
             <div class="min-w-0">
               <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ thread.contact.display_name }}</p>
-              <p class="text-xs text-blue-950/50 dark:text-blue-100/50 font-mono">{{ thread.contact.phone_number }}</p>
+              <p :class="ui.hintText" class="font-mono">{{ thread.contact.phone_number }}</p>
             </div>
             <StatusBadge :status="thread.contact.consent" />
           </div>
@@ -149,7 +149,7 @@
 
         <div v-else class="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
           <i class="fas fa-comments text-2xl text-blue-950/20 dark:text-blue-100/20 mb-4"></i>
-          <p class="text-sm text-blue-950/60 dark:text-blue-100/60">Select a conversation to read and reply.</p>
+          <p :class="ui.bodyText">Select a conversation to read and reply.</p>
         </div>
       </section>
     </div>

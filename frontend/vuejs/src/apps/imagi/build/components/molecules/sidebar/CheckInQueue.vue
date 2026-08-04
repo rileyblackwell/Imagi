@@ -14,9 +14,9 @@
   is the same agent the user just saw over there, so it should look like it.
 -->
 <template>
-  <div v-if="queue.length > 0" class="mb-1.5">
+  <div v-if="queue.length> 0" class="mb-1.5">
     <!-- Queue depth: only worth showing once something is waiting behind -->
-    <div v-if="queue.length > 1" class="queue-head">
+    <div v-if="queue.length> 1" class="queue-head">
       <span class="queue-head__label">Waiting on you</span>
       <span class="queue-head__count">{{ queue.length }}</span>
       <span class="queue-head__rule"></span>
@@ -27,7 +27,7 @@
     <div
       :class="[
         'queue-stack',
-        queue.length > 1 ? 'is-stacked' : '',
+        queue.length> 1 ? 'is-stacked' : '',
         queue.length > 2 ? 'is-deep' : ''
       ]"
     >
@@ -41,7 +41,7 @@
             <!-- One of several parallel takes on the same brief: say so, or
                  accepting the first one looks like the only option. -->
             <span
-              v-if="siblingCount > 1"
+              v-if="siblingCount> 1"
               class="check-in__take"
               :title="`Take ${siblingIndex} of ${siblingCount} on the same brief`"
             >{{ siblingIndex }}/{{ siblingCount }}</span>
@@ -70,7 +70,7 @@
             {{ current.body }}
           </p>
           <button
-            v-if="current.body && current.body.length > 180"
+            v-if="current.body && current.body.length> 180"
             type="button"
             class="check-in__more"
             @click="expanded = !expanded"

@@ -14,7 +14,7 @@
             autocomplete="username"
             placeholder="Enter your username"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && submitCount > 0"
+            :hasError="!!errorMessage && submitCount> 0"
           />
         </Field>
       </div>
@@ -30,7 +30,7 @@
             autocomplete="current-password"
             placeholder="Enter your password"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && submitCount > 0"
+            :hasError="!!errorMessage && submitCount> 0"
           />
         </Field>
       </div>

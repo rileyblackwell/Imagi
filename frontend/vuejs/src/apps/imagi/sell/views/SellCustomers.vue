@@ -44,7 +44,7 @@
           </div>
           <div class="min-w-0">
             <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ customer.display_name }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 truncate">{{ customer.email }}</p>
+            <p :class="ui.hintText" class="truncate">{{ customer.email }}</p>
           </div>
         </div>
         <div class="flex items-center gap-4 shrink-0 text-right">
@@ -52,7 +52,7 @@
             <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
               {{ formatMoney(customer.total_spent_cents, store.currency) }}
             </p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+            <p :class="ui.hintText">
               {{ customer.orders_count }} order{{ customer.orders_count === 1 ? '' : 's' }}
             </p>
           </div>
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 text-center pt-2">
+      <p :class="ui.hintText" class="text-center pt-2">
         Showing {{ store.customers.length }} of {{ store.customersTotal }} customer{{ store.customersTotal === 1 ? '' : 's' }}
       </p>
     </div>
@@ -167,7 +167,7 @@
               <OrderStatusBadge :status="order.status" />
             </div>
           </div>
-          <p v-else class="text-sm text-blue-950/60 dark:text-blue-100/60 py-2">No orders yet.</p>
+          <p :class="ui.bodyText" v-else class="py-2">No orders yet.</p>
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-1">
