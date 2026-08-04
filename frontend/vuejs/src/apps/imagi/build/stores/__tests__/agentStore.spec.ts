@@ -96,6 +96,52 @@ describe('agent store manager taxonomy', () => {
   })
 })
 
+describe('agent store workingAgentCount', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('counts only the subagents actually running', () => {
+    // The badge on the main thread's Subagents switch. activeAgentInstances
+    // also holds work that has finished and is waiting on you — a different
+    // thing, with its own queue — so counting that list left the badge lit
+    // with a number naming nothing the user could act on from there.
+    const store = useAgentStore()
+    store.instances = [
+      makeInstance({ kind: 'task', reviewStatus: 'active', isProcessing: true }),
+      makeInstance({ kind: 'task', reviewStatus: 'active', isProcessing: true }),
+      makeInstance({ kind: 'task', reviewStatus: 'ready', isProcessing: false }),
+      makeInstance({ kind: 'task', reviewStatus: 'input', isProcessing: false }),
+    ]
+
+    expect(store.activeAgentInstances).toHaveLength(4)
+    expect(store.workingAgentCount).toBe(2)
+  })
+
+  it('is zero when the crew is idle, so the badge draws nothing', () => {
+    const store = useAgentStore()
+    store.instances = [makeInstance({ kind: 'task', reviewStatus: 'ready', isProcessing: false })]
+
+    expect(store.workingAgentCount).toBe(0)
+  })
+
+  it('ignores work that is no longer on the hook', () => {
+    // Archived, accepted and discarded tasks are out of activeAgentInstances
+    // already; a stale isProcessing on one must not leak into the count.
+    const store = useAgentStore()
+    store.instances = [
+      makeInstance({ kind: 'task', reviewStatus: 'accepted', isProcessing: true }),
+      makeInstance({ kind: 'task', reviewStatus: 'active', isProcessing: true, archivedAt: new Date().toISOString() }),
+      // The lead is the chat pane itself, never one of its own subagents.
+      makeInstance({ kind: 'lead', isProcessing: true }),
+    ]
+
+    expect(store.workingAgentCount).toBe(0)
+  })
+})
+
 describe('agent store openSubagent', () => {
   beforeEach(() => {
     localStorage.clear()

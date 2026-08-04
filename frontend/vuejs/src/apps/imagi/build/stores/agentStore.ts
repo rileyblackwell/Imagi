@@ -134,6 +134,17 @@ export const useAgentStore = defineStore('agent', {
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     },
 
+    /** How many subagents are actually working right now — what the main
+     *  thread's Subagents switch badges itself with.
+     *
+     *  Deliberately not activeAgentInstances.length. That list also holds work
+     *  that has finished and is waiting on you, which is a different thing with
+     *  its own queue: counting it left the badge lit with a number that named
+     *  nothing the user could act on from there. */
+    workingAgentCount(): number {
+      return this.activeAgentInstances.filter(i => i.isProcessing).length
+    },
+
     /** Tasks the lead dispatched whose run has not started yet. */
     pendingDispatchInstances(state): AgentInstance[] {
       return state.instances.filter(

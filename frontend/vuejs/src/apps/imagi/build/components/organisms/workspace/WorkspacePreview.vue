@@ -125,10 +125,8 @@
       <!-- Back to the main agent. This pane has no masthead of its own, so the
            workspace's one navigation idiom — a named pill on the right of the
            plate, chevron leading, badged with what is waiting over there —
-           moves onto the toolbar rather than being reinvented here. It appears
-           exactly when the main agent is off-screen (a phone showing the
-           preview, or a desktop with the sidebar collapsed), which is the only
-           time "go back" means anything.
+           moves onto the toolbar rather than being reinvented here. Phones
+           only: see canReturnToChat for why desktop doesn't get one.
 
            There is one destination and it is the main agent: the subagents are
            reached through it, the same as everywhere else in the workspace. -->
@@ -280,10 +278,11 @@ const props = defineProps<{
   /** Pane is hidden/backgrounded: keep the session warm but stop active work. */
   paused?: boolean
   /**
-   * The main agent is off-screen — the sidebar is collapsed, which on a phone
-   * is what "you are on the preview" means and on desktop is what the toggle
-   * did. Offer the way back. When the panes are open there is nothing to
-   * return to: the main agent is already sitting next to this one.
+   * The preview has replaced the panes rather than sitting beside them, and
+   * nothing else on screen brings them back. True only on a phone showing the
+   * preview: desktop collapses the sidebar from the top bar's toggle, which
+   * stays put and is the way back there, so a second control would be a second
+   * way to do one thing.
    */
   canReturnToChat?: boolean
   /** Badge on that return: how much is waiting for you back in the thread. */

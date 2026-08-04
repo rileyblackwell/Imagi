@@ -397,8 +397,12 @@ const paneSwitches = computed(() => [
     id: 'manager',
     icon: 'fas fa-layer-group',
     label: 'Subagents',
-    live: store.activeAgentInstances.some(i => i.isProcessing),
-    count: store.activeAgentInstances.length,
+    // Both read the same number, and that is the point rather than a
+    // duplication: the dot on the icon says something is alive over there and
+    // can be caught without looking, the badge says how much. Working right
+    // now, not how many exist — see workingAgentCount for why.
+    live: store.workingAgentCount > 0,
+    count: store.workingAgentCount,
     direction: 'forward' as const,
   },
   {

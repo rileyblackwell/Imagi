@@ -77,16 +77,16 @@
             <!-- paused mirrors the max-md:invisible class below: on mobile the
                  pane is hidden while the sidebar overlay is open, so frame
                  polling drops to a keep-alive. Desktop never pauses. -->
-            <!-- canReturnToChat is the collapsed state itself: collapsed means
-                 the panes are off-screen — every width, one rule — so the
-                 preview's toolbar carries the way back. With them open there is
-                 nothing to return to; the main agent is already beside it. -->
+            <!-- The way back is a phone-only control. Below md the preview
+                 replaces the panes and the top bar's sidebar toggle is hidden,
+                 so the toolbar's pill is the only way back; on desktop that
+                 toggle is right there and owns the job. -->
             <WorkspacePreview
               v-if="projectId"
               ref="previewRef"
               :project-id="projectId"
               :paused="isMobile && !isSidebarCollapsed"
-              :can-return-to-chat="isSidebarCollapsed"
+              :can-return-to-chat="isMobile && isSidebarCollapsed"
               :return-count="store.checkIns.length"
               class="flex-1 min-h-0"
               :class="isSidebarCollapsed ? '' : 'max-md:invisible'"

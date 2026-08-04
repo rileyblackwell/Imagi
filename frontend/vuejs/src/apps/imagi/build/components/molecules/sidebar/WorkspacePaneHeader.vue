@@ -134,7 +134,9 @@ withDefaults(
       label: string
       /** A run is live over there — the switch icon carries a pulse */
       live?: boolean
-      /** Badge: how much is waiting in the destination pane */
+      /** Badge: how much is going on in the destination pane. Each caller picks
+       *  what it counts, but it must always be something you'd act on — 0 is
+       *  "nothing over there" and draws nothing. */
       count?: number
       /** 'back' puts the chevron in front; anything else points forward */
       direction?: 'forward' | 'back'
