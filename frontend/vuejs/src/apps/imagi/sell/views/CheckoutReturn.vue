@@ -7,7 +7,7 @@
   Cancel route:  /checkout/:projectId/cancel
 -->
 <template>
-  <div class="min-h-screen flex items-center justify-center px-6 bg-[linear-gradient(180deg,#fdf9f2_0%,#faf7f1_60%,#ffffff_100%)] dark:bg-[linear-gradient(180deg,#0c0c0e_0%,#0a0b0f_60%,#0a0a0a_100%)] transition-colors duration-500">
+  <div class="min-h-screen flex items-center justify-center px-6 page-canvas">
     <div class="w-full max-w-md p-8 text-center crisp-card rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14]">
       <!-- Canceled -->
       <template v-if="canceled">

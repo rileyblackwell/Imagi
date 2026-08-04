@@ -9,7 +9,7 @@
 -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="marketing-canvas relative transition-colors duration-500 min-h-screen overflow-hidden">
+    <div class="page-canvas relative min-h-screen overflow-hidden">
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
         <div class="max-w-6xl mx-auto w-full">
 
@@ -192,18 +192,7 @@ onMounted(loadProject)
 watch(() => props.projectName, loadProject)
 </script>
 
-<style scoped>
-/* Warm porcelain canvas fading to the footer's exact background (white /
-   #0a0a0a) so the page hands off seamlessly — same recipe as Home. */
-.marketing-canvas {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 60%, #ffffff 100%);
-}
 
-:root.dark .marketing-canvas,
-.dark .marketing-canvas {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 60%, #0a0a0a 100%);
-}
-</style>
 
 <!-- Unscoped so the crisp-card treatment reaches the tab views rendered in
      the child router-view. Matches the definition used on Home/hub cards. -->

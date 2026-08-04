@@ -192,6 +192,36 @@
   }
 }
 
+/* --- Page canvas ---------------------------------------------------------
+   One continuous warm-porcelain wash, ending on the exact colour the footer
+   paints, so a long page hands off to it seamlessly. Eight page roots had this
+   written out — three as Tailwind arbitrary values, five as scoped CSS — and
+   the midpoint had drifted between 45% and 60%. */
+
+.page-canvas {
+  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 50%, #ffffff 100%);
+  transition: background 0.5s ease;
+}
+
+.dark .page-canvas {
+  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
+}
+
+/* --- Selection -----------------------------------------------------------
+   Brand-tinted text selection for the signed-in app. Four page roots carried
+   an identical copy. The editorial pages keep their own warmer selection (see
+   editorial.css), which is why this opts in rather than landing on :root. */
+
+.brand-selection ::selection {
+  background: rgba(158, 205, 243, 0.55);
+  color: #172554;
+}
+
+.dark .brand-selection ::selection {
+  background: rgba(96, 165, 250, 0.4);
+  color: #eff6ff;
+}
+
 /* --- Grain ---------------------------------------------------------------
    Fine film grain over large flat washes, so they read as paper rather than
    dead pixels — and so soft radial gradients do not band. Sits in an

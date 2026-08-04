@@ -10,7 +10,7 @@
 -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fdf9f2_0%,#faf7f1_60%,#ffffff_100%)] dark:bg-[linear-gradient(180deg,#0c0c0e_0%,#0a0b0f_60%,#0a0a0a_100%)] transition-colors duration-500">
+    <div class="relative min-h-screen overflow-hidden page-canvas">
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
         <div class="max-w-6xl mx-auto w-full">
 

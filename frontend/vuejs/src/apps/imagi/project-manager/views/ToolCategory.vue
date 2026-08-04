@@ -10,7 +10,7 @@
 -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="tool-page crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
+    <div class="tool-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
       <!-- Grain texture over the porcelain canvas -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
@@ -123,27 +123,7 @@ const tool = computed(() => getToolBySlug(props.category))
 const accent = computed(() => accentClasses[tool.value?.accent ?? 'blue'])
 </script>
 
-<style scoped>
-/* Warm porcelain canvas fading to white so the page hands off to the footer
-   (footer is bg-white / dark #0a0a0a) — matches Home.vue */
-.tool-page {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
-}
 
-.dark .tool-page {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
-}
-</style>
 
 <!-- Unscoped: brand-tinted text selection on the tool page -->
-<style>
-.tool-page ::selection {
-  background: rgba(158, 205, 243, 0.55);
-  color: #172554;
-}
 
-.dark .tool-page ::selection {
-  background: rgba(96, 165, 250, 0.4);
-  color: #eff6ff;
-}
-</style>
