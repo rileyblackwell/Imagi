@@ -1,74 +1,70 @@
-<!-- Key Features Section (Step 2 - Run) - warm porcelain editorial design -->
+<!--
+  Step 02 — Run.
+
+  The mirror of step 01, plus two real crops of the run-half tooling so the
+  claim that these are actual workspaces (and not a roadmap) is visible rather
+  than asserted.
+-->
 <template>
-  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 transition-colors duration-500">
+  <section class="relative py-20 md:py-28">
+    <div class="section-shell">
+      <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
 
-    <!-- Cool baby-blue wash behind the section -->
-    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-      <div class="section-wash-cool absolute -top-24 right-[-15%] w-[760px] h-[560px]"></div>
-    </div>
-
-    <div class="relative max-w-6xl mx-auto">
-
-      <!-- Hairline divider -->
-      <div class="section-divider mb-20 md:mb-24" aria-hidden="true"></div>
-
-      <!-- Editorial header: headline left, supporting copy right -->
-      <div v-reveal class="md:flex md:items-end md:justify-between gap-12 mb-14 md:mb-16">
+      <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
         <div class="max-w-xl">
-          <StepBadge number="02" label="Run" tone="orange" class="mb-6" />
-          <h2 class="font-display text-4xl sm:text-5xl md:text-[3.4rem] font-semibold text-blue-950 dark:text-white tracking-[-0.015em] leading-[1.08] text-balance transition-colors duration-300">
-            Run your <em class="section-accent-warm not-italic">business</em>
+          <p class="eyebrow">
+            <span class="eyebrow__num">02</span>
+            <span class="eyebrow__rule" aria-hidden="true"></span>
+            <span>Run</span>
+          </p>
+          <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
+            Run the business
           </h2>
         </div>
-        <p class="mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty transition-colors duration-300">
-          Once your app is live, grow it with built-in tools for marketing, sales, and finance&mdash;all in one place.
+        <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
+          Once the app is live, the rest of the business lives in the same project &mdash;
+          reaching customers, taking payments, and keeping track of the money.
         </p>
       </div>
 
-      <!-- Features grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="rule-cols mt-14 md:mt-16">
         <div
           v-for="(feature, index) in features"
-          :key="index"
-          v-reveal="{ delay: 90 + index * 90 }"
-          class="lift-card group relative h-full p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] border backdrop-blur-sm transition-all duration-300"
-          :class="index % 2 === 1 ? 'border-blue-200/70 dark:border-blue-300/[0.14]' : 'border-orange-200/70 dark:border-orange-300/[0.14]'"
+          :key="feature.title"
+          v-reveal="{ delay: 80 + index * 80 }"
+          class="rule-col"
         >
-          <!-- Icon -->
-          <div
-            class="icon-tile relative flex items-center justify-center w-12 h-12 rounded-xl mb-6 ring-1 transition-all duration-300"
-            :class="index % 2 === 1 ? 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-blue-900/[0.08] dark:ring-blue-300/[0.18]' : 'bg-orange-100 dark:bg-orange-400/[0.14] ring-orange-900/[0.08] dark:ring-orange-300/[0.18]'"
-          >
-            <HomeCardIcon :name="feature.icon" :class="index % 2 === 1 ? 'text-blue-600 dark:text-blue-300' : 'text-orange-600 dark:text-orange-300'" />
-          </div>
+          <HomeCardIcon :name="feature.icon" class="rule-col__icon" />
+          <h3 class="rule-col__title">{{ feature.title }}</h3>
+          <p class="rule-col__body">{{ feature.description }}</p>
 
-          <!-- Title -->
-          <h3 class="relative text-xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300 mb-3">
-            {{ feature.title }}
-          </h3>
-
-          <!-- Description -->
-          <p class="relative text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty transition-colors duration-300 mb-6">
-            {{ feature.description }}
-          </p>
-
-          <!-- Highlights checklist -->
-          <ul class="relative space-y-2.5 pt-5 border-t border-blue-950/[0.06] dark:border-white/[0.07]">
-            <li
-              v-for="(highlight, hIndex) in feature.highlights"
-              :key="hIndex"
-              class="flex items-center gap-2.5"
-            >
-              <span
-                class="flex-shrink-0 w-[18px] h-[18px] rounded-full ring-1 flex items-center justify-center transition-all duration-300"
-                :class="index % 2 === 1 ? 'bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-blue-200/80 dark:ring-blue-300/[0.18]' : 'bg-orange-100 dark:bg-orange-400/[0.14] ring-orange-200/80 dark:ring-orange-300/[0.18]'"
-              >
-                <i class="fas fa-check text-[9px]" :class="index % 2 === 1 ? 'text-blue-600 dark:text-blue-300' : 'text-orange-600 dark:text-orange-300'"></i>
-              </span>
-              <span class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-relaxed transition-colors duration-300">{{ highlight }}</span>
+          <ul class="checklist">
+            <li v-for="highlight in feature.highlights" :key="highlight">
+              <span class="checklist__tick" aria-hidden="true"></span>
+              <span>{{ highlight }}</span>
             </li>
           </ul>
         </div>
+      </div>
+
+      <!-- Two crops of the real tooling: payments and campaigns -->
+      <div v-reveal="{ delay: 120 }" class="shot-pair mt-16 md:mt-20">
+        <ProductShot
+          src="/product/run-sell.webp"
+          alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
+          :width="1800"
+          :height="420"
+          label="imagi — sell"
+          caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
+        />
+        <ProductShot
+          src="/product/run-marketing.webp"
+          alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
+          :width="1800"
+          :height="420"
+          label="imagi — marketing"
+          caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
+        />
       </div>
     </div>
   </section>
@@ -77,11 +73,11 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
-import { StepBadge, HomeCardIcon } from '@/apps/home/components/atoms'
+import { HomeCardIcon, ProductShot } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'KeyFeaturesSection',
-  components: { StepBadge, HomeCardIcon },
+  components: { HomeCardIcon, ProductShot },
   directives: { reveal },
   props: {
     features: {
@@ -89,33 +85,21 @@ export default defineComponent({
       default: () => [
         {
           title: 'Marketing',
-          description: 'Reach customers and grow your audience. Launch campaigns, build a presence, and drive traffic to your app—no marketing team required.',
+          description: 'Reach customers and grow an audience — campaigns, contacts, ad accounts and a shared inbox for the replies.',
           icon: 'marketing',
-          highlights: [
-            'Email & social campaigns',
-            'Landing pages & SEO',
-            'Audience insights'
-          ]
+          highlights: ['Text and voice campaigns', 'Google and Meta ads', 'Contacts and inbox']
         },
         {
-          title: 'Sales',
-          description: 'Turn visitors into paying customers. Manage leads, track your pipeline, and close deals with tools built right into your business.',
+          title: 'Sell',
+          description: 'Turn visitors into paying customers with products, checkout links and orders wired into the app you just built.',
           icon: 'sales',
-          highlights: [
-            'Lead & contact management',
-            'Pipeline tracking',
-            'Payments & checkout'
-          ]
+          highlights: ['Products and checkout links', 'Orders and customers', 'Paid through your Stripe']
         },
         {
-          title: 'Finance',
-          description: 'Stay on top of the numbers. Track revenue and expenses, send invoices, and understand the health of your business at a glance.',
+          title: 'Operate',
+          description: 'Stay on top of the numbers — invoices out, income and expenses tracked, and the work that keeps it running.',
           icon: 'finance',
-          highlights: [
-            'Revenue & expense tracking',
-            'Invoicing & billing',
-            'Financial dashboards'
-          ]
+          highlights: ['Invoicing and billing', 'Income and expenses', 'Operational tasks']
         }
       ]
     }
@@ -124,81 +108,96 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Hairline gradient divider that fades at the edges */
-.section-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(23, 37, 84, 0.12), transparent);
+.rule-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.75rem;
 }
 
-.dark .section-divider {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+/* Columns stretch to a common height and the checklist is pushed to the
+   bottom, so the hairline above it lands on the same baseline in all three
+   regardless of how long each description runs. */
+.rule-col {
+  display: flex;
+  flex-direction: column;
 }
 
-/* Soft cool wash */
-.section-wash-cool {
-  background: radial-gradient(closest-side, rgba(158, 205, 243, 0.2), rgba(158, 205, 243, 0.06) 55%, transparent 75%);
-  filter: blur(48px);
+.rule-col .checklist {
+  margin-top: auto;
 }
 
-.dark .section-wash-cool {
-  background: radial-gradient(closest-side, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.02) 55%, transparent 75%);
+@media (min-width: 768px) {
+  .rule-cols {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .rule-col {
+    padding: 0 2rem 0 0;
+  }
+
+  .rule-col + .rule-col {
+    padding-left: 2rem;
+    border-left: 1px solid var(--rule);
+  }
 }
 
-/* Italic serif accent in warm ink */
-.section-accent-warm {
-  font-style: italic;
-  font-variation-settings: 'SOFT' 30, 'WONK' 1;
-  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  padding-right: 0.05em;
+/* Size comes from HomeCardIcon's own scoped rule — only the ink is ours. */
+.rule-col__icon {
+  color: var(--accent);
 }
 
-.dark .section-accent-warm {
-  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
+.rule-col__title {
+  margin-top: 1.1rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
-/* Cards that lift gently on hover */
-.lift-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+.rule-col__body {
+  margin-top: 0.65rem;
+  /* Floor for the gap the checklist's `margin-top: auto` would otherwise
+     collapse to in the tallest column. */
+  margin-bottom: 1.4rem;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ink-55);
+  text-wrap: pretty;
 }
 
-.lift-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.04),
-    0 2px 4px rgba(15, 23, 42, 0.06),
-    0 10px 20px -4px rgba(15, 23, 42, 0.1),
-    0 24px 44px -12px rgba(15, 23, 42, 0.14);
+.checklist {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  gap: 0.65rem;
 }
 
-.dark .lift-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+.checklist li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-70);
 }
 
-.dark .lift-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 12px 24px -4px rgba(0, 0, 0, 0.5),
-    0 28px 48px -12px rgba(0, 0, 0, 0.6);
+.checklist__tick {
+  flex: none;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translateY(-0.15em);
 }
 
-/* Icon tile nudge on card hover */
-.lift-card:hover .icon-tile {
-  transform: scale(1.06) rotate(-3deg);
+/* Stacked, not side by side: these crops are 1800px of dense UI, and at half
+   the measure their tab labels stop being readable — which defeats the point
+   of showing them at all. */
+.shot-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
 }
 </style>

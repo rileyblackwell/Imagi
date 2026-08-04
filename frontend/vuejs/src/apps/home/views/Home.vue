@@ -1,34 +1,29 @@
-<!-- Home landing page - warm porcelain editorial design -->
+<!--
+  Home landing page.
+
+  Design direction: "quiet paper, loud product". The page itself is deliberately
+  plain — one flat paper tone, one ink, one accent, hairline rules instead of
+  cards — so the thing that carries the visual weight is the product itself:
+  real screenshots of the build workspace and the project hub, shot from the
+  running app and framed in a minimal window chrome.
+
+  The palette lives here as custom properties. Custom properties inherit through
+  the DOM regardless of style scoping, so every section below reads the same
+  tokens without importing anything.
+-->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="home-page relative min-h-screen overflow-hidden font-body transition-colors duration-500">
+    <div class="home-page relative min-h-screen font-body">
 
-      <!-- Grain texture over the whole canvas -->
+      <!-- Whisper of grain: keeps the flat paper from reading as dead pixels -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
-      <!-- Main Content -->
       <main class="relative z-10">
-        <!-- Hero Section -->
         <HeroSection />
-
-        <!-- Stats Section -->
         <StatsSection />
-
-        <!-- Features Section -->
         <FeaturesSection />
-
-        <!-- Key Features Section -->
         <KeyFeaturesSection />
-
-        <!-- CTA Section -->
-        <CTASection
-          title="Start your business today"
-          description="Build your web app with AI, then run it with tools for marketing, sales, and finance. Everything you need to launch and grow, in one place."
-          primaryButtonText="Get Started"
-          primaryButtonTo="/imagi/projects"
-          :showSecondaryButton="false"
-          footnote="Start for free. Upgrade anytime as you grow."
-        />
+        <CTASection />
       </main>
     </div>
   </DefaultLayout>
@@ -70,41 +65,25 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* One continuous warm-porcelain canvas; sections paint soft washes on top.
-   The gradient ends on the footer's exact background so the page hands off
-   seamlessly (footer is bg-white / dark #0a0a0a). */
 .home-page {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
+  background: var(--paper);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-:root.dark .home-page,
-.dark .home-page {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
-}
-
-/* Fine film grain keeps large soft gradients from banding and adds texture */
+/* Fine film grain — the one piece of texture the design keeps */
 .grain-overlay {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
   background-size: 160px 160px;
-  opacity: 0.035;
+  opacity: 0.028;
   mix-blend-mode: multiply;
 }
 
 :root.dark .grain-overlay,
 .dark .grain-overlay {
-  opacity: 0.05;
+  opacity: 0.045;
   mix-blend-mode: overlay;
-}
-
-.home-page :deep(h1),
-.home-page :deep(h2),
-.home-page :deep(h3) {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
 }
 
 /* Refined minimal scrollbar */
@@ -134,21 +113,48 @@ export default defineComponent({
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Smooth scroll behavior */
 :deep(html) {
   scroll-behavior: smooth;
 }
 </style>
 
-<!-- Unscoped: shared motion + selection styles used across home sections -->
+<!-- Unscoped: design tokens + motion, shared by every section below -->
 <style>
+.home-page {
+  /* Paper and ink. One accent, used sparingly — everything else is ink at a
+     lower opacity, which is what keeps the page from looking decorated. */
+  --paper: #fbfaf7;
+  --paper-raised: #ffffff;
+  --ink: #131a2c;
+  --ink-70: rgba(19, 26, 44, 0.72);
+  --ink-55: rgba(19, 26, 44, 0.58);
+  --ink-40: rgba(19, 26, 44, 0.42);
+  --rule: rgba(19, 26, 44, 0.11);
+  --rule-strong: rgba(19, 26, 44, 0.18);
+  --accent: #c2410c;
+  --accent-soft: rgba(194, 65, 12, 0.1);
+}
+
+.dark .home-page {
+  --paper: #08080a;
+  --paper-raised: rgba(255, 255, 255, 0.035);
+  --ink: #f6f4f0;
+  --ink-70: rgba(246, 244, 240, 0.7);
+  --ink-55: rgba(246, 244, 240, 0.56);
+  --ink-40: rgba(246, 244, 240, 0.4);
+  --rule: rgba(255, 255, 255, 0.1);
+  --rule-strong: rgba(255, 255, 255, 0.18);
+  --accent: #fbbf24;
+  --accent-soft: rgba(251, 191, 36, 0.12);
+}
+
 /* Scroll reveal (classes applied by the v-reveal directive) */
 .reveal-init {
   opacity: 0;
-  transform: translateY(26px);
+  transform: translateY(20px);
   transition:
-    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity, transform;
 }
 
@@ -165,14 +171,139 @@ export default defineComponent({
   }
 }
 
-/* Brand-tinted text selection on the landing page */
 .home-page ::selection {
-  background: rgba(158, 205, 243, 0.55);
-  color: #172554;
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
-.dark .home-page ::selection {
-  background: rgba(96, 165, 250, 0.4);
-  color: #eff6ff;
+/* --- Shared primitives ------------------------------------------------- */
+
+/* Section shell: one measure, one rhythm, everywhere. */
+.home-page .section-shell {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .home-page .section-shell {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Full-bleed hairline that opens each section */
+.home-page .section-rule {
+  height: 1px;
+  background: var(--rule);
+}
+
+/* Editorial eyebrow: numeral, hairline, tracked label */
+.home-page .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.home-page .eyebrow__num {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.home-page .eyebrow__rule {
+  width: 1.75rem;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+/* Accent diamond — the closing section's one warm mark, standing in for the
+   step numeral the numbered sections carry. */
+.home-page .eyebrow__mark {
+  width: 0.3rem;
+  height: 0.3rem;
+  transform: rotate(45deg);
+  background: var(--accent);
+}
+
+/* Headline scale — Fraunces, tight, balanced */
+.home-page .display {
+  font-family: 'Fraunces', Georgia, Cambria, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.home-page .lede {
+  color: var(--ink-55);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+/* --- Buttons ------------------------------------------------------------
+   Shared by the hero and the closing CTA so the page's two asks look like
+   one. Flat ink, no layered shadow — the drop-shadowed pill read as a glossy
+   chip against paper and fought the hairline-and-ink language everywhere
+   else. */
+
+.home-page .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.home-page .btn-primary:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.home-page .btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-70);
+  border-radius: 0.25rem;
+  transition: color 0.18s ease;
+}
+
+.home-page .btn-quiet:hover {
+  color: var(--ink);
+}
+
+.home-page .btn-quiet span {
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: 2px;
+  transition: border-color 0.18s ease;
+}
+
+.home-page .btn-quiet:hover span {
+  border-bottom-color: var(--accent);
+}
+
+.home-page .btn-primary:focus-visible,
+.home-page .btn-quiet:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 </style>
