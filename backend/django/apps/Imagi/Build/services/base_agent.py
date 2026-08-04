@@ -74,8 +74,8 @@ RUN_HEARTBEAT_INTERVAL = 60
 HISTORY_MAX_CHARS = 60_000
 COMPACTED_SNIPPET_CHARS = 120
 
-# How many file paths a capped run's note lists before summarizing the rest.
-CAPPED_NOTE_MAX_FILES = 12
+# How many pages a capped run's note names before summarizing the rest.
+CAPPED_NOTE_MAX_PAGES = 6
 
 # Model used to auto-name a conversation from its opening exchange. Always the
 # smallest suite tier (Luna) so naming a thread costs the least usage possible —
@@ -455,28 +455,72 @@ def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
     return payload
 
 
+def _page_name(path: str) -> str:
+    """The user-facing name of the page a file belongs to, if it is one.
+
+    'frontend/vuejs/src/apps/home/views/ContactUsView.vue' → 'Contact Us'.
+    Anything that is not a page view — a route table, a model, config — has no
+    name the user would recognize, so it returns ''.
+    """
+    normalized = path.replace('\\', '/')
+    if '/views/' not in normalized or not normalized.endswith('.vue'):
+        return ''
+    stem = normalized.rsplit('/', 1)[-1][: -len('.vue')]
+    for suffix in ('View', 'Page'):
+        if stem.endswith(suffix) and len(stem) > len(suffix):
+            stem = stem[: -len(suffix)]
+    words = re.findall(r'[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+', stem)
+    return ' '.join(words) if words else stem
+
+
+def _join_names(names: List[str]) -> str:
+    """'Home', 'About', 'Contact' → 'Home, About and Contact'."""
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
 def _capped_run_note(files_changed: List[str]) -> str:
     """The message a capped run leaves in its thread.
 
     A build stopped at its cap is the normal way a time-bounded first build
     ends, so the note reports what landed rather than only that a limit was
-    hit — that text is what the user reads in the subagent's thread.
+    hit — that text is what the user reads in the subagent's thread, and it
+    reaches the main thread as well when the task queues for review. The reader
+    is the founder, not an engineer, so it names the pages they will recognize
+    and never the files underneath them.
     """
     if not files_changed:
         return (
             "I ran out of build time before I could change anything. Tell me "
             "what you'd like me to focus on and I'll get straight to it."
         )
-    shown = files_changed[:CAPPED_NOTE_MAX_FILES]
-    listed = "\n".join(f"- {path}" for path in shown)
-    remaining = len(files_changed) - len(shown)
+    pages: List[str] = []
+    groundwork = False
+    for path in files_changed:
+        name = _page_name(path)
+        if not name:
+            groundwork = True
+        elif name not in pages:
+            pages.append(name)
+
+    opening = "I reached this build's time limit and stopped cleanly."
+    if not pages:
+        return (
+            f"{opening} I got the groundwork of your app in place, but didn't "
+            "get as far as finishing a page. Tell me what you'd like me to "
+            "start with next."
+        )
+    shown = pages[:CAPPED_NOTE_MAX_PAGES]
+    remaining = len(pages) - len(shown)
+    listed = _join_names(shown)
     if remaining > 0:
-        listed += f"\n- …and {remaining} more file{'s' if remaining > 1 else ''}"
-    return (
-        "I reached this build's time limit and stopped cleanly. Here's what "
-        f"I built:\n\n{listed}\n\n"
-        "Tell me what you'd like to refine or add next."
-    )
+        listed += f", and {remaining} more"
+    plural = len(shown) > 1 or remaining > 0
+    built = f"So far your {listed} page{'s are' if plural else ' is'} built"
+    if groundwork:
+        built += ", along with the setup that holds them together"
+    return f"{opening} {built}. Tell me what you'd like to refine or add next."
 
 
 def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
