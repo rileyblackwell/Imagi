@@ -1161,8 +1161,9 @@ class MessagePreviewTests(SimpleTestCase):
         self.assertEqual(preview, 'Done Added the /contact route.')
 
     def test_caps_the_length(self):
+        from apps.Imagi.Build.api.views import PREVIEW_LIMIT
         preview = self._preview('word ' * 400)
-        self.assertLessEqual(len(preview), 240)
+        self.assertLessEqual(len(preview), PREVIEW_LIMIT)
 
     def test_empty_message_previews_as_empty(self):
         self.assertEqual(self._preview(''), '')
@@ -1187,6 +1188,17 @@ class ConversationBriefTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         return resp.json()['brief']
 
+    def test_the_leads_goal_is_what_the_user_reads(self):
+        # The whole point of the field: the brief may be an engineer's ticket
+        # naming files, and the card must never show that when a goal exists.
+        task = self._task(
+            goal='Adding a contact page so customers can reach you.',
+            queued_prompt='Create apps/contact/views/ContactView.vue with a form',
+        )
+        self.assertEqual(
+            self._brief(task), 'Adding a contact page so customers can reach you.'
+        )
+
     def test_brief_comes_from_the_queued_prompt_before_the_run_fires(self):
         task = self._task(queued_prompt='Add a contact page so customers can reach you.')
         self.assertEqual(
@@ -1210,8 +1222,9 @@ class ConversationBriefTests(TestCase):
         )
 
     def test_brief_is_trimmed_to_a_status_line(self):
+        from apps.Imagi.Build.api.views import BRIEF_LIMIT
         task = self._task(queued_prompt='Goal: ' + 'x' * 400)
-        self.assertLessEqual(len(self._brief(task)), 160)
+        self.assertLessEqual(len(self._brief(task)), BRIEF_LIMIT)
 
     def test_chat_threads_have_no_brief(self):
         # An ordinary thread's opening message is the user talking, which is

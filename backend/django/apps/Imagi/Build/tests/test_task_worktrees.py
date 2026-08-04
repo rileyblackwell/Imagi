@@ -31,6 +31,7 @@ from apps.Imagi.Build.models import (
 )
 from apps.Imagi.Build.services.base_agent import AgentContext, ImagiAgentService
 from apps.Imagi.Build.services.tools import (
+    DISPATCH_GOAL_MAX_CHARS,
     _get_project,
     dispatch_task_impl,
     edit_file_impl,
@@ -1242,6 +1243,37 @@ class DispatchTaskToolTests(TestCase):
     def test_empty_description_is_rejected(self):
         with self.assertRaises(ValueError):
             dispatch_task_impl(self._context(self.lead), '   ')
+
+    def test_dispatch_persists_the_user_facing_goal(self):
+        # The brief is a ticket for the subagent; the goal is the same job in
+        # the user's language, and it is what their card in the main thread
+        # shows for as long as the task exists.
+        dispatch_task_impl(
+            self._context(self.lead),
+            'Create frontend/vuejs/src/apps/pricing/views/PricingView.vue with three tiers',
+            goal='Adding a pricing page with three plans customers can compare.',
+        )
+
+        task = AgentConversation.objects.get(kind='task')
+        self.assertEqual(
+            task.goal, 'Adding a pricing page with three plans customers can compare.'
+        )
+
+    def test_goal_is_flattened_and_capped(self):
+        dispatch_task_impl(
+            self._context(self.lead), 'Build it',
+            goal='Adding a page.\n\nWith  extra   room. ' + 'x' * 400,
+        )
+
+        goal = AgentConversation.objects.get(kind='task').goal
+        self.assertLessEqual(len(goal), DISPATCH_GOAL_MAX_CHARS)
+        self.assertTrue(goal.startswith('Adding a page. With extra room.'))
+
+    def test_dispatch_without_a_goal_still_works(self):
+        # Optional to call, never optional to have: the card falls back to the
+        # brief rather than the dispatch failing.
+        dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
+        self.assertEqual(AgentConversation.objects.get(kind='task').goal, '')
 
 
 class CheckInEndpointTests(TestCase):

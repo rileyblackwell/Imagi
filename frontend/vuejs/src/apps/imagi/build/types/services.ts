@@ -180,6 +180,8 @@ export interface DispatchedTaskDto {
   conversation_id: number;
   title: string;
   brief: string;
+  /** The same job in the user's language, for the main thread's card */
+  goal: string;
   variant_group: string;
   parent: number;
   model_name: string;
@@ -209,7 +211,8 @@ export interface ConversationDto {
   created_at: string;
   updated_at: string;
   last_message_preview: string;
-  /** What a task was asked to do, trimmed to a line. Empty for other kinds. */
+  /** What a task was asked to do, in the user's language (the lead's goal, or
+   *  a trimmed brief for a task without one). Empty for other kinds. */
   brief?: string;
   /** True while a run is active server-side (staleness-guarded to 10 min) */
   is_running: boolean;
@@ -243,8 +246,8 @@ export interface AgentInstance {
   archivedAt: string | null;
   updatedAt: string;
   lastMessagePreview: string;
-  /** A task's brief in one line — what it is working on, for the dispatch
-   *  card in the main thread while the run is still live. */
+  /** What this task was asked to do, in the user's language — the dispatch
+   *  card in the main thread shows it for the whole life of the task. */
   brief: string;
   messagesLoaded: boolean;
   /** Client-only: a run finished while this instance was not active */

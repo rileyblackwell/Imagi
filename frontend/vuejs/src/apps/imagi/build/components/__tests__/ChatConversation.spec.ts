@@ -108,67 +108,77 @@ describe('ChatConversation dispatch card', () => {
     return mount(ChatConversation, { props: { messages: [user('hi'), reply] } })
   }
 
+  const JOB = 'Adding a contact page so customers can get in touch with you.'
+  const SUMMARY =
+    'Your site now has a contact page. Visitors can send you a message without '
+    + 'leaving the site, and it checks the address before sending so you get '
+    + 'fewer dead replies.'
+
   it('says what it is working on while it works', () => {
     const wrapper = withSubagent({
       isProcessing: true,
-      brief: 'Add a contact page so customers can get in touch.',
+      brief: JOB,
       lastMessagePreview: 'Reading the router…',
     })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--working')
-    expect(card.text()).toContain('Contact page')
     expect(card.text()).toContain('Working on this now…')
-    expect(card.text()).toContain('Add a contact page so customers can get in touch.')
-    // Mid-run chatter is not what it is working on; the card reports the job,
-    // not the keystrokes.
+    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    // Nothing has come back yet, so there is no result half at all — and
+    // mid-run chatter is not a result.
+    expect(card.find('.dispatch-card__result').exists()).toBe(false)
     expect(card.text()).not.toContain('Reading the router…')
   })
 
   it('says what a dispatched task will work on before its run fires', () => {
-    const wrapper = withSubagent({
-      reviewStatus: 'active',
-      brief: 'Add a contact page so customers can get in touch.',
-    })
+    const wrapper = withSubagent({ reviewStatus: 'active', brief: JOB })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Starting…')
-    expect(card.text()).toContain('Add a contact page so customers can get in touch.')
+    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
   })
 
-  it('reports the subagent complete, with what it did', () => {
-    // The completion says two things: that the subagent is done, and — in its
-    // own words — what it built. "Added to your app" told the user where the
-    // work went but never what it was. The brief the working card was showing
-    // is replaced by the result: the same line, now reporting the outcome.
+  it('keeps the job on screen and adds what it did once complete', () => {
+    // "Complete" is only meaningful beside what was asked, so the finished
+    // card carries both: the job it was given, then the changes it made.
     const wrapper = withSubagent({
       reviewStatus: 'accepted',
-      brief: 'Add a contact page so customers can get in touch.',
-      lastMessagePreview:
-        'Your site now has a contact page. Visitors can send you a message '
-        + 'without leaving the site, and it turns away obviously bad addresses '
-        + 'before sending.',
+      brief: JOB,
+      lastMessagePreview: SUMMARY,
     })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--done')
-    expect(card.text()).toContain('Contact page')
     expect(card.text()).toContain('Subagent complete')
-    expect(card.text()).toContain('Your site now has a contact page.')
-    expect(card.text()).not.toContain('Add a contact page so customers can get in touch.')
+    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.find('.dispatch-card__result').text()).toBe(SUMMARY)
   })
 
-  it('falls back to the brief when a finished task left no summary', () => {
-    // A run that died before its sign-off still has to say what it was for —
-    // a green "complete" over an empty line tells the user nothing.
+  it('renders the whole description rather than clipping it', () => {
+    // The complaint this card exists to answer: on a phone the job was cut to
+    // one line and ellipsised. Nothing may clamp, truncate, or nowrap it.
+    const wrapper = withSubagent({ isProcessing: true, brief: JOB })
+
+    const task = wrapper.find('.dispatch-card__task')
+    expect(task.text()).toBe(JOB)
+    expect(task.text()).not.toContain('…')
+    expect(task.classes()).not.toContain('truncate')
+    expect(task.attributes('style') || '').not.toContain('nowrap')
+  })
+
+  it('still names the job when a finished task left no summary', () => {
+    // A run that died before its sign-off has no result half — but a green
+    // "complete" over an empty card would say nothing at all.
     const wrapper = withSubagent({
       reviewStatus: 'accepted',
-      brief: 'Add a contact page so customers can get in touch.',
+      brief: JOB,
       lastMessagePreview: '',
     })
 
-    expect(wrapper.find('.dispatch-card').text())
-      .toContain('Add a contact page so customers can get in touch.')
+    const card = wrapper.find('.dispatch-card')
+    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.find('.dispatch-card__result').exists()).toBe(false)
   })
 
   it('describes the work on a completion that still wants a review', () => {
@@ -176,12 +186,14 @@ describe('ChatConversation dispatch card', () => {
     // finished, so it reports the same way — plus the pending decision.
     const wrapper = withSubagent({
       reviewStatus: 'ready',
+      brief: JOB,
       lastMessagePreview: 'Built two takes on the pricing table.',
     })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Subagent complete — waiting on you')
-    expect(card.text()).toContain('Built two takes on the pricing table.')
+    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.find('.dispatch-card__result').text()).toBe('Built two takes on the pricing table.')
   })
 
   it('surfaces a subagent that is blocked on a question', () => {
@@ -190,13 +202,15 @@ describe('ChatConversation dispatch card', () => {
     // acted on.
     const wrapper = withSubagent({
       reviewStatus: 'input',
+      brief: JOB,
       lastMessagePreview: 'Should the form email you or open a ticket?',
     })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--asking')
     expect(card.text()).toContain('Needs an answer from you')
-    expect(card.text()).toContain('Should the form email you or open a ticket?')
+    expect(card.find('.dispatch-card__result').text())
+      .toBe('Should the form email you or open a ticket?')
   })
 
   it('falls back to starting when the store has no instance yet', () => {

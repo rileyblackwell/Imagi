@@ -158,6 +158,12 @@ class AgentConversation(models.Model):
     # dispatch_task tool, cleared when the run actually starts). Persisted so
     # a dispatch survives a reload between creation and the run firing.
     queued_prompt = models.TextField(blank=True, default='')
+    # What this task will do for the user, in their own language — written by
+    # the lead at dispatch, separately from the brief. The brief is a ticket
+    # for an engineer and reads like one; this is the sentence or two the main
+    # thread's card shows a business owner while the work runs, and keeps
+    # showing afterwards as what the subagent was asked for.
+    goal = models.TextField(blank=True, default='')
     archived_at = models.DateTimeField(null=True, blank=True)
     # Set when an agent run starts, cleared when it ends. Readers must treat
     # old timestamps as "not running" (staleness guard) because a crashed
