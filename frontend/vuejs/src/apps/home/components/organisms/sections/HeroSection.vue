@@ -1,16 +1,16 @@
 <!--
-  Hero — copy block, then the product.
+  Hero — the page's opening statement.
 
-  Built from the same parts as every section below it: the eyebrow, the
-  headline-left / supporting-copy-right header, and a closing hairline. It
-  differs only in scale, which is what makes it read as the top of one page
-  rather than a differently-designed lid on it.
+  Copy only. The build workspace screenshot used to sit here, but it belongs
+  with step 01 ("Build your web app"), which is what it actually illustrates —
+  so the hero is now a plain statement and the product appears where the page
+  starts explaining it.
 
-  Deliberately no coloured word in the headline and no drop-shadowed pill —
-  both fought the flat ink-and-hairline language of the rest of the page.
+  Built from the same parts as every section below it: the eyebrow and the
+  headline-left / supporting-copy-right header, differing only in scale.
 -->
 <template>
-  <section class="relative pt-32 sm:pt-40 md:pt-44 pb-10 md:pb-14">
+  <section class="relative pt-32 sm:pt-40 md:pt-44 pb-20 md:pb-28">
     <div class="section-shell">
 
       <!-- Header: the section pattern, one size up -->
@@ -49,27 +49,6 @@
         </button>
       </div>
 
-      <!-- Closing hairline: hands the eye down to the product, and starts the
-           rule-per-section rhythm the rest of the page keeps up. -->
-      <div class="hero-item section-rule mt-14 md:mt-16" style="animation-delay: 260ms" aria-hidden="true"></div>
-    </div>
-
-    <!-- Product shot: breaks out past the text measure, the one wide moment -->
-    <div class="hero-item hero-stage mt-14 md:mt-16" style="animation-delay: 320ms">
-      <div class="hero-stage__inner">
-        <ProductShot
-          src="/product/build-workspace.webp"
-          alt="The Imagi build workspace: a conversation with the agent on the left, and on the right the live stock-tracking app it wrote — a portfolio snapshot with AAPL and TSLA prices and AI-written summaries."
-          :width="2400"
-          :height="1500"
-          label="imagi — build workspace"
-          eager
-        />
-      </div>
-      <p class="hero-stage__caption section-shell">
-        A real project mid-conversation: &ldquo;Ticker Insights&rdquo;, a stock tracker with
-        AI-written summaries, built from a description and running live beside the chat.
-      </p>
     </div>
   </section>
 </template>
@@ -77,11 +56,9 @@
 <script>
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/shared/stores/auth'
-import { ProductShot } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'HeroSection',
-  components: { ProductShot },
   setup() {
     const authStore = useAuthStore()
 
@@ -124,26 +101,4 @@ export default defineComponent({
   }
 }
 
-/* The shot sits in a wider measure than the copy — up to 80rem against the
-   copy's 68rem — so it reads as a stage the page opens onto. */
-.hero-stage__inner {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .hero-stage__inner {
-    padding: 0 2rem;
-  }
-}
-
-.hero-stage__caption {
-  margin-top: 1.25rem;
-  max-width: 34rem;
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--ink-40);
-  text-wrap: pretty;
-}
 </style>

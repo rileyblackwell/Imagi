@@ -120,7 +120,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Spec row — hairline-divided, spec-sheet cadence. No card, no shadow. */
+/* Only the spec row is local — the ruled columns below it come from
+   .rule-cols in shared/styles/editorial.css. */
 .spec-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -175,50 +176,6 @@ export default defineComponent({
   margin-top: 0.9rem;
   font-size: 0.875rem;
   line-height: 1.6;
-  color: var(--ink-55);
-  text-wrap: pretty;
-}
-
-/* Ruled columns — the page's replacement for bordered feature cards */
-.rule-cols {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.5rem;
-}
-
-@media (min-width: 768px) {
-  .rule-cols {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-  }
-
-  .rule-col {
-    padding: 0 2rem 0 0;
-  }
-
-  .rule-col + .rule-col {
-    padding-left: 2rem;
-    border-left: 1px solid var(--rule);
-  }
-}
-
-/* Size comes from HomeCardIcon's own scoped rule — only the ink is ours. */
-.rule-col__icon {
-  color: var(--accent);
-}
-
-.rule-col__title {
-  margin-top: 1.1rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.rule-col__body {
-  margin-top: 0.65rem;
-  font-size: 0.9375rem;
-  line-height: 1.65;
   color: var(--ink-55);
   text-wrap: pretty;
 }

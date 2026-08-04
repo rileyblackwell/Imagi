@@ -1,0 +1,521 @@
+/*
+ * Editorial surface — the design system for Imagi's public pages.
+ *
+ * Paper and ink, one accent, hairline rules. Everything a visitor sees before
+ * signing in shares this: home, about, pricing, docs, legal, auth, payment
+ * results.
+ *
+ * Deliberately scoped to `.editorial` rather than `:root`. The signed-in app
+ * is a dark, dense tool UI with its own language, and these tokens would leak
+ * straight into it otherwise. A public page opts in by putting `editorial` on
+ * its root element.
+ */
+
+.editorial {
+  /* Paper and ink. One accent, used sparingly — everything else is ink at a
+     lower opacity, which is what keeps a page from looking decorated. */
+  --paper: #fbfaf7;
+  --paper-raised: #ffffff;
+  --ink: #131a2c;
+  --ink-70: rgba(19, 26, 44, 0.72);
+  --ink-55: rgba(19, 26, 44, 0.58);
+  --ink-40: rgba(19, 26, 44, 0.42);
+  --rule: rgba(19, 26, 44, 0.11);
+  --rule-strong: rgba(19, 26, 44, 0.18);
+  --accent: #c2410c;
+  --accent-soft: rgba(194, 65, 12, 0.1);
+
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.dark .editorial {
+  --paper: #08080a;
+  --paper-raised: rgba(255, 255, 255, 0.035);
+  --ink: #f6f4f0;
+  --ink-70: rgba(246, 244, 240, 0.7);
+  --ink-55: rgba(246, 244, 240, 0.56);
+  --ink-40: rgba(246, 244, 240, 0.4);
+  --rule: rgba(255, 255, 255, 0.1);
+  --rule-strong: rgba(255, 255, 255, 0.18);
+  --accent: #fbbf24;
+  --accent-soft: rgba(251, 191, 36, 0.12);
+}
+
+.editorial ::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* Fine film grain — the one piece of texture the system keeps. Stops large
+   flat areas of paper from reading as dead pixels. Sits in an absolutely
+   positioned child so it never intercepts pointer events. */
+.editorial .grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.028;
+  mix-blend-mode: multiply;
+}
+
+.dark .editorial .grain-overlay {
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+}
+
+/* Refined minimal scrollbar */
+.editorial ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.editorial ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editorial ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.editorial ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark .editorial ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dark .editorial ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Structure ---------------------------------------------------------- */
+
+/* One measure, one rhythm, on every page. */
+.editorial .section-shell {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .editorial .section-shell {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Narrower measure for pages that are mostly prose — legal, docs. Long-form
+   reading wants ~70 characters, not the 68rem the marketing grid uses. */
+.editorial .prose-shell {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .editorial .prose-shell {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* The hairline that opens each section */
+.editorial .section-rule {
+  height: 1px;
+  background: var(--rule);
+}
+
+.editorial .section-rule--strong {
+  background: var(--rule-strong);
+}
+
+/* --- Type --------------------------------------------------------------- */
+
+/* Editorial eyebrow: optional numeral or mark, hairline, tracked label */
+.editorial .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.editorial .eyebrow__num {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.editorial .eyebrow__rule {
+  width: 1.75rem;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+/* Accent diamond — a section's one warm mark, standing in for the step
+   numeral the numbered sections carry. */
+.editorial .eyebrow__mark {
+  width: 0.3rem;
+  height: 0.3rem;
+  transform: rotate(45deg);
+  background: var(--accent);
+}
+
+/* Headline scale — Fraunces, tight, balanced */
+.editorial .display {
+  font-family: 'Fraunces', Georgia, Cambria, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.editorial .lede {
+  color: var(--ink-55);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+/* --- Long-form prose ----------------------------------------------------
+   Legal and docs pages are mostly running text. Styling the elements once
+   here means those pages carry almost no CSS of their own. */
+
+.editorial .prose > * + * {
+  margin-top: 1.15rem;
+}
+
+.editorial .prose h2 {
+  font-family: 'Fraunces', Georgia, Cambria, 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: 1.6rem;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.editorial .prose h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-top: 2rem;
+}
+
+.editorial .prose p,
+.editorial .prose li {
+  color: var(--ink-55);
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+.editorial .prose strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.editorial .prose a {
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: 1px;
+  transition: border-color 0.18s ease;
+}
+
+.editorial .prose a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.editorial .prose ul {
+  display: grid;
+  gap: 0.65rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.editorial .prose ul li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.editorial .prose ul li::before {
+  content: '';
+  flex: none;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translateY(-0.15em);
+}
+
+/* --- Ruled columns ------------------------------------------------------
+   The page's replacement for bordered feature cards: hairline-divided
+   columns that stretch to a common height. */
+
+.editorial .rule-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.75rem;
+}
+
+.editorial .rule-col {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .editorial .rule-cols {
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 0;
+    /* Rows still need air when a grid wraps onto a second line. */
+    row-gap: 3rem;
+    align-items: stretch;
+  }
+
+  .editorial .rule-cols--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Every column carries its own left rule, and the first column of each row
+     drops it. Using `+ .rule-col` instead would put a divider and an indent on
+     the left-hand item of every wrapped row, which is wrong whenever there are
+     more items than columns. */
+  .editorial .rule-col {
+    padding: 0 2rem;
+    border-left: 1px solid var(--rule);
+  }
+
+  .editorial .rule-cols > .rule-col:nth-child(3n + 1) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .editorial .rule-cols--2 > .rule-col:nth-child(3n + 1) {
+    padding-left: 2rem;
+    border-left: 1px solid var(--rule);
+  }
+
+  .editorial .rule-cols--2 > .rule-col:nth-child(2n + 1) {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Size comes from HomeCardIcon's own rule — only the ink is ours. */
+.editorial .rule-col__icon {
+  color: var(--accent);
+}
+
+.editorial .rule-col__title {
+  margin-top: 1.1rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.editorial .rule-col__body {
+  margin-top: 0.65rem;
+  /* Floor for the gap a checklist's `margin-top: auto` would otherwise
+     collapse to in the tallest column. */
+  margin-bottom: 1.4rem;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ink-55);
+  text-wrap: pretty;
+}
+
+/* Checklist that sits flush to the bottom of its column, so the hairline
+   above it lands on the same baseline across the row. */
+.editorial .checklist {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  gap: 0.65rem;
+  list-style: none;
+  padding-left: 0;
+}
+
+.editorial .checklist li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-70);
+}
+
+.editorial .checklist__tick {
+  flex: none;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translateY(-0.15em);
+}
+
+/* --- Buttons ------------------------------------------------------------
+   Flat ink, no layered shadow — a drop-shadowed pill reads as a glossy chip
+   against paper and fights the hairline-and-ink language everywhere else. */
+
+.editorial .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.editorial .btn-primary:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.editorial .btn-primary:disabled,
+.editorial .btn-primary[aria-disabled='true'] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.editorial .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.editorial .btn-outline:hover {
+  border-color: var(--ink);
+}
+
+.editorial .btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-70);
+  border-radius: 0.25rem;
+  transition: color 0.18s ease;
+}
+
+.editorial .btn-quiet:hover {
+  color: var(--ink);
+}
+
+.editorial .btn-quiet span {
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: 2px;
+  transition: border-color 0.18s ease;
+}
+
+.editorial .btn-quiet:hover span {
+  border-bottom-color: var(--accent);
+}
+
+.editorial .btn-primary:focus-visible,
+.editorial .btn-outline:focus-visible,
+.editorial .btn-quiet:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* --- Forms --------------------------------------------------------------
+   Auth pages. Hairline underline rather than a boxed input, matching the
+   rules that structure everything else. */
+
+.editorial .field {
+  display: block;
+}
+
+.editorial .field__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+  margin-bottom: 0.6rem;
+}
+
+.editorial .field__input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 0.6rem 0;
+  font-size: 1rem;
+  color: var(--ink);
+  transition: border-color 0.18s ease;
+}
+
+.editorial .field__input::placeholder {
+  color: var(--ink-40);
+}
+
+.editorial .field__input:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.editorial .field__error {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--accent);
+}
+
+/* --- Motion -------------------------------------------------------------
+   Scroll reveal. Classes are applied by the v-reveal directive; these live
+   unscoped because the directive adds them at runtime. */
+
+.reveal-init {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-init.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

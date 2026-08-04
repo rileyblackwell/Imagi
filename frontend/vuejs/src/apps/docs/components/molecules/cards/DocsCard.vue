@@ -1,13 +1,11 @@
+<!--
+  A ruled column, not a card. Sits inside a `.rule-cols` grid on the docs
+  pages so a row of these reads as one divided band.
+-->
 <template>
-  <div class="crisp-card group relative h-full p-8 rounded-2xl border border-blue-200/70 dark:border-blue-300/[0.14] bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm transition-all duration-300">
-    <h3
-      v-if="title"
-      class="text-xl font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300"
-    >
-      {{ title }}
-    </h3>
-
-    <div class="text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty transition-colors duration-300">
+  <div class="rule-col">
+    <h3 v-if="title" class="rule-col__title !mt-0">{{ title }}</h3>
+    <div class="rule-col__body !mb-0">
       <slot></slot>
     </div>
   </div>
@@ -15,6 +13,6 @@
 
 <script setup lang="ts">
 defineProps<{
-  title?: string;
-}>();
+  title?: string
+}>()
 </script>
