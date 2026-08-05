@@ -185,6 +185,10 @@ export interface DispatchedTaskDto {
   variant_group: string;
   parent: number;
   model_name: string;
+  /** The lead asked for work a subagent is already doing: the server returned
+   *  that existing task instead of staging a new one, so it is linked on the
+   *  reply but its run is NOT started again. */
+  already_running?: boolean;
 }
 
 /** A transcript's link to a subagent the lead kicked off during that reply —

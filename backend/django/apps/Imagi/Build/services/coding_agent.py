@@ -211,7 +211,8 @@ LEAD_WORKING_STYLE = """Working style (triage every message in one pass, then ac
 - A REPLY is anything you can answer yourself — a question about the app or how something works, a clarification, a decision, or ordinary conversation. Answer it directly and stop. Use your read tools (get_project_tree, glob_files, grep_files, read_file) to look at the project whenever that helps you answer accurately. Reading is for replies.
 - A JOB is any request to build, change, fix, style, restructure, or add something to the app — "improve the home page", "add a contact form", "fix the nav on mobile", down to a one-line copy or color tweak. You never do this work yourself and have no tools to; every job, large or small, goes to a background subagent that builds it in an isolated copy of the project, in parallel, while this thread stays free for the user.
 - For a job, dispatch FIRST: make the dispatch_task call your very first action, before reading any files or writing any prose. The subagent is a full coding agent that finds the relevant files itself, so do NOT explore the project to "scope" the work — pre-reading only delays the subagent and ties up this thread. The one exception is genuine ambiguity about WHAT the user wants (not merely where the code lives): then ask one quick clarifying question instead of dispatching.
-- Write each brief like a ticket for an engineer who has not read this conversation: the goal, what "done" looks like, and any specifics the user gave. Name files or pages only if the user named them or you already know them — never go read the project just to fill this in. When the user asks for several independent things, dispatch one task for each in the same turn; use drafts=2 or 3 only when they want variants of one thing to compare.
+- ONE job, ONE dispatch_task call, ONE subagent. A request like "redesign my home page" is one job: put the whole of it in a single brief. Never split one job across two subagents by section, layer, or step, never dispatch a second subagent to help the first, and never repeat a call you have already made — subagents each edit their own copy of the project and merge it back, so two on one job silently overwrite each other. Only a message asking for several genuinely separate things (a different page, an unrelated fix) is more than one call, and then it is one call per thing in the same turn. drafts=2 or 3 is only for a user who explicitly asked for alternatives to compare; wanting something designed or redesigned is not that ask.
+- Write each brief like a ticket for an engineer who has not read this conversation: the goal, what "done" looks like, and any specifics the user gave. Name files or pages only if the user named them or you already know them — never go read the project just to fill this in.
 - Every dispatch also needs a goal: the same job in one or two plain sentences for the USER, describing what this will do for their app rather than how it will be done, and naming no files, folders, components, or libraries. This is what they watch on a card in this thread while the subagent runs, and what stays there afterwards as the job it was given, so it has to make sense to someone who has never opened the code. Never skip it.
 - After the dispatch call, keep this thread clean: reply with ONE short sentence confirming what you kicked off (e.g. "On it — kicking off a subagent to redesign your home page.") and end your turn. Do not restate the brief, list steps, or describe what the subagent will do — the workspace shows a link to the subagent's thread where the user can watch the work happen.
 - Subagents apply their own work: when one finishes, its changes go straight into the project and come back here as a "done" notification for the user; a subagent only interrupts to ask a question. Never wait or poll for them, and never claim work is finished or describe changes you have not seen."""
@@ -378,7 +379,15 @@ def create_coding_agent(
             instructions += "\n" + WEB_SEARCH_INSTRUCTIONS
         return instructions + "\n\n" + identity
 
-    model_settings = build_model_settings(effort)
+    # The lead's tool calls have side effects it cannot see until they return:
+    # one dispatch_task call creates a subagent that starts editing the project.
+    # Left parallel, a single assistant message can carry the same dispatch
+    # twice — two subagents on one job, each overwriting the other's merge — so
+    # the lead calls its tools one at a time and sees each result before the
+    # next. Builders are unaffected: their parallel reads and edits are wanted.
+    model_settings = build_model_settings(
+        effort, parallel_tool_calls=False if kind == 'lead' else None
+    )
     if model_settings is not None:
         kwargs['model_settings'] = model_settings
     return Agent(

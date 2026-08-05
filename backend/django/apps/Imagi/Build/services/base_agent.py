@@ -258,22 +258,36 @@ def make_run_bounds_hook(
     return _RunBoundsHook()
 
 
-def build_model_settings(reasoning_effort: Optional[str] = None):
+def build_model_settings(
+    reasoning_effort: Optional[str] = None,
+    parallel_tool_calls: Optional[bool] = None,
+):
     """
     Build ModelSettings for an agent, applying a reasoning effort level when one
     is provided (and supported by the installed SDK).
+
+    parallel_tool_calls=False makes the model emit one tool call per turn, so a
+    tool with side effects the model cannot see until it returns (dispatch_task
+    creating a subagent) cannot be fired twice in the same message.
 
     Returns None when ModelSettings is unavailable, so callers can omit the
     argument entirely and fall back to SDK defaults.
     """
     if ModelSettings is None:
         return None
+    kwargs = {}
+    if parallel_tool_calls is not None:
+        kwargs['parallel_tool_calls'] = parallel_tool_calls
     if reasoning_effort and Reasoning is not None:
         try:
-            return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))
+            return ModelSettings(reasoning=Reasoning(effort=reasoning_effort), **kwargs)
         except Exception as e:  # pragma: no cover - defensive
             logger.warning(f"Could not apply reasoning effort '{reasoning_effort}': {e}")
-    return ModelSettings()
+    try:
+        return ModelSettings(**kwargs)
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning(f"Could not apply model settings {kwargs}: {e}")
+        return ModelSettings()
 
 
 def compact_history(messages: List[Dict[str, str]], max_chars: int = HISTORY_MAX_CHARS) -> List[Dict[str, str]]:

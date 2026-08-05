@@ -229,3 +229,68 @@ describe('agent store deleteInstance', () => {
     expect(store.instances.map(i => i.id)).toEqual([lead.id, task.id])
   })
 })
+
+describe('agent store startDispatchedTasks', () => {
+  // The lead's dispatch payload is what starts a subagent's run, and it can
+  // arrive more than once for one task (mid-stream event, then the terminal
+  // payload's backstop). One job gets one run.
+  function dispatched(conversationId: number, overrides = {}) {
+    return {
+      conversation_id: conversationId,
+      title: 'Redesign the home page',
+      brief: 'Redesign the home page with a real hero and testimonials.',
+      goal: 'Giving your home page a clearer opening.',
+      variant_group: '',
+      parent: 1,
+      model_name: 'gpt-5.6-terra',
+      ...overrides,
+    }
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('adopts a dispatched task and starts its run once', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+
+    store.startDispatchedTasks([dispatched(9001)])
+    await Promise.resolve()
+
+    const adopted = store.instances.find(i => i.conversationId === 9001)
+    expect(adopted?.kind).toBe('task')
+    expect(runs).toHaveBeenCalledTimes(1)
+    expect(runs.mock.calls[0]![0]).toBe(adopted!.id)
+  })
+
+  it('never starts a second run for a task it already fired', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+
+    store.startDispatchedTasks([dispatched(9002)])
+    store.startDispatchedTasks([dispatched(9002)])
+    await Promise.resolve()
+
+    expect(store.instances.filter(i => i.conversationId === 9002)).toHaveLength(1)
+    expect(runs).toHaveBeenCalledTimes(1)
+  })
+
+  it('links a task the server says is already running without re-running it', async () => {
+    // The lead asked twice for one job: the server hands back the subagent
+    // already doing it, so the reply links to it and nothing restarts.
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+
+    store.startDispatchedTasks([dispatched(9003, { already_running: true })])
+    await Promise.resolve()
+
+    expect(store.instances.find(i => i.conversationId === 9003)).toBeTruthy()
+    expect(runs).not.toHaveBeenCalled()
+  })
+})
