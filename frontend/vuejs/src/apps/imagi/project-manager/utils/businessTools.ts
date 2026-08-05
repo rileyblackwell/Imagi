@@ -43,6 +43,13 @@ export interface BusinessTool {
   description: string
   /** Font Awesome icon class, e.g. "fa-wand-magic-sparkles". */
   icon: string
+  /**
+   * The thin-stroke mark the hub draws, keyed to shared LineIcon's set. These
+   * are the same marks the home page uses to describe the same four modules, so
+   * a visitor meets Sell as the handshake on the way in and finds the handshake
+   * again on the hub.
+   */
+  lineIcon: string
   accent: ToolAccent
   status: ToolStatus
   /**
@@ -69,6 +76,7 @@ export const businessTools: BusinessTool[] = [
     description:
       'Design and build your web application with AI agents. Describe what you want in plain language and Imagi generates the pages, styling, and logic for your product.',
     icon: 'fa-wand-magic-sparkles',
+    lineIcon: 'design',
     accent: 'blue',
     status: 'available',
     routeName: 'builder-workspace',
@@ -86,6 +94,7 @@ export const businessTools: BusinessTool[] = [
     description:
       'Everything you need to sell your product or service — storefronts, checkout, orders, and customer relationships, all connected to the app you build.',
     icon: 'fa-hand-holding-dollar',
+    lineIcon: 'sales',
     accent: 'emerald',
     status: 'available',
     routeName: 'sell-overview',
@@ -103,6 +112,7 @@ export const businessTools: BusinessTool[] = [
     description:
       'Reach and engage your customers over text and voice, powered by Twilio — send campaigns, hold two-way conversations, and track delivery in one workspace.',
     icon: 'fa-bullhorn',
+    lineIcon: 'marketing',
     accent: 'violet',
     status: 'available',
     routeName: 'marketing-overview',
@@ -120,6 +130,7 @@ export const businessTools: BusinessTool[] = [
     description:
       'Manage the day-to-day of your business — finance, invoicing, and operations — with dashboards that give you a clear view of how things are going.',
     icon: 'fa-briefcase',
+    lineIcon: 'finance',
     accent: 'amber',
     status: 'available',
     routeName: 'operate-dashboard',

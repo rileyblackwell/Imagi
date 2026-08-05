@@ -1,14 +1,21 @@
 /*
- * Editorial surface — the design system for Imagi's public pages.
+ * Editorial surface — the design system for Imagi's site pages.
  *
  * Paper and ink, one accent, hairline rules. Everything a visitor sees before
  * signing in shares this: home, about, pricing, docs, legal, auth, payment
  * results.
  *
- * Deliberately scoped to `.editorial` rather than `:root`. The signed-in app
- * is a dark, dense tool UI with its own language, and these tokens would leak
- * straight into it otherwise. A public page opts in by putting `editorial` on
- * its root element.
+ * The two pages that sit between the site and the tool wear it too: the
+ * projects list and a project's hub. Both are framed by the site's navbar and
+ * footer, both are reached straight from the home page's "Start building", and
+ * a visitor crosses into them without ever leaving the marketing surface — so
+ * they read as the last two site pages rather than the first two app screens.
+ * The workspaces they open into are where the tool UI starts.
+ *
+ * Deliberately scoped to `.editorial` rather than `:root`. Those workspaces are
+ * a dark, dense tool UI with their own language, and these tokens would leak
+ * straight into them otherwise. A page opts in by putting `editorial` on its
+ * root element.
  */
 
 .editorial {
@@ -371,9 +378,46 @@
     padding-left: 0;
     border-left: 0;
   }
+
+  /* Four columns wrap to a 2x2 at this width, so the reset lands on every
+     odd item — same correction the two-column variant makes. */
+  .editorial .rule-cols--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .editorial .rule-cols--4 > .rule-col:nth-child(3n + 1) {
+    padding-left: 2rem;
+    border-left: 1px solid var(--rule);
+  }
+
+  .editorial .rule-cols--4 > .rule-col:nth-child(2n + 1) {
+    padding-left: 0;
+    border-left: 0;
+  }
 }
 
-/* Size comes from HomeCardIcon's own rule — only the ink is ours. */
+/* Four across only once there is room for four readable measures. */
+@media (min-width: 1024px) {
+  .editorial .rule-cols--4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Slightly tighter gutters than the three-column default: four measures on
+     the same 68rem shell have less room to give away. */
+  .editorial .rule-cols--4 > .rule-col,
+  .editorial .rule-cols--4 > .rule-col:nth-child(2n + 1) {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+    border-left: 1px solid var(--rule);
+  }
+
+  .editorial .rule-cols--4 > .rule-col:nth-child(4n + 1) {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Size comes from LineIcon's own rule — only the ink is ours. */
 .editorial .rule-col__icon {
   color: var(--accent);
 }
@@ -525,6 +569,23 @@
   text-transform: uppercase;
   color: var(--ink-40);
   margin-bottom: 0.6rem;
+}
+
+/* A note under a label, explaining what the field is for. Quieter than the
+   copy around it — it is instruction, not content. */
+.editorial .field__hint {
+  margin: -0.2rem 0 0.7rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--ink-40);
+}
+
+/* A field the form will happily accept empty. Reads as part of the label. */
+.editorial .field__optional {
+  margin-left: 0.6rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  color: var(--accent);
 }
 
 .editorial .field__input {

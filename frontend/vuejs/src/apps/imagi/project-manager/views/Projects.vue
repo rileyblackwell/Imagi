@@ -1,14 +1,19 @@
 <!--
-  Projects.vue - Project Management Interface
-  
+  Projects.vue — the projects list.
+
   This component is responsible for:
   1. Creating new projects
   2. Deleting existing projects
   3. Listing all user projects
-  4. Navigating to the workspace for editing
-  
+  4. Navigating to the project hub
+
   It should NOT be responsible for:
-  - Project file editing (handled by Workspace.vue)
+  - Project file editing (handled by the build workspace)
+
+  Design: the editorial surface the rest of the site wears — paper and ink,
+  hairline rules, one accent. The page is a header and two ruled columns:
+  starting a business on the left, the ones you already have on the right.
+  Everything visual comes from shared/styles/editorial.css.
 -->
 <template>
   <div>
@@ -19,281 +24,263 @@
       @confirm="confirmModal.handleConfirm"
       @cancel="confirmModal.handleCancel"
     />
-    
+
     <DefaultLayout>
-    <div class="projects-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
-      <!-- Grain texture over the porcelain canvas -->
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+      <div class="editorial projects-page relative min-h-screen font-body">
+        <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
-      <!-- Atmosphere: one soft apricot wash behind the header -->
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div class="page-glow-warm absolute -top-40 left-1/2 -translate-x-1/2 w-[760px] h-[440px]"></div>
-      </div>
+        <main class="relative z-10">
 
-      <!-- Main Content (pt-20 clears the fixed h-14 navbar) -->
-      <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-8 min-h-screen">
-        <!-- Compact Hero -->
-        <section class="rise-item flex-shrink-0 max-w-6xl mx-auto w-full text-center mb-6 md:mb-8" style="animation-delay: 0ms">
-          <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-4 transition-colors duration-300">Workspace</p>
-          <h1 class="font-display text-4xl sm:text-5xl font-semibold text-blue-950 dark:text-white mb-3 tracking-[-0.02em] leading-[1.05] text-balance transition-colors duration-300">
-            Your <em class="accent-ink not-italic">Projects</em>
-          </h1>
-          <p class="text-base sm:text-lg text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">
-            Start a new business or keep building and running an existing one.
-          </p>
-        </section>
-
-        <!-- Authentication Error -->
-        <div v-if="showAuthError" class="rise-item flex-1 flex items-center justify-center" style="animation-delay: 90ms">
-          <div class="max-w-2xl mx-auto w-full">
-            <div class="crisp-card relative p-10 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] text-center transition-colors duration-300">
-              <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.14] rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-lock text-2xl text-blue-700 dark:text-blue-300"></i>
-              </div>
-              <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Authentication Required</h2>
-              <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
-              <router-link
-                to="/auth/signin"
-                class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-ring"
-              >
-                <i class="fas fa-sign-in-alt"></i>
-                <span>Log In</span>
-              </router-link>
-            </div>
-          </div>
-        </div>
-
-        <!-- Main 2-column layout -->
-        <div v-else class="flex-1 min-h-0 max-w-6xl mx-auto w-full">
-          <div class="h-full grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            <!-- Section A: Create a Project -->
-            <section class="rise-item min-h-0" style="animation-delay: 90ms">
-              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] transition-colors duration-300 flex flex-col">
-
-                <!-- Section header -->
-                <div class="mb-5 flex-shrink-0">
-                  <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
-                  <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
-                  <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">Start a new business — describe it, and Imagi builds the first version of your app.</p>
+          <!-- Opening statement -->
+          <section class="relative pt-32 sm:pt-40 md:pt-44 pb-4">
+            <div class="section-shell">
+              <div class="md:flex md:items-end md:justify-between gap-12 lg:gap-16">
+                <div class="rise-item max-w-[36rem]">
+                  <p class="eyebrow">
+                    <span class="eyebrow__rule" aria-hidden="true"></span>
+                    <span>Your workspace</span>
+                  </p>
+                  <h1 class="display mt-7 text-[2.75rem] sm:text-6xl md:text-[3.9rem]">
+                    Projects
+                  </h1>
                 </div>
+                <p class="rise-item lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg" style="animation-delay: 90ms">
+                  Every business you run on Imagi lives in a project &mdash; its app and the tools
+                  behind it. Start a new one, or pick up where you left off.
+                </p>
+              </div>
+            </div>
+          </section>
 
-                <!-- Create Form -->
-                <div class="flex-1 flex flex-col space-y-4 min-h-0">
-                  <!-- Business Name Input -->
-                  <div class="flex-shrink-0">
-                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 transition-colors duration-300">Business Name</label>
-                    <input
-                      v-model="newProjectName"
-                      type="text"
-                      placeholder="Enter your business name..."
-                      class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      :class="fieldShell"
-                      :disabled="isCreating"
-                    >
-                  </div>
+          <!-- Signed out -->
+          <section v-if="showAuthError" class="relative py-20 md:py-28">
+            <div class="section-shell">
+              <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
+              <div class="rise-item max-w-xl" style="animation-delay: 90ms">
+                <p class="eyebrow">
+                  <span class="eyebrow__mark" aria-hidden="true"></span>
+                  <span class="eyebrow__rule" aria-hidden="true"></span>
+                  <span>Signed out</span>
+                </p>
+                <h2 class="display mt-6 text-4xl sm:text-5xl">Sign in to see your projects</h2>
+                <p class="lede mt-6 text-lg">
+                  Your projects are tied to your account. Sign in to open them, or to start a new one.
+                </p>
+                <router-link to="/auth/signin" class="btn-primary group mt-9">
+                  <span>Sign in</span>
+                  <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </router-link>
+              </div>
+            </div>
+          </section>
 
-                  <!-- Business Description Input -->
-                  <div class="flex-1 flex flex-col min-h-0">
-                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-1 flex-shrink-0 transition-colors duration-300">
-                      Business Description
-                    </label>
-                    <p class="text-xs text-blue-950/70 dark:text-blue-100/55 mb-2 flex-shrink-0 transition-colors duration-300">
-                      Imagi's AI uses this to build the first version of your app.
-                    </p>
-                    <textarea
-                      v-model="newProjectDescription"
-                      placeholder="What does your business do? Who are its customers? What does the market look like, and how will you sell?"
-                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-colors duration-200 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      :class="fieldShell"
-                      :disabled="isCreating"
-                    ></textarea>
-                  </div>
+          <!-- Start one / continue one -->
+          <section v-else class="relative pt-16 md:pt-20 pb-20 md:pb-28">
+            <div class="section-shell">
+              <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
 
-                  <!-- Design & Style Input (optional) -->
-                  <div class="flex-shrink-0">
-                    <label class="flex items-center gap-2 text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-1 transition-colors duration-300">
-                      Design &amp; Style
-                      <span class="inline-flex items-center px-2 py-0.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.12em]">Optional</span>
-                    </label>
-                    <p class="text-xs text-blue-950/70 dark:text-blue-100/55 mb-2 transition-colors duration-300">
-                      Any look and feel you want — colors, mood, references. Leave blank and Imagi picks a design that fits your business.
-                    </p>
-                    <textarea
-                      v-model="newProjectDesign"
-                      rows="2"
-                      placeholder="e.g. Warm and minimal, earthy palette, lots of whitespace — like a modern coffee brand."
-                      class="w-full min-h-[56px] px-4 py-3 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-colors duration-200 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      :class="fieldShell"
-                      :disabled="isCreating"
-                    ></textarea>
-                  </div>
+              <div class="rule-cols rule-cols--2">
 
-                  <!-- Create Button -->
-                  <div class="flex-shrink-0 pt-1">
+                <!-- 01 — Create -->
+                <div class="rule-col rise-item" style="animation-delay: 90ms">
+                  <p class="eyebrow">
+                    <span class="eyebrow__num">01</span>
+                    <span class="eyebrow__rule" aria-hidden="true"></span>
+                    <span>New business</span>
+                  </p>
+                  <h2 class="display mt-6 text-3xl sm:text-4xl">Start a project</h2>
+                  <p class="lede mt-5">
+                    Describe the business. Imagi's agent writes the first version of its web app
+                    from what you say here, so the more it knows the closer the first draft lands.
+                  </p>
+
+                  <form class="mt-10 grid gap-8" @submit.prevent="createProject">
+                    <div class="field">
+                      <label class="field__label" for="project-name">Business name</label>
+                      <input
+                        id="project-name"
+                        v-model="newProjectName"
+                        type="text"
+                        class="field__input disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="Ticker Insights"
+                        :disabled="isCreating"
+                      >
+                    </div>
+
+                    <div class="field">
+                      <label class="field__label" for="project-description">What the business does</label>
+                      <p class="field__hint">
+                        What it sells, who its customers are, and how it reaches them.
+                      </p>
+                      <textarea
+                        id="project-description"
+                        v-model="newProjectDescription"
+                        rows="5"
+                        class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="A stock tracker for retail investors — portfolio snapshots with AI-written summaries, sold as a monthly subscription."
+                        :disabled="isCreating"
+                      ></textarea>
+                    </div>
+
+                    <div class="field">
+                      <label class="field__label" for="project-design">
+                        Design direction
+                        <span class="field__optional">Optional</span>
+                      </label>
+                      <p class="field__hint">
+                        Colours, mood, references. Leave it blank and Imagi picks a look that fits.
+                      </p>
+                      <textarea
+                        id="project-design"
+                        v-model="newProjectDesign"
+                        rows="2"
+                        class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="Warm and minimal, earthy palette, lots of whitespace."
+                        :disabled="isCreating"
+                      ></textarea>
+                    </div>
+
                     <button
-                      @click="createProject"
+                      type="submit"
+                      class="btn-primary group w-full"
                       :disabled="!canCreate || isCreating"
-                      class="group w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium text-base bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <template v-if="isCreating">
-                        <div class="w-5 h-5 border-2 border-paper/30 border-t-paper dark:border-blue-950/30 dark:border-t-blue-950 rounded-full animate-spin"></div>
-                        <span>Creating...</span>
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span>Creating&hellip;</span>
                       </template>
                       <template v-else>
-                        <span>Create Project</span>
-                        <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span>Create project</span>
+                        <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
                       </template>
                     </button>
-                  </div>
+                  </form>
                 </div>
-              </div>
-            </section>
 
-            <!-- Section B: Project Library -->
-            <section class="rise-item min-h-0" style="animation-delay: 180ms">
-              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-orange-200/70 dark:border-orange-300/[0.14] transition-colors duration-300 flex flex-col">
-
-                <!-- Section header -->
-                <div class="mb-5 flex-shrink-0">
-                  <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">Your Projects</p>
-                  <div class="flex items-end justify-between gap-3 mb-2">
-                    <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
-                    <span
-                      v-if="!isLoading && !error && displayedProjects.length> 0"
-                      class="inline-flex items-center px-2.5 py-1 mb-0.5 rounded-full border border-blue-200/60 dark:border-white/[0.14] bg-white/85 dark:bg-white/[0.04] text-xs font-medium text-blue-950/70 dark:text-blue-100/55 transition-colors duration-300"
-                    >
-                      {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
+                <!-- 02 — Library -->
+                <div class="rule-col rise-item" style="animation-delay: 180ms">
+                  <div class="flex items-center justify-between gap-4">
+                    <p class="eyebrow">
+                      <span class="eyebrow__num">02</span>
+                      <span class="eyebrow__rule" aria-hidden="true"></span>
+                      <span>Your projects</span>
+                    </p>
+                    <span v-if="!isLoading && !error && displayedProjects.length > 0" class="count">
+                      {{ searchQuery ? `${displayedProjects.length} found` : `${projects?.length || 0} total` }}
                     </span>
                   </div>
-                  <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">Continue working on your existing applications.</p>
-                </div>
 
-                <!-- Search Input -->
-                <div class="mb-4 flex-shrink-0">
-                  <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-blue-950/40 dark:text-blue-100/40 text-sm"></i>
+                  <h2 class="display mt-6 text-3xl sm:text-4xl">Pick up where you left off</h2>
+                  <p class="lede mt-5">
+                    Open a project to keep building its app &mdash; or to market, sell and run
+                    the business around it.
+                  </p>
+
+                  <!-- Search. Nothing to search until there is something in the
+                       list, and an empty field over an empty list is just a
+                       second hairline saying nothing. -->
+                  <div v-if="projects?.length" class="search mt-10">
+                    <svg class="search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m20 20-3.5-3.5" />
+                    </svg>
+                    <label class="sr-only" for="project-search">Search projects</label>
                     <input
+                      id="project-search"
                       v-model="searchQuery"
-                      type="text"
-                      placeholder="Search projects..."
-                      class="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.04] rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 text-sm transition-colors duration-200"
-                      :class="fieldShell"
+                      type="search"
+                      class="field__input search__input"
+                      placeholder="Search projects"
                     >
                   </div>
-                </div>
 
-                <!-- Deletion result banner — anchored in the library instead of a bottom-right toast -->
-                <Transition
-                  enter-active-class="transition-all duration-300 ease-out"
-                  enter-from-class="opacity-0 -translate-y-1"
-                  enter-to-class="opacity-100 translate-y-0"
-                  leave-active-class="transition-all duration-200 ease-in"
-                  leave-from-class="opacity-100 translate-y-0"
-                  leave-to-class="opacity-0 -translate-y-1"
-                >
-                  <div
-                    v-if="deleteBanner"
-                    :key="deleteBanner.id"
-                    role="status"
-                    aria-live="polite"
-                    class="mb-4 flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-colors duration-300"
-                    :class="deleteBanner.type === 'success'
-                      ? 'border-emerald-200/70 dark:border-emerald-400/25 bg-emerald-50/85 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-200'
-                      : 'border-red-200/70 dark:border-red-400/25 bg-red-50/85 dark:bg-red-400/10 text-red-800 dark:text-red-200'"
-                  >
-                    <i
-                      class="text-base"
-                      :class="deleteBanner.type === 'success'
-                        ? 'fas fa-check-circle text-emerald-500 dark:text-emerald-300'
-                        : 'fas fa-exclamation-circle text-red-500 dark:text-red-300'"
-                    ></i>
-                    <span class="flex-1 font-medium">{{ deleteBanner.message }}</span>
-                    <button
-                      @click="dismissDeleteBanner"
-                      aria-label="Dismiss notification"
-                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded-md opacity-60 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/30"
-                    >
-                      <i class="fas fa-times text-xs"></i>
-                    </button>
-                  </div>
-                </Transition>
-
-                <!-- Content Section -->
-                <div class="flex-1 flex flex-col min-h-0">
-                  <!-- Loading State -->
-                  <div v-if="isLoading" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] flex items-center justify-center mb-4">
-                      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-                    </div>
-                    <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading your projects...</p>
-                  </div>
-
-                  <!-- Error State -->
-                  <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-500/10 ring-1 ring-red-900/[0.08] dark:ring-red-400/30 flex items-center justify-center mb-4">
-                      <i class="fas fa-exclamation-triangle text-red-500 dark:text-red-300 text-xl"></i>
-                    </div>
-                    <p class="text-blue-950/70 dark:text-blue-100/70 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
-                    <button
-                      @click="retryFetch"
-                      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
-                    >
-                      <i class="fas fa-redo text-sm"></i>
-                      <span>Try Again</span>
-                    </button>
-                  </div>
-
-                  <!-- No Search Results -->
-                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length> 0" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] flex items-center justify-center mb-4">
-                      <i class="fas fa-search text-blue-600 dark:text-blue-300 text-lg"></i>
-                    </div>
-                    <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No matching projects</h3>
-                    <p class="text-blue-950/70 dark:text-blue-100/70 text-center text-sm transition-colors duration-300">No projects found matching "{{ searchQuery }}"</p>
-                  </div>
-
-                  <!-- Empty State -->
                   <!--
-                    Keyed off displayedProjects (what's actually shown) rather than
-                    the raw store list, so deleting the last project immediately
-                    surfaces this "No projects yet" state instead of a blank panel.
+                    Deletion result, anchored in the library rather than a
+                    bottom-right toast, so the confirmation reads as part of the
+                    list the project was removed from.
                   -->
-                  <div v-else-if="!displayedProjects.length" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-400/[0.14] ring-1 ring-orange-900/[0.08] dark:ring-orange-300/[0.18] flex items-center justify-center mb-4">
-                      <i class="fas fa-folder-open text-orange-600 dark:text-orange-300 text-lg"></i>
+                  <Transition
+                    enter-active-class="transition-all duration-300 ease-out"
+                    enter-from-class="opacity-0 -translate-y-1"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition-all duration-200 ease-in"
+                    leave-from-class="opacity-100 translate-y-0"
+                    leave-to-class="opacity-0 -translate-y-1"
+                  >
+                    <div
+                      v-if="deleteBanner"
+                      :key="deleteBanner.id"
+                      role="status"
+                      aria-live="polite"
+                      class="notice"
+                      :class="{ 'notice--alert': deleteBanner.type === 'error' }"
+                    >
+                      <span class="flex-1">{{ deleteBanner.message }}</span>
+                      <button
+                        type="button"
+                        class="notice__dismiss"
+                        aria-label="Dismiss notification"
+                        @click="dismissDeleteBanner"
+                      >
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No projects yet</h3>
-                    <p class="text-blue-950/70 dark:text-blue-100/70 text-center text-sm transition-colors duration-300">Create your first project to start building</p>
+                  </Transition>
+
+                  <!-- Loading -->
+                  <p v-if="isLoading" class="state">
+                    <span class="spinner spinner--ink" aria-hidden="true"></span>
+                    <span>Loading your projects&hellip;</span>
+                  </p>
+
+                  <!-- Error -->
+                  <div v-else-if="error" class="state state--block">
+                    <p class="state__message">{{ error }}</p>
+                    <button type="button" class="btn-outline mt-6" @click="retryFetch">Try again</button>
                   </div>
 
-                  <!-- Scrollable Project List -->
-                  <div v-else class="flex-1 overflow-y-auto pr-2 pl-0.5 pt-1 pb-2 space-y-3 custom-scrollbar min-h-0">
-                    <ProjectCard
-                      v-for="(project, index) in displayedProjects"
-                      :key="project.id"
-                      :project="project"
-                      :accent="index % 2 === 1 ? 'orange' : 'blue'"
-                      @delete="confirmDelete"
-                    />
+                  <!-- No search results -->
+                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="state state--block">
+                    <p class="state__message">No project matches &ldquo;{{ searchQuery }}&rdquo;.</p>
                   </div>
+
+                  <!--
+                    Empty state, keyed off what's actually shown rather than the
+                    raw store list, so deleting the last project surfaces this
+                    immediately instead of leaving a blank column.
+                  -->
+                  <div v-else-if="!displayedProjects.length" class="state state--block">
+                    <p class="state__message">
+                      No projects yet. Describe a business on the left and Imagi builds the first
+                      version of its app.
+                    </p>
+                  </div>
+
+                  <!-- The list -->
+                  <ul v-else class="project-list">
+                    <li v-for="project in displayedProjects" :key="project.id">
+                      <ProjectCard :project="project" @delete="confirmDelete" />
+                    </li>
+                  </ul>
                 </div>
-              </div>
-            </section>
 
-          </div>
-        </div>
-      </main>
-    </div>
-  </DefaultLayout>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </DefaultLayout>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, onMounted, onActivated } from 'vue'
-import { fieldShell } from '@/shared/styles/forms'
 import { useRouter } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
 import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
@@ -334,9 +321,9 @@ const canCreate = computed(() =>
 )
 const isInitializing = ref(true)
 
-// Deletion outcomes surface as an inline banner anchored in the Project
-// Library panel (see template) rather than a bottom-right toast, so the
-// confirmation reads as part of the library the project was removed from.
+// Deletion outcomes surface as an inline notice anchored in the project list
+// (see template) rather than a bottom-right toast, so the confirmation reads as
+// part of the list the project was removed from.
 type DeleteBanner = { type: 'success' | 'error'; message: string; id: number }
 const deleteBanner = ref<DeleteBanner | null>(null)
 let deleteBannerTimer: ReturnType<typeof setTimeout> | null = null
@@ -405,7 +392,7 @@ async function createProject() {
     })
     return
   }
-  
+
   // Validate business name
   if (!newProjectName.value.trim()) {
     showNotification({
@@ -425,7 +412,7 @@ async function createProject() {
   }
 
   isCreating.value = true
-  
+
   try {
     // Create a properly formatted project data object with name and description
     const projectData = {
@@ -440,20 +427,20 @@ async function createProject() {
     newProjectName.value = ''
     newProjectDescription.value = ''
     newProjectDesign.value = ''
-    
+
     // Log project information to debug any ID issues
     console.debug('Created project details:', {
       project: newProject,
       id: newProject.id,
       idType: typeof newProject.id
     })
-    
+
     // Navigate immediately to the project hub for the newly created project
     router.push({
       name: 'project-hub',
       params: { projectName: projectSlug(newProject) }
     })
-    
+
   } catch (error: any) {
     showNotification({
       message: error?.message || 'Failed to create project',
@@ -473,15 +460,15 @@ const fetchProjects = async (force = false) => {
     isInitializing.value = false
     return
   }
-  
+
   try {
     // First, ensure project store auth state is synchronized
     if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
       projectStore.setAuthenticated(authStore.isAuthenticated)
     }
-    
+
     await projectStore.fetchProjects(force)
-    
+
   } catch (error: any) {
     console.error('Error fetching projects:', error)
     showNotification({
@@ -513,7 +500,7 @@ const confirmDelete = async (project: Project) => {
     })
     return
   }
-  
+
   // Use confirm dialog
   const confirmed = await confirm({
     title: 'Delete Project',
@@ -522,11 +509,11 @@ const confirmDelete = async (project: Project) => {
     cancelText: 'Cancel',
     type: 'danger'
   })
-  
+
   if (!confirmed) {
     return
   }
-  
+
   // Capture the project name before deletion to ensure we have it for the notification
   const projectName = project.name || `Project ${project.id}` || 'Unknown Project'
 
@@ -569,7 +556,7 @@ const confirmDelete = async (project: Project) => {
 // Set up watchers and lifecycle hooks
 onMounted(async () => {
   console.debug('Projects mounted')
-  
+
   // Always force refresh projects when the dashboard loads to ensure we have the latest data
   try {
     console.debug('Forcing refresh of projects on dashboard load')
@@ -577,7 +564,7 @@ onMounted(async () => {
     await fetchProjects(true)
   } catch (error) {
     console.error('Initial project fetch failed:', error)
-    
+
     // Wait a moment and try again if authentication is confirmed
     if (authStore.isAuthenticated) {
       setTimeout(async () => {
@@ -616,49 +603,154 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-
-/* Quiet native input decorations (rings are applied via focus-visible classes) */
-input, textarea {
+/* Quiet the native search field's own decorations — the browser's clear button
+   is a grey chip that has nothing to do with this page. */
+input {
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
 }
 
-/* Custom scrollbar for project list */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+/* Grid items default to `min-width: auto`, so the truncated project names —
+   which never wrap — would set the library column's minimum width and squeeze
+   the form beside it down to a third of the measure. */
+.rule-col {
+  min-width: 0;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* The project count, sitting opposite the eyebrow it annotates. */
+.count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+  white-space: nowrap;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
+/* --- Search ---------------------------------------------------------------
+   The editorial field, with room made for a mark in the underline. */
+
+.search {
+  position: relative;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+.search__icon {
+  position: absolute;
+  left: 0;
+  top: 0.85rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--ink-40);
+  pointer-events: none;
 }
 
-.dark .custom-scrollbar {
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+/* Two selectors so this beats `.editorial .field__input`'s padding. */
+.search .search__input {
+  padding-left: 1.6rem;
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+/* --- Notice ---------------------------------------------------------------
+   Deletion feedback. A hairline strip rather than a tinted box: quiet for the
+   expected outcome, accented when something actually went wrong. */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 0 0.75rem 1rem;
+  border-left: 2px solid var(--rule-strong);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-70);
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+.notice--alert {
+  border-left-color: var(--accent);
+  color: var(--ink);
+}
+
+.notice__dismiss {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--ink-40);
+  transition: color 0.18s ease;
+}
+
+.notice__dismiss:hover {
+  color: var(--ink);
+}
+
+/* --- States --------------------------------------------------------------- */
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 2.5rem;
+  font-size: 0.9375rem;
+  color: var(--ink-55);
+}
+
+/* The column has to hold its shape whether it is showing eight projects or a
+   sentence explaining why it is showing none. */
+.state--block {
+  display: block;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.state__message {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ink-55);
+  text-wrap: pretty;
+}
+
+.spinner {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 999px;
+  opacity: 0.6;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner--ink {
+  color: var(--accent);
+  opacity: 1;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+/* --- The list -------------------------------------------------------------
+   Ruled rows, not floating cards: the library reads as one list of businesses,
+   which is what it is. */
+
+.project-list {
+  /* No rule of its own at the top: the search field's underline sits right
+     above it and is already the line that opens the list. */
+  margin-top: 1.75rem;
+  list-style: none;
+  padding-left: 0;
+  max-height: 30rem;
+  overflow-y: auto;
 }
 </style>
-
-<!-- Unscoped: brand-tinted text selection on the projects page -->
-

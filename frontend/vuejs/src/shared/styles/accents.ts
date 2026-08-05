@@ -72,21 +72,3 @@ export const accentClasses: Record<ToolAccent, AccentClasses> = {
     glow: 'from-amber-400/20',
   },
 }
-
-/**
- * Static treatment for the project-hub cards.
- *
- * The hub is the most utilitarian surface in the product, so it wears the
- * brand's most restrained face: navy ink on porcelain — the same ink as the
- * `Imagi.` wordmark — rather than a warm accent. Each card carries a solid ink
- * icon chip with a porcelain glyph, and the blue brand colour is held back to
- * a whisper on hover. This keeps four repeated cards calm instead of loud.
- */
-export const hubCardTone = {
-  /** Card border, with its hover accent. */
-  card: 'border-blue-950/[0.08] dark:border-white/[0.08] group-hover:border-blue-300/60 dark:group-hover:border-blue-300/25',
-  /** Icon chip background + ring. */
-  tile: 'bg-blue-950 dark:bg-white ring-1 ring-blue-950/10 dark:ring-white/10',
-  /** Icon glyph colour, sitting on the chip. */
-  glyph: 'text-paper dark:text-blue-950',
-}

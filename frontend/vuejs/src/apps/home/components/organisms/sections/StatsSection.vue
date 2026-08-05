@@ -53,7 +53,7 @@
       <!-- Audiences -->
       <div v-reveal="{ delay: 150 }" class="rule-cols mt-16 md:mt-20">
         <div v-for="metric in metrics" :key="metric.title" class="rule-col">
-          <HomeCardIcon :name="metric.icon" class="rule-col__icon" />
+          <LineIcon :name="metric.icon" class="rule-col__icon" />
           <h3 class="rule-col__title">{{ metric.title }}</h3>
           <p class="rule-col__body">{{ metric.description }}</p>
         </div>
@@ -65,11 +65,12 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
-import { HomeCardIcon, ProductShot } from '@/apps/home/components/atoms'
+import { ProductShot } from '@/apps/home/components/atoms'
+import { LineIcon } from '@/shared/components'
 
 export default defineComponent({
   name: 'StatsSection',
-  components: { HomeCardIcon, ProductShot },
+  components: { LineIcon, ProductShot },
   directives: { reveal },
   props: {
     stats: {

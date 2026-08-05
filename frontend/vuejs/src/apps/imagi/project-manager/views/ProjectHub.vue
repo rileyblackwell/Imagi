@@ -1,91 +1,90 @@
 <!--
-  ProjectHub.vue - Project Overview / Workspace Hub
+  ProjectHub.vue — a single project (business), and the four ways to work on it:
+    - Build   -> the AI app builder
+    - Sell    -> products, checkout, orders, customers
+    - Market  -> campaigns, audience, ads, inbox
+    - Operate -> finance, invoicing, tasks
 
-  This is the landing page for a single project (business). From here the user
-  chooses how to work on it:
-    - Build -> the AI app builder (real, existing workspace)
-    - Sell -> sales tools (general template, coming soon)
-    - Market -> marketing tools (general template, coming soon)
-    - Operate -> finance & operations tools (general template, coming soon)
+  The modules are driven by utils/businessTools.ts. This view is the shell — it
+  does not implement any of the tools themselves.
 
-  The categories are driven by utils/businessTools.ts. This view is a template
-  shell — it does not implement any of the specific tools.
+  Design: the editorial surface, same as the projects list it is reached from —
+  a header and four ruled columns, mirroring how the home page introduces the
+  same four modules. Everything visual comes from shared/styles/editorial.css.
 -->
 <template>
   <DefaultLayout>
-    <div class="hub-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
-      <!-- Grain texture over the porcelain canvas -->
+    <div class="editorial hub-page relative min-h-screen font-body">
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
-      <!-- Atmosphere: one soft baby-blue wash behind the header -->
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div class="page-glow-cool absolute -top-40 left-1/2 -translate-x-1/2 w-[760px] h-[440px]"></div>
-      </div>
+      <main class="relative z-10">
+        <section class="relative pt-28 sm:pt-36 md:pt-40 pb-20 md:pb-28">
+          <div class="section-shell">
 
-      <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-12 min-h-screen">
-        <div class="max-w-6xl mx-auto w-full">
-
-          <!-- Back link -->
-          <router-link
-            :to="{ name: 'projects' }"
-            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/70 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
-          >
-            <i class="fas fa-arrow-left text-xs"></i>
-            <span>All projects</span>
-          </router-link>
-
-          <!-- Loading -->
-          <div v-if="isLoading" class="flex flex-col items-center justify-center py-24">
-            <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.14] rounded-full flex items-center justify-center mb-4">
-              <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-            </div>
-            <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading project...</p>
-          </div>
-
-          <!-- Not found -->
-          <div v-else-if="!project" class="flex flex-col items-center justify-center py-24 text-center">
-            <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.14] rounded-full flex items-center justify-center mb-6">
-              <i class="fas fa-folder-open text-2xl text-blue-950/40 dark:text-blue-100/40"></i>
-            </div>
-            <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Project not found</h2>
-            <p class="text-blue-950/65 dark:text-blue-100/65 mb-8 max-w-md transition-colors duration-300">We couldn't find this project. It may have been deleted.</p>
-            <router-link
-              :to="{ name: 'projects' }"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
-            >
-              <i class="fas fa-arrow-left text-sm"></i>
-              <span>Back to projects</span>
+            <!-- Back link -->
+            <router-link :to="{ name: 'projects' }" class="back">
+              <svg class="back__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5M11 18l-6-6 6-6" />
+              </svg>
+              <span>All projects</span>
             </router-link>
-          </div>
 
-          <!-- Hub -->
-          <template v-else>
-            <!-- Project header -->
-            <section class="rise-item flex flex-col items-center text-center mb-10 md:mb-14" style="animation-delay: 0ms">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Project workspace</p>
-              <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-blue-950 dark:text-white mb-4 tracking-[-0.02em] leading-[1.05] text-balance transition-colors duration-300">
-                {{ project.name }}
-              </h1>
-              <p class="text-base sm:text-lg text-blue-950/65 dark:text-blue-100/65 max-w-2xl leading-relaxed text-pretty transition-colors duration-300">
-                {{ project.description || 'Build your product and run your business — all in one place. Choose a workspace to get started.' }}
+            <!-- Loading -->
+            <p v-if="isLoading" class="state">
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Loading project&hellip;</span>
+            </p>
+
+            <!-- Not found -->
+            <div v-else-if="!project" class="mt-16 max-w-xl">
+              <p class="eyebrow">
+                <span class="eyebrow__mark" aria-hidden="true"></span>
+                <span class="eyebrow__rule" aria-hidden="true"></span>
+                <span>Not found</span>
               </p>
-              <div class="mt-7 h-px w-16 bg-gradient-to-r from-transparent via-blue-300/60 dark:via-blue-300/25 to-transparent" aria-hidden="true"></div>
-            </section>
+              <h1 class="display mt-6 text-4xl sm:text-5xl">This project isn't here</h1>
+              <p class="lede mt-6 text-lg">
+                We couldn't find it. It may have been deleted, or the link may be out of date.
+              </p>
+              <router-link :to="{ name: 'projects' }" class="btn-outline mt-9">
+                Back to projects
+              </router-link>
+            </div>
 
-            <!-- Category grid -->
-            <section class="rise-item" style="animation-delay: 90ms">
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-                <ToolCategoryCard
-                  v-for="tool in businessTools"
-                  :key="tool.id"
-                  :tool="tool"
-                  :project-slug="projectSlug"
-                  :build-status="buildStatus"
-                />
+            <!-- Hub -->
+            <template v-else>
+              <!-- Project header -->
+              <div class="rise-item mt-12 md:mt-16 md:flex md:items-end md:justify-between gap-12 lg:gap-16">
+                <div class="max-w-[36rem]">
+                  <p class="eyebrow">
+                    <span class="eyebrow__rule" aria-hidden="true"></span>
+                    <span>Project</span>
+                  </p>
+                  <h1 class="display mt-7 text-[2.5rem] sm:text-5xl md:text-[3.6rem]">
+                    {{ project.name }}
+                  </h1>
+                </div>
+                <p class="rise-item lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg" style="animation-delay: 90ms">
+                  {{ project.description || 'Build the product and run the business behind it — all in one project. Pick a module to get started.' }}
+                </p>
               </div>
-            </section>
-          </template>
-        </div>
+
+              <!-- Modules -->
+              <div class="rise-item mt-16 md:mt-20" style="animation-delay: 180ms">
+                <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
+                <div class="rule-cols rule-cols--4">
+                  <ToolCategoryCard
+                    v-for="tool in businessTools"
+                    :key="tool.id"
+                    :tool="tool"
+                    :project-slug="projectSlug"
+                    :build-status="buildStatus"
+                  />
+                </div>
+              </div>
+            </template>
+          </div>
+        </section>
       </main>
     </div>
   </DefaultLayout>
@@ -111,7 +110,7 @@ const { project, isLoading } = useProjectFromSlug(projectSlug, 'the project hub'
 // --- Initial AI build status ---
 // Right after creation the backend runs the coding agent against the business
 // description in the background. Poll the status endpoint while that build is
-// in progress so the Build card can show it, and stop as soon as it settles.
+// in progress so the Build module can show it, and stop as soon as it settles.
 const BUILD_STATUS_POLL_MS = 5000
 const buildStatus = ref<'pending' | 'generating' | 'completed' | 'failed' | null>(null)
 let buildStatusTimer: ReturnType<typeof setInterval> | null = null
@@ -162,17 +161,71 @@ onBeforeUnmount(stopBuildStatusPolling)
 </script>
 
 <style scoped>
-
-/* Soft baby-blue wash behind the page header */
-.page-glow-cool {
-  background: radial-gradient(closest-side, rgba(158, 205, 243, 0.2), rgba(158, 205, 243, 0.06) 55%, transparent 75%);
-  filter: blur(48px);
+/* The one step back up the hierarchy. Quieter than a button, because it is a
+   trail rather than an action. */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+  transition: color 0.18s ease;
 }
 
-.dark .page-glow-cool {
-  background: radial-gradient(closest-side, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.02) 55%, transparent 75%);
+.back:hover {
+  color: var(--ink);
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.back__arrow {
+  width: 0.9rem;
+  height: 0.9rem;
+  transition: transform 0.18s ease;
+}
+
+.back:hover .back__arrow {
+  transform: translateX(-3px);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 5rem;
+  font-size: 0.9375rem;
+  color: var(--ink-55);
+}
+
+.spinner {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+
+  .back:hover .back__arrow {
+    transform: none;
+  }
 }
 </style>
-
-<!-- Unscoped: brand-tinted text selection on the hub page -->
-
