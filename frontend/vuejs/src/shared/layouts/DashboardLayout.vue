@@ -58,9 +58,10 @@
           isSidebarCollapsed ? '' : contentOffsetClass
         ]"
       >
-        <!-- Navbar -->
+        <!-- Navbar. It anchors itself to the top of the viewport; this only
+             restates the surface it wears inside the app shell. -->
         <BaseNavbar
-          class="navbar-shell fixed top-0 right-0 left-0 z-20 bg-canvas/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
+          class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
           fluid
         >
           <!-- The permanent show/hide control, pinned to the far left of the
