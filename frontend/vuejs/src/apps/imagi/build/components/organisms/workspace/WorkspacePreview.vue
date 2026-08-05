@@ -1185,10 +1185,15 @@ defineExpose({ reload })
 
 /* --- The plate ----------------------------------------------------------- */
 
+/* The pane's masthead, and it never moves: flex-shrink 0 so the stage below
+   can never squeeze it, in the same way .pane-header holds its height on the
+   chat side of the divider. The stage is the only part of this pane that
+   gives — everything the user scrolls happens inside it, under this bar. */
 .pv-bar {
   position: relative;
   z-index: 2;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.5rem;
   padding: 0.4375rem 0.625rem;
