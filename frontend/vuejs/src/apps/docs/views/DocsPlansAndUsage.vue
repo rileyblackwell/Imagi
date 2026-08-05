@@ -73,7 +73,7 @@
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Early access to new features</span></li>
             </ul>
           </DocsCard>
-          <DocsCard title="Max (20×) — $200 / month">
+          <DocsCard title="Max (10×) — $200 / month">
             <ul class="space-y-2 mt-1">
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$200 of AI usage per week — 10× Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>

@@ -122,9 +122,9 @@ const tiers: Tier[] = [
     cta: 'Get started',
     isPopular: false,
     // A single Max plan with selectable usage options, mirroring Claude's Max
-    // tier. The "5×"/"20×" labels are inherited tier names, not descriptions
-    // of the allowance: 5× is genuinely 5× Pro's weekly figure, but 20× is
-    // 10× it. The bullets below state the real multiple rather than the label.
+    // tier. "5×"/"10×" are literal multiples of Pro's weekly allowance. The
+    // lookupKey for the 10× option is still 'max_20x_monthly' — that is the
+    // Stripe price's name, which did not change when the tier was renamed.
     options: [
       {
         label: '5× usage',
@@ -138,7 +138,7 @@ const tiers: Tier[] = [
         ],
       },
       {
-        label: '20× usage',
+        label: '10× usage',
         price: 200,
         lookupKey: 'max_20x_monthly',
         weeklyLimit: '$200 of usage per week',

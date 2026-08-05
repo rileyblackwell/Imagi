@@ -175,11 +175,21 @@ class PlanRegistryTests(APITestCase):
         self.assertEqual(PLANS['max_20x']['weekly_usd'], 200)
 
     def test_allowances_rise_with_the_tier(self):
-        # The tier names no longer state a usage multiple (Max 20x is 10x Pro,
-        # not 20x), but a pricier plan must never buy a smaller allowance.
+        # A pricier plan must never buy a smaller allowance.
         weekly = [PLANS[p]['weekly_usd'] for p in ('free', 'pro', 'max_5x', 'max_20x')]
         self.assertEqual(weekly, sorted(weekly))
         self.assertEqual(len(set(weekly)), len(weekly))
+
+    def test_max_tier_names_state_their_real_multiple_of_pro(self):
+        # The Max tiers are named for what they give you, so the names have to
+        # keep matching the allowances. Note the id and the name disagree by
+        # design: 'max_20x' is displayed as "Max (10x)" because the id is
+        # stored on Subscription rows and mapped from a Stripe lookup_key.
+        pro = PLANS['pro']['weekly_usd']
+        self.assertEqual(PLANS['max_5x']['name'], 'Max (5x)')
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 5 * pro)
+        self.assertEqual(PLANS['max_20x']['name'], 'Max (10x)')
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 10 * pro)
 
     def test_plans_carry_no_figure_the_meter_does_not_enforce(self):
         # The weekly window is the only one checked, so it is the only
@@ -327,8 +337,9 @@ class CheckUsageAllowedTests(APITestCase):
         allowed, _ = check_usage_allowed(self.user)
         self.assertTrue(allowed)
 
-    def test_max_20x_allowance_far_exceeds_pro(self):
-        # A spend that exhausts Pro's week barely dents Max 20x's.
+    def test_top_max_allowance_far_exceeds_pro(self):
+        # A spend that exhausts Pro's week barely dents the top Max tier's.
+        # Plan id 'max_20x' is the tier displayed as "Max (10x)".
         Subscription.objects.create(user=self.user, plan='max_20x')
         event = record_usage(
             self.user, 'gpt-5.6-sol', 1_000, 0,
@@ -410,7 +421,7 @@ class SubscriptionWebhookTests(APITestCase):
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
 
     def test_max_lookup_keys_map_to_distinct_tiers(self):
-        # 5x and 20x are separate plans, not one collapsed tier.
+        # The two Max price points are separate plans, not one collapsed tier.
         self._post_event(
             'customer.subscription.created',
             self._subscription(lookup_key='max_20x_monthly'),
