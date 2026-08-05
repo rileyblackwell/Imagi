@@ -1,13 +1,15 @@
 <!--
-  HomeCardIcon — refined thin-stroke line icons for the home feature cards.
-  A single 24x24 viewBox, 1.5px rounded strokes drawn in currentColor, so each
-  icon inherits the card's tone class and stays crisp and minimal at any size.
-  Replaces the chunky Font Awesome solid glyphs for a cleaner, editorial look.
+  LineIcon — the thin-stroke icons the editorial surface draws with.
+  A single 24x24 viewBox, 1.5px rounded strokes in currentColor, so each icon
+  inherits the ink of whatever it sits in and stays crisp at any size. They
+  replaced the chunky Font Awesome solid glyphs on the home page; the projects
+  list and the project hub now draw from the same set, so a module shows the
+  same mark on the hub that the home page used to describe it.
   Geometry adapted from the MIT-licensed Lucide icon set.
 -->
 <template>
   <svg
-    class="home-card-icon"
+    class="line-icon"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -92,7 +94,7 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: 'HomeCardIcon',
+  name: 'LineIcon',
   props: {
     // Semantic icon key:
     //   design | chat | launch | marketing | sales | finance | founders | business | teams
@@ -102,7 +104,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.home-card-icon {
+.line-icon {
   width: 1.375rem;
   height: 1.375rem;
   display: block;

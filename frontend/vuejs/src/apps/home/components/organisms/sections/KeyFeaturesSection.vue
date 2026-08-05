@@ -34,7 +34,7 @@
           v-reveal="{ delay: 80 + index * 80 }"
           class="rule-col"
         >
-          <HomeCardIcon :name="feature.icon" class="rule-col__icon" />
+          <LineIcon :name="feature.icon" class="rule-col__icon" />
           <h3 class="rule-col__title">{{ feature.title }}</h3>
           <p class="rule-col__body">{{ feature.description }}</p>
 
@@ -73,11 +73,12 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
-import { HomeCardIcon, ProductShot } from '@/apps/home/components/atoms'
+import { ProductShot } from '@/apps/home/components/atoms'
+import { LineIcon } from '@/shared/components'
 
 export default defineComponent({
   name: 'KeyFeaturesSection',
-  components: { HomeCardIcon, ProductShot },
+  components: { LineIcon, ProductShot },
   directives: { reveal },
   props: {
     features: {

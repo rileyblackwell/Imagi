@@ -31,7 +31,6 @@ export {
 
 export {
   accentClasses,
-  hubCardTone,
   type ToolAccent,
   type AccentClasses,
 } from './accents'

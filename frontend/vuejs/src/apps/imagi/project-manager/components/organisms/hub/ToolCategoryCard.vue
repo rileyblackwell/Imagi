@@ -1,79 +1,60 @@
 <!--
-  ToolCategoryCard.vue - A single workspace category on the project hub.
+  ToolCategoryCard.vue — one module on the project hub.
 
-  Renders one BusinessTool (Build / Sell / Market / Operate) as a card that
-  links either to the app builder or to the generic coming-soon tool page.
+  Renders a BusinessTool (Build / Sell / Market / Operate) as a ruled column in
+  the editorial language: the same mark, title, body and checklist the home page
+  uses to describe the same four modules, with the tool's own accent deliberately
+  left out. The editorial surface has one accent, and four differently-coloured
+  columns on one page would read as decoration rather than as navigation.
 -->
 <template>
   <component
     :is="isBuildLocked ? 'div' : 'router-link'"
     :to="isBuildLocked ? undefined : target"
-    class="crisp-card group relative flex flex-col h-full p-7 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-ring"
-    :class="[
-      isBuildLocked
-        ? 'building-card items-center text-center cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
-        : ['items-start text-left bg-white/90 dark:bg-white/[0.045] hover:-translate-y-1', tone.card],
-    ]"
-    :title="isBuildLocked ? 'Imagi is building your app — this card unlocks the moment the build finishes' : tool.name"
+    class="rule-col module"
+    :class="{ 'module--building': isBuildLocked }"
+    :title="isBuildLocked ? 'Imagi is building your app — this module unlocks the moment the build finishes' : tool.name"
     :aria-disabled="isBuildLocked ? 'true' : undefined"
   >
+    <LineIcon :name="tool.lineIcon" class="rule-col__icon" />
+    <h3 class="rule-col__title">{{ tool.name }}</h3>
+
     <!-- ==================== BUILDING STATE ==================== -->
     <template v-if="isBuildLocked">
-      <!-- Animated build icon: concentric pulsing rings behind a spinner ring -->
-      <div class="relative w-16 h-16 flex items-center justify-center mb-5">
-        <span class="absolute inset-0 rounded-2xl bg-blue-400/15 dark:bg-blue-300/10 animate-ping" style="animation-duration: 1.8s;"></span>
-        <span class="absolute inset-1.5 rounded-2xl bg-blue-400/20 dark:bg-blue-300/15 animate-ping" style="animation-duration: 1.8s; animation-delay: .3s;"></span>
-        <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center border border-blue-300/70 dark:border-blue-300/25 bg-gradient-to-br from-blue-50 to-blue-100/60 dark:from-blue-400/10 dark:to-blue-500/10">
-          <span class="absolute inset-0 rounded-2xl border-2 border-blue-500/70 dark:border-blue-300/60 border-t-transparent animate-spin" style="animation-duration: 1s;"></span>
-          <i class="fas fa-wand-magic-sparkles text-lg text-blue-600 dark:text-blue-200"></i>
-        </div>
+      <p class="rule-col__body">
+        Imagi is turning your business description into a tailored first version. This
+        usually takes a moment.
+      </p>
+
+      <!--
+        The rule that opens the foot line, with the accent sweeping along it —
+        so the module's own hairline is what reports the work, rather than a
+        progress bar parked above one.
+      -->
+      <div class="module__track" aria-hidden="true">
+        <span class="module__bar"></span>
       </div>
 
-      <div class="relative flex-1">
-        <h3 :class="ui.headingText" class="mb-1.5 tracking-tight">
-          Building your app
-        </h3>
-        <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
-          Imagi is turning your business description into a tailored first version. This usually takes a moment.
-        </p>
-        <!-- Indeterminate progress track -->
-        <div class="mt-4 h-1 w-full rounded-full bg-blue-100 dark:bg-white/[0.08] overflow-hidden">
-          <div class="building-bar h-full w-1/3 rounded-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 dark:from-blue-300 dark:via-blue-400 dark:to-blue-300"></div>
-        </div>
-      </div>
-
-      <div class="relative flex items-center justify-center gap-2 w-full text-sm font-medium mt-6 pt-4 border-t border-blue-200/60 dark:border-white/[0.1] text-blue-700/90 dark:text-blue-200/80">
-        <i class="fas fa-lock text-[11px]"></i>
-        <span>Unlocks when the build finishes</span>
-      </div>
+      <p class="module__cta module__cta--waiting">Building</p>
     </template>
 
     <!-- ==================== DEFAULT STATE ==================== -->
     <template v-else>
-      <!-- Icon chip: solid ink with a porcelain glyph and a soft top sheen -->
-      <div
-        class="card-tile relative w-12 h-12 rounded-xl flex items-center justify-center mb-7 transition-transform duration-300"
-        :class="tone.tile"
-      >
-        <span class="tile-sheen pointer-events-none absolute inset-0 rounded-xl" aria-hidden="true"></span>
-        <i :class="['fas', tool.icon, tone.glyph]" class="relative text-lg"></i>
-      </div>
+      <p class="rule-col__body">{{ tool.tagline }}</p>
 
-      <!-- Name + tagline -->
-      <h3 class="relative text-[17px] font-semibold text-blue-950 dark:text-white mb-1.5 tracking-[-0.01em] transition-colors duration-300">
-        {{ tool.name }}
-      </h3>
-      <p class="relative text-sm text-blue-950/55 dark:text-blue-100/55 leading-relaxed transition-colors duration-300">
-        {{ tool.tagline }}
+      <ul class="checklist module__features">
+        <li v-for="feature in tool.features" :key="feature.name">
+          <span class="checklist__tick" aria-hidden="true"></span>
+          <span>{{ feature.name }}</span>
+        </li>
+      </ul>
+
+      <p class="module__cta">
+        <span>Open</span>
+        <svg class="module__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
       </p>
-
-      <!-- CTA: muted ink at rest, resolves to full ink on hover -->
-      <div
-        class="relative flex items-center w-full text-[13px] font-medium mt-auto pt-5 border-t border-blue-950/[0.06] dark:border-white/[0.07] text-blue-950/55 dark:text-blue-100/50 group-hover:text-blue-950 dark:group-hover:text-white transition-colors duration-200"
-      >
-        <span>{{ tool.status === 'available' ? 'Open workspace' : 'Preview' }}</span>
-        <i class="fas fa-arrow-right text-[11px] ml-auto group-hover:translate-x-0.5 transition-transform duration-200"></i>
-      </div>
     </template>
   </component>
 </template>
@@ -82,23 +63,19 @@
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { type BusinessTool } from '../../../utils/businessTools'
-import { hubCardTone, ui } from '@/shared/styles'
+import { LineIcon } from '@/shared/components'
 
 const props = defineProps<{
   tool: BusinessTool
   projectSlug: string
-  /** The project's generation_status; drives the Build card's "AI building" state. */
+  /** The project's generation_status; drives the Build module's "AI building" state. */
   buildStatus?: 'pending' | 'generating' | 'completed' | 'failed' | null
 }>()
 
-// Every hub card wears the restrained ink tone (solid ink chip, neutral border,
-// muted ink CTA) so the four repeated cards stay calm and professional.
-const tone = hubCardTone
-
 /**
- * The initial AI build is still running. While it is, the Build card is locked:
- * it shows a dedicated building state and cannot navigate into the workspace,
- * so users never enter a half-built project. Only the Build tool is gated.
+ * The initial AI build is still running. While it is, the Build module is
+ * locked: it shows a dedicated building state and cannot navigate into the
+ * workspace, so users never enter a half-built project. Only Build is gated.
  *
  * We lock strictly on 'generating' — the status the backend sets synchronously
  * the moment a build starts, before the create response returns. 'pending' is
@@ -123,66 +100,114 @@ const target = computed<RouteLocationRaw>(() => {
 </script>
 
 <style scoped>
-
-/* ---- Icon chip ---- */
-/* Glossy top highlight so the solid ink chip reads as a polished object. */
-.tile-sheen {
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%);
+/* The column is a link, so it needs states a ruled column on a marketing page
+   never had. They are carried by the "Open" line at its foot resolving from
+   muted ink to full ink — no lift, no shadow, nothing that would make the
+   column float off the paper. The column's own geometry is left to .rule-col,
+   which already owns the gutters and the hairline between columns. */
+.module:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
 }
 
-:global(.dark) .tile-sheen {
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 60%);
+/* Two selectors, so this beats `.editorial .checklist`'s `margin-top: auto` —
+   the CTA below owns the auto margin instead, and the four "Open" lines land on
+   one baseline however many capabilities each module lists. */
+.module .module__features {
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
 }
 
-/* Chip lifts subtly with the card on hover. */
-.crisp-card:hover .card-tile {
-  transform: scale(1.06);
+.module__cta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+  transition: color 0.18s ease;
 }
 
-/* ---- Building state ---- */
-/* A soft, breathing ring around the card so "AI building" reads as active work. */
-.building-card {
-  animation: building-glow 2.4s ease-in-out infinite;
+.module:hover .module__cta {
+  color: var(--ink);
 }
 
-@keyframes building-glow {
-  0%, 100% {
-    box-shadow:
-      0 0 0 1px rgba(59, 130, 246, 0.18),
-      0 1px 2px rgba(15, 23, 42, 0.06),
-      0 8px 22px -8px rgba(59, 130, 246, 0.28);
+.module__arrow {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-left: auto;
+  transition: transform 0.18s ease;
+}
+
+.module:hover .module__arrow {
+  transform: translateX(3px);
+}
+
+/* --- Building ------------------------------------------------------------
+   The one module that can be busy. It keeps the column's shape and swaps the
+   capability list for the reason it can't be opened yet. */
+
+.module--building {
+  cursor: progress;
+}
+
+.module--building .rule-col__icon {
+  animation: module-pulse 2.4s ease-in-out infinite;
+}
+
+.module__track {
+  margin-top: auto;
+  height: 1px;
+  overflow: hidden;
+  background: var(--rule);
+}
+
+.module__bar {
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--accent);
+  animation: module-sweep 1.8s ease-in-out infinite;
+}
+
+/* The track above it is already the rule, so this one drops its own. */
+.module__cta--waiting {
+  margin-top: 0;
+  border-top: 0;
+  color: var(--accent);
+}
+
+@keyframes module-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes module-pulse {
+  0%,
+  100% {
+    opacity: 1;
   }
   50% {
-    box-shadow:
-      0 0 0 1px rgba(59, 130, 246, 0.32),
-      0 1px 2px rgba(15, 23, 42, 0.06),
-      0 12px 34px -8px rgba(59, 130, 246, 0.45);
+    opacity: 0.4;
   }
-}
-
-/* Indeterminate progress bar that slides back and forth. */
-.building-bar {
-  animation: building-bar 1.6s ease-in-out infinite;
-}
-
-@keyframes building-bar {
-  0% { transform: translateX(-110%); }
-  100% { transform: translateX(320%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .building-card,
-  .building-bar,
-  .animate-ping {
+  .module__bar,
+  .module--building .rule-col__icon {
     animation: none;
   }
 
-  /* No hover lift for users who prefer reduced motion */
-  .crisp-card:hover {
-    transform: none;
-  }
-
-  .crisp-card:hover .card-tile {
+  .module:hover .module__arrow {
     transform: none;
   }
 }

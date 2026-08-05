@@ -3,6 +3,9 @@
  * Exports all atomic-level components organized by type
  */
 
+// Iconography
+export { default as LineIcon } from './icons/LineIcon.vue'
+
 // Button Components
 export { default as ThemeToggle } from './buttons/ThemeToggle.vue'
 

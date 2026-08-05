@@ -98,7 +98,7 @@
                 v-reveal="{ delay: 80 + index * 80 }"
                 class="rule-col"
               >
-                <HomeCardIcon :name="feature.icon" class="rule-col__icon" />
+                <LineIcon :name="feature.icon" class="rule-col__icon" />
                 <h3 class="rule-col__title">{{ feature.title }}</h3>
                 <p class="rule-col__body !mb-0">{{ feature.description }}</p>
               </div>
@@ -158,7 +158,7 @@
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
 import { CTASection } from '@/apps/home/components/organisms/sections'
-import { HomeCardIcon } from '@/apps/home/components/atoms'
+import { LineIcon } from '@/shared/components'
 import reveal from '@/apps/home/directives/reveal'
 
 export default defineComponent({
@@ -166,7 +166,7 @@ export default defineComponent({
   components: {
     DefaultLayout,
     CTASection,
-    HomeCardIcon
+    LineIcon
   },
   directives: { reveal },
   setup() {
