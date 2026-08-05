@@ -9,7 +9,7 @@
 
       <!-- What is Imagi -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           What is Imagi?
         </h2>
         <div class="lede space-y-4 text-lg">
@@ -46,10 +46,10 @@
 
       <!-- How Does Imagi Work -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           How Does Imagi Work?
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Imagi brings everything you need to build and run a business into one seamless platform. You start by
           building your web app, then use built-in tools to operate and grow your business:
         </p>
@@ -75,10 +75,10 @@
 
       <!-- Why Choose Imagi -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Why Choose Imagi?
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Imagi is built on the principle that starting and running a business should be accessible to everyone,
           not just those with technical teams and big budgets. Here's what sets us apart:
         </p>
@@ -104,10 +104,10 @@
 
       <!-- Learn More Section -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Learn More
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Ready to dive deeper? Explore these guides to learn more about using Imagi:
         </p>
         <div class="rule-cols rule-cols--2">

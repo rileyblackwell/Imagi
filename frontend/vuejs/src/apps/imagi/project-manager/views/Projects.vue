@@ -20,8 +20,8 @@
       @cancel="confirmModal.handleCancel"
     />
     
-    <DefaultLayout :isHomeNav="true">
-    <div class="projects-page relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
+    <DefaultLayout>
+    <div class="projects-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
       <!-- Grain texture over the porcelain canvas -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
@@ -54,7 +54,7 @@
               <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
               <router-link
                 to="/auth/signin"
-                class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+                class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-ring"
               >
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Log In</span>
@@ -134,10 +134,10 @@
                     <button
                       @click="createProject"
                       :disabled="!canCreate || isCreating"
-                      class="group w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium text-base bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="group w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium text-base bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <template v-if="isCreating">
-                        <div class="w-5 h-5 border-2 border-[#fdf9f2]/30 border-t-[#fdf9f2] dark:border-blue-950/30 dark:border-t-blue-950 rounded-full animate-spin"></div>
+                        <div class="w-5 h-5 border-2 border-paper/30 border-t-paper dark:border-blue-950/30 dark:border-t-blue-950 rounded-full animate-spin"></div>
                         <span>Creating...</span>
                       </template>
                       <template v-else>
@@ -162,7 +162,7 @@
                   <div class="flex items-end justify-between gap-3 mb-2">
                     <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
                     <span
-                      v-if="!isLoading && !error && displayedProjects.length > 0"
+                      v-if="!isLoading && !error && displayedProjects.length> 0"
                       class="inline-flex items-center px-2.5 py-1 mb-0.5 rounded-full border border-blue-200/60 dark:border-white/[0.14] bg-white/85 dark:bg-white/[0.04] text-xs font-medium text-blue-950/70 dark:text-blue-100/55 transition-colors duration-300"
                     >
                       {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
@@ -239,7 +239,7 @@
                     <p class="text-blue-950/70 dark:text-blue-100/70 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
                     <button
                       @click="retryFetch"
-                      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+                      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
                     >
                       <i class="fas fa-redo text-sm"></i>
                       <span>Try Again</span>
@@ -247,7 +247,7 @@
                   </div>
 
                   <!-- No Search Results -->
-                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex-1 flex flex-col items-center justify-center">
+                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length> 0" class="flex-1 flex flex-col items-center justify-center">
                     <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] flex items-center justify-center mb-4">
                       <i class="fas fa-search text-blue-600 dark:text-blue-300 text-lg"></i>
                     </div>
@@ -616,81 +616,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Warm porcelain canvas fading to white so the page hands off to the footer
-   (footer is bg-white / dark #0a0a0a) — matches Home.vue */
-.projects-page {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-.dark .projects-page {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
-}
-
-/* Fine film grain keeps large soft gradients from banding and adds texture */
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.035;
-  mix-blend-mode: multiply;
-}
-
-.dark .grain-overlay {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-}
-
-/* Soft apricot wash behind the page header */
-.page-glow-warm {
-  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.13), rgba(251, 146, 60, 0.04) 55%, transparent 75%);
-  filter: blur(48px);
-}
-
-.dark .page-glow-warm {
-  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.07), rgba(251, 146, 60, 0.02) 55%, transparent 75%);
-}
-
-/* Italic serif accent with the hero's warm gradient ink */
-.accent-ink {
-  font-style: italic;
-  font-variation-settings: 'SOFT' 30, 'WONK' 1;
-  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  padding-right: 0.06em;
-}
-
-.dark .accent-ink {
-  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-/* Page-load rise: header and panels fade up in sequence */
-.rise-item {
-  animation: rise-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes rise-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rise-item {
-    animation: none;
-  }
-}
 
 /* Quiet native input decorations (rings are applied via focus-visible classes) */
 input, textarea {
@@ -733,35 +658,7 @@ input, textarea {
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-
-/* Crisp, sharply-defined cards matching Home/About - hairline edge + tight layered shadow */
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
-}
-
-.dark .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
-}
-
 </style>
 
 <!-- Unscoped: brand-tinted text selection on the projects page -->
-<style>
-.projects-page ::selection {
-  background: rgba(158, 205, 243, 0.55);
-  color: #172554;
-}
 
-.dark .projects-page ::selection {
-  background: rgba(96, 165, 250, 0.4);
-  color: #eff6ff;
-}
-</style>

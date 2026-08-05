@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isCollapsed" class="iw-surface flex flex-col h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div v-if="!isCollapsed" class="iw-surface flex flex-col h-full bg-canvas transition-colors duration-300">
     <!-- Header: who you're talking to, and the ways out of here. There is
          only one thread the user drives, so it is simply "Main agent" — no
          conversation name to track. A subagent's read-only thread keeps its
@@ -42,7 +42,7 @@
     <!-- Chat Input Section (fixed at bottom). Relative so the usage panel
          can anchor to the full section width — the sidebar clips overflow,
          so a panel anchored to its narrow button couldn't fit. -->
-    <div class="shrink-0 relative bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+    <div class="shrink-0 relative bg-canvas transition-colors duration-300">
       <!-- Model slider panel (opens upward above the composer): one slider
            across the three models, faster → smarter.
 
@@ -178,7 +178,7 @@
           </p>
           <button
             type="button"
-            class="btn-back-to-lead iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950"
+            class="btn-back-to-lead iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
             @click="goToLead"
           >
             Back to main thread
@@ -305,7 +305,7 @@
               @click="handleStopClick"
               aria-label="Stop agent"
               title="Stop agent"
-              class="btn-send btn-send--active iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full text-[#fdf9f2] dark:text-blue-950"
+              class="btn-send btn-send--active iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full text-paper dark:text-blue-950"
             >
               <i class="fas fa-stop text-sm"></i>
             </button>
@@ -318,7 +318,7 @@
               aria-label="Send message"
               class="btn-send iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
               :class="prompt.trim() && activeInstance
-                ? 'btn-send--active text-[#fdf9f2] dark:text-blue-950'
+                ? 'btn-send--active text-paper dark:text-blue-950'
                 : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-blue-100/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
             >
               <i class="fas fa-arrow-up text-sm"></i>

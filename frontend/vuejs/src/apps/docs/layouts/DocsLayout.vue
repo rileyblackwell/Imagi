@@ -1,13 +1,10 @@
 <template>
   <DashboardLayout
-    :navigationItems="[]"
     storageKey="docs_sidebar_collapsed"
     class="docs-layout"
     aside-width-class="w-64"
     content-offset-class="md:ml-64"
-    nav-offset-class="md:left-64"
     mobile-default-collapsed
-    full-width-nav
   >
     <!-- Section header: a quiet uppercase eyebrow, aligned with the nav labels
          below it (icon dropped for a cleaner, text-forward panel). -->
@@ -74,18 +71,6 @@ const isActive = (path) => route.path === path
 
 :root.dark .docs-canvas {
   background: #08080a;
-}
-
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.028;
-  mix-blend-mode: multiply;
-}
-
-:root.dark .grain-overlay {
-  opacity: 0.045;
-  mix-blend-mode: overlay;
 }
 
 .docs-content :deep(a) {

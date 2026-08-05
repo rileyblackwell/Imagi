@@ -14,9 +14,9 @@
   is the same agent the user just saw over there, so it should look like it.
 -->
 <template>
-  <div v-if="queue.length > 0" class="mb-1.5">
+  <div v-if="queue.length> 0" class="mb-1.5">
     <!-- Queue depth: only worth showing once something is waiting behind -->
-    <div v-if="queue.length > 1" class="queue-head">
+    <div v-if="queue.length> 1" class="queue-head">
       <span class="queue-head__label">Waiting on you</span>
       <span class="queue-head__count">{{ queue.length }}</span>
       <span class="queue-head__rule"></span>
@@ -27,11 +27,11 @@
     <div
       :class="[
         'queue-stack',
-        queue.length > 1 ? 'is-stacked' : '',
+        queue.length> 1 ? 'is-stacked' : '',
         queue.length > 2 ? 'is-deep' : ''
       ]"
     >
-      <article :key="current.id" :class="['check-in', `check-in--${tone}`]">
+      <article :key="current.id" :class="['check-in iw-surface', `check-in--${tone}`]">
         <span class="check-in__rail" aria-hidden="true"></span>
 
         <div class="check-in__body">
@@ -41,7 +41,7 @@
             <!-- One of several parallel takes on the same brief: say so, or
                  accepting the first one looks like the only option. -->
             <span
-              v-if="siblingCount > 1"
+              v-if="siblingCount> 1"
               class="check-in__take"
               :title="`Take ${siblingIndex} of ${siblingCount} on the same brief`"
             >{{ siblingIndex }}/{{ siblingCount }}</span>
@@ -70,7 +70,7 @@
             {{ current.body }}
           </p>
           <button
-            v-if="current.body && current.body.length > 180"
+            v-if="current.body && current.body.length> 180"
             type="button"
             class="check-in__more"
             @click="expanded = !expanded"
@@ -95,7 +95,7 @@
                 :disabled="!answer.trim()"
                 class="btn-primary iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                 :class="answer.trim()
-                  ? 'btn-primary--active text-[#fdf9f2] dark:text-blue-950'
+                  ? 'btn-primary--active text-paper dark:text-blue-950'
                   : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12]'"
                 @click="sendAnswer"
               >
@@ -120,7 +120,7 @@
             <button
               type="button"
               :disabled="busy"
-              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950 disabled:opacity-50"
+              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-blue-950 disabled:opacity-50"
               @click="emit('accept', current)"
             >
               <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>
@@ -372,8 +372,6 @@ function sendAnswer() {
   background: rgba(239, 246, 255, 0.75);
   box-shadow: var(--iw-shadow-1);
   overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   animation: check-in-arrive var(--iw-dur-4) var(--iw-ease-spring) both;
   transition:
     border-color var(--iw-dur-3) var(--iw-ease-out),

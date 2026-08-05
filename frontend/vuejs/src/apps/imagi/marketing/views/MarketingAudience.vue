@@ -40,9 +40,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.contactsLoading && !store.contacts.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="store.contactsLoading && !store.contacts.length" />
 
     <!-- Table -->
     <section v-else-if="store.contacts.length" class="overflow-hidden" :class="ui.card">
@@ -66,7 +64,7 @@
             >
               <td class="px-5 py-3.5">
                 <p class="font-medium text-blue-950 dark:text-white">{{ contact.display_name }}</p>
-                <p v-if="contact.email" class="text-xs text-blue-950/50 dark:text-blue-100/50">{{ contact.email }}</p>
+                <p :class="ui.hintText" v-if="contact.email">{{ contact.email }}</p>
               </td>
               <td class="px-5 py-3.5 font-mono text-xs text-blue-950/70 dark:text-blue-100/70">{{ contact.phone_number }}</td>
               <td class="px-5 py-3.5">
@@ -88,22 +86,24 @@
                   <router-link
                     v-if="contact.consent === 'subscribed'"
                     :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName }, query: { contact: contact.id } }"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors duration-150 focus-ring"
                     title="Send a message"
                   >
                     <i class="fas fa-paper-plane text-xs"></i>
                   </router-link>
                   <button
+                    :class="ui.iconBtn"
                     type="button"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                    class="w-8 h-8"
                     title="Edit contact"
                     @click="openEdit(contact)"
                   >
                     <i class="fas fa-pen text-xs"></i>
                   </button>
                   <button
+                    :class="ui.dangerIconBtn"
                     type="button"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                    class="w-8 h-8"
                     title="Delete contact"
                     @click="removeContact(contact)"
                   >
@@ -115,7 +115,7 @@
           </tbody>
         </table>
       </div>
-      <div class="px-5 py-3 border-t border-blue-200/60 dark:border-white/[0.08] text-xs text-blue-950/50 dark:text-blue-100/50">
+      <div :class="ui.hintText" class="px-5 py-3 border-t border-blue-200/60 dark:border-white/[0.08]">
         {{ store.contacts.length }} of {{ store.contactsTotal }} contact{{ store.contactsTotal === 1 ? '' : 's' }}
       </div>
     </section>
@@ -128,7 +128,7 @@
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">
         {{ hasFilters ? 'No contacts match' : 'Build your audience' }}
       </h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mb-6">
+      <p :class="ui.bodyText" class="max-w-md mb-6">
         {{ hasFilters
           ? 'Try a different search or filter.'
           : 'Add the customers you have permission to text. Tag them to send targeted campaigns later.' }}
@@ -148,7 +148,7 @@
     <div v-if="loadError" class="mt-4" :class="ui.errorBox">{{ loadError }}</div>
 
     <!-- Add / edit modal -->
-    <MarketingModal v-if="showForm" :title="editingContact ? 'Edit contact' : 'Add contact'" @close="closeForm">
+    <BaseModal v-if="showForm" :title="editingContact ? 'Edit contact' : 'Add contact'" @close="closeForm">
       <form class="space-y-4" @submit.prevent="saveContact">
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -170,7 +170,7 @@
             placeholder="+15551234567"
             :class="ui.input"
           />
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">International format with country code (E.164).</p>
+          <p :class="ui.hintText" class="mt-1.5">International format with country code (E.164).</p>
         </div>
         <div>
           <label :class="ui.label" for="contact-email">Email <span class="normal-case tracking-normal font-normal">(optional)</span></label>
@@ -182,7 +182,7 @@
         </div>
         <div v-if="editingContact">
           <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16161a]" />
+            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
             Subscribed to messages
           </label>
         </div>
@@ -200,10 +200,10 @@
           </button>
         </div>
       </form>
-    </MarketingModal>
+    </BaseModal>
 
     <!-- Import modal -->
-    <MarketingModal v-if="showImport" title="Import contacts" wide @close="closeImport">
+    <BaseModal v-if="showImport" title="Import contacts" wide @close="closeImport">
       <div class="space-y-4">
         <p class="text-sm text-blue-950/70 dark:text-blue-100/70">
           Paste one contact per line:
@@ -218,7 +218,7 @@
           class="font-mono text-xs"
           :class="ui.input"
         ></textarea>
-        <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+        <p :class="ui.hintText">
           {{ parsedImportRows.length }} contact{{ parsedImportRows.length === 1 ? '' : 's' }} ready to import.
           Duplicates and invalid numbers are skipped automatically.
         </p>
@@ -231,7 +231,7 @@
             <li v-for="(row, i) in importResult.skipped.slice(0, 8)" :key="i">
               Line {{ row.index + 1 }}{{ row.phone_number ? ` (${row.phone_number})` : '' }}: {{ row.reason }}
             </li>
-            <li v-if="importResult.skipped.length > 8">…and {{ importResult.skipped.length - 8 }} more skipped.</li>
+            <li v-if="importResult.skipped.length> 8">…and {{ importResult.skipped.length - 8 }} more skipped.</li>
           </ul>
         </div>
 
@@ -251,7 +251,7 @@
           </button>
         </div>
       </div>
-    </MarketingModal>
+    </BaseModal>
   </div>
 </template>
 
@@ -259,7 +259,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { debounce } from 'lodash-es'
-import MarketingModal from '../components/MarketingModal.vue'
+import { BaseModal, LoadingSpinner } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'

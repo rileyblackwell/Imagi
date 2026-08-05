@@ -1,0 +1,351 @@
+/*
+ * tokens.css — the material and motion vocabulary the whole site shares.
+ *
+ * Imagi has two visual halves. The public pages wear the editorial surface
+ * (see editorial.css) and the signed-in app wears a denser tool UI, but both
+ * are cut from the same cloth: warm porcelain paper, navy ink, hairline rules,
+ * the same layered card shadow, the same film grain, the same focus ring.
+ *
+ * Everything in here used to be re-typed per file. The `crisp-card` shadow
+ * ladder alone was declared in eleven separate <style> blocks, `grain-overlay`
+ * in four, `rise-item` in three — each copy free to drift from the others, and
+ * several already had. This file is the one declaration; components spend
+ * these instead of inventing them.
+ *
+ * Loaded once, globally, from main.ts. Unlike editorial.css these rules are
+ * deliberately NOT scoped to an opt-in root class, because the whole point is
+ * that a card in the Sell workspace and a card on the pricing page cast the
+ * same shadow.
+ *
+ * Naming: plain class names for the materials (they read as design language in
+ * a template) and `--app-*` custom properties for the values, so they never
+ * collide with the workspace's `--iw-*` set (apps/imagi/build/styles/workspace.css)
+ * or the editorial surface's `--paper`/`--ink` set.
+ */
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────────────────
+     The paper the interface is printed on. Four hex values that between them
+     appeared, written out by hand, some two hundred and forty times across the
+     tree — `#fdf9f2` alone in thirty-five files.
+
+     Held as space-separated RGB channels rather than hex, because that is the
+     form Tailwind needs to build `rgb(… / <alpha-value>)` colours from. They
+     are wired into tailwind.config.js as `paper`, `paper-raised`,
+     `paper-inverted` and `canvas`, so a template writes `bg-paper` — and gets
+     the right colour in both themes without a `dark:` twin, because the
+     variable itself changes below. */
+  --app-paper: 253 249 242;          /* warm porcelain — the default canvas */
+  --app-paper-raised: 255 255 255;   /* a card lifted off the paper */
+  --app-paper-inverted: 243 237 226; /* cream — the dark theme's button fill */
+  --app-canvas: 255 255 255;         /* the signed-in app's content area */
+
+  /* ── Ink ──────────────────────────────────────────────────────────────────
+     Kept as channels too, so components can tint from them at any opacity
+     rather than re-typing the rgb(). blue-950 in light, white in dark. */
+  --app-ink: 23, 37, 84;
+  --app-accent: 59, 130, 246;    /* blue-500 — focus, selection, links */
+  --app-focus-tint: rgba(var(--app-accent), 0.4);
+
+  /* ── Elevation ────────────────────────────────────────────────────────────
+     A tight contact shadow plus progressively wider soft ones, so a raised
+     surface looks lit rather than outlined. This is the "crisp card" ladder
+     that gives the product its material. */
+  --app-shadow-card:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.1);
+  --app-shadow-card-hover:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.07),
+    0 8px 18px -4px rgba(15, 23, 42, 0.09),
+    0 20px 40px -12px rgba(15, 23, 42, 0.14);
+
+  /* ── Motion ───────────────────────────────────────────────────────────────
+     One curve for the whole site: leaves immediately, spends its time
+     settling. The sidebar glide, the page-load rise and the editorial scroll
+     reveal already all used this exact bezier independently. */
+  --app-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-dur-fast: 200ms;
+  --app-dur-slow: 700ms;
+
+  /* ── Grain ────────────────────────────────────────────────────────────────
+     Public pages and the project hub had drifted to 0.028 and 0.035; the
+     difference on a noise texture is invisible, so they now share one value. */
+  --app-grain-opacity: 0.032;
+  --app-grain-blend: multiply;
+}
+
+.dark {
+  --app-paper: 12 12 14;
+  --app-paper-raised: 22 22 26;
+  --app-paper-inverted: 243 237 226; /* stays cream: it inverts the ink */
+  --app-canvas: 10 10 10;
+
+  --app-ink: 255, 255, 255;
+  --app-accent: 147, 197, 253; /* blue-300 — the dark theme's accent */
+  --app-focus-tint: rgba(var(--app-accent), 0.5);
+
+  /* Dark surfaces take light rather than cast shade: mostly black, plus a
+     hairline of lift along the top edge. */
+  --app-shadow-card:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+  --app-shadow-card-hover:
+    0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 8px 18px -4px rgba(0, 0, 0, 0.5),
+    0 20px 40px -12px rgba(0, 0, 0, 0.6);
+
+  --app-grain-opacity: 0.048;
+  --app-grain-blend: overlay;
+}
+
+/* --- Focus ---------------------------------------------------------------
+   The one ring: an accent outline, held a couple of pixels off the control.
+   Keyboard only — a mouse click should not light anything up.
+
+   Plain CSS rather than a Tailwind utility string, because most of the
+   ninety-odd copies it replaces lived in static `class="…"` attributes, which
+   cannot reference a TypeScript constant.
+
+   An outline rather than Tailwind's `ring-*`, for two reasons. A ring is a
+   box-shadow, so it replaces whatever shadow the element already had — the
+   primary button would flatten out the moment you tabbed to it. And a ring
+   needs to be told what colour to offset against, which is exactly the
+   `ring-offset-[#0c0c0e]` literal that was being maintained by hand in ninety
+   places; an outline just leaves a transparent gap and is right everywhere.
+   Outlines follow border-radius in every browser we support, so a pill still
+   gets a pill-shaped ring. This is also what the editorial buttons already do.
+
+   Text fields deliberately do NOT use this — they draw a single deepening
+   border instead. See shared/styles/forms.ts for why. */
+
+/* The blanket default. Buttons, links and cards get the ring without asking;
+   native form fields are excluded because they own their focus treatment (a
+   single deepening border — see forms.ts), and an outline on top of that reads
+   as two edges: a grey border inside a blue ring.
+
+   Wrapped in :where() so it carries zero specificity — any component can
+   override it with a single class, and `.focus-ring` below still wins.
+
+   This lived in BaseLayout as a `[&_*:focus-visible:not(input)…]` arbitrary
+   variant, which meant it stopped at the layout's slot: a modal teleported to
+   <body> fell outside it, and so did the notification toast, which had no
+   focus treatment at all as a result. */
+:where(*):focus-visible:not(input):not(textarea):not(select) {
+  outline: 2px solid var(--app-focus-tint);
+  outline-offset: 2px;
+}
+
+/* The explicit form, for a control that wants the ring stated at the call site
+   rather than inherited — and for anything the blanket rule excludes. */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--app-focus-tint);
+  outline-offset: 2px;
+}
+
+/* For a control flush against the edge of a clipping container, where an
+   outward ring would be cut off. */
+.focus-ring-inset:focus-visible {
+  outline: 2px solid var(--app-focus-tint);
+  outline-offset: -2px;
+}
+
+/* --- Scrollbar -----------------------------------------------------------
+   A thin ink scrollbar, so a scrolling panel does not drop a chunk of stock
+   grey chrome into a warm porcelain page. */
+
+.app-scroll {
+  scrollbar-width: thin;
+}
+
+.app-scroll::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.app-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-scroll::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  background: rgba(var(--app-ink), 0.15);
+}
+
+.app-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--app-ink), 0.25);
+}
+
+/* Dark thumbs sit on near-black, where the same alpha reads brighter. */
+.dark .app-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .app-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Text rendering -------------------------------------------------------
+   Antialiasing and optical sizing, applied to a page or pane root. Small dense
+   type reads as crisp rather than gluey with it — it is the single biggest
+   contributor to the product looking sharp, which is why eight components had
+   independently discovered it and pasted it in. */
+
+.crisp-text {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* --- Card ----------------------------------------------------------------
+   The crisp card: a hairline edge and a tight layered shadow. Borders and
+   background stay in Tailwind on the element (they vary by context); only the
+   shadow — the part everyone was copying — lives here. */
+
+.crisp-card {
+  box-shadow: var(--app-shadow-card);
+}
+
+/* Cards you can click. `--hover` deepens the shadow in place; `--lift` also
+   raises the card a couple of pixels. */
+.crisp-card--hover:hover,
+.crisp-card--lift:hover {
+  box-shadow: var(--app-shadow-card-hover);
+}
+
+.crisp-card--lift {
+  transition: transform var(--app-dur-fast) var(--app-ease),
+    box-shadow var(--app-dur-fast) var(--app-ease);
+}
+
+.crisp-card--lift:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crisp-card--lift {
+    transition: box-shadow var(--app-dur-fast) var(--app-ease);
+  }
+
+  .crisp-card--lift:hover {
+    transform: none;
+  }
+}
+
+/* --- Page canvas ---------------------------------------------------------
+   One continuous warm-porcelain wash, ending on the exact colour the footer
+   paints, so a long page hands off to it seamlessly. Eight page roots had this
+   written out — three as Tailwind arbitrary values, five as scoped CSS — and
+   the midpoint had drifted between 45% and 60%. */
+
+.page-canvas {
+  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 50%, #ffffff 100%);
+  transition: background 0.5s ease;
+}
+
+.dark .page-canvas {
+  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
+}
+
+/* --- Selection -----------------------------------------------------------
+   Brand-tinted text selection for the signed-in app. Four page roots carried
+   an identical copy. The editorial pages keep their own warmer selection (see
+   editorial.css), which is why this opts in rather than landing on :root. */
+
+.brand-selection ::selection {
+  background: rgba(158, 205, 243, 0.55);
+  color: #172554;
+}
+
+.dark .brand-selection ::selection {
+  background: rgba(96, 165, 250, 0.4);
+  color: #eff6ff;
+}
+
+/* --- Grain ---------------------------------------------------------------
+   Fine film grain over large flat washes, so they read as paper rather than
+   dead pixels — and so soft radial gradients do not band. Sits in an
+   absolutely positioned child, and never intercepts pointer events. */
+
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: var(--app-grain-opacity);
+  mix-blend-mode: var(--app-grain-blend);
+}
+
+/* --- Atmosphere ----------------------------------------------------------
+   One soft apricot wash behind a page header. The only ambient colour the
+   product uses; kept here so the two pages that want it agree on its size,
+   tint and blur. */
+
+.page-glow-warm {
+  background: radial-gradient(
+    closest-side,
+    rgba(251, 146, 60, 0.13),
+    rgba(251, 146, 60, 0.04) 55%,
+    transparent 75%
+  );
+  filter: blur(48px);
+}
+
+.dark .page-glow-warm {
+  background: radial-gradient(
+    closest-side,
+    rgba(251, 146, 60, 0.07),
+    rgba(251, 146, 60, 0.02) 55%,
+    transparent 75%
+  );
+}
+
+/* --- Accent ink ----------------------------------------------------------
+   The brand's one flourish: an italic serif word carrying a warm gradient.
+   Reserved for a single word in a page's headline — it stops working the
+   moment there are two of them on screen. */
+
+.accent-ink {
+  font-style: italic;
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-right: 0.06em;
+}
+
+.dark .accent-ink {
+  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* --- Page-load rise ------------------------------------------------------
+   Header and panels fade up in sequence on first paint. Stagger by setting
+   `animation-delay` on the element. */
+
+.rise-item {
+  animation: app-rise-up var(--app-dur-slow) var(--app-ease) both;
+}
+
+@keyframes app-rise-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-item {
+    animation: none;
+  }
+}

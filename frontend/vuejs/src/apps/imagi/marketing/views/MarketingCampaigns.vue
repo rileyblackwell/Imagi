@@ -12,7 +12,7 @@
           v-for="option in statusFilters"
           :key="option.value"
           type="button"
-          class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+          class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-ring"
           :class="statusFilter === option.value
             ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
             : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
@@ -28,9 +28,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.campaignsLoading && !store.campaigns.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="store.campaignsLoading && !store.campaigns.length" />
 
     <!-- List -->
     <div v-else-if="store.campaigns.length" class="space-y-3">
@@ -38,7 +36,7 @@
         v-for="campaign in store.campaigns"
         :key="campaign.id"
         :to="{ name: 'marketing-campaign-detail', params: { projectName: route.params.projectName, campaignId: campaign.id } }"
-        class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+        class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 group focus-ring"
         :class="ui.card"
       >
         <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -46,10 +44,10 @@
             <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-base font-semibold text-blue-950 dark:text-white truncate group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200">
+            <p :class="ui.panelHeading" class="truncate group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200">
               {{ campaign.name }}
             </p>
-            <p class="text-sm text-blue-950/60 dark:text-blue-100/60 truncate">{{ campaign.body }}</p>
+            <p :class="ui.bodyText" class="truncate">{{ campaign.body }}</p>
           </div>
         </div>
         <div class="flex items-center gap-5 shrink-0">
@@ -57,11 +55,11 @@
             <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
               {{ campaign.stats.delivered }}/{{ campaign.stats.recipients }}
             </p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50">delivered</p>
+            <p :class="ui.hintText">delivered</p>
           </div>
           <div class="text-right hidden md:block">
             <p class="text-sm text-blue-950/70 dark:text-blue-100/70">{{ formatDateTime(campaign.scheduled_at || campaign.created_at) }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50">{{ campaign.scheduled_at ? 'scheduled for' : 'created' }}</p>
+            <p :class="ui.hintText">{{ campaign.scheduled_at ? 'scheduled for' : 'created' }}</p>
           </div>
           <StatusBadge :status="campaign.status" />
           <i class="fas fa-chevron-right text-xs text-blue-950/30 dark:text-blue-100/30 group-hover:translate-x-0.5 transition-transform duration-200"></i>
@@ -77,7 +75,7 @@
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">
         {{ statusFilter ? 'No campaigns with this status' : 'No campaigns yet' }}
       </h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mb-6">
+      <p :class="ui.bodyText" class="max-w-md mb-6">
         {{ statusFilter
           ? 'Try a different filter, or create a new campaign.'
           : 'Announce launches, promotions, and updates with an SMS blast or a voice broadcast to your audience.' }}
@@ -91,7 +89,7 @@
     <div v-if="loadError" class="mt-4" :class="ui.errorBox">{{ loadError }}</div>
 
     <!-- Create modal -->
-    <MarketingModal v-if="showCreate" title="New campaign" wide @close="closeCreate">
+    <BaseModal v-if="showCreate" title="New campaign" wide @close="closeCreate">
       <CampaignForm
         :tags="store.tags"
         :busy="creating"
@@ -100,7 +98,7 @@
         @submit="createCampaign"
         @cancel="closeCreate"
       />
-    </MarketingModal>
+    </BaseModal>
   </div>
 </template>
 
@@ -108,7 +106,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignForm from '../components/CampaignForm.vue'
-import MarketingModal from '../components/MarketingModal.vue'
+import { BaseModal, LoadingSpinner } from '@/shared/components'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'

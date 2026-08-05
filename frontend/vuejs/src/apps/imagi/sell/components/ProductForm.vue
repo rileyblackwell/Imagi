@@ -35,7 +35,7 @@
           v-for="option in billingOptions"
           :key="option.value"
           type="button"
-          class="px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#141418]"
+          class="px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors duration-150 focus-ring"
           :class="form.billing_interval === option.value
             ? 'border-emerald-400 dark:border-emerald-400/60 bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-200'
             : 'border-blue-950/[0.14] dark:border-white/[0.14] bg-white dark:bg-white/[0.06] text-blue-950/70 dark:text-blue-100/70 hover:border-blue-950/30 dark:hover:border-white/25'"
@@ -44,7 +44,7 @@
           {{ option.label }}
         </button>
       </div>
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+      <p :class="ui.hintText" class="mt-1.5">
         {{ form.billing_interval === 'one_time'
           ? 'Charged once at checkout.'
           : 'Stripe bills the customer automatically each ' + (form.billing_interval === 'month' ? 'month' : 'year') + '.' }}
@@ -66,7 +66,7 @@
           placeholder="12.00"
           :class="ui.input"
         />
-        <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">At least 0.50 — Stripe's minimum charge.</p>
+        <p :class="ui.hintText" class="mt-1.5">At least 0.50 — Stripe's minimum charge.</p>
       </div>
       <div>
         <label :class="ui.label" for="product-image">Image URL <span class="normal-case tracking-normal font-normal">(optional)</span></label>
@@ -77,12 +77,12 @@
           placeholder="https://…"
           :class="ui.input"
         />
-        <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">Shown on the checkout page.</p>
+        <p :class="ui.hintText" class="mt-1.5">Shown on the checkout page.</p>
       </div>
     </div>
 
     <label class="flex items-center gap-2.5 text-sm text-blue-950/80 dark:text-blue-100/80 cursor-pointer">
-      <input v-model="form.is_active" type="checkbox" class="rounded border-blue-950/30 dark:border-white/30 text-blue-950 dark:text-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-950/30 dark:focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]" />
+      <input v-model="form.is_active" type="checkbox" class="rounded border-blue-950/30 dark:border-white/30 text-blue-950 dark:text-blue-400 focus-ring" />
       Available for purchase
     </label>
 

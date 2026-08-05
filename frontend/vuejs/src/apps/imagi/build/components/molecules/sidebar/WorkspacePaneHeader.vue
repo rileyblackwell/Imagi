@@ -22,7 +22,7 @@
   (the preview, which sits beside the panes there and replaces them here).
 -->
 <template>
-  <div class="pane-header shrink-0">
+  <div class="pane-header iw-surface shrink-0">
     <!-- Left column: a ghost of the switch cluster, and load-bearing. Reserving
          the same width the real controls take on the right is what puts the
          identity at the true centre of the plate — an empty gutter gets
@@ -182,8 +182,6 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   background: var(--iw-material-bg);
   -webkit-backdrop-filter: var(--iw-material-filter);
   backdrop-filter: var(--iw-material-filter);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* The separator is drawn rather than bordered: at 1px a border rounds up to a

@@ -27,9 +27,7 @@
     <div v-if="actionError" class="mb-4" :class="ui.errorBox">{{ actionError }}</div>
 
     <!-- Loading -->
-    <div v-if="store.customersLoading && !store.customers.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-emerald-200 dark:border-emerald-300/30 border-t-emerald-600 dark:border-t-emerald-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.customersLoading && !store.customers.length" />
 
     <!-- Customers -->
     <div v-else-if="store.customers.length" class="space-y-3">
@@ -46,7 +44,7 @@
           </div>
           <div class="min-w-0">
             <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ customer.display_name }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 truncate">{{ customer.email }}</p>
+            <p :class="ui.hintText" class="truncate">{{ customer.email }}</p>
           </div>
         </div>
         <div class="flex items-center gap-4 shrink-0 text-right">
@@ -54,7 +52,7 @@
             <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
               {{ formatMoney(customer.total_spent_cents, store.currency) }}
             </p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+            <p :class="ui.hintText">
               {{ customer.orders_count }} order{{ customer.orders_count === 1 ? '' : 's' }}
             </p>
           </div>
@@ -69,24 +67,22 @@
         </div>
       </div>
 
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 text-center pt-2">
+      <p :class="ui.hintText" class="text-center pt-2">
         Showing {{ store.customers.length }} of {{ store.customersTotal }} customer{{ store.customersTotal === 1 ? '' : 's' }}
       </p>
     </div>
 
     <!-- Empty -->
-    <div v-else class="py-16 text-center" :class="ui.card">
-      <div class="w-14 h-14 mx-auto mb-4 text-xl" :class="ui.iconTile">
-        <i class="fas fa-address-book"></i>
-      </div>
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-2">No customers yet</h3>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-md mx-auto">
-        Customers appear automatically when someone completes a checkout, or add them yourself.
-      </p>
-    </div>
+    <EmptyState
+      v-else
+      icon="fas fa-address-book"
+      title="No customers yet"
+      description="Customers appear automatically when someone completes a checkout, or add them yourself."
+      :accent="accent"
+    />
 
     <!-- Add/edit modal -->
-    <SellModal v-if="showForm" :title="editingCustomer ? 'Edit customer' : 'Add customer'" @close="closeForm">
+    <BaseModal v-if="showForm" :title="editingCustomer ? 'Edit customer' : 'Add customer'" @close="closeForm">
       <form class="space-y-5" @submit.prevent="save">
         <div>
           <label :class="ui.label" for="customer-name">Name</label>
@@ -123,10 +119,10 @@
           </button>
         </div>
       </form>
-    </SellModal>
+    </BaseModal>
 
     <!-- Detail modal -->
-    <SellModal v-if="detailCustomer" :title="detailCustomer.display_name" wide @close="detailCustomer = null">
+    <BaseModal v-if="detailCustomer" :title="detailCustomer.display_name" wide @close="detailCustomer = null">
       <div class="space-y-5">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -171,7 +167,7 @@
               <OrderStatusBadge :status="order.status" />
             </div>
           </div>
-          <p v-else class="text-sm text-blue-950/60 dark:text-blue-100/60 py-2">No orders yet.</p>
+          <p :class="ui.bodyText" v-else class="py-2">No orders yet.</p>
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-1">
@@ -181,18 +177,18 @@
           </button>
         </div>
       </div>
-    </SellModal>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { BaseModal, EmptyState, LoadingSpinner } from '@/shared/components'
 import OrderStatusBadge from '../components/OrderStatusBadge.vue'
-import SellModal from '../components/SellModal.vue'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
 import type { Customer, Order } from '../types'
-import { formatDateTime, formatMoney, ui } from '../utils/ui'
+import { accent, formatDateTime, formatMoney, ui } from '../utils/ui'
 
 const store = useSellStore()
 

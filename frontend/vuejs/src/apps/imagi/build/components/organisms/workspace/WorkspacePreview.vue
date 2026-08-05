@@ -74,7 +74,7 @@
 
         <!-- Directory tree: apps are folders, their pages are the files inside -->
         <div
-          v-if="menuOpen && apps.length > 0"
+          v-if="menuOpen && apps.length> 0"
           class="pv-menu"
         >
           <p class="pv-menu-label">
@@ -759,7 +759,7 @@ function onPointerMove(e: PointerEvent) {
     const dx = x - touchDrag.lastX
     const dy = y - touchDrag.lastY
     if (!touchDrag.scrolling &&
-        Math.hypot(x - touchDrag.startX, y - touchDrag.startY) > TOUCH_TAP_SLOP) {
+        Math.hypot(x - touchDrag.startX, y - touchDrag.startY)> TOUCH_TAP_SLOP) {
       touchDrag.scrolling = true
     }
     if (touchDrag.scrolling && (dx !== 0 || dy !== 0)) {

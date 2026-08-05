@@ -34,7 +34,7 @@ defineProps<{
 .step__num {
   flex: none;
   width: 2rem;
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;

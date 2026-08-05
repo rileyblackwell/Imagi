@@ -15,16 +15,19 @@
       @confirm="confirmModal.handleConfirm"
       @cancel="confirmModal.handleCancel"
     />
-    <BuilderLayout
+    <DashboardLayout
       storage-key="builderWorkspaceSidebarCollapsed"
-      :navigation-items="navigationItems"
+      aside-width-class="w-[22rem] max-md:w-full"
+      content-offset-class="md:ml-[22rem]"
+      app-shell
+      hide-toggle-on-mobile
     >
       <!-- Sidebar Content: one pane at a time (the mobile pattern promoted
            to desktop) — the agent manager (team view) OR the active
            instance's chat. The preview lives in the main slot, so swapping
            panes never unmounts it. -->
-      <template #sidebar-content="{ collapsed, setSidebarCollapsed }">
-        <div v-if="!collapsed" class="h-full overflow-hidden">
+      <template #sidebar-content="{ isSidebarCollapsed, setSidebarCollapsed }">
+        <div v-if="!isSidebarCollapsed" class="h-full overflow-hidden">
           <!-- KeepAlive keeps the hidden pane's component state alive across
                swaps — most importantly the composer's typed-but-unsent draft,
                which a plain v-if unmount would silently destroy. -->
@@ -65,7 +68,7 @@
            viewport calc, so it can never disagree with the shell and leave
            the page itself scrollable. -->
       <template #default="{ isSidebarCollapsed, setSidebarCollapsed }">
-        <div class="flex flex-col w-full h-full overflow-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500">
+        <div class="flex flex-col w-full h-full overflow-hidden bg-canvas relative transition-colors duration-500">
           <!-- Enhanced Error State Display -->
           <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
 
@@ -96,7 +99,7 @@
           </div>
         </div>
       </template>
-    </BuilderLayout>
+    </DashboardLayout>
   </div>
 </template>
 
@@ -114,7 +117,7 @@ import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
-import { useWindowSize } from '@/shared/composables/useWindowSize'
+import { useIsMobile } from '../composables/useWindowSize'
 import { useConfirm } from '../composables/useConfirm'
 import { useSidebarPane } from '../composables/useSidebarPane'
 // The pane-swap transition below is timed with the workspace's shared
@@ -122,7 +125,7 @@ import { useSidebarPane } from '../composables/useSidebarPane'
 import '../styles/workspace.css'
 
 // Builder Components
-import { BuilderLayout } from '@/apps/imagi/build/layouts'
+import { DashboardLayout } from '@/shared/layouts'
 
 // Atomic Components
 import {
@@ -158,7 +161,7 @@ const {
 // instance's chat, never both. The preview is not a third pane: it is what the
 // main content area shows, so "go there" is "collapse the sidebar". isMobile is
 // only used to park the preview's polling while the sidebar covers it.
-const { isMobile } = useWindowSize()
+const { isMobile } = useIsMobile()
 const {
   sidebarView,
   setSidebarView,
@@ -315,9 +318,6 @@ async function onRestoreCheckpoint(message: AIMessage) {
 
 // Local state
 
-
-// Navigation items for sidebar
-const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
 
 // Create a git commit after successful code changes
 function createCommitFromPrompt(filePath: string, prompt: string) {

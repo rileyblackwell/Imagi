@@ -50,7 +50,7 @@
             It's live at the <code class="font-mono">{{ installedNotice.route }}</code> page of your app.
             <router-link
               :to="{ name: 'builder-workspace', params: { projectName: route.params.projectName } }"
-              class="rounded-sm underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
+              class="rounded-sm underline hover:no-underline focus-ring"
             >
               Open the Build workspace
             </router-link>
@@ -61,9 +61,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.templatesLoading && !store.templates.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-emerald-200 dark:border-emerald-300/30 border-t-emerald-600 dark:border-t-emerald-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.templatesLoading && !store.templates.length" />
 
     <!-- Gallery -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -81,8 +79,8 @@
           </span>
         </div>
 
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1">{{ template.name }}</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">{{ template.description }}</p>
+        <h2 :class="ui.panelHeading" class="mb-1">{{ template.name }}</h2>
+        <p :class="ui.bodyText" class="mb-4">{{ template.description }}</p>
 
         <ul class="space-y-2 mb-6">
           <li
@@ -105,7 +103,7 @@
             <i :class="['fas', installingKey === template.key ? 'fa-circle-notch animate-spin' : (template.installed ? 'fa-rotate' : 'fa-plus')]" class="text-xs"></i>
             {{ template.installed ? 'Reinstall' : 'Add to my app' }}
           </button>
-          <span class="text-xs text-blue-950/50 dark:text-blue-100/50 font-mono">{{ template.route }}</span>
+          <span :class="ui.hintText" class="font-mono">{{ template.route }}</span>
         </div>
       </div>
 
@@ -120,8 +118,8 @@
           </span>
         </div>
 
-        <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-1">Payment links</h2>
-        <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">
+        <h2 :class="ui.panelHeading" class="mb-1">Payment links</h2>
+        <p :class="ui.bodyText" class="mb-4">
           No page needed — copy a secure Stripe Checkout link for any product and share it in a text,
           an email, or on social media.
         </p>
@@ -151,7 +149,7 @@
 
     <!-- How it stays secure -->
     <section class="mt-8 p-6" :class="ui.card">
-      <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-3">How these stay secure</h2>
+      <h2 :class="ui.panelHeading" class="mb-3">How these stay secure</h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div v-for="point in securityPoints" :key="point.title" class="flex items-start gap-3">
           <div class="w-9 h-9 shrink-0 text-sm" :class="ui.iconTile">
@@ -169,6 +167,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'

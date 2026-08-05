@@ -1,5 +1,5 @@
 <template>
-  <footer class="crisp-footer relative font-body bg-white dark:bg-[#0a0a0a] border-t border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
+  <footer class="crisp-footer crisp-text relative font-body bg-canvas border-t border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
     <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
       
       <!-- Main footer content -->
@@ -15,7 +15,7 @@
               <li>
                 <router-link 
                   to="/imagi/projects" 
-                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring"
                 >
                   Imagi
                 </router-link>
@@ -23,7 +23,7 @@
               <li>
                 <router-link 
                   to="/payments/pricing" 
-                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring"
                 >
                   Pricing
                 </router-link>
@@ -40,7 +40,7 @@
               <li>
                 <router-link 
                   to="/docs" 
-                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring"
                 >
                   Documentation
                 </router-link>
@@ -57,7 +57,7 @@
               <li>
                 <router-link 
                   to="/about" 
-                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring"
                 >
                   About Us
                 </router-link>
@@ -74,7 +74,7 @@
               <li>
                 <router-link 
                   to="/privacy" 
-                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring"
                 >
                   Privacy Policy
                 </router-link>
@@ -82,7 +82,7 @@
               <li>
                 <router-link 
                   to="/terms" 
-                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                  class="text-sm rounded-sm text-blue-950/65 dark:text-blue-100/65 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring"
                 >
                   Terms of Service
                 </router-link>
@@ -116,8 +116,5 @@ const currentYear = computed(() => new Date().getFullYear())
 <style scoped>
 /* Crisp, sharp text rendering for the footer */
 .crisp-footer {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 </style>

@@ -8,7 +8,7 @@
   agent's check-in queue, so this pane's whole job is legibility.
 -->
 <template>
-  <div class="iw-surface relative overflow-hidden h-full bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div class="iw-surface relative overflow-hidden h-full bg-canvas transition-colors duration-300">
     <!-- Opening a subagent is a navigation, so it moves like one: the list
          slides out to the left as the thread comes in from the right, and
          back the other way on the return. The leaving pane is taken out of
@@ -51,7 +51,7 @@
           </p>
           <button
             type="button"
-            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#fdf9f2] dark:text-blue-950"
+            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
             @click="closeOpened"
           >
             Back to subagents
@@ -86,7 +86,7 @@
     <!-- Fleet meter: the same numbers as the status line, drawn. Segments are
          proportional, so a glance says whether the crew is busy or the pile of
          work waiting on you is the bigger half. -->
-    <div v-if="activeAgents.length > 0" class="fleet-meter" :title="fleetStatus">
+    <div v-if="activeAgents.length> 0" class="fleet-meter" :title="fleetStatus">
       <span
         v-for="seg in fleetSegments"
         :key="seg.key"
@@ -127,7 +127,7 @@
              per-card --stagger becomes the enter delay, so a batch of
              parallel takes arrives in sequence instead of all at once. -->
         <TransitionGroup
-          v-if="activeAgents.length > 0"
+          v-if="activeAgents.length> 0"
           name="agent-list"
           tag="div"
           class="agent-list"
@@ -156,7 +156,7 @@
         </div>
 
         <!-- History: archived threads, legacy chats, resolved tasks -->
-        <template v-if="history.length > 0">
+        <template v-if="history.length> 0">
           <button
             type="button"
             class="section-head section-head--button"

@@ -16,7 +16,7 @@
 
     <!-- Usage option selector (Max-style tiers pick between 5× and 20×) -->
     <div
-      v-if="options && options.length > 1"
+      v-if="options && options.length> 1"
       class="tier__options"
       role="tablist"
       aria-label="Usage amount"

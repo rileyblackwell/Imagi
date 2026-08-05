@@ -3,17 +3,17 @@
 
   This is the landing page for a single project (business). From here the user
   chooses how to work on it:
-    - Build   -> the AI app builder (real, existing workspace)
-    - Sell    -> sales tools (general template, coming soon)
-    - Market  -> marketing tools (general template, coming soon)
+    - Build -> the AI app builder (real, existing workspace)
+    - Sell -> sales tools (general template, coming soon)
+    - Market -> marketing tools (general template, coming soon)
     - Operate -> finance & operations tools (general template, coming soon)
 
   The categories are driven by utils/businessTools.ts. This view is a template
   shell — it does not implement any of the specific tools.
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
-    <div class="hub-page relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
+  <DefaultLayout>
+    <div class="hub-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
       <!-- Grain texture over the porcelain canvas -->
       <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
 
@@ -28,7 +28,7 @@
           <!-- Back link -->
           <router-link
             :to="{ name: 'projects' }"
-            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/70 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/70 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>All projects</span>
@@ -51,7 +51,7 @@
             <p class="text-blue-950/65 dark:text-blue-100/65 mb-8 max-w-md transition-colors duration-300">We couldn't find this project. It may have been deleted.</p>
             <router-link
               :to="{ name: 'projects' }"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
             >
               <i class="fas fa-arrow-left text-sm"></i>
               <span>Back to projects</span>
@@ -92,54 +92,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
+
 import { ProjectService } from '@/apps/imagi/build/services/projectService'
-import { useAuthStore } from '@/shared/stores/auth'
+
 import { ToolCategoryCard } from '../components/organisms/hub'
 import { businessTools } from '../utils/businessTools'
-import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
-import type { Project } from '@/apps/imagi/build/types/components'
+import { useProjectFromSlug } from '@/apps/imagi/shared'
 
 const props = defineProps<{
   projectName: string
 }>()
 
-const projectStore = useProjectStore()
-const authStore = useAuthStore()
-
-const isInitializing = ref(true)
-
 const projectSlug = computed(() => props.projectName)
-const isLoading = computed(() => projectStore.loading || isInitializing.value)
-
-const project = computed<Project | null>(() => {
-  return findProjectBySlug(projectStore.projects, props.projectName) || null
-})
-
-async function loadProject() {
-  isInitializing.value = true
-  try {
-    if (!authStore.isAuthenticated) return
-    if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
-      projectStore.setAuthenticated(authStore.isAuthenticated)
-    }
-    // Ensure the projects list is loaded so we can resolve the slug.
-    if (!projectStore.projects.length) {
-      await projectStore.fetchProjects()
-    }
-  } catch (error) {
-    console.error('Failed to load project for hub:', error)
-  } finally {
-    isInitializing.value = false
-  }
-}
-
-onMounted(loadProject)
-
-// Reload if the route param changes (navigating between projects).
-watch(() => props.projectName, loadProject)
+const { project, isLoading } = useProjectFromSlug(projectSlug, 'the project hub')
 
 // --- Initial AI build status ---
 // Right after creation the backend runs the coding agent against the business
@@ -195,31 +162,6 @@ onBeforeUnmount(stopBuildStatusPolling)
 </script>
 
 <style scoped>
-/* Warm porcelain canvas fading to white so the page hands off to the footer
-   (footer is bg-white / dark #0a0a0a) — matches Home.vue */
-.hub-page {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-.dark .hub-page {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
-}
-
-/* Fine film grain keeps large soft gradients from banding and adds texture */
-.grain-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-  opacity: 0.035;
-  mix-blend-mode: multiply;
-}
-
-.dark .grain-overlay {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-}
 
 /* Soft baby-blue wash behind the page header */
 .page-glow-cool {
@@ -230,39 +172,7 @@ onBeforeUnmount(stopBuildStatusPolling)
 .dark .page-glow-cool {
   background: radial-gradient(closest-side, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.02) 55%, transparent 75%);
 }
-
-/* Page-load rise: header and grid fade up in sequence */
-.rise-item {
-  animation: rise-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes rise-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rise-item {
-    animation: none;
-  }
-}
 </style>
 
 <!-- Unscoped: brand-tinted text selection on the hub page -->
-<style>
-.hub-page ::selection {
-  background: rgba(158, 205, 243, 0.55);
-  color: #172554;
-}
 
-.dark .hub-page ::selection {
-  background: rgba(96, 165, 250, 0.4);
-  color: #eff6ff;
-}
-</style>

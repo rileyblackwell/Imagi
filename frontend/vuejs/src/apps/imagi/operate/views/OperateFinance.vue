@@ -47,9 +47,7 @@
     <div v-if="loadError" :class="ui.errorBox" class="mb-6">{{ loadError }}</div>
 
     <!-- Loading -->
-    <div v-if="store.transactionsLoading && !store.transactions.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.transactionsLoading && !store.transactions.length" />
 
     <!-- Ledger -->
     <section v-else-if="store.transactions.length" :class="ui.card" class="divide-y divide-blue-200/60 dark:divide-white/[0.08]">
@@ -68,7 +66,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ transaction.description }}</p>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+          <p :class="ui.hintText">
             {{ CATEGORY_LABELS[transaction.category] ?? transaction.category }} · {{ formatDate(transaction.occurred_on) }}
             <template v-if="transaction.invoice_number"> · from {{ transaction.invoice_number }}</template>
           </p>
@@ -81,16 +79,18 @@
         </p>
         <div class="flex items-center gap-1">
           <button
+            :class="ui.iconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="w-8 h-8"
             aria-label="Edit transaction"
             @click="openEdit(transaction)"
           >
             <i class="fas fa-pen text-xs"></i>
           </button>
           <button
+            :class="ui.dangerIconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="w-8 h-8"
             aria-label="Delete transaction"
             @click="confirmDelete(transaction)"
           >
@@ -101,31 +101,32 @@
     </section>
 
     <!-- Empty -->
-    <section v-else class="py-16 text-center" :class="ui.card">
-      <div class="w-14 h-14 mx-auto mb-4 text-xl" :class="ui.iconTile">
-        <i class="fas fa-file-invoice-dollar"></i>
-      </div>
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-2">Your ledger is empty</h3>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6 max-w-sm mx-auto">
-        Track money in and out of the business. Marking invoices paid also records income here automatically.
-      </p>
-      <button type="button" :class="ui.primaryBtn" @click="openCreate">
-        <i class="fas fa-plus text-xs"></i>
-        Record your first transaction
-      </button>
-    </section>
+    <EmptyState
+      v-else
+      icon="fas fa-file-invoice-dollar"
+      title="Your ledger is empty"
+      description="Track money in and out of the business. Marking invoices paid also records income here automatically."
+      :accent="accent"
+    >
+      <template #action>
+        <button type="button" :class="ui.primaryBtn" @click="openCreate">
+          <i class="fas fa-plus text-xs"></i>
+          Record your first transaction
+        </button>
+      </template>
+    </EmptyState>
 
     <!-- Create/edit modal -->
-    <OperateModal
+    <BaseModal
       v-if="showForm"
       :title="editing ? 'Edit transaction' : 'Record transaction'"
       @close="closeForm"
     >
       <TransactionForm :transaction="editing" @close="closeForm" @saved="onSaved" />
-    </OperateModal>
+    </BaseModal>
 
     <!-- Delete confirm -->
-    <OperateModal v-if="deleting" title="Delete transaction" @close="deleting = null">
+    <BaseModal v-if="deleting" title="Delete transaction" @close="deleting = null">
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
         Remove "{{ deleting.description }}" ({{ formatMoney(deleting.amount) }}) from the ledger? This can't be undone.
       </p>
@@ -137,20 +138,20 @@
           Delete
         </button>
       </div>
-    </OperateModal>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { BaseModal, EmptyState, LoadingSpinner } from '@/shared/components'
 import { useRoute, useRouter } from 'vue-router'
-import OperateModal from '../components/OperateModal.vue'
 import TransactionForm from '../components/TransactionForm.vue'
 import { extractError } from '../services/operateService'
 import { useOperateStore } from '../stores/operate'
 import type { Transaction } from '../types'
 import { CATEGORY_LABELS } from '../types'
-import { formatDate, formatMoney, ui } from '../utils/ui'
+import { accent, formatDate, formatMoney, ui } from '../utils/ui'
 
 const route = useRoute()
 const router = useRouter()

@@ -81,7 +81,7 @@ export default defineComponent({
 <style scoped>
 /* Staggered entrance on load */
 .hero-item {
-  animation: hero-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hero-rise 0.85s var(--app-ease) both;
 }
 
 @keyframes hero-rise {

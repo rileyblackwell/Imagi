@@ -1,105 +1,38 @@
+<!-- The site's standard page frame: navbar, routed content, footer.
+
+     Two navbars, because two kinds of page use this frame. Most of the site —
+     home, the project hub, and the Sell/Market/Operate workspaces — wants the
+     full bar with the Product menu, Pricing and the session controls. Sign-in
+     and the payment pages want the bar reduced to the wordmark, so nothing
+     competes with the one thing being asked of the visitor; those opt in with
+     `minimal-nav`.
+
+     There is deliberately no page transition here. App.vue crossfades the
+     routed component, and this layout is *inside* that component — every view
+     renders its own DefaultLayout — so a transition at this level has no child
+     swap to animate. There used to be one, driven by GSAP; it never once ran. -->
 <template>
   <BaseLayout>
-    <!-- Header -->
-    <HomeNavbar v-if="isHomeNav" />
-    <BaseNavbar v-else />
+    <BaseNavbar v-if="minimalNav" />
+    <SiteNavbar v-else />
 
-    <!-- Main Content with Transition -->
     <main class="flex-1 relative">
-      <transition
-        name="page"
-        mode="out-in"
-        @before-enter="beforeEnter"
-        @enter="enter"
-        @after-enter="afterEnter"
-        @enter-cancelled="enterCancelled"
-        @before-leave="beforeLeave"
-        @leave="leave"
-        @after-leave="afterLeave"
-        @leave-cancelled="leaveCancelled"
-      >
-        <slot></slot>
-      </transition>
+      <slot></slot>
     </main>
 
-    <!-- Footer -->
     <BaseFooter class="z-10 relative" />
   </BaseLayout>
 </template>
 
-<script>
-import { BaseLayout } from '@/shared/layouts'
-import { BaseNavbar, BaseFooter } from '@/shared/components'
-import HomeNavbar from '@/apps/home/components/organisms/navigation/HomeNavbar.vue'
-import gsap from 'gsap'
+<script setup lang="ts">
+import BaseLayout from './BaseLayout.vue'
+import { BaseNavbar, BaseFooter, SiteNavbar } from '@/shared/components'
 
-export default {
-  name: 'DefaultLayout',
-  components: {
-    BaseLayout,
-    BaseNavbar,
-    BaseFooter,
-    HomeNavbar
-  },
-  props: {
-    isHomeNav: {
-      type: Boolean,
-      default: false
-    }
-  },
-  methods: {
-    beforeEnter(el) {
-      gsap.set(el, {
-        opacity: 0,
-        y: 10
-      })
-    },
-    enter(el, done) {
-      gsap.to(el, {
-        duration: 0.3,
-        opacity: 1,
-        y: 0,
-        onComplete: done,
-        ease: 'power2.out'
-      })
-    },
-    afterEnter(el) {
-      // Cleanup if needed
-    },
-    enterCancelled(el) {
-      // Handle cancellation if needed
-    },
-    beforeLeave(el) {
-      el.style.opacity = 1
-    },
-    leave(el, done) {
-      gsap.to(el, {
-        duration: 0.2,
-        opacity: 0,
-        y: -10,
-        onComplete: done,
-        ease: 'power2.in'
-      })
-    },
-    afterLeave(el) {
-      // Cleanup if needed
-    },
-    leaveCancelled(el) {
-      // Handle cancellation if needed
-    }
-  }
-}
+withDefaults(
+  defineProps<{
+    /** Reduce the top bar to the wordmark — sign-in and payment pages. */
+    minimalNav?: boolean
+  }>(),
+  { minimalNav: false }
+)
 </script>
-
-<style scoped>
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-}
-</style>

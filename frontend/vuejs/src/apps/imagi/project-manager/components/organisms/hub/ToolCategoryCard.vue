@@ -8,7 +8,7 @@
   <component
     :is="isBuildLocked ? 'div' : 'router-link'"
     :to="isBuildLocked ? undefined : target"
-    class="crisp-card group relative flex flex-col h-full p-7 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+    class="crisp-card group relative flex flex-col h-full p-7 rounded-2xl border backdrop-blur-sm transition-all duration-300 focus-ring"
     :class="[
       isBuildLocked
         ? 'building-card items-center text-center cursor-progress bg-white/85 dark:bg-white/[0.045] border-blue-300/70 dark:border-blue-300/25'
@@ -30,7 +30,7 @@
       </div>
 
       <div class="relative flex-1">
-        <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 tracking-tight">
+        <h3 :class="ui.headingText" class="mb-1.5 tracking-tight">
           Building your app
         </h3>
         <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
@@ -81,7 +81,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { hubCardTones, type BusinessTool } from '../../../utils/businessTools'
+import { type BusinessTool } from '../../../utils/businessTools'
+import { hubCardTone, ui } from '@/shared/styles'
 
 const props = defineProps<{
   tool: BusinessTool
@@ -92,7 +93,7 @@ const props = defineProps<{
 
 // Every hub card wears the restrained ink tone (solid ink chip, neutral border,
 // muted ink CTA) so the four repeated cards stay calm and professional.
-const tone = computed(() => hubCardTones.ink)
+const tone = hubCardTone
 
 /**
  * The initial AI build is still running. While it is, the Build card is locked:
@@ -122,38 +123,6 @@ const target = computed<RouteLocationRaw>(() => {
 </script>
 
 <style scoped>
-/* Crisp, sharply-defined card matching Home/About - hairline edge + tight layered shadow */
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
-}
-
-.crisp-card:hover {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.04),
-    0 2px 4px rgba(15, 23, 42, 0.07),
-    0 8px 18px -4px rgba(15, 23, 42, 0.09),
-    0 20px 40px -12px rgba(15, 23, 42, 0.14);
-}
-
-:global(.dark) .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
-}
-
-:global(.dark) .crisp-card:hover {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.07),
-    0 2px 4px rgba(0, 0, 0, 0.55),
-    0 8px 18px -4px rgba(0, 0, 0, 0.5),
-    0 20px 40px -12px rgba(0, 0, 0, 0.6);
-}
 
 /* ---- Icon chip ---- */
 /* Glossy top highlight so the solid ink chip reads as a polished object. */

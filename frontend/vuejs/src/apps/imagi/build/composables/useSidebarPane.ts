@@ -29,7 +29,7 @@ function readStored(key: string): string | null {
   }
 }
 
-/** Collapse state is owned by BuilderLayout (see its storage-key prop) and
+/** Collapse state is owned by DashboardLayout (see its storage-key prop) and
  *  handed to us as a setter, so the preview stays one thing the layout knows
  *  about rather than a view this composable has to mirror. */
 type SetCollapsed = (collapsed: boolean) => void

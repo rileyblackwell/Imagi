@@ -3,7 +3,7 @@ import { ModelService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import type { CreateFileOptions } from '../types/composables'
 import type { ProjectFile } from '../types/components'
-import type { EditorLanguage } from '@/shared/types/editor'
+import type { EditorLanguage } from '../types/editor'
 
 /**
  * Workspace file/model helpers.

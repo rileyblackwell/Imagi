@@ -9,16 +9,14 @@
   <div>
     <router-link
       :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
-      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-ring"
     >
       <i class="fas fa-arrow-left text-xs"></i>
       <span>All campaigns</span>
     </router-link>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="loading" />
 
     <div v-else-if="loadError" :class="ui.errorBox">{{ loadError }}</div>
 
@@ -33,7 +31,7 @@
             <h1 class="text-2xl font-semibold text-blue-950 dark:text-white tracking-tight truncate">{{ campaign.name }}</h1>
             <StatusBadge :status="campaign.status" />
           </div>
-          <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mt-1">
+          <p :class="ui.bodyText" class="mt-1">
             {{ campaign.channel === 'voice' ? 'Voice broadcast' : 'SMS campaign' }}
             <template v-if="campaign.scheduled_at"> · scheduled for {{ formatDateTime(campaign.scheduled_at) }}</template>
             <template v-else-if="campaign.completed_at"> · finished {{ formatDateTime(campaign.completed_at) }}</template>
@@ -89,7 +87,7 @@
       <template v-if="campaign.status === 'draft'">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <section class="lg:col-span-2 p-6" :class="ui.card">
-            <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-5">Compose</h2>
+            <h2 :class="ui.panelHeading" class="mb-5">Compose</h2>
             <CampaignForm
               :key="campaign.updated_at"
               :initial="campaign"
@@ -105,11 +103,11 @@
           <div class="space-y-6">
             <!-- Audience preview -->
             <section class="p-6" :class="ui.card">
-              <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-3">Audience</h2>
+              <h2 :class="ui.panelHeading" class="mb-3">Audience</h2>
               <p class="text-3xl font-semibold text-blue-950 dark:text-white tabular-nums mb-1">
                 {{ recipientCount === null ? '—' : recipientCount.toLocaleString() }}
               </p>
-              <p class="text-sm text-blue-950/60 dark:text-blue-100/60">
+              <p :class="ui.bodyText">
                 subscribed contact{{ recipientCount === 1 ? '' : 's' }} will receive this
                 {{ campaign.channel === 'voice' ? 'call' : 'message' }}
               </p>
@@ -120,7 +118,7 @@
 
             <!-- Send -->
             <section class="p-6" :class="ui.card">
-              <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-4">Send</h2>
+              <h2 :class="ui.panelHeading" class="mb-4">Send</h2>
               <button
                 type="button"
                 class="w-full mb-4"
@@ -151,11 +149,11 @@
                   <i class="fas fa-clock text-xs"></i>
                   Schedule
                 </button>
-                <p v-if="!canSchedule" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-2.5">
+                <p :class="ui.hintText" v-if="!canSchedule" class="mt-2.5">
                   Scheduling is handled by Twilio and needs a Messaging Service SID —
                   add one in Settings. SMS only, 15 minutes to 35 days out.
                 </p>
-                <p v-else class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-2.5">
+                <p :class="ui.hintText" v-else class="mt-2.5">
                   Twilio delivers scheduled campaigns even if Imagi is offline. 15 minutes to 35 days out.
                 </p>
               </div>
@@ -187,7 +185,7 @@
 
         <!-- Recipients -->
         <section class="p-6" :class="ui.card">
-          <h2 class="text-base font-semibold text-blue-950 dark:text-white mb-4">Recipients</h2>
+          <h2 :class="ui.panelHeading" class="mb-4">Recipients</h2>
           <div v-if="messages.length" class="overflow-x-auto -mx-2">
             <table class="w-full text-sm min-w-[560px]">
               <thead>
@@ -214,7 +212,7 @@
               </tbody>
             </table>
           </div>
-          <p v-else class="text-sm text-blue-950/60 dark:text-blue-100/60 py-6 text-center">No messages recorded for this campaign.</p>
+          <p :class="ui.bodyText" v-else class="py-6 text-center">No messages recorded for this campaign.</p>
         </section>
       </template>
     </template>
@@ -223,6 +221,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignForm from '../components/CampaignForm.vue'
 import StatusBadge from '../components/StatusBadge.vue'

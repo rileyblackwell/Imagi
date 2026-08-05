@@ -9,7 +9,7 @@
       <div class="w-9 h-9 text-sm shrink-0" :class="ui.iconTile">
         <i :class="meta.icon"></i>
       </div>
-      <h2 class="text-base font-semibold text-blue-950 dark:text-white">{{ meta.label }}</h2>
+      <h2 :class="ui.panelHeading">{{ meta.label }}</h2>
       <span
         v-if="connection?.is_configured"
         class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300"
@@ -18,12 +18,12 @@
         Connected
       </span>
     </div>
-    <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
+    <p :class="ui.bodyText" class="mb-5">
       {{ description }}
-      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">Setup guide</a>.
+      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Setup guide</a>.
     </p>
 
-    <p v-if="connection?.account_name" class="text-xs text-blue-950/50 dark:text-blue-100/50 mb-4 -mt-2">
+    <p :class="ui.hintText" v-if="connection?.account_name" class="mb-4 -mt-2">
       Verified as “{{ connection.account_name }}”
       <template v-if="connection.currency">({{ connection.currency }})</template>
       <template v-if="connection.last_verified_at"> · {{ formatDateTime(connection.last_verified_at) }}</template>
@@ -45,7 +45,7 @@
           class="font-mono text-xs"
           :class="ui.input"
         />
-        <p v-if="field.hint" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">{{ field.hint }}</p>
+        <p :class="ui.hintText" v-if="field.hint" class="mt-1.5">{{ field.hint }}</p>
       </div>
 
       <div v-if="error" :class="ui.errorBox">{{ error }}</div>

@@ -14,10 +14,10 @@
             autocomplete="username"
             placeholder="Create a username (min. 3 characters)"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && formSubmitCount > 0"
+            :hasError="!!errorMessage && formSubmitCount> 0"
           />
           <transition name="fade-up">
-            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div v-if="errorMessage && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>{{ errorMessage }}</span>
             </div>
@@ -38,10 +38,10 @@
             autocomplete="email"
             placeholder="Enter your email address"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && formSubmitCount > 0"
+            :hasError="!!errorMessage && formSubmitCount> 0"
           />
           <transition name="fade-up">
-            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div v-if="errorMessage && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>{{ errorMessage }}</span>
             </div>
@@ -62,12 +62,12 @@
               autocomplete="new-password"
               placeholder="Create password"
               :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && formSubmitCount > 0"
+              :hasError="!!errorMessage && formSubmitCount> 0"
             />
             <!-- Password requirements on a warm porcelain inset panel -->
             <div class="mt-4 p-4 rounded-xl
                         border border-blue-950/[0.08] dark:border-white/[0.1]
-                        bg-[#fdf9f2]/80 dark:bg-white/[0.03]
+                        bg-paper/80 dark:bg-white/[0.03]
                         backdrop-blur-sm
                         transition-all duration-300">
               <PasswordRequirements 
@@ -90,10 +90,10 @@
               autocomplete="new-password"
               placeholder="Confirm password"
               :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && formSubmitCount > 0"
+              :hasError="!!errorMessage && formSubmitCount> 0"
             />
             <transition name="fade-up">
-              <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+              <div v-if="errorMessage && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
                 <i class="fas fa-exclamation-circle text-xs"></i>
                 <span>{{ errorMessage }}</span>
               </div>
@@ -107,27 +107,26 @@
         <!-- Terms checkbox on a warm porcelain inset panel -->
         <div class="p-4 rounded-xl
                     border border-blue-950/[0.08] dark:border-white/[0.1]
-                    bg-[#fdf9f2]/80 dark:bg-white/[0.03]
+                    bg-paper/80 dark:bg-white/[0.03]
                     backdrop-blur-sm
-                    hover:bg-[#fdf9f2] dark:hover:bg-white/[0.05]
+                    hover:bg-paper dark:hover:bg-white/[0.05]
                     hover:border-blue-950/[0.16] dark:hover:border-white/[0.16]
                     transition-all duration-300">
           <Field name="agreeToTerms" :rules="{ required: { allowFalse: false } }" :validateOnBlur="false" v-slot="{ errorMessage }">
             <FormCheckbox 
               name="agreeToTerms" 
               :disabled="authStore.loading || isSubmitting"
-              :showError="false"
             >
               I agree to the
-              <router-link to="/terms" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">
+              <router-link to="/terms" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">
+              <router-link to="/privacy" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
                 Privacy Policy
               </router-link>
             </FormCheckbox>
-            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount > 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount> 0" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <i class="fas fa-exclamation-circle text-xs"></i>
               <span>You must accept the terms to continue</span>
             </div>
@@ -161,13 +160,8 @@
     </Form>
 
     <!-- Auth Links -->
-    <div class="text-center pt-2">
-      <p class="text-blue-950/65 dark:text-blue-100/65 text-sm transition-colors duration-300">
-        Already have an account?
-        <router-link to="/auth/signin" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 ml-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">
-          Sign in
-        </router-link>
-      </p>
+    <div class="pt-2">
+      <AuthLinks />
     </div>
   </div>
 </template>
@@ -181,6 +175,7 @@ import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
 
 import { 
+  AuthLinks,
   PasswordInput,
   FormInput,
   FormCheckbox,

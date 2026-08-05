@@ -5,9 +5,7 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="store.overviewLoading && !overview" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-emerald-200 dark:border-emerald-300/30 border-t-emerald-600 dark:border-t-emerald-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.overviewLoading && !overview" />
 
     <template v-else-if="overview">
       <!-- Stats -->
@@ -18,7 +16,7 @@
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1">{{ stat.caption }}</p>
+          <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
 
@@ -56,10 +54,10 @@
       <!-- Recent orders -->
       <section class="p-6" :class="ui.card">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-blue-950 dark:text-white">Recent orders</h2>
+          <h2 :class="ui.panelHeading">Recent orders</h2>
           <router-link
             :to="{ name: 'sell-orders', params: { projectName: route.params.projectName } }"
-            class="rounded-sm text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline underline-offset-4 decoration-blue-950/25 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="rounded-sm text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline underline-offset-4 decoration-blue-950/25 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-ring"
           >
             View all
           </router-link>
@@ -77,7 +75,7 @@
               <p class="text-sm font-medium text-blue-950 dark:text-white truncate">
                 {{ orderSummary(order) }}
               </p>
-              <p class="text-xs text-blue-950/50 dark:text-blue-100/50">
+              <p :class="ui.hintText">
                 {{ order.customer_email || 'No email yet' }} · {{ formatDateTime(order.created_at) }}
               </p>
             </div>
@@ -88,7 +86,7 @@
           </div>
         </div>
         <div v-else class="py-10 text-center">
-          <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-4">
+          <p :class="ui.bodyText" class="mb-4">
             No orders yet. Add a product and share its payment link, or hook your app up to the storefront API.
           </p>
           <router-link :to="{ name: 'sell-products', params: { projectName: route.params.projectName }, query: { new: '1' } }" :class="ui.secondaryBtn">
@@ -104,6 +102,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import OrderStatusBadge from '../components/OrderStatusBadge.vue'
 import { extractError } from '../services/sellService'

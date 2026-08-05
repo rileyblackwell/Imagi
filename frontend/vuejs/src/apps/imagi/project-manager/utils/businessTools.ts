@@ -8,12 +8,14 @@
  * To add or change a workspace tool, edit the `businessTools` array below. The
  * hub cards, the coming-soon template pages, and routing all read from here.
  *
- * NOTE: Accent color classes are written as full, static Tailwind strings inside
- * `accentClasses` so the Tailwind JIT compiler can see them. Do not build these
- * class names dynamically or they will be purged from the production build.
+ * This file is domain configuration — names, taglines, icons, routes. The class
+ * strings that dress a tool's accent live in `@/shared/styles/accents`, where
+ * each workspace reads the same definition its hub card does.
  */
 
-export type ToolAccent = 'blue' | 'emerald' | 'violet' | 'amber'
+import { type ToolAccent } from '@/shared/styles'
+
+export type { ToolAccent }
 export type ToolStatus = 'available' | 'coming-soon'
 
 /** A single capability listed on a tool category's page. */
@@ -129,83 +131,7 @@ export const businessTools: BusinessTool[] = [
   },
 ]
 
-export type HubTone = 'ink'
-
-/**
- * Static treatment for the project-hub cards (ToolCategoryCard).
- *
- * The hub is the most utilitarian surface in the product, so it wears the
- * brand's most restrained, professional face: navy ink on porcelain — the same
- * ink as the `Imagi.` wordmark — rather than a warm accent. Each card carries a
- * solid ink icon chip with a porcelain glyph; the blue brand color is held back
- * and appears only as a whisper on hover (see the card's border/CTA). This keeps
- * four repeated cards calm and premium instead of loud.
- *
- * Static literal strings for the Tailwind JIT (see note at the top of the file).
- */
-export const hubCardTones: Record<HubTone, {
-  /** Card border (with hover accent). */
-  card: string
-  /** Icon chip background + ring. */
-  tile: string
-  /** Icon glyph color (sits on the chip). */
-  glyph: string
-}> = {
-  ink: {
-    card: 'border-blue-950/[0.08] dark:border-white/[0.08] group-hover:border-blue-300/60 dark:group-hover:border-blue-300/25',
-    tile: 'bg-blue-950 dark:bg-white ring-1 ring-blue-950/10 dark:ring-white/10',
-    glyph: 'text-[#fdf9f2] dark:text-blue-950',
-  },
-}
-
 /** Look up a tool by its URL slug (for coming-soon routes). */
 export function getToolBySlug(slug: string): BusinessTool | undefined {
   return businessTools.find(tool => tool.slug === slug)
-}
-
-/**
- * Full, static Tailwind class strings per accent. Keep these literal so the JIT
- * compiler keeps them in the build. Each entry styles the icon tile, badges,
- * borders, and hover affordances used by the hub card and tool pages.
- */
-export const accentClasses: Record<ToolAccent, {
-  cardBorder: string
-  iconWrap: string
-  iconText: string
-  badge: string
-  link: string
-  glow: string
-}> = {
-  blue: {
-    cardBorder: 'border-blue-200/70 dark:border-blue-300/[0.16] hover:border-blue-300 dark:hover:border-blue-300/40',
-    iconWrap: 'bg-blue-50 dark:bg-blue-400/10 border-blue-200/60 dark:border-blue-400/25',
-    iconText: 'text-blue-600 dark:text-blue-300',
-    badge: 'border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300',
-    link: 'text-blue-700 dark:text-blue-300 group-hover:text-blue-800 dark:group-hover:text-blue-200',
-    glow: 'from-blue-400/20',
-  },
-  emerald: {
-    cardBorder: 'border-emerald-200/70 dark:border-emerald-300/[0.16] hover:border-emerald-300 dark:hover:border-emerald-300/40',
-    iconWrap: 'bg-emerald-50 dark:bg-emerald-400/10 border-emerald-200/60 dark:border-emerald-400/25',
-    iconText: 'text-emerald-600 dark:text-emerald-300',
-    badge: 'border-emerald-200/70 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300',
-    link: 'text-emerald-700 dark:text-emerald-300 group-hover:text-emerald-800 dark:group-hover:text-emerald-200',
-    glow: 'from-emerald-400/20',
-  },
-  violet: {
-    cardBorder: 'border-violet-200/70 dark:border-violet-300/[0.16] hover:border-violet-300 dark:hover:border-violet-300/40',
-    iconWrap: 'bg-violet-50 dark:bg-violet-400/10 border-violet-200/60 dark:border-violet-400/25',
-    iconText: 'text-violet-600 dark:text-violet-300',
-    badge: 'border-violet-200/70 dark:border-violet-400/25 bg-violet-50/80 dark:bg-violet-400/10 text-violet-700 dark:text-violet-300',
-    link: 'text-violet-700 dark:text-violet-300 group-hover:text-violet-800 dark:group-hover:text-violet-200',
-    glow: 'from-violet-400/20',
-  },
-  amber: {
-    cardBorder: 'border-amber-200/70 dark:border-amber-300/[0.16] hover:border-amber-300 dark:hover:border-amber-300/40',
-    iconWrap: 'bg-amber-50 dark:bg-amber-400/10 border-amber-200/60 dark:border-amber-400/25',
-    iconText: 'text-amber-600 dark:text-amber-300',
-    badge: 'border-amber-200/70 dark:border-amber-400/25 bg-amber-50/80 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300',
-    link: 'text-amber-700 dark:text-amber-300 group-hover:text-amber-800 dark:group-hover:text-amber-200',
-    glow: 'from-amber-400/20',
-  },
 }

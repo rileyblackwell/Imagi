@@ -12,9 +12,9 @@
         <div class="lede space-y-4 text-lg">
           <p>
             Building your product is only half the job. Every Imagi project comes with three more workspaces for actually
-            running the business: <strong class="font-semibold text-[color:var(--ink)]">Sell</strong>,
-            <strong class="font-semibold text-[color:var(--ink)]">Market</strong>, and
-            <strong class="font-semibold text-[color:var(--ink)]">Operate</strong>. You open them from your project hub,
+            running the business: <strong class="ink-strong">Sell</strong>,
+            <strong class="ink-strong">Market</strong>, and
+            <strong class="ink-strong">Operate</strong>. You open them from your project hub,
             right alongside Build.
           </p>
           <p>
@@ -33,10 +33,10 @@
         <p class="text-emerald-700 dark:text-emerald-300 text-sm font-semibold uppercase tracking-[0.14em] mb-6 transition-colors duration-300">
           Turn visitors into customers
         </p>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Sell is your storefront and payments back office. You build a product catalog, collect money through shareable
           checkout links or prebuilt payment pages, and track the orders and customers that result. Payments run through
-          <strong class="font-semibold text-[color:var(--ink)]">your own Stripe account</strong>—Imagi never holds your funds.
+          <strong class="ink-strong">your own Stripe account</strong>—Imagi never holds your funds.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Products & checkout">
@@ -56,10 +56,10 @@
           </DocsCard>
         </div>
         <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
-          <h4 class="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] mt-0 mb-3 transition-colors duration-300">
+          <h4 class="callout__title">
             Connecting Stripe
           </h4>
-          <p class="text-lg text-[color:var(--ink-55)] mb-0 leading-relaxed">
+          <p class="callout__body">
             In Sell's Settings, paste your Stripe keys and pick a currency. Your secret key is stored encrypted and never
             shown again. A "Test connection" check confirms your account is ready to take charges, and a "Connected" badge
             appears once you're set up.
@@ -75,8 +75,8 @@
         <p class="text-violet-700 dark:text-violet-300 text-sm font-semibold uppercase tracking-[0.14em] mb-6 transition-colors duration-300">
           Grow your audience
         </p>
-        <p class="lede text-lg mb-8">
-          Market is your outbound-messaging and advertising hub. Connect your own <strong class="font-semibold text-[color:var(--ink)]">Twilio</strong>
+        <p class="lede lede--section">
+          Market is your outbound-messaging and advertising hub. Connect your own <strong class="ink-strong">Twilio</strong>
           account to send text and voice campaigns to an opt-in contact list, hold two-way conversations in an inbox, and
           keep an eye on your Google and Meta ad campaigns—all in one place.
         </p>
@@ -99,10 +99,10 @@
           </DocsCard>
         </div>
         <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
-          <h4 class="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] mt-0 mb-3 transition-colors duration-300">
+          <h4 class="callout__title">
             Messaging responsibly
           </h4>
-          <p class="text-lg text-[color:var(--ink-55)] mb-0 leading-relaxed">
+          <p class="callout__body">
             Market only sends to contacts who've opted in. Replies of "STOP" unsubscribe someone automatically, and "START"
             re-subscribes them—so your audience stays consent-based and compliant.
           </p>
@@ -117,7 +117,7 @@
         <p class="text-amber-700 dark:text-amber-300 text-sm font-semibold uppercase tracking-[0.14em] mb-6 transition-colors duration-300">
           Run the business
         </p>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Operate is your command center. It brings together a financial ledger, invoicing, and a task list, and its
           dashboard even pulls in a pulse from Sell and Market—so you can see how the whole business is doing at a glance.
           No third-party connection required.
@@ -144,7 +144,7 @@
 
       <!-- Next steps -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Next Steps
         </h2>
         <div class="rule-cols rule-cols--2">

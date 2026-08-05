@@ -27,13 +27,12 @@
       <label class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
         <slot></slot>
       </label>
-      <ErrorMessage v-if="showError && false" :name="name" class="block mt-1 text-sm text-red-600 dark:text-red-400" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { Field, ErrorMessage } from 'vee-validate'
+import { Field } from 'vee-validate'
 import { controlFocus } from '@/shared/styles/forms'
 
 defineProps({
@@ -44,10 +43,6 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
-  },
-  showError: {
-    type: Boolean,
-    default: true
   }
 })
 </script>

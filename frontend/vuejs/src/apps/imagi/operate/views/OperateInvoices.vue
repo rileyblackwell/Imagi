@@ -35,9 +35,7 @@
     <div v-if="actionError" :class="ui.errorBox" class="mb-6">{{ actionError }}</div>
 
     <!-- Loading -->
-    <div v-if="store.invoicesLoading && !store.invoices.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.invoicesLoading && !store.invoices.length" />
 
     <!-- List -->
     <div v-else-if="store.invoices.length" class="space-y-3">
@@ -57,13 +55,13 @@
               <StatusBadge :status="invoice.is_overdue ? 'overdue' : invoice.status" />
             </div>
             <p class="text-sm text-blue-950/70 dark:text-blue-100/70 truncate">{{ invoice.customer_name }}</p>
-            <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-0.5">
+            <p :class="ui.hintText" class="mt-0.5">
               Issued {{ formatDate(invoice.issue_date) }}
               <template v-if="invoice.due_date"> · due {{ formatDate(invoice.due_date) }}</template>
               <template v-if="invoice.paid_at"> · paid {{ formatDateTime(invoice.paid_at) }}</template>
             </p>
           </div>
-          <p class="text-lg font-semibold text-blue-950 dark:text-white tabular-nums whitespace-nowrap">{{ formatMoney(invoice.total) }}</p>
+          <p :class="ui.headingText" class="tabular-nums whitespace-nowrap">{{ formatMoney(invoice.total) }}</p>
           <div class="flex flex-wrap items-center gap-2">
             <!-- Lifecycle actions -->
             <button v-if="invoice.status === 'draft'" type="button" :class="ui.primaryBtn" :disabled="busyId === invoice.id" @click="setStatus(invoice, 'sent')">
@@ -86,7 +84,7 @@
             <button
               v-if="invoice.status === 'draft' || invoice.status === 'sent'"
               type="button"
-              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
               :disabled="busyId === invoice.id"
               aria-label="Void invoice"
               title="Void invoice"
@@ -97,7 +95,7 @@
             <button
               v-if="invoice.status === 'draft' || invoice.status === 'void'"
               type="button"
-              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
               aria-label="Delete invoice"
               title="Delete invoice"
               @click="confirmDelete(invoice)"
@@ -109,7 +107,7 @@
 
         <!-- Line items -->
         <details v-if="invoice.line_items.length" class="mt-3">
-          <summary class="rounded-md text-xs font-medium text-blue-950/50 dark:text-blue-100/50 cursor-pointer hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">
+          <summary class="rounded-md text-xs font-medium text-blue-950/50 dark:text-blue-100/50 cursor-pointer hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring">
             {{ invoice.line_items.length }} line item{{ invoice.line_items.length === 1 ? '' : 's' }}
           </summary>
           <div class="mt-2 rounded-xl border border-blue-200/60 dark:border-white/[0.08] divide-y divide-blue-200/60 dark:divide-white/[0.08]">
@@ -129,32 +127,33 @@
     </div>
 
     <!-- Empty -->
-    <section v-else class="py-16 text-center" :class="ui.card">
-      <div class="w-14 h-14 mx-auto mb-4 text-xl" :class="ui.iconTile">
-        <i class="fas fa-receipt"></i>
-      </div>
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-2">No invoices yet</h3>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6 max-w-sm mx-auto">
-        Bill your customers and track what's owed. Marking an invoice paid records the income in your ledger.
-      </p>
-      <button type="button" :class="ui.primaryBtn" @click="openCreate">
-        <i class="fas fa-plus text-xs"></i>
-        Create your first invoice
-      </button>
-    </section>
+    <EmptyState
+      v-else
+      icon="fas fa-receipt"
+      title="No invoices yet"
+      description="Bill your customers and track what's owed. Marking an invoice paid records the income in your ledger."
+      :accent="accent"
+    >
+      <template #action>
+        <button type="button" :class="ui.primaryBtn" @click="openCreate">
+          <i class="fas fa-plus text-xs"></i>
+          Create your first invoice
+        </button>
+      </template>
+    </EmptyState>
 
     <!-- Create/edit modal -->
-    <OperateModal
+    <BaseModal
       v-if="showForm"
       :title="editing ? `Edit ${editing.number}` : 'New invoice'"
       wide
       @close="closeForm"
     >
       <InvoiceForm :invoice="editing" @close="closeForm" @saved="onSaved" />
-    </OperateModal>
+    </BaseModal>
 
     <!-- Delete confirm -->
-    <OperateModal v-if="deleting" title="Delete invoice" @close="deleting = null">
+    <BaseModal v-if="deleting" title="Delete invoice" @close="deleting = null">
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
         Delete {{ deleting.number }} for {{ deleting.customer_name }}? This can't be undone.
       </p>
@@ -166,20 +165,20 @@
           Delete
         </button>
       </div>
-    </OperateModal>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { BaseModal, EmptyState, LoadingSpinner } from '@/shared/components'
 import { useRoute, useRouter } from 'vue-router'
 import InvoiceForm from '../components/InvoiceForm.vue'
-import OperateModal from '../components/OperateModal.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/operateService'
 import { useOperateStore } from '../stores/operate'
 import type { Invoice, InvoiceStatus } from '../types'
-import { formatDate, formatDateTime, formatMoney, ui } from '../utils/ui'
+import { accent, formatDate, formatDateTime, formatMoney, ui } from '../utils/ui'
 
 const route = useRoute()
 const router = useRouter()

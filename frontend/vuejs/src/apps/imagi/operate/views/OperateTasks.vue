@@ -11,7 +11,7 @@
           v-for="option in filterOptions"
           :key="option.value"
           type="button"
-          class="px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+          class="px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors duration-200 focus-ring"
           :class="statusFilter === option.value
             ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
             : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
@@ -31,9 +31,7 @@
     <div v-if="actionError" :class="ui.errorBox" class="mb-6">{{ actionError }}</div>
 
     <!-- Loading -->
-    <div v-if="store.tasksLoading && !store.tasks.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-    </div>
+    <LoadingSpinner v-if="store.tasksLoading && !store.tasks.length" />
 
     <!-- Task list -->
     <section v-else-if="store.tasks.length" :class="ui.card" class="divide-y divide-blue-200/60 dark:divide-white/[0.08]">
@@ -45,7 +43,7 @@
         <!-- Complete toggle -->
         <button
           type="button"
-          class="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+          class="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors duration-200 focus-ring"
           :class="task.status === 'done'
             ? 'border-emerald-500 bg-emerald-500 text-white'
             : 'border-blue-950/25 dark:border-white/25 text-transparent hover:border-emerald-500'"
@@ -87,16 +85,18 @@
 
         <div class="flex items-center gap-1">
           <button
+            :class="ui.iconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="w-8 h-8"
             aria-label="Edit task"
             @click="openEdit(task)"
           >
             <i class="fas fa-pen text-xs"></i>
           </button>
           <button
+            :class="ui.dangerIconBtn"
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="w-8 h-8"
             aria-label="Delete task"
             @click="confirmDelete(task)"
           >
@@ -107,33 +107,32 @@
     </section>
 
     <!-- Empty -->
-    <section v-else class="py-16 text-center" :class="ui.card">
-      <div class="w-14 h-14 mx-auto mb-4 text-xl" :class="ui.iconTile">
-        <i class="fas fa-list-check"></i>
-      </div>
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-2">
-        {{ statusFilter ? 'Nothing here' : 'No tasks yet' }}
-      </h3>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6 max-w-sm mx-auto">
-        {{ statusFilter ? 'No tasks match this filter.' : 'Keep track of the work that keeps your business running — fulfillment, follow-ups, admin.' }}
-      </p>
-      <button v-if="!statusFilter" type="button" :class="ui.primaryBtn" @click="openCreate">
-        <i class="fas fa-plus text-xs"></i>
-        Add your first task
-      </button>
-    </section>
+    <EmptyState
+      v-else
+      icon="fas fa-list-check"
+      :title="statusFilter ? 'Nothing here' : 'No tasks yet'"
+      :description="statusFilter ? 'No tasks match this filter.' : 'Keep track of the work that keeps your business running — fulfillment, follow-ups, admin.'"
+      :accent="accent"
+    >
+      <template v-if="!statusFilter" #action>
+        <button type="button" :class="ui.primaryBtn" @click="openCreate">
+          <i class="fas fa-plus text-xs"></i>
+          Add your first task
+        </button>
+      </template>
+    </EmptyState>
 
     <!-- Create/edit modal -->
-    <OperateModal
+    <BaseModal
       v-if="showForm"
       :title="editing ? 'Edit task' : 'Add task'"
       @close="closeForm"
     >
       <TaskForm :task="editing" @close="closeForm" @saved="onSaved" />
-    </OperateModal>
+    </BaseModal>
 
     <!-- Delete confirm -->
-    <OperateModal v-if="deleting" title="Delete task" @close="deleting = null">
+    <BaseModal v-if="deleting" title="Delete task" @close="deleting = null">
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
         Delete "{{ deleting.title }}"? This can't be undone.
       </p>
@@ -145,20 +144,20 @@
           Delete
         </button>
       </div>
-    </OperateModal>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { BaseModal, EmptyState, LoadingSpinner } from '@/shared/components'
 import { useRoute, useRouter } from 'vue-router'
-import OperateModal from '../components/OperateModal.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import TaskForm from '../components/TaskForm.vue'
 import { extractError } from '../services/operateService'
 import { useOperateStore } from '../stores/operate'
 import type { OperationsTask, TaskPriority, TaskStatus } from '../types'
-import { formatDate, ui } from '../utils/ui'
+import { accent, formatDate, ui } from '../utils/ui'
 
 const route = useRoute()
 const router = useRouter()

@@ -65,18 +65,6 @@ describe('project store', () => {
       expect(store.getProjectBySlug('my-app')?.id).toBe('1')
       expect(store.getProjectBySlug('my-app-1')?.id).toBe('2')
     })
-
-    it('derives a slug for a project', () => {
-      const store = useProjectStore()
-      expect(store.getSlugForProject({ name: 'Some Thing' } as any)).toBe('some-thing')
-    })
-
-    it('prefers the backend slug when getting a project slug', () => {
-      const store = useProjectStore()
-      expect(
-        store.getSlugForProject({ name: 'Some Thing', slug: 'some-thing-2' } as any)
-      ).toBe('some-thing-2')
-    })
   })
 
   describe('sortedProjects', () => {

@@ -19,14 +19,14 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
               <router-link
                 to="/imagi/projects"
-                class="group inline-flex items-center justify-center px-6 py-3 rounded-full font-medium bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                class="group inline-flex items-center justify-center px-6 py-3 rounded-full font-medium bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-ring"
               >
                 <i class="fas fa-arrow-left mr-2"></i>
                 <span>Go to Dashboard</span>
               </router-link>
               <button
                 @click="$emit('retry')"
-                class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-300 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+                class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-300 font-medium focus-ring"
               >
                 <i class="fas fa-sync-alt mr-2"></i>
                 Retry
@@ -42,23 +42,3 @@
 <script setup lang="ts">
 defineProps<{ error: string | null | undefined }>()
 </script>
-
-<style scoped>
-/* Crisp, sharply-defined card matching Home/About/Projects */
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
-}
-
-.dark .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
-}
-
-</style>

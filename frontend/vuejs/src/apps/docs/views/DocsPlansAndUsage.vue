@@ -9,16 +9,16 @@
 
       <!-- How usage works -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           How Usage Works
         </h2>
         <div class="space-y-4 text-[color:var(--ink-55)] text-lg leading-relaxed mb-8 transition-colors duration-300">
           <p>
-            Every plan includes a monthly <strong class="font-semibold text-[color:var(--ink)]">usage allowance</strong>,
+            Every plan includes a monthly <strong class="ink-strong">usage allowance</strong>,
             quoted in dollars of AI work—$5 a month on Free, $20 on Pro. Nothing is charged per run: each run's cost is
             simply metered against two rolling windows, a
-            <strong class="font-semibold text-[color:var(--ink)]">5-hour session</strong> and a
-            <strong class="font-semibold text-[color:var(--ink)]">weekly</strong> window. Those windows are how the
+            <strong class="ink-strong">5-hour session</strong> and a
+            <strong class="ink-strong">weekly</strong> window. Those windows are how the
             monthly amount is delivered, and they are the only two limits you'll ever see—there is no separate monthly
             counter running in the background.
           </p>
@@ -46,10 +46,10 @@
 
       <!-- Plans -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Plans
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Every plan uses the same rolling 5-hour and weekly windows—higher plans simply give you a bigger allowance in each.
           A week's allowance is spread over five 5-hour sessions, so one long sitting can't drain the whole week, and the
           weekly figures below are set generously against the monthly amount rather than dividing it thinly.
@@ -92,19 +92,19 @@
 
       <!-- Making your allowance go further -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Making Your Allowance Go Further
         </h2>
-        <p class="lede text-lg mb-8">
+        <p class="lede lede--section">
           Since usage is metered by what each run actually costs, the two dials you control are the model and the reasoning
           effort. Reach for GPT 5.6 Sol at high effort when a task genuinely needs it, and drop to Terra or Luna at a lower
           effort for routine edits, copy tweaks, and questions—it costs a fraction as much and is usually faster too.
         </p>
-        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 transition-colors duration-300">
-          <h4 class="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] mt-0 mb-3 transition-colors duration-300">
+        <div class="callout">
+          <h4 class="callout__title">
             Keeping an eye on it
           </h4>
-          <p class="text-lg text-[color:var(--ink-55)] mb-0 leading-relaxed">
+          <p class="callout__body">
             The Build workspace shows how much of your 5-hour allowance is left right in the toolbar, and the Usage panel
             breaks out both windows in dollars. Both refresh shortly after each AI run.
           </p>
@@ -113,7 +113,7 @@
 
       <!-- Billing -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Billing
         </h2>
         <div class="rule-cols rule-cols--2">
@@ -130,7 +130,7 @@
 
       <!-- Next steps -->
       <section class="mb-16">
-        <h2 class="display text-3xl sm:text-4xl mb-6">
+        <h2 class="display display--section">
           Next Steps
         </h2>
         <div class="rule-cols rule-cols--2">

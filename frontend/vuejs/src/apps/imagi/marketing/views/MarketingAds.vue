@@ -9,9 +9,7 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="initialLoading" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-    </div>
+    <LoadingSpinner v-if="initialLoading" />
 
     <!-- Nothing connected yet -->
     <div v-else-if="!hasConnections" class="p-10 text-center" :class="ui.card">
@@ -19,7 +17,7 @@
         <i class="fas fa-rectangle-ad"></i>
       </div>
       <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">Bring your ad campaigns into Imagi</h2>
-      <p class="text-sm text-blue-950/60 dark:text-blue-100/60 max-w-lg mx-auto mb-7">
+      <p :class="ui.bodyText" class="max-w-lg mx-auto mb-7">
         Connect your Google Ads or Meta Ads account to see every campaign, its spend, and its
         results in one dashboard — and pause or resume campaigns without leaving Imagi.
       </p>
@@ -44,7 +42,7 @@
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
-          <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1">{{ stat.caption }}</p>
+          <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
 
@@ -55,7 +53,7 @@
             v-for="option in providerFilters"
             :key="option.value"
             type="button"
-            class="px-3.5 py-2 rounded-full text-sm font-medium border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="px-3.5 py-2 rounded-full text-sm font-medium border transition-colors duration-200 focus-ring"
             :class="providerFilter === option.value
               ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
               : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white'"
@@ -66,7 +64,7 @@
           </button>
         </div>
         <div class="flex-1"></div>
-        <p v-if="summary?.last_synced_at" class="text-xs text-blue-950/50 dark:text-blue-100/50">
+        <p :class="ui.hintText" v-if="summary?.last_synced_at">
           Synced {{ formatDateTime(summary.last_synced_at) }}
         </p>
         <button type="button" :class="ui.secondaryBtn" :disabled="store.adsSyncing" @click="sync">
@@ -80,23 +78,21 @@
 
       <!-- Campaign table -->
       <section :class="ui.card">
-        <div v-if="store.adCampaignsLoading && !campaigns.length" class="flex justify-center py-16">
-          <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
-        </div>
+        <LoadingSpinner v-if="store.adCampaignsLoading && !campaigns.length" />
 
         <div v-else-if="campaigns.length" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-blue-200/60 dark:border-white/[0.08] text-left">
                 <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">Campaign</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">Status</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Budget/day</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Impressions</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Clicks</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">CTR</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Spend</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">CPC</th>
-                <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 text-right">Conv.</th>
+                <th :class="ui.tableHead">Status</th>
+                <th :class="ui.tableHead" class="text-right">Budget/day</th>
+                <th :class="ui.tableHead" class="text-right">Impressions</th>
+                <th :class="ui.tableHead" class="text-right">Clicks</th>
+                <th :class="ui.tableHead" class="text-right">CTR</th>
+                <th :class="ui.tableHead" class="text-right">Spend</th>
+                <th :class="ui.tableHead" class="text-right">CPC</th>
+                <th :class="ui.tableHead" class="text-right">Conv.</th>
                 <th class="px-5 py-3.5"></th>
               </tr>
             </thead>
@@ -111,7 +107,7 @@
                     <i :class="AD_PROVIDERS[campaign.provider].icon" class="text-blue-950/50 dark:text-blue-100/50 shrink-0" :title="AD_PROVIDERS[campaign.provider].label"></i>
                     <div class="min-w-0">
                       <p class="font-medium text-blue-950 dark:text-white truncate max-w-56" :title="campaign.name">{{ campaign.name }}</p>
-                      <p v-if="campaign.objective" class="text-xs text-blue-950/50 dark:text-blue-100/50 truncate">{{ formatObjective(campaign.objective) }}</p>
+                      <p :class="ui.hintText" v-if="campaign.objective" class="truncate">{{ formatObjective(campaign.objective) }}</p>
                     </div>
                   </div>
                 </td>
@@ -126,9 +122,10 @@
                 <td class="px-5 py-3.5">
                   <div class="flex items-center justify-end gap-1.5">
                     <button
+                      :class="ui.iconBtn"
                       v-if="campaign.status === 'active' || campaign.status === 'paused'"
                       type="button"
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                      class="w-8 h-8 disabled:opacity-40 focus-ring"
                       :title="campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'"
                       :disabled="togglingId === campaign.id"
                       @click="toggle(campaign)"
@@ -136,10 +133,11 @@
                       <i :class="['fas', togglingId === campaign.id ? 'fa-circle-notch animate-spin motion-reduce:animate-none' : campaign.status === 'active' ? 'fa-pause' : 'fa-play']" class="text-xs"></i>
                     </button>
                     <a
+                      :class="ui.iconBtn"
                       :href="campaign.manager_url"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
+                      class="w-8 h-8"
                       :title="`Open in ${AD_PROVIDERS[campaign.provider].consoleLabel}`"
                     >
                       <i class="fas fa-arrow-up-right-from-square text-xs"></i>
@@ -152,7 +150,7 @@
         </div>
 
         <div v-else class="py-14 text-center px-6">
-          <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
+          <p :class="ui.bodyText" class="mb-5">
             {{ providerFilter
               ? `No ${AD_PROVIDERS[providerFilter].label} campaigns synced yet.`
               : 'No campaigns synced yet. Pull them in from your connected ad accounts.' }}
@@ -165,11 +163,11 @@
       </section>
 
       <!-- Where ads are created -->
-      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-4">
+      <p :class="ui.hintText" class="mt-4">
         New campaigns are created in
-        <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">Google Ads</a>
+        <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Google Ads</a>
         or
-        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">Meta Ads Manager</a>
+        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Meta Ads Manager</a>
         — once live, they appear here on the next sync.
       </p>
     </template>
@@ -178,6 +176,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { LoadingSpinner } from '@/shared/components'
 import { useRoute } from 'vue-router'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'

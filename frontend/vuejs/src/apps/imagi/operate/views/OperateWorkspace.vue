@@ -9,15 +9,15 @@
   Route: /imagi/project/:projectName/operations
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
-    <div class="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fdf9f2_0%,#faf7f1_60%,#ffffff_100%)] dark:bg-[linear-gradient(180deg,#0c0c0e_0%,#0a0b0f_60%,#0a0a0a_100%)] transition-colors duration-500">
+  <DefaultLayout>
+    <div class="relative min-h-screen overflow-hidden page-canvas">
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
         <div class="max-w-6xl mx-auto w-full">
 
           <!-- Back link -->
           <router-link
             :to="{ name: 'project-hub', params: { projectName } }"
-            class="inline-flex items-center gap-2 rounded-md text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
+            class="inline-flex items-center gap-2 rounded-md text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>Project workspace</span>
@@ -67,7 +67,7 @@
                 v-for="tab in tabs"
                 :key="tab.name"
                 :to="{ name: tab.name, params: { projectName } }"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-inset"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-ring-inset"
                 :class="route.name === tab.name
                   ? 'border-orange-500 dark:border-orange-400 text-blue-950 dark:text-white'
                   : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
@@ -87,13 +87,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useProjectFromSlug } from '@/apps/imagi/shared'
 import { DefaultLayout } from '@/shared/layouts'
-import { useAuthStore } from '@/shared/stores/auth'
-import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
-import { findProjectBySlug } from '@/apps/imagi/build/utils/slug'
-import type { Project } from '@/apps/imagi/build/types/components'
 import { useOperateStore } from '../stores/operate'
 import { ui } from '../utils/ui'
 
@@ -102,17 +99,9 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-const authStore = useAuthStore()
-const projectStore = useProjectStore()
+
+const { project, isLoading } = useProjectFromSlug(() => props.projectName, 'the operate workspace')
 const operateStore = useOperateStore()
-
-const isInitializing = ref(true)
-
-const isLoading = computed(() => projectStore.loading || isInitializing.value)
-
-const project = computed<Project | null>(() => {
-  return findProjectBySlug(projectStore.projects, props.projectName) || null
-})
 
 interface Tab { name: string; label: string; icon: string }
 
@@ -123,23 +112,6 @@ const tabs: Tab[] = [
   { name: 'operate-tasks', label: 'Tasks', icon: 'fa-list-check' },
 ]
 
-async function loadProject() {
-  isInitializing.value = true
-  try {
-    if (!authStore.isAuthenticated) return
-    if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
-      projectStore.setAuthenticated(authStore.isAuthenticated)
-    }
-    if (!projectStore.projects.length) {
-      await projectStore.fetchProjects()
-    }
-  } catch (error) {
-    console.error('Failed to load project for operate workspace:', error)
-  } finally {
-    isInitializing.value = false
-  }
-}
-
 // Point the operate store at the resolved project so tab views can load data.
 watch(project, (resolved) => {
   if (resolved?.id != null) {
@@ -147,27 +119,8 @@ watch(project, (resolved) => {
   }
 }, { immediate: true })
 
-onMounted(loadProject)
-
-watch(() => props.projectName, loadProject)
 </script>
 
 <!-- Unscoped so the crisp-card treatment reaches the tab views rendered in
      the child router-view. Matches the definition used on Home/hub cards. -->
-<style>
-.crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.03),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 10px -2px rgba(15, 23, 42, 0.07),
-    0 12px 28px -10px rgba(15, 23, 42, 0.10);
-}
 
-.dark .crisp-card {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 12px 28px -10px rgba(0, 0, 0, 0.55);
-}
-</style>
