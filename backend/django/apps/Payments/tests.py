@@ -30,13 +30,11 @@ from apps.Payments.models import (
 from apps.Payments.services.payment_method_service import PaymentMethodService
 from apps.Payments.services.plans import (
     PLANS,
-    SESSIONS_PER_WEEK,
     get_plan,
     get_plan_for_user,
 )
 from apps.Payments.services.transaction_service import TransactionService
 from apps.Payments.services.usage_service import (
-    FIVE_HOUR_WINDOW,
     WEEKLY_WINDOW,
     check_usage_allowed,
     get_usage_status,
@@ -171,36 +169,24 @@ class PlanRegistryTests(APITestCase):
         self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_weekly_allowances_are_the_advertised_dollar_figures(self):
-        self.assertEqual(PLANS['free']['weekly_usd'], 25)
-        self.assertEqual(PLANS['pro']['weekly_usd'], 100)
-        self.assertEqual(PLANS['max_5x']['weekly_usd'], 500)
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 2000)
+        self.assertEqual(PLANS['free']['weekly_usd'], 10)
+        self.assertEqual(PLANS['pro']['weekly_usd'], 20)
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 100)
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 200)
 
-    def test_max_tiers_are_literal_multiples_of_pro(self):
-        # "5x"/"20x" name the usage multiple, so they must actually hold.
-        pro = PLANS['pro']['weekly_usd']
-        self.assertEqual(PLANS['max_5x']['weekly_usd'], 5 * pro)
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 20 * pro)
-
-    def test_five_hour_window_is_derived_from_the_weekly_allowance(self):
-        for plan in PLANS.values():
-            self.assertAlmostEqual(
-                plan['five_hour_usd'], plan['weekly_usd'] / SESSIONS_PER_WEEK, places=2
-            )
+    def test_allowances_rise_with_the_tier(self):
+        # The tier names no longer state a usage multiple (Max 20x is 10x Pro,
+        # not 20x), but a pricier plan must never buy a smaller allowance.
+        weekly = [PLANS[p]['weekly_usd'] for p in ('free', 'pro', 'max_5x', 'max_20x')]
+        self.assertEqual(weekly, sorted(weekly))
+        self.assertEqual(len(set(weekly)), len(weekly))
 
     def test_plans_carry_no_figure_the_meter_does_not_enforce(self):
-        # Only the 5-hour and weekly windows are checked, so those are the
-        # only allowances a plan may advertise — a monthly figure would be a
-        # number we publish but never enforce.
+        # The weekly window is the only one checked, so it is the only
+        # allowance a plan may advertise — a monthly or per-session figure
+        # would be a number we publish but never enforce.
         for plan in PLANS.values():
-            self.assertEqual(
-                set(plan), {'id', 'name', 'weekly_usd', 'five_hour_usd'}
-            )
-
-    def test_one_session_cannot_drain_the_week(self):
-        # The burst window smooths load; it must stay a fraction of the week.
-        for plan in PLANS.values():
-            self.assertLess(plan['five_hour_usd'], plan['weekly_usd'])
+            self.assertEqual(set(plan), {'id', 'name', 'weekly_usd'})
 
 
 # --------------------------------------------------------------------------- #
@@ -259,32 +245,32 @@ class UsageWindowTests(APITestCase):
             self.assertIsNone(window['resets_at'])
         self.assertEqual(status_payload['plan']['id'], 'free')
         self.assertEqual(
-            status_payload['windows']['five_hour']['limit_usd'],
-            PLANS['free']['five_hour_usd'],
+            status_payload['windows']['weekly']['limit_usd'],
+            PLANS['free']['weekly_usd'],
         )
 
-    def test_five_hour_boundary_event_counts_weekly_only(self):
-        # Just past the 5-hour window but well inside the weekly one.
+    def test_weekly_is_the_only_window(self):
+        # The 5-hour session window was removed; nothing may reintroduce a
+        # second allowance without this failing.
+        self.assertEqual(set(get_usage_status(self.user)['windows']), {'weekly'})
+
+    def test_a_long_sitting_counts_fully_against_the_week(self):
+        # There is no session cap, so activity hours apart all still counts.
         self._event(0.10, timedelta(hours=5, minutes=1))
+        self._event(0.10, timedelta(minutes=1))
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['five_hour']['used_usd'], 0)
-        self.assertEqual(windows['weekly']['used_usd'], 0.10)
+        self.assertEqual(windows['weekly']['used_usd'], 0.20)
 
     def test_event_older_than_a_week_counts_nowhere(self):
         self._event(0.10, timedelta(days=7, minutes=1))
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['five_hour']['used_usd'], 0)
         self.assertEqual(windows['weekly']['used_usd'], 0)
 
     def test_used_sums_events_and_resets_at_tracks_oldest(self):
         oldest = self._event(0.10, timedelta(hours=2))
         self._event(0.05, timedelta(hours=1))
         windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['five_hour']['used_usd'], 0.15)
-        self.assertEqual(
-            windows['five_hour']['resets_at'],
-            (oldest.created_at + FIVE_HOUR_WINDOW).isoformat(),
-        )
+        self.assertEqual(windows['weekly']['used_usd'], 0.15)
         self.assertEqual(
             windows['weekly']['resets_at'],
             (oldest.created_at + WEEKLY_WINDOW).isoformat(),
@@ -317,20 +303,7 @@ class CheckUsageAllowedTests(APITestCase):
         self.assertTrue(allowed)
         self.assertEqual(payload['plan']['id'], 'free')
 
-    def test_refused_over_five_hour_allowance(self):
-        record_usage(
-            self.user, 'gpt-5.6-terra', 1_000, 0,
-            cost_usd=PLANS['free']['five_hour_usd'],
-        )
-        allowed, payload = check_usage_allowed(self.user)
-        self.assertFalse(allowed)
-        self.assertEqual(payload['error'], 'usage_limit_exceeded')
-        self.assertEqual(payload['window'], '5h')
-        self.assertIsNotNone(payload['resets_at'])
-        self.assertIn('detail', payload)
-
     def test_refused_over_weekly_allowance(self):
-        # Spread beyond the 5-hour window so only the weekly allowance trips.
         event = record_usage(
             self.user, 'gpt-5.6-terra', 1_000, 0,
             cost_usd=PLANS['free']['weekly_usd'],
@@ -340,19 +313,22 @@ class CheckUsageAllowedTests(APITestCase):
         )
         allowed, payload = check_usage_allowed(self.user)
         self.assertFalse(allowed)
+        self.assertEqual(payload['error'], 'usage_limit_exceeded')
         self.assertEqual(payload['window'], 'week')
+        self.assertIsNotNone(payload['resets_at'])
+        self.assertIn('detail', payload)
 
     def test_higher_plan_raises_the_allowance(self):
         Subscription.objects.create(user=self.user, plan='pro')
         record_usage(
             self.user, 'gpt-5.6-terra', 1_000, 0,
-            cost_usd=PLANS['free']['five_hour_usd'],
+            cost_usd=PLANS['free']['weekly_usd'],
         )
         allowed, _ = check_usage_allowed(self.user)
         self.assertTrue(allowed)
 
-    def test_max_20x_allowance_is_twenty_times_pro(self):
-        # A spend that exhausts Pro's week is a twentieth of Max 20x's.
+    def test_max_20x_allowance_far_exceeds_pro(self):
+        # A spend that exhausts Pro's week barely dents Max 20x's.
         Subscription.objects.create(user=self.user, plan='max_20x')
         event = record_usage(
             self.user, 'gpt-5.6-sol', 1_000, 0,
@@ -364,7 +340,8 @@ class CheckUsageAllowedTests(APITestCase):
         allowed, payload = check_usage_allowed(self.user)
         self.assertTrue(allowed)
         weekly = payload['windows']['weekly']
-        self.assertEqual(weekly['limit_usd'], 20 * PLANS['pro']['weekly_usd'])
+        self.assertEqual(weekly['limit_usd'], PLANS['max_20x']['weekly_usd'])
+        self.assertGreater(weekly['limit_usd'], PLANS['pro']['weekly_usd'])
 
 
 # --------------------------------------------------------------------------- #
@@ -602,7 +579,6 @@ class PaymentsAPITests(APITestCase):
         resp = self.client.get(reverse('api-usage-status'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['plan']['id'], 'free')
-        self.assertEqual(resp.data['windows']['five_hour']['used_usd'], 0.0105)
         self.assertEqual(resp.data['windows']['weekly']['used_usd'], 0.0105)
         # The registry rides along so the frontend can render plan options.
         self.assertEqual(

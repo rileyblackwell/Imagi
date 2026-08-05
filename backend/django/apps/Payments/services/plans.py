@@ -15,56 +15,56 @@ instead of each needing its own token budget.
 The allowance is *metered* spend, not a wallet: nothing is charged per run and
 the numbers are approximate by design.
 
-A plan is defined by its **weekly** allowance, and only the two rolling windows
-below are tracked or shown. There is deliberately no monthly figure here: no
-window enforces one, so carrying it would mean publishing a number the meter
-never checks. What a plan costs per month is a Stripe price, not a limit.
+A plan is defined by a single **weekly** allowance, and that one rolling window
+is all that is tracked, enforced, or shown. There is deliberately no monthly
+figure here: no window enforces one, so carrying it would mean publishing a
+number the meter never checks. What a plan costs per month is a Stripe price,
+not a limit.
+
+There was previously a second, 5-hour burst window layered on top of the weekly
+one. It was removed: two windows meant two numbers a user had to hold in their
+head to predict whether a run would be refused, and the weekly allowance alone
+is what actually bounds spend.
 """
 
 DEFAULT_PLAN_ID = 'free'
 
-# The 5-hour burst window is a fifth of the weekly allowance: a single sitting
-# can't drain the whole week, but five heavy sessions fill it. It exists to
-# smooth load, not to be a second budget.
-SESSIONS_PER_WEEK = 5
-
 
 def _windows(weekly_usd):
-    """The rolling-window allowances derived from a plan's weekly figure."""
-    return {
-        'weekly_usd': round(weekly_usd, 2),
-        'five_hour_usd': round(weekly_usd / SESSIONS_PER_WEEK, 2),
-    }
+    """The rolling-window allowance for a plan. Weekly is the only window."""
+    return {'weekly_usd': round(weekly_usd, 2)}
 
 
 # Ids/names mirror the purchasable tiers on the pricing page (Free, Pro, Max).
-# Pro's $100/week is the reference point: Free is a small taste of it, and the
-# two Max tiers are literal 5x and 20x multiples of it (which is what "5x" and
-# "20x" name). Max 20x allows more retail usage than its sticker price —
-# viable because our per-token prices are marked up over real API cost.
+# Allowances are set against what each tier costs per month (Stripe prices:
+# $0 / $25 / $100 / $200), not derived from one another — Max (5x) happens to
+# land at 5x Pro's weekly allowance, but Max (20x) is 10x it, so the tier names
+# no longer describe the usage multiple. The Max tiers allow more retail usage
+# than their sticker price, which is viable because our per-token prices are
+# marked up over real API cost.
 PLANS = {
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(25),
+        **_windows(10),
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
-        **_windows(100),
+        **_windows(20),
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
-    # distinct plans, not one collapsed tier, so a 20x subscriber actually gets
-    # 20x the allowance they pay for.
+    # distinct plans, not one collapsed tier, so the higher price really does
+    # buy a larger allowance.
     'max_5x': {
         'id': 'max_5x',
         'name': 'Max (5x)',
-        **_windows(500),
+        **_windows(100),
     },
     'max_20x': {
         'id': 'max_20x',
         'name': 'Max (20x)',
-        **_windows(2000),
+        **_windows(200),
     },
 }
 

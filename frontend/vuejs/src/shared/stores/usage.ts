@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 import api from '@/shared/services/api'
 
 /**
- * Plan usage store: the user's plan plus the 5-hour / weekly rolling usage
- * windows from GET /api/v1/payments/usage/.
+ * Plan usage store: the user's plan plus the weekly rolling usage window from
+ * GET /api/v1/payments/usage/. Weekly is the only window there is.
  *
  * Usage is metered in dollars of model spend, not tokens — a pricier model or
  * a heavier reasoning effort draws the allowance down faster. This is the
@@ -29,18 +29,17 @@ export interface UsagePlan {
 }
 
 /** One entry of the plan registry (for showing what other plans allow).
- *  Only the two enforced windows exist — there is no monthly figure. */
+ *  The weekly allowance is the only enforced figure — there is no monthly
+ *  number and no session window. */
 export interface UsagePlanLimits {
   id: string
   name: string
   weeklyUsd: number | null
-  fiveHourUsd: number | null
 }
 
 interface UsageState {
   plan: UsagePlan | null
   plans: UsagePlanLimits[]
-  fiveHour: UsageWindow | null
   weekly: UsageWindow | null
   loading: boolean
   error: string | null
@@ -89,20 +88,12 @@ export const useUsageStore = defineStore('usage', {
   state: (): UsageState => ({
     plan: null,
     plans: [],
-    fiveHour: null,
     weekly: null,
     loading: false,
     error: null,
   }),
 
   getters: {
-    /** Percent of the 5-hour allowance used (0-100), null while unknown. */
-    fiveHourPercent(state): number | null {
-      const w = state.fiveHour
-      if (!w || w.usedUsd === null || w.limitUsd === null || w.limitUsd <= 0) return null
-      return Math.min(100, Math.round((w.usedUsd / w.limitUsd) * 100))
-    },
-
     /** Percent of the weekly allowance used (0-100), null while unknown. */
     weeklyPercent(state): number | null {
       const w = state.weekly
@@ -110,16 +101,14 @@ export const useUsageStore = defineStore('usage', {
       return Math.min(100, Math.round((w.usedUsd / w.limitUsd) * 100))
     },
 
-    /** The first exhausted window ('5h' before 'week', matching the backend
-     *  check order), or null while under both allowances. Unknown data never
-     *  reports exhausted (absent means unknown, not over-limit). */
-    exceededWindow(state): '5h' | 'week' | null {
-      const over = (w: UsageWindow | null) =>
-        !!w && w.usedUsd !== null && w.limitUsd !== null && w.limitUsd > 0
-          && w.usedUsd >= w.limitUsd
-      if (over(state.fiveHour)) return '5h'
-      if (over(state.weekly)) return 'week'
-      return null
+    /** 'week' once the weekly allowance is spent, else null. Kept as a union
+     *  rather than a boolean to mirror the backend's 'window' field. Unknown
+     *  data never reports exhausted (absent means unknown, not over-limit). */
+    exceededWindow(state): 'week' | null {
+      const w = state.weekly
+      const over = !!w && w.usedUsd !== null && w.limitUsd !== null
+        && w.limitUsd > 0 && w.usedUsd >= w.limitUsd
+      return over ? 'week' : null
     },
   },
 
@@ -140,10 +129,8 @@ export const useUsageStore = defineStore('usage', {
               id: String(p?.id ?? ''),
               name: String(p?.name ?? p?.id ?? ''),
               weeklyUsd: toNumber(p?.weekly_usd),
-              fiveHourUsd: toNumber(p?.five_hour_usd),
             }))
           : []
-        this.fiveHour = toWindow(data.windows?.five_hour)
         this.weekly = toWindow(data.windows?.weekly)
       } catch (error: any) {
         console.error('Error fetching usage status:', error)

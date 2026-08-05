@@ -8,9 +8,8 @@ vi.mock('@/shared/services/api', () => ({
 
 import { useUsageStore, formatUsd } from '@/shared/stores/usage'
 
-// Free-plan allowances: $25/week -> $5 per 5 hours.
-const FIVE_HOUR = 5
-const WEEKLY = 25
+// Free-plan allowance: $10/week. Weekly is the only window.
+const WEEKLY = 10
 
 describe('usage store exceededWindow', () => {
   beforeEach(() => {
@@ -22,28 +21,24 @@ describe('usage store exceededWindow', () => {
     const store = useUsageStore()
     expect(store.exceededWindow).toBeNull()
 
-    store.fiveHour = { usedUsd: null, limitUsd: FIVE_HOUR, resetsAt: null }
     store.weekly = { usedUsd: 0.5, limitUsd: null, resetsAt: null }
     expect(store.exceededWindow).toBeNull()
   })
 
-  it('is null while under both allowances', () => {
+  it('is null while under the allowance', () => {
     const store = useUsageStore()
-    store.fiveHour = { usedUsd: 0.01, limitUsd: FIVE_HOUR, resetsAt: null }
     store.weekly = { usedUsd: 0.01, limitUsd: WEEKLY, resetsAt: null }
     expect(store.exceededWindow).toBeNull()
   })
 
-  it('reports the five-hour window first, matching the backend check order', () => {
+  it('reports the weekly window once the allowance is spent', () => {
     const store = useUsageStore()
-    store.fiveHour = { usedUsd: FIVE_HOUR, limitUsd: FIVE_HOUR, resetsAt: null }
     store.weekly = { usedUsd: WEEKLY, limitUsd: WEEKLY, resetsAt: null }
-    expect(store.exceededWindow).toBe('5h')
+    expect(store.exceededWindow).toBe('week')
   })
 
-  it('reports the weekly window when only it is exhausted', () => {
+  it('stays exhausted past the allowance', () => {
     const store = useUsageStore()
-    store.fiveHour = { usedUsd: 0.01, limitUsd: FIVE_HOUR, resetsAt: null }
     store.weekly = { usedUsd: WEEKLY + 0.01, limitUsd: WEEKLY, resetsAt: null }
     expect(store.exceededWindow).toBe('week')
   })
@@ -60,11 +55,10 @@ describe('usage store fetchUsage', () => {
       data: {
         plan: { id: 'pro', name: 'Pro' },
         windows: {
-          five_hour: { used_usd: 0.4, limit_usd: 1, resets_at: '2026-07-25T12:00:00Z' },
-          weekly: { used_usd: 2.5, limit_usd: 5, resets_at: null },
+          weekly: { used_usd: 2.5, limit_usd: 5, resets_at: '2026-07-25T12:00:00Z' },
         },
         plans: [
-          { id: 'free', name: 'Free', weekly_usd: 25, five_hour_usd: 5 },
+          { id: 'free', name: 'Free', weekly_usd: 10 },
         ],
       },
     })
@@ -73,12 +67,11 @@ describe('usage store fetchUsage', () => {
     await store.fetchUsage()
 
     expect(store.plan).toEqual({ id: 'pro', name: 'Pro' })
-    expect(store.fiveHour).toEqual({
-      usedUsd: 0.4, limitUsd: 1, resetsAt: '2026-07-25T12:00:00Z',
+    expect(store.weekly).toEqual({
+      usedUsd: 2.5, limitUsd: 5, resetsAt: '2026-07-25T12:00:00Z',
     })
-    expect(store.fiveHourPercent).toBe(40)
     expect(store.weeklyPercent).toBe(50)
-    expect(store.plans[0].fiveHourUsd).toBe(5)
+    expect(store.plans[0].weeklyUsd).toBe(10)
   })
 
   it('treats a token-denominated payload as unknown rather than dollars', async () => {
@@ -88,15 +81,15 @@ describe('usage store fetchUsage', () => {
     apiMock.get.mockResolvedValue({
       data: {
         plan: { id: 'free', name: 'Free' },
-        windows: { five_hour: { used: 2_000_000, limit: 2_000_000, resets_at: null } },
+        windows: { weekly: { used: 2_000_000, limit: 2_000_000, resets_at: null } },
       },
     })
 
     const store = useUsageStore()
     await store.fetchUsage()
 
-    expect(store.fiveHour).toEqual({ usedUsd: null, limitUsd: null, resetsAt: null })
-    expect(store.fiveHourPercent).toBeNull()
+    expect(store.weekly).toEqual({ usedUsd: null, limitUsd: null, resetsAt: null })
+    expect(store.weeklyPercent).toBeNull()
     expect(store.exceededWindow).toBeNull()
   })
 })

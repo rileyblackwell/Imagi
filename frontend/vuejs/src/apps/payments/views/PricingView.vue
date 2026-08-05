@@ -17,8 +17,8 @@
             </h1>
           </div>
           <p class="lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg">
-            Start free, then upgrade as you grow. Every plan includes a monthly amount of AI
-            usage, delivered through a rolling 5-hour session and a weekly window.
+            Start free, then upgrade as you grow. Every plan gives you an amount of AI usage
+            per week, on a rolling window — no session limits, nothing to top up.
           </p>
         </div>
 
@@ -37,7 +37,6 @@
             :lookup-key="tier.lookupKey"
             :cta="tier.cta"
             :features="tier.features"
-            :session-limit="tier.sessionLimit"
             :weekly-limit="tier.weeklyLimit"
             :options="tier.options"
             :is-popular="tier.isPopular"
@@ -85,12 +84,11 @@ const paymentService = new PaymentService()
 const loadingTier = ref<string | null>(null)
 const error = ref('')
 
-// The monthly figure in `features` is the headline we sell; the sessionLimit
-// and weeklyLimit lines are how it is actually delivered, and those two must
-// mirror the backend plan registry (Payments' services/plans.py) — the
-// backend knows only those windows and is what enforces them. The weekly
-// figures are set generously against the monthly headline rather than
-// dividing it thinly, so four weeks add up to more than the monthly number.
+// weeklyLimit is the one allowance figure we publish, and it must mirror the
+// backend plan registry (Payments' services/plans.py) — that weekly window is
+// the only thing the meter enforces. Deliberately no monthly usage number in
+// `features`: nothing enforces one, and carrying a second figure was the
+// confusion that removing the 5-hour session window was meant to end.
 // `price` is the Stripe subscription price, separate from the allowance.
 const tiers: Tier[] = [
   {
@@ -98,11 +96,9 @@ const tiers: Tier[] = [
     price: 0,
     lookupKey: null,
     cta: 'Start for free',
-    sessionLimit: '$5 of usage every 5 hours',
-    weeklyLimit: '$25 of usage per week',
+    weeklyLimit: '$10 of usage per week',
     features: [
       'Access to the core AI builder',
-      '$50 of AI usage per month',
       '1 active project',
       'Community support',
     ],
@@ -110,14 +106,12 @@ const tiers: Tier[] = [
   },
   {
     name: 'Pro',
-    price: 20,
+    price: 25,
     lookupKey: 'pro_monthly',
     cta: 'Get started',
-    sessionLimit: '$20 of usage every 5 hours',
-    weeklyLimit: '$100 of usage per week',
+    weeklyLimit: '$20 of usage per week',
     features: [
       'Everything in Free',
-      '$200 of AI usage per month',
       'Unlimited projects',
       'Priority support',
     ],
@@ -128,17 +122,17 @@ const tiers: Tier[] = [
     cta: 'Get started',
     isPopular: false,
     // A single Max plan with selectable usage options, mirroring Claude's Max
-    // tier. "5×"/"20×" are literal multiples of Pro's allowance.
+    // tier. The "5×"/"20×" labels are inherited tier names, not descriptions
+    // of the allowance: 5× is genuinely 5× Pro's weekly figure, but 20× is
+    // 10× it. The bullets below state the real multiple rather than the label.
     options: [
       {
         label: '5× usage',
         price: 100,
         lookupKey: 'max_5x_monthly',
-        sessionLimit: '$100 of usage every 5 hours',
-        weeklyLimit: '$500 of usage per week',
+        weeklyLimit: '$100 of usage per week',
         features: [
           'Everything in Pro',
-          '$1,000 of AI usage per month',
           '5× more usage than Pro',
           'Early access to new features',
         ],
@@ -147,12 +141,10 @@ const tiers: Tier[] = [
         label: '20× usage',
         price: 200,
         lookupKey: 'max_20x_monthly',
-        sessionLimit: '$400 of usage every 5 hours',
-        weeklyLimit: '$2,000 of usage per week',
+        weeklyLimit: '$200 of usage per week',
         features: [
           'Everything in Pro',
-          '$4,000 of AI usage per month',
-          '20× more usage than Pro',
+          '10× more usage than Pro',
           'Priority access at peak times',
         ],
       },
@@ -164,7 +156,6 @@ interface TierOption {
   label: string
   price: number
   lookupKey: string
-  sessionLimit: string
   weeklyLimit: string
   features: string[]
 }
@@ -176,7 +167,6 @@ interface Tier {
   // Single-option tiers set these directly; multi-option tiers use `options` instead.
   price?: number
   lookupKey?: string | null
-  sessionLimit?: string
   weeklyLimit?: string
   features?: string[]
   options?: TierOption[]

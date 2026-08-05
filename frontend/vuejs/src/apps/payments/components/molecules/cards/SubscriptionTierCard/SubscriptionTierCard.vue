@@ -38,10 +38,6 @@
     <!-- How the allowance is actually delivered -->
     <dl class="tier__limits">
       <div>
-        <dt>Every 5 hours</dt>
-        <dd>{{ active.sessionLimit }}</dd>
-      </div>
-      <div>
         <dt>Per week</dt>
         <dd>{{ active.weeklyLimit }}</dd>
       </div>
@@ -79,7 +75,6 @@ interface TierOption {
   label: string
   price: number
   lookupKey: string
-  sessionLimit: string
   weeklyLimit: string
   features: string[]
 }
@@ -92,7 +87,6 @@ const props = defineProps<{
   // Single-option tiers pass these directly…
   price?: number
   lookupKey?: string | null
-  sessionLimit?: string
   weeklyLimit?: string
   features?: string[]
   // …multi-option tiers (e.g. Max) pass these instead.
@@ -113,7 +107,6 @@ const active = computed(() => {
   return {
     price: props.price ?? 0,
     lookupKey: props.lookupKey ?? null,
-    sessionLimit: props.sessionLimit ?? '',
     weeklyLimit: props.weeklyLimit ?? '',
     features: props.features ?? [],
   }

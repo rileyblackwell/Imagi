@@ -575,16 +575,16 @@ function toggleEffort() {
 }
 
 /** "Pro plan" — em-dash while the plan is unknown. The allowances belong to
- *  the two window meters below, not here. */
+ *  the weekly meter below, not here. */
 const planSummary = computed(() =>
   usageStore.plan ? `${usageStore.plan.name} plan` : '—'
 )
 
-/** The two rolling-window meters. Missing data renders as unknown (em-dash,
- *  no bar) — never as 0%. */
+/** The rolling-window meter. A list of one: the weekly allowance is the only
+ *  window, but the panel renders rows, so keeping the shape costs nothing.
+ *  Missing data renders as unknown (em-dash, no bar) — never as 0%. */
 const usageMeters = computed(() => {
   const rows = [
-    { key: '5h', label: '5-hour limit', win: usageStore.fiveHour, percent: usageStore.fiveHourPercent },
     { key: 'week', label: 'Weekly limit', win: usageStore.weekly, percent: usageStore.weeklyPercent },
   ]
   return rows.map(({ key, label, win, percent }) => ({

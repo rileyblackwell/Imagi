@@ -80,7 +80,7 @@ export default defineComponent({
           value: 'Free',
           unit: '',
           label: 'Plans start at',
-          caption: 'Usage refreshes on a rolling 5-hour session and a weekly limit. Upgrade as you grow, cancel anytime.'
+          caption: 'Usage refreshes on a rolling weekly limit. Upgrade as you grow, cancel anytime.'
         },
         {
           value: '30',

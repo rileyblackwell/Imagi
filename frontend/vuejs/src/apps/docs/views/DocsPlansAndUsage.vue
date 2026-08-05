@@ -14,13 +14,11 @@
         </h2>
         <div class="space-y-4 text-[color:var(--ink-55)] text-lg leading-relaxed mb-8 transition-colors duration-300">
           <p>
-            Every plan includes a monthly <strong class="ink-strong">usage allowance</strong>,
-            quoted in dollars of AI work—$5 a month on Free, $20 on Pro. Nothing is charged per run: each run's cost is
-            simply metered against two rolling windows, a
-            <strong class="ink-strong">5-hour session</strong> and a
-            <strong class="ink-strong">weekly</strong> window. Those windows are how the
-            monthly amount is delivered, and they are the only two limits you'll ever see—there is no separate monthly
-            counter running in the background.
+            Every plan includes a <strong class="ink-strong">weekly usage allowance</strong>,
+            quoted in dollars of AI work—$10 a week on Free, $20 on Pro. Nothing is charged per run: each run's cost is
+            simply metered against one
+            <strong class="ink-strong">rolling weekly window</strong>. That window is the only
+            limit you'll ever see—there is no session cap and no separate monthly counter running in the background.
           </p>
           <p>
             Because the allowance is measured in dollars rather than messages, what you spend depends on the model you pick
@@ -29,16 +27,16 @@
             (see <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>).
           </p>
           <p>
-            Because the windows roll, allowance frees up gradually as older activity ages out—rather than resetting all at once.
+            Because the window rolls, allowance frees up gradually as older activity ages out—rather than resetting all at once.
           </p>
         </div>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="The Usage panel">
-            In the Build workspace, the Usage panel shows both windows as dollars spent against their allowance, with a meter
+            In the Build workspace, the Usage panel shows the week's spend against your allowance, with a meter
             and a "resets" time, so you always know where you stand. It refreshes automatically after each agent run.
           </DocsCard>
           <DocsCard title="Running out">
-            If you use up a window's allowance, the agent tells you clearly and when it resets. You can wait for it to free up
+            If you use up the week's allowance, the agent tells you clearly and when it resets. You can wait for it to free up
             as the window rolls, switch to a lighter model or lower reasoning effort, or upgrade your plan.
           </DocsCard>
         </div>
@@ -50,39 +48,34 @@
           Plans
         </h2>
         <p class="lede lede--section">
-          Every plan uses the same rolling 5-hour and weekly windows—higher plans simply give you a bigger allowance in each.
-          A week's allowance is spread over five 5-hour sessions, so one long sitting can't drain the whole week, and the
-          weekly figures below are set generously against the monthly amount rather than dividing it thinly.
+          Every plan uses the same rolling weekly window—higher plans simply give you a bigger allowance in it. There is no
+          session limit on top, so a single long sitting can use as much of the week's allowance as you want it to.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Free — $0">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$50 of AI usage per month</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $25 per week, $5 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$10 of AI usage per week</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>1 active project</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Community support</span></li>
             </ul>
           </DocsCard>
-          <DocsCard title="Pro — $20 / month">
+          <DocsCard title="Pro — $25 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$200 of AI usage per month</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $100 per week, $20 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$20 of AI usage per week</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Unlimited projects</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority support</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Max (5×) — $100 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$1,000 of AI usage per month — 5× Pro</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $500 per week, $100 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$100 of AI usage per week — 5× Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Early access to new features</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Max (20×) — $200 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$4,000 of AI usage per month — 20× Pro</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $2,000 per week, $400 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$200 of AI usage per week — 10× Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority access at peak times</span></li>
             </ul>
@@ -105,8 +98,8 @@
             Keeping an eye on it
           </h4>
           <p class="callout__body">
-            The Build workspace shows how much of your 5-hour allowance is left right in the toolbar, and the Usage panel
-            breaks out both windows in dollars. Both refresh shortly after each AI run.
+            The Build workspace shows how much of your weekly allowance is left right in the toolbar, and the Usage panel
+            shows the same figure in dollars. Both refresh shortly after each AI run.
           </p>
         </div>
       </section>
