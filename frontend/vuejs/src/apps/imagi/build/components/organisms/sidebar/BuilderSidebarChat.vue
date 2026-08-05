@@ -3,8 +3,10 @@
     <!-- Header: who you're talking to, and the ways out of here. There is
          only one thread the user drives, so it is simply "Main agent" — no
          conversation name to track. A subagent's read-only thread keeps its
-         own name, and its status line says so, which is how you tell the two
-         apart at a glance. Version restores live inline in the transcript (the
+         own name, which is how you tell the two apart at a glance. What the
+         agent is doing right now is not here: it belongs under the message
+         that set it going, so the transcript says it. Version restores live
+         inline in the transcript (the
          per-message checkpoint chips), so the header carries no history
          controls.
 
@@ -32,7 +34,6 @@
         :status-text="activeInstance?.statusText || ''"
         :can-restore="canRestoreCheckpoints"
         :show-activity="!isLeadThread"
-        :show-status="!isLeadThread"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         @open-task="onOpenTask"
         class="flex-1"
@@ -419,12 +420,15 @@ function onPaneSwitch(id: string) {
   else if (id === 'preview') emit('open-preview')
 }
 
-/** The header's second line: what this thread is doing right now. On the main
- *  thread the queue takes precedence — agents waiting on you is the thing you
- *  most need to know before typing. */
+/** The header's second line: where this thread stands while nothing is
+ *  running. A live run is narrated in the transcript instead, directly under
+ *  the message that started it — that is where you are looking when you have
+ *  just sent something, and it puts "Thinking…" next to the thing being
+ *  thought about rather than in a corner of the masthead. So the plate goes
+ *  quiet the moment a run starts and only speaks between them. */
 const headerStatus = computed(() => {
   const instance = activeInstance.value
-  if (instance?.isProcessing) return instance.statusText || 'Working…'
+  if (instance?.isProcessing) return ''
   // No "background agent" prefix: the muted mark and the note above the
   // composer already say that, and the sidebar is too narrow to spend
   // characters twice. These match the manager's card labels word for word.
@@ -441,15 +445,15 @@ const headerStatus = computed(() => {
   if (waiting > 0) {
     return `${waiting} ${waiting === 1 ? 'agent is' : 'agents are'} waiting on you`
   }
-  return 'Ready when you are'
+  // Nothing running and nothing waiting: the plate is just the thread's name.
+  // "Ready when you are" was a line spent saying that no line was needed.
+  return ''
 })
 
-/** The dot beside that line, in the crew ledger's three-token vocabulary. It
- *  has to agree with the wording above: a live run reads 'working', anything
- *  that wants the user reads 'waiting', everything settled reads 'idle'. */
-const headerState = computed<'working' | 'waiting' | 'idle'>(() => {
+/** The dot beside that line, in the crew ledger's three-token vocabulary.
+ *  Never 'working' — a live run has no line here to mark. */
+const headerState = computed<'waiting' | 'idle'>(() => {
   const instance = activeInstance.value
-  if (instance?.isProcessing) return 'working'
   if (isTaskThread.value) {
     return instance?.reviewStatus === 'input' || instance?.reviewStatus === 'ready'
       ? 'waiting'

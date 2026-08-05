@@ -278,11 +278,13 @@ function variantPlace(instance: AgentInstance): { index: number; count: number }
   return { index: siblings.indexOf(instance.id) + 1, count: siblings.length }
 }
 
-/** The open subagent's own header line — the same wording its card uses. */
+/** The open subagent's own header line — the same wording its card uses, and
+ *  only while it is resting. What a running subagent is doing is narrated at
+ *  the foot of its transcript instead, where the work itself is. */
 const openedStatus = computed(() => {
   const instance = opened.value
   if (!instance) return ''
-  if (instance.isProcessing) return instance.statusText || 'Working…'
+  if (instance.isProcessing) return ''
   switch (instance.reviewStatus) {
     case 'input': return 'Asked you a question'
     case 'ready': return 'Subagent complete — waiting on you'
@@ -292,10 +294,10 @@ const openedStatus = computed(() => {
   }
 })
 
-/** …and the dot that leads it, keyed the same way its card is. */
-const openedState = computed<'working' | 'waiting' | 'idle'>(() => {
+/** …and the dot that leads it, keyed the same way its card is. Never
+ *  'working': there is no line here while a run is live. */
+const openedState = computed<'waiting' | 'idle'>(() => {
   const instance = opened.value
-  if (instance?.isProcessing) return 'working'
   return instance?.reviewStatus === 'input' || instance?.reviewStatus === 'ready'
     ? 'waiting'
     : 'idle'

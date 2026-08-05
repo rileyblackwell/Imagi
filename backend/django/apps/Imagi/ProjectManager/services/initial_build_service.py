@@ -117,7 +117,7 @@ This page also carries the authentication wiring, which the other pages do not. 
     PageBrief(
         slug='about',
         title='About page',
-        view_path='frontend/vuejs/src/apps/about/views/AboutView.vue',
+        view_path='frontend/vuejs/src/apps/home/views/AboutView.vue',
         route='/about',
         summary='the about page — who is behind this business and why it exists',
         requirements="""Build a whole about page: a header, an opening that states what the business stands for, then the sections an about page earns its place with — the story of why it exists, what it believes or how it works, the people or the craft behind it, and a few concrete numbers or milestones if they fit the business. Close with a call to action pointing at the contact page ('/contact') and a footer.
@@ -127,7 +127,7 @@ Write it as this specific business would: concrete and grounded, not "we are pas
     PageBrief(
         slug='contact',
         title='Contact page',
-        view_path='frontend/vuejs/src/apps/contact/views/ContactView.vue',
+        view_path='frontend/vuejs/src/apps/home/views/ContactView.vue',
         route='/contact',
         summary='the contact page — how a customer reaches this business',
         requirements="""Build a whole contact page: a header, a short line on what to get in touch about, a contact form (name, email, message, and any field this business actually needs — laid out and styled properly), and the other ways to reach the business alongside it (email address, phone, location or hours) as fits.

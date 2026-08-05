@@ -52,9 +52,9 @@
         </button>
       </div>
 
-      <!-- The nameplate: what you're looking at, said properly — session state,
-           the app it belongs to, the page's name in the brand serif, and the
-           literal path in mono. Also the app/page selector. -->
+      <!-- The nameplate: where you are, said as the path it is — the app folder
+           the page lives in, then the page itself ("home/about"). Also the
+           app/page selector. -->
       <div class="relative flex-1 min-w-0" ref="menuRoot">
         <button
           type="button"
@@ -64,11 +64,9 @@
           aria-haspopup="true"
           class="pv-plate group"
         >
-          <span :class="['pv-dot', `pv-dot--${phase}`]" aria-hidden="true"></span>
-          <span v-if="currentAppTitle" class="pv-plate-app">{{ currentAppTitle }}</span>
-          <span v-if="currentAppTitle" class="pv-plate-sep" aria-hidden="true">/</span>
-          <span class="pv-plate-page">{{ triggerLabel }}</span>
-          <span class="pv-plate-path">{{ currentPath }}</span>
+          <span v-if="location.dir" class="pv-plate-dir">{{ location.dir }}</span>
+          <span v-if="location.dir" class="pv-plate-sep" aria-hidden="true">/</span>
+          <span class="pv-plate-page">{{ location.page }}</span>
           <i class="fas fa-chevron-down pv-plate-chevron" :class="{ 'rotate-180': menuOpen }"></i>
         </button>
 
@@ -77,10 +75,6 @@
           v-if="menuOpen && apps.length> 0"
           class="pv-menu"
         >
-          <p class="pv-menu-label">
-            <span>Pages</span>
-            <span class="pv-menu-count">{{ pageCount }}</span>
-          </p>
           <div v-for="(app, i) in apps" :key="app.name" class="pv-row" :style="{ '--pv-i': i }">
             <!-- Folder row -->
             <button
@@ -96,8 +90,7 @@
                 class="fas pv-folder-icon"
                 :class="isExpanded(app.name) ? 'fa-folder-open' : 'fa-folder'"
               ></i>
-              <span class="truncate">{{ app.title }}</span>
-              <span class="pv-folder-count">{{ app.pages.length }}</span>
+              <span class="truncate">{{ app.name }}</span>
             </button>
 
             <!-- Files (pages) nested under the folder, with a tree guide line -->
@@ -1015,27 +1008,24 @@ function onDocClick(e: MouseEvent) {
   }
 }
 
-// The collapsed address bar shows just the page you're on (e.g. "About").
-const triggerLabel = computed(() => {
-  if (apps.value.length === 0) return 'No pages yet'
+// The page's own name, as it reads in the app's directory: the route's last
+// segment, with the root of an app taking the app's own name ('/' -> "home").
+function pageSlug(path: string): string {
+  return path.replace(/\/+$/, '').split('/').pop() || 'home'
+}
+
+// What the collapsed plate says: the app folder holding the current page and
+// the page inside it, shown as a path — "home/about", "auth/signin".
+const location = computed(() => {
   for (const app of apps.value) {
     const page = app.pages.find(p => p.path === currentPath.value)
-    if (page) return page.title
+    if (page) return { dir: app.name, page: pageSlug(page.path) }
   }
-  return currentPath.value || 'Select page'
+  // No router claims this path — a 404, or a route the agent added since the
+  // last fetch. There is no folder to name, so show the address itself.
+  if (apps.value.length === 0) return { dir: '', page: 'No pages yet' }
+  return { dir: '', page: currentPath.value || '/' }
 })
-
-// The app the current page belongs to, shown ahead of the page name on the
-// nameplate ("Marketing / Pricing"). Empty when the path isn't in any router —
-// then the page name alone carries the plate.
-const currentAppTitle = computed(() => {
-  const app = apps.value.find(a => a.pages.some(p => p.path === currentPath.value))
-  return app?.title || ''
-})
-
-const pageCount = computed(() =>
-  apps.value.reduce((n, app) => n + app.pages.length, 0)
-)
 
 // ---------------------------------------------------------------------------
 // Start-up progress
@@ -1471,66 +1461,35 @@ defineExpose({ reload })
   box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
 }
 
-/* Session state, told by a single dot rather than a word — the pane has one
-   job and this is the only place its health needs saying. */
-.pv-dot {
+/* The plate reads as one path — the folder set back, the page carrying the
+   weight — so the two are the same size and differ only in colour. */
+.pv-plate-dir {
   flex-shrink: 0;
-  width: 0.4375rem;
-  height: 0.4375rem;
-  border-radius: 9999px;
-  background: rgba(23, 37, 84, 0.25);
-}
-
-.pv-dot--ready {
-  background: #10b981;
-  box-shadow: 0 0 0 2.5px rgba(16, 185, 129, 0.16);
-}
-
-.pv-dot--starting {
-  background: #f59e0b;
-  box-shadow: 0 0 0 2.5px rgba(245, 158, 11, 0.18);
-  animation: pv-breathe 1.6s ease-in-out infinite;
-}
-
-.pv-dot--error {
-  background: #ef4444;
-  box-shadow: 0 0 0 2.5px rgba(239, 68, 68, 0.18);
-}
-
-.dark .pv-dot {
-  background: rgba(219, 234, 254, 0.25);
-}
-
-@keyframes pv-breathe {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-}
-
-.pv-plate-app {
-  flex-shrink: 0;
-  max-width: 8rem;
+  max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-family: theme('fontFamily.display');
+  font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: -0.008em;
   color: rgba(23, 37, 84, 0.42);
 }
 
 .pv-plate-sep {
   flex-shrink: 0;
-  font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.22);
+  font-size: 0.8125rem;
+  color: rgba(23, 37, 84, 0.24);
 }
 
 .pv-plate-page {
-  flex-shrink: 0;
-  max-width: 12rem;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
   font-family: theme('fontFamily.display');
   font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
   font-size: 0.875rem;
@@ -1539,33 +1498,13 @@ defineExpose({ reload })
   color: theme('colors.blue.950');
 }
 
-/* The literal path, in mono: a technical counterweight to the serif, and the
-   detail that turns a label back into an address bar. */
-.pv-plate-path {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.3);
-}
-
-.dark .pv-plate-app { color: rgba(219, 234, 254, 0.42); }
-.dark .pv-plate-sep { color: rgba(219, 234, 254, 0.2); }
+.dark .pv-plate-dir { color: rgba(219, 234, 254, 0.42); }
+.dark .pv-plate-sep { color: rgba(219, 234, 254, 0.22); }
 .dark .pv-plate-page { color: rgba(255, 255, 255, 0.94); }
-.dark .pv-plate-path { color: rgba(219, 234, 254, 0.3); }
 
-/* Narrow panes shed the supporting detail before the page name ever wraps. */
-@media (max-width: 1100px) {
-  .pv-plate-path { display: none; }
-  .pv-plate-page { flex: 1; max-width: none; }
-}
-
+/* Narrow panes drop the folder before the page name ever wraps. */
 @media (max-width: 640px) {
-  .pv-plate-app,
+  .pv-plate-dir,
   .pv-plate-sep { display: none; }
 }
 
@@ -1659,33 +1598,6 @@ defineExpose({ reload })
   to { opacity: 1; transform: none; }
 }
 
-.pv-menu-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.5rem 0.4375rem;
-  margin-bottom: 0.125rem;
-  border-bottom: 1px solid rgba(23, 37, 84, 0.06);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(23, 37, 84, 0.4);
-}
-
-.dark .pv-menu-label {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-  color: rgba(219, 234, 254, 0.4);
-}
-
-.pv-menu-count {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  color: rgba(23, 37, 84, 0.3);
-}
-
-.dark .pv-menu-count { color: rgba(219, 234, 254, 0.3); }
-
 /* Rows arrive in sequence, so opening the menu reads as a list unfolding. */
 .pv-row {
   animation: pv-row-in 0.22s ease both;
@@ -1741,15 +1653,6 @@ defineExpose({ reload })
 .dark .pv-folder-chevron { color: rgba(219, 234, 254, 0.35); }
 .dark .pv-folder:hover .pv-folder-chevron { color: rgba(219, 234, 254, 0.55); }
 .dark .pv-folder-icon { color: rgba(219, 234, 254, 0.45); }
-
-.pv-folder-count {
-  margin-left: auto;
-  font-size: 0.625rem;
-  font-variant-numeric: tabular-nums;
-  color: rgba(23, 37, 84, 0.28);
-}
-
-.dark .pv-folder-count { color: rgba(219, 234, 254, 0.28); }
 
 .pv-files {
   margin-left: 1.05rem;
@@ -2215,8 +2118,7 @@ defineExpose({ reload })
 @media (prefers-reduced-motion: reduce) {
   .pv-progress::after,
   .pv-orbit::before,
-  .pv-orbit-core,
-  .pv-dot--starting {
+  .pv-orbit-core {
     animation: none;
   }
 

@@ -175,13 +175,7 @@ const props = withDefaults(defineProps<{
    *  reply is a second, emptier telling of the same thing. Defaults on, so a
    *  subagent's transcript still shows how it worked. */
   showActivity?: boolean
-  /** Whether the transcript carries its own "Working…" line. Off on the main
-   *  thread, where the masthead a few pixels above is already reporting the
-   *  same run — and reporting it from a fixed place, rather than from the
-   *  bottom of a transcript the user may have scrolled away from. Subagent
-   *  threads keep it: their masthead names the subagent, not the run. */
-  showStatus?: boolean
-}>(), { showActivity: true, showStatus: true })
+}>(), { showActivity: true })
 
 const activityVisible = computed(() => props.showActivity)
 
@@ -196,7 +190,6 @@ const restoreAllowed = computed(() =>
  * A tool call mid-run sets statusText again, which brings the indicator back.
  */
 const showActivityIndicator = computed(() => {
-  if (!props.showStatus) return false
   if (!props.isProcessing) return false
   if (props.statusText) return true
   const last = props.messages[props.messages.length - 1]

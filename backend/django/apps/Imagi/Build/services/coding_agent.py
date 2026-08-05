@@ -180,11 +180,11 @@ Hard rules:
 
 The scaffold you are starting from (already on disk — trust this instead of looking):
 - 'frontend/vuejs/src/apps/home/views/HomeView.vue' — placeholder landing page, routed at '/'.
-- 'frontend/vuejs/src/apps/about/views/AboutView.vue' — placeholder about page, routed at '/about'.
-- 'frontend/vuejs/src/apps/contact/views/ContactView.vue' — placeholder contact page, routed at '/contact'.
+- 'frontend/vuejs/src/apps/home/views/AboutView.vue' — placeholder about page, routed at '/about'.
+- 'frontend/vuejs/src/apps/home/views/ContactView.vue' — placeholder contact page, routed at '/contact'.
   Exactly one of those three is yours; your brief says which. The other two belong to your siblings.
 - 'frontend/vuejs/src/apps/auth/' — the prebuilt auth app serving '/auth/signin' and '/auth/register'. Leave it alone.
-- Each page's 'router/index.ts' already maps its route to its view, so your page is live the moment you write it and you never touch a router.
+- 'frontend/vuejs/src/apps/home/router/index.ts' already maps all three routes to those three views, so your page is live the moment you write it and you never touch a router.
 - Tailwind, Vue Router, and Pinia are installed and wired up."""
 )
 

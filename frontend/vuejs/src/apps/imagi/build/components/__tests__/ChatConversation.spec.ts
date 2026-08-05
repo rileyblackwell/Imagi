@@ -55,11 +55,19 @@ describe('ChatConversation activity indicator', () => {
     expect(indicatorText(wrapper)).toBe('Editing project files…')
   })
 
-  it('stays out of the transcript when the pane reports the run itself', () => {
-    // The main thread's masthead carries the status line, so a second one
-    // trailing the transcript would say the same thing twice.
-    const wrapper = mountWith({ isProcessing: true, statusText: 'Thinking…', showStatus: false })
-    expect(indicatorText(wrapper)).toBeNull()
+  it('lands directly under the message that started the run', () => {
+    // The whole point of the indicator living here rather than in the
+    // masthead: you send something and the answer to "is it doing anything?"
+    // appears where you are already looking.
+    const wrapper = mountWith({ isProcessing: true, statusText: 'Thinking…' })
+    const rows = wrapper.findAll('.msg-row')
+    expect(rows[rows.length - 1].find('.agent-status').exists()).toBe(true)
+  })
+
+  it('follows the run from step to step', async () => {
+    const wrapper = mountWith({ isProcessing: true, statusText: 'Thinking…' })
+    await wrapper.setProps({ statusText: 'Editing project files…' })
+    expect(indicatorText(wrapper)).toBe('Editing project files…')
   })
 
   it('hides when the run is over', () => {

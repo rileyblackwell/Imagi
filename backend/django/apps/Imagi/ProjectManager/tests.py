@@ -1236,13 +1236,25 @@ class ScaffoldWiringTests(TestCase):
             self.assertIn(f"path: '{page.route}'", router)
             self.assertIn('export { routes }', router)
 
-    def test_page_apps_are_frontend_only(self):
-        # about/contact are static marketing pages: giving them a Django app
-        # would add INSTALLED_APPS entries and migrations for nothing.
+    def test_public_pages_all_live_in_the_home_app(self):
+        # home, about and contact are one thing — the marketing front of the
+        # business, sharing a header, a footer and the navigation between them.
+        # An app apiece also read as three one-page folders in the workspace's
+        # page menu, which is what the folder/page nameplate now shows.
+        views = os.path.join(
+            self.project.project_path,
+            'frontend', 'vuejs', 'src', 'apps', 'home', 'views',
+        )
+        for view in ('HomeView.vue', 'AboutView.vue', 'ContactView.vue'):
+            self.assertTrue(os.path.isfile(os.path.join(views, view)), view)
+
+        frontend_apps = os.path.join(
+            self.project.project_path, 'frontend', 'vuejs', 'src', 'apps'
+        )
         for app in ('about', 'contact'):
-            self.assertTrue(os.path.isdir(os.path.join(
-                self.project.project_path, 'frontend', 'vuejs', 'src', 'apps', app
-            )))
+            self.assertFalse(os.path.isdir(os.path.join(frontend_apps, app)))
+            # And no Django app either: these pages serve no data, so one
+            # would add INSTALLED_APPS entries and migrations for nothing.
             self.assertFalse(os.path.isdir(os.path.join(
                 self.backend_root, 'apps', app
             )))

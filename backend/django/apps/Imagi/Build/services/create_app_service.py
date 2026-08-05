@@ -14,23 +14,13 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Imagi.ProjectManager.models import Project
 from .create_file_service import CreateFileService
-from .codegen.prebuilt_apps import (
-    PAGE_APP_MAP,
-    generate_page_app_files,
-    generate_prebuilt_app_files,
-)
+from .codegen.prebuilt_apps import generate_prebuilt_app_files
 
 logger = logging.getLogger(__name__)
 
 # Apps scaffolded into every new project (see IMAGI_BUILDER in imagi/settings.py)
 DEFAULT_APPS = list(
     getattr(settings, 'IMAGI_BUILDER', {}).get('DEFAULT_APPS', ['home', 'auth'])
-)
-
-# Frontend-only page apps scaffolded alongside them. Separate from DEFAULT_APPS
-# because these have no Django side to create or register.
-PAGE_APPS = list(
-    getattr(settings, 'IMAGI_BUILDER', {}).get('PAGE_APPS', list(PAGE_APP_MAP))
 )
 
 class CreateAppService:
@@ -234,68 +224,6 @@ class CreateAppService:
                 'success': False,
                 'error': str(e),
                 'message': f'Failed to ensure default apps: {str(e)}'
-            }
-    
-    def ensure_page_apps(self, project_id: str = None) -> Dict[str, Any]:
-        """Ensure the frontend-only page apps ('about', 'contact') exist.
-
-        The initial build dispatches one subagent per page and gives each a
-        single file to rewrite, so the routes have to be on disk and resolving
-        before those subagents start. Frontend-only by design: these pages
-        serve no data, so there is no Django app to create or register.
-
-        Idempotent — an app whose frontend directory already exists is skipped,
-        so this is safe on the scaffold-repair path too.
-        """
-        try:
-            if project_id and not self.project:
-                project = self.get_project(project_id)
-                self.file_service = CreateFileService(project=project)
-            elif not self.project and not project_id:
-                raise ValidationError("No project specified")
-
-            project_path = self.file_service.get_project_path(project_id)
-            frontend_apps_dir = os.path.join(
-                project_path or '', 'frontend', 'vuejs', 'src', 'apps'
-            )
-
-            created_apps = []
-            total_files_created = 0
-            for app_name in PAGE_APPS:
-                if os.path.isdir(os.path.join(frontend_apps_dir, app_name)):
-                    continue
-                files_to_create = generate_page_app_files(app_name)
-                if not files_to_create:
-                    logger.warning(f"No prebuilt files for page app {app_name}")
-                    continue
-                created = 0
-                for file_data in files_to_create:
-                    try:
-                        self.file_service.create_file(file_data, project_id)
-                        created += 1
-                    except Exception as e:
-                        logger.warning(
-                            f"Failed to create page file {file_data.get('name')}: {e}"
-                        )
-                if created:
-                    created_apps.append(app_name)
-                    total_files_created += created
-
-            return {
-                'success': True,
-                'message': (
-                    f'Successfully ensured page apps. Created {len(created_apps)} '
-                    f'apps with {total_files_created} files.'
-                ),
-                'created_apps': created_apps,
-                'total_files_created': total_files_created,
-            }
-        except Exception as e:
-            logger.error(f"Error ensuring page apps: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e),
-                'message': f'Failed to ensure page apps: {str(e)}',
             }
 
     def _generate_app_files(self, app_name: str, cap_name: str, app_welcome: str) -> List[Dict[str, str]]:
