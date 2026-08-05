@@ -320,7 +320,7 @@ IMAGI_BUILDER = {
     'INITIAL_BUILD_TIME_BUDGET_S': 28,
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS
-    # for the briefs and prebuilt_apps/pages.py for the scaffold they rewrite).
+    # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).
     # Empty or unset builds all of them; trimming the list is the direct lever
     # on what a project creation costs.
     'INITIAL_BUILD_PAGES': ['home', 'about', 'contact'],
