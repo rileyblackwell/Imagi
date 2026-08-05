@@ -54,16 +54,6 @@ class ProjectCreationService:
             except Exception as app_err:
                 logger.warning(f"Failed to ensure default apps: {app_err}")
 
-            # Ensure the frontend-only page apps (about, contact). The initial
-            # build gives each of its parallel subagents one of these views to
-            # rewrite, so the routes must already resolve before it starts.
-            try:
-                create_app_service = CreateAppService(user=self.user)
-                pages_result = create_app_service.ensure_page_apps(project_id=str(project.id))
-                logger.info(f"Page apps ensure result: {pages_result}")
-            except Exception as page_err:
-                logger.warning(f"Failed to ensure page apps: {page_err}")
-
             # Put the finished scaffold under git before anything else touches
             # it. The repo is created lazily otherwise, on whichever agent run
             # first needs a worktree — which the initial build now reaches from
