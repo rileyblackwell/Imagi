@@ -40,6 +40,11 @@ themeStore.initializeTheme()
   opacity: 0;
 }
 
+/* fade-leave-from as well as fade-leave-active: Vue adds leave-from, forces a
+   reflow, and only then adds leave-active, so a rule that lives on -active
+   alone leaves one forced layout pass with both pages in flow — enough for
+   anything below the outgoing page to resolve its position against it. */
+.fade-leave-from,
 .fade-leave-active {
   position: absolute;
   top: 0;

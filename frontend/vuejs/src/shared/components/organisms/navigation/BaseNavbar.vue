@@ -1,5 +1,13 @@
 <template>
-  <nav class="crisp-nav crisp-text fixed w-full z-50 font-body bg-canvas/80 backdrop-blur-xl border-b border-blue-950/[0.08] dark:border-white/[0.08] transition-colors duration-300">
+  <!-- top-0 left-0 right-0 is load-bearing, not decoration. A fixed box with
+       `top: auto` is painted at its *static* position — where it would have sat
+       in normal flow — so without the anchor the bar's placement is a function
+       of whatever else happens to be in flow above it. That is fine on a hard
+       load and wrong during a route change: App.vue crossfades the two pages,
+       so for one layout pass the outgoing page is still in flow above the
+       incoming one, and the bar resolves to the bottom of the page you just
+       left. It stayed there until the next reload. -->
+  <nav class="crisp-nav crisp-text fixed top-0 left-0 right-0 z-50 font-body bg-canvas/80 backdrop-blur-xl border-b border-blue-950/[0.08] dark:border-white/[0.08] transition-colors duration-300">
     <div class="relative px-6 sm:px-8 lg:px-12" :class="fluid ? 'w-full' : 'max-w-7xl mx-auto'">
       <!-- The bar is fixed, so everything below it is pushed down by the
            `nav` spacing token (tailwind.config.js) — this row's height plus
