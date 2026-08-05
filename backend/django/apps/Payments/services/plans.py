@@ -15,55 +15,58 @@ instead of each needing its own token budget.
 The allowance is *metered* spend, not a wallet: nothing is charged per run and
 the numbers are approximate by design.
 
-A plan is defined by its **weekly** allowance, and only the two rolling windows
-below are tracked or shown. There is deliberately no monthly figure here: no
-window enforces one, so carrying it would mean publishing a number the meter
-never checks. What a plan costs per month is a Stripe price, not a limit.
+A plan is defined by a single **weekly** allowance, and that one rolling window
+is all that is tracked, enforced, or shown. There is deliberately no monthly
+figure here: no window enforces one, so carrying it would mean publishing a
+number the meter never checks. What a plan costs per month is a Stripe price,
+not a limit.
+
+There was previously a second, 5-hour burst window layered on top of the weekly
+one. It was removed: two windows meant two numbers a user had to hold in their
+head to predict whether a run would be refused, and the weekly allowance alone
+is what actually bounds spend.
 """
 
 DEFAULT_PLAN_ID = 'free'
 
-# The 5-hour burst window is a fifth of the weekly allowance: a single sitting
-# can't drain the whole week, but five heavy sessions fill it. It exists to
-# smooth load, not to be a second budget.
-SESSIONS_PER_WEEK = 5
-
 
 def _windows(weekly_usd):
-    """The rolling-window allowances derived from a plan's weekly figure."""
-    return {
-        'weekly_usd': round(weekly_usd, 2),
-        'five_hour_usd': round(weekly_usd / SESSIONS_PER_WEEK, 2),
-    }
+    """The rolling-window allowance for a plan. Weekly is the only window."""
+    return {'weekly_usd': round(weekly_usd, 2)}
 
 
-# Ids/names mirror the purchasable tiers on the pricing page (Free, Pro, Max).
-# Pro's $10/week is the reference point: Free is a small taste of it, and the
-# two Max tiers are literal 5x and 20x multiples of it (which is what "5x" and
-# "20x" name). Max 20x allows more retail usage than its sticker price —
+# Names mirror the purchasable tiers on the pricing page (Free, Pro, Max), and
+# the two Max tiers are named for what they actually give you: 5x and 10x Pro's
+# weekly allowance. The ids do NOT track the names — 'max_20x' is the tier now
+# displayed as "Max (10x)". It kept its id because that id is stored on every
+# Subscription row and mapped from a Stripe lookup_key; renaming it would send
+# existing subscribers through get_plan()'s unknown-id fallback and silently
+# drop them to the free allowance.
+#
+# The Max tiers allow more retail usage than their sticker price, which is
 # viable because our per-token prices are marked up over real API cost.
 PLANS = {
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(2.5),
+        **_windows(10),
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
-        **_windows(10),
+        **_windows(20),
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
-    # distinct plans, not one collapsed tier, so a 20x subscriber actually gets
-    # 20x the allowance they pay for.
+    # distinct plans, not one collapsed tier, so the higher price really does
+    # buy a larger allowance.
     'max_5x': {
         'id': 'max_5x',
         'name': 'Max (5x)',
-        **_windows(50),
+        **_windows(100),
     },
     'max_20x': {
         'id': 'max_20x',
-        'name': 'Max (20x)',
+        'name': 'Max (10x)',
         **_windows(200),
     },
 }
@@ -71,7 +74,10 @@ PLANS = {
 # Stripe price lookup_key -> registry plan id. The frontend pricing page
 # (PricingView.vue) checks out by these lookup_keys, and the subscription
 # webhook resolves them back to a plan through this map. The two Max price
-# points map to their own tiers so 5x and 20x don't collapse to one allowance.
+# points map to their own tiers so they don't collapse to one allowance.
+# 'max_20x_monthly' is the lookup_key of the tier now displayed as "Max (10x)";
+# it is configured in Stripe, so it keeps its name for the same reason the plan
+# id does.
 LOOKUP_KEY_TO_PLAN = {
     'pro_monthly': 'pro',
     'max_5x_monthly': 'max_5x',

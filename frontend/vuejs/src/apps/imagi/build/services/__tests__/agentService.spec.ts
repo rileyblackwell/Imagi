@@ -176,7 +176,7 @@ describe('AgentService.streamAgent', () => {
       json: async () => ({
         error: 'usage_limit_exceeded',
         detail: 'limit reached',
-        window: '5h',
+        window: 'week',
         resets_at: '2026-07-22T18:00:00Z',
       }),
     } as any)
@@ -184,7 +184,7 @@ describe('AgentService.streamAgent', () => {
       status: 429,
       body: {
         error: 'usage_limit_exceeded',
-        window: '5h',
+        window: 'week',
         resets_at: '2026-07-22T18:00:00Z',
       },
     })

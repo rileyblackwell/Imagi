@@ -1,10 +1,10 @@
 """
 Cost-based usage metering and rolling-window plan allowances.
 
-Records one UsageEvent per agent run whose usage was captured, and computes
-5-hour / weekly rolling windows against the user's plan allowance. The Build
-app enforces allowances at its run entrypoints and records usage after each
-run; this module owns the arithmetic.
+Records one UsageEvent per agent run whose usage was captured, and computes the
+weekly rolling window against the user's plan allowance. The Build app enforces
+the allowance at its run entrypoints and records usage after each run; this
+module owns the arithmetic.
 
 Everything here is denominated in US dollars of metered model spend. Tokens are
 still stored per event for reporting, but they are never what a window is
@@ -24,7 +24,6 @@ from .plans import get_plan_for_user
 
 logger = logging.getLogger(__name__)
 
-FIVE_HOUR_WINDOW = timedelta(hours=5)
 WEEKLY_WINDOW = timedelta(days=7)
 
 # Per-million-token prices used only when a run's cost could not be computed
@@ -104,15 +103,17 @@ def _window_status(user, window, limit_usd, now):
 
 
 def get_usage_status(user):
-    """The user's plan and both rolling usage windows, for display."""
+    """The user's plan and its rolling weekly usage window, for display.
+
+    'windows' stays a mapping even though it holds a single entry: the key is
+    what names the window in the payload, and keeping the envelope means the
+    weekly figures live at the same path they always have.
+    """
     plan = get_plan_for_user(user)
     now = timezone.now()
     return {
         'plan': {'id': plan['id'], 'name': plan['name']},
         'windows': {
-            'five_hour': _window_status(
-                user, FIVE_HOUR_WINDOW, plan['five_hour_usd'], now
-            ),
             'weekly': _window_status(
                 user, WEEKLY_WINDOW, plan['weekly_usd'], now
             ),
@@ -125,26 +126,24 @@ def check_usage_allowed(user):
 
     When allowed, the payload is the full usage status. When refused, the
     payload identifies the exhausted window and is shaped for a pre-stream
-    429 response body: {'error', 'detail', 'window', 'resets_at'}.
+    429 response body: {'error', 'detail', 'window', 'resets_at'}. 'window' is
+    always 'week' now that the weekly allowance is the only one enforced; it is
+    kept in the payload so clients keep a stable shape to branch on.
     """
     status = get_usage_status(user)
     plan_name = status['plan']['name']
-    for window_key, window_name, label in (
-        ('5h', 'five_hour', '5-hour'),
-        ('week', 'weekly', 'weekly'),
-    ):
-        window = status['windows'][window_name]
-        if window['used_usd'] >= window['limit_usd']:
-            return False, {
-                'error': 'usage_limit_exceeded',
-                'detail': (
-                    f"You've used the {label} usage allowance of the "
-                    f"{plan_name} plan. Allowance frees up as older activity "
-                    "ages out of the window — or upgrade your plan for more. "
-                    "Choosing a lighter model or lower reasoning effort also "
-                    "makes your allowance go further."
-                ),
-                'window': window_key,
-                'resets_at': window['resets_at'],
-            }
+    window = status['windows']['weekly']
+    if window['used_usd'] >= window['limit_usd']:
+        return False, {
+            'error': 'usage_limit_exceeded',
+            'detail': (
+                f"You've used the weekly usage allowance of the {plan_name} "
+                "plan. Allowance frees up as older activity ages out of the "
+                "window — or upgrade your plan for more. Choosing a lighter "
+                "model or lower reasoning effort also makes your allowance go "
+                "further."
+            ),
+            'window': 'week',
+            'resets_at': window['resets_at'],
+        }
     return True, status
