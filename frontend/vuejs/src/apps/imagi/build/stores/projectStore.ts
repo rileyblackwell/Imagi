@@ -4,7 +4,7 @@ import { ProjectService } from '../services/projectService'
 import type { Project } from '../types/components'
 import { normalizeProject } from '../types/components'
 import { useAuthStore } from '@/shared/stores/auth'
-import { findProjectBySlug, projectSlug } from '../utils/slug'
+import { findProjectBySlug } from '../utils/slug'
 
 // Constants
 const DEBOUNCE_DURATION = 1000 // 1 second
@@ -76,15 +76,6 @@ export const useProjectStore = defineStore('builder', () => {
     return findProjectBySlug(projects.value, slug)
   }
 
-  /**
-   * Get the URL slug for a project
-   * @param project - Project to get slug for
-   * @returns URL-safe slug
-   */
-  const getSlugForProject = (project: Project): string => {
-    return projectSlug(project)
-  }
-  
   const sortedProjects = computed(() => {
     return [...projects.value].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -678,7 +669,6 @@ export const useProjectStore = defineStore('builder', () => {
     hasProjects,
     getProjectById,
     getProjectBySlug,
-    getSlugForProject,
     sortedProjects,
 
     // Actions

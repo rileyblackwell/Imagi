@@ -15,13 +15,19 @@
       @confirm="confirmModal.handleConfirm"
       @cancel="confirmModal.handleCancel"
     />
-    <BuilderLayout storage-key="builderWorkspaceSidebarCollapsed">
+    <DashboardLayout
+      storage-key="builderWorkspaceSidebarCollapsed"
+      aside-width-class="w-[22rem] max-md:w-full"
+      content-offset-class="md:ml-[22rem]"
+      app-shell
+      hide-toggle-on-mobile
+    >
       <!-- Sidebar Content: one pane at a time (the mobile pattern promoted
            to desktop) — the agent manager (team view) OR the active
            instance's chat. The preview lives in the main slot, so swapping
            panes never unmounts it. -->
-      <template #sidebar-content="{ collapsed, setSidebarCollapsed }">
-        <div v-if="!collapsed" class="h-full overflow-hidden">
+      <template #sidebar-content="{ isSidebarCollapsed, setSidebarCollapsed }">
+        <div v-if="!isSidebarCollapsed" class="h-full overflow-hidden">
           <!-- KeepAlive keeps the hidden pane's component state alive across
                swaps — most importantly the composer's typed-but-unsent draft,
                which a plain v-if unmount would silently destroy. -->
@@ -93,7 +99,7 @@
           </div>
         </div>
       </template>
-    </BuilderLayout>
+    </DashboardLayout>
   </div>
 </template>
 
@@ -119,7 +125,7 @@ import { useSidebarPane } from '../composables/useSidebarPane'
 import '../styles/workspace.css'
 
 // Builder Components
-import { BuilderLayout } from '@/apps/imagi/build/layouts'
+import { DashboardLayout } from '@/shared/layouts'
 
 // Atomic Components
 import {

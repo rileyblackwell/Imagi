@@ -117,7 +117,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import BaseLayout from './BaseLayout.vue'
-import { BaseNavbar, BaseFooter, SidebarToggle } from '@/shared/components'
+import { BaseNavbar, BaseFooter } from '@/shared/components'
+// Not a public atom: this layout is its only consumer and styles it with :deep().
+import SidebarToggle from '@/shared/components/atoms/buttons/SidebarToggle.vue'
 
 const props = withDefaults(defineProps<{
   storageKey?: string
