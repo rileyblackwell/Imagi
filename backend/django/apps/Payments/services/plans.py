@@ -38,7 +38,7 @@ def _windows(weekly_usd):
 
 
 # Ids/names mirror the purchasable tiers on the pricing page (Free, Pro, Max).
-# Pro's $10/week is the reference point: Free is a small taste of it, and the
+# Pro's $100/week is the reference point: Free is a small taste of it, and the
 # two Max tiers are literal 5x and 20x multiples of it (which is what "5x" and
 # "20x" name). Max 20x allows more retail usage than its sticker price —
 # viable because our per-token prices are marked up over real API cost.
@@ -46,12 +46,12 @@ PLANS = {
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(2.5),
+        **_windows(25),
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
-        **_windows(10),
+        **_windows(100),
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
     # distinct plans, not one collapsed tier, so a 20x subscriber actually gets
@@ -59,12 +59,12 @@ PLANS = {
     'max_5x': {
         'id': 'max_5x',
         'name': 'Max (5x)',
-        **_windows(50),
+        **_windows(500),
     },
     'max_20x': {
         'id': 'max_20x',
         'name': 'Max (20x)',
-        **_windows(200),
+        **_windows(2000),
     },
 }
 

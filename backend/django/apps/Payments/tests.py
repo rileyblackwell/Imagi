@@ -171,10 +171,10 @@ class PlanRegistryTests(APITestCase):
         self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_weekly_allowances_are_the_advertised_dollar_figures(self):
-        self.assertEqual(PLANS['free']['weekly_usd'], 2.5)
-        self.assertEqual(PLANS['pro']['weekly_usd'], 10)
-        self.assertEqual(PLANS['max_5x']['weekly_usd'], 50)
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 200)
+        self.assertEqual(PLANS['free']['weekly_usd'], 25)
+        self.assertEqual(PLANS['pro']['weekly_usd'], 100)
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 500)
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 2000)
 
     def test_max_tiers_are_literal_multiples_of_pro(self):
         # "5x"/"20x" name the usage multiple, so they must actually hold.

@@ -57,32 +57,32 @@
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Free — $0">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$5 of AI usage per month</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $2.50 per week, $0.50 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$50 of AI usage per month</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $25 per week, $5 per 5-hour session</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>1 active project</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Community support</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Pro — $20 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$20 of AI usage per month</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $10 per week, $2 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$200 of AI usage per month</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $100 per week, $20 per 5-hour session</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Unlimited projects</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority support</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Max (5×) — $100 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$100 of AI usage per month — 5× Pro</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $50 per week, $10 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$1,000 of AI usage per month — 5× Pro</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $500 per week, $100 per 5-hour session</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Early access to new features</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Max (20×) — $200 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$400 of AI usage per month — 20× Pro</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $200 per week, $40 per 5-hour session</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$4,000 of AI usage per month — 20× Pro</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Metered as $2,000 per week, $400 per 5-hour session</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority access at peak times</span></li>
             </ul>

@@ -8,9 +8,9 @@ vi.mock('@/shared/services/api', () => ({
 
 import { useUsageStore, formatUsd } from '@/shared/stores/usage'
 
-// Free-plan allowances: $2.50/week -> $0.50 per 5 hours.
-const FIVE_HOUR = 0.5
-const WEEKLY = 2.5
+// Free-plan allowances: $25/week -> $5 per 5 hours.
+const FIVE_HOUR = 5
+const WEEKLY = 25
 
 describe('usage store exceededWindow', () => {
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('usage store fetchUsage', () => {
           weekly: { used_usd: 2.5, limit_usd: 5, resets_at: null },
         },
         plans: [
-          { id: 'free', name: 'Free', weekly_usd: 2.5, five_hour_usd: 0.5 },
+          { id: 'free', name: 'Free', weekly_usd: 25, five_hour_usd: 5 },
         ],
       },
     })
@@ -78,7 +78,7 @@ describe('usage store fetchUsage', () => {
     })
     expect(store.fiveHourPercent).toBe(40)
     expect(store.weeklyPercent).toBe(50)
-    expect(store.plans[0].fiveHourUsd).toBe(0.5)
+    expect(store.plans[0].fiveHourUsd).toBe(5)
   })
 
   it('treats a token-denominated payload as unknown rather than dollars', async () => {
