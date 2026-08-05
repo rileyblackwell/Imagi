@@ -40,6 +40,21 @@ describe('WorkspacePaneHeader', () => {
     expect(mountWith({}).find('button.pane-switch').exists()).toBe(false)
   })
 
+  it('wraps the plate in the shell it measures itself against', () => {
+    // The shell is the size container every layout rule in this masthead
+    // queries — an element cannot query its own width, so without the wrapper
+    // the plate silently falls back to its widest arrangement and the switch
+    // pills print themselves over the title. It is load-bearing, not markup.
+    const wrapper = mountWith({
+      switches: [{ id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents' }],
+    })
+
+    expect(wrapper.element.classList.contains('pane-header-shell')).toBe(true)
+    expect(wrapper.find('.pane-header-shell > .pane-header').exists()).toBe(true)
+    // The pane is a flex column; the masthead must never be the part that gives.
+    expect(wrapper.element.classList.contains('shrink-0')).toBe(true)
+  })
+
   it('keeps the identity in its own centred column, whatever sits beside it', () => {
     const wrapper = mountWith({
       status: 'Ready when you are',
