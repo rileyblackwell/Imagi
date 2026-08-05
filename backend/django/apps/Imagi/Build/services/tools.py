@@ -483,6 +483,118 @@ DISPATCH_BRIEF_MAX_CHARS = 4000
 DISPATCH_GOAL_MAX_CHARS = 320
 ASK_USER_MAX_CHARS = 2000
 
+# How alike two briefs have to be before the second one is treated as a repeat
+# of the first rather than a second job. Measured on content words (below), so
+# 0.7 means "the same nouns and verbs in the same proportions" — a rewording of
+# one job clears it; two genuinely different jobs do not come close.
+DISPATCH_DUPLICATE_SIMILARITY = 0.7
+
+# Function words carry no job identity: a brief is mostly English, and leaving
+# these in would drag every pair of briefs toward looking alike.
+_DISPATCH_STOPWORDS = frozenset("""
+a an and are as at be been but by can do does for from get give go had has have
+how i if in into is it its just like make made more must need new no not of off
+on one only or our out over should so some than that the their them then there
+these they this those to too up use used using want was we were what when where
+which who will with would you your
+""".split())
+
+
+def _brief_fingerprint(text: str) -> frozenset:
+    """The content words of a brief, as a set — what two briefs are compared on."""
+    words = re.findall(r"[a-z0-9]+", (text or '').lower())
+    return frozenset(w for w in words if len(w) > 2 and w not in _DISPATCH_STOPWORDS)
+
+
+def _is_repeat_brief(brief: str, other: str) -> bool:
+    """Whether ``brief`` asks for work ``other`` already covers.
+
+    Jaccard overlap on content words: 1.0 for a verbatim repeat (the shape a
+    model produces when it emits the same tool call twice), still well over the
+    threshold for a reworded one, and far below it for two different jobs.
+    """
+    a, b = _brief_fingerprint(brief), _brief_fingerprint(other)
+    if not a or not b:
+        return False
+    return len(a & b) / len(a | b) >= DISPATCH_DUPLICATE_SIMILARITY
+
+
+def _live_task_briefs(parent) -> list:
+    """(conversation, brief) for every subagent still on the hook under this lead.
+
+    The brief lives in queued_prompt until the run fires and consumes it; after
+    that the client has echoed it back as the run's first user message, so that
+    is where the wording of an already-running task is read from.
+    """
+    from apps.Imagi.Build.models import AgentConversation
+
+    live = AgentConversation.objects.filter(
+        parent=parent, kind='task', archived_at__isnull=True,
+        review_status__in=('active', 'input', 'ready'),
+    ).order_by('-created_at')[:20]
+
+    pairs = []
+    for task in live:
+        brief = task.queued_prompt
+        if not brief:
+            first = task.messages.filter(role='user').order_by('created_at').first()
+            brief = first.content if first else ''
+        if brief:
+            pairs.append((task, brief))
+    return pairs
+
+
+def _existing_dispatch(ctx, parent, brief: str) -> list:
+    """Tasks already carrying this brief, as dispatch payloads — empty if none.
+
+    One job gets one subagent. A lead that calls dispatch_task twice for the
+    same work (two calls in one turn, or a repeat on the next) would otherwise
+    put two subagents on the same files, each forking its own copy of the
+    project and each merging back over the other.
+    """
+    # Dispatched earlier in this same run: the payloads are already in hand.
+    for staged in getattr(ctx, 'dispatched_tasks', None) or []:
+        if _is_repeat_brief(brief, staged.get('brief') or ''):
+            return [dict(staged, already_running=True)]
+
+    # Dispatched by an earlier run and still working (or waiting on the user).
+    for task, existing_brief in _live_task_briefs(parent):
+        if _is_repeat_brief(brief, existing_brief):
+            return [{
+                'conversation_id': task.id,
+                'title': task.title,
+                'brief': existing_brief,
+                'goal': task.goal,
+                'variant_group': task.variant_group,
+                'parent': parent.id,
+                'model_name': task.model_name,
+                # The client fires staged runs off this payload; this one is
+                # not staged, it is already going.
+                'already_running': True,
+            }]
+    return []
+
+
+# Phrases that mean "build me more than one of these so I can choose". Variants
+# are a thing the user asks for, never a thing the lead decides on their behalf:
+# two subagents on one job is the duplicate this guard exists to prevent, and a
+# design request ("redesign my home page") reads like an invitation to explore.
+_VARIANT_REQUEST = re.compile(
+    r'\b('
+    r'variants?|versions?|alternatives?|options?|takes?|drafts?|mock-?ups?|'
+    r'compare|comparison|side.by.side|a/b|'
+    r'(two|three|2|3|couple|few|several|multiple|different)\s+'
+    r'(\w+\s+){0,2}(ways?|ideas?|directions?|approach\w*|designs?|looks?)'
+    r')\b',
+    re.IGNORECASE,
+)
+
+
+def _user_asked_for_variants(parent) -> bool:
+    """Did the user's latest message in the lead thread ask for alternatives?"""
+    latest = parent.messages.filter(role='user').order_by('-created_at').first()
+    return bool(latest and _VARIANT_REQUEST.search(latest.content or ''))
+
 
 def dispatch_task_impl(
     ctx, description: str, goal: str = '', title: str = '', drafts: int = 1
@@ -493,6 +605,11 @@ def dispatch_task_impl(
     brief persisted in queued_prompt. The runs themselves are fired by the
     workspace client (which owns the streaming connections), so this only
     stages the work — resilient to a reload between dispatch and firing.
+
+    One job gets exactly one subagent: a brief that repeats work this lead
+    already has in flight returns that task instead of starting a second one,
+    and a fan-out into parallel drafts happens only when the user asked for
+    alternatives to compare.
     """
     from apps.Imagi.Build.models import AgentConversation, SystemPrompt
     from apps.Imagi.Build.services.coding_agent import CODING_AGENT_INSTRUCTIONS
@@ -517,11 +634,47 @@ def dispatch_task_impl(
     if parent.kind != 'lead':
         raise ValueError("Only the lead thread can dispatch background tasks")
 
+    already = _existing_dispatch(ctx, parent, brief)
+    if already:
+        # Track a task this run had not seen before (one dispatched by an
+        # earlier turn), so the reply's card links to the subagent actually
+        # doing the work. A repeat of this run's own dispatch is already
+        # tracked, and re-adding it would render the same card twice.
+        tracked = getattr(ctx, 'dispatched_tasks', None)
+        if isinstance(tracked, list) and not any(
+            t.get('conversation_id') == already[0]['conversation_id'] for t in tracked
+        ):
+            tracked.extend(already)
+        logger.info(
+            "Lead %s re-dispatched work subagent %s already has; kept the one "
+            "subagent", parent.id, already[0]['conversation_id'],
+        )
+        return {
+            'success': True,
+            'duplicate': True,
+            'dispatched_tasks': already,
+            'instruction': (
+                "A subagent is ALREADY working on this exact job — nothing new "
+                "was started, and the existing one is untouched. Do not dispatch "
+                "it again. Tell the user it is already under way (one short "
+                "sentence) and end your turn."
+            ),
+        }
+
     try:
         count = int(drafts or 1)
     except (TypeError, ValueError):
         count = 1
     count = max(1, min(DISPATCH_MAX_DRAFTS, count))
+    # Variants are alternatives for the user to choose between, so they exist
+    # only where the user asked for a choice. Everywhere else a fan-out is just
+    # N subagents rebuilding one job on top of each other.
+    if count > 1 and not _user_asked_for_variants(parent):
+        logger.info(
+            "Lead %s asked for %s drafts of one job the user never asked to "
+            "compare; built it once", parent.id, count,
+        )
+        count = 1
     variant_group = uuid.uuid4().hex if count > 1 else ''
     provisional_title = ((title or '').strip() or brief).splitlines()[0][:80]
 
@@ -867,6 +1020,14 @@ def dispatch_task(
     compare, so those wait for the user to pick one.) Never wait for a
     dispatched task.
 
+    ONE job, ONE call, ONE subagent. Call this exactly once for a request, with
+    the whole job in that one brief — never split one job ("redesign the home
+    page") across two subagents by section, layer, or step, and never repeat a
+    call you already made. Each subagent edits its own copy of the project and
+    merges it back, so two working the same job overwrite each other's work.
+    Only a message asking for several genuinely separate things (a different
+    page, an unrelated fix) is more than one call.
+
     Args:
         description: The brief for the subagent, written like a ticket for an
             engineer who has not read this conversation: the goal, what "done"
@@ -881,8 +1042,11 @@ def dispatch_task(
             no files, folders, components, or libraries.
         title: Optional short task name shown in the workspace (defaults to the
             brief's first line).
-        drafts: How many parallel variants to build (1-3). Use 2 or 3 only when
-            the user wants alternative takes to compare.
+        drafts: How many parallel variants to build (1-3). Leave this at 1
+            unless the user's own message asked for alternatives to compare
+            ("give me a couple of versions", "show me two directions") — a
+            request to design or redesign something is not such an ask, and a
+            fan-out nobody asked for is ignored and built as one task.
     """
     try:
         result = dispatch_task_impl(

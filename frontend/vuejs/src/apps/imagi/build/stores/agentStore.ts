@@ -366,6 +366,10 @@ export const useAgentStore = defineStore('agent', {
         }
         firedDispatches.add(task.conversation_id)
         instance.pendingBrief = null
+        // The lead re-dispatched work this subagent already has: the server
+        // handed back the running task rather than staging a new one, so it is
+        // linked on the reply but must not be re-run underneath itself.
+        if (task.already_running || instance.isProcessing) continue
         if (taskRunner) {
           const send = taskRunner
           const instanceId = instance.id

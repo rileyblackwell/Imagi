@@ -1189,6 +1189,12 @@ class DispatchTaskToolTests(TestCase):
             conversation_kind=conversation.kind,
         )
 
+    def _asks(self, text):
+        """The user's message for the turn being dispatched from."""
+        return AgentMessage.objects.create(
+            conversation=self.lead, role='user', content=text
+        )
+
     def test_dispatch_stages_a_task_with_its_brief(self):
         result = dispatch_task_impl(
             self._context(self.lead), 'Build a pricing page', title='Pricing page'
@@ -1213,6 +1219,7 @@ class DispatchTaskToolTests(TestCase):
         self.assertEqual(len(context.dispatched_tasks), 1)
 
     def test_multiple_drafts_share_a_variant_group(self):
+        self._asks('Show me three different directions for the hero.')
         dispatch_task_impl(self._context(self.lead), 'Try a hero section', drafts=3)
 
         tasks = AgentConversation.objects.filter(kind='task')
@@ -1222,8 +1229,23 @@ class DispatchTaskToolTests(TestCase):
         self.assertTrue(groups.pop())
 
     def test_drafts_are_clamped_to_the_maximum(self):
+        self._asks('Give me a couple of versions to compare.')
         dispatch_task_impl(self._context(self.lead), 'Fan out', drafts=99)
         self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 3)
+
+    def test_drafts_are_ignored_when_the_user_did_not_ask_for_variants(self):
+        """Variants are alternatives the user picks between, so a fan-out the
+        user never asked for is one job built by N subagents on top of each
+        other — the duplicate this guard exists to prevent."""
+        self._asks('Redesign the home page.')
+
+        result = dispatch_task_impl(
+            self._context(self.lead), 'Redesign the home page', drafts=3
+        )
+
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 1)
+        self.assertEqual(len(result['dispatched_tasks']), 1)
+        self.assertEqual(AgentConversation.objects.get(kind='task').variant_group, '')
 
     def test_single_draft_has_no_variant_group(self):
         dispatch_task_impl(self._context(self.lead), 'Just one')
@@ -1274,6 +1296,139 @@ class DispatchTaskToolTests(TestCase):
         # brief rather than the dispatch failing.
         dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
         self.assertEqual(AgentConversation.objects.get(kind='task').goal, '')
+
+
+class DispatchTaskDuplicateTests(TestCase):
+    """One job gets one subagent.
+
+    Two subagents on the same job each fork their own copy of the project and
+    each merge it back, so the second silently overwrites the first — and the
+    user, who asked for one thing, watches two agents redo each other's work.
+    """
+
+    BRIEF = (
+        'Redesign the home page: replace the placeholder hero with a real '
+        'opening section, add a features block and customer testimonials, '
+        'and give the whole page a consistent visual style.'
+    )
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='twice', password='pw123456')
+        self.project = Project.objects.create(
+            user=self.user, name='P', project_path='/tmp/nonexistent', is_active=True
+        )
+        self.service = ImagiAgentService()
+        self.lead = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='lead'
+        )
+
+    def _context(self):
+        return AgentContext(
+            user_id=self.user.id,
+            project_id=self.project.id,
+            conversation_id=self.lead.id,
+            conversation_kind='lead',
+        )
+
+    def test_the_same_brief_twice_in_one_run_starts_one_subagent(self):
+        context = self._context()
+
+        first = dispatch_task_impl(context, self.BRIEF)
+        second = dispatch_task_impl(context, self.BRIEF)
+
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 1)
+        self.assertTrue(second['duplicate'])
+        self.assertEqual(
+            second['dispatched_tasks'][0]['conversation_id'],
+            first['dispatched_tasks'][0]['conversation_id'],
+        )
+        # The client fires runs off this payload: the existing subagent is
+        # already going and must not be re-run underneath itself.
+        self.assertTrue(second['dispatched_tasks'][0]['already_running'])
+        self.assertEqual(len(context.dispatched_tasks), 1)
+
+    def test_a_reworded_repeat_of_the_same_job_starts_one_subagent(self):
+        context = self._context()
+
+        dispatch_task_impl(context, self.BRIEF)
+        second = dispatch_task_impl(
+            context,
+            'Redesign the home page: a real opening hero section instead of '
+            'the placeholder, a features block, customer testimonials, and one '
+            'consistent visual style across the page.',
+        )
+
+        self.assertTrue(second['duplicate'])
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 1)
+
+    def test_a_repeat_on_a_later_turn_finds_the_running_subagent(self):
+        # A fresh run has an empty context, so the guard has to see the task
+        # the previous turn left running — including after its run consumed
+        # queued_prompt and the brief moved into the task's transcript.
+        dispatch_task_impl(self._context(), self.BRIEF)
+        task = AgentConversation.objects.get(kind='task')
+        task.queued_prompt = ''
+        task.save(update_fields=['queued_prompt'])
+        AgentMessage.objects.create(conversation=task, role='user', content=self.BRIEF)
+
+        context = self._context()
+        second = dispatch_task_impl(context, self.BRIEF)
+
+        self.assertTrue(second['duplicate'])
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 1)
+        self.assertEqual(second['dispatched_tasks'][0]['conversation_id'], task.id)
+        # The reply still carries a card, and it links to the subagent that is
+        # actually doing the work.
+        self.assertEqual(
+            [t['conversation_id'] for t in context.dispatched_tasks], [task.id]
+        )
+
+    def test_a_different_job_still_gets_its_own_subagent(self):
+        context = self._context()
+
+        dispatch_task_impl(context, self.BRIEF)
+        second = dispatch_task_impl(
+            context,
+            'Add a contact page with a form collecting name, email and message, '
+            'and link it from the site navigation.',
+        )
+
+        self.assertFalse(second.get('duplicate'))
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 2)
+
+    def test_the_same_job_can_be_asked_for_again_once_the_first_is_done(self):
+        """A finished subagent is not competing work — a second pass over the
+        same page is an ordinary next request."""
+        dispatch_task_impl(self._context(), self.BRIEF)
+        AgentConversation.objects.filter(kind='task').update(review_status='accepted')
+
+        second = dispatch_task_impl(self._context(), self.BRIEF)
+
+        self.assertFalse(second.get('duplicate'))
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 2)
+
+    def test_another_users_task_never_blocks_a_dispatch(self):
+        other = User.objects.create_user(username='stranger', password='pw123456')
+        other_project = Project.objects.create(
+            user=other, name='Q', project_path='/tmp/nonexistent', is_active=True
+        )
+        other_lead = self.service.create_conversation(
+            other, 'gpt-5.6-terra', project_id=other_project.id, kind='lead'
+        )
+        dispatch_task_impl(
+            AgentContext(
+                user_id=other.id, project_id=other_project.id,
+                conversation_id=other_lead.id, conversation_kind='lead',
+            ),
+            self.BRIEF,
+        )
+
+        result = dispatch_task_impl(self._context(), self.BRIEF)
+
+        self.assertFalse(result.get('duplicate'))
+        self.assertEqual(
+            AgentConversation.objects.filter(kind='task', parent=self.lead).count(), 1
+        )
 
 
 class CheckInEndpointTests(TestCase):

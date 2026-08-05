@@ -41,6 +41,7 @@ from apps.Imagi.Build.services.coding_agent import (
     INITIAL_BUILD_INSTRUCTIONS,
     INITIAL_BUILD_REASONING_EFFORT,
     INITIAL_BUILD_TIME_BUDGET_S,
+    LEAD_AGENT_INSTRUCTIONS,
     PROJECT_MEMORY_MAX_CHARS,
     create_coding_agent,
     load_project_memory,
@@ -1068,6 +1069,29 @@ class InitialBuildAgentTests(SimpleTestCase):
         )
         self.assertEqual(
             agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
+        )
+
+
+class LeadAgentConfigurationTests(SimpleTestCase):
+    """The coordinator role's own configuration."""
+
+    def test_the_lead_calls_its_tools_one_at_a_time(self):
+        # dispatch_task creates a subagent that starts editing the project, and
+        # the model cannot see that until the call returns. Left parallel, one
+        # assistant message can carry the same dispatch twice — two subagents
+        # on one job, each merging over the other.
+        agent = create_coding_agent(kind='lead')
+        self.assertIs(agent.model_settings.parallel_tool_calls, False)
+
+    def test_builders_still_call_tools_in_parallel(self):
+        # Their tools read and edit files; batching those is the whole point.
+        for kind in ('chat', 'task', 'initial_build'):
+            agent = create_coding_agent(kind=kind)
+            self.assertIsNot(agent.model_settings.parallel_tool_calls, False, kind)
+
+    def test_the_lead_is_told_one_job_is_one_subagent(self):
+        self.assertIn(
+            'ONE job, ONE dispatch_task call, ONE subagent', LEAD_AGENT_INSTRUCTIONS
         )
 
 
