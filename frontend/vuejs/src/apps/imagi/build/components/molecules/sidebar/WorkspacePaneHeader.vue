@@ -2,10 +2,19 @@
   WorkspacePaneHeader.vue — the masthead shared by the two sidebar panes.
 
   Built from the same parts as everything under it. A pane names itself in the
-  brand serif and then says where it stands on a second line led by a state
-  dot — the identical construction the crew cards use (title, then a marked
-  status line), in the identical monochrome vocabulary: blue while a run is
-  live, navy ink when something wants you, faint ink at rest. The plate itself
+  brand serif and may add a second line, led by a state dot, saying where it
+  stands — the identical construction the crew cards use (title, then a marked
+  status line), in the identical monochrome vocabulary: blue while work is
+  live, navy ink when something wants you, faint ink at rest.
+
+  That second line is for standing, not for activity. A thread pane leaves it
+  empty while its agent is running and lets the transcript narrate the run
+  under the message that started it; what stays here is the kind of thing you
+  need before you type ("3 agents are waiting on you", "Read only"), which has
+  nowhere better to live. The roster pane is the one place the line reports
+  live work, because there its subject is the fleet rather than one agent.
+
+  The plate itself
   matches the preview toolbar across the divider — same wash, same hairline,
   same height — so the top of the workspace reads as one bar rather than two
   panes that happen to be adjacent.
@@ -72,12 +81,12 @@
              that carried the navy-ink recipe reserved for actions, and a
              separate live pulse. One object, one job.
 
-             The status line is the most-changing text in the workspace
-             ("Reading files…" → "Editing…" → "Ready when you are"). Swapping it
-             in place reads as a flicker; cross-fading reads as the same line
-             being updated, which is what it is. Keyed on the text so each new
-             reading gets its own fade — the dot sits outside, because state
-             outlives any one wording of it. -->
+             The reading changes under its own feet ("3 agents are waiting on
+             you" → "1 agent is waiting on you"). Swapping it in place reads as
+             a flicker; cross-fading reads as the same line being updated,
+             which is what it is. Keyed on the text so each new reading gets
+             its own fade — the dot sits outside, because state outlives any
+             one wording of it. -->
         <div v-if="status" class="pane-status-line">
           <span :class="['pane-dot', `pane-dot--${state}`]" aria-hidden="true"></span>
           <Transition name="pane-status" mode="out-in">
