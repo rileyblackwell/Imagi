@@ -8,12 +8,13 @@
      brings it back lives in the top bar (SidebarToggle), never inside the
      panel — so it can never disappear along with the thing it opens. -->
 <template>
-  <BaseLayout>
-    <!-- App-shell views (the builder workspace) pin the shell to the dynamic
-         viewport height and clip overflow so the document itself can never
-         scroll — otherwise the vh/dvh mismatch on mobile leaves a few dozen
-         scrollable pixels that slide the content up under the fixed navbar. -->
-    <div class="flex" :class="appShell ? 'h-dvh overflow-hidden' : 'min-h-screen'">
+  <BaseLayout :app-shell="appShell">
+    <!-- App-shell views (the builder workspace) fill the shell exactly and clip
+         overflow, so nothing below can push the page taller than the viewport.
+         BaseLayout takes the shell out of flow on top of this, which is what
+         actually guarantees the document can never scroll — see the comment
+         there for why sizing alone is not enough. -->
+    <div class="flex" :class="appShell ? 'h-full min-h-0 overflow-hidden' : 'min-h-screen'">
       <!-- Sidebar: the same glass as the navbar (bg-white/80 blur + hairline),
            so the top bar and the panel read as one continuous frame around the
            page. On mobile it drops below the navbar and becomes an off-canvas
