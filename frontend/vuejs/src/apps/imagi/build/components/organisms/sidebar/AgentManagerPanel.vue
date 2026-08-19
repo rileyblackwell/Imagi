@@ -288,6 +288,7 @@ const openedStatus = computed(() => {
   switch (instance.reviewStatus) {
     case 'input': return 'Asked you a question'
     case 'ready': return 'Subagent complete — waiting on you'
+    case 'failed': return 'Stopped before finishing'
     case 'accepted': return 'Subagent complete'
     case 'dismissed': return 'Discarded'
     default: return 'Read only'
@@ -297,8 +298,10 @@ const openedStatus = computed(() => {
 /** …and the dot that leads it, keyed the same way its card is. Never
  *  'working': there is no line here while a run is live. */
 const openedState = computed<'waiting' | 'idle'>(() => {
-  const instance = opened.value
-  return instance?.reviewStatus === 'input' || instance?.reviewStatus === 'ready'
+  const status = opened.value?.reviewStatus
+  // A failed run wants the user too — it is holding a worktree until they
+  // dismiss it — so it leads with the same mark.
+  return status === 'input' || status === 'ready' || status === 'failed'
     ? 'waiting'
     : 'idle'
 })

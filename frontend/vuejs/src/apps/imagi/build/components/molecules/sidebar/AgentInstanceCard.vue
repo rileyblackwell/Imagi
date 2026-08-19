@@ -117,6 +117,10 @@ const status = computed(() => {
       return { state: 'waiting' as const, label: 'Asked you a question', icon: 'fas fa-circle-question' }
     case 'ready':
       return { state: 'waiting' as const, label: 'Subagent complete — waiting on you', icon: 'fas fa-check' }
+    case 'failed':
+      // Its run died. It wants a decision (dismiss, or ask again), so it
+      // reads as waiting rather than settled.
+      return { state: 'stopped' as const, label: 'Stopped before finishing', icon: 'fas fa-triangle-exclamation' }
     case 'accepted':
       return { state: 'settled' as const, label: 'Subagent complete', icon: 'fas fa-check-double' }
     case 'dismissed':
@@ -336,6 +340,18 @@ function relativeTime(iso: string): string {
 .dark .agent-card--waiting {
   --rail: #f3ede2;
   --status: rgba(243, 237, 226, 0.85);
+}
+
+/* A run that died: warm ink, the one non-navy note in the pane. The work
+   never reached the app, so this is something to clear rather than an alarm. */
+.agent-card--stopped {
+  --rail: theme('colors.amber.500');
+  --status: theme('colors.amber.700');
+}
+
+.dark .agent-card--stopped {
+  --rail: theme('colors.amber.300');
+  --status: theme('colors.amber.200');
 }
 
 /* Dispatched but not yet running — the rail is drawn but not yet filled */

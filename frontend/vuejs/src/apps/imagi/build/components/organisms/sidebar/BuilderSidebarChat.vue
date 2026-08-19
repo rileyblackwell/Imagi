@@ -436,6 +436,7 @@ const headerStatus = computed(() => {
     switch (instance?.reviewStatus) {
       case 'input': return 'Asked you a question'
       case 'ready': return 'Subagent complete — waiting on you'
+      case 'failed': return 'Stopped before finishing'
       case 'accepted': return 'Subagent complete'
       case 'dismissed': return 'Discarded'
       default: return 'Read only'
@@ -455,7 +456,8 @@ const headerStatus = computed(() => {
 const headerState = computed<'waiting' | 'idle'>(() => {
   const instance = activeInstance.value
   if (isTaskThread.value) {
-    return instance?.reviewStatus === 'input' || instance?.reviewStatus === 'ready'
+    const status = instance?.reviewStatus
+    return status === 'input' || status === 'ready' || status === 'failed'
       ? 'waiting'
       : 'idle'
   }

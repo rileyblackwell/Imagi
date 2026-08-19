@@ -135,15 +135,17 @@ export const useAgentStore = defineStore('agent', {
     },
 
     /** Every subagent whose work is not finished yet, newest first: running,
-     *  parked on a question, or done but not yet accepted/discarded. They are
-     *  one list because they are one thing to the user — an agent still on
-     *  the hook. What separates them is a status line, not a section. */
+     *  parked on a question, stopped by a failed run, or done but not yet
+     *  accepted/discarded. They are one list because they are one thing to
+     *  the user — an agent still on the hook. What separates them is a status
+     *  line, not a section. A failed task belongs here rather than in History:
+     *  it still holds a worktree and still wants a decision. */
     activeAgentInstances(state): AgentInstance[] {
       return state.instances
         .filter(
           i => i.kind === 'task' && !i.archivedAt &&
             (i.reviewStatus === 'active' || i.reviewStatus === 'input' ||
-              i.reviewStatus === 'ready')
+              i.reviewStatus === 'ready' || i.reviewStatus === 'failed')
         )
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     },

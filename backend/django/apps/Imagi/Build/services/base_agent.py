@@ -919,11 +919,12 @@ class ImagiAgentService:
         if conversation.kind == 'task' and effective_root:
             effective_root = self._ensure_task_worktree(conversation, effective_root)
 
-        # A fresh prompt reopens a task that was awaiting review ('ready') or
-        # awaiting an answer ('input' — the prompt IS the answer). Any pending
+        # A fresh prompt reopens a task that was awaiting review ('ready'),
+        # awaiting an answer ('input' — the prompt IS the answer), or parked
+        # after a dead run ('failed' — the prompt is the retry). Any pending
         # check-ins it filed are superseded by this new run: the next run end
         # files fresh ones, so stale queue entries must not linger.
-        if conversation.kind == 'task' and conversation.review_status in ('ready', 'input'):
+        if conversation.kind == 'task' and conversation.review_status in ('ready', 'input', 'failed'):
             conversation.review_status = 'active'
             conversation.save(update_fields=["review_status"])
         if conversation.kind == 'task':
@@ -1082,6 +1083,34 @@ class ImagiAgentService:
             )
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not file {kind} check-in: {e}")
+
+    def _park_failed_task(self, conversation, note: str) -> None:
+        """Route a run that died back to the main thread.
+
+        The counterpart to _finalize_task_run for the paths where there is no
+        final reply to route: the run raised, or was cut off mid-stream. Such
+        a task has merged nothing, so leaving it at 'active' strands it — the
+        Subagents pane and its dispatch card keep reporting a run that will
+        never end, its worktree is never freed, and the error queued in the
+        main thread is the only trace. 'failed' says the run stopped: the card
+        reports it, the worktree survives until the user dismisses the task
+        (or re-prompts it, which puts it back to 'active').
+
+        Best-effort like the check-in it files — the outcome of a failure must
+        not itself fail the request handling it.
+        """
+        # getattr: test doubles stand in for the conversation here.
+        if getattr(conversation, 'kind', 'chat') != 'task':
+            return
+        # accepted/dismissed are terminal: a late failure must not relabel
+        # work that is already in the app, or already thrown away.
+        if getattr(conversation, 'review_status', '') not in ('accepted', 'dismissed'):
+            try:
+                conversation.review_status = 'failed'
+                conversation.save(update_fields=["review_status"])
+            except Exception as e:  # pragma: no cover - best effort
+                logger.warning(f"Could not park the failed task: {e}")
+        self._file_check_in(conversation, 'error', note)
 
     def _finalize_task_run(self, conversation, context, response_content: str) -> None:
         """Route a finished task run back to the main thread.
@@ -1475,9 +1504,10 @@ class ImagiAgentService:
             logger.warning(f"Agent run hit the turn limit ({MAX_AGENT_TURNS} turns)")
             if conversation is not None:
                 # A background task's turn-cap must reach the main thread —
-                # nobody is watching the task itself.
-                await sync_to_async(self._file_check_in)(
-                    conversation, 'error',
+                # nobody is watching the task itself — and the task itself has
+                # to leave 'active', or it reads as still running forever.
+                await sync_to_async(self._park_failed_task)(
+                    conversation,
                     "Ran out of turns before finishing. Progress so far is "
                     "saved — reply to continue this task.",
                 )
@@ -1496,9 +1526,10 @@ class ImagiAgentService:
             logger.error(traceback.format_exc())
             if conversation is not None:
                 # Same routing for failures: a silent dead task would leave
-                # the user waiting on a check-in that never comes.
-                await sync_to_async(self._file_check_in)(
-                    conversation, 'error', f"The task hit an error: {str(e)[:500]}"
+                # the user waiting on a check-in that never comes, and a task
+                # left at 'active' would keep claiming it is working.
+                await sync_to_async(self._park_failed_task)(
+                    conversation, f"The task hit an error: {str(e)[:500]}"
                 )
             yield {
                 "type": "error",
@@ -1693,8 +1724,8 @@ class ImagiAgentService:
             import traceback
             logger.error(traceback.format_exc())
             if conversation is not None:
-                self._file_check_in(
-                    conversation, 'error', f"The task hit an error: {str(e)[:500]}"
+                self._park_failed_task(
+                    conversation, f"The task hit an error: {str(e)[:500]}"
                 )
             return {
                 "success": False,

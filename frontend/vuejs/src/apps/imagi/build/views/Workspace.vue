@@ -241,19 +241,27 @@ async function handleCheckInAccept(checkIn: CheckInDto) {
   }
 }
 
-/** Discard a finished background task's work without merging it. */
+/** Discard a background task's work without merging it.
+ *
+ *  Two cards reach here. A 'ready' card is a decision about finished work, so
+ *  it is confirmed first. An 'error' card is a task whose run died: there is
+ *  no work to weigh up, and dismissing it is what frees the worktree it is
+ *  still holding, so it goes through unconfirmed — a modal asking whether to
+ *  discard work that was never produced would only be confusing. */
 async function handleCheckInDismiss(checkIn: CheckInDto) {
   const instance = store.instances.find(i => i.conversationId === checkIn.task.id)
   if (!instance || resolvingCheckIn.value) return
   const { showNotification } = useNotification()
-  const confirmed = await confirmModal.confirm({
-    title: 'Discard This Work',
-    message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in your Subagents list.`,
-    confirmText: 'Discard',
-    cancelText: 'Cancel',
-    type: 'warning'
-  })
-  if (!confirmed) return
+  if (checkIn.kind !== 'error') {
+    const confirmed = await confirmModal.confirm({
+      title: 'Discard This Work',
+      message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in your Subagents list.`,
+      confirmText: 'Discard',
+      cancelText: 'Cancel',
+      type: 'warning'
+    })
+    if (!confirmed) return
+  }
   resolvingCheckIn.value = true
   try {
     await store.dismissTaskInstance(instance.id)

@@ -136,7 +136,13 @@
             </button>
           </div>
 
-          <!-- A failed task: nothing to merge, so it is just acknowledged -->
+          <!-- A task whose run died. There is nothing to merge, but the task
+               is not finished with either: it still holds the worktree its run
+               was editing, so Dismiss dismisses the TASK (the same call the
+               ready card's Discard makes) rather than just clearing this card.
+               Clearing the card alone would leave the subagent stranded —
+               stuck mid-run in the Subagents pane, with its worktree, and no
+               way left to reach it. -->
           <div v-else class="flex items-center gap-1.5 mt-2">
             <button
               type="button"
@@ -147,10 +153,12 @@
             </button>
             <button
               type="button"
-              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-              @click="emit('skip', current)"
+              :disabled="busy"
+              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium disabled:opacity-50"
+              @click="emit('dismiss', current)"
             >
-              Dismiss
+              <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>
+              <span v-else>Dismiss</span>
             </button>
           </div>
         </div>
