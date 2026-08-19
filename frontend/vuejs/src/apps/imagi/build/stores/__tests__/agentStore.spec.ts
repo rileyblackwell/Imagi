@@ -121,6 +121,20 @@ describe('agent store workingAgentCount', () => {
     expect(store.workingAgentCount).toBe(2)
   })
 
+  it('keeps a task whose run died on the list', () => {
+    // A failed task is not settled work: it still holds its worktree and
+    // still wants a decision, and History only holds accepted/discarded. If
+    // it dropped out of this list it would vanish from the pane entirely.
+    const store = useAgentStore()
+    const failed = makeInstance({ kind: 'task', reviewStatus: 'failed', isProcessing: false })
+    store.instances = [failed]
+
+    expect(store.activeAgentInstances.map(i => i.id)).toEqual([failed.id])
+    expect(store.historyInstances).toHaveLength(0)
+    // It is not running, so it must not light the Subagents badge.
+    expect(store.workingAgentCount).toBe(0)
+  })
+
   it('is zero when the crew is idle, so the badge draws nothing', () => {
     const store = useAgentStore()
     store.instances = [makeInstance({ kind: 'task', reviewStatus: 'ready', isProcessing: false })]

@@ -606,6 +606,28 @@ class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
             AgentCheckIn.objects.filter(conversation=task, status='pending').count(), 0
         )
 
+    def test_prompt_retries_a_failed_task(self):
+        """A task parked after a dead run is not finished with — prompting it
+        again is the retry, and puts it back to work."""
+        task = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='task'
+        )
+        task.review_status = 'failed'
+        task.save(update_fields=['review_status'])
+        AgentCheckIn.objects.create(
+            user=self.user, project_id=self.project.id, conversation=task,
+            kind='error', body='The task hit an error: boom',
+        )
+
+        self._prepare(task)
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'active')
+        # The error it was carrying is answered by the retry itself.
+        self.assertEqual(
+            AgentCheckIn.objects.filter(conversation=task, status='pending').count(), 0
+        )
+
     def test_dispatch_brief_is_consumed_when_the_run_starts(self):
         task = self.service.create_conversation(
             self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='task'

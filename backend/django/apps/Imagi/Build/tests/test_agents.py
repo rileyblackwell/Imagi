@@ -1281,6 +1281,133 @@ class ConversationBriefTests(TestCase):
         self.assertEqual(self._brief(chat), '')
 
 
+class FailedTaskRunTests(TestCase):
+    """A run that dies has to leave the task somewhere the user can act on.
+
+    A background task nobody is watching must not be left at 'active' when its
+    run raises: the Subagents pane and its dispatch card would go on reporting
+    work in progress forever, its worktree would never be freed, and the only
+    trace would be an error card in the main thread that cannot clear it.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='failing', password='pw123456')
+        self.service = ImagiAgentService()
+        self.lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='lead',
+        )
+
+    def _task(self, review_status='active'):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='task',
+            parent=self.lead, review_status=review_status,
+            worktree_path='/tmp/project--wt-1',
+        )
+
+    def _context(self):
+        return AgentContext(
+            user_id=self.user.id, project_id=1, conversation_kind='task',
+        )
+
+    def _stream(self, conversation, error):
+        """Run process_stream with a stream that raises, and return its events."""
+        class Exploding(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started ')
+                raise error
+
+        async def collect():
+            return [
+                event async for event in self.service.process_stream(
+                    user_input='go', user=self.user, project_id=1,
+                    conversation_id=conversation.id,
+                )
+            ]
+
+        with patch.object(
+            self.service, '_prepare_run',
+            return_value=(conversation, self._context(), [{'role': 'user', 'content': 'go'}]),
+        ), patch.object(
+            type(self.service), 'agent', new_callable=PropertyMock
+        ) as mock_agent, patch(
+            'apps.Imagi.Build.services.base_agent.Runner'
+        ) as mock_runner:
+            mock_agent.return_value = SimpleNamespace()
+            mock_runner.run_streamed.return_value = Exploding([])
+            return async_to_sync(collect)()
+
+    def test_streamed_failure_parks_the_task_and_queues_the_error(self):
+        task = self._task()
+
+        events = self._stream(task, RuntimeError('model exploded'))
+
+        self.assertEqual(events[-1]['type'], 'error')
+        task.refresh_from_db()
+        # Not 'active': the run is over and nothing was merged.
+        self.assertEqual(task.review_status, 'failed')
+        # The worktree stays until the user dismisses the task — whatever the
+        # run managed to write is still in it.
+        self.assertNotEqual(task.worktree_path, '')
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.kind, 'error')
+        self.assertEqual(check_in.status, 'pending')
+        self.assertEqual(check_in.lead_id, self.lead.id)
+        self.assertIn('model exploded', check_in.body)
+
+    def test_blocking_run_failure_parks_the_task(self):
+        task = self._task()
+
+        with patch.object(
+            self.service, '_prepare_run',
+            return_value=(task, self._context(), [{'role': 'user', 'content': 'go'}]),
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.Runner.run_sync',
+            side_effect=RuntimeError('worker died'),
+        ):
+            result = self.service.process(
+                user_input='go', user=self.user, project_id=1,
+                conversation_id=task.id,
+            )
+
+        self.assertFalse(result['success'])
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'failed')
+        self.assertIn('worker died', AgentCheckIn.objects.get(conversation=task).body)
+
+    def test_a_failed_task_holds_one_queue_slot(self):
+        task = self._task()
+
+        self._stream(task, RuntimeError('first failure'))
+        self._stream(task, RuntimeError('second failure'))
+
+        pending = AgentCheckIn.objects.filter(conversation=task, status='pending')
+        self.assertEqual(pending.count(), 1)
+        self.assertIn('second failure', pending.first().body)
+
+    def test_accepted_work_is_never_relabelled_by_a_later_failure(self):
+        # The task's changes are already in the app; calling it failed would
+        # make the record lie about where that work went.
+        task = self._task(review_status='accepted')
+
+        self.service._park_failed_task(task, 'The task hit an error: boom')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'accepted')
+
+    def test_canonical_threads_are_left_alone(self):
+        # A chat/lead failure is reported to the user who is sitting there
+        # watching it; there is no review lifecycle to park.
+        chat = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='chat',
+        )
+
+        self.service._park_failed_task(chat, 'The task hit an error: boom')
+
+        chat.refresh_from_db()
+        self.assertEqual(chat.review_status, '')
+        self.assertEqual(AgentCheckIn.objects.count(), 0)
+
+
 class TaskTurnCapTests(TestCase):
     """A background task's turn cap: continue the work, then ask the user.
 

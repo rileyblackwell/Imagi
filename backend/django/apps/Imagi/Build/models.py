@@ -46,12 +46,17 @@ CANONICAL_TREE_KINDS = ('chat', 'lead')
 # active (running/being worked) -> ready (final reply persisted, awaiting
 # review) -> accepted (merged into the canonical tree) or dismissed. A task
 # whose run ended on an ask_user call sits at 'input' until the user's answer
-# (relayed from the lead thread) re-runs it.
+# (relayed from the lead thread) re-runs it. A run that died — an unhandled
+# error, or a cap hit mid-stream — parks the task at 'failed': it wrote no
+# final reply and merged nothing, so it is neither active nor reviewable, and
+# it keeps its worktree until the user dismisses it or re-prompts it (which
+# puts it back to 'active').
 REVIEW_STATUS_CHOICES = (
     ('', 'None'),
     ('active', 'Active'),
     ('input', 'Needs input'),
     ('ready', 'Ready'),
+    ('failed', 'Failed'),
     ('accepted', 'Accepted'),
     ('dismissed', 'Dismissed'),
 )

@@ -146,7 +146,15 @@ export type ConversationKind = 'chat' | 'lead' | 'task';
 
 /** Review lifecycle for kind='task' conversations ('' for everything else).
  *  'input' = the subagent asked a question and is parked until it's answered. */
-export type TaskReviewStatus = '' | 'active' | 'input' | 'ready' | 'accepted' | 'dismissed';
+export type TaskReviewStatus =
+  | ''
+  | 'active'
+  | 'input'
+  | 'ready'
+  /** Its run died (error, or a cap hit mid-stream): nothing merged, worktree kept */
+  | 'failed'
+  | 'accepted'
+  | 'dismissed';
 
 /** How a background task surfaces back into the main thread's queue. */
 export type CheckInKind = 'ready' | 'question' | 'error';

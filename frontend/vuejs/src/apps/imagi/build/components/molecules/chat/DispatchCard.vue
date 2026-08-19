@@ -116,6 +116,18 @@ const status = computed(() => {
         label: 'Subagent complete — waiting on you',
         result: instance.lastMessagePreview || '',
       }
+    case 'failed':
+      return {
+        tone: 'stopped',
+        icon: 'fas fa-triangle-exclamation',
+        // Said as what happened to the app, not as an error code: the run
+        // stopped and nothing it started was added, which is the whole of
+        // what a business owner needs from this card.
+        label: 'Stopped before finishing',
+        // Whatever it managed to say before it died — often a partial reply.
+        // The reason it stopped is in the main thread's queue card.
+        result: instance.lastMessagePreview || '',
+      }
     case 'accepted':
       return {
         tone: 'done',
@@ -329,6 +341,35 @@ const state = computed(() => ({
   border-color: rgba(74, 222, 128, 0.45);
 }
 
+/* A run that died. Warm rather than alarming: nothing was lost from the app
+   (the work never touched it), so this is news to act on, not a fault to
+   panic about. Same reading as the queue card's error rail. */
+.dispatch-card--stopped {
+  --rail: theme('colors.amber.500');
+  --status: theme('colors.amber.700');
+  --chip-bg: rgba(245, 158, 11, 0.14);
+  --chip-fg: theme('colors.amber.600');
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(255, 251, 235, 0.75);
+}
+
+.dark .dispatch-card--stopped {
+  --rail: theme('colors.amber.300');
+  --status: theme('colors.amber.200');
+  --chip-bg: rgba(252, 211, 77, 0.16);
+  --chip-fg: theme('colors.amber.200');
+  border-color: rgba(252, 211, 77, 0.26);
+  background: rgba(252, 211, 77, 0.06);
+}
+
+.dispatch-card--stopped:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.dark .dispatch-card--stopped:hover {
+  border-color: rgba(252, 211, 77, 0.42);
+}
+
 /* Discarded work recedes — it is a record, not news. */
 .dispatch-card--settled {
   opacity: 0.7;
@@ -452,6 +493,16 @@ const state = computed(() => ({
 
 /* On a finished card the result is the news, so it takes the state's ink
    rather than the muted grey a pending question sits in. */
+.dispatch-card--stopped .dispatch-card__result {
+  border-top-color: rgba(245, 158, 11, 0.22);
+  color: rgba(180, 83, 9, 0.9);
+}
+
+.dark .dispatch-card--stopped .dispatch-card__result {
+  border-top-color: rgba(252, 211, 77, 0.22);
+  color: rgba(253, 230, 138, 0.8);
+}
+
 .dispatch-card--done .dispatch-card__result {
   border-top-color: rgba(22, 163, 74, 0.18);
   color: rgba(21, 128, 61, 0.9);
