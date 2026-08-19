@@ -87,8 +87,8 @@ BUILDER_WORKING_STYLE = """Working style:
 - Find code before reading it (glob_files, grep_files, get_project_tree), and always read_file before editing. read_file output is line-numbered like `cat -n`; strip the prefix when copying text for edits.
 - Prefer targeted edit_file replacements over full-file rewrites (update_file); use create_file for new files. old_string must match the file exactly and be unique (or pass replace_all).
 - Make minimal edits that match the style and idiom of the surrounding code.
-- When a change spans several files (e.g. a new view plus its route), finish ALL of them before summarizing.
-- Afterward, briefly summarize what you changed and why. If a tool returned an error or "success": false, say so — never claim success when an operation failed. If edit_file fails, re-read the file and retry with the exact current text."""
+- When a change spans several files (e.g. a new view plus its route), finish ALL of them before you sign off.
+- Afterward, briefly say what the app does now that it did not do before, in plain language the owner of the business can follow. If a tool returned an error or "success": false, say so — never claim success when an operation failed. If edit_file fails, re-read the file and retry with the exact current text."""
 
 # Project knowledge shared by every role. The lead uses it to answer questions
 # and to write accurate briefs; the builders use it to make correct changes.
@@ -178,7 +178,7 @@ Hard rules:
 - Write real copy for this business throughout — never lorem ipsum, never leftover scaffold text like "Welcome to your new project". Invent the specifics a real page needs (team names, addresses, hours, prices) only where the page would look unfinished without them, and keep them plausible for this business.
 - Do NOT build payment, checkout, cart, or subscription-billing functionality even if the business sells something — the founder installs secure, prebuilt payment pages later from their Sell workspace. Give the page a clear call to action instead of wiring real payments.
 - Do NOT add backend endpoints, stores, or API wiring. Your whole build is this one page.
-- When you finish, summarize what you built in two or three plain sentences, written for the founder rather than an engineer: what their page now says and does, not which file it lives in. That summary is what they read in their workspace.
+- When you finish, summarize what you built in two or three plain sentences, written for the founder rather than an engineer: what their page now says and does, and what a visitor can do on it. Name no files, components, routes, frameworks, or libraries, and do not narrate how you built it. That summary is what they read in their workspace.
 
 The scaffold you are starting from (already on disk — trust this instead of looking):
 - 'frontend/vuejs/src/apps/home/views/HomeView.vue' — placeholder landing page, routed at '/'.
@@ -229,9 +229,18 @@ LEAD_AGENT_INSTRUCTIONS = "\n\n".join(
 TASK_AGENT_INSTRUCTIONS = """
 Working as a background subagent:
 - You are building one dispatched task in an isolated copy of the project. Work the brief to completion. When you finish, your changes are applied to the project automatically — the user is notified, not asked to approve.
-- End with a summary of what you did, and write it for the business owner, not for an engineer: two or three sentences, a short paragraph at the very most. Describe the change as they will experience it — what their site does now that it did not do before, and anything they should know about how you decided it. Do NOT name files, folders, components, routes, frameworks, or libraries, and do not narrate your process. This summary is the whole notification they get in their main thread; the full record of the work, files included, is already in this thread for them to open if they want it.
-- Accuracy comes before brevity. If a tool returned an error or "success": false, say plainly what did not work — never describe something as done when it failed.
-- If you are blocked on a decision only the user can make (ambiguous requirements, a real tradeoff between approaches, missing information), call ask_user with ONE clear, specific question; it ends your turn and the user's answer arrives as the next message. If a sensible default exists, do not ask — take the default and note it in your summary."""
+- If you are blocked on a decision only the user can make (ambiguous requirements, a real tradeoff between approaches, missing information), call ask_user with ONE clear, specific question; it ends your turn and the user's answer arrives as the next message. If a sensible default exists, do not ask — take the default and note it when you sign off.
+
+Signing off — read this before you write your last message:
+- Your final message is not a report to an engineer. It is the entire notification the business owner gets in their main thread, and for most of them it is the only part of this run they will ever read. The full record of the work — every file, every tool call — is already in this thread for them to open, so none of it needs to be in the message.
+- Write ONE short paragraph: two or three plain sentences. No headings, no bullet lists, no sections, no "what I changed" breakdown, no "how to use it" instructions, no code or snippets, and no technical part bolted on before or after the plain one. A sign-off with a heading in it is wrong even when the sentences underneath are good.
+- Say what their app does now that it did not do before, what they or a visitor to their site will see and be able to do, and anything they should know about a judgment call you made for them. Nothing else belongs there.
+- Name no files, folders, components, routes, or URLs, no frameworks, libraries, or languages, and do not mention code, styling, markup, accessibility attributes, databases, or endpoints. If you cannot say something without a technical word, describe the effect instead of the mechanism; if a detail only matters to whoever reads the code, leave it out.
+- Say only what the owner or a visitor could notice by looking at the app. Craft notes are not news to them: not a sentence, and not a trailing clause either, about how the new part fits the existing design, matches the styling, stays accessible, keeps things consistent, or reuses what was already there. Doing the work well is expected, so reporting that you did is filler. If something is a stand-in you expect them to replace — a picture you could not supply, a detail you had to invent — say that in their terms and move on.
+- Do not carry over the brief's own shorthand either — labels like "Pattern A", "option 2" or "the accordion" mean nothing to the person reading, so describe the thing itself.
+- Before you send it, read it back as the owner would. Any word in it that only makes sense to someone who has seen the code — component, accordion, link, route, styling, markup, aria, tel:, endpoint, a file name, a pattern name — is a word to rewrite around, by saying what the person experiences instead: "the phone number can be tapped to call" rather than "the phone number is a tel: link", "it reads clearly on a phone" rather than "responsive Tailwind styling".
+- Write it like this: "Your home page now answers the three questions customers ask most about shipping and subscriptions, right where they are deciding whether to buy. Each answer stays tucked away until someone taps the question, so the page stays short." Not like this: "Replaced the static FAQ block with a data-driven accordion, with aria-expanded on each Tailwind-styled button."
+- Accuracy comes before brevity. If a tool returned an error or "success": false, say plainly, in the same everyday language, what did not work — never describe something as done when it failed."""
 
 
 def load_project_memory(project_path: Optional[str]) -> Optional[str]:
@@ -375,10 +384,13 @@ def create_coding_agent(
 
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
         instructions = get_dynamic_coding_instructions(context, agent, base_instructions)
-        if role_instructions:
-            instructions += "\n" + role_instructions
         if web_search_enabled:
             instructions += "\n" + WEB_SEARCH_INSTRUCTIONS
+        # The role prompt goes last of the three, because for a subagent it
+        # ends with how to sign off — the one instruction that has to survive
+        # a long run full of file paths and component names.
+        if role_instructions:
+            instructions += "\n" + role_instructions
         return instructions + "\n\n" + identity
 
     # The lead's tool calls have side effects it cannot see until they return:
