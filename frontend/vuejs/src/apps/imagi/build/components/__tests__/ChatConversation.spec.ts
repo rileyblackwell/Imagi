@@ -103,6 +103,7 @@ describe('ChatConversation dispatch card', () => {
       archivedAt: null,
       updatedAt: '2026-01-01T00:00:00Z',
       lastMessagePreview: '',
+      lastAssistantSummary: '',
       brief: '',
       messagesLoaded: true,
       hasUnread: false,
@@ -161,6 +162,24 @@ describe('ChatConversation dispatch card', () => {
     expect(card.text()).toContain('Subagent complete')
     expect(card.find('.dispatch-card__task').text()).toBe(JOB)
     expect(card.find('.dispatch-card__result').text()).toBe(SUMMARY)
+  })
+
+  it('shows the whole summary, not the clipped list-row preview', () => {
+    // The complaint: a finished card's summary was ending mid-sentence,
+    // because it rendered last_message_preview (capped at 300 chars for list
+    // rows). The full sign-off travels separately as lastAssistantSummary and
+    // must win whenever it is present.
+    const fullSummary = SUMMARY + ' It also links the page from your footer, '
+      + 'and the form thanks the visitor by name after they send it.'
+    const clippedPreview = fullSummary.slice(0, 140)
+    const wrapper = withSubagent({
+      reviewStatus: 'accepted',
+      brief: JOB,
+      lastMessagePreview: clippedPreview,
+      lastAssistantSummary: fullSummary,
+    })
+
+    expect(wrapper.find('.dispatch-card__result').text()).toBe(fullSummary)
   })
 
   it('renders the whole description rather than clipping it', () => {

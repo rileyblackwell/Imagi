@@ -1016,15 +1016,21 @@ PREVIEW_LIMIT = 300
 # ever shown, and only when the lead wrote no user-facing goal to show
 # instead, so this is deliberately tighter than a result summary.
 BRIEF_LIMIT = 200
+# A finished task's sign-off (or a blocked one's question) is shown WHOLE on
+# the main thread's dispatch card — a summary whose last sentence is cut off
+# fails at its one job of telling the user what happened. The instructions
+# hold sign-offs to a short paragraph, so this cap is a runaway guard (matching
+# the check-in body cap), not a display length.
+SUMMARY_LIMIT = 2000
 
 
 def _message_preview(text: str, limit: int = PREVIEW_LIMIT) -> str:
     """A message's gist on one line: markdown chrome off, lines run together.
 
     Not just the first line — a subagent's sign-off routinely opens with a
-    heading ("Here's what I built:") and puts the substance underneath, and
-    this preview is what the main thread's dispatch card reports as the
-    result. Whatever it drops is one click away in the thread itself.
+    heading ("Here's what I built:") and puts the substance underneath.
+    Callers pick the limit for their surface: PREVIEW_LIMIT for list rows,
+    SUMMARY_LIMIT where the text is meant to be read in full.
     """
     parts = []
     length = 0
@@ -1070,6 +1076,16 @@ def _conversation_brief(conversation) -> str:
 def _serialize_conversation(conversation):
     last_message = conversation.messages.order_by('-created_at').first()
     preview = _message_preview(last_message.content) if last_message else ''
+    # The task's closing words — its summary of the changes, or the question
+    # it stopped on. The dispatch card renders this in full, so it is a
+    # separate, generously-capped field rather than the list-row preview.
+    last_assistant = conversation.messages.filter(
+        role='assistant'
+    ).order_by('-created_at').first()
+    summary = (
+        _message_preview(last_assistant.content, limit=SUMMARY_LIMIT)
+        if last_assistant else ''
+    )
     return {
         'id': conversation.id,
         'title': conversation.title or '',
@@ -1086,6 +1102,8 @@ def _serialize_conversation(conversation):
         'created_at': conversation.created_at.isoformat(),
         'updated_at': conversation.updated_at.isoformat(),
         'last_message_preview': preview,
+        # What came back from the run, whole — the dispatch card's result.
+        'last_assistant_summary': summary,
         # What this task was asked to do — the dispatch card reports it while
         # the run is live, where there is no result to show yet.
         'brief': _conversation_brief(conversation),
