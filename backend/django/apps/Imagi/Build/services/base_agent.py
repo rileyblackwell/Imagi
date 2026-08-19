@@ -62,6 +62,22 @@ DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
 # run spin forever.
 MAX_AGENT_TURNS = _BUILDER_SETTINGS.get('MAX_AGENT_TURNS', 30)
 
+# Dispatched background tasks run unattended and are whole-feature sized, so
+# they get their own (larger) loop, and continue themselves when they still
+# reach it — see _stream_once's turn-cap handling.
+TASK_MAX_TURNS = _BUILDER_SETTINGS.get('TASK_MAX_TURNS', 60)
+TASK_AUTO_CONTINUE_ROUNDS = _BUILDER_SETTINGS.get('TASK_AUTO_CONTINUE_ROUNDS', 2)
+
+# The prompt a task hands itself to resume after a turn cap. Written as the
+# user would write it, because that is what it is: the next message in the
+# task's own thread, against the same worktree and the same plan.
+TASK_CONTINUE_PROMPT = (
+    "Continue from where you left off. Your previous run stopped partway "
+    "through, not because the work was done — pick up the plan you were "
+    "working through and finish it. Re-read anything you need to; the files "
+    "you already wrote are still there."
+)
+
 # Refresh the running-run marker at most this often while stream events flow,
 # so the API's staleness window measures silence since the last event rather
 # than total run duration (legitimate runs can outlive the window).
@@ -1087,9 +1103,11 @@ class ImagiAgentService:
     def _park_failed_task(self, conversation, note: str) -> None:
         """Route a run that died back to the main thread.
 
-        The counterpart to _finalize_task_run for the paths where there is no
-        final reply to route: the run raised, or was cut off mid-stream. Such
-        a task has merged nothing, so leaving it at 'active' strands it — the
+        The counterpart to _finalize_task_run for the path where there is no
+        final reply to route: the run raised. (A turn-capped task takes the
+        gentler _park_capped_task route instead, after its continuation
+        rounds.) A task that died here has merged nothing, so leaving it at
+        'active' strands it — the
         Subagents pane and its dispatch card keep reporting a run that will
         never end, its worktree is never freed, and the error queued in the
         main thread is the only trace. 'failed' says the run stopped: the card
@@ -1111,6 +1129,64 @@ class ImagiAgentService:
             except Exception as e:  # pragma: no cover - best effort
                 logger.warning(f"Could not park the failed task: {e}")
         self._file_check_in(conversation, 'error', note)
+
+    def _max_turns_for(self, conversation) -> int:
+        """Agent-loop budget for one run.
+
+        Background tasks get the larger of the two: they are given
+        whole-feature work and run with nobody watching, so a cap sized for a
+        conversational reply cuts them off mid-feature.
+        """
+        # getattr: test doubles stand in for the conversation here.
+        if getattr(conversation, 'kind', 'chat') == 'task':
+            return TASK_MAX_TURNS
+        return MAX_AGENT_TURNS
+
+    def _continuation_allowed(self, user) -> bool:
+        """Whether a capped task may spend another run continuing itself.
+
+        Continuations bypass the API entrypoint that checks the plan
+        allowance, so the check happens again here — otherwise one stuck task
+        could keep spending past a limit the user has already reached. Fails
+        closed: if the allowance cannot be read, the task asks the user rather
+        than spending on a guess.
+        """
+        try:
+            from .usage_limits import check_usage_allowed
+            allowed, _payload = check_usage_allowed(user)
+            return bool(allowed)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not check usage before continuing a task: {e}")
+            return False
+
+    def _park_capped_task(self, conversation_id: int) -> None:
+        """Hand a task that ran out of continuations back to the user.
+
+        Deliberately not an auto-merge: the work is unfinished, so applying it
+        would put a half-built feature in the app and drop the worktree the
+        continuation needs. Parking at 'input' with a 'question' check-in
+        instead means the dispatch card reads "Needs an answer from you" and
+        the user's reply resumes the task in place — the same path an
+        ask_user question already takes.
+        """
+        try:
+            from ..models import AgentConversation
+            conversation = AgentConversation.objects.filter(id=conversation_id).first()
+            if conversation is None or conversation.kind != 'task':
+                return
+            conversation.review_status = 'input'
+            conversation.save(update_fields=["review_status"])
+            # The card names the task above this text and the thread's
+            # dispatch card carries the goal, so the body says only what the
+            # user has to decide.
+            self._file_check_in(
+                conversation, 'question',
+                "I haven't finished this one yet — I stopped partway through, "
+                "and the work so far is saved. Say \"keep going\" and I'll pick "
+                "up where I left off, or tell me what to change."
+            )
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not park a capped task for review: {e}")
 
     def _finalize_task_run(self, conversation, context, response_content: str) -> None:
         """Route a finished task run back to the main thread.
@@ -1337,16 +1413,107 @@ class ImagiAgentService:
         conversation_id: Optional[int] = None,
         reasoning_effort: Optional[str] = None,
     ):
-        """Run the agent, yielding events as they happen.
+        """Run the agent to completion, yielding events as they happen.
 
-        Same work as process(), but surfaced incrementally so the workspace can
-        show text and tool activity while the run is still going. Yields dicts
-        shaped {"type": ..., ...}; the terminal "done" event carries the same
-        payload process() returns, so both paths agree on the contract.
+        One client stream, but not necessarily one agent run: a background
+        task that reaches its turn cap mid-work is continued here rather than
+        reported as a failure. Nobody is watching a task thread, so stopping
+        at the cap left its work stranded — unfinished, unmerged, and with
+        nothing in the main thread the user could act on.
+
+        Continuation rounds resume the same conversation and the same
+        worktree, and are invisible to the client: their 'start' is swallowed
+        (the user typed no second prompt) and their turn-cap event is held
+        until the last round. A task still unfinished after
+        TASK_AUTO_CONTINUE_ROUNDS — or one whose user has spent their usage
+        allowance — is parked for the user instead, as a question in the main
+        thread's queue.
+
+        Chat and lead runs are unaffected: the user is sitting in front of
+        those, so their cap surfaces immediately, exactly as before.
+        """
+        prompt = user_input
+        target_id = conversation_id
+        rounds_left = TASK_AUTO_CONTINUE_ROUNDS
+        round_index = 0
+
+        while True:
+            cap_state: Dict[str, Any] = {}
+            async for event in self._stream_once(
+                user_input=prompt,
+                user=user,
+                model=model,
+                project_id=project_id,
+                current_file=current_file,
+                conversation_id=target_id,
+                reasoning_effort=reasoning_effort,
+                cap_state=cap_state,
+            ):
+                # A continuation is the same run as far as the client is
+                # concerned: a second 'start' would register a user message
+                # for a prompt the user never sent.
+                if round_index > 0 and event.get("type") == "start":
+                    continue
+                yield event
+
+            # Only a capped *task* run lands here with anything to resume;
+            # every other ending has already reported itself.
+            resume_id = cap_state.get("task_conversation_id")
+            if not resume_id:
+                return
+
+            if rounds_left > 0 and await sync_to_async(self._continuation_allowed)(user):
+                rounds_left -= 1
+                round_index += 1
+                target_id = resume_id
+                prompt = TASK_CONTINUE_PROMPT
+                logger.info(
+                    "Continuing capped task %s (%s round(s) left)",
+                    resume_id, rounds_left,
+                )
+                continue
+
+            # Out of continuations: hand it to the user as a question rather
+            # than a dead error, and leave the worktree alone so their answer
+            # resumes the work instead of restarting it.
+            await sync_to_async(self._park_capped_task)(resume_id)
+            yield {
+                "type": "error",
+                "code": "max_turns",
+                "error": (
+                    "The agent reached its turn limit before finishing. "
+                    "Progress so far is saved — send a message to continue."
+                ),
+                "conversation_id": resume_id,
+            }
+            return
+
+    async def _stream_once(
+        self,
+        user_input: str,
+        user,
+        model: Optional[str] = None,
+        project_id: Optional[int] = None,
+        current_file: Optional[Dict[str, Any]] = None,
+        conversation_id: Optional[int] = None,
+        reasoning_effort: Optional[str] = None,
+        cap_state: Optional[Dict[str, Any]] = None,
+    ):
+        """One agent run, surfaced incrementally.
+
+        Same work as process(), but streamed so the workspace can show text
+        and tool activity while the run is still going. Yields dicts shaped
+        {"type": ..., ...}; the terminal "done" event carries the same payload
+        process() returns, so both paths agree on the contract.
 
         The assistant's reply is persisted even if the client disconnects
         mid-run: the agent has already edited files by then, so dropping the
         message would leave the conversation out of step with the project.
+
+        cap_state is how a capped task run reports back to process_stream,
+        which owns the decision to continue or to ask the user. Setting it
+        (rather than filing a check-in here) keeps that policy in one place --
+        this method never gives up on a task by itself.
         """
         conversation = None
         context = None
@@ -1393,7 +1560,7 @@ class ImagiAgentService:
                 self.agent,
                 input=input_messages,
                 context=context,
-                max_turns=MAX_AGENT_TURNS,
+                max_turns=self._max_turns_for(conversation),
                 run_config=self._run_config(user),
             )
 
@@ -1498,19 +1665,20 @@ class ImagiAgentService:
             yield done_event
 
         except MaxTurnsExceeded:
-            # The run was cut off by the turn cap, not a real failure: the
-            # code:'max_turns' lets the frontend offer a "Continue" action
-            # (the finally block below keeps the partial reply).
-            logger.warning(f"Agent run hit the turn limit ({MAX_AGENT_TURNS} turns)")
-            if conversation is not None:
-                # A background task's turn-cap must reach the main thread —
-                # nobody is watching the task itself — and the task itself has
-                # to leave 'active', or it reads as still running forever.
-                await sync_to_async(self._park_failed_task)(
-                    conversation,
-                    "Ran out of turns before finishing. Progress so far is "
-                    "saved — reply to continue this task.",
-                )
+            # The run was cut off by the turn cap, not a real failure (the
+            # finally block below keeps the partial reply).
+            is_task = getattr(conversation, 'kind', 'chat') == 'task' if conversation else False
+            # A task reaching its cap is routine — it continues from there —
+            # so only a cap the user is actually left holding is a warning.
+            (logger.info if is_task else logger.warning)(
+                "Agent run hit the turn limit (%s turns)",
+                self._max_turns_for(conversation),
+            )
+            if is_task and cap_state is not None:
+                # A background task does not stop here: process_stream reads
+                # this and either resumes the task or parks it for the user.
+                cap_state["task_conversation_id"] = conversation.id
+                return
             yield {
                 "type": "error",
                 "code": "max_turns",
@@ -1645,7 +1813,7 @@ class ImagiAgentService:
                 self.agent,
                 input=input_messages,
                 context=context,
-                max_turns=max_turns or MAX_AGENT_TURNS,
+                max_turns=max_turns or self._max_turns_for(conversation),
                 run_config=self._run_config(user),
                 **run_kwargs,
             )

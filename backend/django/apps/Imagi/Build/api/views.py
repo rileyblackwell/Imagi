@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from asgiref.sync import sync_to_async
 from django.db import IntegrityError, transaction
+from django.db.models import Case, IntegerField, Value, When
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -255,6 +256,16 @@ class ProjectPagesView(BrowserPreviewBaseView):
             ensure_working_copy(project)
         except Exception as hydrate_err:
             logger.warning(f"Could not ensure working copy before listing pages: {hydrate_err}")
+        # Projects scaffolded before the home app owned about and contact
+        # carry them as one-page apps of their own, which this menu would
+        # show as a folder per page. Fold them back into home on the way
+        # past — this is the request the menu is built from, so a project
+        # regroups the first time its workspace opens. Never fatal.
+        try:
+            from ..services.site_apps_migration import regroup_site_apps
+            regroup_site_apps(project)
+        except Exception as regroup_err:
+            logger.warning(f"Could not regroup site apps before listing pages: {regroup_err}")
         from ..services.pages_service import list_app_pages
         return Response({'apps': list_app_pages(project)})
 
@@ -1545,7 +1556,13 @@ def _serialize_check_in(check_in):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_ins_list(request):
-    """The check-in queue for a project, oldest first (FIFO).
+    """The check-in queue for a project, most blocking first, then FIFO.
+
+    A question is a subagent standing still until it hears back, so it goes to
+    the front of the queue; an error is a task that has stopped; a 'ready'
+    card is finished work waiting to be merged, which blocks nobody. Within a
+    kind the order is FIFO, so nothing waits behind a newer item of its own
+    urgency.
 
     Pending only by default — the queue the lead thread renders. Pass
     ?status=all for history.
@@ -1578,7 +1595,15 @@ def check_ins_list(request):
                 status='resolved', resolved_at=timezone.now()
             )
             qs = qs.exclude(id__in=applied)
-    data = [_serialize_check_in(ci) for ci in qs.order_by('created_at')]
+    qs = qs.annotate(
+        urgency=Case(
+            When(kind='question', then=Value(0)),
+            When(kind='error', then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        )
+    )
+    data = [_serialize_check_in(ci) for ci in qs.order_by('urgency', 'created_at')]
     return Response(data, status=status.HTTP_200_OK)
 
 

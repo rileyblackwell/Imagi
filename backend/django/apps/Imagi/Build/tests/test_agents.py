@@ -27,6 +27,9 @@ from apps.Imagi.Build.api.views import _project_has_running_conversation
 from apps.Imagi.Build.models import AgentCheckIn, AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
     CAPPED_NOTE_MAX_PAGES,
+    MAX_AGENT_TURNS,
+    TASK_AUTO_CONTINUE_ROUNDS,
+    TASK_MAX_TURNS,
     AgentContext,
     ImagiAgentService,
     RunBudgetExceeded,
@@ -1351,20 +1354,6 @@ class FailedTaskRunTests(TestCase):
         self.assertEqual(check_in.lead_id, self.lead.id)
         self.assertIn('model exploded', check_in.body)
 
-    def test_streamed_turn_cap_parks_the_task_too(self):
-        # Same stranding, different cause: the cap ends the run without a
-        # final reply, so nothing else routes the task back.
-        task = self._task()
-
-        events = self._stream(task, MaxTurnsExceeded('out of turns'))
-
-        self.assertEqual(events[-1]['code'], 'max_turns')
-        task.refresh_from_db()
-        self.assertEqual(task.review_status, 'failed')
-        self.assertEqual(
-            AgentCheckIn.objects.get(conversation=task).kind, 'error'
-        )
-
     def test_blocking_run_failure_parks_the_task(self):
         task = self._task()
 
@@ -1417,3 +1406,211 @@ class FailedTaskRunTests(TestCase):
         chat.refresh_from_db()
         self.assertEqual(chat.review_status, '')
         self.assertEqual(AgentCheckIn.objects.count(), 0)
+
+
+class TaskTurnCapTests(TestCase):
+    """A background task's turn cap: continue the work, then ask the user.
+
+    Nobody is watching a task thread, so reaching the cap there is a place to
+    pick back up rather than a place to stop. Only a task still unfinished
+    after its continuations reaches the user, and it arrives as a question in
+    the main thread's queue — never as a task stranded mid-run.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='capper', password='pw123456')
+        self.service = ImagiAgentService()
+        self.conversation = SimpleNamespace(id=11, kind='task')
+        self.context = AgentContext(user_id=self.user.id, project_id=1)
+        self.prompts = []
+        self.parked = []
+
+        def prepare(**kwargs):
+            self.prompts.append(kwargs['user_input'])
+            return (
+                self.conversation,
+                self.context,
+                [{'role': 'user', 'content': kwargs['user_input']}],
+            )
+
+        self.service._prepare_run = prepare
+        self.service.add_assistant_message = lambda conv, content, metadata=None: None
+        self.service._finalize_task_run = lambda conv, ctx, content: None
+        self.service._clear_run_started = lambda conv: None
+        self.service._record_usage_event = lambda *a, **kw: None
+        self.service.autoname_from_first_reply = lambda *a, **kw: ''
+        self.service._continuation_allowed = lambda user: True
+        self.service._park_capped_task = lambda cid: self.parked.append(cid)
+
+    def _capping_run(self, text):
+        class HitsTurnCap(_FakeStreamedRun):
+            async def stream_events(inner):
+                yield _delta_event(text)
+                raise MaxTurnsExceeded('Max turns (60) exceeded')
+
+        return HitsTurnCap([])
+
+    async def _collect(self):
+        return [
+            event async for event in self.service.process_stream(
+                user_input='add a contact page', user=self.user, project_id=1
+            )
+        ]
+
+    def _run(self, runs):
+        with patch.object(type(self.service), 'agent', new_callable=PropertyMock) as mock_agent, \
+                patch('apps.Imagi.Build.services.base_agent.Runner') as mock_runner:
+            mock_agent.return_value = SimpleNamespace()
+            mock_runner.run_streamed.side_effect = runs
+            self.mock_runner = mock_runner
+            return async_to_sync(self._collect)()
+
+    def test_capped_task_continues_itself_and_finishes(self):
+        events = self._run([
+            self._capping_run('Started the page '),
+            _FakeStreamedRun([_delta_event('and finished it.')], final_output='Done.'),
+        ])
+
+        # The cap never reaches the client: the run simply kept going.
+        self.assertNotIn('error', [e['type'] for e in events])
+        self.assertEqual(events[-1]['type'], 'done')
+        self.assertEqual(events[-1]['response'], 'Done.')
+        # One run, as far as the user's thread is concerned.
+        self.assertEqual([e['type'] for e in events].count('start'), 1)
+        # The second round resumed the same conversation, unprompted.
+        self.assertEqual(len(self.prompts), 2)
+        self.assertNotEqual(self.prompts[1], self.prompts[0])
+        self.assertEqual(self.parked, [])
+
+    def test_task_asks_the_user_once_its_continuations_run_out(self):
+        rounds = TASK_AUTO_CONTINUE_ROUNDS + 1
+        events = self._run([self._capping_run('Still going ') for _ in range(rounds)])
+
+        self.assertEqual(len(self.prompts), rounds)
+        error = events[-1]
+        self.assertEqual(error['type'], 'error')
+        self.assertEqual(error['code'], 'max_turns')
+        # Parked for the user rather than left mid-run.
+        self.assertEqual(self.parked, [self.conversation.id])
+
+    def test_a_spent_usage_allowance_stops_the_continuations(self):
+        self.service._continuation_allowed = lambda user: False
+        events = self._run([self._capping_run('One round only ')])
+
+        # No second run: continuing would spend past a limit the user has hit.
+        self.assertEqual(len(self.prompts), 1)
+        self.assertEqual(events[-1]['code'], 'max_turns')
+        self.assertEqual(self.parked, [self.conversation.id])
+
+    def test_chat_run_reports_its_cap_immediately(self):
+        # The user is sitting in front of a chat thread, so its cap is theirs
+        # to see and act on — no silent continuation.
+        self.conversation.kind = 'chat'
+        events = self._run([self._capping_run('Thinking ')])
+
+        self.assertEqual(len(self.prompts), 1)
+        self.assertEqual(events[-1]['code'], 'max_turns')
+        self.assertEqual(self.parked, [])
+
+    def test_tasks_get_a_bigger_loop_than_chat(self):
+        self.assertEqual(
+            self.service._max_turns_for(SimpleNamespace(kind='task')), TASK_MAX_TURNS
+        )
+        self.assertEqual(
+            self.service._max_turns_for(SimpleNamespace(kind='chat')), MAX_AGENT_TURNS
+        )
+        self.assertGreater(TASK_MAX_TURNS, MAX_AGENT_TURNS)
+
+
+class ParkCappedTaskTests(TestCase):
+    """A task out of continuations lands where the user can answer it."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='parker', password='pw123456')
+        self.service = ImagiAgentService()
+        self.lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='lead'
+        )
+        self.task = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='task',
+            parent=self.lead, review_status='active',
+            goal='add a contact page so visitors can reach you',
+            worktree_path='/tmp/project--wt-1',
+        )
+
+    def test_parking_queues_a_question_and_keeps_the_worktree(self):
+        self.service._park_capped_task(self.task.id)
+        self.task.refresh_from_db()
+
+        self.assertEqual(self.task.review_status, 'input')
+        # The worktree is what the user's answer resumes into: merging or
+        # dropping it here would throw the unfinished work away.
+        self.assertEqual(self.task.worktree_path, '/tmp/project--wt-1')
+        check_in = AgentCheckIn.objects.get(conversation=self.task, status='pending')
+        # A question, not an error: the card it renders takes an answer, and
+        # the answer is what resumes the task.
+        self.assertEqual(check_in.kind, 'question')
+        self.assertIn('keep going', check_in.body)
+        self.assertEqual(check_in.lead, self.lead)
+
+    def test_parking_replaces_an_earlier_entry_from_the_same_task(self):
+        # A task holds at most one live queue slot, so an earlier round's
+        # entry must not sit alongside this one.
+        AgentCheckIn.objects.create(
+            user=self.user, project_id=1, conversation=self.task, lead=self.lead,
+            kind='error', body='an earlier round',
+        )
+        self.service._park_capped_task(self.task.id)
+
+        pending = AgentCheckIn.objects.filter(conversation=self.task, status='pending')
+        self.assertEqual([c.kind for c in pending], ['question'])
+
+
+class CheckInQueueOrderTests(TestCase):
+    """Queue order: what blocks a subagent comes before what blocks nobody."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='queuer', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='lead'
+        )
+
+    def _check_in(self, kind, minutes_ago):
+        task = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='task',
+            parent=self.lead, review_status='active',
+        )
+        check_in = AgentCheckIn.objects.create(
+            user=self.user, project_id=1, conversation=task, lead=self.lead,
+            kind=kind, body=f'{kind} body',
+        )
+        # created_at is auto_now_add, so age is set after the fact.
+        AgentCheckIn.objects.filter(id=check_in.id).update(
+            created_at=timezone.now() - timedelta(minutes=minutes_ago)
+        )
+        return check_in
+
+    def _queue(self):
+        response = self.client.get(
+            reverse('check_ins_list'),
+            {'project_id': 1},
+            HTTP_AUTHORIZATION=f'Token {self.token.key}',
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_a_question_jumps_ahead_of_older_finished_work(self):
+        self._check_in('ready', minutes_ago=30)
+        self._check_in('error', minutes_ago=20)
+        question = self._check_in('question', minutes_ago=1)
+
+        queue = self._queue()
+        self.assertEqual(queue[0]['id'], question.id)
+        self.assertEqual([c['kind'] for c in queue], ['question', 'error', 'ready'])
+
+    def test_questions_among_themselves_stay_fifo(self):
+        first = self._check_in('question', minutes_ago=10)
+        second = self._check_in('question', minutes_ago=5)
+
+        self.assertEqual([c['id'] for c in self._queue()], [first.id, second.id])
