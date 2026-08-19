@@ -106,15 +106,18 @@ const status = computed(() => {
         icon: 'fas fa-circle-question',
         label: 'Needs an answer from you',
         // The subagent stopped on ask_user, so its closing line is the
-        // question itself.
-        result: instance.lastMessagePreview || '',
+        // question itself. Whole, never the clipped list-row preview: a
+        // question missing its last clause cannot be answered, and a summary
+        // missing its last sentence has failed at its one job — the preview
+        // is only the standby for a DTO from before the summary field.
+        result: instance.lastAssistantSummary || instance.lastMessagePreview || '',
       }
     case 'ready':
       return {
         tone: 'asking',
         icon: 'fas fa-check',
         label: 'Subagent complete — waiting on you',
-        result: instance.lastMessagePreview || '',
+        result: instance.lastAssistantSummary || instance.lastMessagePreview || '',
       }
     case 'accepted':
       return {
@@ -124,7 +127,7 @@ const status = computed(() => {
         // What it did, in its own words: the run is over, so the last message
         // is its sign-off, written as a plain summary of the changes for
         // exactly this spot (see TASK_AGENT_INSTRUCTIONS).
-        result: instance.lastMessagePreview || '',
+        result: instance.lastAssistantSummary || instance.lastMessagePreview || '',
       }
     case 'dismissed':
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }

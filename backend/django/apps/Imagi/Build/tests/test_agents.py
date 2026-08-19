@@ -704,6 +704,71 @@ class ProjectBusyGuardTests(TestCase):
         self.assertFalse(_project_has_running_conversation(other, 1))
 
 
+class ConversationSummarySerializationTests(TestCase):
+    """A task's closing summary travels whole to the dispatch card.
+
+    last_message_preview is a list-row gist and stays tightly capped, but the
+    main thread's dispatch card renders the finished task's sign-off (or a
+    blocked task's question) in full — cutting the summary's last sentence
+    off was exactly the complaint. That text travels separately, generously
+    capped, as last_assistant_summary.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='summarizer', password='pw123456')
+        self.conversation = ImagiAgentService().create_conversation(
+            self.user, 'gpt-5.6-terra', kind='task'
+        )
+
+    def test_summary_is_the_whole_sign_off_where_the_preview_clips(self):
+        from apps.Imagi.Build.api.views import PREVIEW_LIMIT, _serialize_conversation
+
+        sentence = (
+            'Your site now has a contact page that checks addresses before '
+            'sending, so you get fewer dead replies. '
+        )
+        sign_off = (sentence * 6).strip()  # comfortably past the preview cap
+        self.assertGreater(len(sign_off), PREVIEW_LIMIT)
+        AgentMessage.objects.create(
+            conversation=self.conversation, role='assistant', content=sign_off
+        )
+
+        data = _serialize_conversation(self.conversation)
+        self.assertEqual(data['last_assistant_summary'], sign_off)
+        # The list-row preview stays clipped — the card must not rely on it.
+        self.assertEqual(len(data['last_message_preview']), PREVIEW_LIMIT)
+
+    def test_summary_tracks_the_last_assistant_message(self):
+        from apps.Imagi.Build.api.views import _serialize_conversation
+
+        AgentMessage.objects.create(
+            conversation=self.conversation, role='assistant',
+            content='Should the form email you or open a ticket?',
+        )
+        AgentMessage.objects.create(
+            conversation=self.conversation, role='user', content='Email me.'
+        )
+
+        data = _serialize_conversation(self.conversation)
+        # The preview follows the very last message (the user's answer); the
+        # summary keeps pointing at what the agent last said.
+        self.assertEqual(data['last_message_preview'], 'Email me.')
+        self.assertEqual(
+            data['last_assistant_summary'],
+            'Should the form email you or open a ticket?',
+        )
+
+    def test_summary_is_empty_before_the_agent_has_spoken(self):
+        from apps.Imagi.Build.api.views import _serialize_conversation
+
+        AgentMessage.objects.create(
+            conversation=self.conversation, role='user', content='the brief'
+        )
+        self.assertEqual(
+            _serialize_conversation(self.conversation)['last_assistant_summary'], ''
+        )
+
+
 class ConversationMessagesMetadataTests(TestCase):
     """The messages endpoint returns persisted run metadata per message."""
 

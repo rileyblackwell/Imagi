@@ -215,6 +215,11 @@ export interface ConversationDto {
   created_at: string;
   updated_at: string;
   last_message_preview: string;
+  /** The last assistant message, whole (generously capped server-side): a
+   *  finished task's summary of its changes, or the question it stopped on.
+   *  The dispatch card renders this in full — the preview above is for list
+   *  rows and may cut the summary short. */
+  last_assistant_summary?: string;
   /** What a task was asked to do, in the user's language (the lead's goal, or
    *  a trimmed brief for a task without one). Empty for other kinds. */
   brief?: string;
@@ -250,6 +255,10 @@ export interface AgentInstance {
   archivedAt: string | null;
   updatedAt: string;
   lastMessagePreview: string;
+  /** The task's closing words, whole: its summary of the changes when it
+   *  finished, or the question it stopped to ask. The dispatch card renders
+   *  it in full; lastMessagePreview is the clipped list-row version. */
+  lastAssistantSummary: string;
   /** What this task was asked to do, in the user's language — the dispatch
    *  card in the main thread shows it for the whole life of the task. */
   brief: string;

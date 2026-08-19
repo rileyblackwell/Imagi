@@ -95,6 +95,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     archivedAt: dto.archived_at,
     updatedAt: dto.updated_at,
     lastMessagePreview: dto.last_message_preview || '',
+    lastAssistantSummary: dto.last_assistant_summary || '',
     brief: dto.brief || dto.queued_prompt || '',
     messagesLoaded: false,
     hasUnread: false,
@@ -351,6 +352,7 @@ export const useAgentStore = defineStore('agent', {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               last_message_preview: '',
+              last_assistant_summary: '',
               // What it is about to work on, straight from the dispatch —
               // the card reports it from the first frame, without waiting for
               // the conversation DTO the run end fetches.
@@ -502,6 +504,7 @@ export const useAgentStore = defineStore('agent', {
             await this.ensureMessagesLoaded(instance.id)
             instance.updatedAt = dto.updated_at
             instance.lastMessagePreview = dto.last_message_preview || ''
+            instance.lastAssistantSummary = dto.last_assistant_summary || ''
             if (dto.brief) instance.brief = dto.brief
             // A finished task may now be ready for review; sync the
             // review-lifecycle fields the run end changed server-side.
@@ -723,6 +726,7 @@ export const useAgentStore = defineStore('agent', {
         instance.archivedAt = dto.archived_at
         instance.updatedAt = dto.updated_at
         instance.lastMessagePreview = dto.last_message_preview || ''
+        instance.lastAssistantSummary = dto.last_assistant_summary || ''
         // Keep the locally-carried brief if the server has none to give (a
         // dispatch whose run has not written its opening message yet).
         if (dto.brief) instance.brief = dto.brief
@@ -836,6 +840,12 @@ export const useAgentStore = defineStore('agent', {
       instance.conversation.push(validMessage)
       instance.updatedAt = new Date().toISOString()
       instance.lastMessagePreview = (validMessage.content || '').split('\n')[0]?.slice(0, 140) || ''
+      // An assistant message is this instance's latest word on what it did —
+      // keep the whole thing for surfaces that render it in full (the
+      // dispatch card), not just the clipped list-row preview.
+      if (validMessage.role === 'assistant') {
+        instance.lastAssistantSummary = validMessage.content || ''
+      }
     },
 
     /**
@@ -853,6 +863,9 @@ export const useAgentStore = defineStore('agent', {
       message.content = content
       instance.updatedAt = new Date().toISOString()
       instance.lastMessagePreview = content.split('\n')[0]?.slice(0, 140) || ''
+      if (message.role === 'assistant') {
+        instance.lastAssistantSummary = content
+      }
     },
 
     /**
@@ -940,6 +953,8 @@ export const useAgentStore = defineStore('agent', {
       instance.lastMessagePreview =
         (instance.conversation[instance.conversation.length - 1]?.content || '')
           .split('\n')[0]?.slice(0, 140) || ''
+      instance.lastAssistantSummary =
+        [...instance.conversation].reverse().find(m => m.role === 'assistant')?.content || ''
       return result.prompt ?? message.content
     },
 

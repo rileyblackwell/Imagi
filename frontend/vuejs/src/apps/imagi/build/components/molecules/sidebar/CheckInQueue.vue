@@ -61,22 +61,13 @@
             <span class="truncate">{{ kindLabel }}</span>
           </div>
 
-          <!-- Body: the question, the summary, or the error -->
-          <p
-            v-if="current.body"
-            class="check-in__text"
-            :class="expanded ? '' : 'line-clamp-3'"
-          >
+          <!-- Body: the question, the summary, or the error. Shown whole —
+               everything here is a decision, and a summary or question with
+               its end clipped off is not enough to decide on. The server caps
+               bodies at 2000 chars, so a runaway card cannot happen. -->
+          <p v-if="current.body" class="check-in__text">
             {{ current.body }}
           </p>
-          <button
-            v-if="current.body && current.body.length> 180"
-            type="button"
-            class="check-in__more"
-            @click="expanded = !expanded"
-          >
-            {{ expanded ? 'Show less' : 'Show more' }}
-          </button>
 
           <!-- A question is answered in place: the answer restarts the subagent
                in the background, so the user never leaves this thread. -->
@@ -181,17 +172,15 @@ const emit = defineEmits<{
 }>()
 
 const answer = ref('')
-const expanded = ref(false)
 const answerInput = ref<HTMLTextAreaElement | null>(null)
 
 // The queue is FIFO — the user works one item at a time.
 const current = computed(() => props.queue[0]!)
 
-// Moving to the next card must not carry the previous card's draft answer or
-// expanded state with it.
+// Moving to the next card must not carry the previous card's draft answer
+// with it.
 watch(() => current.value?.id, async (id) => {
   answer.value = ''
-  expanded.value = false
   if (current.value?.kind === 'question' && id) {
     await nextTick()
     answerInput.value?.focus()
@@ -514,26 +503,6 @@ function sendAnswer() {
 
 .dark .check-in__text {
   color: rgba(255, 255, 255, 0.65);
-}
-
-.check-in__more {
-  margin-top: 0.125rem;
-  font-size: 0.625rem;
-  font-weight: 500;
-  color: rgba(23, 37, 84, 0.45);
-  transition: color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.check-in__more:hover {
-  color: rgba(23, 37, 84, 0.75);
-}
-
-.dark .check-in__more {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.dark .check-in__more:hover {
-  color: rgba(255, 255, 255, 0.7);
 }
 
 /* A check-in lands rather than blinks — the card is keyed on the check-in id,
