@@ -27,6 +27,8 @@ from apps.Imagi.Build.api.views import _project_has_running_conversation
 from apps.Imagi.Build.models import AgentCheckIn, AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
     CAPPED_NOTE_MAX_PAGES,
+    LEAD_DISPATCH_FAILED_NOTE,
+    LEAD_DISPATCH_RETRY_PROMPT,
     MAX_AGENT_TURNS,
     TASK_AUTO_CONTINUE_ROUNDS,
     TASK_MAX_TURNS,
@@ -37,6 +39,7 @@ from apps.Imagi.Build.services.base_agent import (
     _capped_run_note,
     compact_history,
     extract_run_metadata,
+    lead_claims_unmade_dispatch,
     make_run_bounds_hook,
 )
 from apps.Imagi.Build.services.models_service import compute_cost_usd
@@ -1096,6 +1099,178 @@ class LeadAgentConfigurationTests(SimpleTestCase):
         self.assertIn(
             'ONE job, ONE dispatch_task call, ONE subagent', LEAD_AGENT_INSTRUCTIONS
         )
+
+    def test_the_lead_is_told_never_to_narrate_an_unmade_dispatch(self):
+        # A lead was observed replying "Done — I've kicked off a subagent…"
+        # with no dispatch_task call at all, so the request went nowhere. The
+        # prompt now says the claim is only ever made after the call.
+        self.assertIn('Saying it does not make it so', LEAD_AGENT_INSTRUCTIONS)
+
+
+class LeadDispatchClaimTests(SimpleTestCase):
+    """The predicate behind the unbacked-kickoff guard."""
+
+    def setUp(self):
+        self.lead = SimpleNamespace(id=1, kind='lead')
+        self.context = AgentContext(user_id=1, project_id=1, conversation_kind='lead')
+
+    def test_kickoff_claims_without_a_dispatch_are_caught(self):
+        for text in (
+            # The observed failure, verbatim shape (dev conversation 69).
+            "Done — I've kicked off a subagent to add a concise note about "
+            "free local delivery on orders over $40 to the Home page. I'll "
+            "report back once it's complete.",
+            "On it — kicking off a subagent to redesign your home page.",
+            "Handing that to a subagent now.",
+            "I've dispatched a background task for this.",
+            "Spinning up a background job to fix the nav.",
+        ):
+            self.assertTrue(
+                lead_claims_unmade_dispatch(self.lead, self.context, text), text
+            )
+
+    def test_plain_replies_pass(self):
+        for text in (
+            "The hero heading is a rich coffee brown (around #4B3221).",
+            "Quick check: which page should the note go on?",
+            "Your app has three pages: home, about and contact.",
+            "",
+            None,
+        ):
+            self.assertFalse(
+                lead_claims_unmade_dispatch(self.lead, self.context, text), text
+            )
+
+    def test_a_backed_claim_passes(self):
+        self.context.dispatched_tasks.append(
+            {'conversation_id': 99, 'title': 'Add note', 'brief': 'add the note'}
+        )
+        self.assertFalse(lead_claims_unmade_dispatch(
+            self.lead, self.context, "On it — kicked off a subagent to add the note."
+        ))
+
+    def test_only_lead_replies_are_guarded(self):
+        # Builders talk about their own work directly; "kicked off" in a chat
+        # or task reply claims nothing about dispatching.
+        for kind in ('chat', 'task', None):
+            conversation = SimpleNamespace(id=1, kind=kind)
+            self.assertFalse(lead_claims_unmade_dispatch(
+                conversation, self.context, "Kicked off a subagent."
+            ), kind)
+
+
+class LeadDispatchGuardTests(TestCase):
+    """The run loop's server-side guard for the unbacked-kickoff reply.
+
+    Reproduced on dev conversation 69: the lead answered "Done — I've kicked
+    off a subagent to add a concise note…" while making no dispatch_task call,
+    so no task conversation existed and the request silently went nowhere.
+    The guard gives the model one corrective turn to make the real call, and
+    if it still claims without dispatching, persists an honest failure note.
+    """
+
+    CLAIM = "Done — I've kicked off a subagent to add the delivery note."
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='leadguard', password='pw123456')
+        self.service = ImagiAgentService()
+        self.conversation = SimpleNamespace(id=69, kind='lead')
+        self.context = AgentContext(
+            user_id=self.user.id, project_id=1, conversation_kind='lead'
+        )
+        self.persisted = []
+        self.service._prepare_run = lambda **kwargs: (
+            self.conversation,
+            self.context,
+            [{'role': 'user', 'content': kwargs['user_input']}],
+        )
+        self.service.add_assistant_message = (
+            lambda conv, content, metadata=None: self.persisted.append(content)
+        )
+
+    def _dispatching_run(self, text):
+        """A fake retry run that actually stages a task, like dispatch_task."""
+        context = self.context
+
+        class Dispatching(_FakeStreamedRun):
+            async def stream_events(inner):
+                context.dispatched_tasks.append(
+                    {'conversation_id': 89, 'title': 'Add note', 'brief': 'add the note'}
+                )
+                for event in inner._events:
+                    yield event
+
+        return Dispatching([_delta_event(text)], final_output=text)
+
+    async def _collect(self):
+        return [
+            event async for event in self.service.process_stream(
+                user_input='Add a delivery note to the home page.',
+                user=self.user, project_id=1,
+            )
+        ]
+
+    def _run(self, runs):
+        with patch.object(type(self.service), 'agent', new_callable=PropertyMock) as mock_agent, \
+                patch('apps.Imagi.Build.services.base_agent.Runner') as mock_runner:
+            mock_agent.return_value = SimpleNamespace()
+            mock_runner.run_streamed.side_effect = runs
+            events = async_to_sync(self._collect)()
+            return events, mock_runner
+
+    def test_unbacked_claim_gets_a_corrective_turn_that_dispatches(self):
+        confirmation = 'On it — kicked off a subagent to add the delivery note.'
+        events, runner = self._run([
+            _FakeStreamedRun([_delta_event(self.CLAIM)], final_output=self.CLAIM),
+            self._dispatching_run(confirmation),
+        ])
+
+        self.assertEqual(runner.run_streamed.call_count, 2)
+        # The corrective turn carries the false reply and the retry prompt.
+        retry_input = runner.run_streamed.call_args_list[1][1]['input']
+        self.assertEqual(
+            retry_input[-2], {'role': 'assistant', 'content': self.CLAIM}
+        )
+        self.assertEqual(
+            retry_input[-1], {'role': 'user', 'content': LEAD_DISPATCH_RETRY_PROMPT}
+        )
+        # The retry's (now backed) confirmation is what the thread keeps.
+        done = events[-1]
+        self.assertEqual(done['type'], 'done')
+        self.assertEqual(done['response'], confirmation)
+        self.assertEqual(done['dispatched_tasks'], self.context.dispatched_tasks)
+        self.assertEqual(self.persisted, [confirmation])
+
+    def test_persistent_false_claim_is_replaced_with_honest_note(self):
+        events, runner = self._run([
+            _FakeStreamedRun([], final_output=self.CLAIM),
+            _FakeStreamedRun([], final_output='Kicked off a subagent to handle it.'),
+        ])
+
+        self.assertEqual(runner.run_streamed.call_count, 2)
+        # The false promise never lands in the transcript; the honest note
+        # does, and it also reaches the live stream.
+        self.assertEqual(self.persisted, [LEAD_DISPATCH_FAILED_NOTE])
+        self.assertEqual(events[-1]['response'], LEAD_DISPATCH_FAILED_NOTE)
+        self.assertIn(
+            '\n\n' + LEAD_DISPATCH_FAILED_NOTE,
+            [e.get('text') for e in events if e['type'] == 'delta'],
+        )
+
+    def test_backed_dispatch_runs_once(self):
+        confirmation = 'On it — kicked off a subagent to add the delivery note.'
+        events, runner = self._run([self._dispatching_run(confirmation)])
+
+        self.assertEqual(runner.run_streamed.call_count, 1)
+        self.assertEqual(events[-1]['response'], confirmation)
+        self.assertEqual(self.persisted, [confirmation])
+
+    def test_plain_lead_reply_runs_once(self):
+        reply = 'Your home page has a hero, a menu and an FAQ section.'
+        events, runner = self._run([_FakeStreamedRun([], final_output=reply)])
+
+        self.assertEqual(runner.run_streamed.call_count, 1)
+        self.assertEqual(self.persisted, [reply])
 
 
 class CappedRunNoteTests(SimpleTestCase):

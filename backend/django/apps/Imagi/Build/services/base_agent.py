@@ -78,6 +78,28 @@ TASK_CONTINUE_PROMPT = (
     "you already wrote are still there."
 )
 
+# Sent to the lead as a corrective turn when its reply narrated a dispatch the
+# run never made (the model skipped the dispatch_task call and claimed success
+# anyway — see lead_claims_unmade_dispatch). One retry: either the model makes
+# the real call now, or it answers without the false claim.
+LEAD_DISPATCH_RETRY_PROMPT = (
+    "[Automated check] Your last reply tells the user that background work was "
+    "started, but you did not make a successful dispatch_task call this turn — "
+    "no subagent exists and nothing is being built. If the user's request is a "
+    "job, call dispatch_task NOW with the full brief and goal, then confirm in "
+    "one short sentence. If you were not actually claiming to have started new "
+    "work (for example, a subagent from an earlier turn is already on it), "
+    "answer the user plainly instead. Never tell the user work was kicked off "
+    "unless dispatch_task succeeded in the same turn."
+)
+
+# What the user reads when even the corrective turn produced a kickoff claim
+# with nothing behind it. Honest failure beats a promise nothing backs.
+LEAD_DISPATCH_FAILED_NOTE = (
+    "Sorry — I said I'd started that work, but nothing was actually "
+    "dispatched. Please send the request again and I'll kick it off properly."
+)
+
 # Refresh the running-run marker at most this often while stream events flow,
 # so the API's staleness window measures silence since the last event rather
 # than total run duration (legitimate runs can outlive the window).
@@ -568,6 +590,38 @@ def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[L
         if t.get("conversation_id")
     ]
     return refs or None
+
+
+# A lead reply narrating a kickoff: delegation verbs ("kicked off",
+# "dispatched", "spun up") or delegate nouns ("subagent", "background task").
+# Deliberately broad — a match only ever costs one corrective turn, whose
+# prompt lets the model answer plainly if no dispatch was intended.
+_LEAD_DISPATCH_CLAIM_RE = re.compile(
+    r'\bkick(?:ed|ing)?\s+(?:\w+\s+){0,2}?off\b'
+    r'|\bdispatch(?:ed|ing)\b'
+    r'|\bsp(?:un|inning)\s+up\b'
+    r'|\bhand(?:ed|ing)\s+(?:\w+\s+){0,2}?(?:off|over|to)\b'
+    r'|\bsub-?agents?\b'
+    r'|\bbackground\s+(?:task|agent|job|worker)s?\b',
+    re.IGNORECASE,
+)
+
+
+def lead_claims_unmade_dispatch(conversation, context, response_text) -> bool:
+    """True when a lead reply claims a kickoff its run never performed.
+
+    The lead's only way to start work is the dispatch_task tool, but a model
+    can skip the call and narrate success anyway ("Done — I've kicked off a
+    subagent to…"), leaving the user's request silently going nowhere. Every
+    real dispatch this run made — including a duplicate resolved to an
+    already-running task — lands in context.dispatched_tasks, so a kickoff
+    claim with that list empty is a claim nothing backs.
+    """
+    if getattr(conversation, 'kind', None) != 'lead':
+        return False
+    if context is None or getattr(context, 'dispatched_tasks', None):
+        return False
+    return bool(response_text and _LEAD_DISPATCH_CLAIM_RE.search(response_text))
 
 
 def build_message_metadata(
@@ -1457,6 +1511,55 @@ class ImagiAgentService:
             }
             return
 
+    async def _pump_stream_events(self, result, conversation, context, text_parts):
+        """Surface one streamed agent run as client events.
+
+        Text deltas are accumulated into text_parts as they stream. Shared by
+        _stream_once's main run and the lead's dispatch-claim corrective turn,
+        so both rounds stream identically — deltas, tool calls, plan redraws,
+        and the task_dispatch events the client fires staged runs from.
+        """
+        last_heartbeat = time.monotonic()
+        async for event in result.stream_events():
+            if time.monotonic() - last_heartbeat >= RUN_HEARTBEAT_INTERVAL:
+                last_heartbeat = time.monotonic()
+                await sync_to_async(self._touch_run_started)(conversation)
+
+            if event.type == "raw_response_event":
+                data = getattr(event, 'data', None)
+                if getattr(data, 'type', '') == 'response.output_text.delta':
+                    delta = getattr(data, 'delta', '')
+                    if delta:
+                        text_parts.append(delta)
+                        yield {"type": "delta", "text": delta}
+
+            elif event.type == "run_item_stream_event":
+                item = getattr(event, 'item', None)
+                if getattr(item, 'type', '') == 'tool_call_item':
+                    raw_item = getattr(item, 'raw_item', None)
+                    name = getattr(raw_item, 'name', None)
+                    if name:
+                        tool_event = {"type": "tool_call", "name": name}
+                        args = extract_tool_args(raw_item)
+                        if args:
+                            tool_event["args"] = args
+                        yield tool_event
+                        # The plan lives on the context and is rewritten in
+                        # place, so re-send it whenever it may have changed.
+                        if name == 'update_plan':
+                            yield {"type": "plan", "plan": list(context.plan)}
+                    elif 'web_search' in str(getattr(raw_item, 'type', '')):
+                        # Hosted web-search calls have no .name attribute;
+                        # surface them under a stable synthetic name.
+                        yield {"type": "tool_call", "name": "web_search"}
+                elif getattr(item, 'type', '') in ('tool_call_output_item', 'function_call_output'):
+                    # dispatch_task staged background tasks — tell the
+                    # client immediately so it can fire their runs in
+                    # parallel while this (lead) run keeps streaming.
+                    dispatched = extract_dispatched_tasks(getattr(item, 'output', None))
+                    if dispatched:
+                        yield {"type": "task_dispatch", "tasks": dispatched}
+
     async def _stream_once(
         self,
         user_input: str,
@@ -1533,48 +1636,47 @@ class ImagiAgentService:
                 run_config=self._run_config(user),
             )
 
-            last_heartbeat = time.monotonic()
-            async for event in result.stream_events():
-                if time.monotonic() - last_heartbeat >= RUN_HEARTBEAT_INTERVAL:
-                    last_heartbeat = time.monotonic()
-                    await sync_to_async(self._touch_run_started)(conversation)
-
-                if event.type == "raw_response_event":
-                    data = getattr(event, 'data', None)
-                    if getattr(data, 'type', '') == 'response.output_text.delta':
-                        delta = getattr(data, 'delta', '')
-                        if delta:
-                            text_parts.append(delta)
-                            yield {"type": "delta", "text": delta}
-
-                elif event.type == "run_item_stream_event":
-                    item = getattr(event, 'item', None)
-                    if getattr(item, 'type', '') == 'tool_call_item':
-                        raw_item = getattr(item, 'raw_item', None)
-                        name = getattr(raw_item, 'name', None)
-                        if name:
-                            tool_event = {"type": "tool_call", "name": name}
-                            args = extract_tool_args(raw_item)
-                            if args:
-                                tool_event["args"] = args
-                            yield tool_event
-                            # The plan lives on the context and is rewritten in
-                            # place, so re-send it whenever it may have changed.
-                            if name == 'update_plan':
-                                yield {"type": "plan", "plan": list(context.plan)}
-                        elif 'web_search' in str(getattr(raw_item, 'type', '')):
-                            # Hosted web-search calls have no .name attribute;
-                            # surface them under a stable synthetic name.
-                            yield {"type": "tool_call", "name": "web_search"}
-                    elif getattr(item, 'type', '') in ('tool_call_output_item', 'function_call_output'):
-                        # dispatch_task staged background tasks — tell the
-                        # client immediately so it can fire their runs in
-                        # parallel while this (lead) run keeps streaming.
-                        dispatched = extract_dispatched_tasks(getattr(item, 'output', None))
-                        if dispatched:
-                            yield {"type": "task_dispatch", "tasks": dispatched}
+            async for event in self._pump_stream_events(result, conversation, context, text_parts):
+                yield event
 
             response_content = result.final_output or "".join(text_parts)
+
+            if lead_claims_unmade_dispatch(conversation, context, response_content):
+                # The lead narrated a kickoff without calling dispatch_task, so
+                # the user's request has silently gone nowhere. Give the model
+                # one corrective turn to make the real call (or answer without
+                # the claim); its events stream to the client like the first
+                # round's, so a dispatch it makes still fires immediately.
+                logger.warning(
+                    "Lead conversation %s claimed a dispatch without calling "
+                    "dispatch_task; running a corrective turn", conversation.id,
+                )
+                # The done path meters only the final result, and the retry
+                # replaces it — meter the first round's spend now.
+                await sync_to_async(self._record_usage_event)(
+                    user, model, extract_usage(result, model or self.model), conversation
+                )
+                retry_parts: List[str] = []
+                result = Runner.run_streamed(
+                    self.agent,
+                    input=list(input_messages) + [
+                        {"role": "assistant", "content": response_content},
+                        {"role": "user", "content": LEAD_DISPATCH_RETRY_PROMPT},
+                    ],
+                    context=context,
+                    max_turns=self._max_turns_for(conversation),
+                    run_config=self._run_config(user),
+                )
+                async for event in self._pump_stream_events(result, conversation, context, retry_parts):
+                    yield event
+                text_parts.extend(retry_parts)
+                response_content = result.final_output or "".join(retry_parts)
+                if lead_claims_unmade_dispatch(conversation, context, response_content):
+                    # Still claiming with nothing behind it: persist an honest
+                    # failure instead of the false promise.
+                    response_content = LEAD_DISPATCH_FAILED_NOTE
+                    yield {"type": "delta", "text": "\n\n" + LEAD_DISPATCH_FAILED_NOTE}
+
             metadata = extract_run_metadata(result)
             usage = extract_usage(result, model or self.model)
 
@@ -1787,6 +1889,33 @@ class ImagiAgentService:
             )
 
             response_content = result.final_output or ""
+
+            if lead_claims_unmade_dispatch(conversation, context, response_content):
+                # Same guard as the streaming path: the lead narrated a kickoff
+                # it never dispatched, so give it one corrective turn to make
+                # the real call or drop the claim.
+                logger.warning(
+                    "Lead conversation %s claimed a dispatch without calling "
+                    "dispatch_task; running a corrective turn", conversation.id,
+                )
+                self._record_usage_event(
+                    user, model, extract_usage(result, model or self.model), conversation
+                )
+                result = Runner.run_sync(
+                    self.agent,
+                    input=list(input_messages) + [
+                        {"role": "assistant", "content": response_content},
+                        {"role": "user", "content": LEAD_DISPATCH_RETRY_PROMPT},
+                    ],
+                    context=context,
+                    max_turns=max_turns or self._max_turns_for(conversation),
+                    run_config=self._run_config(user),
+                    **run_kwargs,
+                )
+                response_content = result.final_output or ""
+                if lead_claims_unmade_dispatch(conversation, context, response_content):
+                    response_content = LEAD_DISPATCH_FAILED_NOTE
+
             metadata = extract_run_metadata(result)
             usage = extract_usage(result, model or self.model)
 
