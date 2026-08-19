@@ -296,6 +296,20 @@ IMAGI_BUILDER = {
     'DEFAULT_REASONING_EFFORT': 'medium',
     # Upper bound on agent-loop iterations for a single request.
     'MAX_AGENT_TURNS': 30,
+    # Background tasks dispatched from the main thread get a bigger loop than
+    # a conversational turn. Nobody is watching them, and the work they are
+    # given is whole-feature sized — "add a contact page" spans a backend
+    # model, a view, a route, a frontend page and a check that it all still
+    # builds, which routinely outruns a chat reply's budget.
+    'TASK_MAX_TURNS': 60,
+    # A task that still hits that cap continues itself rather than stopping:
+    # it re-runs from where it left off, in the same worktree and the same
+    # thread, this many times. Only a task still unfinished after all of them
+    # goes to the user — so the main thread stays a report of finished work
+    # and real questions, not a queue of half-run tasks. Each round costs
+    # what a run costs, so this is the direct lever on what a stuck task can
+    # spend before it asks for help.
+    'TASK_AUTO_CONTINUE_ROUNDS': 2,
     # Initial build (the first build of a new project, dispatched from the
     # project's main thread to a background subagent) runs headless and
     # unattended, so it gets its own model and tighter caps.
