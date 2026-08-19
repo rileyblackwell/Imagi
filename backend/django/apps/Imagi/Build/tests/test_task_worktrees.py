@@ -1457,9 +1457,12 @@ class CheckInEndpointTests(TestCase):
             lead=self.lead, kind=kind, body=body, status=status,
         )
 
-    def test_list_returns_pending_check_ins_oldest_first(self):
-        first = self._check_in(body='first')
-        second = self._check_in(kind='question', body='second')
+    def test_list_returns_pending_check_ins_questions_first(self):
+        # A question is a subagent standing still until the user answers;
+        # finished work waiting to be merged blocks nobody. So the question
+        # goes first even though it was filed later.
+        finished = self._check_in(body='first')
+        question = self._check_in(kind='question', body='second')
         self._check_in(body='already handled', status='resolved')
 
         resp = self.client.get(
@@ -1468,9 +1471,19 @@ class CheckInEndpointTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual([c['id'] for c in data], [first.id, second.id])
-        self.assertEqual(data[0]['task']['id'], first.conversation_id)
-        self.assertEqual(data[1]['kind'], 'question')
+        self.assertEqual([c['id'] for c in data], [question.id, finished.id])
+        self.assertEqual(data[0]['kind'], 'question')
+        self.assertEqual(data[0]['task']['id'], question.conversation_id)
+
+    def test_list_stays_oldest_first_within_one_kind(self):
+        first = self._check_in(body='first')
+        second = self._check_in(body='second')
+
+        resp = self.client.get(
+            reverse('check_ins_list'), {'project_id': self.project.id}
+        )
+
+        self.assertEqual([c['id'] for c in resp.json()], [first.id, second.id])
 
     def test_list_clears_a_done_card_for_work_already_in_the_app(self):
         # Filed before finished-and-merged tasks stopped queueing. Showing it
