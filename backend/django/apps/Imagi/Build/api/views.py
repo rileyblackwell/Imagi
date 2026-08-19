@@ -255,6 +255,16 @@ class ProjectPagesView(BrowserPreviewBaseView):
             ensure_working_copy(project)
         except Exception as hydrate_err:
             logger.warning(f"Could not ensure working copy before listing pages: {hydrate_err}")
+        # Projects scaffolded before the home app owned about and contact
+        # carry them as one-page apps of their own, which this menu would
+        # show as a folder per page. Fold them back into home on the way
+        # past — this is the request the menu is built from, so a project
+        # regroups the first time its workspace opens. Never fatal.
+        try:
+            from ..services.site_apps_migration import regroup_site_apps
+            regroup_site_apps(project)
+        except Exception as regroup_err:
+            logger.warning(f"Could not regroup site apps before listing pages: {regroup_err}")
         from ..services.pages_service import list_app_pages
         return Response({'apps': list_app_pages(project)})
 
