@@ -278,7 +278,8 @@ const props = defineProps<{
    * way to do one thing.
    */
   canReturnToChat?: boolean
-  /** Badge on that return: how much is waiting for you back in the thread. */
+  /** Badge on that return: how much has come back from the subagents and is
+   *  sitting in the thread — questions to answer and work that just landed. */
   returnCount?: number
 }>()
 

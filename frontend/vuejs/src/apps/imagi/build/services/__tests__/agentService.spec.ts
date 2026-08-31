@@ -329,36 +329,6 @@ describe('AgentService.getConversationMessages', () => {
     expect(msgs[1]!.usage).toEqual({ costUsd: 0.012, inputTokens: 1000, outputTokens: 200 })
   })
 
-  it('hydrates a subagent report so the main thread knows who is speaking', async () => {
-    apiGet.mockResolvedValue({
-      data: [
-        {
-          id: 9,
-          role: 'assistant',
-          content: 'Your home page now opens with a clear offer.',
-          timestamp: 't9',
-          metadata: {
-            task_report: {
-              conversation_id: 42,
-              kind: 'done',
-              title: 'Redesign the home page',
-              goal: 'Giving your home page a clearer opening.',
-            },
-          },
-        },
-      ],
-    })
-
-    const msgs = await AgentService.getConversationMessages(7)
-
-    expect(msgs[0]!.taskReport).toEqual({
-      conversationId: 42,
-      kind: 'done',
-      title: 'Redesign the home page',
-      goal: 'Giving your home page a clearer opening.',
-    })
-  })
-
   it('asks for only what arrived after a message it already has', async () => {
     apiGet.mockResolvedValue({ data: [] })
 

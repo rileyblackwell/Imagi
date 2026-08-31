@@ -16,6 +16,7 @@ function makeCheckIn(overrides: Partial<CheckInDto> = {}): CheckInDto {
     task: {
       id: 3,
       title: 'Add a contact page',
+      goal: 'Adding a contact page',
       kind: 'task',
       review_status: 'failed',
       variant_group: '',
@@ -65,5 +66,67 @@ describe('CheckInQueue failed-task card', () => {
 
     expect(wrapper.emitted('skip')?.[0]).toEqual([checkIn])
     expect(wrapper.emitted('dismiss')).toBeUndefined()
+  })
+})
+
+describe('CheckInQueue completion card', () => {
+  const finished = (overrides: Partial<CheckInDto> = {}) => makeCheckIn({
+    kind: 'done',
+    body: 'Your home page has a warmer look now, and the booking button sits '
+      + 'right under the heading where people will see it.',
+    task: { ...makeCheckIn().task, review_status: 'accepted', has_worktree: false },
+    ...overrides,
+  })
+
+  it('never asks the user to approve work that is already in the app', async () => {
+    // The whole point of handing a job to a subagent: it applies its own work.
+    // A card offering to "add it" would be asking for a decision that has
+    // already been made.
+    const wrapper = mount(CheckInQueue, { props: { queue: [finished()] } })
+
+    expect(wrapper.text()).toContain('Subagent complete — added to your app')
+    expect(wrapper.text()).not.toContain('Add to my app')
+    expect(wrapper.text()).not.toContain('Discard')
+  })
+
+  it('clears the card without touching the subagent behind it', async () => {
+    const checkIn = finished()
+    const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
+
+    await buttonLabelled(wrapper, 'Got it').trigger('click')
+
+    expect(wrapper.emitted('skip')?.[0]).toEqual([checkIn])
+    expect(wrapper.emitted('dismiss')).toBeUndefined()
+    expect(wrapper.emitted('accept')).toBeUndefined()
+  })
+
+  it('shows the sign-off whole and opens the work behind it', async () => {
+    const checkIn = finished()
+    const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
+
+    expect(wrapper.find('.check-in__text').text()).toBe(checkIn.body)
+
+    await buttonLabelled(wrapper, 'See the work').trigger('click')
+    expect(wrapper.emitted('view')?.[0]).toEqual([checkIn])
+  })
+
+  it('names the job the way the main thread names it', () => {
+    const wrapper = mount(CheckInQueue, { props: { queue: [finished()] } })
+
+    expect(wrapper.find('.check-in__title').text()).toBe('Adding a contact page')
+  })
+
+  it('offers the pick between takes the user asked to compare', async () => {
+    // 'ready' is the one card left where finished work waits on a choice.
+    const checkIn = makeCheckIn({
+      kind: 'ready',
+      body: 'Take one of the pricing table.',
+      task: { ...makeCheckIn().task, review_status: 'ready', variant_group: 'v1' },
+    })
+    const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
+
+    expect(wrapper.text()).toContain('Subagent complete — one of your options')
+    await buttonLabelled(wrapper, 'Use this one').trigger('click')
+    expect(wrapper.emitted('accept')?.[0]).toEqual([checkIn])
   })
 })

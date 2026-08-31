@@ -116,7 +116,9 @@ const status = computed(() => {
     case 'input':
       return { state: 'waiting' as const, label: 'Asked you a question', icon: 'fas fa-circle-question' }
     case 'ready':
-      return { state: 'waiting' as const, label: 'Subagent complete — waiting on you', icon: 'fas fa-check' }
+      // One of several takes the user asked to compare — the only state left
+      // where finished work waits on them. A solo subagent applies its own.
+      return { state: 'waiting' as const, label: 'Subagent complete — one of your options', icon: 'fas fa-check' }
     case 'failed':
       // Its run died. It wants a decision (dismiss, or ask again), so it
       // reads as waiting rather than settled.

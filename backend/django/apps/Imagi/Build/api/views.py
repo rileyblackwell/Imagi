@@ -1615,6 +1615,10 @@ def _serialize_check_in(check_in):
         'task': {
             'id': task.id,
             'title': task.title or '',
+            # The job in the user's own words, as the dispatch card in the
+            # main thread names it — the card here is about the same subagent,
+            # so it has to be recognisable as the same job.
+            'goal': task.goal or '',
             'kind': task.kind,
             'review_status': task.review_status,
             'variant_group': task.variant_group,
@@ -1632,8 +1636,11 @@ def check_ins_list(request):
     Several subagents work at once, so several can come back within seconds of
     each other. They queue in the order they arrived and the user works through
     them one card at a time — no ranking, because the order things happened in
-    is the one order the user can predict, and every entry here is a decision
-    that has to be made either way.
+    is the one order the user can predict.
+
+    Not every card asks for something. A 'done' entry says a subagent finished
+    and its work is already in the app; it is there to be read and cleared. A
+    'question' is the one thing a subagent genuinely needs back.
 
     Pending only by default — the queue the lead thread renders. Pass
     ?status=all for history.
@@ -1653,10 +1660,12 @@ def check_ins_list(request):
     if status_param != 'all':
         qs = qs.filter(status=status_param)
     if status_param == 'pending':
-        # A task that merged itself reports in the main thread's transcript,
-        # not here. Entries filed before that (a "done" card for work already
-        # in the app) would read as a decision the user still owes, so they
-        # are cleared on sight instead of shown.
+        # A pick-one card for a take that has since been accepted (its sibling
+        # merged, or the user accepted this one elsewhere) is a decision that
+        # has already been made, so it is cleared on sight instead of shown.
+        # Deliberately 'ready' only: a 'done' entry is accepted BY DEFINITION —
+        # it exists because the work merged — and sweeping those would clear
+        # every completion notice before the user ever saw it.
         applied = [
             ci.id for ci in qs
             if ci.kind == 'ready' and ci.conversation.review_status == 'accepted'
@@ -1679,7 +1688,8 @@ def check_in_resolve(request, check_in_id):
 
     Accepting/dismissing a task and re-running it resolve its check-ins as
     side effects; this endpoint is for clearing an entry the user has simply
-    dealt with (read an error, decided a question answer isn't needed).
+    dealt with — read a completion notice, read an error, decided a question
+    answer isn't needed.
     """
     check_in = get_object_or_404(AgentCheckIn, id=check_in_id, user=request.user)
     if check_in.status != 'resolved':
@@ -1692,12 +1702,15 @@ def check_in_resolve(request, check_in_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def conversation_messages(request, conversation_id):
-    """Return messages for a conversation.
+    """Return the transcript of a conversation, as the workspace renders it.
 
-    ?after_id=<id> returns only what was added after that message. The main
-    thread uses it to pick up reports its subagents filed while the user was
-    sitting in it, without refetching (and re-rendering) a transcript that may
-    have a run streaming into it right now.
+    Subagent reports are left out. They are stored in the lead conversation so
+    the main agent remembers what work it handed off (base_agent._report_to_lead),
+    but they are not part of the thread the user reads: a finished subagent is
+    already reported on its own card in that thread, and repeating its sign-off
+    as a second bubble is the same news told twice.
+
+    ?after_id=<id> returns only what was added after that message.
     """
     conversation = get_object_or_404(
         AgentConversation, id=conversation_id, user=request.user
@@ -1718,5 +1731,6 @@ def conversation_messages(request, conversation_id):
             'metadata': m.metadata,
         }
         for m in queryset
+        if not (isinstance(m.metadata, dict) and m.metadata.get('task_report'))
     ]
     return Response(messages, status=status.HTTP_200_OK)

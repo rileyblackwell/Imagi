@@ -188,7 +188,8 @@
       </div>
 
       <div v-else class="px-2 pt-1 pb-3">
-        <!-- Check-in queue: background agents reporting back, one at a time -->
+        <!-- Check-in queue: subagents reporting back, one card at a time —
+             a question to answer, or the news that one finished -->
         <CheckInQueue
           v-if="isLeadThread"
           :queue="store.checkIns"
@@ -435,16 +436,24 @@ const headerStatus = computed(() => {
   if (isTaskThread.value) {
     switch (instance?.reviewStatus) {
       case 'input': return 'Asked you a question'
-      case 'ready': return 'Subagent complete — waiting on you'
+      case 'ready': return 'Subagent complete — one of your options'
       case 'failed': return 'Stopped before finishing'
       case 'accepted': return 'Subagent complete'
       case 'dismissed': return 'Discarded'
       default: return 'Read only'
     }
   }
-  const waiting = store.checkIns.length
+  // Not everything in the queue is owed an answer: a subagent that finished
+  // put its work in the app on its own, so its card is news to read. Saying
+  // "1 agent is waiting on you" over a card with nothing to decide sends the
+  // user looking for a decision that does not exist.
+  const waiting = store.checkIns.filter(c => c.kind !== 'done').length
   if (waiting > 0) {
     return `${waiting} ${waiting === 1 ? 'agent is' : 'agents are'} waiting on you`
+  }
+  const finished = store.checkIns.length
+  if (finished > 0) {
+    return `${finished} ${finished === 1 ? 'subagent' : 'subagents'} finished`
   }
   // Nothing running and nothing waiting: the plate is just the thread's name.
   // "Ready when you are" was a line spent saying that no line was needed.
@@ -461,7 +470,9 @@ const headerState = computed<'waiting' | 'idle'>(() => {
       ? 'waiting'
       : 'idle'
   }
-  return store.checkIns.length > 0 ? 'waiting' : 'idle'
+  // Same split as the line above it: only a card that owes the user something
+  // lights the dot.
+  return store.checkIns.some(c => c.kind !== 'done') ? 'waiting' : 'idle'
 })
 
 async function goToLead() {

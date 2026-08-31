@@ -287,7 +287,7 @@ const openedStatus = computed(() => {
   if (instance.isProcessing) return ''
   switch (instance.reviewStatus) {
     case 'input': return 'Asked you a question'
-    case 'ready': return 'Subagent complete — waiting on you'
+    case 'ready': return 'Subagent complete — one of your options'
     case 'failed': return 'Stopped before finishing'
     case 'accepted': return 'Subagent complete'
     case 'dismissed': return 'Discarded'
