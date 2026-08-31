@@ -11,14 +11,15 @@
   news printed twice, and the second copy is always somewhere else in the
   thread by the time it matters.
 
-  So the card is read top-down as: which job (the serif line), where it stands
-  (the state), and — once there is one — what came of it. The job name stays
-  put through every state, because "complete" only means something next to
-  what was asked for.
+  So the card is read top-down as: where it stands (the state line, which is
+  what anyone glancing at it wants), which job (the serif line under it), and
+  — once there is one — what came of it. The job stays put through every
+  state, because "complete" only means something next to what was asked for.
 
-  It is a name, not a description. A card that has to be read while three of
-  them are running is a label beside a spinner; the ticket the subagent is
-  working from lives in its own thread, one click away.
+  There is no separate title. A name and a description of the same job are the
+  same sentence written twice, and the name was the one being clipped to an
+  ellipsis on a phone. Everything here wraps and is read in full: a card that
+  hides the end of its own sentence is worse than a taller card.
 
   Nothing on it is technical either — no file paths, no component names, no
   step-by-step. The person reading is running a business, not reviewing a
@@ -39,19 +40,21 @@
   >
     <span class="dispatch-card__rail" aria-hidden="true"></span>
 
-    <!-- Which job, in the user's language. The card's subject, present in
-         every state — a result means nothing without the job it answers. -->
+    <!-- Where it stands, and the way through to the subagent's own thread.
+         The card's headline: the one thing the user is scanning for is
+         whether this has landed yet. -->
     <span class="dispatch-card__head">
       <span class="dispatch-card__chip">
         <i :class="state.icon"></i>
       </span>
-      <span class="dispatch-card__job">{{ state.job }}</span>
+      <span class="dispatch-card__status">{{ state.label }}</span>
       <i class="fas fa-chevron-right dispatch-card__chevron" aria-hidden="true"></i>
     </span>
 
-    <!-- Where it stands. Under the job and in the state's own ink, so the
-         flip from working to complete reads at a glance. -->
-    <span class="dispatch-card__status">{{ state.label }}</span>
+    <!-- Which job, in the user's language. Under the state and in the brand
+         serif, because it is the reading matter: present in every state,
+         since a result means nothing without the job it answers. -->
+    <span v-if="state.job" class="dispatch-card__job">{{ state.job }}</span>
 
     <!-- What came of it: the subagent's own summary of the changes now in the
          app, or the question it stopped on. Only a finished (or stuck)
@@ -106,7 +109,7 @@ const NO_SIGN_OFF = 'It finished without saying what it changed — open it to s
 const status = computed(() => {
   const instance = props.instance
   if (!instance) {
-    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting up', result: '' }
+    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Subagent starting', result: '' }
   }
   if (instance.isProcessing) {
     return {
@@ -172,7 +175,7 @@ const status = computed(() => {
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }
     default:
       // Dispatched, run not yet fired.
-      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting up', result: '' }
+      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Subagent starting', result: '' }
   }
 })
 
@@ -197,13 +200,12 @@ const state = computed(() => ({
   --chip-fg: rgba(23, 37, 84, 0.8);
 
   position: relative;
-  /* Stacked, not two columns: the job name takes the full width, so it is
-     read whole on a phone rather than clipped into a column beside an icon.
-     The gap is tight — name and state are one thought, and the sign-off below
-     sets itself apart with a rule instead. */
+  /* Stacked, not two columns: the job is the card, and giving it the full
+     width is what lets it be read whole on a phone rather than clipped into a
+     column beside an icon. */
   display: flex;
   flex-direction: column;
-  gap: 0.1875rem;
+  gap: 0.3125rem;
   width: 100%;
   padding: 0.5rem 0.625rem 0.5625rem 0.875rem;
   border-radius: var(--iw-r-lg);
@@ -423,9 +425,9 @@ const state = computed(() => ({
   transition: background-color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* The name line: chip, the job, and the affordance that says there is more
-   through here. One row, above the working state's edge glow, which would
-   otherwise wash over it. */
+/* The state line: chip, where it stands, and the affordance that says there
+   is more through here. One row, above the working state's edge glow, which
+   would otherwise wash over it. */
 .dispatch-card__head {
   position: relative;
   z-index: 1;
@@ -450,32 +452,11 @@ const state = computed(() => ({
     color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* The job. Set in the brand serif like the crew ledger's byline, so which
-   piece of work this is reads as the subject of the card. It wraps: no clamp,
-   no ellipsis — a name that hides its own end is worse than a taller card. */
-.dispatch-card__job {
+/* Where it stands, in the state's own ink. Small caps: this is the label on
+   the card, and the job below it is the reading matter. */
+.dispatch-card__status {
   flex: 1;
   min-width: 0;
-  font-family: theme('fontFamily.display');
-  font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: -0.006em;
-  color: rgba(23, 37, 84, 0.9);
-  overflow-wrap: anywhere;
-}
-
-.dark .dispatch-card__job {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* Where it stands, in the state's own ink. Small caps under the name, aligned
-   to its first letter: a label on the card, not the reading matter. */
-.dispatch-card__status {
-  position: relative;
-  z-index: 1;
-  padding-left: 1.6875rem;
   font-size: 0.625rem;
   font-weight: 650;
   line-height: 1.3;
@@ -483,6 +464,26 @@ const state = computed(() => ({
   text-transform: uppercase;
   color: var(--status);
   transition: color var(--iw-dur-3) var(--iw-ease-out);
+}
+
+/* The job. Set in the brand serif like the crew ledger's byline, so what is
+   being done to the app reads as the subject of the card. It wraps: no clamp,
+   no ellipsis — the whole thing, at any width. */
+.dispatch-card__job {
+  position: relative;
+  z-index: 1;
+  font-family: theme('fontFamily.display');
+  font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.006em;
+  color: rgba(23, 37, 84, 0.88);
+  overflow-wrap: anywhere;
+}
+
+.dark .dispatch-card__job {
+  color: rgba(255, 255, 255, 0.86);
 }
 
 /* What came back. Set apart from the job by a hairline rather than a label —
@@ -496,7 +497,7 @@ const state = computed(() => ({
 .dispatch-card__result {
   position: relative;
   z-index: 1;
-  margin-top: 0.1875rem;
+  margin-top: 0.0625rem;
   padding-top: 0.375rem;
   border-top: 1px solid rgba(23, 37, 84, 0.08);
   font-size: 0.75rem;

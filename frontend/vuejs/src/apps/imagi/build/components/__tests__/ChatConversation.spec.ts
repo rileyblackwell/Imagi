@@ -144,7 +144,7 @@ describe('ChatConversation dispatch card', () => {
     const wrapper = withSubagent({ reviewStatus: 'active', brief: JOB })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Starting up')
+    expect(card.text()).toContain('Subagent starting')
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
   })
 
@@ -271,6 +271,6 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Contact page')
-    expect(card.text()).toContain('Starting up')
+    expect(card.text()).toContain('Subagent starting')
   })
 })

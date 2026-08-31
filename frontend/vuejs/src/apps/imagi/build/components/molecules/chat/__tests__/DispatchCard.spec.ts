@@ -112,10 +112,10 @@ describe('DispatchCard', () => {
     expect(statusOf(wrapper)).toBe('Subagent working')
   })
 
-  it('keeps a starting-up reading for a dispatch whose run has not fired', () => {
+  it('keeps a starting reading for a dispatch whose run has not fired', () => {
     expect(statusOf(mountCard(makeTask({ reviewStatus: 'active' }))))
-      .toBe('Starting up')
-    expect(statusOf(mountCard(null))).toBe('Starting up')
+      .toBe('Subagent starting')
+    expect(statusOf(mountCard(null))).toBe('Subagent starting')
   })
 
   it('says a finished subagent already put its work in the app', () => {
