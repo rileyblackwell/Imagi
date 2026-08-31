@@ -478,9 +478,11 @@ def _glob_to_regex(pattern: str) -> re.Pattern:
 # drafts, and briefs are capped so a runaway prompt can't bloat the queue.
 DISPATCH_MAX_DRAFTS = 3
 DISPATCH_BRIEF_MAX_CHARS = 4000
-# The user-facing goal is a card, not a document: a couple of sentences fit,
-# and a lead that writes an essay gets cut off rather than filling the thread.
-DISPATCH_GOAL_MAX_CHARS = 320
+# The user-facing goal is a NAME on a card, not a description of the work: a
+# few words that say which job this subagent is, read at a glance beside a
+# spinner. A lead that writes a paragraph gets cut off rather than turning the
+# thread into a wall of restated briefs.
+DISPATCH_GOAL_MAX_CHARS = 80
 ASK_USER_MAX_CHARS = 2000
 
 # How alike two briefs have to be before the second one is treated as a repeat
@@ -657,7 +659,8 @@ def dispatch_task_impl(
                 "A subagent is ALREADY working on this exact job — nothing new "
                 "was started, and the existing one is untouched. Do not dispatch "
                 "it again. Tell the user it is already under way (one short "
-                "sentence) and end your turn."
+                "sentence, since its card is further up the thread rather than "
+                "in front of them) and end your turn."
             ),
         }
 
@@ -718,9 +721,12 @@ def dispatch_task_impl(
         'dispatched_tasks': dispatched,
         'instruction': (
             f"{len(dispatched)} background task(s) are now staged and will start "
-            "running in parallel. Tell the user what you dispatched. Each one "
-            "applies its own changes when it finishes and comes back here as a "
-            "\"done\" notification (or a question) — do not wait or poll for them."
+            "running in parallel. Say NOTHING and end your turn: the workspace "
+            "is already showing the user a card per subagent, naming the job "
+            "and linking to its thread, so announcing it yourself repeats it. "
+            "Each one applies its own changes when it finishes and turns its "
+            "own card into a completion notice (or a question) — do not wait "
+            "or poll for them."
         ),
     }
 
@@ -1014,10 +1020,11 @@ def dispatch_task(
     goes through here. Dispatch immediately rather than pre-reading the project
     to "scope" it: the subagent is a full coding agent that finds the relevant
     files itself, and calling this first is what starts the work and frees this
-    thread. A single-draft subagent applies its changes to the project when it
-    finishes and reports back to this thread as a "done" notification; it only
-    interrupts sooner if it has a question. (Multi-draft variants are built to
-    compare, so those wait for the user to pick one.) Never wait for a
+    thread. A single-draft subagent applies its changes to the project itself
+    when it finishes — the user is never asked to approve them — and its card
+    in this thread turns into "Subagent complete" with its own summary; it
+    interrupts sooner only if it has a question. (Multi-draft variants are
+    built to compare, so those wait for the user to pick one.) Never wait for a
     dispatched task.
 
     ONE job, ONE call, ONE subagent. Call this exactly once for a request, with
@@ -1033,13 +1040,14 @@ def dispatch_task(
             engineer who has not read this conversation: the goal, what "done"
             looks like, and any files or pages the user named or you already
             know (do not go read the project just to fill this in).
-        goal: The same job described for the USER, not the engineer — one or
-            two plain sentences saying what this will do for their app, as you
-            would say it out loud ("Giving your home page a clearer opening
-            section and adding a place for customer reviews."). The user reads
-            this on a card in this thread for as long as the work runs, and it
-            stays there afterwards as what the subagent was asked for, so name
-            no files, folders, components, or libraries.
+        goal: A SHORT plain-language name for this job, written for the USER
+            rather than the engineer — a handful of words, one line, no full
+            stop ("Redesigning your home page", "Adding customer reviews",
+            "Fixing the menu on phones"). It is what the subagent is called on
+            its card in this thread while it works and after it lands, so it
+            says what the work is and never how it will be done, and it names
+            no files, folders, components, or libraries. Ten words at the
+            outside — anything longer is cut off.
         title: Optional short task name shown in the workspace (defaults to the
             brief's first line).
         drafts: How many parallel variants to build (1-3). Leave this at 1

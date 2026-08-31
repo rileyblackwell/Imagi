@@ -101,20 +101,41 @@ describe('DispatchCard', () => {
     }
   })
 
-  it('still says the job it was given', () => {
+  it('still names the job it was given', () => {
     const wrapper = mountCard(makeTask({ reviewStatus: 'failed' }))
-    expect(wrapper.find('.dispatch-card__task').text())
+    expect(wrapper.find('.dispatch-card__job').text())
       .toBe('Adding a contact page so customers can reach you.')
   })
 
   it('shows a live run as working whatever its stored status', () => {
     const wrapper = mountCard(makeTask({ reviewStatus: 'failed', isProcessing: true }))
-    expect(statusOf(wrapper)).toBe('Working on this now…')
+    expect(statusOf(wrapper)).toBe('Subagent working')
   })
 
-  it('keeps Starting… for a dispatch whose run has not fired', () => {
+  it('keeps a starting reading for a dispatch whose run has not fired', () => {
     expect(statusOf(mountCard(makeTask({ reviewStatus: 'active' }))))
-      .toBe('Starting…')
-    expect(statusOf(mountCard(null))).toBe('Starting…')
+      .toBe('Subagent starting')
+    expect(statusOf(mountCard(null))).toBe('Subagent starting')
+  })
+
+  it('says a finished subagent already put its work in the app', () => {
+    // The card is the whole of what the main thread says about this subagent,
+    // so the moment it lands it has to read as landed — not as an offer the
+    // user still has to accept.
+    const wrapper = mountCard(makeTask({
+      reviewStatus: 'accepted',
+      lastAssistantSummary: 'Your contact page is live.',
+    }))
+
+    expect(statusOf(wrapper)).toBe('Subagent complete')
+    expect(wrapper.classes()).toContain('dispatch-card--done')
+    expect(wrapper.text()).not.toContain('waiting on you')
+  })
+
+  it('marks a parallel take as one option among several', () => {
+    // 'ready' is the one state left where finished work waits on the user,
+    // and only because they asked to compare versions.
+    expect(statusOf(mountCard(makeTask({ reviewStatus: 'ready' }))))
+      .toBe('Subagent complete — one of your options')
   })
 })

@@ -682,16 +682,13 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
     })
   } finally {
     store.setInstanceProcessing(instanceId, false)
-    // A task's run end flips it ready-for-review (or applies it) server-side
-    // and grows its token total — sync this instance's DTO fields so the review
-    // inbox picks it up without a reload. The run also posted what it did into
-    // the main thread, so pull that in now: a subagent finishing is news, and
-    // waiting a poll tick to show it is a beat of nothing happening.
+    // A task's run end applies its work (or parks it) server-side and grows
+    // its token total — sync this instance's DTO fields now so its card in the
+    // main thread flips to "complete" with its summary, and its check-in
+    // reaches the queue, without waiting a poll tick. A subagent finishing is
+    // news, and a beat of nothing happening reads as nothing having happened.
     const finished = store.instances.find(i => i.id === instanceId)
-    if (finished?.kind === 'task') {
-      void store.refreshInstanceFromServer(instanceId)
-      void store.syncTaskReports()
-    }
+    if (finished?.kind === 'task') void store.refreshInstanceFromServer(instanceId)
   }
 }
 

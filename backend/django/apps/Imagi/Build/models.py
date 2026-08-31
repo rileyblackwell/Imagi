@@ -72,8 +72,10 @@ REVIEW_STATUS_CHOICES = (
 )
 
 # Check-in kinds: how a background task surfaces back into the lead thread's
-# processing queue.
+# processing queue. Only 'question' and 'ready' ask anything of the user;
+# 'done' and 'error' are there to be read and cleared.
 CHECK_IN_KIND_CHOICES = (
+    ('done', 'Complete'),
     ('ready', 'Ready for review'),
     ('question', 'Question'),
     ('error', 'Error'),
@@ -233,11 +235,20 @@ class SystemPrompt(models.Model):
 class AgentCheckIn(models.Model):
     """One item in the main thread's processing queue.
 
-    Background task runs never interrupt the user directly: when one finishes
-    ('ready'), needs an answer ('question'), or fails ('error'), it files a
-    check-in here. The lead thread renders pending check-ins as a FIFO queue
-    the user works through one at a time; resolving happens when the user acts
-    (accept/dismiss/answer) or when a new run re-drives the task.
+    Background task runs never interrupt the user directly: everything a
+    subagent has to say on its way out comes through here, and the lead thread
+    renders the pending rows as a FIFO queue the user works through one card at
+    a time.
+
+    Not every card is a decision. A subagent that finished files 'done': its
+    work is already in the project, so the card exists to be read and cleared,
+    never to be approved — applying a finished subagent's changes is the
+    default, not a question. Only 'question' (it needs an answer to carry on)
+    and 'ready' (several takes on one brief, and the user picks) actually ask
+    for something; 'error' reports a run that died.
+
+    Resolving happens when the user acts (answer/pick/clear) or when a new run
+    re-drives the task.
     """
     user = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name='agent_check_ins'

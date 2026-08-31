@@ -8,8 +8,6 @@ import type {
   ConversationKind,
   DispatchedTaskDto,
   DispatchedTaskRef,
-  TaskReport,
-  TaskReportKind,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -118,14 +116,6 @@ interface PersistedMessageMetadata {
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
   /** Subagents the lead dispatched during this reply (id + title refs) */
   dispatched_tasks?: Array<{ conversation_id?: number; title?: string }>
-  /** Set on a message a subagent posted into the main thread when its run
-   *  ended — the content is that subagent's own sign-off or question. */
-  task_report?: {
-    conversation_id?: number
-    kind?: TaskReportKind
-    title?: string
-    goal?: string
-  }
   /** Pre-run project snapshot, stamped on user messages only */
   checkpoint?: string
 }
@@ -140,8 +130,6 @@ export interface ConversationMessageDto {
   activity?: AgentActivityStep[]
   filesChanged?: string[]
   dispatchedTasks?: DispatchedTaskRef[]
-  /** Present when a subagent posted this message reporting its own outcome */
-  taskReport?: TaskReport
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
   checkpoint?: string
 }
@@ -529,14 +517,6 @@ export const AgentService = {
           .filter(t => typeof t?.conversation_id === 'number')
           .map(t => ({ conversationId: t.conversation_id!, title: t.title || '' }))
         if (refs.length > 0) dto.dispatchedTasks = refs
-      }
-      if (meta.task_report && typeof meta.task_report.conversation_id === 'number') {
-        dto.taskReport = {
-          conversationId: meta.task_report.conversation_id,
-          kind: meta.task_report.kind || 'done',
-          title: meta.task_report.title || '',
-          goal: meta.task_report.goal || '',
-        }
       }
       // Hydrate whatever usage fields were captured — tokens can exist
       // without cost and vice versa. No fields at all means unknown, so the

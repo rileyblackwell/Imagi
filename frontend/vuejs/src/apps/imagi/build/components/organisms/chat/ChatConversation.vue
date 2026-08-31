@@ -43,15 +43,6 @@
               class="msg-row assistant-response"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <!-- Not the main agent talking: a subagent that just finished
-                   (or stopped to ask something) posting into this thread. The
-                   byline says whose words follow and where the work stands;
-                   the words themselves render below like any other reply. -->
-              <TaskReportByline
-                v-if="message.taskReport"
-                :report="message.taskReport"
-                @open="emit('open-task', message.taskReport.conversationId)"
-              />
               <AgentActivityFeed
                 v-if="activityVisible && message.activity?.length"
                 :steps="message.activity"
@@ -68,10 +59,12 @@
                 v-if="message.content && message.content.trim().length> 0"
                 v-html="formatMessage(message, index)"
               />
-              <!-- Subagents this reply kicked off. The work streams in their
-                   own threads — the main thread keeps just these cards, each
-                   one saying what its subagent is building and where that
-                   stands, and each one click from watching it happen. -->
+              <!-- Subagents this reply kicked off, one card each. A card is
+                   the whole of what the main thread says about a subagent,
+                   from kickoff to sign-off: it names the job, reports where
+                   the work stands, and opens that subagent's thread. When one
+                   finishes it says so here, in place — nothing arrives
+                   underneath as a second telling. -->
               <div v-if="message.dispatchedTasks?.length" class="mt-2 flex flex-col gap-1.5">
                 <DispatchCard
                   v-for="task in message.dispatchedTasks"
@@ -149,7 +142,6 @@ import type { AgentInstance, AIMessage } from '@/apps/imagi/build/types/services
 import AgentActivityFeed from '@/apps/imagi/build/components/molecules/chat/AgentActivityFeed.vue'
 import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/AgentPlanChecklist.vue'
 import DispatchCard from '@/apps/imagi/build/components/molecules/chat/DispatchCard.vue'
-import TaskReportByline from '@/apps/imagi/build/components/molecules/chat/TaskReportByline.vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
 
 marked.setOptions({

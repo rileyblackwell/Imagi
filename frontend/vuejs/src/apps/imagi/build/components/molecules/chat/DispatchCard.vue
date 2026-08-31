@@ -1,28 +1,35 @@
 <!--
-  DispatchCard.vue — a subagent, as it appears in the main thread.
+  DispatchCard.vue — a subagent, as the main thread shows it.
 
-  One card per task the lead handed off, and it answers exactly the questions
-  the user has about it, in order: what is being done to my app, and is it
-  done yet? So the card is a state line and a description of the job, and
-  while the run is live that is the whole card. When it lands, one more thing
-  arrives — what the subagent actually did — and the job it was given stays
-  above it, because "complete" is only meaningful next to what was asked.
+  One card per subagent, and it is the WHOLE of what the main thread says
+  about that subagent, from kickoff to sign-off. When the lead hands a job
+  over, this card is the message: the job's name, the news that a subagent is
+  on it, and a way through to watch it happen. When the work lands, the same
+  card turns into "Subagent complete" and the subagent's own summary of what
+  changed appears underneath it. Nothing arrives below as a second telling —
+  a kickoff line and a completion message for one piece of work is the same
+  news printed twice, and the second copy is always somewhere else in the
+  thread by the time it matters.
 
-  There is no separate title. A name and a description of the same task are
-  the same sentence written twice, and the name was the one being clipped to
-  an ellipsis on a phone. Everything here wraps and is read in full: a card
-  that hides the end of its own sentence is worse than a taller card.
+  So the card is read top-down as: where it stands (the state line, which is
+  what anyone glancing at it wants), which job (the serif line under it), and
+  — once there is one — what came of it. The job stays put through every
+  state, because "complete" only means something next to what was asked for.
+
+  There is no separate title. A name and a description of the same job are the
+  same sentence written twice, and the name was the one being clipped to an
+  ellipsis on a phone. Everything here wraps and is read in full: a card that
+  hides the end of its own sentence is worse than a taller card.
 
   Nothing on it is technical either — no file paths, no component names, no
   step-by-step. The person reading is running a business, not reviewing a
-  diff, and the full account (files, tool calls, the lot) is one click away in
-  the subagent's own thread. This card is the gist; the thread is the record.
+  diff. This card is the gist; the thread is the record.
 
   It borrows the crew ledger's state vocabulary (AgentInstanceCard): a rail
   down the left edge, ink travelling while live, so a card here and a card
   there report the same state the same way. The one place it departs is
   "done" — settled work recedes to a hairline in the ledger, but in the
-  transcript a finished task is news, so it lands in an affirmative green.
+  transcript a finished subagent is news, so it lands in an affirmative green.
 -->
 <template>
   <button
@@ -33,26 +40,25 @@
   >
     <span class="dispatch-card__rail" aria-hidden="true"></span>
 
+    <!-- Where it stands, and the way through to the subagent's own thread.
+         The card's headline: the one thing the user is scanning for is
+         whether this has landed yet. -->
     <span class="dispatch-card__head">
       <span class="dispatch-card__chip">
         <i :class="state.icon"></i>
       </span>
-
-      <!-- Where it stands -->
       <span class="dispatch-card__status">{{ state.label }}</span>
-
       <i class="fas fa-chevron-right dispatch-card__chevron" aria-hidden="true"></i>
     </span>
 
-    <!-- The job, in the user's language. Present in every state, because it
-         is what the card is about — while the work runs it is the only thing
-         to say, and once the work lands it is what the result is a result
-         OF. -->
-    <span v-if="state.task" class="dispatch-card__task">{{ state.task }}</span>
+    <!-- Which job, in the user's language. Under the state and in the brand
+         serif, because it is the reading matter: present in every state,
+         since a result means nothing without the job it answers. -->
+    <span v-if="state.job" class="dispatch-card__job">{{ state.job }}</span>
 
-    <!-- What came back: the summary of the changes when it finished, or the
-         question when it stopped to ask. Only a finished (or stuck) subagent
-         has one, which is exactly why its arrival reads as news. -->
+    <!-- What came of it: the subagent's own summary of the changes now in the
+         app, or the question it stopped on. Only a finished (or stuck)
+         subagent has one, which is exactly why its arrival reads as news. -->
     <span v-if="state.result" class="dispatch-card__result">{{ state.result }}</span>
   </button>
 </template>
@@ -62,9 +68,9 @@ import { computed } from 'vue'
 import type { AgentInstance } from '../../../types/services'
 
 const props = defineProps<{
-  /** The task's title from the transcript. The card describes its work from
-   *  the live instance; this is what it falls back to in the window before
-   *  the store has loaded one, so a reloaded thread is never a blank card. */
+  /** The task's title from the transcript. The card names its job from the
+   *  live instance; this is what it falls back to in the window before the
+   *  store has loaded one, so a reloaded thread is never a blank card. */
   title: string
   /** The live subagent behind this card, when the store knows about it. */
   instance?: AgentInstance | null
@@ -90,26 +96,26 @@ function saidBy(instance: AgentInstance): string {
 const NO_SIGN_OFF = 'It finished without saying what it changed — open it to see the work.'
 
 /**
- * Where this subagent stands, as the four things the card renders: a tone
+ * Where this subagent stands, as the three things the card renders: a tone
  * (which drives every colour on it), an icon, the state in words, and — once
- * there is one — what came back.
+ * there is one — what came of it.
  *
- * `task` is deliberately not part of the switch: the job is the same job in
- * every state, so it is read once, below, rather than repeated per branch.
+ * The job is deliberately not part of the switch: it is the same job in every
+ * state, so it is read once, below, rather than repeated per branch.
  *
- * A live run beats every stored status — a task re-prompted after finishing is
- * working again whatever its last outcome was.
+ * A live run beats every stored status — a subagent re-prompted after
+ * finishing is working again whatever its last outcome was.
  */
 const status = computed(() => {
   const instance = props.instance
   if (!instance) {
-    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting…', result: '' }
+    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Subagent starting', result: '' }
   }
   if (instance.isProcessing) {
     return {
       tone: 'working',
       icon: 'fas fa-circle-notch fa-spin',
-      label: 'Working on this now…',
+      label: 'Subagent working',
       // Nothing has come back yet, and the agent's live status ("Editing
       // project files…") is not a result — it says how it is working, which
       // is exactly the kind of detail this card keeps out.
@@ -123,14 +129,18 @@ const status = computed(() => {
         icon: 'fas fa-circle-question',
         label: 'Needs an answer from you',
         // The subagent stopped on ask_user, so its closing line is the
-        // question itself.
+        // question itself — the same words the queue card above the composer
+        // is waiting for an answer to.
         result: saidBy(instance),
       }
     case 'ready':
+      // One of several takes on a brief the user asked to compare. The only
+      // state left where finished work waits on a decision — a solo subagent
+      // applies its own and never lands here.
       return {
         tone: 'asking',
         icon: 'fas fa-check',
-        label: 'Subagent complete — waiting on you',
+        label: 'Subagent complete — one of your options',
         result: saidBy(instance) || NO_SIGN_OFF,
       }
     case 'failed':
@@ -151,6 +161,8 @@ const status = computed(() => {
       return {
         tone: 'done',
         icon: 'fas fa-check',
+        // Applied, not offered: the changes are in the app already, which is
+        // the whole point of handing the job over.
         label: 'Subagent complete',
         // What it did, in its own words: the run is over, so the last message
         // is its sign-off — four to six plain sentences about the changes,
@@ -163,15 +175,16 @@ const status = computed(() => {
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }
     default:
       // Dispatched, run not yet fired.
-      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Starting…', result: '' }
+      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Subagent starting', result: '' }
   }
 })
 
 const state = computed(() => ({
   ...status.value,
-  // What this subagent was asked to do. The title is the standby for the
-  // moment before the instance loads — shorter, but never nothing.
-  task: props.instance?.brief || props.title || 'Background subagent',
+  // What this subagent is for, named the way the user would name it. The
+  // title is the standby for the moment before the instance loads — shorter,
+  // but never nothing.
+  job: props.instance?.brief || props.title || 'Background subagent',
 }))
 </script>
 
@@ -187,9 +200,9 @@ const state = computed(() => ({
   --chip-fg: rgba(23, 37, 84, 0.8);
 
   position: relative;
-  /* Stacked, not two columns: the description is the card, and giving it the
-     full width is what lets it be read whole on a phone rather than clipped
-     into a column beside an icon. */
+  /* Stacked, not two columns: the job is the card, and giving it the full
+     width is what lets it be read whole on a phone rather than clipped into a
+     column beside an icon. */
   display: flex;
   flex-direction: column;
   gap: 0.3125rem;
@@ -412,28 +425,9 @@ const state = computed(() => ({
   transition: background-color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.dispatch-card__chip {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-top: 0.0625rem;
-  border-radius: var(--iw-r-sm);
-  background: var(--chip-bg);
-  color: var(--chip-fg);
-  font-size: 0.625rem;
-  transition:
-    background-color var(--iw-dur-3) var(--iw-ease-out),
-    color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-/* The state line: chip, words, and the affordance that says there is more
-   through here. One row, above the working state's edge glow, which would
-   otherwise wash over it. */
+/* The state line: chip, where it stands, and the affordance that says there
+   is more through here. One row, above the working state's edge glow, which
+   would otherwise wash over it. */
 .dispatch-card__head {
   position: relative;
   z-index: 1;
@@ -458,8 +452,8 @@ const state = computed(() => ({
     color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* Where it stands, in the state's own ink. Small caps: this is a label on the
-   card, and the description below it is the reading matter. */
+/* Where it stands, in the state's own ink. Small caps: this is the label on
+   the card, and the job below it is the reading matter. */
 .dispatch-card__status {
   flex: 1;
   min-width: 0;
@@ -474,8 +468,8 @@ const state = computed(() => ({
 
 /* The job. Set in the brand serif like the crew ledger's byline, so what is
    being done to the app reads as the subject of the card. It wraps: no clamp,
-   no ellipsis — the whole sentence, at any width. */
-.dispatch-card__task {
+   no ellipsis — the whole thing, at any width. */
+.dispatch-card__job {
   position: relative;
   z-index: 1;
   font-family: theme('fontFamily.display');
@@ -488,7 +482,7 @@ const state = computed(() => ({
   overflow-wrap: anywhere;
 }
 
-.dark .dispatch-card__task {
+.dark .dispatch-card__job {
   color: rgba(255, 255, 255, 0.86);
 }
 

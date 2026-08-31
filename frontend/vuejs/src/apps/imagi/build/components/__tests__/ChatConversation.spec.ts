@@ -132,8 +132,8 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--working')
-    expect(card.text()).toContain('Working on this now…')
-    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.text()).toContain('Subagent working')
+    expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     // Nothing has come back yet, so there is no result half at all — and
     // mid-run chatter is not a result.
     expect(card.find('.dispatch-card__result').exists()).toBe(false)
@@ -144,8 +144,8 @@ describe('ChatConversation dispatch card', () => {
     const wrapper = withSubagent({ reviewStatus: 'active', brief: JOB })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Starting…')
-    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.text()).toContain('Subagent starting')
+    expect(card.find('.dispatch-card__job').text()).toBe(JOB)
   })
 
   it('keeps the job on screen and adds what it did once complete', () => {
@@ -160,7 +160,7 @@ describe('ChatConversation dispatch card', () => {
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--done')
     expect(card.text()).toContain('Subagent complete')
-    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     expect(card.find('.dispatch-card__result').text()).toBe(SUMMARY)
   })
 
@@ -182,16 +182,16 @@ describe('ChatConversation dispatch card', () => {
     expect(wrapper.find('.dispatch-card__result').text()).toBe(fullSummary)
   })
 
-  it('renders the whole description rather than clipping it', () => {
+  it('renders the whole job name rather than clipping it', () => {
     // The complaint this card exists to answer: on a phone the job was cut to
     // one line and ellipsised. Nothing may clamp, truncate, or nowrap it.
     const wrapper = withSubagent({ isProcessing: true, brief: JOB })
 
-    const task = wrapper.find('.dispatch-card__task')
-    expect(task.text()).toBe(JOB)
-    expect(task.text()).not.toContain('…')
-    expect(task.classes()).not.toContain('truncate')
-    expect(task.attributes('style') || '').not.toContain('nowrap')
+    const job = wrapper.find('.dispatch-card__job')
+    expect(job.text()).toBe(JOB)
+    expect(job.text()).not.toContain('…')
+    expect(job.classes()).not.toContain('truncate')
+    expect(job.attributes('style') || '').not.toContain('nowrap')
   })
 
   it('says something when a finished task left no summary', () => {
@@ -206,14 +206,30 @@ describe('ChatConversation dispatch card', () => {
     })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     expect(card.find('.dispatch-card__result').text())
       .toBe('It finished without saying what it changed — open it to see the work.')
   })
 
-  it('describes the work on a completion that still wants a review', () => {
-    // A task that could not merge itself parks at 'ready'. It is just as
-    // finished, so it reports the same way — plus the pending decision.
+  it('reports a finished subagent as work already in the app', () => {
+    // The card is the whole of what this thread says about the subagent, so
+    // "complete" has to mean the changes are live — never an offer the user
+    // still has to accept. Nothing on it asks for anything.
+    const wrapper = withSubagent({
+      reviewStatus: 'accepted',
+      brief: JOB,
+      lastAssistantSummary: SUMMARY,
+    })
+
+    const card = wrapper.find('.dispatch-card')
+    expect(card.text()).toContain('Subagent complete')
+    expect(card.text()).not.toContain('waiting on you')
+    expect(card.text()).not.toContain('Add to my app')
+  })
+
+  it('describes a parallel take as one option among several', () => {
+    // 'ready' survives for variants the user asked to compare — the only
+    // finished work that still waits on a choice.
     const wrapper = withSubagent({
       reviewStatus: 'ready',
       brief: JOB,
@@ -221,8 +237,8 @@ describe('ChatConversation dispatch card', () => {
     })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Subagent complete — waiting on you')
-    expect(card.find('.dispatch-card__task').text()).toBe(JOB)
+    expect(card.text()).toContain('Subagent complete — one of your options')
+    expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     expect(card.find('.dispatch-card__result').text()).toBe('Built two takes on the pricing table.')
   })
 
@@ -255,6 +271,6 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Contact page')
-    expect(card.text()).toContain('Starting…')
+    expect(card.text()).toContain('Subagent starting')
   })
 })

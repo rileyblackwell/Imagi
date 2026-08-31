@@ -86,8 +86,9 @@ LEAD_DISPATCH_RETRY_PROMPT = (
     "[Automated check] Your last reply tells the user that background work was "
     "started, but you did not make a successful dispatch_task call this turn — "
     "no subagent exists and nothing is being built. If the user's request is a "
-    "job, call dispatch_task NOW with the full brief and goal, then confirm in "
-    "one short sentence. If you were not actually claiming to have started new "
+    "job, call dispatch_task NOW with the full brief and goal, then end your "
+    "turn without a message — the workspace shows the subagent's card itself. "
+    "If you were not actually claiming to have started new "
     "work (for example, a subagent from an earlier turn is already on it), "
     "answer the user plainly instead. Never tell the user work was kicked off "
     "unless dispatch_task succeeded in the same turn."
@@ -1192,13 +1193,15 @@ class ImagiAgentService:
             logger.warning(f"Could not resolve pending check-ins: {e}")
 
     def _file_check_in(self, conversation, kind: str, body: str) -> None:
-        """Route one outcome back to the main thread: a queue card and a report.
+        """Route one outcome back to the main thread: a queue card and a memory.
 
-        The card is the decision the user owes this subagent; the report is the
-        line in the main thread's transcript saying it came back, and what it
-        said. Both, always: the queue is what the user acts on, the transcript
-        is what they read, and an outcome that only reached one of them either
-        looks like an unexplained demand or gets lost.
+        The card is what the user sees — a question to answer, or simply the
+        news that a subagent finished and its work is in the app. The memory is
+        the same words stored in the lead conversation, which is how the main
+        agent knows what its subagents did without the user having to tell it.
+        Both, always: an outcome that reached only the queue leaves the lead
+        answering "what changed?" with nothing, and one that reached only the
+        lead's memory never reaches the user at all.
 
         Best-effort by contract: queueing must never fail the run whose
         outcome it reports. Any older pending entry for the same task is
@@ -1222,25 +1225,26 @@ class ImagiAgentService:
         self._report_to_lead(conversation, kind, body)
 
     def _report_to_lead(self, conversation, kind: str, body: str) -> None:
-        """Post a subagent's outcome into the main thread as its own message.
+        """Record a subagent's outcome in the lead thread's own history.
 
-        Subagents run in parallel and finish whenever they finish, so this is
-        how each one comes back: the moment its run ends it writes what it did
-        (or what it needs) into the thread the user is actually sitting in,
-        without waiting for the ones dispatched before it. The dispatch card
-        already tracks the same subagent, but that card lives wherever the
-        kickoff happened — scrolled far up the thread by the time three
-        subagents are running — so a finish nobody sees is a finish that did
-        not happen. This is the arrival.
+        This is the main agent's memory of work it delegated: without it the
+        lead reaches the next turn with no idea what its subagents did, and
+        cannot answer "what changed?" or "is that done yet?" about its own
+        project. It is stored as a message in the lead conversation, and
+        build_conversation_history labels it on the way into the model so the
+        lead reads it as its subagent speaking rather than as its own memory.
 
-        It also puts the outcome in the lead agent's own history, which is what
-        lets the next turn answer "what did you change?" instead of the model
-        having no idea what its subagents did.
+        Deliberately NOT a second bubble in the transcript. The user already
+        has one place this subagent is reported — the card the dispatch put in
+        the thread, which turns into "Subagent complete" with these very words
+        under it — and a message repeating that card is the same news told
+        twice. The workspace filters these out of what it renders; the queue
+        card is how a finish gets noticed.
 
         One report per subagent at a time: filing a new one deletes that task's
         previous report, so a task that reports again (a repair round, a
-        question answered and the work finished) reads as one arrival at its
-        latest position, not a pile of superseded status lines.
+        question answered and the work finished) leaves the lead holding its
+        latest word, not a pile of superseded status lines.
 
         Best-effort by contract, like the check-in it accompanies.
         """
@@ -1369,88 +1373,124 @@ class ImagiAgentService:
     def _finalize_task_run(self, conversation, context, response_content: str) -> None:
         """Route a finished task run back to the main thread.
 
-        Every ending arrives the same way: the subagent posts what it has to
-        say into the main thread's transcript, the moment it has to say it. The
-        subagents run in parallel and land in whatever order they finish, so
-        the first one done is the first one the user reads — none of them waits
-        on the ones dispatched before it.
+        Every ending arrives the same way: the subagent files a check-in, and
+        the main thread renders the pending ones as a FIFO queue. The subagents
+        run in parallel and land in whatever order they finish, so the first
+        one done is the first one the user reads — none of them waits on the
+        ones dispatched before it.
 
-        What differs is whether the arrival is also a decision. A run that
-        ended on ask_user parks the task at 'input' and queues its question. A
-        solo task that finished its work auto-merges into the project and
-        queues nothing: its report says what changed and there is nothing left
-        to clear. Variant takes (built to compare) and any task whose
-        auto-merge can't run cleanly fall back to a 'ready' review card. Either
-        way the task never interrupts the user directly.
+        What differs is whether the arrival asks for anything. A finished solo
+        task merges into the project on its own and files a 'done' check-in:
+        news to read, never an approval to give. Applying a subagent's work is
+        the default — the whole point of handing the job over — so there is no
+        "add this to my app?" step anywhere on this path. A run that ended on
+        ask_user parks at 'input' and queues its question, which is the one
+        thing a subagent may genuinely need from the user. Variant takes exist
+        to be compared, so they still queue a 'ready' pick-one card; a solo
+        task whose merge could not run cleanly asks about that as a question,
+        because answering re-runs it and a re-run is what actually fixes it.
+        Either way the task never interrupts the user directly.
         """
         # getattr: test doubles stand in for the conversation here.
         if getattr(conversation, 'kind', 'chat') != 'task':
             return
         question = (getattr(context, 'pending_question', None) or '').strip() if context else ''
         if question:
-            try:
-                conversation.review_status = 'input'
-                conversation.save(update_fields=["review_status"])
-            except Exception as e:  # pragma: no cover - best effort
-                logger.warning(f"Could not update task review status: {e}")
+            self._park_task(conversation, 'input')
             self._file_check_in(conversation, 'question', question)
             return
 
-        # A solo task applies its own work; variants still queue for a
-        # pick-one review. _auto_apply_task sets review_status='accepted' on a
-        # clean merge, so only the fallback path needs to mark it 'ready'.
-        applied = (
-            not getattr(conversation, 'variant_group', '')
-            and self._auto_apply_task(conversation)
-        )
-        if applied:
-            # Nothing is being asked, so nothing goes in the queue — but the
-            # user still has to hear that it landed, so the sign-off goes to
-            # the main thread as a report. Any queue entry an earlier run of
-            # this task left behind is stale now.
-            self._resolve_pending_check_ins(conversation)
-            self._report_to_lead(conversation, 'done', response_content)
+        # Variants are alternatives the user asked to compare, so they wait to
+        # be picked between. Everything else applies itself.
+        if getattr(conversation, 'variant_group', ''):
+            self._park_task(conversation, 'ready')
+            self._file_check_in(conversation, 'ready', response_content)
             return
+
+        # _auto_apply_task sets review_status='accepted' on a clean merge and
+        # hands back why it could not on anything else.
+        blocked = self._auto_apply_task(conversation)
+        if not blocked:
+            # Already in the app. The check-in is how the user hears about it —
+            # they read it and clear it, with nothing to decide. Any queue
+            # entry an earlier run of this task left behind is stale now, and
+            # _file_check_in resolves it as it files this one.
+            self._file_check_in(conversation, 'done', response_content)
+            return
+
+        # Finished, but the work could not go in. That is not a "do you want
+        # this?" — the user already said yes by asking for it — so it goes back
+        # as a question, whose answer re-runs the subagent on the same worktree
+        # and gives it the chance to put the merge right.
+        logger.info(
+            "Task %s finished but could not be applied: %s",
+            getattr(conversation, 'id', None), blocked,
+        )
+        self._park_task(conversation, 'input')
+        self._file_check_in(
+            conversation, 'question',
+            f"I finished this, but I could not put it into your app just yet — "
+            f"{blocked} Say \"try again\" and I will pick it up from here, or "
+            f"tell me what to change. Your app is untouched in the meantime."
+        )
+
+    def _park_task(self, conversation, review_status: str) -> None:
+        """Best-effort: move a task to the lifecycle state its ending calls for."""
         try:
-            conversation.review_status = 'ready'
+            conversation.review_status = review_status
             conversation.save(update_fields=["review_status"])
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not update task review status: {e}")
-        self._file_check_in(conversation, 'ready', response_content)
 
-    def _auto_apply_task(self, conversation) -> bool:
+    def _auto_apply_task(self, conversation) -> str:
         """Merge a finished solo task's worktree into the project automatically.
 
-        Returns True when the changes were applied (the task is now
-        'accepted'); False when we deliberately leave it for a manual review —
-        a broken frontend import graph, an app router that stopped exporting its
-        routes, a first build that dropped its links to the prebuilt auth pages,
-        a live canonical run we must not merge across, a merge conflict, a stale
-        base, or any git-level failure.
-        Best-effort by contract: it never raises, so any trouble simply parks
-        the task at 'ready' for the user.
+        Applying is the default: a subagent is handed a job precisely so its
+        result goes into the app without the user having to approve it, and on
+        a clean merge the task is left 'accepted' with its worktree removed.
+
+        Returns '' when that happened, and otherwise one plain sentence saying
+        what stopped it — a broken frontend import graph, an app router that
+        stopped exporting its routes, a first build that dropped its links to
+        the prebuilt auth pages, a live canonical run we must not merge across,
+        a merge conflict, a stale base, or any git-level failure. The sentence
+        is written for the business owner, because it is what the main thread
+        shows them; the technical detail is logged instead.
+
+        Best-effort by contract: it never raises, so any trouble comes back as
+        a reason rather than an exception.
         """
         user = getattr(conversation, 'user', None)
         project_id = getattr(conversation, 'project_id', None)
         # The merge rewrites the canonical tree, so it must not race a chat or
         # lead run editing it — the same guard the accept endpoint applies.
         if user is not None and self._project_has_live_canonical_run(user, project_id):
-            return False
+            return 'something else was changing your app at the same moment.'
         if self._worktree_import_problems(conversation):
-            return False
+            return 'a piece of the page it built is still missing, so putting it in would have broken your site.'
         if self._worktree_router_problems(conversation):
-            return False
+            return 'the links between your pages came out wrong, so putting it in would have broken your site.'
         if self._worktree_auth_link_problems(conversation):
-            return False
+            return 'your sign-in and sign-up links went missing from the page.'
         try:
             from ..api.views import _apply_task_worktree, _conversation_project
             project = _conversation_project(conversation)
             if project is None or not getattr(project, 'project_path', ''):
-                return False
-            return bool(_apply_task_worktree(conversation, project).get('ok'))
+                return 'I could not reach your app\'s files.'
+            outcome = _apply_task_worktree(conversation, project)
+            if outcome.get('ok'):
+                return ''
+            logger.warning(
+                "Could not merge task %s: %s (%s)",
+                getattr(conversation, 'id', None),
+                outcome.get('error'), outcome.get('detail'),
+            )
+            if outcome.get('error') == 'stale_base':
+                return 'your app was rolled back to an earlier version while this was being built.'
+            return 'it clashes with other changes made to your app while this was being built.'
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not auto-apply task worktree: {e}")
-            return False
+            return 'something went wrong while adding it.'
 
     def _capped_run_files(self, conversation) -> List[str]:
         """Files a capped run wrote, read back off its working tree.

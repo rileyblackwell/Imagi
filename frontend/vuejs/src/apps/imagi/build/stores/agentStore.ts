@@ -68,12 +68,11 @@ const MAX_PARALLEL_TASK_RUNS = 5
 const dispatchRetryAt = new Map<number, number>()
 const DISPATCH_RETRY_MS = 6000
 
-// Highest message id the main thread has pulled from the server, per lead
-// conversation. Subagents post their reports straight into that thread, so the
-// client asks for "anything after this" rather than refetching a transcript
-// that may have a run streaming into it. Module scope and non-reactive: it is
-// bookkeeping about a fetch, not state anything renders.
-const lastSyncedMessageIds = new Map<number, number>()
+// Check-in ids this tab has already reacted to. Module scope and
+// non-reactive: it is bookkeeping about what has been noticed, not state
+// anything renders, and a pending card the user has not cleared must not
+// re-trigger its side effects on every poll.
+const adoptedCheckIns = new Set<number>()
 
 // Registered by the workspace: how a background task's run is driven (the
 // same handlePrompt path, targeted at the task's instance).
@@ -328,79 +327,50 @@ export const useAgentStore = defineStore('agent', {
         this.checkIns = await AgentService.listCheckIns(this.projectId)
       } catch (e) {
         console.error('Failed to load check-ins', e)
+        return
       }
+      this.adoptSubagentOutcomes()
     },
 
     /**
-     * Pull anything the subagents have said into the main thread since the
-     * last look.
+     * Catch the workspace up on subagents that came back.
      *
-     * They run in parallel and finish in their own time, so this is how their
-     * reports arrive while the user is just sitting in the thread: each run
-     * ends by posting what it did (or what it needs) into the lead
-     * conversation server-side, and this is the client noticing. Only reports
-     * are adopted — the lead's own replies are already in this transcript, and
-     * re-adding them from the server would double them up.
+     * The queue is the one signal that a background run ended: they finish in
+     * their own time, in parallel, and a tab that is not streaming a given run
+     * hears about it here first. Each new entry means that subagent's state on
+     * the server has moved on from what this tab is showing, so its card in
+     * the main thread — the same card the dispatch put there, which is where a
+     * finish is reported — is refreshed to say so, in its own words.
      *
-     * Skipped while the lead has a run streaming into it: appending under a
-     * half-written reply reads as an interruption, and the sync that follows
-     * the run picks up whatever landed meanwhile.
+     * Once per check-in, ever. Entries sit in the queue until the user clears
+     * them, and re-reacting to the same one on every poll would refetch a
+     * conversation every six seconds for as long as the card is up. A task
+     * that runs again files a new check-in, which is a new one to react to.
      */
-    async syncTaskReports() {
+    adoptSubagentOutcomes() {
       const lead = this.leadInstance
-      const conversationId = lead?.conversationId
-      // Nothing loaded means nothing to append to — opening the thread
-      // fetches the reports along with the rest of its history.
-      if (!lead || conversationId == null || !lead.messagesLoaded) return
-      if (lead.isProcessing) return
-
-      let after = lastSyncedMessageIds.get(conversationId)
-      if (after === undefined) {
-        after = lead.conversation.reduce((max, m) => Math.max(max, m.dbId ?? 0), 0)
-        lastSyncedMessageIds.set(conversationId, after)
+      for (const checkIn of this.checkIns) {
+        if (adoptedCheckIns.has(checkIn.id)) continue
+        adoptedCheckIns.add(checkIn.id)
+        const instance = this.instances.find(i => i.conversationId === checkIn.task.id)
+        // Mid-run means this tab is driving it and already has the truth;
+        // matching review states mean the card is already current.
+        if (
+          instance && !instance.isProcessing &&
+          instance.reviewStatus !== checkIn.task.review_status
+        ) {
+          void this.refreshInstanceFromServer(instance.id)
+        }
+        // A subagent arriving is worth a dot when the user is reading
+        // something else.
+        if (lead && lead.id !== this.activeInstanceId) lead.hasUnread = true
       }
-
-      let messages
-      try {
-        messages = await AgentService.getConversationMessages(conversationId, after)
-      } catch (e) {
-        console.error('Failed to sync subagent reports', e)
-        return
-      }
-      if (messages.length === 0) return
-      lastSyncedMessageIds.set(
-        conversationId,
-        messages.reduce((max, m) => Math.max(max, m.id), after)
-      )
-
-      let applied = false
-      for (const message of messages) {
-        if (!message.taskReport) continue
-        const id = `db-${message.id}`
-        if (lead.conversation.some(m => m.id === id)) continue
-        this.addMessageToInstance(lead.id, {
-          role: message.role,
-          content: message.content,
-          timestamp: message.timestamp,
-          id,
-          dbId: message.id,
-          taskReport: message.taskReport,
-        } as AIMessage)
-        // A report is a subagent arriving — worth a dot when the user is
-        // reading something else.
-        if (lead.id !== this.activeInstanceId) lead.hasUnread = true
-        if (message.taskReport.kind === 'done') applied = true
-      }
-      // Work merged into the project while the user was elsewhere; the file
-      // tree and the preview are a version behind.
-      if (applied && taskAppliedHandler) taskAppliedHandler()
     },
 
     startCheckInPolling() {
       this.stopCheckInPolling()
       checkInTimer = setInterval(() => {
         void this.loadCheckIns()
-        void this.syncTaskReports()
         // A subagent whose run the backend refused is waiting on a slot it
         // cannot see free (another project's runs count too), so its retry
         // rides this tick rather than a signal from this tab.
@@ -676,12 +646,9 @@ export const useAgentStore = defineStore('agent', {
             instance.hasWorktree = !!dto.has_worktree
             if (typeof dto.total_tokens === 'number') instance.totalTokens = dto.total_tokens
             this.setInstanceProcessing(instance.id, false)
-            // The finished run reported into the main thread and may have
-            // queued a decision; surface both now rather than on the next tick.
-            if (instance.kind === 'task') {
-              void this.loadCheckIns()
-              void this.syncTaskReports()
-            }
+            // The finished run filed its check-in; surface it now rather than
+            // on the next tick.
+            if (instance.kind === 'task') void this.loadCheckIns()
           } catch (e) {
             console.error('Failed to resync running conversation', instance.conversationId, e)
           }
@@ -705,8 +672,6 @@ export const useAgentStore = defineStore('agent', {
           activity: m.activity,
           filesChanged: m.filesChanged,
           dispatchedTasks: m.dispatchedTasks,
-          // Set when a subagent posted this message reporting its own outcome
-          taskReport: m.taskReport,
           usage: m.usage,
           dbId: m.id,
           checkpoint: m.checkpoint,
@@ -1009,10 +974,6 @@ export const useAgentStore = defineStore('agent', {
         // A subagent finishing frees one of the parallel slots — whoever has
         // been waiting longest for it starts now.
         if (instance.kind === 'task') this.firePendingDispatches()
-        // Reports that landed while the main thread was mid-reply are held
-        // back rather than appended under a half-written message; the moment
-        // the reply is done, they come in.
-        if (instance.kind === 'lead') void this.syncTaskReports()
       }
     },
 

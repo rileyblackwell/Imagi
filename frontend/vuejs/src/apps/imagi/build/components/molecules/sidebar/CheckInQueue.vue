@@ -1,23 +1,29 @@
 <!--
   CheckInQueue.vue — the main thread's processing queue.
 
-  Background subagents never interrupt the user: when one needs an answer,
-  fails, or finishes work the user has to pick between, it files a check-in
-  that surfaces here, above the lead thread's composer. Everything in this
-  queue is a decision — a subagent that simply finished and merged its own
-  work reports on its dispatch card in the thread and never lands here. One
-  card is shown at a time (FIFO) so the user stays single-threaded; the rest
-  wait behind it as a visible pile.
+  Background subagents never interrupt the user. Everything one has to say on
+  its way out arrives here instead, above the lead thread's composer, and the
+  user works through the pile one card at a time (FIFO) so they stay
+  single-threaded.
 
-  Same language as the Subagents pane: a status rail spines the card, the task
+  Not every card is a decision, and the difference is the point. A subagent
+  that finished has ALREADY put its work in the app — that is what handing the
+  job over means — so its card is news: what it did, in its own words, and a
+  button that says nothing more than "read it". The one thing a subagent
+  genuinely needs back is an answer to a question, which is why that card has a
+  field in it. The two leftovers are a run that died, and a take on a brief the
+  user asked to see options for — the only place finished work still waits on a
+  choice.
+
+  Same language as the Subagents pane: a status rail spines the card, the job
   keeps its serif byline, and parallel takes carry the n/m marker — a check-in
-  is the same agent the user just saw over there, so it should look like it.
+  is the same subagent the user just saw over there, so it should look like it.
 -->
 <template>
   <div v-if="queue.length> 0" class="mb-1.5">
     <!-- Queue depth: only worth showing once something is waiting behind -->
     <div v-if="queue.length> 1" class="queue-head">
-      <span class="queue-head__label">Waiting on you</span>
+      <span class="queue-head__label">From your subagents</span>
       <span class="queue-head__count">{{ queue.length }}</span>
       <span class="queue-head__rule"></span>
     </div>
@@ -37,7 +43,7 @@
         <div class="check-in__body">
           <!-- What came back, and from which task -->
           <div class="flex items-start gap-1.5">
-            <h3 class="check-in__title">{{ current.task.title || 'Background task' }}</h3>
+            <h3 class="check-in__title">{{ jobName }}</h3>
             <!-- One of several parallel takes on the same brief: say so, or
                  accepting the first one looks like the only option. -->
             <span
@@ -58,13 +64,14 @@
 
           <div class="check-in__status">
             <i :class="[kindIcon, 'check-in__status-icon']"></i>
-            <span class="truncate">{{ kindLabel }}</span>
+            <span>{{ kindLabel }}</span>
           </div>
 
-          <!-- Body: the question, the summary, or the error. Shown whole —
-               everything here is a decision, and a summary or question with
-               its end clipped off is not enough to decide on. The server caps
-               bodies at 2000 chars, so a runaway card cannot happen. -->
+          <!-- Body: the question, the sign-off, or the error. Shown whole —
+               a question with its end clipped off cannot be answered, and a
+               four-to-six-sentence account of what changed in someone's app is
+               the part of this card worth reading. The server caps bodies at
+               2000 chars, so a runaway card cannot happen. -->
           <p v-if="current.body" class="check-in__text">
             {{ current.body }}
           </p>
@@ -103,10 +110,30 @@
             </div>
           </div>
 
-          <!-- A variant take (or a task whose auto-merge fell back) is merged or
-               discarded from right here. A task that merged itself never gets
-               here — it has nothing to decide, so it is reported on its
-               dispatch card in the thread instead of queued. -->
+          <!-- Finished, and already in the app. There is nothing to approve
+               here and never will be — the whole point of handing a job to a
+               subagent is that its work lands on its own — so the only button
+               is the one that says "read". -->
+          <div v-else-if="current.kind === 'done'" class="flex items-center gap-1.5 mt-2">
+            <button
+              type="button"
+              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-blue-950"
+              @click="emit('skip', current)"
+            >
+              Got it
+            </button>
+            <button
+              type="button"
+              class="btn-ghost iw-press rounded-full px-2.5 py-1 text-[11px] font-medium"
+              @click="emit('view', current)"
+            >
+              See the work
+            </button>
+          </div>
+
+          <!-- One of several takes on a brief the user asked to compare: the
+               only card left where finished work waits on a choice. A solo
+               subagent applies its own work and never gets here. -->
           <div v-else-if="current.kind === 'ready'" class="flex items-center gap-1.5 mt-2">
             <button
               type="button"
@@ -115,7 +142,7 @@
               @click="emit('accept', current)"
             >
               <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>
-              <span v-else>Add to my app</span>
+              <span v-else>Use this one</span>
             </button>
             <button
               type="button"
@@ -207,6 +234,13 @@ const siblingIndex = computed(
   () => siblings.value.findIndex(c => c.id === current.value?.id) + 1
 )
 
+/** The job this subagent was given, named as the main thread's card names it
+ *  — the same subagent, so the same words. Falls back to the workspace title
+ *  for a task dispatched before goals were carried on the queue. */
+const jobName = computed(
+  () => current.value?.task.goal || current.value?.task.title || 'Background subagent'
+)
+
 const kindIcon = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'fas fa-circle-question'
@@ -219,16 +253,26 @@ const kindLabel = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'Needs your answer'
     case 'error': return 'Stopped early'
-    default: return 'Subagent complete — ready to review'
+    // Said as a fact about the app, not as an offer: by the time this card
+    // exists the changes are already live in the project.
+    case 'ready': return 'Subagent complete — one of your options'
+    default: return 'Subagent complete — added to your app'
   }
 })
 
 /**
- * The rail's reading, on the Subagents pane's terms: everything queued here
- * wants a decision, so it carries the navy-ink "waiting on you" rail, and a
- * failed run is the one warm note in the pane.
+ * The rail's reading, on the Subagents pane's terms. A card that wants
+ * something takes the navy-ink "this one is on you" rail; a finished subagent
+ * takes the affirmative green its card in the thread just turned, so the two
+ * report the same landing the same way; a failed run is the one warm note.
  */
-const tone = computed(() => (current.value?.kind === 'error' ? 'error' : 'waiting'))
+const tone = computed(() => {
+  switch (current.value?.kind) {
+    case 'error': return 'error'
+    case 'done': return 'done'
+    default: return 'waiting'
+  }
+})
 
 function sendAnswer() {
   const text = answer.value.trim()
@@ -398,6 +442,22 @@ function sendAnswer() {
   background: rgba(245, 158, 11, 0.07);
 }
 
+/* Finished and applied: the same green the dispatch card settles into when
+   the work lands, so the two surfaces report one event in one colour. */
+.check-in--done {
+  --rail: theme('colors.green.600');
+  --status: theme('colors.green.700');
+  border-color: rgba(22, 163, 74, 0.28);
+  background: rgba(240, 253, 244, 0.85);
+}
+
+.dark .check-in--done {
+  --rail: theme('colors.green.400');
+  --status: theme('colors.green.300');
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.07);
+}
+
 .check-in__rail {
   position: absolute;
   left: 0;
@@ -413,7 +473,9 @@ function sendAnswer() {
   padding: 0.5rem 0.625rem 0.5625rem 0.75rem;
 }
 
-/* The task keeps the byline it had in the Subagents pane */
+/* The job keeps the byline it has on its card in the thread. It wraps rather
+   than clipping: these are short names, and a name cut off mid-word in a
+   sidebar is how two subagents end up looking like the same one. */
 .check-in__title {
   flex: 1;
   min-width: 0;
@@ -424,9 +486,7 @@ function sendAnswer() {
   line-height: 1.25;
   letter-spacing: -0.006em;
   color: theme('colors.blue.950');
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .dark .check-in__title {
@@ -488,7 +548,7 @@ function sendAnswer() {
 
 .check-in__status {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.3125rem;
   margin-top: 0.1875rem;
   font-size: 0.625rem;

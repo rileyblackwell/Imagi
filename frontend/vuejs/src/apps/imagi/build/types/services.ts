@@ -157,23 +157,12 @@ export type TaskReviewStatus =
   | 'dismissed';
 
 /** How a background task surfaces back into the main thread's queue. */
-export type CheckInKind = 'ready' | 'question' | 'error';
-
-/** Where a subagent's work stood when it reported into the main thread.
- *  'done' is work that applied itself and asks nothing of the user; the rest
- *  mirror the queue's check-in kinds. */
-export type TaskReportKind = 'done' | 'ready' | 'question' | 'error';
-
-/** A subagent arriving back in the main thread: the message carrying it is
- *  the subagent's own sign-off (or its question), and this says who sent it
- *  and where the work stands. */
-export interface TaskReport {
-  conversationId: number;
-  kind: TaskReportKind;
-  title: string;
-  /** What this subagent was asked for, in the user's language */
-  goal: string;
-}
+/** What a subagent put in the main thread's queue on its way out.
+ *  'done' is finished work already applied to the project — a notice to read,
+ *  never an approval to give; 'question' is the one thing a subagent needs
+ *  back; 'ready' is one of several takes waiting to be picked between; 'error'
+ *  is a run that died. */
+export type CheckInKind = 'done' | 'ready' | 'question' | 'error';
 
 /** One entry in the main thread's processing queue. */
 export interface CheckInDto {
@@ -190,6 +179,8 @@ export interface CheckInDto {
   task: {
     id: number;
     title: string;
+    /** The job in the user's own language — the name its card goes by */
+    goal: string;
     kind: ConversationKind;
     review_status: TaskReviewStatus;
     variant_group: string;
@@ -320,9 +311,6 @@ export interface AIMessage {
   /** Subagents the lead kicked off during this reply — rendered as links
    *  into their threads so the work is one click away from the main thread */
   dispatchedTasks?: DispatchedTaskRef[];
-  /** Set when this message is a subagent reporting back rather than the main
-   *  agent speaking: the content is that subagent's own words. */
-  taskReport?: TaskReport;
   /** Run usage, when the backend reported it (absent means unknown, never free) */
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number };
   /** Backend AgentMessage id, once known (hydration or the start event) */

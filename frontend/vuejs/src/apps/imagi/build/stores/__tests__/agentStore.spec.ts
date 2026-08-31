@@ -14,6 +14,8 @@ const agentService = vi.hoisted(() => ({
   acceptTask: vi.fn(),
   dismissTask: vi.fn(),
   restoreCheckpoint: vi.fn(),
+  listCheckIns: vi.fn(),
+  resolveCheckIn: vi.fn(),
 }))
 vi.mock('../../services/agentService', () => ({ AgentService: agentService }))
 
@@ -440,125 +442,155 @@ describe('agent store parallel subagents', () => {
   })
 })
 
-describe('agent store syncTaskReports', () => {
-  // Subagents post what they did straight into the main thread when their own
-  // run ends. This is the client noticing, while the user just sits there.
-  function report(id: number, kind: string, content: string) {
-    return {
-      id,
-      role: 'assistant' as const,
-      content,
-      timestamp: new Date().toISOString(),
-      taskReport: { conversationId: 77, kind, title: 'Job', goal: 'Doing a job.' },
-    }
-  }
-
+describe('agent store subagent outcomes', () => {
+  // A subagent's run ends in its own time, in parallel with everything else,
+  // and the queue is how a tab that is not streaming that run finds out. The
+  // outcome then belongs on the subagent's card in the main thread — the same
+  // card the dispatch put there — which is what these cover.
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
     Object.values(agentService).forEach((fn) => fn.mockReset())
+    agentService.listCheckIns.mockResolvedValue([])
   })
 
-  // The "what have I already pulled?" bookkeeping lives at module scope (it
-  // is about a fetch, not about rendered state), so each test gets its own
-  // lead conversation rather than inheriting the last one's high-water mark.
-  let nextLeadConversationId = 500
-  function storeWithLead() {
-    const store = useAgentStore()
-    const conversationId = nextLeadConversationId++
-    const lead = makeInstance({ kind: 'lead', conversationId, messagesLoaded: true })
-    store.instances = [lead]
-    store.activeInstanceId = lead.id
-    return { store, lead, conversationId }
+  function checkIn(id: number, taskId: number, kind: string, reviewStatus: string) {
+    return {
+      id,
+      kind,
+      body: 'Your home page now opens with a clear offer.',
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      resolved_at: null,
+      project_id: 1,
+      lead_id: 1,
+      task: {
+        id: taskId,
+        title: 'Home page',
+        goal: 'Redesigning your home page',
+        kind: 'task',
+        review_status: reviewStatus,
+        variant_group: '',
+        has_worktree: false,
+        is_running: false,
+      },
+    }
   }
 
-  it('appends a finished subagent report to the main thread', async () => {
-    const { store, lead, conversationId } = storeWithLead()
-    agentService.getConversationMessages.mockResolvedValue([
-      report(12, 'done', 'Your home page now opens with a clear offer.'),
+  function conversationDto(id: number, reviewStatus: string) {
+    return {
+      id,
+      title: 'Home page',
+      model_name: 'gpt-5.6-terra',
+      project_id: 1,
+      kind: 'task',
+      parent: 1,
+      review_status: reviewStatus,
+      variant_group: '',
+      has_worktree: false,
+      archived_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_message_preview: 'Your home page now opens with a clear offer.',
+      last_assistant_summary: 'Your home page now opens with a clear offer.',
+      brief: 'Redesigning your home page',
+      is_running: false,
+      total_tokens: 120,
+    }
+  }
+
+  /** A workspace with a lead thread and one subagent still showing as live. */
+  function workspace() {
+    const store = useAgentStore()
+    store.projectId = '1'
+    const lead = makeInstance({ kind: 'lead', conversationId: 1 })
+    const task = makeInstance({ kind: 'task', reviewStatus: 'active' })
+    store.instances = [lead, task]
+    store.activeInstanceId = lead.id
+    return { store, lead, task }
+  }
+
+  it('turns the subagent card over to what it did when it finishes', async () => {
+    const { store, task } = workspace()
+    agentService.listCheckIns.mockResolvedValue([
+      checkIn(1, task.conversationId!, 'done', 'accepted'),
     ])
-
-    await store.syncTaskReports()
-
-    expect(agentService.getConversationMessages).toHaveBeenCalledWith(conversationId, 0)
-    expect(lead.conversation).toHaveLength(1)
-    expect(lead.conversation[0]!.content).toBe(
-      'Your home page now opens with a clear offer.'
+    agentService.getConversation.mockResolvedValue(
+      conversationDto(task.conversationId!, 'accepted')
     )
-    expect(lead.conversation[0]!.taskReport?.kind).toBe('done')
-  })
 
-  it('leaves the main agent\'s own replies to the transcript that has them', async () => {
-    // They are already on screen from the run that streamed them; re-adding
-    // the persisted copy would show every reply twice.
-    const { store, lead } = storeWithLead()
-    agentService.getConversationMessages.mockResolvedValue([
-      { id: 13, role: 'assistant', content: 'On it.', timestamp: '' },
-    ])
+    await store.loadCheckIns()
+    await Promise.resolve()
+    await Promise.resolve()
 
-    await store.syncTaskReports()
-
-    expect(lead.conversation).toHaveLength(0)
+    expect(task.reviewStatus).toBe('accepted')
+    expect(task.lastAssistantSummary)
+      .toBe('Your home page now opens with a clear offer.')
   })
 
   it('refreshes the project once when a subagent applies its work', async () => {
-    const { store } = storeWithLead()
+    const { store, task } = workspace()
     const applied = vi.fn()
     store.setTaskAppliedHandler(applied)
-    agentService.getConversationMessages
-      .mockResolvedValueOnce([report(14, 'done', 'Landed.')])
-      .mockResolvedValueOnce([])
+    agentService.listCheckIns.mockResolvedValue([
+      checkIn(2, task.conversationId!, 'done', 'accepted'),
+    ])
+    agentService.getConversation.mockResolvedValue(
+      conversationDto(task.conversationId!, 'accepted')
+    )
 
-    await store.syncTaskReports()
-    await store.syncTaskReports()
+    await store.loadCheckIns()
+    await Promise.resolve()
+    await Promise.resolve()
 
     expect(applied).toHaveBeenCalledTimes(1)
   })
 
-  it('does not refresh the project for work still waiting on the user', async () => {
-    const { store } = storeWithLead()
-    const applied = vi.fn()
-    store.setTaskAppliedHandler(applied)
-    agentService.getConversationMessages.mockResolvedValue([
-      report(15, 'question', 'Stripe or PayPal?'),
+  it('reacts to a queue entry once however long it sits there', async () => {
+    // The card stays up until the user clears it. Re-reacting every poll
+    // would refetch the conversation every six seconds for as long as it does.
+    const { store, task } = workspace()
+    agentService.listCheckIns.mockResolvedValue([
+      checkIn(3, task.conversationId!, 'done', 'accepted'),
+    ])
+    agentService.getConversation.mockResolvedValue(
+      conversationDto(task.conversationId!, 'accepted')
+    )
+
+    await store.loadCheckIns()
+    await Promise.resolve()
+    await store.loadCheckIns()
+    await store.loadCheckIns()
+
+    expect(agentService.getConversation).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves a subagent this tab is still streaming alone', async () => {
+    // This tab is driving that run and already has the truth; refetching
+    // would only race the stream writing into it.
+    const { store, task } = workspace()
+    task.isProcessing = true
+    agentService.listCheckIns.mockResolvedValue([
+      checkIn(4, task.conversationId!, 'done', 'accepted'),
     ])
 
-    await store.syncTaskReports()
+    await store.loadCheckIns()
 
-    expect(applied).not.toHaveBeenCalled()
+    expect(agentService.getConversation).not.toHaveBeenCalled()
   })
 
   it('flags the main thread unread when the user is reading elsewhere', async () => {
-    const { store, lead } = storeWithLead()
+    const { store, lead, task } = workspace()
     store.activeInstanceId = 'somewhere-else'
-    agentService.getConversationMessages.mockResolvedValue([
-      report(16, 'done', 'Landed.'),
+    agentService.listCheckIns.mockResolvedValue([
+      checkIn(5, task.conversationId!, 'question', 'input'),
     ])
+    agentService.getConversation.mockResolvedValue(
+      conversationDto(task.conversationId!, 'input')
+    )
 
-    await store.syncTaskReports()
+    await store.loadCheckIns()
 
     expect(lead.hasUnread).toBe(true)
-  })
-
-  it('waits for a streaming reply to finish before appending under it', async () => {
-    const { store, lead } = storeWithLead()
-    lead.isProcessing = true
-
-    await store.syncTaskReports()
-
-    expect(agentService.getConversationMessages).not.toHaveBeenCalled()
-  })
-
-  it('asks only for what has arrived since the last look', async () => {
-    const { store, conversationId } = storeWithLead()
-    agentService.getConversationMessages
-      .mockResolvedValueOnce([report(20, 'done', 'Landed.')])
-      .mockResolvedValueOnce([])
-
-    await store.syncTaskReports()
-    await store.syncTaskReports()
-
-    expect(agentService.getConversationMessages)
-      .toHaveBeenLastCalledWith(conversationId, 20)
   })
 })
