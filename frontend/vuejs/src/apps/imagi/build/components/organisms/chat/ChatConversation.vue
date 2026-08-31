@@ -43,6 +43,15 @@
               class="msg-row assistant-response"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
+              <!-- Not the main agent talking: a subagent that just finished
+                   (or stopped to ask something) posting into this thread. The
+                   byline says whose words follow and where the work stands;
+                   the words themselves render below like any other reply. -->
+              <TaskReportByline
+                v-if="message.taskReport"
+                :report="message.taskReport"
+                @open="emit('open-task', message.taskReport.conversationId)"
+              />
               <AgentActivityFeed
                 v-if="activityVisible && message.activity?.length"
                 :steps="message.activity"
@@ -140,6 +149,7 @@ import type { AgentInstance, AIMessage } from '@/apps/imagi/build/types/services
 import AgentActivityFeed from '@/apps/imagi/build/components/molecules/chat/AgentActivityFeed.vue'
 import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/AgentPlanChecklist.vue'
 import DispatchCard from '@/apps/imagi/build/components/molecules/chat/DispatchCard.vue'
+import TaskReportByline from '@/apps/imagi/build/components/molecules/chat/TaskReportByline.vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
 
 marked.setOptions({

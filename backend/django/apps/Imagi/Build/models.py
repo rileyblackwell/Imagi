@@ -42,6 +42,16 @@ KIND_CHOICES = (
 # edit only their own worktree, so they sit outside the canonical busy guard.
 CANONICAL_TREE_KINDS = ('chat', 'lead')
 
+# Kinds whose runs actually WRITE to the canonical tree, and so must not race a
+# merge, a restore, or another writer. Narrower than CANONICAL_TREE_KINDS on
+# purpose: the lead thread coordinates and has no file-editing tools at all, so
+# a live lead run leaves no half-written edits behind and nothing it does can
+# collide with a merge. Only the legacy 'chat' kind still edits the tree
+# directly. Guarding merges on the wider set meant a subagent that happened to
+# finish while the user was mid-sentence with the main agent lost its automatic
+# apply and fell back to a review card nobody asked for.
+TREE_WRITING_KINDS = ('chat',)
+
 # Review lifecycle for kind='task' conversations ('' for everything else):
 # active (running/being worked) -> ready (final reply persisted, awaiting
 # review) -> accepted (merged into the canonical tree) or dismissed. A task

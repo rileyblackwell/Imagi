@@ -115,6 +115,17 @@ COMPACTED_SNIPPET_CHARS = 120
 # How many pages a capped run's note names before summarizing the rest.
 CAPPED_NOTE_MAX_PAGES = 6
 
+# How a subagent's outcome reads when it lands back in the main thread.
+# 'done' is work that applied itself and needs nothing from the user; the other
+# three mirror the check-in kinds, so every card in the queue has a matching
+# entry in the transcript.
+TASK_REPORT_KINDS = ('done', 'ready', 'question', 'error')
+
+# Cap on a report's text. It is the subagent's own sign-off, which the prompt
+# holds to a short paragraph, so this is a runaway guard rather than a display
+# length — and it matches the check-in body cap, since they carry the same text.
+TASK_REPORT_MAX_CHARS = 2000
+
 # Model used to auto-name a conversation from its opening exchange. Always the
 # smallest suite tier (Luna) so naming a thread costs the least usage possible —
 # it should never feel like it competes with the build itself. Resolved through
@@ -651,6 +662,35 @@ def build_message_metadata(
     return metadata or None
 
 
+# How a stored subagent report reads back to the lead model. The stored text
+# is the subagent's own words to the user; this says whose words they are and
+# what state the work is in, so the lead neither claims them nor loses them.
+_TASK_REPORT_LABELS = {
+    'done': 'finished and applied its work',
+    'ready': 'finished; its work is waiting for the user to review',
+    'question': 'stopped to ask the user a question',
+    'error': 'stopped before finishing',
+}
+
+
+def _label_task_report(message) -> str:
+    """A message's content as the lead model should read it.
+
+    Plain messages pass through untouched; a subagent's report is prefixed with
+    who it came from and where that work stands.
+    """
+    metadata = message.metadata if isinstance(message.metadata, dict) else None
+    report = (metadata or {}).get('task_report')
+    if not isinstance(report, dict):
+        return message.content
+    job = (report.get('goal') or report.get('title') or '').strip()
+    state = _TASK_REPORT_LABELS.get(report.get('kind'), 'reported back')
+    header = f"[Subagent report] The subagent you dispatched {state}"
+    if job:
+        header += f'. Its job: "{job}"'
+    return f"{header}. In its own words:\n{message.content}"
+
+
 @dataclass
 class AgentContext:
     """Context object passed to all agents during a run."""
@@ -889,17 +929,26 @@ class ImagiAgentService:
             logger.warning(f"Could not record usage event: {e}")
 
     def build_conversation_history(self, conversation: AgentConversation) -> List[Dict[str, str]]:
-        """Build conversation history for the agent, compacting when long."""
+        """Build conversation history for the agent, compacting when long.
+
+        A subagent's report is stored in the main thread as an assistant
+        message, because that is what it is to the user reading it. To the lead
+        model it is something else — a message it did not write, about work it
+        did not do — so it is labelled on the way in. Without that the lead
+        reads its subagents' sign-offs as its own memories and starts claiming
+        their work turn by turn; with it, the lead can answer "what did you
+        change?" and know who changed it.
+        """
         messages = []
 
         history_messages = AgentMessage.objects.filter(
             conversation=conversation
-        ).order_by('created_at')
+        ).order_by('created_at', 'id')
 
         for msg in history_messages:
             messages.append({
                 "role": msg.role,
-                "content": msg.content
+                "content": _label_task_report(msg)
             })
 
         return compact_history(messages)
@@ -1106,7 +1155,15 @@ class ImagiAgentService:
         return worktree_path
 
     def _project_has_live_canonical_run(self, user, project_id) -> bool:
-        """Is a canonical-tree (chat/lead) run in flight for this project?
+        """Is a run that WRITES the canonical tree in flight for this project?
+
+        Guards the two places a task touches the shared tree: snapshotting it
+        into a new worktree, and merging back into it. Scoped to the kinds that
+        actually edit it — the lead thread coordinates and has no file tools, so
+        a live lead run neither leaves half-written edits to snapshot nor
+        anything a merge could collide with. Counting it meant a subagent that
+        finished while the user was mid-sentence with the main agent silently
+        lost its automatic apply.
 
         Delegates to the API layer's guard so the staleness window stays
         defined in one place (lazy import: views imports this module at load
@@ -1115,8 +1172,11 @@ class ImagiAgentService:
         if not project_id:
             return False
         try:
+            from ..models import TREE_WRITING_KINDS
             from ..api.views import _project_has_running_conversation
-            return _project_has_running_conversation(user, project_id)
+            return _project_has_running_conversation(
+                user, project_id, kinds=TREE_WRITING_KINDS
+            )
         except Exception as e:  # pragma: no cover - defensive
             logger.warning(f"Could not check for a live canonical run: {e}")
             return False
@@ -1132,7 +1192,13 @@ class ImagiAgentService:
             logger.warning(f"Could not resolve pending check-ins: {e}")
 
     def _file_check_in(self, conversation, kind: str, body: str) -> None:
-        """File one entry into the lead thread's processing queue.
+        """Route one outcome back to the main thread: a queue card and a report.
+
+        The card is the decision the user owes this subagent; the report is the
+        line in the main thread's transcript saying it came back, and what it
+        said. Both, always: the queue is what the user acts on, the transcript
+        is what they read, and an outcome that only reached one of them either
+        looks like an unexplained demand or gets lost.
 
         Best-effort by contract: queueing must never fail the run whose
         outcome it reports. Any older pending entry for the same task is
@@ -1149,10 +1215,68 @@ class ImagiAgentService:
                 conversation=conversation,
                 lead=conversation.parent,
                 kind=kind,
-                body=(body or '').strip()[:2000],
+                body=(body or '').strip()[:TASK_REPORT_MAX_CHARS],
             )
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not file {kind} check-in: {e}")
+        self._report_to_lead(conversation, kind, body)
+
+    def _report_to_lead(self, conversation, kind: str, body: str) -> None:
+        """Post a subagent's outcome into the main thread as its own message.
+
+        Subagents run in parallel and finish whenever they finish, so this is
+        how each one comes back: the moment its run ends it writes what it did
+        (or what it needs) into the thread the user is actually sitting in,
+        without waiting for the ones dispatched before it. The dispatch card
+        already tracks the same subagent, but that card lives wherever the
+        kickoff happened — scrolled far up the thread by the time three
+        subagents are running — so a finish nobody sees is a finish that did
+        not happen. This is the arrival.
+
+        It also puts the outcome in the lead agent's own history, which is what
+        lets the next turn answer "what did you change?" instead of the model
+        having no idea what its subagents did.
+
+        One report per subagent at a time: filing a new one deletes that task's
+        previous report, so a task that reports again (a repair round, a
+        question answered and the work finished) reads as one arrival at its
+        latest position, not a pile of superseded status lines.
+
+        Best-effort by contract, like the check-in it accompanies.
+        """
+        if getattr(conversation, 'kind', 'chat') != 'task':
+            return
+        lead = getattr(conversation, 'parent', None)
+        # No lead thread (archived, deleted, or a task created outside one)
+        # means nowhere to report; the queue still holds the decision.
+        if lead is None or getattr(lead, 'kind', '') != 'lead':
+            return
+        text = (body or '').strip()[:TASK_REPORT_MAX_CHARS]
+        if not text:
+            return
+        try:
+            AgentMessage.objects.filter(
+                conversation=lead, metadata__task_report__conversation_id=conversation.id
+            ).delete()
+            AgentMessage.objects.create(
+                conversation=lead,
+                role='assistant',
+                content=text,
+                metadata={
+                    'task_report': {
+                        'conversation_id': conversation.id,
+                        'kind': kind if kind in TASK_REPORT_KINDS else 'done',
+                        'title': conversation.title or '',
+                        # What this subagent was asked for, in the user's own
+                        # language — the report is only meaningful next to it.
+                        'goal': (getattr(conversation, 'goal', '') or '')[:400],
+                    }
+                },
+            )
+            # The main thread just changed; keep it at the top of the sidebar.
+            lead.save(update_fields=['updated_at'])
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not report task {conversation.id} to its lead: {e}")
 
     def _park_failed_task(self, conversation, note: str) -> None:
         """Route a run that died back to the main thread.
@@ -1245,15 +1369,19 @@ class ImagiAgentService:
     def _finalize_task_run(self, conversation, context, response_content: str) -> None:
         """Route a finished task run back to the main thread.
 
-        A run that ended on ask_user parks the task at 'input' and queues the
-        question. A run that finished its work applies itself: a solo task
-        auto-merges into the project and queues nothing at all — its 'subagent
-        complete' outcome and the summary of what it did live on the dispatch
-        card in the main thread, which is a record to read rather than a card
-        to clear. Variant
-        takes (built to compare) and any task whose auto-merge can't run
-        cleanly fall back to a 'ready' review card the user picks or merges by
-        hand. Either way the task never interrupts the user directly.
+        Every ending arrives the same way: the subagent posts what it has to
+        say into the main thread's transcript, the moment it has to say it. The
+        subagents run in parallel and land in whatever order they finish, so
+        the first one done is the first one the user reads — none of them waits
+        on the ones dispatched before it.
+
+        What differs is whether the arrival is also a decision. A run that
+        ended on ask_user parks the task at 'input' and queues its question. A
+        solo task that finished its work auto-merges into the project and
+        queues nothing: its report says what changed and there is nothing left
+        to clear. Variant takes (built to compare) and any task whose
+        auto-merge can't run cleanly fall back to a 'ready' review card. Either
+        way the task never interrupts the user directly.
         """
         # getattr: test doubles stand in for the conversation here.
         if getattr(conversation, 'kind', 'chat') != 'task':
@@ -1276,10 +1404,12 @@ class ImagiAgentService:
             and self._auto_apply_task(conversation)
         )
         if applied:
-            # Nothing is being asked, so nothing goes in the queue: the work
-            # is already in the app and the thread's dispatch card reports it.
-            # Any entry an earlier run of this task left behind is stale now.
+            # Nothing is being asked, so nothing goes in the queue — but the
+            # user still has to hear that it landed, so the sign-off goes to
+            # the main thread as a report. Any queue entry an earlier run of
+            # this task left behind is stale now.
             self._resolve_pending_check_ins(conversation)
+            self._report_to_lead(conversation, 'done', response_content)
             return
         try:
             conversation.review_status = 'ready'

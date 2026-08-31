@@ -310,6 +310,18 @@ IMAGI_BUILDER = {
     # what a run costs, so this is the direct lever on what a stuck task can
     # spend before it asks for help.
     'TASK_AUTO_CONTINUE_ROUNDS': 2,
+    # How many background subagents one user may have running at once, across
+    # every project. Working in parallel is the point of dispatching them —
+    # each builds in its own git worktree and merges itself when it finishes —
+    # so this is only a bound on how far a burst of them can overshoot the plan
+    # allowance (which is read before a run and debited after it).
+    'MAX_CONCURRENT_TASK_RUNS': 5,
+    # The same bound for the threads the user actually types in. Counted
+    # separately from the subagents on purpose: a busy set of background agents
+    # must never make the main thread unusable. One live run per project is
+    # already enforced elsewhere, so this only bounds a user driving several
+    # projects at once.
+    'MAX_CONCURRENT_CANONICAL_RUNS': 3,
     # Initial build (the first build of a new project, dispatched from the
     # project's main thread to a background subagent) runs headless and
     # unattended, so it gets its own model and tighter caps.

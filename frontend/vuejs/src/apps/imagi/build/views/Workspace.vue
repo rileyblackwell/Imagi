@@ -607,6 +607,27 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
           timestamp: new Date().toISOString(),
           id: `system-busy-${Date.now()}`
         })
+      } else if (
+        (agentError as any)?.status === 429
+        && ((agentError as any)?.body as any)?.error === 'too_many_concurrent_runs'
+      ) {
+        // Every parallel slot is taken. Nothing is wrong and nothing is lost:
+        // the message never reached the backend, so the optimistic bubble goes
+        // (it would silently disappear on reload otherwise). A subagent simply
+        // waits its turn — its brief goes back in the queue and starts when a
+        // slot frees. A thread the user typed in has to be told, because they
+        // are sitting there waiting for a reply that is not coming.
+        store.removeMessage(instanceId, userMessageId)
+        if (isTaskRun) {
+          store.requeueDispatch(instanceId, promptText)
+        } else {
+          store.addMessageToInstance(instanceId, {
+            role: 'assistant',
+            content: 'Too many agents are running at once — wait for one to finish, then send that again.',
+            timestamp: new Date().toISOString(),
+            id: `system-busy-${Date.now()}`
+          })
+        }
       } else if ((agentError as any)?.status === 429) {
         // Usage limit hit (pre-stream rejection, like the 409): the message
         // never reached the backend, so drop the optimistic bubble too.
@@ -661,12 +682,15 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
     })
   } finally {
     store.setInstanceProcessing(instanceId, false)
-    // A task's run end flips it ready-for-review server-side (and grows its
-    // token total) — sync this instance's DTO fields so the review inbox
-    // picks it up without a reload.
+    // A task's run end flips it ready-for-review (or applies it) server-side
+    // and grows its token total — sync this instance's DTO fields so the review
+    // inbox picks it up without a reload. The run also posted what it did into
+    // the main thread, so pull that in now: a subagent finishing is news, and
+    // waiting a poll tick to show it is a beat of nothing happening.
     const finished = store.instances.find(i => i.id === instanceId)
     if (finished?.kind === 'task') {
       void store.refreshInstanceFromServer(instanceId)
+      void store.syncTaskReports()
     }
   }
 }
@@ -831,6 +855,13 @@ onMounted(async () => {
   // user gives to a subagent's question from the check-in queue.
   store.setTaskRunner((instanceId, taskPrompt) => {
     void handlePrompt(taskPrompt, instanceId)
+  })
+
+  // A subagent merged its work into the project while the user was doing
+  // something else: the file tree and the preview are showing the app as it
+  // was, so bring both up to date.
+  store.setTaskAppliedHandler(() => {
+    void handleTaskAccepted()
   })
 
   // Get project name from route params (URL slug)
@@ -1041,6 +1072,7 @@ onBeforeUnmount(() => {
   // These close over this view's handlePrompt; they must not outlive it.
   store.setQueuedPromptSender(null)
   store.setTaskRunner(null)
+  store.setTaskAppliedHandler(null)
   // The check-in queue only matters while the workspace is open.
   store.stopCheckInPolling()
   // Conversations are persisted server-side; no local cleanup needed.

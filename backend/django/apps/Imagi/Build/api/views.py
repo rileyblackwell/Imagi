@@ -18,8 +18,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import Case, IntegerField, Value, When
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -27,7 +27,13 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from ..models import AgentCheckIn, AgentConversation, AgentMessage, CANONICAL_TREE_KINDS
+from ..models import (
+    AgentCheckIn,
+    AgentConversation,
+    AgentMessage,
+    CANONICAL_TREE_KINDS,
+    TREE_WRITING_KINDS,
+)
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
 from ..services.usage_limits import check_usage_allowed
 from ..services.create_file_service import CreateFileService
@@ -50,6 +56,10 @@ from ..services.version_control_service import (
 from ..services.create_app_service import CreateAppService
 
 logger = logging.getLogger(__name__)
+
+# Platform defaults for the builder (see IMAGI_BUILDER in imagi/settings.py);
+# the fallbacks below keep tests and scripts working without it.
+_BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 @method_decorator(never_cache, name='dispatch')
 class ProjectDirectoriesView(APIView):
@@ -872,14 +882,37 @@ async def agent_stream(request):
     # Concurrency ceiling, checked with the allowance below: the allowance is
     # read before a run and written after it, so unbounded parallel runs would
     # each be admitted against the same pre-run total.
+    #
+    # Background subagents and the threads the user types in are counted
+    # SEPARATELY, against their own ceilings. Sharing one budget meant the
+    # subagents crowded the user out of their own main thread — three of them
+    # working was the whole ceiling, so the next message to the main agent came
+    # back 429 — and, worse, the lead's own in-flight run counted against the
+    # tasks it was dispatching, so the third subagent of a three-way dispatch
+    # was refused at birth. They are different resources and they get different
+    # budgets: the main thread is never blocked by work it delegated.
+    is_task_run = conversation is not None and conversation.kind == 'task'
     running = await sync_to_async(_user_running_run_count)(
-        user, exclude_conversation_id=conversation_id
+        user,
+        exclude_conversation_id=conversation_id,
+        kinds=('task',) if is_task_run else CANONICAL_TREE_KINDS,
     )
-    if running >= MAX_CONCURRENT_RUNS_PER_USER:
+    ceiling = (
+        MAX_CONCURRENT_TASK_RUNS_PER_USER if is_task_run
+        else MAX_CONCURRENT_CANONICAL_RUNS_PER_USER
+    )
+    if running >= ceiling:
         return JsonResponse(
             {
                 'error': 'too_many_concurrent_runs',
+                # Which budget was spent: the client re-queues a refused
+                # subagent (its brief is still staged) but has to tell the
+                # user about a refused message.
+                'scope': 'task' if is_task_run else 'canonical',
                 'detail': (
+                    'You already have the maximum number of background agents '
+                    'running. This one starts as soon as a slot frees up.'
+                    if is_task_run else
                     'You already have the maximum number of agent runs in '
                     'progress. Wait for one to finish and try again.'
                 ),
@@ -933,11 +966,23 @@ async def agent_stream(request):
 # measures silence since the last event, not total run duration.
 RUN_STALENESS_WINDOW = timedelta(minutes=10)
 
-# Ceiling on one user's simultaneously-running agent runs, across every project
-# and conversation kind. Task runs are meant to run in parallel with the lead
-# and each other, so this is deliberately above 1 — it exists to bound the
-# usage-allowance overshoot in _user_running_run_count, not to serialize work.
-MAX_CONCURRENT_RUNS_PER_USER = 3
+# Ceilings on one user's simultaneously-running agent runs, across every
+# project. They exist to bound the usage-allowance overshoot described in
+# _user_running_run_count, not to serialize work, so they are counted per
+# resource rather than as one pooled total.
+#
+# Background subagents get the roomy one: running several at once is the point
+# of dispatching them, and each is isolated in its own git worktree.
+MAX_CONCURRENT_TASK_RUNS_PER_USER = _BUILDER_SETTINGS.get(
+    'MAX_CONCURRENT_TASK_RUNS', 5
+)
+# Threads the user types in (lead/chat) get their own, so a busy set of
+# subagents can never make the main thread unusable. The per-project busy guard
+# already allows just one of these per project; this only bounds a user driving
+# several projects at once.
+MAX_CONCURRENT_CANONICAL_RUNS_PER_USER = _BUILDER_SETTINGS.get(
+    'MAX_CONCURRENT_CANONICAL_RUNS', 3
+)
 
 
 def _conversation_is_running(conversation):
@@ -970,7 +1015,7 @@ def _project_has_running_conversation(
     return qs.exists()
 
 
-def _user_running_run_count(user, exclude_conversation_id=None):
+def _user_running_run_count(user, exclude_conversation_id=None, kinds=None):
     """How many of this user's runs are in flight, across every project.
 
     The plan allowance is checked before a run and only debited after it, so
@@ -979,9 +1024,14 @@ def _user_running_run_count(user, exclude_conversation_id=None):
     it a user can start arbitrarily many runs on a single window's headroom.
     Uses the same fresh-run_started_at signal (and staleness window) as the
     agent_busy guards, so a crashed worker cannot wedge a user out.
+
+    `kinds` narrows the count to one budget — background subagents, or the
+    threads the user types in — so neither can crowd the other out.
     """
     threshold = timezone.now() - RUN_STALENESS_WINDOW
     qs = AgentConversation.objects.filter(user=user, run_started_at__gt=threshold)
+    if kinds:
+        qs = qs.filter(kind__in=kinds)
     if exclude_conversation_id:
         qs = qs.exclude(id=exclude_conversation_id)
     return qs.count()
@@ -1466,10 +1516,13 @@ def conversation_accept(request, conversation_id):
         )
     if _conversation_is_running(conversation):
         return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
-    # The merge also rewrites the canonical tree, so it needs the same
-    # guard as version resets: no canonical-tree (chat/lead) run may be live.
+    # The merge rewrites the canonical tree, so no run that WRITES that tree
+    # may be live. Deliberately not the wider canonical-tree set: the lead
+    # thread has no file tools, so merging while the user is mid-conversation
+    # with it is safe — and refusing there would mean finished work sitting
+    # unapplied for as long as the user keeps talking.
     if conversation.project_id and _project_has_running_conversation(
-        request.user, conversation.project_id
+        request.user, conversation.project_id, kinds=TREE_WRITING_KINDS
     ):
         return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
 
@@ -1574,13 +1627,13 @@ def _serialize_check_in(check_in):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_ins_list(request):
-    """The check-in queue for a project, most blocking first, then FIFO.
+    """The check-in queue for a project: first in, first out.
 
-    A question is a subagent standing still until it hears back, so it goes to
-    the front of the queue; an error is a task that has stopped; a 'ready'
-    card is finished work waiting to be merged, which blocks nobody. Within a
-    kind the order is FIFO, so nothing waits behind a newer item of its own
-    urgency.
+    Several subagents work at once, so several can come back within seconds of
+    each other. They queue in the order they arrived and the user works through
+    them one card at a time — no ranking, because the order things happened in
+    is the one order the user can predict, and every entry here is a decision
+    that has to be made either way.
 
     Pending only by default — the queue the lead thread renders. Pass
     ?status=all for history.
@@ -1613,15 +1666,9 @@ def check_ins_list(request):
                 status='resolved', resolved_at=timezone.now()
             )
             qs = qs.exclude(id__in=applied)
-    qs = qs.annotate(
-        urgency=Case(
-            When(kind='question', then=Value(0)),
-            When(kind='error', then=Value(1)),
-            default=Value(2),
-            output_field=IntegerField(),
-        )
-    )
-    data = [_serialize_check_in(ci) for ci in qs.order_by('urgency', 'created_at')]
+    # created_at can collide within a burst of simultaneous finishes; id
+    # breaks the tie in arrival order so the queue is stable across polls.
+    data = [_serialize_check_in(ci) for ci in qs.order_by('created_at', 'id')]
     return Response(data, status=status.HTTP_200_OK)
 
 
@@ -1645,10 +1692,23 @@ def check_in_resolve(request, check_in_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def conversation_messages(request, conversation_id):
-    """Return messages for a conversation."""
+    """Return messages for a conversation.
+
+    ?after_id=<id> returns only what was added after that message. The main
+    thread uses it to pick up reports its subagents filed while the user was
+    sitting in it, without refetching (and re-rendering) a transcript that may
+    have a run streaming into it right now.
+    """
     conversation = get_object_or_404(
         AgentConversation, id=conversation_id, user=request.user
     )
+    queryset = conversation.messages.order_by('created_at', 'id')
+    after_id = request.query_params.get('after_id')
+    if after_id:
+        try:
+            queryset = queryset.filter(id__gt=int(after_id))
+        except (ValueError, TypeError):
+            return create_error_response('Invalid after_id', status.HTTP_400_BAD_REQUEST)
     messages = [
         {
             'id': m.id,
@@ -1657,6 +1717,6 @@ def conversation_messages(request, conversation_id):
             'timestamp': m.created_at.isoformat(),
             'metadata': m.metadata,
         }
-        for m in conversation.messages.order_by('created_at')
+        for m in queryset
     ]
     return Response(messages, status=status.HTTP_200_OK)
