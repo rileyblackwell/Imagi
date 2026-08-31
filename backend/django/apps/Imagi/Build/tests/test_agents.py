@@ -7,6 +7,7 @@ loading. The tools are tested through their plain implementation functions so
 no OpenAI calls are made.
 """
 
+import json
 import os
 import shutil
 import tempfile
@@ -23,7 +24,10 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
-from apps.Imagi.Build.api.views import _project_has_running_conversation
+from apps.Imagi.Build.api.views import (
+    MAX_CONCURRENT_TASK_RUNS_PER_USER,
+    _project_has_running_conversation,
+)
 from apps.Imagi.Build.models import AgentCheckIn, AgentConversation, AgentMessage
 from apps.Imagi.Build.services.base_agent import (
     CAPPED_NOTE_MAX_PAGES,
@@ -63,6 +67,17 @@ from apps.Imagi.Build.services.tools import (
 )
 from apps.Payments.models import UsageEvent
 from apps.Payments.services.plans import PLANS
+
+
+async def _empty_stream():
+    """A stream that opens and produces nothing.
+
+    The endpoint's admission checks all run before the response is returned,
+    so a test asking "was this run allowed to start?" only needs the run
+    itself to be a no-op.
+    """
+    return
+    yield  # pragma: no cover - makes this an async generator
 
 
 class ToolTestBase(SimpleTestCase):
@@ -663,6 +678,98 @@ class AgentStreamEndpointTests(TestCase):
         self.assertIsNotNone(body['resets_at'])
 
 
+class ParallelRunCeilingTests(TestCase):
+    """Subagents and the threads the user types in have separate budgets.
+
+    Sharing one ceiling made the two compete: the lead's own in-flight run
+    counted against the subagents it was dispatching (so the third of a
+    three-way dispatch was refused at birth), and three working subagents
+    locked the user out of their own main thread.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='parallel', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.url = reverse('agent_stream')
+        self.lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='lead'
+        )
+
+    def _task(self, running=False):
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='task',
+            parent=self.lead, review_status='active',
+            run_started_at=timezone.now() if running else None,
+        )
+
+    def _start(self, conversation):
+        return self.client.post(
+            self.url,
+            data=json.dumps({
+                'message': 'go', 'project_id': 1,
+                'conversation_id': conversation.id,
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {self.token.key}',
+        )
+
+    def test_a_third_subagent_starts_while_the_lead_run_is_still_streaming(self):
+        # The lead dispatches three jobs in one turn: its own run is still in
+        # flight when the client fires them, and all three have to start.
+        self.lead.run_started_at = timezone.now()
+        self.lead.save(update_fields=['run_started_at'])
+        self._task(running=True)
+        self._task(running=True)
+
+        with patch(
+            'apps.Imagi.Build.api.views.ImagiAgentService.process_stream',
+            side_effect=lambda **kwargs: _empty_stream(),
+        ):
+            resp = self._start(self._task())
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_the_main_thread_is_never_blocked_by_its_own_subagents(self):
+        # Every subagent slot is taken. The user must still be able to talk to
+        # the main agent — that thread is the one place they can steer any of
+        # this from.
+        for _ in range(MAX_CONCURRENT_TASK_RUNS_PER_USER):
+            self._task(running=True)
+
+        with patch(
+            'apps.Imagi.Build.api.views.ImagiAgentService.process_stream',
+            side_effect=lambda **kwargs: _empty_stream(),
+        ):
+            resp = self._start(self.lead)
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_a_subagent_past_the_ceiling_is_told_to_wait_its_turn(self):
+        for _ in range(MAX_CONCURRENT_TASK_RUNS_PER_USER):
+            self._task(running=True)
+
+        resp = self._start(self._task())
+
+        self.assertEqual(resp.status_code, 429)
+        body = resp.json()
+        self.assertEqual(body['error'], 'too_many_concurrent_runs')
+        # The client re-queues a refused subagent rather than telling the user
+        # anything, so it has to be able to tell the two budgets apart.
+        self.assertEqual(body['scope'], 'task')
+
+    def test_several_subagents_run_at_once_below_the_ceiling(self):
+        for _ in range(MAX_CONCURRENT_TASK_RUNS_PER_USER - 1):
+            self._task(running=True)
+
+        with patch(
+            'apps.Imagi.Build.api.views.ImagiAgentService.process_stream',
+            side_effect=lambda **kwargs: _empty_stream(),
+        ):
+            resp = self._start(self._task())
+
+        self.assertEqual(resp.status_code, 200)
+
+
 class ProjectBusyGuardTests(TestCase):
     """The one-run-per-project guard behind the stream endpoint's 409."""
 
@@ -797,6 +904,40 @@ class ConversationMessagesMetadataTests(TestCase):
         messages = resp.json()
         self.assertIsNone(messages[0]['metadata'])
         self.assertEqual(messages[1]['metadata'], metadata)
+
+    def test_after_id_returns_only_what_arrived_since(self):
+        # How the main thread picks up reports its subagents filed while the
+        # user was sitting in it: it asks for what is new rather than
+        # refetching a transcript that may have a run streaming into it.
+        conversation = ImagiAgentService().create_conversation(
+            self.user, 'gpt-5.6-sol', project_id=1
+        )
+        seen = AgentMessage.objects.create(
+            conversation=conversation, role='user', content='hi'
+        )
+        arrived = AgentMessage.objects.create(
+            conversation=conversation, role='assistant', content='a subagent landed'
+        )
+
+        resp = self.client.get(
+            reverse('conversation_messages', args=[conversation.id]),
+            {'after_id': seen.id},
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([m['id'] for m in resp.json()], [arrived.id])
+
+    def test_a_bad_after_id_is_rejected_rather_than_ignored(self):
+        conversation = ImagiAgentService().create_conversation(
+            self.user, 'gpt-5.6-sol', project_id=1
+        )
+
+        resp = self.client.get(
+            reverse('conversation_messages', args=[conversation.id]),
+            {'after_id': 'nope'},
+        )
+
+        self.assertEqual(resp.status_code, 400)
 
 
 class ConversationTotalTokensTests(TestCase):
@@ -1807,7 +1948,7 @@ class ParkCappedTaskTests(TestCase):
 
 
 class CheckInQueueOrderTests(TestCase):
-    """Queue order: what blocks a subagent comes before what blocks nobody."""
+    """Queue order: first in, first out, whatever came back."""
 
     def setUp(self):
         self.user = User.objects.create_user(username='queuer', password='pw123456')
@@ -1840,17 +1981,32 @@ class CheckInQueueOrderTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
-    def test_a_question_jumps_ahead_of_older_finished_work(self):
-        self._check_in('ready', minutes_ago=30)
-        self._check_in('error', minutes_ago=20)
+    def test_the_queue_is_the_order_things_came_back(self):
+        # Several subagents working at once come back whenever they finish,
+        # and the user works down the pile in that order. Nothing is ranked:
+        # a queue that reshuffles itself as new items land is one the user
+        # cannot predict, and every entry here is a decision either way.
+        finished = self._check_in('ready', minutes_ago=30)
+        failed = self._check_in('error', minutes_ago=20)
         question = self._check_in('question', minutes_ago=1)
 
         queue = self._queue()
-        self.assertEqual(queue[0]['id'], question.id)
-        self.assertEqual([c['kind'] for c in queue], ['question', 'error', 'ready'])
+        self.assertEqual(
+            [c['id'] for c in queue], [finished.id, failed.id, question.id]
+        )
 
     def test_questions_among_themselves_stay_fifo(self):
         first = self._check_in('question', minutes_ago=10)
         second = self._check_in('question', minutes_ago=5)
 
         self.assertEqual([c['id'] for c in self._queue()], [first.id, second.id])
+
+    def test_a_burst_of_simultaneous_finishes_keeps_its_arrival_order(self):
+        # Five subagents landing inside the same second share a created_at, so
+        # ordering on the timestamp alone would let the queue shuffle between
+        # polls. Arrival order is the tiebreak.
+        filed = [self._check_in('question', minutes_ago=0) for _ in range(5)]
+
+        self.assertEqual(
+            [c['id'] for c in self._queue()], [c.id for c in filed]
+        )

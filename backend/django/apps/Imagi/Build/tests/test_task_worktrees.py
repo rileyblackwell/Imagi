@@ -545,19 +545,17 @@ class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
         self.assertEqual(context.project_path, self.repo)
         self.assertIsNotNone(conversation.run_started_at)
 
-    def test_task_dispatched_during_live_lead_run_skips_canonical_snapshot(self):
-        # A live lead run may have half-written edits on the canonical tree;
-        # dispatching a task must not commit that broken intermediate state
-        # (as the fork point AND a permanent canonical commit). The task
+    def test_task_dispatched_during_live_chat_run_skips_canonical_snapshot(self):
+        # A live tree-writing run may have half-written edits on the canonical
+        # tree; dispatching a task must not commit that broken intermediate
+        # state (as the fork point AND a permanent canonical commit). The task
         # forks from the last committed HEAD instead.
-        self.service.create_conversation(
-            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='lead'
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id,
+            kind='chat', run_started_at=timezone.now(),
         )
-        AgentConversation.objects.filter(
-            user=self.user, project_id=self.project.id, kind='lead'
-        ).update(run_started_at=timezone.now())
         with open(os.path.join(self.repo, 'app.txt'), 'w') as f:
-            f.write('half-written lead edit')
+            f.write('half-written chat edit')
 
         task = self.service.create_conversation(
             self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='task'
@@ -567,9 +565,9 @@ class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
         task.refresh_from_db()
         with open(os.path.join(task.worktree_path, 'app.txt')) as f:
             self.assertEqual(f.read(), 'hello')
-        # The lead's in-flight edit stays uncommitted on the canonical tree.
+        # The chat run's in-flight edit stays uncommitted on the canonical tree.
         with open(os.path.join(self.repo, 'app.txt')) as f:
-            self.assertEqual(f.read(), 'half-written lead edit')
+            self.assertEqual(f.read(), 'half-written chat edit')
         log = _git(self.repo, 'log', '--oneline').stdout
         self.assertNotIn('Checkpoint before task', log)
 
@@ -649,6 +647,193 @@ class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
         self.assertEqual(context.effective_project_path, self.repo)
         chat.refresh_from_db()
         self.assertEqual(chat.worktree_path, '')
+
+
+# Distinguishes "no lead thread" from "the default lead" in the helper below.
+_UNSET = object()
+
+
+class TaskReportsToLeadTests(GitRepoTestMixin, TestCase):
+    """Every subagent comes back to the main thread when its own run ends.
+
+    Several run at once and finish in whatever order the work takes, so the
+    thread the user is sitting in is where each one arrives — the first one
+    done is the first one they read, with no waiting on the ones dispatched
+    before it.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='reporter', password='pw123456')
+        self.repo = self._make_repo()
+        self.project = Project.objects.create(
+            user=self.user, name='P', project_path=self.repo, is_active=True
+        )
+        self.service = ImagiAgentService()
+        self.lead = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='lead'
+        )
+
+    def _task(self, goal='Making your home page clearer.', parent=_UNSET):
+        task = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id,
+            kind='task', parent=self.lead if parent is _UNSET else parent,
+        )
+        task.goal = goal
+        task.save(update_fields=['goal'])
+        return task
+
+    def _context(self, pending_question=None):
+        return AgentContext(
+            user_id=self.user.id,
+            project_id=self.project.id,
+            conversation_kind='task',
+            pending_question=pending_question,
+        )
+
+    def _worktree_with_change(self, task, name='feature.txt'):
+        worktree = VersionControlService().create_task_worktree(
+            self.repo, task.id
+        )['worktree_path']
+        with open(os.path.join(worktree, name), 'w') as f:
+            f.write('task output')
+        task.worktree_path = worktree
+        task.save(update_fields=['worktree_path'])
+        return worktree
+
+    def _reports(self):
+        return [
+            m for m in self.lead.messages.order_by('created_at', 'id')
+            if (m.metadata or {}).get('task_report')
+        ]
+
+    def test_applied_work_reports_its_summary_into_the_main_thread(self):
+        task = self._task()
+        self._worktree_with_change(task)
+
+        self.service._finalize_task_run(
+            task, self._context(), 'Your home page now opens with a clear offer.'
+        )
+
+        report = self._reports()[0]
+        self.assertEqual(report.role, 'assistant')
+        self.assertEqual(
+            report.content, 'Your home page now opens with a clear offer.'
+        )
+        self.assertEqual(report.metadata['task_report']['kind'], 'done')
+        self.assertEqual(
+            report.metadata['task_report']['conversation_id'], task.id
+        )
+        self.assertEqual(
+            report.metadata['task_report']['goal'], 'Making your home page clearer.'
+        )
+
+    def test_a_question_reaches_the_thread_as_well_as_the_queue(self):
+        task = self._task()
+
+        self.service._finalize_task_run(
+            task, self._context(pending_question='Stripe or PayPal?'),
+            'Stripe or PayPal?',
+        )
+
+        report = self._reports()[0]
+        self.assertEqual(report.content, 'Stripe or PayPal?')
+        self.assertEqual(report.metadata['task_report']['kind'], 'question')
+        # The queue is what the user acts on; the thread is what they read.
+        self.assertEqual(
+            AgentCheckIn.objects.get(conversation=task).kind, 'question'
+        )
+
+    def test_work_left_for_review_reports_that_it_is_waiting(self):
+        # No worktree to merge, so it falls back to a manual review card.
+        task = self._task()
+
+        self.service._finalize_task_run(task, self._context(), 'Built the page.')
+
+        self.assertEqual(self._reports()[0].metadata['task_report']['kind'], 'ready')
+
+    def test_a_run_that_died_says_so_in_the_thread(self):
+        task = self._task()
+
+        self.service._park_failed_task(task, 'The task hit an error: boom')
+
+        report = self._reports()[0]
+        self.assertEqual(report.metadata['task_report']['kind'], 'error')
+        self.assertIn('boom', report.content)
+
+    def test_subagents_arrive_in_the_order_they_finish(self):
+        # Dispatched first, finished second: the thread reads in the order the
+        # work actually landed, because nothing waits on anything else.
+        first = self._task(goal='The slow one.')
+        second = self._task(goal='The quick one.')
+        self._worktree_with_change(second, name='second.txt')
+        self._worktree_with_change(first, name='first.txt')
+
+        self.service._finalize_task_run(second, self._context(), 'Quick one done.')
+        self.service._finalize_task_run(first, self._context(), 'Slow one done.')
+
+        self.assertEqual(
+            [r.content for r in self._reports()],
+            ['Quick one done.', 'Slow one done.'],
+        )
+
+    def test_a_subagent_holds_one_report_at_a_time(self):
+        # It asked, the user answered, it finished. The thread ends on what it
+        # did — not on a question that has already been dealt with.
+        task = self._task()
+        self.service._finalize_task_run(
+            task, self._context(pending_question='Stripe or PayPal?'),
+            'Stripe or PayPal?',
+        )
+        self._worktree_with_change(task)
+
+        self.service._finalize_task_run(task, self._context(), 'Stripe it is.')
+
+        reports = self._reports()
+        self.assertEqual(len(reports), 1)
+        self.assertEqual(reports[0].content, 'Stripe it is.')
+        self.assertEqual(reports[0].metadata['task_report']['kind'], 'done')
+
+    def test_two_subagents_reporting_keep_their_own_entries(self):
+        one = self._task()
+        other = self._task()
+
+        self.service._finalize_task_run(one, self._context(), 'One is done.')
+        self.service._finalize_task_run(other, self._context(), 'The other is done.')
+
+        self.assertEqual(
+            [r.content for r in self._reports()], ['One is done.', 'The other is done.']
+        )
+
+    def test_a_task_without_a_lead_thread_reports_nowhere(self):
+        # Its lead was deleted (parent goes null rather than cascading). The
+        # queue still holds the decision; there is simply nowhere to report.
+        orphan = self._task(parent=None)
+
+        self.service._finalize_task_run(orphan, self._context(), 'Built it.')
+
+        self.assertEqual(self._reports(), [])
+        self.assertTrue(AgentCheckIn.objects.filter(conversation=orphan).exists())
+
+    def test_the_lead_reads_a_report_as_its_subagent_speaking(self):
+        # Stored as an assistant message because that is what the user reads,
+        # but the lead must not take its subagents' sign-offs for its own
+        # memories — it has to know who did the work to answer for it.
+        task = self._task()
+        self.service._finalize_task_run(task, self._context(), 'Built the page.')
+
+        history = self.service.build_conversation_history(self.lead)
+
+        report_line = history[-1]['content']
+        self.assertIn('[Subagent report]', report_line)
+        self.assertIn('Making your home page clearer.', report_line)
+        self.assertIn('Built the page.', report_line)
+
+    def test_the_leads_own_replies_are_left_alone(self):
+        self.service.add_assistant_message(self.lead, 'On it.')
+
+        history = self.service.build_conversation_history(self.lead)
+
+        self.assertEqual(history[-1]['content'], 'On it.')
 
 
 class TaskCheckInTests(GitRepoTestMixin, TestCase):
@@ -891,13 +1076,15 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
             AgentCheckIn.objects.filter(conversation=task, status='pending').exists()
         )
 
-    def test_auto_apply_defers_to_review_while_a_canonical_run_is_live(self):
+    def test_auto_apply_defers_to_review_while_a_tree_writing_run_is_live(self):
         task = self._task()
         self._worktree_with_change(task)
-        # A live lead/chat run rewrites the canonical tree; merging across it
-        # is unsafe, so the task falls back to a manual review card.
-        self.lead.run_started_at = timezone.now()
-        self.lead.save(update_fields=['run_started_at'])
+        # A live chat run edits the canonical tree; merging across it is
+        # unsafe, so the task falls back to a manual review card.
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id,
+            kind='chat', run_started_at=timezone.now(),
+        )
 
         self.service._finalize_task_run(task, self._context(), 'Added the feature.')
 
@@ -905,6 +1092,23 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         self.assertEqual(task.review_status, 'ready')
         self.assertNotEqual(task.worktree_path, '')
         self.assertFalse(os.path.exists(os.path.join(self.repo, 'feature.txt')))
+
+    def test_auto_apply_goes_ahead_while_the_user_is_talking_to_the_lead(self):
+        # The lead thread has no file tools, so a live lead run cannot be
+        # holding half-written edits and nothing it does can collide with the
+        # merge. Blocking on it meant a subagent that happened to finish
+        # mid-sentence lost its automatic apply and turned into a review card
+        # the user never asked for.
+        task = self._task()
+        self._worktree_with_change(task)
+        self.lead.run_started_at = timezone.now()
+        self.lead.save(update_fields=['run_started_at'])
+
+        self.service._finalize_task_run(task, self._context(), 'Added the feature.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'accepted')
+        self.assertTrue(os.path.exists(os.path.join(self.repo, 'feature.txt')))
 
     def test_ask_user_run_parks_the_task_and_queues_the_question(self):
         task = self._task()
@@ -1092,14 +1296,25 @@ class ReviewEndpointTests(GitRepoTestMixin, TestCase):
         self.assertEqual(resp.status_code, 409)
         self.assertEqual(resp.json()['detail'], 'agent_busy')
 
-    def test_accept_rejects_while_canonical_run_live(self):
+    def test_accept_rejects_while_a_tree_writing_run_is_live(self):
+        task, _ = self._task_with_worktree()
+        AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id,
+            kind='chat', run_started_at=timezone.now(),
+        )
+        resp = self._accept(task)
+        self.assertEqual(resp.status_code, 409)
+
+    def test_accept_goes_ahead_while_the_user_is_talking_to_the_lead(self):
+        # The lead has no file tools, so its run cannot collide with a merge.
+        # Refusing there meant finished work sat unapplied for as long as the
+        # user kept talking to the main agent.
         task, _ = self._task_with_worktree()
         AgentConversation.objects.create(
             user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id,
             kind='lead', run_started_at=timezone.now(),
         )
-        resp = self._accept(task)
-        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(self._accept(task).status_code, 200)
 
     def test_accept_after_canonical_restore_returns_409_stale_base(self):
         # The user restored the project to before this task's fork point;
@@ -1479,10 +1694,10 @@ class CheckInEndpointTests(TestCase):
             lead=self.lead, kind=kind, body=body, status=status,
         )
 
-    def test_list_returns_pending_check_ins_questions_first(self):
-        # A question is a subagent standing still until the user answers;
-        # finished work waiting to be merged blocks nobody. So the question
-        # goes first even though it was filed later.
+    def test_list_returns_pending_check_ins_in_arrival_order(self):
+        # Subagents come back whenever they finish and the user works down the
+        # pile in that order; nothing is ranked ahead of anything else.
+        # Resolved entries are history, not queue.
         finished = self._check_in(body='first')
         question = self._check_in(kind='question', body='second')
         self._check_in(body='already handled', status='resolved')
@@ -1493,9 +1708,9 @@ class CheckInEndpointTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual([c['id'] for c in data], [question.id, finished.id])
-        self.assertEqual(data[0]['kind'], 'question')
-        self.assertEqual(data[0]['task']['id'], question.conversation_id)
+        self.assertEqual([c['id'] for c in data], [finished.id, question.id])
+        self.assertEqual(data[0]['kind'], 'ready')
+        self.assertEqual(data[0]['task']['id'], finished.conversation_id)
 
     def test_list_stays_oldest_first_within_one_kind(self):
         first = self._check_in(body='first')

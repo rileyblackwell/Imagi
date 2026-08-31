@@ -53,9 +53,42 @@ const CHECK_IN_INTERVAL_MS = 6000
 // reload's pendingBrief sweep) must never start a second run.
 const firedDispatches = new Set<number>()
 
+// How many subagent runs this tab starts at once. Mirrors the backend's own
+// ceiling (MAX_CONCURRENT_TASK_RUNS): dispatches past it wait their turn here
+// instead of being fired and refused, and the backstop for a mismatch is the
+// re-queue on a 429 — a refused subagent keeps its brief and starts when a
+// slot frees, rather than being stranded mid-dispatch with nothing running.
+const MAX_PARALLEL_TASK_RUNS = 5
+
+// Conversation ids the backend refused a run for, and when they may try again.
+// The two ceilings can legitimately disagree — the server counts a user's runs
+// across every project, this tab only sees one — so a refusal must cost a
+// pause. Without it, re-queue and retry chase each other as fast as the
+// network allows.
+const dispatchRetryAt = new Map<number, number>()
+const DISPATCH_RETRY_MS = 6000
+
+// Highest message id the main thread has pulled from the server, per lead
+// conversation. Subagents post their reports straight into that thread, so the
+// client asks for "anything after this" rather than refetching a transcript
+// that may have a run streaming into it. Module scope and non-reactive: it is
+// bookkeeping about a fetch, not state anything renders.
+const lastSyncedMessageIds = new Map<number, number>()
+
 // Registered by the workspace: how a background task's run is driven (the
 // same handlePrompt path, targeted at the task's instance).
 let taskRunner: ((instanceId: string, prompt: string) => void) | null = null
+
+// Registered by the workspace: a subagent's work just merged into the project,
+// so whatever mirrors the project files (the tree, the preview) is now stale.
+let taskAppliedHandler: (() => void) | null = null
+
+// Subagent conversations whose merge this tab has already refreshed for. A
+// finished run announces itself twice — the conversation flips to 'accepted'
+// and a report lands in the main thread — and either can arrive first, so the
+// refresh is claimed by conversation id rather than by whichever noticed.
+// Cleared when that subagent starts a new run, which can merge again.
+const refreshedForTask = new Set<number>()
 
 function newLocalId(): string {
   return `inst-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -162,11 +195,23 @@ export const useAgentStore = defineStore('agent', {
       return this.activeAgentInstances.filter(i => i.isProcessing).length
     },
 
-    /** Tasks the lead dispatched whose run has not started yet. */
+    /** Tasks the lead dispatched whose run has not started yet, oldest first.
+     *
+     *  Ordered by conversation id because that is the order they were
+     *  dispatched in, and a subagent waiting for a slot should get it before
+     *  one dispatched after it — the same first-in-first-out rule the main
+     *  thread's queue follows on the way back. */
     pendingDispatchInstances(state): AgentInstance[] {
-      return state.instances.filter(
-        i => i.kind === 'task' && !!i.pendingBrief && !i.isProcessing && !i.archivedAt
-      )
+      return state.instances
+        .filter(
+          i => i.kind === 'task' && !!i.pendingBrief && !i.isProcessing && !i.archivedAt
+        )
+        .sort((a, b) => (a.conversationId ?? 0) - (b.conversationId ?? 0))
+    },
+
+    /** Subagent runs this tab has in flight right now. */
+    runningTaskCount(state): number {
+      return state.instances.filter(i => i.kind === 'task' && i.isProcessing).length
     },
 
     /** Subagents whose work is done with — accepted, discarded, or archived —
@@ -270,6 +315,13 @@ export const useAgentStore = defineStore('agent', {
       taskRunner = runner
     },
 
+    /** Registered by the workspace: what to do when a subagent's work merges
+     *  into the project (refresh the file tree and the preview, which are now
+     *  showing the app as it was before). Pass null on teardown. */
+    setTaskAppliedHandler(handler: (() => void) | null) {
+      taskAppliedHandler = handler
+    },
+
     async loadCheckIns() {
       if (!this.projectId) return
       try {
@@ -279,10 +331,80 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
+    /**
+     * Pull anything the subagents have said into the main thread since the
+     * last look.
+     *
+     * They run in parallel and finish in their own time, so this is how their
+     * reports arrive while the user is just sitting in the thread: each run
+     * ends by posting what it did (or what it needs) into the lead
+     * conversation server-side, and this is the client noticing. Only reports
+     * are adopted — the lead's own replies are already in this transcript, and
+     * re-adding them from the server would double them up.
+     *
+     * Skipped while the lead has a run streaming into it: appending under a
+     * half-written reply reads as an interruption, and the sync that follows
+     * the run picks up whatever landed meanwhile.
+     */
+    async syncTaskReports() {
+      const lead = this.leadInstance
+      const conversationId = lead?.conversationId
+      // Nothing loaded means nothing to append to — opening the thread
+      // fetches the reports along with the rest of its history.
+      if (!lead || conversationId == null || !lead.messagesLoaded) return
+      if (lead.isProcessing) return
+
+      let after = lastSyncedMessageIds.get(conversationId)
+      if (after === undefined) {
+        after = lead.conversation.reduce((max, m) => Math.max(max, m.dbId ?? 0), 0)
+        lastSyncedMessageIds.set(conversationId, after)
+      }
+
+      let messages
+      try {
+        messages = await AgentService.getConversationMessages(conversationId, after)
+      } catch (e) {
+        console.error('Failed to sync subagent reports', e)
+        return
+      }
+      if (messages.length === 0) return
+      lastSyncedMessageIds.set(
+        conversationId,
+        messages.reduce((max, m) => Math.max(max, m.id), after)
+      )
+
+      let applied = false
+      for (const message of messages) {
+        if (!message.taskReport) continue
+        const id = `db-${message.id}`
+        if (lead.conversation.some(m => m.id === id)) continue
+        this.addMessageToInstance(lead.id, {
+          role: message.role,
+          content: message.content,
+          timestamp: message.timestamp,
+          id,
+          dbId: message.id,
+          taskReport: message.taskReport,
+        } as AIMessage)
+        // A report is a subagent arriving — worth a dot when the user is
+        // reading something else.
+        if (lead.id !== this.activeInstanceId) lead.hasUnread = true
+        if (message.taskReport.kind === 'done') applied = true
+      }
+      // Work merged into the project while the user was elsewhere; the file
+      // tree and the preview are a version behind.
+      if (applied && taskAppliedHandler) taskAppliedHandler()
+    },
+
     startCheckInPolling() {
       this.stopCheckInPolling()
       checkInTimer = setInterval(() => {
         void this.loadCheckIns()
+        void this.syncTaskReports()
+        // A subagent whose run the backend refused is waiting on a slot it
+        // cannot see free (another project's runs count too), so its retry
+        // rides this tick rather than a signal from this tab.
+        this.firePendingDispatches()
       }, CHECK_IN_INTERVAL_MS)
     },
 
@@ -332,6 +454,11 @@ export const useAgentStore = defineStore('agent', {
      * The lead agent staged background tasks: adopt them into the instance
      * list and start their runs in parallel. Each edits its own worktree, so
      * they neither block each other nor the lead thread the user is in.
+     *
+     * Starting is deliberately left to firePendingDispatches: it holds every
+     * staged brief on its instance and fires as many as there is room for,
+     * oldest first, so a dispatch beyond the parallel-run ceiling waits its
+     * turn instead of being fired and refused.
      */
     startDispatchedTasks(tasks: DispatchedTaskDto[]) {
       const fallback = pickDefaultModelId(this.availableModels)
@@ -368,37 +495,71 @@ export const useAgentStore = defineStore('agent', {
           instance.messagesLoaded = true
           this.instances.unshift(instance)
         }
-        firedDispatches.add(task.conversation_id)
-        instance.pendingBrief = null
         // The lead re-dispatched work this subagent already has: the server
         // handed back the running task rather than staging a new one, so it is
         // linked on the reply but must not be re-run underneath itself.
-        if (task.already_running || instance.isProcessing) continue
-        if (taskRunner) {
-          const send = taskRunner
-          const instanceId = instance.id
-          // Deferred so the dispatching run's stream handler unwinds before
-          // N more streams open.
-          queueMicrotask(() => send(instanceId, task.brief))
+        if (task.already_running || instance.isProcessing) {
+          firedDispatches.add(task.conversation_id)
+          instance.pendingBrief = null
+          continue
         }
+        instance.pendingBrief = task.brief
       }
+      this.firePendingDispatches()
     },
 
-    /** Start any dispatched task whose run never fired (tab closed mid-flight). */
+    /**
+     * Start staged subagent runs, oldest first, up to the parallel ceiling.
+     *
+     * Covers three arrivals at the same gate: a fresh dispatch, a dispatch
+     * whose run never fired (the tab closed mid-flight, so the brief is still
+     * staged server-side), and one the backend refused because every slot was
+     * taken. All three are the same thing — a subagent with a brief and no
+     * run — so they queue together and start in the order they were dispatched.
+     */
     firePendingDispatches() {
+      if (!taskRunner) return
+      const send = taskRunner
+      let room = MAX_PARALLEL_TASK_RUNS - this.runningTaskCount
+      const now = Date.now()
       for (const instance of this.pendingDispatchInstances) {
+        if (room <= 0) return
         const conversationId = instance.conversationId
         const brief = instance.pendingBrief
         if (conversationId == null || !brief) continue
         if (firedDispatches.has(conversationId)) continue
+        // Refused a moment ago: let the slot it is waiting on actually free
+        // before asking again.
+        if ((dispatchRetryAt.get(conversationId) ?? 0) > now) continue
+        dispatchRetryAt.delete(conversationId)
         firedDispatches.add(conversationId)
         instance.pendingBrief = null
-        if (taskRunner) {
-          const send = taskRunner
-          const instanceId = instance.id
-          queueMicrotask(() => send(instanceId, brief))
-        }
+        room -= 1
+        const instanceId = instance.id
+        // Deferred so the dispatching run's stream handler unwinds before
+        // N more streams open.
+        queueMicrotask(() => send(instanceId, brief))
       }
+    },
+
+    /**
+     * Put a refused subagent run back in the queue.
+     *
+     * The backend turned this run away because the user already has the most
+     * subagents it will run at once. Nothing is wrong and nothing is lost —
+     * the prompt goes back on the instance and starts as soon as a slot frees,
+     * which is what the user was promised when the work was dispatched.
+     * Dropping it instead left a subagent sitting in the pane forever,
+     * "working" on a run that was never accepted.
+     */
+    requeueDispatch(instanceId: string, prompt: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      if (instance.conversationId != null) {
+        firedDispatches.delete(instance.conversationId)
+        dispatchRetryAt.set(instance.conversationId, Date.now() + DISPATCH_RETRY_MS)
+      }
+      instance.pendingBrief = prompt
     },
 
     // --- Run control (stop button / server-tracked runs) ---
@@ -508,14 +669,19 @@ export const useAgentStore = defineStore('agent', {
             instance.lastMessagePreview = dto.last_message_preview || ''
             instance.lastAssistantSummary = dto.last_assistant_summary || ''
             if (dto.brief) instance.brief = dto.brief
-            // A finished task may now be ready for review; sync the
-            // review-lifecycle fields the run end changed server-side.
-            instance.reviewStatus = dto.review_status || ''
+            // A finished task may now be ready for review — or have merged
+            // itself into the project; sync the review-lifecycle fields the
+            // run end changed server-side.
+            this._setTaskReviewStatus(instance, dto.review_status || '')
             instance.hasWorktree = !!dto.has_worktree
             if (typeof dto.total_tokens === 'number') instance.totalTokens = dto.total_tokens
             this.setInstanceProcessing(instance.id, false)
-            // The finished run filed its check-in; surface it now.
-            if (instance.kind === 'task') void this.loadCheckIns()
+            // The finished run reported into the main thread and may have
+            // queued a decision; surface both now rather than on the next tick.
+            if (instance.kind === 'task') {
+              void this.loadCheckIns()
+              void this.syncTaskReports()
+            }
           } catch (e) {
             console.error('Failed to resync running conversation', instance.conversationId, e)
           }
@@ -539,6 +705,8 @@ export const useAgentStore = defineStore('agent', {
           activity: m.activity,
           filesChanged: m.filesChanged,
           dispatchedTasks: m.dispatchedTasks,
+          // Set when a subagent posted this message reporting its own outcome
+          taskReport: m.taskReport,
           usage: m.usage,
           dbId: m.id,
           checkpoint: m.checkpoint,
@@ -721,7 +889,7 @@ export const useAgentStore = defineStore('agent', {
         instance.title = dto.title || ''
         instance.kind = dto.kind || instance.kind
         instance.parentId = dto.parent ?? instance.parentId
-        instance.reviewStatus = dto.review_status || ''
+        this._setTaskReviewStatus(instance, dto.review_status || '')
         instance.variantGroup = dto.variant_group || ''
         instance.hasWorktree = !!dto.has_worktree
         if (typeof dto.total_tokens === 'number') instance.totalTokens = dto.total_tokens
@@ -770,6 +938,24 @@ export const useAgentStore = defineStore('agent', {
       this.checkIns = this.checkIns.filter(c => c.task.id !== conversationId)
     },
 
+    /** A subagent's work is now part of the project — tell the workspace once,
+     *  whichever signal noticed it first. */
+    _announceTaskApplied(conversationId: number | null | undefined) {
+      if (conversationId == null || refreshedForTask.has(conversationId)) return
+      refreshedForTask.add(conversationId)
+      if (taskAppliedHandler) taskAppliedHandler()
+    },
+
+    /** Apply a task's review status from the server, announcing the moment its
+     *  work merges into the project. */
+    _setTaskReviewStatus(instance: AgentInstance, next: string) {
+      const previous = instance.reviewStatus
+      instance.reviewStatus = (next || '') as AgentInstance['reviewStatus']
+      if (next === 'accepted' && previous !== 'accepted') {
+        this._announceTaskApplied(instance.conversationId)
+      }
+    },
+
     setInstanceModel(instanceId: string, modelId: string) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
@@ -798,7 +984,11 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.isProcessing = value
-      if (!value) {
+      if (value) {
+        // A subagent running again can merge again, so the next merge is a
+        // fresh one to refresh for.
+        if (instance.conversationId != null) refreshedForTask.delete(instance.conversationId)
+      } else {
         // Read-and-clear: was this run ended by an explicit user stop?
         const aborted = userAbortedRuns.delete(instanceId)
         instance.statusText = ''
@@ -816,6 +1006,13 @@ export const useAgentStore = defineStore('agent', {
           // the next run starts flipping processing back on.
           queueMicrotask(() => send(instanceId, queued))
         }
+        // A subagent finishing frees one of the parallel slots — whoever has
+        // been waiting longest for it starts now.
+        if (instance.kind === 'task') this.firePendingDispatches()
+        // Reports that landed while the main thread was mid-reply are held
+        // back rather than appended under a half-written message; the moment
+        // the reply is done, they come in.
+        if (instance.kind === 'lead') void this.syncTaskReports()
       }
     },
 

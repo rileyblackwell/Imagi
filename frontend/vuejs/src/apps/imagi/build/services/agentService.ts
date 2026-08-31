@@ -8,6 +8,8 @@ import type {
   ConversationKind,
   DispatchedTaskDto,
   DispatchedTaskRef,
+  TaskReport,
+  TaskReportKind,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -116,6 +118,14 @@ interface PersistedMessageMetadata {
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
   /** Subagents the lead dispatched during this reply (id + title refs) */
   dispatched_tasks?: Array<{ conversation_id?: number; title?: string }>
+  /** Set on a message a subagent posted into the main thread when its run
+   *  ended — the content is that subagent's own sign-off or question. */
+  task_report?: {
+    conversation_id?: number
+    kind?: TaskReportKind
+    title?: string
+    goal?: string
+  }
   /** Pre-run project snapshot, stamped on user messages only */
   checkpoint?: string
 }
@@ -130,6 +140,8 @@ export interface ConversationMessageDto {
   activity?: AgentActivityStep[]
   filesChanged?: string[]
   dispatchedTasks?: DispatchedTaskRef[]
+  /** Present when a subagent posted this message reporting its own outcome */
+  taskReport?: TaskReport
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
   checkpoint?: string
 }
@@ -476,10 +488,22 @@ export const AgentService = {
     return response.data as { status: string }
   },
 
-  async getConversationMessages(conversationId: number): Promise<ConversationMessageDto[]> {
-    const response = await api.get(
-      `/v1/agents/conversations/${conversationId}/messages/`
-    )
+  /**
+   * A conversation's messages, with their persisted run telemetry hydrated.
+   *
+   * `afterId` asks for only what landed after a message the caller already
+   * has — how the main thread picks up reports its subagents filed while the
+   * user was sitting in it, without refetching a transcript that may have a
+   * run streaming into it right now.
+   */
+  async getConversationMessages(
+    conversationId: number,
+    afterId?: number
+  ): Promise<ConversationMessageDto[]> {
+    const path = `/v1/agents/conversations/${conversationId}/messages/`
+    const response = typeof afterId === 'number'
+      ? await api.get(path, { params: { after_id: String(afterId) } })
+      : await api.get(path)
     // Hydrate persisted run metadata into the same shapes the live stream
     // produces, so a reloaded transcript replays its activity feed verbatim.
     return (response.data as any[]).map((m) => {
@@ -505,6 +529,14 @@ export const AgentService = {
           .filter(t => typeof t?.conversation_id === 'number')
           .map(t => ({ conversationId: t.conversation_id!, title: t.title || '' }))
         if (refs.length > 0) dto.dispatchedTasks = refs
+      }
+      if (meta.task_report && typeof meta.task_report.conversation_id === 'number') {
+        dto.taskReport = {
+          conversationId: meta.task_report.conversation_id,
+          kind: meta.task_report.kind || 'done',
+          title: meta.task_report.title || '',
+          goal: meta.task_report.goal || '',
+        }
       }
       // Hydrate whatever usage fields were captured — tokens can exist
       // without cost and vice versa. No fields at all means unknown, so the

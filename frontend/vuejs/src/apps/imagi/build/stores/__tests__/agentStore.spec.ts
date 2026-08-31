@@ -309,3 +309,256 @@ describe('agent store startDispatchedTasks', () => {
     expect(runs).not.toHaveBeenCalled()
   })
 })
+
+describe('agent store parallel subagents', () => {
+  // Several subagents are meant to work at once. What matters is that a
+  // dispatch is never lost: it either starts now or waits for a slot, and
+  // whoever waited longest goes first.
+  function dispatched(conversationId: number, overrides = {}) {
+    return {
+      conversation_id: conversationId,
+      title: 'Job',
+      brief: `Do job ${conversationId}.`,
+      goal: 'Doing a job.',
+      variant_group: '',
+      parent: 1,
+      model_name: 'gpt-5.6-terra',
+      ...overrides,
+    }
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('starts several dispatched subagents at once', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+
+    store.startDispatchedTasks([
+      dispatched(9101), dispatched(9102), dispatched(9103),
+    ])
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledTimes(3)
+  })
+
+  it('holds a dispatch past the ceiling and starts it when a slot frees', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn((instanceId: string) => {
+      // The real runner flips the instance into a live run.
+      store.setInstanceProcessing(instanceId, true)
+    })
+    store.setTaskRunner(runs)
+
+    // Six jobs, five slots.
+    store.startDispatchedTasks(
+      [9111, 9112, 9113, 9114, 9115, 9116].map(id => dispatched(id))
+    )
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledTimes(5)
+    const waiting = store.instances.find(i => i.conversationId === 9116)
+    expect(waiting?.pendingBrief).toBe('Do job 9116.')
+
+    // One finishes; the one that has been waiting starts.
+    const firstStarted = store.instances.find(i => i.conversationId === 9111)!
+    store.setInstanceProcessing(firstStarted.id, false)
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledTimes(6)
+    expect(runs.mock.calls[5]![0]).toBe(waiting!.id)
+    expect(waiting!.pendingBrief).toBeNull()
+  })
+
+  it('starts waiting subagents in the order they were dispatched', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    // Newest first in the list, as a fresh dispatch is unshifted in.
+    store.instances = [
+      makeInstance({ kind: 'task', conversationId: 9203, pendingBrief: 'third' }),
+      makeInstance({ kind: 'task', conversationId: 9202, pendingBrief: 'second' }),
+      makeInstance({ kind: 'task', conversationId: 9201, pendingBrief: 'first' }),
+    ]
+
+    store.firePendingDispatches()
+    await Promise.resolve()
+
+    expect(runs.mock.calls.map(c => c[1])).toEqual(['first', 'second', 'third'])
+  })
+
+  it('re-queues a refused run instead of stranding the subagent', async () => {
+    // The backend turned this run away because every slot was taken. The
+    // brief goes back on the instance and starts when one frees — dropping it
+    // left a subagent "working" on a run that never began.
+    vi.useFakeTimers()
+    try {
+      const store = useAgentStore()
+      const runs = vi.fn()
+      store.setTaskRunner(runs)
+      const task = makeInstance({ kind: 'task', conversationId: 9301 })
+      store.instances = [task]
+
+      store.requeueDispatch(task.id, 'Do job 9301.')
+      expect(task.pendingBrief).toBe('Do job 9301.')
+
+      vi.advanceTimersByTime(10_000)
+      store.firePendingDispatches()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(runs).toHaveBeenCalledWith(task.id, 'Do job 9301.')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('waits before retrying a run the backend just refused', async () => {
+    // The two ceilings can disagree — the server counts a user's runs across
+    // every project, this tab only sees one — so retrying the instant the
+    // refusal lands is a network loop, not a retry.
+    vi.useFakeTimers()
+    try {
+      const store = useAgentStore()
+      const runs = vi.fn()
+      store.setTaskRunner(runs)
+      const task = makeInstance({ kind: 'task', conversationId: 9302 })
+      store.instances = [task]
+
+      store.requeueDispatch(task.id, 'Do job 9302.')
+      store.firePendingDispatches()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(runs).not.toHaveBeenCalled()
+      expect(task.pendingBrief).toBe('Do job 9302.')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('agent store syncTaskReports', () => {
+  // Subagents post what they did straight into the main thread when their own
+  // run ends. This is the client noticing, while the user just sits there.
+  function report(id: number, kind: string, content: string) {
+    return {
+      id,
+      role: 'assistant' as const,
+      content,
+      timestamp: new Date().toISOString(),
+      taskReport: { conversationId: 77, kind, title: 'Job', goal: 'Doing a job.' },
+    }
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  // The "what have I already pulled?" bookkeeping lives at module scope (it
+  // is about a fetch, not about rendered state), so each test gets its own
+  // lead conversation rather than inheriting the last one's high-water mark.
+  let nextLeadConversationId = 500
+  function storeWithLead() {
+    const store = useAgentStore()
+    const conversationId = nextLeadConversationId++
+    const lead = makeInstance({ kind: 'lead', conversationId, messagesLoaded: true })
+    store.instances = [lead]
+    store.activeInstanceId = lead.id
+    return { store, lead, conversationId }
+  }
+
+  it('appends a finished subagent report to the main thread', async () => {
+    const { store, lead, conversationId } = storeWithLead()
+    agentService.getConversationMessages.mockResolvedValue([
+      report(12, 'done', 'Your home page now opens with a clear offer.'),
+    ])
+
+    await store.syncTaskReports()
+
+    expect(agentService.getConversationMessages).toHaveBeenCalledWith(conversationId, 0)
+    expect(lead.conversation).toHaveLength(1)
+    expect(lead.conversation[0]!.content).toBe(
+      'Your home page now opens with a clear offer.'
+    )
+    expect(lead.conversation[0]!.taskReport?.kind).toBe('done')
+  })
+
+  it('leaves the main agent\'s own replies to the transcript that has them', async () => {
+    // They are already on screen from the run that streamed them; re-adding
+    // the persisted copy would show every reply twice.
+    const { store, lead } = storeWithLead()
+    agentService.getConversationMessages.mockResolvedValue([
+      { id: 13, role: 'assistant', content: 'On it.', timestamp: '' },
+    ])
+
+    await store.syncTaskReports()
+
+    expect(lead.conversation).toHaveLength(0)
+  })
+
+  it('refreshes the project once when a subagent applies its work', async () => {
+    const { store } = storeWithLead()
+    const applied = vi.fn()
+    store.setTaskAppliedHandler(applied)
+    agentService.getConversationMessages
+      .mockResolvedValueOnce([report(14, 'done', 'Landed.')])
+      .mockResolvedValueOnce([])
+
+    await store.syncTaskReports()
+    await store.syncTaskReports()
+
+    expect(applied).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not refresh the project for work still waiting on the user', async () => {
+    const { store } = storeWithLead()
+    const applied = vi.fn()
+    store.setTaskAppliedHandler(applied)
+    agentService.getConversationMessages.mockResolvedValue([
+      report(15, 'question', 'Stripe or PayPal?'),
+    ])
+
+    await store.syncTaskReports()
+
+    expect(applied).not.toHaveBeenCalled()
+  })
+
+  it('flags the main thread unread when the user is reading elsewhere', async () => {
+    const { store, lead } = storeWithLead()
+    store.activeInstanceId = 'somewhere-else'
+    agentService.getConversationMessages.mockResolvedValue([
+      report(16, 'done', 'Landed.'),
+    ])
+
+    await store.syncTaskReports()
+
+    expect(lead.hasUnread).toBe(true)
+  })
+
+  it('waits for a streaming reply to finish before appending under it', async () => {
+    const { store, lead } = storeWithLead()
+    lead.isProcessing = true
+
+    await store.syncTaskReports()
+
+    expect(agentService.getConversationMessages).not.toHaveBeenCalled()
+  })
+
+  it('asks only for what has arrived since the last look', async () => {
+    const { store, conversationId } = storeWithLead()
+    agentService.getConversationMessages
+      .mockResolvedValueOnce([report(20, 'done', 'Landed.')])
+      .mockResolvedValueOnce([])
+
+    await store.syncTaskReports()
+    await store.syncTaskReports()
+
+    expect(agentService.getConversationMessages)
+      .toHaveBeenLastCalledWith(conversationId, 20)
+  })
+})
