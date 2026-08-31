@@ -49,6 +49,7 @@ from apps.Imagi.Build.services.coding_agent import (
     INITIAL_BUILD_TIME_BUDGET_S,
     LEAD_AGENT_INSTRUCTIONS,
     PROJECT_MEMORY_MAX_CHARS,
+    TASK_AGENT_INSTRUCTIONS,
     create_coding_agent,
     load_project_memory,
 )
@@ -1140,6 +1141,68 @@ class InitialBuildAgentTests(SimpleTestCase):
         )
         self.assertEqual(
             agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
+        )
+
+
+class TaskSignOffPromptTests(SimpleTestCase):
+    """How a finished subagent reports back to the person who asked.
+
+    Its last message is the whole of what the business owner reads on the
+    dispatch card in their main thread — for most runs, the only part of the
+    work they ever see. So the prompt fixes two things about it: how long it
+    is (long enough to walk through the whole job, short enough to read), and
+    whose language it is written in (theirs, not an engineer's).
+    """
+
+    def test_the_sign_off_is_a_four_to_six_sentence_paragraph(self):
+        # Two or three sentences could only ever name the headline change, so
+        # a run that touched several things reported one of them. Four to six
+        # is a sentence per change with room for a closing note.
+        self.assertIn(
+            'ONE plain paragraph of four to six sentences',
+            TASK_AGENT_INSTRUCTIONS,
+        )
+        # And the paragraph is one paragraph: the extra room is not a licence
+        # for the headings and bullet breakdowns it keeps out.
+        for banned in ('no headings', 'no bullet lists', 'no code or snippets'):
+            self.assertIn(banned, TASK_AGENT_INSTRUCTIONS)
+
+    def test_the_extra_sentences_go_on_more_changes_not_more_depth(self):
+        # The failure the length is meant to fix is coverage, not detail: six
+        # sentences about one change is the same unreported run as two.
+        self.assertIn(
+            'Spend those sentences going wide rather than deep',
+            TASK_AGENT_INSTRUCTIONS,
+        )
+        self.assertIn('give each one a sentence', TASK_AGENT_INSTRUCTIONS)
+
+    def test_the_sign_off_is_written_in_the_owner_s_words(self):
+        # Friendly and plain, with worked examples at the right altitude —
+        # what someone would say about their own site, not about the code.
+        self.assertIn(
+            'Sound like a friendly person telling the owner what you did',
+            TASK_AGENT_INSTRUCTIONS,
+        )
+        self.assertIn(
+            'I gave your home page a warmer color scheme', TASK_AGENT_INSTRUCTIONS
+        )
+
+    def test_component_is_named_as_a_word_the_owner_does_not_know(self):
+        # It reads like plain English to whoever writes the code, which is
+        # exactly why it slips through a general "no jargon" rule.
+        self.assertIn(
+            '"Component" is not a word the owner knows', TASK_AGENT_INSTRUCTIONS
+        )
+
+    def test_a_failed_tool_call_still_beats_a_tidy_paragraph(self):
+        # The length rule must not read as licence to round a failure up.
+        self.assertIn('Accuracy comes before all of it', TASK_AGENT_INSTRUCTIONS)
+
+    def test_the_first_build_signs_off_the_same_way(self):
+        # Those subagents land on the same dispatch cards, and their sign-off
+        # is the first thing a founder reads in a brand-new workspace.
+        self.assertIn(
+            'four to six friendly, plain sentences', INITIAL_BUILD_INSTRUCTIONS
         )
 
 

@@ -73,6 +73,23 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'open'): void }>()
 
 /**
+ * The subagent's own closing words, whole — its summary of the changes or the
+ * question it stopped on. Never the clipped list-row preview: a question
+ * missing its last clause cannot be answered, and a summary missing its last
+ * sentence has failed at its one job. The preview is only the standby for a
+ * DTO from before the summary field existed.
+ */
+function saidBy(instance: AgentInstance): string {
+  return instance.lastAssistantSummary || instance.lastMessagePreview || ''
+}
+
+/** What a finished card says when the run signed off with nothing at all.
+ *  "Subagent complete" over an empty space tells the owner nothing about
+ *  their own app, so the card always says something and points at the one
+ *  place the answer is. */
+const NO_SIGN_OFF = 'It finished without saying what it changed — open it to see the work.'
+
+/**
  * Where this subagent stands, as the four things the card renders: a tone
  * (which drives every colour on it), an icon, the state in words, and — once
  * there is one — what came back.
@@ -106,18 +123,15 @@ const status = computed(() => {
         icon: 'fas fa-circle-question',
         label: 'Needs an answer from you',
         // The subagent stopped on ask_user, so its closing line is the
-        // question itself. Whole, never the clipped list-row preview: a
-        // question missing its last clause cannot be answered, and a summary
-        // missing its last sentence has failed at its one job — the preview
-        // is only the standby for a DTO from before the summary field.
-        result: instance.lastAssistantSummary || instance.lastMessagePreview || '',
+        // question itself.
+        result: saidBy(instance),
       }
     case 'ready':
       return {
         tone: 'asking',
         icon: 'fas fa-check',
         label: 'Subagent complete — waiting on you',
-        result: instance.lastAssistantSummary || instance.lastMessagePreview || '',
+        result: saidBy(instance) || NO_SIGN_OFF,
       }
     case 'failed':
       return {
@@ -127,9 +141,11 @@ const status = computed(() => {
         // stopped and nothing it started was added, which is the whole of
         // what a business owner needs from this card.
         label: 'Stopped before finishing',
-        // Whatever it managed to say before it died — often a partial reply.
-        // The reason it stopped is in the main thread's queue card.
-        result: instance.lastMessagePreview || '',
+        // Whatever it managed to say before it died — often a partial reply,
+        // and shown whole for the same reason a finished summary is: a
+        // half-sentence is where the user finds out what did and did not
+        // land. The reason it stopped is in the main thread's queue card.
+        result: saidBy(instance),
       }
     case 'accepted':
       return {
@@ -137,9 +153,11 @@ const status = computed(() => {
         icon: 'fas fa-check',
         label: 'Subagent complete',
         // What it did, in its own words: the run is over, so the last message
-        // is its sign-off, written as a plain summary of the changes for
-        // exactly this spot (see TASK_AGENT_INSTRUCTIONS).
-        result: instance.lastAssistantSummary || instance.lastMessagePreview || '',
+        // is its sign-off — four to six plain sentences about the changes,
+        // written for exactly this spot (see TASK_AGENT_INSTRUCTIONS). This
+        // is the whole of what most owners ever read about the run, so the
+        // card always shows one, even when the run left none.
+        result: saidBy(instance) || NO_SIGN_OFF,
       }
     case 'dismissed':
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }
@@ -476,16 +494,21 @@ const state = computed(() => ({
 
 /* What came back. Set apart from the job by a hairline rather than a label —
    a rule reads as "and then this happened" without spending a line on saying
-   so. Also wraps in full. */
+   so. Also wraps in full.
+
+   Sized as prose, not as a caption: a sign-off is a four-to-six-sentence
+   paragraph and it is the part of the card the owner actually reads, so it
+   gets a readable size and open leading. It still sits a step below the job
+   line, which stays the card's heading. */
 .dispatch-card__result {
   position: relative;
   z-index: 1;
   margin-top: 0.0625rem;
   padding-top: 0.375rem;
   border-top: 1px solid rgba(23, 37, 84, 0.08);
-  font-size: 0.6875rem;
-  line-height: 1.5;
-  color: rgba(23, 37, 84, 0.7);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: rgba(23, 37, 84, 0.72);
   overflow-wrap: anywhere;
 }
 
@@ -506,14 +529,19 @@ const state = computed(() => ({
   color: rgba(253, 230, 138, 0.8);
 }
 
+/* The green stays in the rail, the chip and the status line, which is where
+   the card announces itself. The sign-off underneath is a paragraph now, and
+   several lines of saturated green read as a highlight to skim rather than
+   text to read — so it takes a near-neutral ink, warmed just enough to belong
+   to the green card it sits on. */
 .dispatch-card--done .dispatch-card__result {
   border-top-color: rgba(22, 163, 74, 0.18);
-  color: rgba(21, 128, 61, 0.9);
+  color: rgba(20, 65, 45, 0.82);
 }
 
 .dark .dispatch-card--done .dispatch-card__result {
   border-top-color: rgba(74, 222, 128, 0.2);
-  color: rgba(134, 239, 172, 0.82);
+  color: rgba(219, 245, 230, 0.78);
 }
 
 .dispatch-card__chevron {

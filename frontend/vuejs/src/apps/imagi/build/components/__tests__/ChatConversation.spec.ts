@@ -194,9 +194,11 @@ describe('ChatConversation dispatch card', () => {
     expect(task.attributes('style') || '').not.toContain('nowrap')
   })
 
-  it('still names the job when a finished task left no summary', () => {
-    // A run that died before its sign-off has no result half — but a green
-    // "complete" over an empty card would say nothing at all.
+  it('says something when a finished task left no summary', () => {
+    // A run that died before its sign-off has nothing of its own to report,
+    // and a green "complete" over an empty card would tell the user nothing
+    // about their app. The job it was given is still named, and the result
+    // half points at the one place the answer is rather than going blank.
     const wrapper = withSubagent({
       reviewStatus: 'accepted',
       brief: JOB,
@@ -205,7 +207,8 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.find('.dispatch-card__task').text()).toBe(JOB)
-    expect(card.find('.dispatch-card__result').exists()).toBe(false)
+    expect(card.find('.dispatch-card__result').text())
+      .toBe('It finished without saying what it changed — open it to see the work.')
   })
 
   it('describes the work on a completion that still wants a review', () => {
