@@ -1,9 +1,12 @@
 <template>
   <div v-if="!isCollapsed" class="iw-surface flex flex-col h-full bg-canvas transition-colors duration-300">
-    <!-- Header: who you're talking to, and the ways out of here. There is
-         only one thread the user drives, so it is simply "Main agent" — no
-         conversation name to track. A subagent's read-only thread keeps its
-         own name, which is how you tell the two apart at a glance. What the
+    <!-- Header: the ways out of here, and — on a subagent's thread — whose
+         thread it is. The main thread goes unnamed: it is the one the user
+         drives and the one the workspace opens on, so "Main agent" was a
+         caption on the thing you were already looking at. A subagent's
+         read-only thread does keep its own name, which is now the whole way
+         you tell the two apart at a glance: a name means you have stepped into
+         somebody else's transcript. What the
          agent is doing right now is not here: it belongs under the message
          that set it going, so the transcript says it. Version restores live
          inline in the transcript (the
@@ -383,11 +386,13 @@ const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 const isTaskThread = computed(() => activeInstance.value?.kind === 'task')
 const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
 
-// The main thread is always just "the main agent" — its conversation name is
-// never surfaced, so there is nothing for the user to name or keep track of.
-// Subagent threads show their own name so it is obvious which one is open.
+// The main thread wears no name at all. Its conversation name is never
+// surfaced, and labelling it "Main agent" only told you what the pane you were
+// already typing into was. Subagent threads do show their own name — that is
+// what makes an unnamed masthead legible, because a name now means you are
+// reading somebody else's thread rather than your own.
 const headerTitle = computed(() =>
-  isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : 'Main agent'
+  isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : ''
 )
 
 /** Where you can go from the main thread. Subagents first — it is the nearer
