@@ -25,6 +25,7 @@ from .views import (
     ProjectDirectoriesView,
     # Agent views
     agent_stream,
+    agent_transcribe,
     conversations_list_create,
     conversation_detail,
     conversation_accept,
@@ -65,6 +66,8 @@ builder_patterns = [
 
 agents_patterns = [
     path('agent/stream/', agent_stream, name='agent_stream'),
+    # Dictation: the composer's mic clip goes here and comes back as text.
+    path('agent/transcribe/', agent_transcribe, name='agent_transcribe'),
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),
     path('conversations/<int:conversation_id>/cancel/', conversation_cancel, name='conversation_cancel'),
