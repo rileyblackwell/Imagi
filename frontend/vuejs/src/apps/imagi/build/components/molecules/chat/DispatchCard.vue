@@ -18,6 +18,13 @@
   it has. The job stays put through every state, because "complete" only
   means something next to what was asked for.
 
+  That paragraph is folded away until asked for. Two lines answer "is it done
+  yet?", which is the question nearly every glance at this card is asking,
+  and several sentences per subagent stacked down a thread is a wall to
+  scroll rather than a record to read. Open one and it stays open — including
+  through the flip to complete, so watching a job through to its sign-off
+  costs one click, not one per state.
+
   There is no separate title. A name and a description of the same job are the
   same sentence written twice, and the name was the one being clipped to an
   ellipsis on a phone. Everything here wraps and is read in full: a card that
@@ -34,42 +41,77 @@
   transcript a finished subagent is news, so it lands in an affirmative green.
 -->
 <template>
-  <button
-    type="button"
-    :class="['dispatch-card', `dispatch-card--${state.tone}`]"
-    :title="`Open this subagent's thread`"
-    @click="emit('open')"
-  >
+  <article :class="['dispatch-card', `dispatch-card--${state.tone}`]">
     <span class="dispatch-card__rail" aria-hidden="true"></span>
 
-    <!-- Where it stands, and the way through to the subagent's own thread.
-         The card's headline: the one thing the user is scanning for is
-         whether this has landed yet. -->
-    <span class="dispatch-card__head">
-      <span class="dispatch-card__chip">
-        <i :class="state.icon"></i>
-      </span>
-      <span class="dispatch-card__status">{{ state.label }}</span>
-      <i class="fas fa-chevron-right dispatch-card__chevron" aria-hidden="true"></i>
-    </span>
+    <!-- The card at rest: where it stands, and which job. Everything here is
+         one button, because at a glance these two lines ARE the card and a
+         click anywhere on them opens the rest.
 
-    <!-- Which job, in the user's language. Under the state and in the brand
-         serif, because it is the reading matter: present in every state,
-         since a result means nothing without the job it answers. -->
-    <span v-if="state.job" class="dispatch-card__job">{{ state.job }}</span>
+         The paragraph underneath is the long half — several sentences of it —
+         and a thread of these at full height is a wall to scroll past when
+         all most people want is "is it done yet?". So it starts closed, and
+         opens on demand. -->
+    <button
+      type="button"
+      class="dispatch-card__toggle"
+      :disabled="!expandable"
+      :aria-expanded="expandable ? expanded : undefined"
+      :aria-controls="expandable ? bodyId : undefined"
+      @click="expanded = !expanded"
+    >
+      <span class="dispatch-card__head">
+        <span class="dispatch-card__chip">
+          <i :class="state.icon"></i>
+        </span>
+        <span class="dispatch-card__status">{{ state.label }}</span>
+        <i
+          v-if="expandable"
+          class="fas fa-chevron-down dispatch-card__caret"
+          aria-hidden="true"
+        ></i>
+      </span>
+
+      <!-- Which job, in the user's language. Under the state and in the brand
+           serif, because it is the reading matter: present in every state,
+           since a result means nothing without the job it answers. -->
+      <span v-if="state.job" class="dispatch-card__job">{{ state.job }}</span>
+    </button>
+
+    <!-- The way through to the subagent's own thread. Its own control now
+         that the card body toggles: one button cannot both open a panel and
+         navigate away, and of the two, the summary is what people want far
+         more often. Same mark the check-in queue uses for the same trip. -->
+    <button
+      type="button"
+      class="dispatch-card__open"
+      title="Open this subagent's thread"
+      aria-label="Open this subagent's thread"
+      @click="emit('open')"
+    >
+      <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+    </button>
 
     <!-- The paragraph under the job. While the subagent runs it is the lead's
          overview of what it is doing; once it lands it is the subagent's own
          summary of the changes now in the app, or the question it stopped on
          — so the flip to "complete" changes the words here, not only the
          label above. -->
-    <span v-if="state.result" class="dispatch-card__result">{{ state.result }}</span>
-  </button>
+    <Transition name="dispatch-reveal">
+      <p v-if="expandable && expanded" :id="bodyId" class="dispatch-card__result">
+        {{ state.result }}
+      </p>
+    </Transition>
+  </article>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { AgentInstance } from '../../../types/services'
+
+/** Ties each card's toggle to the paragraph it opens (aria-controls needs a
+ *  document-unique id, and a thread holds many of these). */
+let nextBodyId = 0
 
 const props = defineProps<{
   /** The task's title from the transcript. The card names its job from the
@@ -190,6 +232,20 @@ const status = computed(() => {
   }
 })
 
+const bodyId = `dispatch-card-body-${nextBodyId++}`
+
+/**
+ * Whether the card is open. Closed to begin with in every state, the
+ * finished one included: "Subagent complete" over the job's name is the
+ * whole of what most people need from a card they have scrolled back to,
+ * and the account of what changed is there for the asking.
+ *
+ * Once opened it stays open, including through the flip from working to
+ * complete — someone who asked to watch this job is not asking to be shut
+ * again the moment it lands.
+ */
+const expanded = ref(false)
+
 const state = computed(() => ({
   ...status.value,
   // What this subagent is for, named the way the user would name it. The
@@ -197,6 +253,10 @@ const state = computed(() => ({
   // but never nothing.
   job: props.instance?.brief || props.title || 'Background subagent',
 }))
+
+/** Nothing to open when the run has said nothing yet: a discarded card, or
+ *  a subagent still starting on a dispatch that carried no overview. */
+const expandable = computed(() => !!state.value.result)
 </script>
 
 <style scoped>
@@ -224,7 +284,6 @@ const state = computed(() => ({
   background: rgba(239, 246, 255, 0.5);
   text-align: left;
   overflow: hidden;
-  cursor: pointer;
   transition:
     background-color var(--iw-dur-3) var(--iw-ease-out),
     border-color var(--iw-dur-3) var(--iw-ease-out),
@@ -251,15 +310,39 @@ const state = computed(() => ({
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.dispatch-card:active {
-  transform: translateY(0) scale(0.99);
-  box-shadow: var(--iw-shadow-1);
-  transition-duration: var(--iw-dur-1);
+/* The disclosure: the state line and the job, as one target. Stripped of the
+   button element's own styling so the card reads as a card — everything
+   visible here is the card's. */
+.dispatch-card__toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--iw-r-sm);
 }
 
-.dispatch-card:focus-visible {
+/* Nothing to open — a discarded card, or a subagent that has not said
+   anything yet. It still holds the state and the job; it just does not
+   pretend there is more behind it. */
+.dispatch-card__toggle:disabled {
+  cursor: default;
+}
+
+.dispatch-card__toggle:focus-visible {
   outline: none;
   box-shadow: var(--iw-focus-ring);
+}
+
+.dispatch-card__toggle:active:not(:disabled) .dispatch-card__head {
+  transform: scale(0.995);
+  transition-duration: var(--iw-dur-1);
 }
 
 /* ── States ─────────────────────────────────────────────────────────────── */
@@ -445,6 +528,11 @@ const state = computed(() => ({
   display: flex;
   align-items: center;
   gap: 0.4375rem;
+  /* Room at the end of the row for the open-thread button, which floats over
+     the card rather than sitting in this flow — nested buttons are not a
+     thing, and the toggle owns the whole row. */
+  padding-right: 1.375rem;
+  transition: transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dispatch-card__chip {
@@ -550,26 +638,79 @@ const state = computed(() => ({
   color: rgba(219, 245, 230, 0.78);
 }
 
-.dispatch-card__chevron {
+/* The disclosure mark. Points down at a closed card and turns over as it
+   opens, so the card says which way it is going without a word of label. */
+.dispatch-card__caret {
   flex-shrink: 0;
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   color: rgba(23, 37, 84, 0.3);
   transition:
     color var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
+    transform var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.dark .dispatch-card__chevron {
+.dark .dispatch-card__caret {
   color: rgba(255, 255, 255, 0.3);
 }
 
-.dispatch-card:hover .dispatch-card__chevron {
+.dispatch-card:hover .dispatch-card__caret {
   color: rgba(23, 37, 84, 0.6);
-  transform: translateX(2px);
 }
 
-.dark .dispatch-card:hover .dispatch-card__chevron {
+.dark .dispatch-card:hover .dispatch-card__caret {
   color: rgba(255, 255, 255, 0.6);
+}
+
+.dispatch-card__toggle[aria-expanded='true'] .dispatch-card__caret {
+  transform: rotate(180deg);
+}
+
+/* The trip to the subagent's own thread. Quiet by design: the summary below
+   answers most of what anyone wants, and this is for the times it does not.
+   Same mark, size and manners as the check-in queue's. */
+.dispatch-card__open {
+  position: absolute;
+  top: 0.4375rem;
+  right: 0.4375rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--iw-r-xs);
+  font-size: 0.5625rem;
+  color: rgba(23, 37, 84, 0.3);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dark .dispatch-card__open {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.dispatch-card:hover .dispatch-card__open {
+  color: rgba(23, 37, 84, 0.55);
+}
+
+.dark .dispatch-card:hover .dispatch-card__open {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dispatch-card__open:hover {
+  background: rgba(23, 37, 84, 0.07);
+  color: rgba(23, 37, 84, 0.8);
+}
+
+.dark .dispatch-card__open:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dispatch-card__open:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
 }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */
@@ -592,6 +733,22 @@ const state = computed(() => ({
   100% { transform: none; }
 }
 
+/* Opening the card. The paragraph arrives rather than appearing: the layout
+   settles at once (a card growing in slow motion under the pointer is worse
+   than one that simply grew) and the text fades up into the space. */
+.dispatch-reveal-enter-active,
+.dispatch-reveal-leave-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dispatch-reveal-enter-from,
+.dispatch-reveal-leave-to {
+  opacity: 0;
+  transform: translateY(-3px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dispatch-card--working::before {
     animation: none;
@@ -608,8 +765,17 @@ const state = computed(() => ({
   }
 
   .dispatch-card:hover,
-  .dispatch-card:active {
+  .dispatch-card__toggle:active:not(:disabled) .dispatch-card__head {
     transform: none;
+  }
+
+  .dispatch-card__caret {
+    transition: none;
+  }
+
+  .dispatch-reveal-enter-active,
+  .dispatch-reveal-leave-active {
+    transition: none;
   }
 }
 </style>
