@@ -1880,6 +1880,92 @@ class FailedTaskRunTests(TestCase):
         self.assertEqual(pending.count(), 1)
         self.assertIn('second failure', pending.first().body)
 
+    def test_a_dropped_stream_parks_the_task(self):
+        # The client went away mid-run — a reload, a closed tab, a dropped
+        # connection. Nobody reports that ending, so the run's own cleanup
+        # has to: left at 'active', the task read "starting" forever, with
+        # no run behind it and nothing the user could do about it.
+        task = self._task()
+
+        class Unfinished(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started')
+                yield _delta_event(' on the form')
+
+        async def drop_after_first_words():
+            stream = self.service.process_stream(
+                user_input='go', user=self.user, project_id=1,
+                conversation_id=task.id,
+            )
+            seen = []
+            async for event in stream:
+                seen.append(event['type'])
+                if event['type'] == 'delta':
+                    break
+            # What the response does when the client is gone.
+            await stream.aclose()
+            return seen
+
+        with patch.object(
+            self.service, '_prepare_run',
+            return_value=(task, self._context(), [{'role': 'user', 'content': 'go'}]),
+        ), patch.object(
+            type(self.service), 'agent', new_callable=PropertyMock
+        ) as mock_agent, patch(
+            'apps.Imagi.Build.services.base_agent.Runner'
+        ) as mock_runner:
+            mock_agent.return_value = SimpleNamespace()
+            mock_runner.run_streamed.return_value = Unfinished([])
+            seen = async_to_sync(drop_after_first_words)()
+
+        self.assertEqual(seen, ['start', 'delta'])
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'failed')
+        self.assertIsNone(task.run_started_at)
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.kind, 'error')
+        self.assertEqual(check_in.status, 'pending')
+        self.assertIn('cut off', check_in.body)
+        # Whatever it managed to say before the cut is kept with it.
+        self.assertEqual(
+            [m.content for m in task.messages.filter(role='assistant')],
+            ['I started'],
+        )
+
+    def test_a_run_that_finishes_is_not_parked(self):
+        # The counterpart: a run that reaches its own ending has reported
+        # itself, and the cleanup must not second-guess it.
+        task = self._task()
+
+        with patch.object(
+            self.service, '_prepare_run',
+            return_value=(task, self._context(), [{'role': 'user', 'content': 'go'}]),
+        ), patch.object(
+            type(self.service), 'agent', new_callable=PropertyMock
+        ) as mock_agent, patch(
+            'apps.Imagi.Build.services.base_agent.Runner'
+        ) as mock_runner, patch.object(
+            self.service, '_finalize_task_run'
+        ) as finalize:
+            mock_agent.return_value = SimpleNamespace()
+            mock_runner.run_streamed.return_value = _FakeStreamedRun(
+                [_delta_event('All done.')], final_output='All done.'
+            )
+
+            async def collect():
+                return [
+                    event async for event in self.service.process_stream(
+                        user_input='go', user=self.user, project_id=1,
+                        conversation_id=task.id,
+                    )
+                ]
+
+            events = async_to_sync(collect)()
+
+        self.assertEqual(events[-1]['type'], 'done')
+        finalize.assert_called_once()
+        self.assertFalse(AgentCheckIn.objects.filter(kind='error').exists())
+
     def test_accepted_work_is_never_relabelled_by_a_later_failure(self):
         # The task's changes are already in the app; calling it failed would
         # make the record lie about where that work went.
@@ -2125,3 +2211,180 @@ class CheckInQueueOrderTests(TestCase):
         self.assertEqual(
             [c['id'] for c in self._queue()], [c.id for c in filed]
         )
+
+
+class StoppedAndStrandedTaskTests(TestCase):
+    """A subagent that stops without finishing fails, whichever way it stopped.
+
+    A dropped stream is parked by the run's own cleanup. These cover the two
+    endings that have no cleanup at all: the workspace releasing the run (a
+    stop, or a request that never got through), and a worker that died —
+    which only the poll can notice, since nothing else is left to report it.
+    Either way the task must not sit at 'active' reading "starting" forever;
+    it fails, the queue says so, and the user can try it again.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='stopper', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='lead',
+        )
+
+    def _task(self, **fields):
+        fields.setdefault('review_status', 'active')
+        return AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='task',
+            parent=self.lead, worktree_path='/tmp/project--wt-1', **fields,
+        )
+
+    def _age(self, task, minutes, marker='same'):
+        """Backdate a task: updated_at is auto_now, so it is set after the fact.
+
+        marker='same' backdates run_started_at with it (a worker that died
+        mid-run, heartbeat and all); None clears it.
+        """
+        stamp = timezone.now() - timedelta(minutes=minutes)
+        fields = {'updated_at': stamp}
+        if marker == 'same':
+            fields['run_started_at'] = stamp
+        else:
+            fields['run_started_at'] = marker
+        AgentConversation.objects.filter(id=task.id).update(**fields)
+        task.refresh_from_db()
+
+    def _cancel(self, task, body=None):
+        return self.client.post(
+            reverse('conversation_cancel', args=[task.id]),
+            data=json.dumps(body or {}), content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {self.token.key}',
+        )
+
+    def _poll(self):
+        response = self.client.get(
+            reverse('check_ins_list'), {'project_id': 1},
+            HTTP_AUTHORIZATION=f'Token {self.token.key}',
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    # --- the workspace releasing a run ---
+
+    def test_stopping_a_running_task_fails_it(self):
+        task = self._task(run_started_at=timezone.now())
+
+        response = self._cancel(task)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['review_status'], 'failed')
+        self.assertFalse(response.json()['is_running'])
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.kind, 'error')
+        self.assertIn('stopped before it finished', check_in.body)
+
+    def test_the_client_can_say_why_the_run_ended(self):
+        # A request that never reached the run has a better account of the
+        # ending than a plain stop, and the queue card shows whichever it got.
+        task = self._task(queued_prompt='Add a contact page.')
+
+        self._cancel(task, {'reason': 'The request to start this subagent did not get through.'})
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'failed')
+        self.assertIn('did not get through', AgentCheckIn.objects.get(conversation=task).body)
+        # The brief was never consumed, so it is still there for the retry.
+        self.assertEqual(task.queued_prompt, 'Add a contact page.')
+
+    def test_stopping_does_not_relabel_a_task_that_already_finished(self):
+        # 'ready' and 'input' are runs that ended on their own terms; a
+        # cancel from a stale tab must not turn them into failures.
+        for review_status in ('ready', 'input', 'accepted', 'dismissed'):
+            task = self._task(review_status=review_status, run_started_at=timezone.now())
+
+            self._cancel(task)
+
+            task.refresh_from_db()
+            self.assertEqual(task.review_status, review_status)
+            self.assertIsNone(task.run_started_at)
+        self.assertEqual(AgentCheckIn.objects.count(), 0)
+
+    def test_stopping_a_chat_only_releases_the_marker(self):
+        chat = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=1, kind='chat',
+            run_started_at=timezone.now(),
+        )
+
+        response = self._cancel(chat)
+
+        self.assertEqual(response.status_code, 200)
+        chat.refresh_from_db()
+        self.assertIsNone(chat.run_started_at)
+        self.assertEqual(chat.review_status, '')
+        self.assertEqual(AgentCheckIn.objects.count(), 0)
+
+    # --- a worker that died ---
+
+    def test_the_poll_fails_a_task_whose_worker_died(self):
+        # Its heartbeat stopped long ago and nothing ever cleared it up.
+        task = self._task()
+        self._age(task, minutes=15)
+
+        queue = self._poll()
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'failed')
+        self.assertEqual([c['kind'] for c in queue], ['error'])
+        self.assertEqual(queue[0]['task']['id'], task.id)
+        self.assertIn('stopped responding', queue[0]['body'])
+
+    def test_the_poll_fails_a_task_left_active_with_no_run(self):
+        # The marker was cleared but the status never moved on (a row from
+        # before interrupted runs were parked, a cleanup that died halfway).
+        task = self._task()
+        self._age(task, minutes=5, marker=None)
+
+        self._poll()
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'failed')
+
+    def test_the_workspace_opening_also_notices(self):
+        # Reloading is the natural thing to do to a workspace that looks
+        # stuck, so the list a reload fetches sweeps too.
+        task = self._task()
+        self._age(task, minutes=15)
+
+        response = self.client.get(
+            reverse('conversations_list_create'), {'project_id': 1},
+            HTTP_AUTHORIZATION=f'Token {self.token.key}',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        listed = {c['id']: c for c in response.json()}
+        self.assertEqual(listed[task.id]['review_status'], 'failed')
+
+    def test_a_task_between_rounds_is_left_alone(self):
+        # A turn-capped round clears the marker a moment before its
+        # continuation sets it again: 'active', no run, but only just.
+        task = self._task()
+        self._age(task, minutes=1, marker=None)
+
+        self._poll()
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'active')
+
+    def test_a_live_run_and_a_staged_dispatch_are_left_alone(self):
+        running = self._task(run_started_at=timezone.now())
+        # Dispatched but never fired: its brief is still staged, and the next
+        # workspace to open starts it. Old, but not dead.
+        staged = self._task(queued_prompt='Add a contact page.')
+        self._age(staged, minutes=30, marker=None)
+
+        self._poll()
+
+        running.refresh_from_db()
+        staged.refresh_from_db()
+        self.assertEqual(running.review_status, 'active')
+        self.assertEqual(staged.review_status, 'active')
+        self.assertEqual(AgentCheckIn.objects.count(), 0)

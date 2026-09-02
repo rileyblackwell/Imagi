@@ -1,11 +1,17 @@
 <!--
   WorkspacePaneHeader.vue — the masthead shared by the two sidebar panes.
 
-  Built from the same parts as everything under it. A pane names itself in the
-  brand serif and may add a second line, led by a state dot, saying where it
+  Built from the same parts as everything under it. A pane may name itself in
+  the brand serif and may add a second line, led by a state dot, saying where it
   stands — the identical construction the crew cards use (title, then a marked
   status line), in the identical monochrome vocabulary: blue while work is
   live, navy ink when something wants you, faint ink at rest.
+
+  Both halves of the identity are optional, and a pane that is obviously itself
+  takes neither. The main thread is the case: you are looking at the agent you
+  came here to talk to, so naming it spends a line saying what the pane already
+  is. What replaces it is nothing — the plate holds its height, the switches
+  keep their place, and the reading (when there is one) moves up into the space.
 
   That second line is for standing, not for activity. A thread pane leaves it
   empty while its agent is running and lets the transcript narrate the run
@@ -74,7 +80,11 @@
       </div>
 
       <div class="pane-identity">
-        <h2 class="pane-title truncate">{{ title }}</h2>
+        <!-- Only panes that need naming carry a name. A pane you arrived at by
+             stepping into it — a subagent's thread, the roster — says which one
+             you are in; the main thread doesn't, because there is nothing to
+             tell it apart from. -->
+        <h2 v-if="title" class="pane-title truncate">{{ title }}</h2>
 
         <!-- Where this pane stands: a state dot, then the reading. The dot is
              the pane's only status marker — it replaced a filled identity badge
@@ -141,7 +151,8 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    title: string
+    /** What this pane is, when that isn't already obvious from being in it. */
+    title?: string
     /**
      * Where the pane stands, in the crew ledger's own vocabulary — the same
      * three tokens an agent card keys its rail and status colour off, so a
@@ -317,6 +328,12 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   justify-content: center;
   gap: 0.3125rem;
   min-height: 0.9375rem;
+}
+
+/* The gap belongs to the pair, not to the line: on an unnamed pane the reading
+   is the whole identity and sits on the plate's centreline, where a hanging
+   top margin would push it a hair low. */
+.pane-title + .pane-status-line {
   margin-top: 0.125rem;
 }
 

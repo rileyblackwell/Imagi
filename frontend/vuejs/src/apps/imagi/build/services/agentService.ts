@@ -477,9 +477,17 @@ export const AgentService = {
    * Release a conversation's server-side running-run marker (clears
    * is_running and lifts the project's agent_busy guard). Cannot halt a run
    * driven by another tab's live stream — there is no server task handle.
+   *
+   * For a background task this is also how the workspace reports a run that
+   * ended without finishing: the task is parked as failed and an error
+   * check-in carries `reason` (the client's account of the ending) into the
+   * main thread's queue, where the user can retry it.
    */
-  async cancelConversationRun(conversationId: number): Promise<ConversationDto> {
-    const response = await api.post(`/v1/agents/conversations/${conversationId}/cancel/`)
+  async cancelConversationRun(conversationId: number, reason?: string): Promise<ConversationDto> {
+    const response = await api.post(
+      `/v1/agents/conversations/${conversationId}/cancel/`,
+      reason ? { reason } : {}
+    )
     return response.data as ConversationDto
   },
 

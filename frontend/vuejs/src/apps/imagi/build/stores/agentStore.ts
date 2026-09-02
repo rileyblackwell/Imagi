@@ -78,6 +78,15 @@ const adoptedCheckIns = new Set<number>()
 // same handlePrompt path, targeted at the task's instance).
 let taskRunner: ((instanceId: string, prompt: string) => void) | null = null
 
+// What a subagent is told when the user asks it to try again after a run
+// that died with its brief already consumed. The job itself is in its
+// transcript (the brief is its opening message) and whatever it managed to
+// change is still in its worktree, so it continues rather than starting over.
+const TASK_RETRY_PROMPT =
+  'Your previous run was cut off before you finished. Pick the job back up ' +
+  'from where it stopped: check what you have already changed, finish what ' +
+  'remains, and sign off as usual.'
+
 // Registered by the workspace: a subagent's work just merged into the project,
 // so whatever mirrors the project files (the tree, the preview) is now stale.
 let taskAppliedHandler: (() => void) | null = null
@@ -200,11 +209,17 @@ export const useAgentStore = defineStore('agent', {
      *  Ordered by conversation id because that is the order they were
      *  dispatched in, and a subagent waiting for a slot should get it before
      *  one dispatched after it — the same first-in-first-out rule the main
-     *  thread's queue follows on the way back. */
+     *  thread's queue follows on the way back.
+     *
+     *  Never a failed one. A dispatch whose run could not start still holds
+     *  its brief, but it is the user's to retry: firing it again on every
+     *  poll would turn one failure into a loop, and the card would never get
+     *  to say what happened. */
     pendingDispatchInstances(state): AgentInstance[] {
       return state.instances
         .filter(
-          i => i.kind === 'task' && !!i.pendingBrief && !i.isProcessing && !i.archivedAt
+          i => i.kind === 'task' && !!i.pendingBrief && !i.isProcessing &&
+            !i.archivedAt && i.reviewStatus !== 'failed'
         )
         .sort((a, b) => (a.conversationId ?? 0) - (b.conversationId ?? 0))
     },
@@ -532,6 +547,74 @@ export const useAgentStore = defineStore('agent', {
         dispatchRetryAt.set(instance.conversationId, Date.now() + DISPATCH_RETRY_MS)
       }
       instance.pendingBrief = prompt
+    },
+
+    /**
+     * A subagent's run ended without reaching its own ending: the stream was
+     * aborted, the connection dropped, the request never got through. The
+     * task fails — here and on the server — and says so. Left 'active' with
+     * no run behind it, it read "starting" forever on a card the user could
+     * do nothing about; failed, it reads as what it is and offers a retry.
+     *
+     * `unsentBrief` is the prompt when the run never started server-side (no
+     * start event came back): the brief was not consumed, so it stays on the
+     * instance for the retry to fire again. A run that did start has its
+     * brief in its transcript, and a retry continues it with a follow-up.
+     *
+     * The server's word wins on what the task is now: it refuses to relabel
+     * work that already finished, and a cancel from this tab may land after
+     * the run reported itself elsewhere.
+     */
+    async failTaskRun(instanceId: string, reason: string, unsentBrief: string | null = null) {
+      const instance = this._findInstance(instanceId)
+      if (!instance || instance.kind !== 'task') return
+      const conversationId = instance.conversationId
+      if (conversationId != null) {
+        firedDispatches.delete(conversationId)
+        dispatchRetryAt.delete(conversationId)
+      }
+      if (unsentBrief) instance.pendingBrief = unsentBrief
+      if (instance.reviewStatus === 'active') instance.reviewStatus = 'failed'
+      if (conversationId == null) return
+      try {
+        const dto = await AgentService.cancelConversationRun(conversationId, reason)
+        this._setTaskReviewStatus(instance, dto.review_status || '')
+        instance.updatedAt = dto.updated_at
+        instance.lastMessagePreview = dto.last_message_preview || ''
+        instance.lastAssistantSummary = dto.last_assistant_summary || ''
+        // The server filed the error in the queue; show it now rather than
+        // on the next poll tick.
+        void this.loadCheckIns()
+      } catch (e) {
+        console.error('Failed to report the stopped subagent run', e)
+      }
+    },
+
+    /**
+     * Run a failed subagent again — at the user's request, and only then.
+     *
+     * A dispatch whose run never started still holds its brief, so it fires
+     * the way it would have the first time (and waits for a slot the same
+     * way). One whose run died part-way has the job in its transcript and
+     * its half-done edits in its worktree, so it is told to carry on rather
+     * than sent the brief a second time. Either way the run's start flips it
+     * to 'active' server-side and retires the error in the queue; the local
+     * copy flips now so the card reads "starting" the moment it is pressed.
+     */
+    retryTask(conversationId: number) {
+      const instance = this.instances.find(i => i.conversationId === conversationId)
+      if (!instance || instance.kind !== 'task' || instance.isProcessing) return
+      if (instance.reviewStatus !== 'failed' || !taskRunner) return
+      this.removeCheckInsForTask(conversationId)
+      instance.reviewStatus = 'active'
+      instance.hasUnread = false
+      firedDispatches.delete(conversationId)
+      dispatchRetryAt.delete(conversationId)
+      if (instance.pendingBrief) {
+        this.firePendingDispatches()
+        return
+      }
+      taskRunner(instance.id, TASK_RETRY_PROMPT)
     },
 
     // --- Run control (stop button / server-tracked runs) ---

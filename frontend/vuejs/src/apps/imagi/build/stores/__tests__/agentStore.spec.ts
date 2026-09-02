@@ -462,6 +462,206 @@ describe('agent store parallel subagents', () => {
   })
 })
 
+describe('agent store failed subagents', () => {
+  // A subagent that stops without finishing fails and says so; it runs
+  // again only when the user asks. Left 'active' with no run behind it, a
+  // task read "starting" forever on a card nobody could act on.
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  function failedDto(overrides = {}) {
+    return {
+      id: 1,
+      title: 'Job',
+      model_name: 'gpt-5.6-terra',
+      project_id: 1,
+      kind: 'task',
+      parent: 1,
+      review_status: 'failed',
+      variant_group: '',
+      has_worktree: true,
+      archived_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_message_preview: '',
+      last_assistant_summary: '',
+      brief: 'Doing a job.',
+      overview: '',
+      is_running: false,
+      total_tokens: null,
+      queued_prompt: '',
+      ...overrides,
+    }
+  }
+
+  it('fails a run that ended without finishing, and tells the server why', async () => {
+    const store = useAgentStore()
+    agentService.cancelConversationRun.mockResolvedValue(failedDto({ id: 9401 }))
+    agentService.listCheckIns.mockResolvedValue([])
+    store.projectId = '1'
+    const task = makeInstance({ kind: 'task', conversationId: 9401, reviewStatus: 'active' })
+    store.instances = [task]
+
+    await store.failTaskRun(task.id, 'The connection dropped.')
+
+    expect(task.reviewStatus).toBe('failed')
+    expect(agentService.cancelConversationRun)
+      .toHaveBeenCalledWith(9401, 'The connection dropped.')
+    // The server filed the error in the queue — it is pulled now, not on
+    // the next poll tick.
+    expect(agentService.listCheckIns).toHaveBeenCalled()
+  })
+
+  it('reads as failed even when the server cannot be reached', async () => {
+    // The request failing is often the reason the run died in the first
+    // place; the card still has to stop saying "starting".
+    const store = useAgentStore()
+    agentService.cancelConversationRun.mockRejectedValue(new Error('offline'))
+    const task = makeInstance({ kind: 'task', conversationId: 9402, reviewStatus: 'active' })
+    store.instances = [task]
+
+    await store.failTaskRun(task.id, 'The request did not get through.')
+
+    expect(task.reviewStatus).toBe('failed')
+  })
+
+  it('keeps an unsent brief for the retry, without firing it again', async () => {
+    // The run never started, so the brief was never consumed. It waits on
+    // the instance for the user — a dispatch that re-fires itself on every
+    // poll turns one failure into a loop.
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    agentService.cancelConversationRun.mockResolvedValue(failedDto({ id: 9403 }))
+    const task = makeInstance({ kind: 'task', conversationId: 9403, reviewStatus: 'active' })
+    store.instances = [task]
+
+    await store.failTaskRun(task.id, 'The request did not get through.', 'Do job 9403.')
+    store.firePendingDispatches()
+    await Promise.resolve()
+
+    expect(task.pendingBrief).toBe('Do job 9403.')
+    expect(store.pendingDispatchInstances).toHaveLength(0)
+    expect(runs).not.toHaveBeenCalled()
+  })
+
+  it('never relabels work the server says has finished', async () => {
+    // A cancel from this tab can land after the run reported itself
+    // elsewhere; the server refuses to call finished work failed, and its
+    // word wins here too.
+    const store = useAgentStore()
+    agentService.cancelConversationRun.mockResolvedValue(
+      failedDto({ id: 9404, review_status: 'accepted' })
+    )
+    const task = makeInstance({ kind: 'task', conversationId: 9404, reviewStatus: 'active' })
+    store.instances = [task]
+
+    await store.failTaskRun(task.id, 'The connection dropped.')
+
+    expect(task.reviewStatus).toBe('accepted')
+  })
+
+  it('retries a dispatch that never started by firing its brief', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({
+      kind: 'task', conversationId: 9405, reviewStatus: 'failed', pendingBrief: 'Do job 9405.',
+    })
+    store.instances = [task]
+
+    store.retryTask(9405)
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledWith(task.id, 'Do job 9405.')
+    expect(task.reviewStatus).toBe('active')
+    expect(task.pendingBrief).toBeNull()
+  })
+
+  it('retries a run that died part-way by telling it to carry on', async () => {
+    // Its brief is already in its transcript and its half-done edits are in
+    // its worktree, so it continues rather than being handed the job again.
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({ kind: 'task', conversationId: 9406, reviewStatus: 'failed' })
+    store.instances = [task]
+
+    store.retryTask(9406)
+
+    expect(runs).toHaveBeenCalledTimes(1)
+    expect(runs.mock.calls[0]![0]).toBe(task.id)
+    expect(runs.mock.calls[0]![1]).toMatch(/cut off before you finished/)
+    expect(task.reviewStatus).toBe('active')
+  })
+
+  it('drops the error from the queue as the retry goes', () => {
+    const store = useAgentStore()
+    store.setTaskRunner(vi.fn())
+    const task = makeInstance({ kind: 'task', conversationId: 9407, reviewStatus: 'failed' })
+    store.instances = [task]
+    store.checkIns = [
+      {
+        id: 1, kind: 'error', body: 'It stopped.', status: 'pending',
+        created_at: '', resolved_at: null, project_id: 1, lead_id: 1,
+        task: {
+          id: 9407, title: 'Job', goal: '', kind: 'task', review_status: 'failed',
+          variant_group: '', has_worktree: true, is_running: false,
+        },
+      },
+    ]
+
+    store.retryTask(9407)
+
+    expect(store.checkIns).toHaveLength(0)
+  })
+
+  it('only retries a subagent that actually failed', () => {
+    // A double press, a stale card, a run already going again: none of
+    // these start a second run.
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    store.instances = [
+      makeInstance({ kind: 'task', conversationId: 9408, reviewStatus: 'active' }),
+      makeInstance({ kind: 'task', conversationId: 9409, reviewStatus: 'failed', isProcessing: true }),
+      makeInstance({ kind: 'task', conversationId: 9410, reviewStatus: 'accepted' }),
+    ]
+
+    store.retryTask(9408)
+    store.retryTask(9409)
+    store.retryTask(9410)
+
+    expect(runs).not.toHaveBeenCalled()
+  })
+
+  it('does not restart a failed dispatch when the workspace loads', async () => {
+    // Its brief is still staged server-side (the run never consumed it),
+    // but a reload is not the user asking for it to run again.
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    agentService.listConversations.mockResolvedValue([
+      failedDto({ id: 9411, queued_prompt: 'Do job 9411.' }),
+      { ...failedDto({ id: 9412, kind: 'lead', review_status: '' }) },
+    ])
+    agentService.getConversationMessages.mockResolvedValue([])
+    agentService.listCheckIns.mockResolvedValue([])
+
+    await store.loadInstances(1)
+    await Promise.resolve()
+
+    expect(runs).not.toHaveBeenCalled()
+    const failed = store.instances.find(i => i.conversationId === 9411)
+    expect(failed?.reviewStatus).toBe('failed')
+    expect(failed?.pendingBrief).toBe('Do job 9411.')
+    store.stopCheckInPolling()
+  })
+})
+
 describe('agent store subagent outcomes', () => {
   // A subagent's run ends in its own time, in parallel with everything else,
   // and the queue is how a tab that is not streaming that run finds out. The

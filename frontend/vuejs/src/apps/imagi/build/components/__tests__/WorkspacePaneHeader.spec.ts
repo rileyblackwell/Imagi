@@ -15,6 +15,28 @@ describe('WorkspacePaneHeader', () => {
     expect(mountWith({}).find('.pane-title').text()).toBe('Main agent')
   })
 
+  it('goes unnamed when the pane is obviously itself', () => {
+    // The main thread passes no title: you are looking at the agent you came
+    // here to talk to, so the masthead spends nothing saying so. The plate and
+    // its switches have to survive that — an empty <h2> would still take a
+    // line's height and push the reading off the centreline.
+    const wrapper = mountWith({
+      title: '',
+      switches: [{ id: 'manager', icon: 'fas fa-layer-group', label: 'Subagents' }],
+    })
+
+    expect(wrapper.find('.pane-title').exists()).toBe(false)
+    expect(wrapper.find('.pane-identity').exists()).toBe(true)
+    expect(wrapper.find('button.pane-switch').exists()).toBe(true)
+  })
+
+  it('still reports where an unnamed pane stands', () => {
+    const wrapper = mountWith({ title: '', status: '2 agents are waiting on you', state: 'waiting' })
+    expect(wrapper.find('.pane-title').exists()).toBe(false)
+    expect(wrapper.find('.pane-identity .pane-status').text()).toBe('2 agents are waiting on you')
+    expect(wrapper.find('.pane-dot').classes()).toContain('pane-dot--waiting')
+  })
+
   it('rests idle when no state is given', () => {
     const wrapper = mountWith({ status: 'Ready when you are' })
     expect(wrapper.find('.pane-dot').classes()).toContain('pane-dot--idle')

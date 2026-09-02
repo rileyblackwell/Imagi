@@ -160,8 +160,22 @@
                ready card's Discard makes) rather than just clearing this card.
                Clearing the card alone would leave the subagent stranded —
                stuck mid-run in the Subagents pane, with its worktree, and no
-               way left to reach it. -->
+               way left to reach it.
+
+               Try again runs the same subagent again, from where it stopped.
+               It leads, because it is what most people reading this want to
+               do next — and a run never restarts on its own, so this is the
+               one place that decision gets made. -->
           <div v-else class="flex items-center gap-1.5 mt-2">
+            <button
+              type="button"
+              :disabled="busy"
+              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium disabled:opacity-50"
+              @click="emit('retry', current)"
+            >
+              <i class="fas fa-rotate-right text-[10px] mr-1" aria-hidden="true"></i>
+              Try again
+            </button>
             <button
               type="button"
               class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
@@ -204,6 +218,8 @@ const emit = defineEmits<{
   (e: 'skip', checkIn: CheckInDto): void
   /** Open the task's (read-only) thread */
   (e: 'view', checkIn: CheckInDto): void
+  /** Run a failed subagent again, from where it stopped */
+  (e: 'retry', checkIn: CheckInDto): void
 }>()
 
 const answer = ref('')
