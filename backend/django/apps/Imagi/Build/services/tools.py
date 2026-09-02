@@ -732,12 +732,15 @@ def dispatch_task_impl(
         'dispatched_tasks': dispatched,
         'instruction': (
             f"{len(dispatched)} background task(s) are now staged and will start "
-            "running in parallel. Say NOTHING and end your turn: the workspace "
-            "is already showing the user a card per subagent, naming the job "
-            "and linking to its thread, so announcing it yourself repeats it. "
-            "Each one applies its own changes when it finishes and turns its "
-            "own card into a completion notice (or a question) — do not wait "
-            "or poll for them."
+            "running in parallel. Reply with ONE short sentence telling the "
+            "user you are putting a subagent on it, then end your turn. "
+            "Nothing more: the workspace is already showing them a card per "
+            "subagent that names the job, describes what it will do and links "
+            "to its thread, and tells them the work runs in the background "
+            "while they keep going — so a second line from you repeats what is "
+            "on their screen. Each one applies its own changes when it "
+            "finishes and turns its own card into a completion notice (or a "
+            "question) — do not wait or poll for them."
         ),
     }
 

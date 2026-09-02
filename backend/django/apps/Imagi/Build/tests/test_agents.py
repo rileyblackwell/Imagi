@@ -1369,6 +1369,29 @@ class LeadAgentConfigurationTests(SimpleTestCase):
             'ONE job, ONE dispatch_task call, ONE subagent', LEAD_AGENT_INSTRUCTIONS
         )
 
+    def test_the_lead_answers_an_ordinary_question_in_the_thread(self):
+        # Half the workflow, and the half a non-technical user has to be able
+        # to feel: a message that is not a job comes straight back here, with
+        # nothing dispatched and no card, and they can simply write back.
+        self.assertIn('Answer it directly, in this thread', LEAD_AGENT_INSTRUCTIONS)
+
+    def test_the_lead_acknowledges_a_hand_off_in_one_line(self):
+        # The other half: a card appearing under the user's message with no
+        # reply above it reads as the workspace answering, not as the agent
+        # they just spoke to. One sentence — and no more than one.
+        self.assertIn(
+            'reply with ONE short sentence and end your turn',
+            LEAD_AGENT_INSTRUCTIONS,
+        )
+
+    def test_the_lead_does_not_repeat_what_the_workspace_already_says(self):
+        # The card names the job and describes the work, and the workspace
+        # prints the hand-back line itself, so the lead's sentence must not be
+        # a second copy of either.
+        self.assertIn(
+            'do not say the work runs in the background', LEAD_AGENT_INSTRUCTIONS
+        )
+
     def test_the_lead_is_told_never_to_narrate_an_unmade_dispatch(self):
         # A lead was observed replying "Done — I've kicked off a subagent…"
         # with no dispatch_task call at all, so the request went nowhere. The
@@ -1417,6 +1440,21 @@ class LeadDispatchClaimTests(SimpleTestCase):
         self.assertFalse(lead_claims_unmade_dispatch(
             self.lead, self.context, "On it — kicked off a subagent to add the note."
         ))
+
+    def test_the_acknowledgement_the_prompt_asks_for_is_not_a_false_claim(self):
+        # The lead is told to answer a hand-off with one short line naming the
+        # subagent, so the guard has to read those as backed rather than
+        # spending a corrective turn on every dispatch that worked.
+        self.context.dispatched_tasks.append(
+            {'conversation_id': 99, 'title': 'Home page', 'brief': 'redo the home page'}
+        )
+        for text in (
+            "I'm putting a subagent on your home page now.",
+            "Handing this to a subagent — it's on your contact form.",
+        ):
+            self.assertFalse(
+                lead_claims_unmade_dispatch(self.lead, self.context, text), text
+            )
 
     def test_only_lead_replies_are_guarded(self):
         # Builders talk about their own work directly; "kicked off" in a chat
