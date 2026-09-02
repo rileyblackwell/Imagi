@@ -4,17 +4,19 @@
   One card per subagent, and it is the WHOLE of what the main thread says
   about that subagent, from kickoff to sign-off. When the lead hands a job
   over, this card is the message: the job's name, the news that a subagent is
-  on it, and a way through to watch it happen. When the work lands, the same
-  card turns into "Subagent complete" and the subagent's own summary of what
-  changed appears underneath it. Nothing arrives below as a second telling —
-  a kickoff line and a completion message for one piece of work is the same
-  news printed twice, and the second copy is always somewhere else in the
-  thread by the time it matters.
+  on it, a few plain sentences on what it is doing, and a way through to
+  watch it happen. When the work lands, the same card turns into "Subagent
+  complete" and the subagent's own summary of what changed takes the place of
+  those sentences. Nothing arrives below as a second telling — a kickoff line
+  and a completion message for one piece of work is the same news printed
+  twice, and the second copy is always somewhere else in the thread by the
+  time it matters.
 
   So the card is read top-down as: where it stands (the state line, which is
   what anyone glancing at it wants), which job (the serif line under it), and
-  — once there is one — what came of it. The job stays put through every
-  state, because "complete" only means something next to what was asked for.
+  a paragraph that is what it is doing while it runs and what came of it once
+  it has. The job stays put through every state, because "complete" only
+  means something next to what was asked for.
 
   There is no separate title. A name and a description of the same job are the
   same sentence written twice, and the name was the one being clipped to an
@@ -56,9 +58,11 @@
          since a result means nothing without the job it answers. -->
     <span v-if="state.job" class="dispatch-card__job">{{ state.job }}</span>
 
-    <!-- What came of it: the subagent's own summary of the changes now in the
-         app, or the question it stopped on. Only a finished (or stuck)
-         subagent has one, which is exactly why its arrival reads as news. -->
+    <!-- The paragraph under the job. While the subagent runs it is the lead's
+         overview of what it is doing; once it lands it is the subagent's own
+         summary of the changes now in the app, or the question it stopped on
+         — so the flip to "complete" changes the words here, not only the
+         label above. -->
     <span v-if="state.result" class="dispatch-card__result">{{ state.result }}</span>
   </button>
 </template>
@@ -96,9 +100,9 @@ function saidBy(instance: AgentInstance): string {
 const NO_SIGN_OFF = 'It finished without saying what it changed — open it to see the work.'
 
 /**
- * Where this subagent stands, as the three things the card renders: a tone
- * (which drives every colour on it), an icon, the state in words, and — once
- * there is one — what came of it.
+ * Where this subagent stands, as the things the card renders: a tone (which
+ * drives every colour on it), an icon, the state in words, and the paragraph
+ * under the job — what it is doing while live, what came of it once done.
  *
  * The job is deliberately not part of the switch: it is the same job in every
  * state, so it is read once, below, rather than repeated per branch.
@@ -116,10 +120,11 @@ const status = computed(() => {
       tone: 'working',
       icon: 'fas fa-circle-notch fa-spin',
       label: 'Subagent working',
-      // Nothing has come back yet, and the agent's live status ("Editing
-      // project files…") is not a result — it says how it is working, which
-      // is exactly the kind of detail this card keeps out.
-      result: '',
+      // What it is doing: the lead's overview of the job, three to five plain
+      // sentences written for the owner at dispatch. Not the agent's live
+      // status ("Editing project files…") — that says how it is working,
+      // which is exactly the kind of detail this card keeps out.
+      result: instance.overview,
     }
   }
   switch (instance.reviewStatus) {
@@ -174,8 +179,14 @@ const status = computed(() => {
     case 'dismissed':
       return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }
     default:
-      // Dispatched, run not yet fired.
-      return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Subagent starting', result: '' }
+      // Dispatched, run not yet fired. The overview is already known, so the
+      // card reads the same as it will a moment later when the run starts.
+      return {
+        tone: 'starting',
+        icon: 'fas fa-hourglass-start',
+        label: 'Subagent starting',
+        result: instance.overview,
+      }
   }
 })
 
@@ -486,14 +497,15 @@ const state = computed(() => ({
   color: rgba(255, 255, 255, 0.86);
 }
 
-/* What came back. Set apart from the job by a hairline rather than a label —
-   a rule reads as "and then this happened" without spending a line on saying
-   so. Also wraps in full.
+/* The paragraph under the job — what it is doing, then what came back. Set
+   apart from the job by a hairline rather than a label: a rule reads as "and
+   here is the substance" without spending a line on saying so. Also wraps in
+   full.
 
-   Sized as prose, not as a caption: a sign-off is a four-to-six-sentence
-   paragraph and it is the part of the card the owner actually reads, so it
-   gets a readable size and open leading. It still sits a step below the job
-   line, which stays the card's heading. */
+   Sized as prose, not as a caption: an overview is three to five sentences
+   and a sign-off four to six, and it is the part of the card the owner
+   actually reads, so it gets a readable size and open leading. It still sits
+   a step below the job line, which stays the card's heading. */
 .dispatch-card__result {
   position: relative;
   z-index: 1;

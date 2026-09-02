@@ -86,7 +86,7 @@ LEAD_DISPATCH_RETRY_PROMPT = (
     "[Automated check] Your last reply tells the user that background work was "
     "started, but you did not make a successful dispatch_task call this turn — "
     "no subagent exists and nothing is being built. If the user's request is a "
-    "job, call dispatch_task NOW with the full brief and goal, then end your "
+    "job, call dispatch_task NOW with the full brief, goal and overview, then end your "
     "turn without a message — the workspace shows the subagent's card itself. "
     "If you were not actually claiming to have started new "
     "work (for example, a subagent from an earlier turn is already on it), "

@@ -483,6 +483,10 @@ DISPATCH_BRIEF_MAX_CHARS = 4000
 # spinner. A lead that writes a paragraph gets cut off rather than turning the
 # thread into a wall of restated briefs.
 DISPATCH_GOAL_MAX_CHARS = 80
+# The overview is the card's body while the subagent works: three to five
+# plain sentences on what it is doing. The cap is a runaway guard for a lead
+# that pastes the brief in, not a display length.
+DISPATCH_OVERVIEW_MAX_CHARS = 1200
 ASK_USER_MAX_CHARS = 2000
 
 # How alike two briefs have to be before the second one is treated as a repeat
@@ -567,6 +571,7 @@ def _existing_dispatch(ctx, parent, brief: str) -> list:
                 'title': task.title,
                 'brief': existing_brief,
                 'goal': task.goal,
+                'overview': task.overview,
                 'variant_group': task.variant_group,
                 'parent': parent.id,
                 'model_name': task.model_name,
@@ -599,7 +604,8 @@ def _user_asked_for_variants(parent) -> bool:
 
 
 def dispatch_task_impl(
-    ctx, description: str, goal: str = '', title: str = '', drafts: int = 1
+    ctx, description: str, goal: str = '', overview: str = '', title: str = '',
+    drafts: int = 1,
 ) -> dict:
     """Create background task conversations from the lead thread.
 
@@ -627,6 +633,9 @@ def dispatch_task_impl(
     # to the brief, which is readable but written for an engineer — so this is
     # optional to call, never optional to have.
     user_goal = ' '.join((goal or '').split())[:DISPATCH_GOAL_MAX_CHARS]
+    # The card's body while the run is live. One paragraph, so it is flattened
+    # the same way — a lead that writes it as a list gets prose anyway.
+    user_overview = ' '.join((overview or '').split())[:DISPATCH_OVERVIEW_MAX_CHARS]
 
     parent = AgentConversation.objects.filter(
         id=getattr(ctx, 'conversation_id', None), user_id=ctx.user_id
@@ -695,6 +704,7 @@ def dispatch_task_impl(
             variant_group=variant_group,
             queued_prompt=brief,
             goal=user_goal,
+            overview=user_overview,
         )
         SystemPrompt.objects.create(
             conversation=conversation, content=CODING_AGENT_INSTRUCTIONS
@@ -704,6 +714,7 @@ def dispatch_task_impl(
             'title': provisional_title,
             'brief': brief,
             'goal': user_goal,
+            'overview': user_overview,
             'variant_group': variant_group,
             'parent': parent.id,
             'model_name': conversation.model_name,
@@ -1010,6 +1021,7 @@ def dispatch_task(
     ctx: RunContextWrapper,
     description: str,
     goal: str = "",
+    overview: str = "",
     title: str = "",
     drafts: int = 1,
 ) -> str:
@@ -1048,6 +1060,17 @@ def dispatch_task(
             says what the work is and never how it will be done, and it names
             no files, folders, components, or libraries. Ten words at the
             outside — anything longer is cut off.
+        overview: Three to five plain sentences, written for the USER, on what
+            this subagent is about to do: what will be different in their app
+            when it is done, what they or a visitor will see and be able to
+            do, and any specifics they asked for, said back to them. It is
+            the body of the subagent's card in this thread while it works —
+            a friendly person describing the job they are starting, in
+            everyday words (page, button, menu, colors, photo, form) — so it
+            names no files, folders, components, libraries, or code (not even
+            a file the user named: "your home page", never the file it lives
+            in), and lists no steps. One paragraph, no headings or bullets;
+            anything past a short paragraph is cut off.
         title: Optional short task name shown in the workspace (defaults to the
             brief's first line).
         drafts: How many parallel variants to build (1-3). Leave this at 1
@@ -1058,7 +1081,8 @@ def dispatch_task(
     """
     try:
         result = dispatch_task_impl(
-            ctx.context, description, goal=goal, title=title, drafts=drafts
+            ctx.context, description, goal=goal, overview=overview, title=title,
+            drafts=drafts,
         )
         return json.dumps(result)
     except Exception as e:

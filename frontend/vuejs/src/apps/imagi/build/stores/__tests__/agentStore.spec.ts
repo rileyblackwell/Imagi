@@ -50,6 +50,7 @@ function makeInstance(overrides: Partial<AgentInstance> = {}): AgentInstance {
     lastMessagePreview: '',
     lastAssistantSummary: '',
     brief: '',
+    overview: '',
     messagesLoaded: true,
     hasUnread: false,
     queuedPrompt: null,
@@ -257,6 +258,8 @@ describe('agent store startDispatchedTasks', () => {
       title: 'Redesign the home page',
       brief: 'Redesign the home page with a real hero and testimonials.',
       goal: 'Giving your home page a clearer opening.',
+      overview: 'I am giving your home page a real opening section with a '
+        + 'headline and a photo, so visitors see what you offer straight away.',
       variant_group: '',
       parent: 1,
       model_name: 'gpt-5.6-terra',
@@ -282,6 +285,23 @@ describe('agent store startDispatchedTasks', () => {
     expect(adopted?.kind).toBe('task')
     expect(runs).toHaveBeenCalledTimes(1)
     expect(runs.mock.calls[0]![0]).toBe(adopted!.id)
+  })
+
+  it('carries the lead\'s goal and overview onto the card from the first frame', async () => {
+    // The dispatch card reads both off the instance the moment it appears —
+    // before any conversation DTO is fetched — so the payload's copy is the
+    // one that has to land on it.
+    const store = useAgentStore()
+    store.setTaskRunner(vi.fn())
+
+    store.startDispatchedTasks([dispatched(9005)])
+
+    const adopted = store.instances.find(i => i.conversationId === 9005)
+    expect(adopted?.brief).toBe('Giving your home page a clearer opening.')
+    expect(adopted?.overview).toBe(
+      'I am giving your home page a real opening section with a headline and '
+      + 'a photo, so visitors see what you offer straight away.'
+    )
   })
 
   it('never starts a second run for a task it already fired', async () => {

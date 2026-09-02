@@ -181,6 +181,12 @@ class AgentConversation(models.Model):
     # thread's card shows a business owner while the work runs, and keeps
     # showing afterwards as what the subagent was asked for.
     goal = models.TextField(blank=True, default='')
+    # What the subagent is about to do, in the owner's language — three to
+    # five sentences the lead writes at dispatch alongside the goal. The goal
+    # names the job; this describes it: what will be different in the app when
+    # it is done. It is the body of the main thread's card while the run is
+    # live, and the run's own sign-off takes that spot once the work lands.
+    overview = models.TextField(blank=True, default='')
     archived_at = models.DateTimeField(null=True, blank=True)
     # Set when an agent run starts, cleared when it ends. Readers must treat
     # old timestamps as "not running" (staleness guard) because a crashed

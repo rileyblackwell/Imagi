@@ -253,10 +253,12 @@ const kindLabel = computed(() => {
   switch (current.value?.kind) {
     case 'question': return 'Needs your answer'
     case 'error': return 'Stopped early'
-    // Said as a fact about the app, not as an offer: by the time this card
-    // exists the changes are already live in the project.
+    // Said as a fact, and only the fact: by the time this card exists the
+    // changes are already live in the project, and the green rail and the
+    // "Got it" button below already say so — the label needs no clause on
+    // the end of it.
     case 'ready': return 'Subagent complete — one of your options'
-    default: return 'Subagent complete — added to your app'
+    default: return 'Subagent complete'
   }
 })
 

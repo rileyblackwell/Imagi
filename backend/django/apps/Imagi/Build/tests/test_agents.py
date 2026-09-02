@@ -1688,6 +1688,20 @@ class ConversationBriefTests(TestCase):
             self._brief(task), 'Adding a contact page so customers can reach you.'
         )
 
+    def test_the_overview_is_served_beside_the_brief(self):
+        # The goal names the job on the card; the overview is its body while
+        # the run is live, so the card needs both from the same fetch.
+        task = self._task(
+            goal='Adding a contact page so customers can reach you.',
+            overview='I am adding a contact page with a form people can fill in.',
+        )
+        resp = self.client.get(reverse('conversation_detail', args=[task.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp.json()['overview'],
+            'I am adding a contact page with a form people can fill in.',
+        )
+
     def test_brief_comes_from_the_queued_prompt_before_the_run_fires(self):
         task = self._task(queued_prompt='Add a contact page so customers can reach you.')
         self.assertEqual(

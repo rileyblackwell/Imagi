@@ -105,6 +105,7 @@ describe('ChatConversation dispatch card', () => {
       lastMessagePreview: '',
       lastAssistantSummary: '',
       brief: '',
+      overview: '',
       messagesLoaded: true,
       hasUnread: false,
       queuedPrompt: null,
