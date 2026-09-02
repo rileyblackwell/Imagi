@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { AgentService, labelForTool } from '../agentService'
+import { AgentService, audioExtension, labelForTool } from '../agentService'
 
 // The service checks rate limits and prompt length before opening the stream.
 vi.mock('../modelsService', () => ({
@@ -394,5 +394,39 @@ describe('AgentService.getConversationMessages', () => {
     const msgs = await AgentService.getConversationMessages(9)
     expect(msgs[0]!.usage).toBeUndefined()
     expect(msgs[1]!.usage).toBeUndefined()
+  })
+})
+
+describe('AgentService.transcribeAudio', () => {
+  it('posts the clip as multipart, named for its container, and returns the text', async () => {
+    apiPost.mockResolvedValue({ data: { text: 'Add a contact page' } })
+    const clip = new Blob(['audio'], { type: 'audio/mp4' })
+
+    await expect(AgentService.transcribeAudio(clip)).resolves.toBe('Add a contact page')
+
+    const [url, body, config] = apiPost.mock.calls[0]
+    expect(url).toBe('/v1/agents/agent/transcribe/')
+    expect(body).toBeInstanceOf(FormData)
+    const file = (body as FormData).get('audio') as File
+    expect(file.name).toBe('dictation.mp4')
+    expect(config.headers['Content-Type']).toBe('multipart/form-data')
+  })
+
+  it('returns an empty string when the reply carries no text', async () => {
+    apiPost.mockResolvedValue({ data: {} })
+    await expect(AgentService.transcribeAudio(new Blob(['a']))).resolves.toBe('')
+  })
+})
+
+describe('audioExtension', () => {
+  it.each([
+    ['audio/webm;codecs=opus', 'webm'],
+    ['audio/webm', 'webm'],
+    ['audio/mp4', 'mp4'],
+    ['audio/ogg;codecs=opus', 'ogg'],
+    ['audio/wav', 'wav'],
+    ['', 'webm'],
+  ])('names %s as .%s', (type, ext) => {
+    expect(audioExtension(type)).toBe(ext)
   })
 })

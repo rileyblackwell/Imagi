@@ -171,6 +171,57 @@
       </div>
       </Transition>
 
+      <!-- Microphone picker (opens upward above the composer). The computer's
+           own mic is the default; a headset is a choice, never a surprise. -->
+      <Transition name="popover">
+      <div
+        v-if="micOpen"
+        ref="micPanel"
+        class="popover mic-panel absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
+      >
+        <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            Microphone
+          </span>
+          <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
+            {{ micActive?.label || (micLabelsHidden ? 'Not allowed yet' : 'System default') }}
+          </span>
+        </div>
+        <div v-if="micLabelsHidden || micInputs.length === 0" class="px-3 py-3">
+          <p class="text-[11px] leading-snug text-blue-950/60 dark:text-white/55">
+            Allow microphone access to see and choose your microphones. Until
+            then, dictation records from your computer's default input.
+          </p>
+          <button
+            type="button"
+            class="mic-allow iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
+            @click="unlockMicInputs"
+          >
+            Allow microphone access
+          </button>
+        </div>
+        <div v-else class="py-1" role="group" aria-label="Microphone">
+          <button
+            v-for="input in micInputs"
+            :key="input.id"
+            type="button"
+            role="menuitemradio"
+            :aria-checked="input.id === micActive?.id"
+            class="mic-option iw-press"
+            :class="{ 'mic-option--active': input.id === micActive?.id }"
+            @click="chooseMicInput(input.id)"
+          >
+            <i class="fas fa-check mic-option-mark" :class="{ 'mic-option-mark--on': input.id === micActive?.id }"></i>
+            <span class="truncate">{{ input.label || 'Microphone' }}</span>
+            <span v-if="isBuiltInInput(input)" class="mic-option-tag">Built-in</span>
+          </button>
+          <p class="px-3 pb-2 pt-1.5 text-[10px] leading-snug text-blue-950/45 dark:text-white/40">
+            Your computer's built-in microphone is used unless you pick another.
+          </p>
+        </div>
+      </div>
+      </Transition>
+
       <!-- A background task's thread is read-only: it is driven by the main
            thread (dispatch, and answers relayed from the check-in queue), so
            there is no composer here — just a way back. -->
@@ -247,6 +298,15 @@
             style="min-height: 92px; max-height: 240px;"
           ></textarea>
 
+          <!-- What went wrong with the last dictation, for a few seconds -->
+          <p
+            v-if="dictationError"
+            role="status"
+            class="dictation-error px-3 pb-1 text-[11px] leading-snug text-red-700/90 dark:text-red-300/90"
+          >
+            {{ dictationError }}
+          </p>
+
           <!-- Controls toolbar: model + reasoning side by side on the left, send pinned right -->
           <div class="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
             <!-- min-w-0 + overflow-hidden lets the chips truncate rather than
@@ -305,6 +365,40 @@
               </div>
             </div>
 
+            <!-- Dictate: a ghost mic beside send. ⌘D toggles it from anywhere
+                 in the workspace, so the button is mostly there to say the
+                 feature exists and to show when the mic is live. Hidden where
+                 the browser cannot record at all. -->
+            <div v-if="dictationSupported" ref="micRoot" class="flex items-center shrink-0">
+              <button
+                type="button"
+                :title="dictationTitle"
+                :aria-label="dictationTitle"
+                :aria-pressed="isRecording"
+                :disabled="!activeInstance || isTranscribing"
+                class="btn-dictate iw-press flex shrink-0 items-center justify-center w-8 h-8 rounded-full"
+                :class="{ 'btn-dictate--recording': isRecording }"
+                :style="isRecording ? micRingStyle : undefined"
+                @click="toggleDictation"
+              >
+                <i v-if="isTranscribing" class="fas fa-circle-notch fa-spin text-[13px]"></i>
+                <i v-else class="fas fa-microphone text-[13px]"></i>
+              </button>
+              <!-- Which microphone: the caret is the whole picker's handle -->
+              <button
+                type="button"
+                title="Choose microphone"
+                aria-label="Choose microphone"
+                :aria-expanded="micOpen"
+                :disabled="!activeInstance"
+                class="mic-caret iw-press"
+                :class="{ 'mic-caret--active': micOpen }"
+                @click="toggleMic"
+              >
+                <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': micOpen }"></i>
+              </button>
+            </div>
+
             <!-- Stop Button (replaces send while a run is in flight) -->
             <button
               v-if="activeInstance?.isProcessing"
@@ -337,7 +431,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 // The workspace's shared motion + material vocabulary (curves, durations,
 // radii, elevation, focus ring). Imported by each pane that spends it rather
@@ -347,6 +441,7 @@ import '../../../styles/workspace.css'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { ChatConversation } from '../../organisms/chat'
 import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
+import { isBuiltInInput, useDictation } from '../../../composables/useDictation'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { CheckInDto, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
@@ -555,6 +650,13 @@ function onDocMousedown(e: MouseEvent) {
   ) {
     effortOpen.value = false
   }
+  if (
+    micOpen.value &&
+    !micRoot.value?.contains(target) &&
+    !micPanel.value?.contains(target)
+  ) {
+    micOpen.value = false
+  }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocMousedown))
@@ -575,6 +677,9 @@ const modelPanel = ref<HTMLElement | null>(null)
 const effortOpen = ref(false)
 const effortRoot = ref<HTMLElement | null>(null)
 const effortPanel = ref<HTMLElement | null>(null)
+const micOpen = ref(false)
+const micRoot = ref<HTMLElement | null>(null)
+const micPanel = ref<HTMLElement | null>(null)
 
 // The three controls share the space above the composer, so only one panel
 // opens at a time.
@@ -582,6 +687,7 @@ function closeControlPanels() {
   usageOpen.value = false
   modelOpen.value = false
   effortOpen.value = false
+  micOpen.value = false
 }
 
 function toggleUsage() {
@@ -700,7 +806,105 @@ function onEffortSlider(e: Event) {
   }
 }
 
-const promptPlaceholder = computed(() => 'Ask me to build, edit, or explain anything in your project...')
+// --- Dictation (the mic button, and ⌘D) ---
+
+// ⌘ on Apple hardware, Ctrl elsewhere: the modifier the rest of the OS
+// already puts its shortcuts on.
+const isApplePlatform =
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '')
+const dictationShortcut = isApplePlatform ? '⌘D' : 'Ctrl+D'
+
+const {
+  state: dictationState,
+  error: dictationError,
+  supported: dictationSupported,
+  level: dictationLevel,
+  inputs: micInputs,
+  activeInput: micActive,
+  labelsHidden: micLabelsHidden,
+  toggle: toggleDictation,
+  cancel: cancelDictation,
+  selectInput: selectMicInput,
+  unlockInputs: unlockMicInputs,
+  refreshInputs: refreshMicInputs,
+} = useDictation({ onTranscript: insertDictation })
+
+const isRecording = computed(() => dictationState.value === 'recording')
+const isTranscribing = computed(() => dictationState.value === 'transcribing')
+
+/** The red ring around a live mic widens with the voice it hears, so "is it
+ *  picking me up?" is answered by looking rather than by sending a clip. */
+const micRingStyle = computed(() => ({
+  '--dictate-ring': `${2 + Math.round(dictationLevel.value * 10)}px`,
+}))
+
+function toggleMic() {
+  const next = !micOpen.value
+  closeControlPanels()
+  micOpen.value = next
+  // A headset may have connected since the list was last read.
+  if (micOpen.value) void refreshMicInputs()
+}
+
+function chooseMicInput(id: string) {
+  selectMicInput(id)
+  micOpen.value = false
+}
+
+const dictationTitle = computed(() => {
+  if (isTranscribing.value) return 'Transcribing…'
+  return isRecording.value
+    ? `Stop dictating (${dictationShortcut})`
+    : `Dictate a prompt (${dictationShortcut})`
+})
+
+/** Dictated text joins whatever is already typed, after a space, and the
+ *  caret lands at the end so the next thing typed (or dictated) follows on.
+ *  It is never sent by itself: the user reads it over and presses Enter. */
+function insertDictation(text: string) {
+  const current = prompt.value
+  prompt.value = current && !/\s$/.test(current) ? `${current} ${text}` : `${current}${text}`
+  nextTick(() => {
+    autoResizeTextarea()
+    const el = promptTextarea.value
+    if (el) {
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    }
+  })
+}
+
+/** ⌘D from anywhere in the workspace — the point of a shortcut is not having
+ *  to find the button first. Left alone when the preview has already taken
+ *  the keystroke for the app it is showing (it calls preventDefault), on a
+ *  read-only task thread (no composer), and where the browser cannot record. */
+function onDictationKey(e: KeyboardEvent) {
+  if (e.defaultPrevented) return
+  const modifier = isApplePlatform ? e.metaKey : e.ctrlKey
+  if (!modifier || e.altKey || e.shiftKey || (e.key || '').toLowerCase() !== 'd') return
+  if (!dictationSupported || isTaskThread.value || !activeInstance.value) return
+  e.preventDefault()
+  toggleDictation()
+}
+
+onMounted(() => document.addEventListener('keydown', onDictationKey))
+onBeforeUnmount(() => document.removeEventListener('keydown', onDictationKey))
+
+// A task thread has no composer, so a mic left open there would have nowhere
+// to put its words.
+watch(isTaskThread, readOnly => {
+  if (readOnly) cancelDictation()
+})
+
+const promptPlaceholder = computed(() => {
+  if (isRecording.value) {
+    const mic = micActive.value?.label || 'the default microphone'
+    return `Listening on ${mic}… press ${dictationShortcut} or click the mic when you're done.`
+  }
+  if (isTranscribing.value) return 'Transcribing…'
+  return 'Ask me to build, edit, or explain anything in your project...'
+})
 
 // Methods
 function ensureValidMessages(messages: any[]): AIMessage[] {
@@ -1178,6 +1382,209 @@ textarea:active {
 }
 
 .dark .btn-send--active:hover {
+  background: #ffffff;
+}
+
+/* Dictation: a ghost mic beside send, in the control chips' quiet register
+   until it is live. Recording turns it red with a ring that breathes, so a
+   hot mic can never be mistaken for an idle one. */
+.btn-dictate {
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: rgba(23, 37, 84, 0.6);
+  transform: translateZ(0);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.btn-dictate:hover:not(:disabled) {
+  background-color: rgba(219, 234, 254, 0.5);
+  color: rgb(23, 37, 84);
+}
+
+.btn-dictate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-dictate:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
+}
+
+/* Live: red, with a ring whose width is the voice level (set inline as
+   --dictate-ring). It sits still on silence and swells as you speak, which
+   is the whole point — a mic that hears nothing looks like one. */
+.btn-dictate--recording,
+.btn-dictate--recording:hover:not(:disabled) {
+  background-color: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 0 0 var(--dictate-ring, 2px) rgba(220, 38, 38, 0.35);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow 80ms linear;
+}
+
+.dark .btn-dictate {
+  color: rgba(219, 234, 254, 0.7);
+}
+
+.dark .btn-dictate:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.dark .btn-dictate--recording,
+.dark .btn-dictate--recording:hover:not(:disabled) {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+/* The picker's handle: a caret hugging the mic, in the chips' ghost register. */
+.mic-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 2rem;
+  margin-left: -0.125rem;
+  border-radius: var(--iw-r-sm);
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: rgba(23, 37, 84, 0.6);
+  cursor: pointer;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out);
+  outline: none;
+}
+
+.mic-caret:hover:not(:disabled),
+.mic-caret--active {
+  background-color: rgba(219, 234, 254, 0.5);
+  color: rgb(23, 37, 84);
+}
+
+.mic-caret:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mic-caret:focus-visible {
+  box-shadow: var(--iw-focus-ring);
+}
+
+.dark .mic-caret {
+  color: rgba(219, 234, 254, 0.7);
+}
+
+.dark .mic-caret:hover:not(:disabled),
+.dark .mic-caret--active {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* One microphone per row; the chosen one carries a check. */
+.mic-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  color: rgba(23, 37, 84, 0.75);
+  background-color: transparent;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out);
+  outline: none;
+}
+
+.mic-option:hover,
+.mic-option:focus-visible {
+  background-color: rgba(219, 234, 254, 0.5);
+  color: rgb(23, 37, 84);
+}
+
+.mic-option--active {
+  color: rgb(23, 37, 84);
+}
+
+.mic-option-mark {
+  flex-shrink: 0;
+  width: 0.75rem;
+  font-size: 0.625rem;
+  opacity: 0;
+}
+
+.mic-option-mark--on {
+  opacity: 0.85;
+}
+
+.mic-option-tag {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(23, 37, 84, 0.6);
+  background-color: rgba(219, 234, 254, 0.7);
+}
+
+.dark .mic-option {
+  color: rgba(219, 234, 254, 0.7);
+}
+
+.dark .mic-option:hover,
+.dark .mic-option:focus-visible,
+.dark .mic-option--active {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.dark .mic-option:hover,
+.dark .mic-option:focus-visible {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+.dark .mic-option-tag {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* "Allow microphone access" — the same navy ink as the composer's send button */
+.mic-allow {
+  background: theme('colors.blue.950');
+  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.mic-allow:hover {
+  background: theme('colors.blue.900');
+}
+
+.mic-allow:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
+}
+
+.dark .mic-allow {
+  background: #f3ede2;
+}
+
+.dark .mic-allow:hover {
   background: #ffffff;
 }
 </style>

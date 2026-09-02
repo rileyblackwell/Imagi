@@ -382,6 +382,11 @@ IMAGI_BUILDER = {
     'INITIAL_BUILD_MIN_REPAIR_SECONDS': 8,
     # Attach OpenAI's hosted web-search tool to the agent.
     'ENABLE_WEB_SEARCH': True,
+    # OpenAI speech-to-text model behind the composer's dictation button
+    # (Build/services/transcription_service.py). The full model over the
+    # mini one: a dictated prompt is seconds long, so the latency gap is
+    # nothing, and a misheard word in a build instruction costs a run.
+    'TRANSCRIPTION_MODEL': 'gpt-4o-transcribe',
     # Apps scaffolded into every new project. Payment pages are deliberately
     # not scaffolded — the Sell workspace installs prebuilt, Stripe-hosted
     # checkout pages on demand (apps.Imagi.Sell.services.payment_templates).

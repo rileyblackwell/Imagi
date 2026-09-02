@@ -13,7 +13,8 @@ import re
 import traceback
 from datetime import timedelta
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,11 +37,18 @@ from ..models import (
     TREE_WRITING_KINDS,
 )
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
-from ..services.usage_limits import check_usage_allowed
+from ..services.usage_limits import check_usage_allowed, record_usage
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
 from ..services.models_service import get_model_by_id
+from ..services.transcription_service import (
+    TRANSCRIPTION_MODEL,
+    InvalidAudio,
+    TranscriptionFailed,
+    TranscriptionUnavailable,
+    transcribe_audio,
+)
 from ..services.safe_paths import resolve_safe
 from ..services.browser_preview_service import (
     BrowserNotRunning,
@@ -1828,3 +1836,57 @@ def conversation_messages(request, conversation_id):
         if not (isinstance(m.metadata, dict) and m.metadata.get('task_report'))
     ]
     return Response(messages, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def agent_transcribe(request):
+    """Turn the composer's dictated clip into prompt text.
+
+    The clip arrives as the multipart field `audio`; the reply is
+    {'text': ...}, which the composer puts in the textbox for the user to
+    read over and send. Nothing is sent to the agent from here.
+
+    The same plan-usage gate as a run applies (429 with the usage payload),
+    so an exhausted plan cannot keep spending on speech-to-text, and the
+    clip's tokens are metered against the allowance the way a run's are.
+    """
+    upload = request.FILES.get('audio')
+    if upload is None:
+        return create_error_response('No audio was uploaded', status.HTTP_400_BAD_REQUEST)
+
+    allowed, limit_payload = check_usage_allowed(request.user)
+    if not allowed:
+        return JsonResponse(limit_payload, status=429)
+
+    try:
+        text, usage = transcribe_audio(upload.read(), upload.content_type)
+    except InvalidAudio as exc:
+        return create_error_response(str(exc), status.HTTP_400_BAD_REQUEST)
+    except TranscriptionUnavailable:
+        logger.warning('Dictation requested but OPENAI_KEY is not configured')
+        return create_error_response(
+            'Dictation is not available on this server',
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    except TranscriptionFailed:
+        logger.exception('Transcription failed for user %s', request.user.id)
+        return create_error_response(
+            "Couldn't transcribe that — try again",
+            status.HTTP_502_BAD_GATEWAY,
+        )
+
+    try:
+        record_usage(
+            request.user,
+            TRANSCRIPTION_MODEL,
+            usage['input_tokens'],
+            usage['output_tokens'],
+            cost_usd=usage['cost_usd'],
+        )
+    except Exception:
+        # Metering must never cost the user their transcript.
+        logger.exception('Failed to record transcription usage')
+
+    return Response({'text': text}, status=status.HTTP_200_OK)

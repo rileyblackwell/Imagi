@@ -601,6 +601,23 @@ export const AgentService = {
    * commit and deletes the message plus everything after it; the removed
    * prompt text comes back so the composer can offer it for editing.
    */
+  /**
+   * Turn a dictated clip into prompt text.
+   *
+   * Multipart rather than the client's JSON default: the clip is binary, and
+   * the file name's extension is how OpenAI tells webm from mp4, so it is
+   * derived from the blob's type here rather than guessed on the server.
+   */
+  async transcribeAudio(audio: Blob): Promise<string> {
+    const form = new FormData()
+    form.append('audio', audio, `dictation.${audioExtension(audio.type)}`)
+    const response = await api.post('/v1/agents/agent/transcribe/', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    const text = response.data?.text
+    return typeof text === 'string' ? text : ''
+  },
+
   async restoreCheckpoint(
     conversationId: number,
     messageId: number
@@ -614,4 +631,29 @@ export const AgentService = {
 };
 
 // Export ModelService for backward compatibility
+/** The file extension for a recording's media type — the container only,
+ *  since MediaRecorder reports "audio/webm;codecs=opus" and the codec is not
+ *  part of the name. Unknown types fall back to webm, the common browser
+ *  default; the server checks the real type again. */
+export function audioExtension(mimeType: string): string {
+  const base = ((mimeType || '').split(';')[0] ?? '').trim().toLowerCase()
+  switch (base) {
+    case 'audio/mp4':
+      return 'mp4'
+    case 'audio/x-m4a':
+      return 'm4a'
+    case 'audio/ogg':
+      return 'ogg'
+    case 'audio/mpeg':
+      return 'mp3'
+    case 'audio/wav':
+    case 'audio/x-wav':
+      return 'wav'
+    case 'audio/flac':
+      return 'flac'
+    default:
+      return 'webm'
+  }
+}
+
 export const ModelService = ModelsService;
