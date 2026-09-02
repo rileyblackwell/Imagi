@@ -74,6 +74,21 @@
                   @open="emit('open-task', task.conversationId)"
                 />
               </div>
+              <!-- The hand-back. A subagent working is only half the news; the
+                   other half is that the user is not waiting on it. Said by
+                   the workspace rather than by the lead, because it is the
+                   same sentence every time and it is a fact about how this
+                   place works, not about this job.
+
+                   It appears under the newest hand-off with work still in
+                   flight, and goes when that work lands — so it is never a
+                   stale invitation sitting under a finished card, and never
+                   repeats down a thread full of them. -->
+              <Transition name="handback">
+                <p v-if="index === handbackIndex" class="handback">
+                  Running in the background — go ahead and send your next message.
+                </p>
+              </Transition>
               <div v-if="message.filesChanged?.length" class="mt-2">
                 <span
                   class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-blue-950/70 dark:text-white/60"
@@ -220,6 +235,43 @@ const agentStore = useAgentStore()
 function dispatchInstance(conversationId: number): AgentInstance | null {
   return agentStore.instances.find(i => i.conversationId === conversationId) ?? null
 }
+
+/**
+ * Whether this subagent is still on its way — the two states where its card
+ * reads "starting" or "working". A missing instance counts as live for the
+ * same reason the card falls back to "starting": it has been dispatched and
+ * nothing has come back.
+ *
+ * A subagent stopped on a question is deliberately NOT live here: it is
+ * waiting on the user, and telling them to go do something else is the wrong
+ * thing to say next to a card asking them to answer.
+ */
+function taskIsLive(conversationId: number): boolean {
+  const instance = dispatchInstance(conversationId)
+  if (!instance) return true
+  return instance.isProcessing || instance.reviewStatus === 'active'
+}
+
+/**
+ * The reply the hand-back note belongs under, or -1 for none.
+ *
+ * Strictly the NEWEST hand-off, and only while its work is still in flight.
+ * The note is the beat right after handing something over — "that's away, you
+ * are not waiting on it" — so it belongs at the bottom of the thread, where
+ * the user just typed. Searching further back for any live subagent would pin
+ * it mid-scroll under an older card (a run stranded by a reload stays "live"
+ * forever), which reads as a stray line rather than an answer to what the
+ * user just did.
+ */
+const handbackIndex = computed(() => {
+  const messages = processedMessages.value
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const tasks = messages[i]?.dispatchedTasks
+    if (!tasks?.length) continue
+    return tasks.some(task => taskIsLive(task.conversationId)) ? i : -1
+  }
+  return -1
+})
 
 // Refs and reactive state
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -457,6 +509,46 @@ const formatTokens = (total: number): string => {
      not the page. */
   overflow-wrap: anywhere;
   min-width: 0;
+}
+
+/* The hand-back line under a live dispatch. Deliberately the quietest thing
+   in the turn: it is read once, the first time someone wonders whether they
+   have to sit and wait, and it must never compete with the card above it or
+   pass for the agent speaking — hence caption-sized muted text rather than
+   the 14px ink the reply is set in. */
+.handback {
+  margin-top: 0.4375rem;
+  padding-left: 0.0625rem;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: rgba(23, 37, 84, 0.45);
+}
+
+.dark .handback {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* It leaves when the work lands, which is a small piece of news of its own —
+   so it fades rather than blinking out from under the card that just turned
+   green. */
+.handback-enter-active,
+.handback-leave-active {
+  transition:
+    opacity var(--iw-dur-3) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-out);
+}
+
+.handback-enter-from,
+.handback-leave-to {
+  opacity: 0;
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handback-enter-active,
+  .handback-leave-active {
+    transition: none;
+  }
 }
 
 /* Prose styling */

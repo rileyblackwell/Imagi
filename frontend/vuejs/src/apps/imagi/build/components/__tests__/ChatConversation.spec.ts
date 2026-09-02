@@ -12,6 +12,36 @@ const assistant = (content: string): AIMessage => ({
   role: 'assistant', content, timestamp: '2026-01-01T00:00:01Z', id: 'a1',
 })
 
+/** A dispatched subagent as the store holds it. Idle and unstarted unless a
+ *  test says otherwise — every card state is one override away. */
+const taskInstance = (overrides: Partial<AgentInstance> = {}): AgentInstance => ({
+  id: 'inst-1',
+  conversationId: 7,
+  title: 'Contact page',
+  kind: 'task',
+  parentId: null,
+  reviewStatus: '',
+  variantGroup: '',
+  hasWorktree: false,
+  totalTokens: null,
+  selectedModelId: null,
+  selectedEffort: 'medium',
+  selectedFile: null,
+  conversation: [],
+  isProcessing: false,
+  statusText: '',
+  archivedAt: null,
+  updatedAt: '2026-01-01T00:00:00Z',
+  lastMessagePreview: '',
+  lastAssistantSummary: '',
+  brief: '',
+  overview: '',
+  messagesLoaded: true,
+  hasUnread: false,
+  queuedPrompt: null,
+  ...overrides,
+} as AgentInstance)
+
 const indicatorText = (wrapper: ReturnType<typeof mount>) => {
   const indicator = wrapper.find('.agent-status')
   return indicator.exists() ? indicator.element.textContent?.trim() : null
@@ -84,38 +114,19 @@ describe('ChatConversation dispatch card', () => {
 
   const withSubagent = (instance: Partial<AgentInstance>) => {
     const store = useAgentStore()
-    store.instances = [{
-      id: 'inst-1',
-      conversationId: 7,
-      title: 'Contact page',
-      kind: 'task',
-      parentId: null,
-      reviewStatus: '',
-      variantGroup: '',
-      hasWorktree: false,
-      totalTokens: null,
-      selectedModelId: null,
-      selectedEffort: 'medium',
-      selectedFile: null,
-      conversation: [],
-      isProcessing: false,
-      statusText: '',
-      archivedAt: null,
-      updatedAt: '2026-01-01T00:00:00Z',
-      lastMessagePreview: '',
-      lastAssistantSummary: '',
-      brief: '',
-      overview: '',
-      messagesLoaded: true,
-      hasUnread: false,
-      queuedPrompt: null,
-      ...instance,
-    } as AgentInstance]
+    store.instances = [taskInstance(instance)]
     const reply: AIMessage = {
       ...assistant('On it.'),
       dispatchedTasks: [{ conversationId: 7, title: 'Contact page' }],
     }
     return mount(ChatConversation, { props: { messages: [user('hi'), reply] } })
+  }
+
+  /** A card's summary is folded away until it is asked for, so anything
+   *  reading it has to open the card the way a user would. */
+  const openCard = async (wrapper: ReturnType<typeof withSubagent>) => {
+    await wrapper.find('.dispatch-card__toggle').trigger('click')
+    return wrapper
   }
 
   const JOB = 'Adding a contact page so customers can get in touch with you.'
@@ -149,14 +160,14 @@ describe('ChatConversation dispatch card', () => {
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
   })
 
-  it('keeps the job on screen and adds what it did once complete', () => {
+  it('keeps the job on screen and adds what it did once complete', async () => {
     // "Complete" is only meaningful beside what was asked, so the finished
     // card carries both: the job it was given, then the changes it made.
-    const wrapper = withSubagent({
+    const wrapper = await openCard(withSubagent({
       reviewStatus: 'accepted',
       brief: JOB,
       lastMessagePreview: SUMMARY,
-    })
+    }))
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--done')
@@ -165,7 +176,7 @@ describe('ChatConversation dispatch card', () => {
     expect(card.find('.dispatch-card__result').text()).toBe(SUMMARY)
   })
 
-  it('shows the whole summary, not the clipped list-row preview', () => {
+  it('shows the whole summary, not the clipped list-row preview', async () => {
     // The complaint: a finished card's summary was ending mid-sentence,
     // because it rendered last_message_preview (capped at 300 chars for list
     // rows). The full sign-off travels separately as lastAssistantSummary and
@@ -173,12 +184,12 @@ describe('ChatConversation dispatch card', () => {
     const fullSummary = SUMMARY + ' It also links the page from your footer, '
       + 'and the form thanks the visitor by name after they send it.'
     const clippedPreview = fullSummary.slice(0, 140)
-    const wrapper = withSubagent({
+    const wrapper = await openCard(withSubagent({
       reviewStatus: 'accepted',
       brief: JOB,
       lastMessagePreview: clippedPreview,
       lastAssistantSummary: fullSummary,
-    })
+    }))
 
     expect(wrapper.find('.dispatch-card__result').text()).toBe(fullSummary)
   })
@@ -195,16 +206,16 @@ describe('ChatConversation dispatch card', () => {
     expect(job.attributes('style') || '').not.toContain('nowrap')
   })
 
-  it('says something when a finished task left no summary', () => {
+  it('says something when a finished task left no summary', async () => {
     // A run that died before its sign-off has nothing of its own to report,
     // and a green "complete" over an empty card would tell the user nothing
     // about their app. The job it was given is still named, and the result
     // half points at the one place the answer is rather than going blank.
-    const wrapper = withSubagent({
+    const wrapper = await openCard(withSubagent({
       reviewStatus: 'accepted',
       brief: JOB,
       lastMessagePreview: '',
-    })
+    }))
 
     const card = wrapper.find('.dispatch-card')
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
@@ -228,14 +239,14 @@ describe('ChatConversation dispatch card', () => {
     expect(card.text()).not.toContain('Add to my app')
   })
 
-  it('describes a parallel take as one option among several', () => {
+  it('describes a parallel take as one option among several', async () => {
     // 'ready' survives for variants the user asked to compare — the only
     // finished work that still waits on a choice.
-    const wrapper = withSubagent({
+    const wrapper = await openCard(withSubagent({
       reviewStatus: 'ready',
       brief: JOB,
       lastMessagePreview: 'Built two takes on the pricing table.',
-    })
+    }))
 
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Subagent complete — one of your options')
@@ -243,15 +254,15 @@ describe('ChatConversation dispatch card', () => {
     expect(card.find('.dispatch-card__result').text()).toBe('Built two takes on the pricing table.')
   })
 
-  it('surfaces a subagent that is blocked on a question', () => {
+  it('surfaces a subagent that is blocked on a question', async () => {
     // The question is answered in the check-in queue above the composer, but
     // it has to be readable from the card too — a status line alone cannot be
     // acted on.
-    const wrapper = withSubagent({
+    const wrapper = await openCard(withSubagent({
       reviewStatus: 'input',
       brief: JOB,
       lastMessagePreview: 'Should the form email you or open a ticket?',
-    })
+    }))
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--asking')
@@ -273,5 +284,101 @@ describe('ChatConversation dispatch card', () => {
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Contact page')
     expect(card.text()).toContain('Subagent starting')
+  })
+})
+
+describe('ChatConversation hand-back note', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  const NOTE = 'Running in the background — go ahead and send your next message.'
+
+  /** A thread with one hand-off per instance, each on its own reply, oldest
+   *  first — the shape a user gets by asking for two things in a row. */
+  const withDispatches = (...instances: Partial<AgentInstance>[]) => {
+    const store = useAgentStore()
+    store.instances = instances.map((instance, i) =>
+      taskInstance({ id: `inst-${i + 1}`, conversationId: 7 + i, ...instance })
+    )
+    const messages: AIMessage[] = [user('hi')]
+    store.instances.forEach((instance) => {
+      messages.push({
+        ...assistant('On it.'),
+        id: `a-${instance.conversationId}`,
+        dispatchedTasks: [
+          { conversationId: instance.conversationId!, title: 'Contact page' },
+        ],
+      })
+    })
+    return mount(ChatConversation, { props: { messages } })
+  }
+
+  it('tells the user they are free to keep going while a subagent works', () => {
+    // The card says a subagent is on it. That is only half the news — the
+    // other half is that nobody has to sit and watch it, which is the part a
+    // non-technical user has no way to guess.
+    const wrapper = withDispatches({ isProcessing: true })
+
+    expect(wrapper.find('.handback').text()).toBe(NOTE)
+  })
+
+  it('says it from the moment the work is handed over', () => {
+    // Between the dispatch and the run firing is exactly when someone is
+    // deciding whether they are allowed to type again.
+    const wrapper = withDispatches({ reviewStatus: 'active' })
+
+    expect(wrapper.find('.handback').exists()).toBe(true)
+  })
+
+  it('takes the note away once the work has landed', () => {
+    // "Running in the background" under a green finished card is a lie, and
+    // an invitation the user has already accepted is clutter.
+    const wrapper = withDispatches({
+      reviewStatus: 'accepted',
+      lastAssistantSummary: 'Your contact page is live.',
+    })
+
+    expect(wrapper.find('.handback').exists()).toBe(false)
+  })
+
+  it('stays quiet while a subagent is waiting on an answer', () => {
+    // The check-in queue is asking them for something. Telling them to go
+    // send a different message is the wrong thing to say next to it.
+    const wrapper = withDispatches({ reviewStatus: 'input' })
+
+    expect(wrapper.find('.handback').exists()).toBe(false)
+  })
+
+  it('says it once, under the newest hand-off', () => {
+    // Two subagents running is not two invitations to keep going — a line
+    // repeated down the thread stops reading as information.
+    const wrapper = withDispatches(
+      { isProcessing: true },
+      { isProcessing: true },
+    )
+
+    expect(wrapper.findAll('.handback')).toHaveLength(1)
+    const replies = wrapper.findAll('.assistant-response')
+    expect(replies[replies.length - 1]!.find('.handback').exists()).toBe(true)
+  })
+
+  it('never dangles on an older hand-off after a newer one has landed', () => {
+    // The note answers "what happens now?" for the thing just handed over, so
+    // it lives at the bottom of the thread or nowhere. A run stranded by a
+    // reload stays "starting" forever, and hunting backwards for any live
+    // subagent would leave this line parked under it halfway up the scroll.
+    const wrapper = withDispatches(
+      { isProcessing: true },
+      { reviewStatus: 'accepted', lastAssistantSummary: 'Done.' },
+    )
+
+    expect(wrapper.find('.handback').exists()).toBe(false)
+  })
+
+  it('says nothing in a thread that never handed anything over', () => {
+    const wrapper = mount(ChatConversation, {
+      props: { messages: [user('what colour is my heading?'), assistant('Navy.')] },
+    })
+
+    expect(wrapper.find('.handback').exists()).toBe(false)
   })
 })

@@ -1520,6 +1520,14 @@ class DispatchTaskToolTests(TestCase):
         self.assertEqual(task.queued_prompt, 'Build a pricing page')
         self.assertEqual(result['dispatched_tasks'][0]['conversation_id'], task.id)
 
+    def test_the_tool_asks_the_lead_for_one_short_acknowledgement(self):
+        # This instruction is what the lead reads at the moment it decides
+        # what to say next, so it has to agree with the prompt: one line back
+        # to the user, not silence and not a paragraph.
+        result = dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
+
+        self.assertIn('ONE short sentence', result['instruction'])
+
     def test_dispatch_records_tasks_on_the_run_context(self):
         context = self._context(self.lead)
 

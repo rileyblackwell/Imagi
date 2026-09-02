@@ -192,25 +192,50 @@ describe('AgentService.streamAgent', () => {
 })
 
 describe('labelForTool', () => {
+  // These lines are the whole of what a business owner ever sees of HOW their
+  // app got built, so every one of them has to be readable by someone who has
+  // never opened a code editor.
   it.each([
-    ['read_file', { path: 'src/views/Home.vue' }, 'Read Home.vue'],
-    ['edit_file', { path: 'src/views/Home.vue' }, 'Edited Home.vue'],
-    ['update_file', { file_path: 'src/main.ts' }, 'Edited main.ts'],
-    ['create_file', { path: 'src/new.vue' }, 'Created new.vue'],
-    ['delete_file', { path: 'src/old.vue' }, 'Deleted old.vue'],
-    ['read_file', undefined, 'Read a file'],
-    ['grep_files', { pattern: 'navbar' }, 'Searched the project'],
-    ['glob_files', undefined, 'Searched the project'],
-    ['get_project_tree', undefined, 'Searched the project'],
-    ['list_project_files', undefined, 'Searched the project'],
-    ['update_plan', undefined, 'Updated the plan'],
-    ['web_search', { query: 'vue router' }, 'Searched the web'],
-    ['create_app', { app_name: 'shop' }, 'Created an app'],
-    ['create_directory', { path: 'src/lib' }, 'Organized project folders'],
-    ['delete_directory', { path: 'src/tmp' }, 'Organized project folders'],
-    ['some_future_tool', undefined, 'Worked on the project'],
+    // A page of their app can be named, so it is.
+    ['read_file', { path: 'frontend/src/apps/home/views/HomeView.vue' }, 'Looked at your home page'],
+    ['edit_file', { path: 'src/views/ContactView.vue' }, 'Updated your contact page'],
+    ['create_file', { path: 'src/views/PricingView.vue' }, 'Built your pricing page'],
+    // Multi-word view names read as words, not as their file name.
+    ['update_file', { file_path: 'src/views/SignInView.vue' }, 'Updated your sign in page'],
+    // Anything that is not one of their pages says the plain thing rather
+    // than leaking a path.
+    ['update_file', { file_path: 'src/main.ts' }, 'Updated your app'],
+    ['read_file', { path: 'backend/settings.py' }, 'Looked at your project'],
+    ['create_file', { path: 'src/components/Button.vue' }, 'Added something new to your app'],
+    ['delete_file', { path: 'src/old.vue' }, 'Removed something from your app'],
+    ['read_file', undefined, 'Looked at your project'],
+    ['grep_files', { pattern: 'navbar' }, 'Looked through your project'],
+    ['glob_files', undefined, 'Looked through your project'],
+    ['get_project_tree', undefined, 'Looked through your project'],
+    ['list_project_files', undefined, 'Looked through your project'],
+    ['update_plan', undefined, 'Planned out the work'],
+    ['web_search', { query: 'vue router' }, 'Looked something up online'],
+    ['create_app', { app_name: 'shop' }, 'Set up a new part of your app'],
+    ['create_directory', { path: 'src/lib' }, 'Tidied up your project'],
+    ['delete_directory', { path: 'src/tmp' }, 'Tidied up your project'],
+    ['some_future_tool', undefined, 'Worked on your app'],
   ] as const)('%s → %s', (name, args, expected) => {
     expect(labelForTool(name, args as Record<string, string> | undefined)).toBe(expected)
+  })
+
+  it('never puts a file path or extension in front of the user', () => {
+    // The rule behind every case above: whatever the tool was handed, what
+    // comes out is a sentence about their app.
+    for (const args of [
+      { path: 'frontend/vuejs/src/apps/home/views/HomeView.vue' },
+      { file_path: 'backend/django/apps/Imagi/Build/services/tools.py' },
+      { path: 'src/components/molecules/chat/DispatchCard.vue' },
+    ]) {
+      for (const tool of ['read_file', 'edit_file', 'create_file', 'delete_file']) {
+        const label = labelForTool(tool, args)
+        expect(label).not.toMatch(/\/|\.vue|\.ts|\.py/)
+      }
+    }
   })
 })
 
@@ -319,10 +344,12 @@ describe('AgentService.getConversationMessages', () => {
     expect(msgs[0]).toEqual({
       id: 1, role: 'user', content: 'restyle the navbar', timestamp: 't1',
     })
+    // A replayed transcript reads exactly as it did while streaming, in the
+    // same plain language — and carries no raw path alongside.
     expect(msgs[1]!.activity).toEqual([
-      { name: 'read_file', label: 'Read Home.vue', detail: 'src/views/Home.vue' },
-      { name: 'grep_files', label: 'Searched the project', detail: 'navbar' },
-      { name: 'web_search', label: 'Searched the web' },
+      { name: 'read_file', label: 'Looked at your home page' },
+      { name: 'grep_files', label: 'Looked through your project' },
+      { name: 'web_search', label: 'Looked something up online' },
     ])
     expect(msgs[1]!.plan).toEqual([{ step: 'Restyle navbar', status: 'completed' }])
     expect(msgs[1]!.filesChanged).toEqual(['src/views/Home.vue'])
