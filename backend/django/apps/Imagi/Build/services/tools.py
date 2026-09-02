@@ -1007,6 +1007,16 @@ def update_plan(ctx: RunContextWrapper, steps: List[PlanStep]) -> str:
     ('completed'). Exactly one step should be 'in_progress' at a time. Skip planning
     for trivial single-step requests.
 
+    The user watches this plan tick over while you work, and they are a business
+    owner, not an engineer — for many of them it is the only view they get of how
+    their app is being built. So write every step for THEM: one short line, plain
+    words, about what will be different in their app. No file names, paths,
+    folders, components, frameworks, or jargon. Write "Give the home page a
+    warmer look" and "Make the heading easier to read on a phone", never
+    "Refactor HomeView.vue hero" or "Locate the landing view file". Steps that
+    only describe your own process ("Read the file", "Verify the change") are
+    not worth a line — plan the outcomes, not the keystrokes.
+
     Args:
         steps: The full plan as a list of {step, status} objects, where status is
             'pending', 'in_progress', or 'completed'.

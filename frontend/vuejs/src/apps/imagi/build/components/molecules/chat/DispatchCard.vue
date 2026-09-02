@@ -25,6 +25,12 @@
   through the flip to complete, so watching a job through to its sign-off
   costs one click, not one per state.
 
+  The fold says what it holds ("See summary", "See what it's doing") rather
+  than leaving a bare caret to be guessed at, and the way into the subagent's
+  own step-by-step waits inside it, named. Both were once unlabelled marks in
+  the corner, which is the same mistake twice: an icon can say that there is
+  more, but never what, so the only way to find out is to press it and see.
+
   There is no separate title. A name and a description of the same job are the
   same sentence written twice, and the name was the one being clipped to an
   ellipsis on a phone. Everything here wraps and is read in full: a card that
@@ -65,31 +71,21 @@
           <i :class="state.icon"></i>
         </span>
         <span class="dispatch-card__status">{{ state.label }}</span>
-        <i
-          v-if="expandable"
-          class="fas fa-chevron-down dispatch-card__caret"
-          aria-hidden="true"
-        ></i>
       </span>
 
       <!-- Which job, in the user's language. Under the state and in the brand
            serif, because it is the reading matter: present in every state,
            since a result means nothing without the job it answers. -->
       <span v-if="state.job" class="dispatch-card__job">{{ state.job }}</span>
-    </button>
 
-    <!-- The way through to the subagent's own thread. Its own control now
-         that the card body toggles: one button cannot both open a panel and
-         navigate away, and of the two, the summary is what people want far
-         more often. Same mark the check-in queue uses for the same trip. -->
-    <button
-      type="button"
-      class="dispatch-card__open"
-      title="Open this subagent's thread"
-      aria-label="Open this subagent's thread"
-      @click="emit('open')"
-    >
-      <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+      <!-- What the fold holds, said in words. A bare caret is a puzzle: it
+           marks that something is hidden without ever saying what, so the
+           only way to find out is to press it. Naming the thing is the
+           difference between an invitation and a guess. -->
+      <span v-if="expandable" class="dispatch-card__reveal">
+        <span>{{ revealLabel }}</span>
+        <i class="fas fa-chevron-down dispatch-card__caret" aria-hidden="true"></i>
+      </span>
     </button>
 
     <!-- The paragraph under the job. While the subagent runs it is the lead's
@@ -98,9 +94,18 @@
          — so the flip to "complete" changes the words here, not only the
          label above. -->
     <Transition name="dispatch-reveal">
-      <p v-if="expandable && expanded" :id="bodyId" class="dispatch-card__result">
-        {{ state.result }}
-      </p>
+      <div v-if="expandable && expanded" :id="bodyId">
+        <p class="dispatch-card__result">{{ state.result }}</p>
+
+        <!-- The way through to the subagent's own thread, for the reader who
+             has just finished the summary and wants the working. Named rather
+             than drawn: an unlabelled corner icon was a trip nobody could see
+             the point of taking. -->
+        <button type="button" class="dispatch-card__more" @click="emit('open')">
+          See step by step
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </button>
+      </div>
     </Transition>
   </article>
 </template>
@@ -141,6 +146,13 @@ function saidBy(instance: AgentInstance): string {
  *  place the answer is. */
 const NO_SIGN_OFF = 'It finished without saying what it changed — open it to see the work.'
 
+/* What the fold is called in each state — the noun in "See ___". Named for
+   what is actually inside it, so the invitation is never a surprise: a
+   running subagent has its plan for the job, a finished one has its account
+   of the changes, and a stuck one has the question or the bad news. */
+const WHAT_ITS_DOING = "what it's doing"
+const THE_SUMMARY = 'summary'
+
 /**
  * Where this subagent stands, as the things the card renders: a tone (which
  * drives every colour on it), an icon, the state in words, and the paragraph
@@ -155,7 +167,13 @@ const NO_SIGN_OFF = 'It finished without saying what it changed — open it to s
 const status = computed(() => {
   const instance = props.instance
   if (!instance) {
-    return { tone: 'starting', icon: 'fas fa-hourglass-start', label: 'Subagent starting', result: '' }
+    return {
+      tone: 'starting',
+      icon: 'fas fa-hourglass-start',
+      label: 'Subagent starting',
+      result: '',
+      reveal: WHAT_ITS_DOING,
+    }
   }
   if (instance.isProcessing) {
     return {
@@ -167,6 +185,7 @@ const status = computed(() => {
       // status ("Editing project files…") — that says how it is working,
       // which is exactly the kind of detail this card keeps out.
       result: instance.overview,
+      reveal: WHAT_ITS_DOING,
     }
   }
   switch (instance.reviewStatus) {
@@ -179,6 +198,7 @@ const status = computed(() => {
         // question itself — the same words the queue card above the composer
         // is waiting for an answer to.
         result: saidBy(instance),
+        reveal: 'the question',
       }
     case 'ready':
       // One of several takes on a brief the user asked to compare. The only
@@ -189,6 +209,7 @@ const status = computed(() => {
         icon: 'fas fa-check',
         label: 'Subagent complete — one of your options',
         result: saidBy(instance) || NO_SIGN_OFF,
+        reveal: THE_SUMMARY,
       }
     case 'failed':
       return {
@@ -203,6 +224,7 @@ const status = computed(() => {
         // half-sentence is where the user finds out what did and did not
         // land. The reason it stopped is in the main thread's queue card.
         result: saidBy(instance),
+        reveal: 'what happened',
       }
     case 'accepted':
       return {
@@ -217,9 +239,16 @@ const status = computed(() => {
         // is the whole of what most owners ever read about the run, so the
         // card always shows one, even when the run left none.
         result: saidBy(instance) || NO_SIGN_OFF,
+        reveal: THE_SUMMARY,
       }
     case 'dismissed':
-      return { tone: 'settled', icon: 'fas fa-xmark', label: 'Discarded', result: '' }
+      return {
+        tone: 'settled',
+        icon: 'fas fa-xmark',
+        label: 'Discarded',
+        result: '',
+        reveal: THE_SUMMARY,
+      }
     default:
       // Dispatched, run not yet fired. The overview is already known, so the
       // card reads the same as it will a moment later when the run starts.
@@ -228,6 +257,7 @@ const status = computed(() => {
         icon: 'fas fa-hourglass-start',
         label: 'Subagent starting',
         result: instance.overview,
+        reveal: WHAT_ITS_DOING,
       }
   }
 })
@@ -257,6 +287,12 @@ const state = computed(() => ({
 /** Nothing to open when the run has said nothing yet: a discarded card, or
  *  a subagent still starting on a dispatch that carried no overview. */
 const expandable = computed(() => !!state.value.result)
+
+/** The fold, in words: what opening it gets you, or what closing it puts
+ *  away. Always names the thing — never a bare "more". */
+const revealLabel = computed(
+  () => `${expanded.value ? 'Hide' : 'See'} ${state.value.reveal}`
+)
 </script>
 
 <style scoped>
@@ -528,10 +564,6 @@ const expandable = computed(() => !!state.value.result)
   display: flex;
   align-items: center;
   gap: 0.4375rem;
-  /* Room at the end of the row for the open-thread button, which floats over
-     the card rather than sitting in this flow — nested buttons are not a
-     thing, and the toggle owns the whole row. */
-  padding-right: 1.375rem;
   transition: transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
@@ -640,75 +672,91 @@ const expandable = computed(() => !!state.value.result)
 
 /* The disclosure mark. Points down at a closed card and turns over as it
    opens, so the card says which way it is going without a word of label. */
+/* Takes its ink from the label it sits beside — the two are one control, and
+   the caret's only job here is to say which way this is about to go. */
 .dispatch-card__caret {
   flex-shrink: 0;
-  font-size: 0.5625rem;
-  color: rgba(23, 37, 84, 0.3);
-  transition:
-    color var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.dark .dispatch-card__caret {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.dispatch-card:hover .dispatch-card__caret {
-  color: rgba(23, 37, 84, 0.6);
-}
-
-.dark .dispatch-card:hover .dispatch-card__caret {
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.5rem;
+  transition: transform var(--iw-dur-3) var(--iw-ease-out);
 }
 
 .dispatch-card__toggle[aria-expanded='true'] .dispatch-card__caret {
   transform: rotate(180deg);
 }
 
-/* The trip to the subagent's own thread. Quiet by design: the summary below
-   answers most of what anyone wants, and this is for the times it does not.
-   Same mark, size and manners as the check-in queue's. */
-.dispatch-card__open {
-  position: absolute;
-  top: 0.4375rem;
-  right: 0.4375rem;
-  z-index: 2;
+/* The fold, named. Small and quiet — it is an offer, not the news — but it
+   is words, because a caret alone never says what it is hiding. */
+.dispatch-card__reveal {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: var(--iw-r-xs);
-  font-size: 0.5625rem;
-  color: rgba(23, 37, 84, 0.3);
+  gap: 0.3125rem;
+  margin-top: 0.0625rem;
+  font-size: 0.625rem;
+  font-weight: 550;
+  letter-spacing: 0.005em;
+  color: rgba(23, 37, 84, 0.5);
+  transition: color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dark .dispatch-card__reveal {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dispatch-card:hover .dispatch-card__reveal {
+  color: rgba(23, 37, 84, 0.8);
+}
+
+.dark .dispatch-card:hover .dispatch-card__reveal {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* The trip to the subagent's own thread, at the end of what it had to say —
+   where someone who has just read the summary and wants the working is
+   already looking. */
+.dispatch-card__more {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  padding: 0.1875rem 0.5rem 0.1875rem 0.5rem;
+  margin-left: -0.5rem;
+  border-radius: var(--iw-r-sm);
+  font-size: 0.625rem;
+  font-weight: 550;
+  color: rgba(23, 37, 84, 0.55);
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
     color var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.dark .dispatch-card__open {
-  color: rgba(255, 255, 255, 0.3);
+.dark .dispatch-card__more {
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.dispatch-card:hover .dispatch-card__open {
-  color: rgba(23, 37, 84, 0.55);
+.dispatch-card__more i {
+  font-size: 0.5625rem;
+  transition: transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.dark .dispatch-card:hover .dispatch-card__open {
-  color: rgba(255, 255, 255, 0.55);
+.dispatch-card__more:hover {
+  background: rgba(23, 37, 84, 0.06);
+  color: rgba(23, 37, 84, 0.85);
 }
 
-.dispatch-card__open:hover {
-  background: rgba(23, 37, 84, 0.07);
-  color: rgba(23, 37, 84, 0.8);
+.dark .dispatch-card__more:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.dark .dispatch-card__open:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.85);
+.dispatch-card__more:hover i {
+  transform: translateX(2px);
 }
 
-.dispatch-card__open:focus-visible {
+.dispatch-card__more:focus-visible {
   outline: none;
   box-shadow: var(--iw-focus-ring);
 }

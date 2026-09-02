@@ -3,7 +3,13 @@
 
   Live, this is the transcript's ticker: each tool call lands as a new line
   under a spinner. Once the run is over the whole thing folds into a single
-  quiet summary the user can open again if they care how it was done.
+  quiet line that says so, and opens again for anyone who wants to see how it
+  was done.
+
+  Every step is written for the person paying for the app rather than the one
+  who would read the diff — "Updated your home page", not "Edited
+  HomeView.vue" over a file path in monospace. That path used to sit beside
+  each label and was the one thing on the screen its reader could not read.
 
   Steps arrive one at a time over SSE, so they enter as a group (each new line
   slides up into place rather than materialising), and the fold opens by
@@ -23,7 +29,7 @@
         class="fas fa-chevron-right feed-chevron text-[8px]"
         :class="{ 'is-open': expanded }"
       ></i>
-      <span>Completed {{ steps.length }} {{ steps.length === 1 ? 'step' : 'steps' }}</span>
+      <span>{{ foldLabel }}</span>
     </button>
 
     <!-- Streaming: the list is simply there, growing. Settled: it lives in a
@@ -47,12 +53,7 @@
           ></i>
           <i v-else class="fas fa-check text-[9px] text-blue-600/60 dark:text-blue-300/60"></i>
         </span>
-        <span class="shrink-0 text-blue-950/70 dark:text-white/65">{{ step.label }}</span>
-        <span
-          v-if="step.detail"
-          class="min-w-0 flex-1 truncate font-mono text-[10px] leading-relaxed text-blue-950/45 dark:text-white/40 mt-px"
-          :title="step.detail"
-        >{{ step.detail }}</span>
+        <span class="min-w-0 text-blue-950/70 dark:text-white/65">{{ step.label }}</span>
       </li>
     </TransitionGroup>
 
@@ -66,12 +67,7 @@
           <span class="flex w-3.5 shrink-0 items-center justify-center mt-[3px]">
             <i class="fas fa-check text-[9px] text-blue-600/60 dark:text-blue-300/60"></i>
           </span>
-          <span class="shrink-0 text-blue-950/70 dark:text-white/65">{{ step.label }}</span>
-          <span
-            v-if="step.detail"
-            class="min-w-0 flex-1 truncate font-mono text-[10px] leading-relaxed text-blue-950/45 dark:text-white/40 mt-px"
-            :title="step.detail"
-          >{{ step.detail }}</span>
+          <span class="min-w-0 text-blue-950/70 dark:text-white/65">{{ step.label }}</span>
         </li>
       </ul>
     </FoldTransition>
@@ -79,16 +75,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { AgentActivityStep } from '@/apps/imagi/build/types/services'
 import FoldTransition from '@/apps/imagi/build/components/molecules/common/FoldTransition.vue'
 
-defineProps<{
+const props = defineProps<{
   steps: AgentActivityStep[]
   streaming?: boolean
 }>()
 
 const expanded = ref(false)
+
+/**
+ * The one line this collapses to once the run is over. It does two jobs, and
+ * both matter to someone who does not read code: it says the work is
+ * finished — the fold appearing IS the run ending — and it says what is
+ * behind it, so opening the steps is an offer rather than a guess at a
+ * caret.
+ */
+const foldLabel = computed(() => {
+  if (expanded.value) return 'Hide the steps'
+  const count = props.steps.length
+  return `Finished — see the ${count} ${count === 1 ? 'step' : 'steps'} it took`
+})
 </script>
 
 <style scoped>

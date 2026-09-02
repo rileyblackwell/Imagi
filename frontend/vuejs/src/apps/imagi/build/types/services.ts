@@ -300,7 +300,7 @@ export interface AgentInstance {
 /**
  * One entry in the agent's live activity feed (a tool call surfaced to the UI)
  */
-export type AgentActivityStep = { name: string; label: string; detail?: string };
+export type AgentActivityStep = { name: string; label: string };
 
 // AI-specific response types
 export interface AIMessage {

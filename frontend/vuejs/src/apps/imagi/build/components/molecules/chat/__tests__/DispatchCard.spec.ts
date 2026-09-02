@@ -237,9 +237,39 @@ describe('DispatchCard disclosure', () => {
     expect(toggle.attributes('aria-expanded')).toBe('false')
     await toggle.trigger('click')
     expect(toggle.attributes('aria-expanded')).toBe('true')
-    // The paragraph it opens is the one it claims to control.
-    expect(toggle.attributes('aria-controls'))
-      .toBe(wrapper.find('.dispatch-card__result').attributes('id'))
+    // The panel it opens is the one it claims to control.
+    expect(wrapper.find(`#${toggle.attributes('aria-controls')}`).exists()).toBe(true)
+  })
+
+  it('says in words what the fold is holding', async () => {
+    // A bare caret is a puzzle: it marks that something is hidden without
+    // saying what, so the only way to find out is to press it.
+    const wrapper = mountCard(makeTask({ isProcessing: true, overview: OVERVIEW }))
+    const reveal = wrapper.find('.dispatch-card__reveal')
+
+    expect(reveal.text()).toBe("See what it's doing")
+    await wrapper.find('.dispatch-card__toggle').trigger('click')
+    expect(wrapper.find('.dispatch-card__reveal').text()).toBe("Hide what it's doing")
+  })
+
+  it('names the fold after whatever is actually inside it', () => {
+    // "See summary" over a question the subagent is waiting on would be a
+    // small lie, and the one card the user most needs to act on.
+    const named = (instance: AgentInstance) =>
+      mountCard(instance).find('.dispatch-card__reveal').text()
+
+    expect(named(makeTask({
+      reviewStatus: 'accepted',
+      lastAssistantSummary: 'Your contact page is live.',
+    }))).toBe('See summary')
+    expect(named(makeTask({
+      reviewStatus: 'input',
+      lastAssistantSummary: 'Should the form email you?',
+    }))).toBe('See the question')
+    expect(named(makeTask({
+      reviewStatus: 'failed',
+      lastAssistantSummary: 'I got partway and stopped.',
+    }))).toBe('See what happened')
   })
 
   it('stays open through the flip to complete', async () => {
@@ -275,16 +305,29 @@ describe('DispatchCard disclosure', () => {
     }
   })
 
-  it('keeps the trip to the subagent thread on its own button', async () => {
-    // One control cannot both open a panel and navigate away. Opening the
-    // card is the common want, so the journey gets its own quiet mark.
+  it('offers the step-by-step at the end of what it had to say', async () => {
+    // The way into the subagent's own thread, named rather than drawn — an
+    // unlabelled corner icon was a trip nobody could see the point of. It
+    // waits inside the fold, where a reader who has finished the summary and
+    // wants the working is already looking.
+    const wrapper = mountCard(makeTask({ isProcessing: true, overview: OVERVIEW }))
+    expect(wrapper.find('.dispatch-card__more').exists()).toBe(false)
+
+    await wrapper.find('.dispatch-card__toggle').trigger('click')
+    const more = wrapper.find('.dispatch-card__more')
+    expect(more.text()).toContain('See step by step')
+
+    await more.trigger('click')
+    expect(wrapper.emitted('open')).toHaveLength(1)
+  })
+
+  it('keeps no unlabelled icon on the card at rest', () => {
+    // The card at rest is two lines and an invitation. Anything else on it
+    // has to earn its place by saying what it does.
     const wrapper = mountCard(makeTask({ isProcessing: true, overview: OVERVIEW }))
 
-    await wrapper.find('.dispatch-card__open').trigger('click')
-
-    expect(wrapper.emitted('open')).toHaveLength(1)
-    // …and it does not drag the card open on its way out.
-    expect(wrapper.find('.dispatch-card__result').exists()).toBe(false)
+    expect(wrapper.find('.dispatch-card__open').exists()).toBe(false)
+    expect(wrapper.find('.fa-arrow-up-right-from-square').exists()).toBe(false)
   })
 
   it('does not wander off to the thread when the card is opened', async () => {

@@ -63,49 +63,74 @@ export class AgentStreamError extends Error {
   }
 }
 
-/** Basename of the file a tool touched, from its display-safe args. */
-function toolFileName(args?: Record<string, string>): string {
+/**
+ * Which page of the app a file belongs to, said the way its owner would say
+ * it — or null when the file is not one of their pages.
+ *
+ * Only the app's own views answer to a name a person would recognise
+ * (`HomeView.vue` is their home page). Everything else — config, wiring, a
+ * shared piece used in three places — has no honest one-word translation, so
+ * it gets none, and its step says what happened without naming the file.
+ */
+function pageFrom(args?: Record<string, string>): string | null {
   const path = args?.path || args?.file_path || ''
-  return path.split('/').filter(Boolean).pop() || 'a file'
+  const file = path.split('/').filter(Boolean).pop() || ''
+  // Lazy on the stem so the optional "View" is peeled off when it is there:
+  // HomeView.vue and Home.vue are both the home page.
+  const vue = /^([A-Za-z][A-Za-z0-9]*?)(View)?\.vue$/.exec(file)
+  if (!vue) return null
+  // Either mark of a page: the name says so, or it lives among the views.
+  if (!vue[2] && !path.includes('/views/')) return null
+  const words = vue[1]!.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase()
+  return `your ${words} page`
 }
 
 /**
- * Founder-language label for a tool call. Shared by the live activity feed
- * and persisted-metadata hydration so a replayed transcript reads exactly
- * like it did while streaming.
+ * What a tool call is called in front of the person paying for the app.
+ *
+ * These lines are the whole of what a business owner ever sees of HOW their
+ * app got built, so they are written for someone who has never opened a code
+ * editor: what changed about their app, never which file or function carried
+ * the change. A step that cannot be said that way says the plain thing
+ * instead ("Updated your app") rather than leaking a path.
+ *
+ * Shared by the live feed and persisted-metadata hydration, so a replayed
+ * transcript reads exactly as it did while streaming.
  */
 export function labelForTool(name: string, args?: Record<string, string>): string {
+  const page = pageFrom(args)
   switch (name) {
-    case 'read_file': return `Read ${toolFileName(args)}`
+    case 'read_file': return page ? `Looked at ${page}` : 'Looked at your project'
     case 'edit_file':
-    case 'update_file': return `Edited ${toolFileName(args)}`
-    case 'create_file': return `Created ${toolFileName(args)}`
-    case 'delete_file': return `Deleted ${toolFileName(args)}`
+    case 'update_file': return page ? `Updated ${page}` : 'Updated your app'
+    case 'create_file': return page ? `Built ${page}` : 'Added something new to your app'
+    case 'delete_file': return 'Removed something from your app'
     case 'grep_files':
     case 'glob_files':
     case 'get_project_tree':
-    case 'list_project_files': return 'Searched the project'
-    case 'update_plan': return 'Updated the plan'
+    case 'list_project_files': return 'Looked through your project'
+    case 'update_plan': return 'Planned out the work'
     case 'web_search':
-    case 'web_search_call': return 'Searched the web'
-    case 'create_app': return 'Created an app'
+    case 'web_search_call': return 'Looked something up online'
+    case 'create_app': return 'Set up a new part of your app'
     case 'create_directory':
-    case 'delete_directory': return 'Organized project folders'
-    case 'dispatch_task': return 'Kicked off a subagent'
+    case 'delete_directory': return 'Tidied up your project'
+    case 'dispatch_task': return 'Started a subagent'
     case 'ask_user': return 'Asked you a question'
-    default: return 'Worked on the project'
+    default: return 'Worked on your app'
   }
 }
 
-/** One activity-feed entry for a tool call (live event or persisted record). */
+/** One activity-feed entry for a tool call (live event or persisted record).
+ *
+ *  The label is the whole entry. A step used to carry the raw path alongside
+ *  it, set in monospace — the one thing on the screen that could not be read
+ *  by the person it was shown to. */
 export function toolCallToActivityStep(
   name: string,
   args?: Record<string, string>
 ): AgentActivityStep {
-  const step: AgentActivityStep = { name, label: labelForTool(name, args) }
-  const detail = args?.path || args?.file_path || args?.pattern
-  if (detail) step.detail = detail
-  return step
+  return { name, label: labelForTool(name, args) }
 }
 
 /** AgentMessage.metadata as persisted by the backend (see contract shape). */
