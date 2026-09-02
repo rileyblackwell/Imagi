@@ -675,6 +675,17 @@ _TASK_REPORT_LABELS = {
 }
 
 
+# What the main thread's queue says about a subagent whose run was cut off
+# rather than ending on its own — the connection to it dropped (a reload, a
+# closed tab, a network blip) before it could sign off. Written for the owner:
+# what happened to their app (nothing), and what to do (try it again).
+TASK_INTERRUPTED_NOTE = (
+    "This subagent was cut off before it finished — the connection to its run "
+    "dropped, so it never got to sign off. Nothing it started has been added "
+    "to the app. Try it again to pick the job back up."
+)
+
+
 def _label_task_report(message) -> str:
     """A message's content as the lead model should read it.
 
@@ -1045,9 +1056,16 @@ class ImagiAgentService:
         # after a dead run ('failed' — the prompt is the retry). Any pending
         # check-ins it filed are superseded by this new run: the next run end
         # files fresh ones, so stale queue entries must not linger.
-        if conversation.kind == 'task' and conversation.review_status in ('ready', 'input', 'failed'):
-            conversation.review_status = 'active'
-            conversation.save(update_fields=["review_status"])
+        #
+        # The status flip itself is committed with the run marker at the end,
+        # in one save. Written here, the task would sit 'active' with no run
+        # behind it for as long as the checkpoint below takes — which is the
+        # exact shape of a task whose run died, and what the stranded-task
+        # sweep parks as failed.
+        reopen_task = (
+            conversation.kind == 'task'
+            and conversation.review_status in ('ready', 'input', 'failed')
+        )
         if conversation.kind == 'task':
             self._resolve_pending_check_ins(conversation)
 
@@ -1122,6 +1140,9 @@ class ImagiAgentService:
         if conversation.queued_prompt:
             conversation.queued_prompt = ''
             run_fields.append("queued_prompt")
+        if reopen_task:
+            conversation.review_status = 'active'
+            run_fields.append("review_status")
         conversation.run_started_at = timezone.now()
         conversation.save(update_fields=run_fields)
 
@@ -1664,7 +1685,7 @@ class ImagiAgentService:
 
         while True:
             cap_state: Dict[str, Any] = {}
-            async for event in self._stream_once(
+            run = self._stream_once(
                 user_input=prompt,
                 user=user,
                 model=model,
@@ -1673,13 +1694,23 @@ class ImagiAgentService:
                 conversation_id=target_id,
                 reasoning_effort=reasoning_effort,
                 cap_state=cap_state,
-            ):
-                # A continuation is the same run as far as the client is
-                # concerned: a second 'start' would register a user message
-                # for a prompt the user never sent.
-                if round_index > 0 and event.get("type") == "start":
-                    continue
-                yield event
+            )
+            try:
+                async for event in run:
+                    # A continuation is the same run as far as the client is
+                    # concerned: a second 'start' would register a user
+                    # message for a prompt the user never sent.
+                    if round_index > 0 and event.get("type") == "start":
+                        continue
+                    yield event
+            finally:
+                # Closed with this generator, not whenever the garbage
+                # collector gets to it: the run's own cleanup — persisting
+                # the partial reply, parking an interrupted task, clearing the
+                # run marker — is what turns a dropped connection into a
+                # reported failure, and it has to happen now, while the
+                # conversation is still being watched for exactly that.
+                await run.aclose()
 
             # Only a capped *task* run lands here with anything to resume;
             # every other ending has already reported itself.
@@ -1794,6 +1825,14 @@ class ImagiAgentService:
         result = None
         text_parts: List[str] = []
         persisted = False
+        # Set once this run has reported its own ending: the done event, a
+        # handled error, or a turn cap handed back to process_stream. Any
+        # other way out of the generator — the client disconnecting (a
+        # reload, a closed tab, a dropped connection), the awaiting task being
+        # cancelled — is an ending nobody reported, and a task left that way
+        # sat at 'active' with no run behind it: "starting" forever on its
+        # card, with nothing the user could do about it.
+        settled = False
         # Filled by _prepare_run just before it commits run_started_at: if the
         # awaiting task is cancelled (stop/tab close) while the worker thread
         # is still inside _prepare_run, the tuple assignment below never runs
@@ -1901,6 +1940,7 @@ class ImagiAgentService:
             await sync_to_async(self._finalize_task_run)(
                 conversation, context, response_content
             )
+            settled = True
             await sync_to_async(self._record_usage_event)(
                 user, model, usage, conversation
             )
@@ -1940,6 +1980,7 @@ class ImagiAgentService:
         except MaxTurnsExceeded:
             # The run was cut off by the turn cap, not a real failure (the
             # finally block below keeps the partial reply).
+            settled = True
             is_task = getattr(conversation, 'kind', 'chat') == 'task' if conversation else False
             # A task reaching its cap is routine — it continues from there —
             # so only a cap the user is actually left holding is a warning.
@@ -1965,6 +2006,7 @@ class ImagiAgentService:
             logger.error(f"Error in imagi_agent stream: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
+            settled = True
             if conversation is not None:
                 # Same routing for failures: a silent dead task would leave
                 # the user waiting on a check-in that never comes, and a task
@@ -2022,6 +2064,13 @@ class ImagiAgentService:
                     await sync_to_async(self._record_usage_event)(
                         user, model, interrupted_usage, conversation
                     )
+            # An interrupted task fails, and says so. It is parked before the
+            # run marker clears (below) so it never passes through the
+            # 'active, no run' shape the stranded-task sweep looks for.
+            if conversation is not None and not settled:
+                await sync_to_async(self._park_failed_task)(
+                    conversation, TASK_INTERRUPTED_NOTE
+                )
             if conversation is not None:
                 await sync_to_async(self._clear_run_started)(conversation)
 

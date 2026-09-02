@@ -20,6 +20,7 @@ from rest_framework.views import APIView
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -929,21 +930,27 @@ async def agent_stream(request):
     agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
     async def event_stream():
+        run = agent_service.process_stream(
+            user_input=message,
+            user=user,
+            model=model,
+            project_id=project_id,
+            current_file=payload.get('current_file'),
+            conversation_id=conversation_id,
+            reasoning_effort=reasoning_effort,
+        )
         try:
-            async for event in agent_service.process_stream(
-                user_input=message,
-                user=user,
-                model=model,
-                project_id=project_id,
-                current_file=payload.get('current_file'),
-                conversation_id=conversation_id,
-                reasoning_effort=reasoning_effort,
-            ):
+            async for event in run:
                 yield _sse(event)
         except Exception as e:  # pragma: no cover - defensive
             logger.error(f"Error in agent stream: {e}")
             logger.error(traceback.format_exc())
             yield _sse({"type": "error", "error": str(e)})
+        finally:
+            # The client went away (or the response simply ended): close the
+            # run with it, so a task interrupted mid-run is parked as failed
+            # now rather than whenever the garbage collector notices.
+            await run.aclose()
 
     response = StreamingHttpResponse(
         event_stream(),
@@ -988,6 +995,66 @@ MAX_CONCURRENT_CANONICAL_RUNS_PER_USER = _BUILDER_SETTINGS.get(
 def _conversation_is_running(conversation):
     started = conversation.run_started_at
     return bool(started and timezone.now() - started < RUN_STALENESS_WINDOW)
+
+
+# How long a task may sit 'active' with its brief consumed and no run behind
+# it before it is called dead. A task is legitimately in that shape for a
+# moment between a turn-capped round ending and its continuation starting;
+# a crashed worker leaves it there for good.
+STRANDED_TASK_GRACE = timedelta(minutes=2)
+
+# What the queue says about a task the sweep below had to give up on. The
+# worker that ran it died without a word, so this is all anyone knows.
+TASK_STRANDED_NOTE = (
+    "This subagent stopped responding before it finished, and nothing it "
+    "started has been added to the app. Try it again to pick the job back up."
+)
+
+# What the queue says about a task the user stopped from the workspace.
+TASK_STOPPED_NOTE = (
+    "This subagent was stopped before it finished. Nothing it started has "
+    "been added to the app. Try it again to pick the job back up."
+)
+
+
+def _park_stranded_tasks(user, project_id):
+    """Fail every task in this project whose run died without saying so.
+
+    A run's own cleanup parks an interrupted task (base_agent._stream_once),
+    so this is the backstop for the run that never got to clean up: a worker
+    that crashed, a process that was killed, a row from before interrupted
+    runs were parked at all. Such a task is 'active', its brief is consumed
+    (so a run did start), and no run is behind it — the marker is stale or
+    already cleared. Left alone it reads "starting" forever, on a card the
+    user can do nothing with; parked as failed it reads as what it is, and
+    offers a retry.
+
+    Runs on the check-in poll and the conversation list, so a stranded task
+    is noticed while the workspace is open without any tab having to own it.
+    """
+    now = timezone.now()
+    stranded = AgentConversation.objects.filter(
+        user=user,
+        project_id=project_id,
+        kind='task',
+        review_status='active',
+        queued_prompt='',
+        archived_at__isnull=True,
+        updated_at__lt=now - STRANDED_TASK_GRACE,
+    ).filter(
+        Q(run_started_at__isnull=True)
+        | Q(run_started_at__lt=now - RUN_STALENESS_WINDOW)
+    )
+    tasks = list(stranded)
+    if not tasks:
+        return
+    service = ImagiAgentService()
+    for task in tasks:
+        logger.warning(
+            "Task %s was left active with no run behind it; parking it as failed",
+            task.id,
+        )
+        service._park_failed_task(task, TASK_STRANDED_NOTE)
 
 
 def _project_has_running_conversation(
@@ -1207,9 +1274,13 @@ def conversations_list_create(request):
         qs = AgentConversation.objects.filter(user=request.user)
         if project_id:
             try:
-                qs = qs.filter(project_id=int(project_id))
+                project_id = int(project_id)
             except (ValueError, TypeError):
                 return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
+            # A workspace opening on a task whose run died while nobody was
+            # looking should see it as failed, not as still starting.
+            _park_stranded_tasks(request.user, project_id)
+            qs = qs.filter(project_id=project_id)
         data = [_serialize_conversation(c) for c in qs.order_by('-updated_at')]
         return Response(data, status=status.HTTP_200_OK)
 
@@ -1368,6 +1439,20 @@ def conversation_cancel(request, conversation_id):
     conversation = get_object_or_404(
         AgentConversation, id=conversation_id, user=request.user
     )
+    # A subagent whose run is stopped is a subagent that will not finish, so
+    # it fails, and says so — in the queue, with a retry. Left at 'active' it
+    # read "starting" forever with no run behind it. Only a live task: a
+    # finished one ('ready', 'input') has nothing running to stop, and a
+    # cancel from a stale tab must not relabel it. The optional reason is the
+    # client's account of why the run ended (the stream dropped, the request
+    # never got through); the default is a plain stop.
+    if conversation.kind == 'task' and conversation.review_status == 'active':
+        reason = ''
+        if isinstance(request.data, dict):
+            reason = str(request.data.get('reason') or '').strip()[:500]
+        ImagiAgentService()._park_failed_task(
+            conversation, reason or TASK_STOPPED_NOTE
+        )
     if conversation.run_started_at is not None:
         conversation.run_started_at = None
         conversation.save(update_fields=['run_started_at'])
@@ -1656,6 +1741,11 @@ def check_ins_list(request):
         project_id = int(project_id)
     except (ValueError, TypeError):
         return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
+
+    # The poll is the one signal the workspace has that a background run
+    # ended, so it is also where a run that ended without a word is noticed:
+    # the sweep files the error check-in this same response then returns.
+    _park_stranded_tasks(request.user, project_id)
 
     qs = AgentCheckIn.objects.filter(
         user=request.user, project_id=project_id

@@ -425,6 +425,10 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
     const streamingMessageId = `assistant-response-${Date.now()}`
     let streamedText = ''
     let messageStarted = false
+    // Whether the run started server-side (its start event came back). A
+    // task run that ends without one never consumed its brief, so a retry
+    // fires the brief again rather than telling it to carry on.
+    let runStarted = false
     let sawActivity = false
     let sawPlan = false
     let sawFileEdit = false
@@ -478,6 +482,7 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
         },
         {
           onStart: (conversationId, info) => {
+            runStarted = true
             if (conversationId && !instance.conversationId) {
               store.updateInstanceConversationId(instanceId, conversationId)
             }
@@ -590,7 +595,35 @@ async function handlePrompt(promptText: string, targetInstanceId?: string) {
         createCommitFromPrompt(response.files_changed[0] ?? '/', promptText)
       }
     } catch (agentError) {
-      if (abortController.signal.aborted) {
+      // A subagent run that ends without finishing is a failed subagent, and
+      // is reported as one — in its card and in the main thread's queue,
+      // with a retry — rather than left reading "starting" with no run behind
+      // it. The two branches below that are not failures (a busy 409, a
+      // refused-slot 429) are kept out of this; a task's turn cap is handled
+      // server-side (it continues, or asks) so that is not one either.
+      const status = (agentError as any)?.status
+      const taskRunDied = isTaskRun
+        && status !== 409
+        && status !== 429
+        && (agentError as any)?.code !== 'max_turns'
+      if (taskRunDied) {
+        if (!runStarted) {
+          // Never reached the run: the optimistic bubble would show a message
+          // the transcript does not have.
+          store.removeMessage(instanceId, userMessageId)
+        }
+        const reason = abortController.signal.aborted
+          ? 'This subagent was stopped before it finished.'
+          : runStarted
+            ? 'The connection to this subagent dropped before it finished.'
+            : 'The request to start this subagent did not get through' +
+              (agentError instanceof Error && agentError.message ? ` (${agentError.message}).` : '.')
+        await store.failTaskRun(
+          instanceId,
+          `${reason} Nothing it started has been added to the app. Try it again to pick the job back up.`,
+          runStarted ? null : promptText
+        )
+      } else if (abortController.signal.aborted) {
         // User pressed stop: the partial reply already streamed into the
         // conversation stays; an error bubble would misread the intent.
         console.debug('Agent run stopped by user')

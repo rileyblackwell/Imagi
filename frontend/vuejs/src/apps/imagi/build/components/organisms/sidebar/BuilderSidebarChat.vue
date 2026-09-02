@@ -202,6 +202,7 @@
           @answer="onAnswerCheckIn"
           @skip="onSkipCheckIn"
           @view="onViewCheckIn"
+          @retry="onRetryCheckIn"
         />
 
         <!-- Queued prompt: one message held while the agent works. It slides
@@ -498,6 +499,13 @@ function onSkipCheckIn(checkIn: CheckInDto) {
 /** Open the task's read-only thread to see what it actually did. */
 function onViewCheckIn(checkIn: CheckInDto) {
   emit('open-task', checkIn.task.id)
+}
+
+/** Run a failed subagent again. The store drops this card as it goes: the
+ *  run's start retires the error server-side, and the run end files whatever
+ *  comes next. */
+function onRetryCheckIn(checkIn: CheckInDto) {
+  store.retryTask(checkIn.task.id)
 }
 
 /** A dispatch card in the transcript was clicked — open that subagent's

@@ -40,6 +40,11 @@
   step-by-step. The person reading is running a business, not reviewing a
   diff. This card is the gist; the thread is the record.
 
+  A stopped card has one more thing on it: the way back. A subagent whose run
+  died is never retried on its own — a failure that quietly restarts itself
+  is a loop, and a card that never gets to say "stopped" — so the card says
+  so, and puts "Try again" under it for the person reading to decide.
+
   It borrows the crew ledger's state vocabulary (AgentInstanceCard): a rail
   down the left edge, ink travelling while live, so a card here and a card
   there report the same state the same way. The one place it departs is
@@ -107,6 +112,18 @@
         </button>
       </div>
     </Transition>
+
+    <!-- The way back for a run that died. One press and the same subagent
+         picks the job up again — the card flips straight to "starting", so
+         the press is seen to have landed. Outside the fold, because a card
+         that stopped before saying anything has no fold, and the retry is
+         the one thing on it the reader most needs to reach. -->
+    <div v-if="retryable" class="dispatch-card__actions">
+      <button type="button" class="dispatch-card__retry" @click="emit('retry')">
+        <i class="fas fa-rotate-right" aria-hidden="true"></i>
+        Try again
+      </button>
+    </div>
   </article>
 </template>
 
@@ -127,7 +144,11 @@ const props = defineProps<{
   instance?: AgentInstance | null
 }>()
 
-const emit = defineEmits<{ (e: 'open'): void }>()
+const emit = defineEmits<{
+  (e: 'open'): void
+  /** Run this failed subagent again — the user's call, never the card's */
+  (e: 'retry'): void
+}>()
 
 /**
  * The subagent's own closing words, whole — its summary of the changes or the
@@ -145,6 +166,12 @@ function saidBy(instance: AgentInstance): string {
  *  their own app, so the card always says something and points at the one
  *  place the answer is. */
 const NO_SIGN_OFF = 'It finished without saying what it changed — open it to see the work.'
+
+/** What a stopped card says when the run died before it said anything. The
+ *  reason it stopped is in the main thread's queue; this is what it means
+ *  for the app, which is the part the owner needs to hear from the card. */
+const NO_LAST_WORDS =
+  'It stopped before it could say anything. Nothing it started has been added to the app.'
 
 /* What the fold is called in each state — the noun in "See ___". Named for
    what is actually inside it, so the invitation is never a surprise: a
@@ -223,7 +250,7 @@ const status = computed(() => {
         // and shown whole for the same reason a finished summary is: a
         // half-sentence is where the user finds out what did and did not
         // land. The reason it stopped is in the main thread's queue card.
-        result: saidBy(instance),
+        result: saidBy(instance) || NO_LAST_WORDS,
         reveal: 'what happened',
       }
     case 'accepted':
@@ -287,6 +314,11 @@ const state = computed(() => ({
 /** Nothing to open when the run has said nothing yet: a discarded card, or
  *  a subagent still starting on a dispatch that carried no overview. */
 const expandable = computed(() => !!state.value.result)
+
+/** A run that died, and is not already running again. */
+const retryable = computed(
+  () => !!props.instance && !props.instance.isProcessing && props.instance.reviewStatus === 'failed'
+)
 
 /** The fold, in words: what opening it gets you, or what closing it puts
  *  away. Always names the thing — never a bare "more". */
@@ -761,6 +793,75 @@ const revealLabel = computed(
   box-shadow: var(--iw-focus-ring);
 }
 
+/* The retry, on a stopped card. A hairline pill in the card's own amber, the
+   workspace's compact-control shape: outlined rather than filled, because it
+   is an offer on a notice, not the notice itself — but the one control on the
+   card that is a control, so it gets a real border and a real press. */
+.dispatch-card__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.125rem;
+}
+
+.dispatch-card__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(217, 119, 6, 0.4);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: theme('colors.amber.800');
+  cursor: pointer;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    border-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-1) var(--iw-ease-out);
+}
+
+.dispatch-card__retry i {
+  font-size: 0.625rem;
+  transition: transform var(--iw-dur-3) var(--iw-ease-out);
+}
+
+.dispatch-card__retry:hover {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(217, 119, 6, 0.6);
+  color: theme('colors.amber.900');
+}
+
+.dispatch-card__retry:hover i {
+  transform: rotate(90deg);
+}
+
+.dispatch-card__retry:active {
+  transform: scale(0.97);
+}
+
+.dispatch-card__retry:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
+}
+
+.dark .dispatch-card__retry {
+  border-color: rgba(252, 211, 77, 0.35);
+  background: rgba(252, 211, 77, 0.06);
+  color: theme('colors.amber.200');
+}
+
+.dark .dispatch-card__retry:hover {
+  background: rgba(252, 211, 77, 0.16);
+  border-color: rgba(252, 211, 77, 0.55);
+  color: theme('colors.amber.100');
+}
+
 /* ── Motion ─────────────────────────────────────────────────────────────── */
 
 @keyframes rail-travel {
@@ -819,6 +920,13 @@ const revealLabel = computed(
 
   .dispatch-card__caret {
     transition: none;
+  }
+
+  .dispatch-card__retry,
+  .dispatch-card__retry i,
+  .dispatch-card__retry:active {
+    transition: none;
+    transform: none;
   }
 
   .dispatch-reveal-enter-active,

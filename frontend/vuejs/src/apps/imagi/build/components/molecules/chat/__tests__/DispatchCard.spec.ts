@@ -112,6 +112,37 @@ describe('DispatchCard', () => {
     }
   })
 
+  it('offers a stopped subagent another go, and only a stopped one', async () => {
+    // A run that died is never retried on its own — a failure that quietly
+    // restarts itself is a loop — so the card carries the decision. Outside
+    // the fold: a run that stopped before saying anything still has to be
+    // retryable from the card at rest.
+    const wrapper = mountCard(makeTask({ reviewStatus: 'failed' }))
+    const retry = wrapper.findAll('button').find(b => b.text().trim() === 'Try again')
+
+    expect(retry).toBeDefined()
+    await retry!.trigger('click')
+    expect(wrapper.emitted('retry')).toHaveLength(1)
+
+    for (const instance of [
+      makeTask({ reviewStatus: 'active' }),
+      makeTask({ reviewStatus: 'active', isProcessing: true }),
+      makeTask({ reviewStatus: 'failed', isProcessing: true }),
+      makeTask({ reviewStatus: 'accepted' }),
+      makeTask({ reviewStatus: 'input' }),
+      null,
+    ]) {
+      expect(mountCard(instance).text()).not.toContain('Try again')
+    }
+  })
+
+  it('says what a silent stop meant for the app', async () => {
+    // A run that died before its first words still owes the owner a line:
+    // "stopped" over an empty space says nothing about their app.
+    expect(await summaryOf(makeTask({ reviewStatus: 'failed' })))
+      .toBe('It stopped before it could say anything. Nothing it started has been added to the app.')
+  })
+
   it('still names the job it was given', () => {
     const wrapper = mountCard(makeTask({ reviewStatus: 'failed' }))
     expect(wrapper.find('.dispatch-card__job').text())

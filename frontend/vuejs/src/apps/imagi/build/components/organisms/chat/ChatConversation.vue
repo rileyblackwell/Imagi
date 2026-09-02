@@ -72,6 +72,7 @@
                   :title="task.title"
                   :instance="dispatchInstance(task.conversationId)"
                   @open="emit('open-task', task.conversationId)"
+                  @retry="agentStore.retryTask(task.conversationId)"
                 />
               </div>
               <!-- The hand-back. A subagent working is only half the news; the

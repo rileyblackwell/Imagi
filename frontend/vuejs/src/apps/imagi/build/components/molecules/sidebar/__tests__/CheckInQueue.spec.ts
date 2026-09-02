@@ -45,6 +45,19 @@ describe('CheckInQueue failed-task card', () => {
     expect(wrapper.emitted('skip')).toBeUndefined()
   })
 
+  it('offers to run the stopped subagent again', async () => {
+    // The retry is the user's call and nobody else's — a run never restarts
+    // itself — so the card that reports the failure is where it is made.
+    const checkIn = makeCheckIn()
+    const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
+
+    await buttonLabelled(wrapper, 'Try again').trigger('click')
+
+    expect(wrapper.emitted('retry')?.[0]).toEqual([checkIn])
+    expect(wrapper.emitted('dismiss')).toBeUndefined()
+    expect(wrapper.emitted('skip')).toBeUndefined()
+  })
+
   it('says what happened and offers the task itself', async () => {
     const checkIn = makeCheckIn()
     const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
