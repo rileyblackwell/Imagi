@@ -129,6 +129,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     lastMessagePreview: dto.last_message_preview || '',
     lastAssistantSummary: dto.last_assistant_summary || '',
     brief: dto.brief || dto.queued_prompt || '',
+    overview: dto.overview || '',
     messagesLoaded: false,
     hasUnread: false,
     queuedPrompt: null,
@@ -456,6 +457,7 @@ export const useAgentStore = defineStore('agent', {
               // the card reports it from the first frame, without waiting for
               // the conversation DTO the run end fetches.
               brief: task.goal || briefLine(task.brief),
+              overview: task.overview || '',
               is_running: false,
               total_tokens: null,
             },
@@ -639,6 +641,7 @@ export const useAgentStore = defineStore('agent', {
             instance.lastMessagePreview = dto.last_message_preview || ''
             instance.lastAssistantSummary = dto.last_assistant_summary || ''
             if (dto.brief) instance.brief = dto.brief
+            if (dto.overview) instance.overview = dto.overview
             // A finished task may now be ready for review — or have merged
             // itself into the project; sync the review-lifecycle fields the
             // run end changed server-side.
@@ -862,9 +865,11 @@ export const useAgentStore = defineStore('agent', {
         instance.updatedAt = dto.updated_at
         instance.lastMessagePreview = dto.last_message_preview || ''
         instance.lastAssistantSummary = dto.last_assistant_summary || ''
-        // Keep the locally-carried brief if the server has none to give (a
-        // dispatch whose run has not written its opening message yet).
+        // Keep the locally-carried brief and overview if the server has none
+        // to give (a dispatch whose run has not written its opening message
+        // yet).
         if (dto.brief) instance.brief = dto.brief
+        if (dto.overview) instance.overview = dto.overview
       } catch (e) {
         console.error('Failed to refresh conversation', instance.conversationId, e)
       }

@@ -27,6 +27,7 @@ function makeTask(overrides: Partial<AgentInstance> = {}): AgentInstance {
     lastMessagePreview: '',
     lastAssistantSummary: '',
     brief: 'Adding a contact page so customers can reach you.',
+    overview: '',
     messagesLoaded: true,
     hasUnread: false,
     queuedPrompt: null,
@@ -110,6 +111,52 @@ describe('DispatchCard', () => {
   it('shows a live run as working whatever its stored status', () => {
     const wrapper = mountCard(makeTask({ reviewStatus: 'failed', isProcessing: true }))
     expect(statusOf(wrapper)).toBe('Subagent working')
+  })
+
+  it('tells the owner what a working subagent is doing', () => {
+    // The state line says it is working; the overview says at what — three
+    // to five plain sentences the lead wrote at dispatch, shown whole.
+    const overview =
+      "I'm adding a contact page with a form people can fill in without " +
+      'leaving your site. It will ask for a name, an email address and a ' +
+      'message, and point out anything they have missed. Your phone number ' +
+      'and address will sit next to the form so people can pick whichever ' +
+      'suits them.'
+    const wrapper = mountCard(makeTask({ isProcessing: true, overview }))
+
+    expect(statusOf(wrapper)).toBe('Subagent working')
+    expect(wrapper.find('.dispatch-card__result').text()).toBe(overview)
+    // The job line stays above it: the overview describes the job, it does
+    // not replace its name.
+    expect(wrapper.find('.dispatch-card__job').text())
+      .toBe('Adding a contact page so customers can reach you.')
+  })
+
+  it('shows the overview from the moment the dispatch is staged', () => {
+    // The lead wrote it before the run fired, so there is no reason for the
+    // card to stay blank until it does.
+    const wrapper = mountCard(makeTask({
+      reviewStatus: 'active',
+      overview: "I'm adding a contact page with a form people can fill in.",
+    }))
+
+    expect(statusOf(wrapper)).toBe('Subagent starting')
+    expect(wrapper.find('.dispatch-card__result').text())
+      .toBe("I'm adding a contact page with a form people can fill in.")
+  })
+
+  it('swaps the overview for the sign-off once the work lands', () => {
+    // What it was going to do is superseded by what it did — one paragraph
+    // under the job, never both.
+    const wrapper = mountCard(makeTask({
+      reviewStatus: 'accepted',
+      overview: "I'm adding a contact page with a form people can fill in.",
+      lastAssistantSummary: 'Your contact page is live, with a form people can fill in.',
+    }))
+
+    expect(wrapper.find('.dispatch-card__result').text())
+      .toBe('Your contact page is live, with a form people can fill in.')
+    expect(wrapper.text()).not.toContain("I'm adding a contact page")
   })
 
   it('keeps a starting reading for a dispatch whose run has not fired', () => {

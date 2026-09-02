@@ -197,6 +197,9 @@ export interface DispatchedTaskDto {
   brief: string;
   /** The same job in the user's language, for the main thread's card */
   goal: string;
+  /** What the subagent is about to do, in the user's language — the card's
+   *  body while it works (three to five sentences from the lead) */
+  overview: string;
   variant_group: string;
   parent: number;
   model_name: string;
@@ -238,6 +241,9 @@ export interface ConversationDto {
   /** What a task was asked to do, in the user's language (the lead's goal, or
    *  a trimmed brief for a task without one). Empty for other kinds. */
   brief?: string;
+  /** What a task is about to do, in the user's language — the lead's overview
+   *  at dispatch. The dispatch card's body while the run is live. */
+  overview?: string;
   /** True while a run is active server-side (staleness-guarded to 10 min) */
   is_running: boolean;
   /** Tokens used across the conversation; null when never captured (unknown, not free) */
@@ -277,6 +283,9 @@ export interface AgentInstance {
   /** What this task was asked to do, in the user's language — the dispatch
    *  card in the main thread shows it for the whole life of the task. */
   brief: string;
+  /** What this task is doing, in the user's language — the dispatch card's
+   *  body while the run is live; the sign-off takes over once it lands. */
+  overview: string;
   messagesLoaded: boolean;
   /** Client-only: a run finished while this instance was not active */
   hasUnread?: boolean;

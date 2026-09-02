@@ -84,7 +84,10 @@ describe('CheckInQueue completion card', () => {
     // already been made.
     const wrapper = mount(CheckInQueue, { props: { queue: [finished()] } })
 
-    expect(wrapper.text()).toContain('Subagent complete — added to your app')
+    expect(wrapper.text()).toContain('Subagent complete')
+    // The label is the fact and nothing more — the rail and the "Got it"
+    // button already say the work is in.
+    expect(wrapper.text()).not.toContain('added to your app')
     expect(wrapper.text()).not.toContain('Add to my app')
     expect(wrapper.text()).not.toContain('Discard')
   })

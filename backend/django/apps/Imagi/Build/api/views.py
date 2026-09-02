@@ -1157,6 +1157,10 @@ def _serialize_conversation(conversation):
         # What this task was asked to do — the dispatch card reports it while
         # the run is live, where there is no result to show yet.
         'brief': _conversation_brief(conversation),
+        # What this task is about to do, in the owner's words — the card's
+        # body while the run is live; the sign-off above takes that spot once
+        # the work lands.
+        'overview': getattr(conversation, 'overview', '') or '',
         'is_running': _conversation_is_running(conversation),
         'total_tokens': _conversation_total_tokens(conversation),
         # A dispatched-but-not-yet-run task's brief: the client fires the run

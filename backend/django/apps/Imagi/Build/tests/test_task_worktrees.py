@@ -32,6 +32,7 @@ from apps.Imagi.Build.models import (
 from apps.Imagi.Build.services.base_agent import AgentContext, ImagiAgentService
 from apps.Imagi.Build.services.tools import (
     DISPATCH_GOAL_MAX_CHARS,
+    DISPATCH_OVERVIEW_MAX_CHARS,
     _get_project,
     dispatch_task_impl,
     edit_file_impl,
@@ -1605,6 +1606,39 @@ class DispatchTaskToolTests(TestCase):
         dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
         self.assertEqual(AgentConversation.objects.get(kind='task').goal, '')
 
+    def test_dispatch_persists_the_overview(self):
+        # The goal names the job; the overview describes it — the few
+        # sentences the main thread's card shows while the subagent works.
+        overview = (
+            "I'm adding a pricing page with three plans side by side. Each one "
+            'lists what it includes and what it costs, and the middle plan is '
+            'marked as the popular pick. Visitors will be able to compare them '
+            'at a glance and tap through to sign up.'
+        )
+        result = dispatch_task_impl(
+            self._context(self.lead), 'Build a pricing page', overview=overview,
+        )
+
+        task = AgentConversation.objects.get(kind='task')
+        self.assertEqual(task.overview, overview)
+        # Carried on the payload too: the card reads it from the first frame,
+        # before the conversation DTO is ever fetched.
+        self.assertEqual(result['dispatched_tasks'][0]['overview'], overview)
+
+    def test_overview_is_flattened_and_capped(self):
+        dispatch_task_impl(
+            self._context(self.lead), 'Build it',
+            overview='Adding a page.\n\nWith  extra   room. ' + 'x' * 2000,
+        )
+
+        overview = AgentConversation.objects.get(kind='task').overview
+        self.assertLessEqual(len(overview), DISPATCH_OVERVIEW_MAX_CHARS)
+        self.assertTrue(overview.startswith('Adding a page. With extra room.'))
+
+    def test_dispatch_without_an_overview_still_works(self):
+        dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
+        self.assertEqual(AgentConversation.objects.get(kind='task').overview, '')
+
 
 class DispatchTaskDuplicateTests(TestCase):
     """One job gets one subagent.
@@ -1689,6 +1723,25 @@ class DispatchTaskDuplicateTests(TestCase):
         # actually doing the work.
         self.assertEqual(
             [t['conversation_id'] for t in context.dispatched_tasks], [task.id]
+        )
+
+    def test_a_repeat_on_a_later_turn_carries_the_running_subagents_words(self):
+        # The reply's card is the running subagent's card, so it needs that
+        # subagent's own goal and overview — not blanks from a repeat that
+        # never staged anything.
+        dispatch_task_impl(
+            self._context(), self.BRIEF, goal='Redesigning your home page',
+            overview='I am giving your home page a real opening section.',
+        )
+        task = AgentConversation.objects.get(kind='task')
+
+        second = dispatch_task_impl(self._context(), self.BRIEF)
+
+        payload = second['dispatched_tasks'][0]
+        self.assertEqual(payload['conversation_id'], task.id)
+        self.assertEqual(payload['goal'], 'Redesigning your home page')
+        self.assertEqual(
+            payload['overview'], 'I am giving your home page a real opening section.'
         )
 
     def test_a_different_job_still_gets_its_own_subagent(self):
