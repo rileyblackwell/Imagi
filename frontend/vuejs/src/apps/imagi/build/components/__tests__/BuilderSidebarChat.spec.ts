@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
-import type { AgentInstance } from '@/apps/imagi/build/types/services'
+import type { AgentInstance, ReasoningEffort } from '@/apps/imagi/build/types/services'
 
 /** The dictation composable's surface, as the composer sees it. Its refs are
  *  made inside the mock factory (vue is only importable there) and parked
@@ -97,12 +97,19 @@ const instance = (overrides: Partial<AgentInstance> = {}): AgentInstance => ({
 function mountWith(active: AgentInstance = instance()) {
   const store = useAgentStore()
   store.$patch({ instances: [active], activeInstanceId: active.id })
+  // The select callbacks write the store the way the workspace does, so the
+  // panel's checked state follows a pick as it would in the app.
+  const current = () => store.instances.find(i => i.id === active.id)!
   return mount(BuilderSidebarChat, {
     attachTo: document.body,
     props: {
       onPromptSubmit: vi.fn().mockResolvedValue(undefined),
-      onModelSelect: vi.fn().mockResolvedValue(undefined),
-      onEffortSelect: vi.fn().mockResolvedValue(undefined),
+      onModelSelect: vi.fn(async (id: string) => {
+        current().selectedModelId = id
+      }),
+      onEffortSelect: vi.fn(async (effort: ReasoningEffort) => {
+        current().selectedEffort = effort
+      }),
     },
     global: {
       stubs: { ChatConversation: true, CheckInQueue: true, WorkspacePaneHeader: true },
@@ -143,6 +150,26 @@ async function typePrompt(wrapper: ReturnType<typeof mountWith>, text: string) {
   await wrapper.find('textarea').setValue(text)
 }
 
+/** The model + reasoning chip, the panel it opens, and the two radiogroups
+ *  inside: model rows and reasoning segments. */
+function tuneChip(wrapper: ReturnType<typeof mountWith>) {
+  return wrapper.find('button[aria-label="Model and reasoning"]')
+}
+function tunePanel(wrapper: ReturnType<typeof mountWith>) {
+  return wrapper.find('#tune-panel')
+}
+function modelRadios(wrapper: ReturnType<typeof mountWith>) {
+  return wrapper.findAll('[role="radiogroup"][aria-label="Model, faster to smarter"] [role="radio"]')
+}
+function effortRadios(wrapper: ReturnType<typeof mountWith>) {
+  return wrapper.findAll('[role="radiogroup"][aria-label="Reasoning effort, faster to smarter"] [role="radio"]')
+}
+const checked = (radios: ReturnType<typeof modelRadios>) => radios.map(r => r.attributes('aria-checked'))
+async function openTune(wrapper: ReturnType<typeof mountWith>) {
+  await tuneChip(wrapper).trigger('click')
+  await nextTick()
+}
+
 describe('BuilderSidebarChat dictation', () => {
   let wrapper: ReturnType<typeof mountWith> | null = null
 
@@ -163,38 +190,180 @@ describe('BuilderSidebarChat dictation', () => {
     vi.useRealTimers()
   })
 
-  it('offers model and reasoning as one chip that opens both sliders together', async () => {
+  it('offers model and reasoning as one chip that opens a model list and a reasoning dial together', async () => {
     wrapper = mountWith()
     const chips = wrapper.findAll('button.control-chip').map(c => c.attributes('aria-label'))
     expect(chips).toEqual(['Model and reasoning', 'Usage limits'])
-    const chip = wrapper.find('button[aria-label="Model and reasoning"]')
+    const chip = tuneChip(wrapper)
     expect(chip.text()).toBe('Terra · Medium')
+    expect(chip.attributes('title')).toBe('Model and reasoning')
+    expect(chip.attributes('aria-controls')).toBe('tune-panel')
     expect(chip.attributes('aria-expanded')).toBe('false')
-    expect(wrapper.find('input.control-slider').exists()).toBe(false)
+    expect(tunePanel(wrapper).exists()).toBe(false)
 
-    await chip.trigger('click')
+    await openTune(wrapper)
     expect(chip.attributes('aria-expanded')).toBe('true')
-    const sliders = wrapper.findAll('input.control-slider')
-    expect(sliders.map(s => s.attributes('aria-label'))).toEqual([
-      'Model — faster to smarter',
-      'Reasoning effort — faster to smarter',
+    expect(tunePanel(wrapper).attributes('role')).toBe('group')
+    expect(tunePanel(wrapper).attributes('aria-label')).toBe('Model and reasoning')
+
+    // Every model is named, priced and ordered faster → smarter. The current
+    // one is checked, is the group's tab stop, and takes focus on open so
+    // the arrows work straight away.
+    const models = modelRadios(wrapper)
+    expect(models.map(m => m.find('.tune-row__name').text())).toEqual(['Luna', 'Terra', 'Sol', 'Astra'])
+    expect(models.map(m => m.find('.tune-row__gen').text())).toEqual(['GPT 5.6', 'GPT 5.6', 'GPT 5.6', 'GPT 6'])
+    expect(models.map(m => m.find('.tune-row__cost').text())).toEqual(['1×', '3×', '6×', '20×'])
+    expect(models[3]!.find('.tune-row__desc').text()).toBe('Frontier — the hardest work, 1M context')
+    expect(checked(models)).toEqual(['false', 'true', 'false', 'false'])
+    expect(models.map(m => m.attributes('tabindex'))).toEqual(['-1', '0', '-1', '-1'])
+    expect(models.every(m => m.attributes('disabled') === undefined)).toBe(true)
+    expect(document.activeElement).toBe(models[1]!.element)
+    // A radio is named by its name line alone; the blurb and the cost
+    // sentence describe it, once each.
+    const terra = models[1]!
+    const byId = (id: string) => document.getElementById(id)!
+    // The name line's parts are flex items, which the browser spaces apart.
+    expect(Array.from(byId(terra.attributes('aria-labelledby')!).children).map(c => c.textContent)).toEqual([
+      'Terra',
+      'GPT 5.6',
+      'Default',
     ])
-    // Both sliders sit at the chip's current values: Terra is the second
-    // model from the fast end, medium the third rung of Terra's ladder
-    // (minimal, low, medium, high, xhigh).
-    expect(sliders[0]!.element.value).toBe('1')
-    expect(sliders[1]!.element.value).toBe('2')
+    expect(terra.attributes('aria-describedby')!.split(' ').map(id => byId(id).textContent)).toEqual([
+      'Balanced for everyday building',
+      "Uses about 3 times Luna's usage per token",
+    ])
 
-    // Sliding either one hands the change to the workspace.
-    await sliders[0]!.setValue('3')
+    // The ladder every model shares, medium checked.
+    const efforts = effortRadios(wrapper)
+    expect(efforts.map(e => e.text())).toEqual(['Low', 'Medium', 'High', 'Extra High'])
+    expect(checked(efforts)).toEqual(['false', 'true', 'false', 'false'])
+    expect(efforts.map(e => e.attributes('tabindex'))).toEqual(['-1', '0', '-1', '-1'])
+    expect(efforts.every(e => e.attributes('disabled') === undefined)).toBe(true)
+
+    // Picking hands the change to the workspace, and the check follows it.
+    await models[3]!.trigger('click')
     expect(wrapper.props('onModelSelect')).toHaveBeenCalledWith('gpt-6-astra')
-    await sliders[1]!.setValue('1')
+    expect(checked(modelRadios(wrapper))).toEqual(['false', 'false', 'false', 'true'])
+    await efforts[0]!.trigger('click')
     expect(wrapper.props('onEffortSelect')).toHaveBeenCalledWith('low')
+    expect(checked(effortRadios(wrapper))).toEqual(['true', 'false', 'false', 'false'])
+    expect(chip.text()).toBe('Astra · Low')
 
-    // The panel stays open while both are being tuned.
-    expect(wrapper.findAll('input.control-slider')).toHaveLength(2)
+    // Picking what is already picked writes nothing.
+    await modelRadios(wrapper)[3]!.trigger('click')
+    expect(wrapper.props('onModelSelect')).toHaveBeenCalledTimes(1)
+
+    // The panel stays open while both are being tuned; the chip puts it away.
+    expect(tunePanel(wrapper).exists()).toBe(true)
     await chip.trigger('click')
-    expect(wrapper.find('input.control-slider').exists()).toBe(false)
+    expect(tunePanel(wrapper).exists()).toBe(false)
+    expect(chip.attributes('aria-expanded')).toBe('false')
+  })
+
+  it('arrows along either group: each step moves focus and selects, wrapping at the ends', async () => {
+    wrapper = mountWith()
+    await openTune(wrapper)
+    const efforts = effortRadios(wrapper)
+    ;(efforts[1]!.element as HTMLElement).focus()
+    await efforts[1]!.trigger('keydown', { key: 'ArrowRight' })
+    expect(wrapper.props('onEffortSelect')).toHaveBeenLastCalledWith('high')
+    expect(document.activeElement).toBe(efforts[2]!.element)
+    expect(checked(effortRadios(wrapper))).toEqual(['false', 'false', 'true', 'false'])
+
+    await efforts[2]!.trigger('keydown', { key: 'End' })
+    expect(wrapper.props('onEffortSelect')).toHaveBeenLastCalledWith('xhigh')
+    expect(document.activeElement).toBe(efforts[3]!.element)
+    await efforts[3]!.trigger('keydown', { key: 'ArrowRight' })
+    expect(wrapper.props('onEffortSelect')).toHaveBeenLastCalledWith('low')
+    expect(document.activeElement).toBe(efforts[0]!.element)
+
+    // Enter and Space on the checked radio re-affirm it: nothing is written.
+    await efforts[0]!.trigger('keydown', { key: 'Enter' })
+    await efforts[0]!.trigger('keydown', { key: ' ' })
+    expect(wrapper.props('onEffortSelect')).toHaveBeenCalledTimes(3)
+
+    const models = modelRadios(wrapper)
+    await models[1]!.trigger('keydown', { key: 'ArrowUp' })
+    expect(wrapper.props('onModelSelect')).toHaveBeenLastCalledWith('gpt-5.6-luna')
+    expect(document.activeElement).toBe(models[0]!.element)
+    await models[0]!.trigger('keydown', { key: 'ArrowUp' })
+    expect(wrapper.props('onModelSelect')).toHaveBeenLastCalledWith('gpt-6-astra')
+    expect(document.activeElement).toBe(models[3]!.element)
+    expect(tuneChip(wrapper).text()).toBe('Astra · Low')
+  })
+
+  it('Escape puts the panel away and hands focus back to the chip', async () => {
+    wrapper = mountWith()
+    await openTune(wrapper)
+    expect(document.activeElement).not.toBe(tuneChip(wrapper).element)
+    await tunePanel(wrapper).trigger('keydown', { key: 'Escape' })
+    await nextTick()
+    expect(tunePanel(wrapper).exists()).toBe(false)
+    expect(tuneChip(wrapper).attributes('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(tuneChip(wrapper).element)
+  })
+
+  it('closes on a mousedown outside the panel, and stays for one inside it', async () => {
+    wrapper = mountWith()
+    await openTune(wrapper)
+    modelRadios(wrapper)[0]!.element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await nextTick()
+    expect(tunePanel(wrapper).exists()).toBe(true)
+
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await nextTick()
+    expect(tunePanel(wrapper).exists()).toBe(false)
+    expect(tuneChip(wrapper).attributes('aria-expanded')).toBe('false')
+  })
+
+  it('has nothing to act on without an instance: every row and segment goes disabled', async () => {
+    wrapper = mountWith()
+    await openTune(wrapper)
+    useAgentStore().$patch({ activeInstanceId: '' })
+    await nextTick()
+    expect(modelRadios(wrapper).every(m => m.attributes('disabled') !== undefined)).toBe(true)
+    expect(effortRadios(wrapper).every(e => e.attributes('disabled') !== undefined)).toBe(true)
+    expect(tuneChip(wrapper).attributes('disabled')).toBeDefined()
+  })
+
+  it("tags the catalog's default model, and Terra when nothing is flagged", async () => {
+    wrapper = mountWith()
+    await openTune(wrapper)
+    const tagged = () => modelRadios(wrapper!).map(m => m.find('.tune-row__tag').exists())
+    expect(tagged()).toEqual([false, true, false, false])
+    expect(modelRadios(wrapper)[1]!.text()).toContain('Default')
+    wrapper.unmount()
+
+    const store = useAgentStore()
+    store.$patch({
+      availableModels: [
+        { id: 'gpt-5.6-terra', name: 'GPT 5.6 Terra', provider: 'openai' },
+        { id: 'gpt-6-astra', name: 'GPT 6 Astra', provider: 'openai', default: true },
+        { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', provider: 'openai' },
+        { id: 'gpt-5.6-sol', name: 'GPT 5.6 Sol', provider: 'openai' },
+      ],
+    })
+    wrapper = mountWith()
+    await openTune(wrapper)
+    expect(tagged()).toEqual([false, false, false, true])
+  })
+
+  it('spells out the rung you are on under the dial, and previews the one under the pointer', async () => {
+    wrapper = mountWith()
+    await openTune(wrapper)
+    const hint = () => wrapper!.find('#tune-effort-hint').text()
+    expect(hint()).toBe('Medium — The balanced default for everyday building')
+
+    const efforts = effortRadios(wrapper)
+    await efforts[3]!.trigger('mouseenter')
+    expect(hint()).toBe('Extra High — The most thorough, for the hardest tasks')
+    // A hover is only a preview: nothing was picked.
+    expect(wrapper.props('onEffortSelect')).not.toHaveBeenCalled()
+    await wrapper.find('.tune-dial').trigger('mouseleave')
+    expect(hint()).toBe('Medium — The balanced default for everyday building')
+
+    await efforts[0]!.trigger('click')
+    expect(hint()).toBe('Low — Quick answers for small edits')
   })
 
   it('has one button and nothing beside it: a mic when empty, an arrow once there is text', async () => {

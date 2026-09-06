@@ -142,74 +142,65 @@ export const AI_MODELS: AIModel[] = [
 /**
  * Reasoning effort levels — how much reasoning the model uses per request.
  */
-// The discrete reasoning-effort ladder the OpenAI Responses API accepts for
-// reasoning-capable models, ordered faster → smarter. ('none' — no reasoning —
-// is intentionally omitted: it's a different concept than "think less", not a
-// point on this speed/intelligence ladder.) Must stay in step with the
+// One reasoning-effort ladder for every model, ordered faster → smarter. The
+// OpenAI SDK's ReasoningEffort literal is none / minimal / low / medium / high /
+// xhigh, with nothing above xhigh: a 'max' rung was never real (the SDK rejects
+// it, and the backend then silently sent the request with no reasoning effort
+// at all). 'minimal' is left off so every model offers the same choices, and
+// 'none' — no reasoning — is a different concept than "think less", not a
+// point on this speed/intelligence ladder. Must stay in step with the
 // backend's REASONING_EFFORT_CHOICES.
-//
-// This is the union across models, not one model's ladder: the rungs at each
-// end are model-specific (see MODEL_REASONING_EFFORTS). Sending a model a rung
-// it doesn't accept fails the request, so always go through
-// reasoningEffortsForModel() / clampEffortToModel() rather than this list.
-export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
 
 export interface ReasoningEffortOption {
   id: ReasoningEffort;
   name: string;
+  /** One short line the picker shows under the name. */
+  description: string;
 }
 
 export const REASONING_EFFORTS: ReasoningEffortOption[] = [
-  { id: 'minimal', name: 'Minimal' },
-  { id: 'low', name: 'Low' },
-  { id: 'medium', name: 'Medium' },
-  { id: 'high', name: 'High' },
-  { id: 'xhigh', name: 'Extra High' },
-  { id: 'max', name: 'Max' },
+  { id: 'low', name: 'Low', description: 'Quick answers for small edits' },
+  { id: 'medium', name: 'Medium', description: 'The balanced default for everyday building' },
+  { id: 'high', name: 'High', description: 'Deeper thinking for multi-step work' },
+  { id: 'xhigh', name: 'Extra High', description: 'The most thorough, for the hardest tasks' },
 ];
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
 
-// Which rungs each model actually accepts. The 5.6 suite takes 'minimal' but
-// has no 'max'; Astra is the reverse — it rejects 'minimal' outright and adds
-// a 'max' rung above 'xhigh'. Mirrors `reasoning_efforts` in the backend's
-// models_service.MODELS, which is what the API request is validated against.
-export const MODEL_REASONING_EFFORTS: Record<string, ReasoningEffort[]> = {
-  'gpt-5.6-sol': ['minimal', 'low', 'medium', 'high', 'xhigh'],
-  'gpt-5.6-terra': ['minimal', 'low', 'medium', 'high', 'xhigh'],
-  'gpt-5.6-luna': ['minimal', 'low', 'medium', 'high', 'xhigh'],
-  'gpt-6-astra': ['low', 'medium', 'high', 'xhigh', 'max'],
+// Rungs the platform used to offer (or claimed to), mapped onto the ladder.
+// A client tab from before the ladder was unified can still send them, and a
+// selection persisted back then can still be restored from storage.
+export const LEGACY_REASONING_EFFORT_ALIASES: Record<string, ReasoningEffort> = {
+  minimal: 'low',
+  max: 'xhigh',
 };
 
-/** The effort options a model accepts, ordered faster → smarter. Unknown models
- *  get the full ladder, so a model the backend adds before the frontend knows
- *  about it still gets a usable picker. */
+/** The effort options a model accepts, ordered faster → smarter. Every model
+ *  shares the one ladder; the model id is accepted so callers read the same
+ *  either way, and so a per-model difference has one place to land if a
+ *  provider ever introduces one. */
 export function reasoningEffortsForModel(modelId?: string | null): ReasoningEffortOption[] {
-  const allowed = modelId ? MODEL_REASONING_EFFORTS[modelId] : undefined;
-  if (!allowed) return REASONING_EFFORTS;
-  return REASONING_EFFORTS.filter(option => allowed.includes(option.id));
+  void modelId; // every model, known or not, gets the same ladder
+  return REASONING_EFFORTS;
 }
 
-/** Clamp an effort onto a model's ladder, picking the closest rung and
- *  breaking ties toward the smarter one. Used when switching models, so a
- *  selection carried over from another model can't be sent to one that
- *  rejects it (e.g. 'minimal' held over into Astra). */
+/** Re-seat an effort onto the ladder: an effort already on it passes through,
+ *  a legacy alias ('minimal', 'max') lands on its nearest rung, and anything
+ *  else — empty, unknown, or garbage from another session — falls back to the
+ *  default. Takes a plain string because the value may come from storage or an
+ *  older client rather than from typed code. */
 export function clampEffortToModel(
-  effort: ReasoningEffort | null | undefined,
+  effort: string | null | undefined,
   modelId?: string | null
 ): ReasoningEffort {
+  if (!effort) return DEFAULT_REASONING_EFFORT;
   const options = reasoningEffortsForModel(modelId);
-  if (effort && options.some(option => option.id === effort)) return effort;
-  const ladder = REASONING_EFFORTS.map(option => option.id);
-  const wanted = effort && ladder.includes(effort) ? effort : DEFAULT_REASONING_EFFORT;
-  const target = ladder.indexOf(wanted);
-  return options
-    .map(option => ({ id: option.id, at: ladder.indexOf(option.id) }))
-    .sort(
-      (a, b) =>
-        Math.abs(a.at - target) - Math.abs(b.at - target) ||
-        Number(a.at < target) - Number(b.at < target)
-    )[0]?.id ?? DEFAULT_REASONING_EFFORT;
+  const onLadder = options.find(option => option.id === effort);
+  if (onLadder) return onLadder.id;
+  return Object.prototype.hasOwnProperty.call(LEGACY_REASONING_EFFORT_ALIASES, effort)
+    ? LEGACY_REASONING_EFFORT_ALIASES[effort]!
+    : DEFAULT_REASONING_EFFORT;
 }
 
 // Conversation / agent instance types

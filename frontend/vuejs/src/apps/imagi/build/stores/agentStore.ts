@@ -1013,10 +1013,9 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.selectedModelId = modelId
-      // Models don't share one reasoning ladder — Astra rejects 'minimal', the
-      // 5.6 suite has no 'max' — so an effort chosen under the old model is
-      // re-seated on the new one's rungs. Left alone it would ride along and
-      // fail the next request.
+      // Every model shares one reasoning ladder, but the effort riding along
+      // may predate it (a 'minimal' or 'max' restored from an older session),
+      // so it is re-seated onto the ladder here rather than sent as-is.
       instance.selectedEffort = clampEffortToModel(instance.selectedEffort, modelId)
       if (instance.conversationId) {
         AgentService.updateConversation(instance.conversationId, { model_name: modelId })
@@ -1025,7 +1024,9 @@ export const useAgentStore = defineStore('agent', {
     },
 
     // Reasoning effort is a per-request tuning knob kept in client state only
-    // (there is no backend field to persist it to).
+    // (there is no backend field to persist it to). The clamp re-seats a
+    // legacy rung ('minimal' → 'low', 'max' → 'xhigh') and drops anything
+    // unknown back to the default, so the ladder is all that ever gets sent.
     setInstanceEffort(instanceId: string, effort: ReasoningEffort) {
       const instance = this._findInstance(instanceId)
       if (!instance) return

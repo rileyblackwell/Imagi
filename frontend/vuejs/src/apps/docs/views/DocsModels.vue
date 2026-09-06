@@ -11,10 +11,10 @@
       <section class="mb-16">
         <div class="lede space-y-4 text-lg">
           <p>
-            Every message you send in the Build workspace is handled by an AI model. Imagi gives you two simple dials in the
-            chat toolbar—a <strong class="ink-strong">model</strong> and a
-            <strong class="ink-strong">reasoning effort</strong>—each presented as a
-            <em class="font-display italic">Faster → Smarter</em> slider rather than a technical menu.
+            Every message you send in the Build workspace is handled by an AI model. Imagi gives you two simple settings in
+            the chat toolbar—a <strong class="ink-strong">model</strong> and a
+            <strong class="ink-strong">reasoning effort</strong>—picked from one panel that lists every option in
+            <em class="font-display italic">Faster → Smarter</em> order rather than hiding it in a technical menu.
           </p>
           <p>
             Both settings are per conversation, so different threads can use different settings, and your choice sticks with
@@ -53,13 +53,13 @@
         </div>
         <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
           <h4 class="callout__title">
-            How the model dial works
+            How the model picker works
           </h4>
           <p class="callout__body">
-            Open the model chip in the chat toolbar (it shows the current model, like "Terra") to reveal a single slider from
-            <strong class="ink-strong">Faster</strong> (Luna) to
-            <strong class="ink-strong">Smarter</strong> (Sol), with Terra in the middle.
-            Smarter models consume your usage faster.
+            Open the model chip in the chat toolbar (it shows the current model and reasoning, like "Terra · Medium") to
+            reveal a list of models ordered from <strong class="ink-strong">Faster</strong> (Luna) to
+            <strong class="ink-strong">Smarter</strong>, each with its relative usage cost beside it and Terra tagged as
+            the default. Smarter models consume your usage faster.
           </p>
         </div>
       </section>
@@ -70,19 +70,16 @@
           Reasoning Effort
         </h2>
         <p class="lede lede--section">
-          Separate from which model you pick, reasoning effort controls how hard the model thinks before it answers. It runs
-          along the same <em class="font-display italic">Faster → Smarter</em> slider, across five levels. More reasoning
+          Separate from which model you pick, reasoning effort controls how hard the model thinks before it answers. It sits
+          under the model list in the same panel as a <em class="font-display italic">Low → Extra High</em> selector, four
+          levels ordered <em class="font-display italic">Faster → Smarter</em>. More reasoning
           helps on complex, multi-step tasks; less is snappier for simple ones. The default is
           <strong class="ink-strong">Medium</strong>.
         </p>
         <ul class="space-y-3 mb-8">
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
-            <span class="text-lg leading-relaxed"><strong class="ink-strong">Minimal</strong> — the quickest, for the simplest changes</span>
-          </li>
-          <li class="flex items-start gap-3">
-            <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
-            <span class="text-lg leading-relaxed"><strong class="ink-strong">Low</strong> — a little thinking for straightforward tasks</span>
+            <span class="text-lg leading-relaxed"><strong class="ink-strong">Low</strong> — quick answers for small edits</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
@@ -90,7 +87,7 @@
           </li>
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
-            <span class="text-lg leading-relaxed"><strong class="ink-strong">High</strong> — deeper thinking for trickier, multi-step work</span>
+            <span class="text-lg leading-relaxed"><strong class="ink-strong">High</strong> — deeper thinking for multi-step work</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
@@ -110,7 +107,7 @@
         </h2>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Quick edits & small tweaks">
-            Lean toward Luna or Terra with Minimal–Low reasoning. You'll get fast results and stretch your usage further.
+            Lean toward Luna or Terra with Low reasoning. You'll get fast results and stretch your usage further.
           </DocsCard>
           <DocsCard title="Everyday building">
             Stick with the defaults—Terra at Medium reasoning. It handles most pages, features, and changes comfortably.
