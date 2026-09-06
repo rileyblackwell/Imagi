@@ -337,16 +337,21 @@
               </div>
             </div>
 
-            <!-- The one button: tap to send (or to stop a run in flight),
-                 hold to dictate. Send, stop, and mic are the same shape in
-                 different states rather than three controls trading places,
-                 so a hold can follow a hold and then a tap without the hand
-                 moving. Recording turns it red with a ring that swells with
+            <!-- The one button, and it stays the microphone: hold to dictate,
+                 click to send (or to stop a run in flight). The glyph never
+                 turns into an arrow once there is text, because the words in
+                 the box are as likely to be added to — record, read it over,
+                 record some more — as sent, and a button that had become
+                 "send" would say the mic was gone. What changes is the fill
+                 (navy once a click has something to do) and the run-in-flight
+                 state, where a click stops the agent and so wears the stop
+                 glyph. Recording turns it red with a ring that swells with
                  the voice; the click the browser fires when a hold lets go
                  is swallowed, so letting go never sends. Which microphone it
                  listens on lives behind the same button: a right-click (or
                  the keyboard's menu key) opens the picker, so there is no
-                 second mic control beside it. -->
+                 second mic control beside it. Where the browser cannot
+                 record at all it is a plain send arrow. -->
             <button
               ref="sendButton"
               type="button"
@@ -367,7 +372,7 @@
               <i v-if="isTranscribing" class="fas fa-circle-notch fa-spin text-[13px]"></i>
               <i v-else-if="isRecording" class="fas fa-microphone text-[13px]"></i>
               <i v-else-if="activeInstance?.isProcessing" class="fas fa-stop text-sm"></i>
-              <i v-else-if="prompt.trim()" class="fas fa-arrow-up text-sm"></i>
+              <i v-else-if="!dictationSupported" class="fas fa-arrow-up text-sm"></i>
               <i v-else class="fas fa-microphone text-[13px]"></i>
             </button>
           </div>
@@ -808,17 +813,21 @@ function chooseMicInput(id: string) {
   micOpen.value = false
 }
 
+/** What a hold, a click, and a right-click each do, in that order: the
+ *  button is the microphone first, and a click is how the words leave. */
 const sendTitle = computed(() => {
   if (isTranscribing.value) return 'Transcribing…'
   if (isRecording.value) return `Stop dictating (${dictationShortcut})`
-  const mic = dictationSupported ? ' · right-click to choose microphone' : ''
-  if (activeInstance.value?.isProcessing) return `Stop agent · hold to dictate (${dictationShortcut})${mic}`
-  return `Send (Enter) · hold to dictate (${dictationShortcut})${mic}`
+  const running = !!activeInstance.value?.isProcessing
+  if (!dictationSupported) return running ? 'Stop agent' : 'Send (Enter)'
+  const click = running ? 'click to stop the agent' : 'click to send (Enter)'
+  return `Hold to dictate (${dictationShortcut}) · ${click} · right-click to choose microphone`
 })
 
-/** Navy ink when a tap does something (there is text to send, or a run to
+/** Navy ink when a click does something (there is text to send, or a run to
  *  stop); red while the mic is live; a ghost otherwise — still pressable,
- *  because a hold records into an empty box. */
+ *  because a hold records into an empty box. The fill is all that changes
+ *  with the text: the glyph stays a microphone. */
 const sendClass = computed(() => {
   if (isRecording.value) return 'btn-send--recording'
   if (activeInstance.value && (prompt.value.trim() || activeInstance.value.isProcessing)) {
@@ -854,8 +863,8 @@ function onSendPointerDown(e: PointerEvent) {
   // Only the primary button: a right-click is the context menu, not a hold.
   if (e.button !== undefined && e.button !== 0) return
   if (!activeInstance.value || isTranscribing.value) return
-  // Keep the caret in the textarea — a tap sends what is typed there and a
-  // hold puts words there.
+  // Keep the caret (and any selection) in the textarea — a click sends what
+  // is typed there, and a hold puts words there, at that caret.
   e.preventDefault()
   // A press on the button is a send or a hold, never a browse of the
   // picker it also opens: put the picker away first.
@@ -923,19 +932,32 @@ function onSendClick() {
 
 onBeforeUnmount(clearHoldTimer)
 
-/** Dictated text joins whatever is already typed, after a space, and the
- *  caret lands at the end so the next thing typed (or dictated) follows on.
- *  It is never sent by itself: the user reads it over, then taps the
- *  button or presses Enter. */
+/** Dictated text lands where the caret is — in place of a selection, or
+ *  between what is on either side, with a space added wherever it would
+ *  otherwise run into a word — and the caret lands after it, so the next
+ *  thing typed or dictated follows on. With the caret at the end, where
+ *  each transcript leaves it, that is a plain append. Once the box has lost
+ *  focus the words go on the end: a caret nobody can see is not a place to
+ *  put them. Typing, selecting, and deleting are the textarea's own; nothing
+ *  here takes them away, so the words can be edited between holds. The
+ *  transcript is never sent by itself: the user reads it over, then clicks
+ *  the button or presses Enter. */
 function insertDictation(text: string) {
+  const el = promptTextarea.value
   const current = prompt.value
-  prompt.value = current && !/\s$/.test(current) ? `${current} ${text}` : `${current}${text}`
+  const caret = el && document.activeElement === el ? [el.selectionStart, el.selectionEnd] : null
+  const [start, end] = caret ?? [current.length, current.length]
+  const before = current.slice(0, start)
+  const after = current.slice(end)
+  const lead = before && !/\s$/.test(before) ? ' ' : ''
+  const trail = after && !/^\s/.test(after) ? ' ' : ''
+  prompt.value = `${before}${lead}${text}${trail}${after}`
+  const landing = before.length + lead.length + text.length
   nextTick(() => {
     autoResizeTextarea()
-    const el = promptTextarea.value
     if (el) {
       el.focus()
-      el.setSelectionRange(el.value.length, el.value.length)
+      el.setSelectionRange(landing, landing)
     }
   })
 }
