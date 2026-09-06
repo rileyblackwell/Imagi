@@ -116,7 +116,7 @@ function press(init: KeyboardEventInit, target: EventTarget = document.body) {
   return event
 }
 
-/** The composer's one button: tap to send, hold to dictate. */
+/** The composer's one button: hold to dictate, click to send. */
 function sendButton(wrapper: ReturnType<typeof mountWith>) {
   return wrapper.find('button.btn-send')
 }
@@ -197,7 +197,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(wrapper.find('input.control-slider').exists()).toBe(false)
   })
 
-  it('has one button and nothing beside it: a mic when empty, an arrow once there is text', async () => {
+  it('has one button and nothing beside it, and it stays the microphone once there is text', async () => {
     wrapper = mountWith()
     expect(wrapper.find('button.btn-dictate').exists()).toBe(false)
     expect(wrapper.find('button.mic-caret').exists()).toBe(false)
@@ -206,19 +206,25 @@ describe('BuilderSidebarChat dictation', () => {
     const button = sendButton(wrapper)
     expect(button.exists()).toBe(true)
     expect(button.attributes('title')).toBe(
-      'Send (Enter) · hold to dictate (⌘D) · right-click to choose microphone'
+      'Hold to dictate (⌘D) · click to send (Enter) · right-click to choose microphone'
     )
     // Nothing to send yet, but a hold still records — so never disabled.
     expect(button.attributes('disabled')).toBeUndefined()
     expect(button.classes()).toContain('btn-send--idle')
     expect(button.find('.fa-microphone').exists()).toBe(true)
 
+    // Text fills the button in, so a click visibly has something to do, but
+    // it is still the mic: the words may be added to before they are sent.
     await typePrompt(wrapper, 'Add a contact page')
     expect(button.classes()).toContain('btn-send--active')
-    expect(button.find('.fa-arrow-up').exists()).toBe(true)
+    expect(button.find('.fa-microphone').exists()).toBe(true)
+    expect(button.find('.fa-arrow-up').exists()).toBe(false)
+    expect(button.attributes('title')).toBe(
+      'Hold to dictate (⌘D) · click to send (Enter) · right-click to choose microphone'
+    )
   })
 
-  it('a tap sends the prompt and never touches the mic', async () => {
+  it('a click sends the prompt and never touches the mic', async () => {
     wrapper = mountWith()
     await typePrompt(wrapper, 'Add a contact page')
     await pressFor(wrapper, 80)
@@ -228,7 +234,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('')
   })
 
-  it('a tap on an empty box sends nothing', async () => {
+  it('a click on an empty box sends nothing', async () => {
     wrapper = mountWith()
     await pressFor(wrapper, 80)
     expect(wrapper.props('onPromptSubmit')).not.toHaveBeenCalled()
@@ -334,7 +340,7 @@ describe('BuilderSidebarChat dictation', () => {
     wrapper = mountWith(instance({ isProcessing: true }))
     const button = sendButton(wrapper)
     expect(button.attributes('title')).toBe(
-      'Stop agent · hold to dictate (⌘D) · right-click to choose microphone'
+      'Hold to dictate (⌘D) · click to stop the agent · right-click to choose microphone'
     )
     expect(button.find('.fa-stop').exists()).toBe(true)
 
@@ -471,7 +477,7 @@ describe('BuilderSidebarChat dictation', () => {
     Object.defineProperty(navigator, 'platform', { value: 'Win32', configurable: true })
     wrapper = mountWith()
     expect(sendButton(wrapper).attributes('title')).toBe(
-      'Send (Enter) · hold to dictate (Ctrl+D) · right-click to choose microphone'
+      'Hold to dictate (Ctrl+D) · click to send (Enter) · right-click to choose microphone'
     )
     press({ key: 'd', ctrlKey: true })
     expect(dictation.toggle).toHaveBeenCalledTimes(1)
@@ -503,12 +509,16 @@ describe('BuilderSidebarChat dictation', () => {
     expect(dictation.cancel).toHaveBeenCalled()
   })
 
-  it('keeps the microphone picker shut where the browser cannot record, but still sends', async () => {
+  it('is a plain send arrow where the browser cannot record, with the picker shut', async () => {
     dictation.supported = false
     wrapper = mountWith()
     expect(wrapper.find('button.mic-caret').exists()).toBe(false)
-    expect(sendButton(wrapper).attributes('title')).toBe('Send (Enter) · hold to dictate (⌘D)')
-    expect(sendButton(wrapper).attributes('aria-expanded')).toBeUndefined()
+    const button = sendButton(wrapper)
+    expect(button.attributes('title')).toBe('Send (Enter)')
+    expect(button.attributes('aria-expanded')).toBeUndefined()
+    // No microphone glyph to promise a recording that cannot happen.
+    expect(button.find('.fa-microphone').exists()).toBe(false)
+    expect(button.find('.fa-arrow-up').exists()).toBe(true)
     await sendButton(wrapper).trigger('contextmenu')
     expect(wrapper.find('.mic-panel').exists()).toBe(false)
     await typePrompt(wrapper, 'Add a contact page')
@@ -530,6 +540,68 @@ describe('BuilderSidebarChat dictation', () => {
     expect((textarea.element as HTMLTextAreaElement).value).toBe('Add a contact page with a map')
     expect(document.activeElement).toBe(textarea.element)
     expect(wrapper.props('onPromptSubmit')).not.toHaveBeenCalled()
+  })
+
+  it('leaves the textbox editable around dictation: type, select, delete, dictate again', async () => {
+    wrapper = mountWith()
+    const textarea = wrapper.find('textarea')
+    const el = textarea.element as HTMLTextAreaElement
+    dictation.onTranscript!('Add a contact page')
+    await nextTick()
+    // The mic being the default takes nothing away from the keyboard.
+    expect(el.disabled).toBe(false)
+    expect(el.readOnly).toBe(false)
+    expect(document.activeElement).toBe(el)
+    // The caret sits after the words, so typing follows on from them.
+    expect(el.selectionStart).toBe('Add a contact page'.length)
+    expect(el.selectionEnd).toBe('Add a contact page'.length)
+
+    // Highlight "contact" and press Backspace: an ordinary edit, and nothing
+    // in the composer intercepts the key.
+    el.setSelectionRange(6, 13)
+    const backspace = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    el.dispatchEvent(backspace)
+    expect(backspace.defaultPrevented).toBe(false)
+    await textarea.setValue('Add a  page')
+    expect(sendButton(wrapper).find('.fa-microphone').exists()).toBe(true)
+
+    // A hold after the edit puts its words where the caret was left.
+    el.setSelectionRange(6, 6)
+    dictation.onTranscript!('pricing')
+    await nextTick()
+    expect(el.value).toBe('Add a pricing page')
+    expect(wrapper.props('onPromptSubmit')).not.toHaveBeenCalled()
+  })
+
+  it('puts a transcript at the caret, or in place of a selection, while the box has focus', async () => {
+    wrapper = mountWith()
+    const textarea = wrapper.find('textarea')
+    const el = textarea.element as HTMLTextAreaElement
+    await typePrompt(wrapper, 'Add a page')
+    el.focus()
+    // Caret between "a " and "page": the words go in the middle, spaced.
+    el.setSelectionRange(6, 6)
+    dictation.onTranscript!('contact')
+    await nextTick()
+    expect(el.value).toBe('Add a contact page')
+    expect(el.selectionStart).toBe('Add a contact'.length)
+    expect(el.selectionEnd).toBe('Add a contact'.length)
+
+    // A highlighted word is what the next transcript replaces.
+    el.setSelectionRange(6, 13)
+    dictation.onTranscript!('pricing')
+    await nextTick()
+    expect(el.value).toBe('Add a pricing page')
+    expect(el.selectionStart).toBe('Add a pricing'.length)
+
+    // With focus elsewhere the words go on the end, where they can be seen,
+    // and the box takes focus back for the read-over.
+    el.blur()
+    el.setSelectionRange(0, 0)
+    dictation.onTranscript!('with a map')
+    await nextTick()
+    expect(el.value).toBe('Add a pricing page with a map')
+    expect(document.activeElement).toBe(el)
   })
 
   it('stops listening for ⌘D once unmounted', () => {
