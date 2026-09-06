@@ -163,6 +163,40 @@ describe('BuilderSidebarChat dictation', () => {
     vi.useRealTimers()
   })
 
+  it('offers model and reasoning as one chip that opens both sliders together', async () => {
+    wrapper = mountWith()
+    const chips = wrapper.findAll('button.control-chip').map(c => c.attributes('aria-label'))
+    expect(chips).toEqual(['Model and reasoning', 'Usage limits'])
+    const chip = wrapper.find('button[aria-label="Model and reasoning"]')
+    expect(chip.text()).toBe('Terra · Medium')
+    expect(chip.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('input.control-slider').exists()).toBe(false)
+
+    await chip.trigger('click')
+    expect(chip.attributes('aria-expanded')).toBe('true')
+    const sliders = wrapper.findAll('input.control-slider')
+    expect(sliders.map(s => s.attributes('aria-label'))).toEqual([
+      'Model — faster to smarter',
+      'Reasoning effort — faster to smarter',
+    ])
+    // Both sliders sit at the chip's current values: Terra is the second
+    // model from the fast end, medium the third rung of Terra's ladder
+    // (minimal, low, medium, high, xhigh).
+    expect(sliders[0]!.element.value).toBe('1')
+    expect(sliders[1]!.element.value).toBe('2')
+
+    // Sliding either one hands the change to the workspace.
+    await sliders[0]!.setValue('3')
+    expect(wrapper.props('onModelSelect')).toHaveBeenCalledWith('gpt-6-astra')
+    await sliders[1]!.setValue('1')
+    expect(wrapper.props('onEffortSelect')).toHaveBeenCalledWith('low')
+
+    // The panel stays open while both are being tuned.
+    expect(wrapper.findAll('input.control-slider')).toHaveLength(2)
+    await chip.trigger('click')
+    expect(wrapper.find('input.control-slider').exists()).toBe(false)
+  })
+
   it('has one button and nothing beside it: a mic when empty, an arrow once there is text', async () => {
     wrapper = mountWith()
     expect(wrapper.find('button.btn-dictate').exists()).toBe(false)

@@ -47,17 +47,19 @@
          can anchor to the full section width — the sidebar clips overflow,
          so a panel anchored to its narrow button couldn't fit. -->
     <div class="shrink-0 relative bg-canvas transition-colors duration-300">
-      <!-- Model slider panel (opens upward above the composer): one slider
-           across the three models, faster → smarter.
+      <!-- Model + reasoning panel (opens upward above the composer): two
+           sliders, faster → smarter, in one place — which model thinks and
+           how hard it thinks are one decision about the same trade-off, so
+           they share a dropdown rather than trading places in two.
 
-           The three panels share one popover treatment: a translucent
-           material that grows out of the chip that opened it (transform-origin
-           sits at the bottom edge), so opening reads as the control
-           unfolding rather than a card being dealt onto the pane. -->
+           The panels share one popover treatment: a translucent material
+           that grows out of the chip that opened it (transform-origin sits
+           at the bottom edge), so opening reads as the control unfolding
+           rather than a card being dealt onto the pane. -->
       <Transition name="popover">
       <div
-        v-if="modelOpen"
-        ref="modelPanel"
+        v-if="tuneOpen"
+        ref="tunePanel"
         class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
       >
         <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
@@ -68,7 +70,7 @@
             {{ currentModel?.name || '—' }}
           </span>
         </div>
-        <div class="px-3 py-3">
+        <div class="px-3 pt-3 pb-2">
           <input
             type="range"
             class="control-slider"
@@ -84,21 +86,8 @@
             <span>Faster</span>
             <span>Smarter</span>
           </div>
-          <p class="mt-2 text-[11px] leading-snug text-blue-950/50 dark:text-white/45">
-            Smarter models consume your usage faster.
-          </p>
         </div>
-      </div>
-      </Transition>
-
-      <!-- Reasoning effort slider panel (opens upward above the composer) -->
-      <Transition name="popover">
-      <div
-        v-if="effortOpen"
-        ref="effortPanel"
-        class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
-      >
-        <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
+        <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
             Reasoning
           </span>
@@ -106,7 +95,7 @@
             {{ currentEffort?.name || '—' }}
           </span>
         </div>
-        <div class="px-3 py-3">
+        <div class="px-3 pt-3 pb-3">
           <input
             type="range"
             class="control-slider"
@@ -123,7 +112,7 @@
             <span>Smarter</span>
           </div>
           <p class="mt-2 text-[11px] leading-snug text-blue-950/50 dark:text-white/45">
-            More reasoning consumes your usage faster.
+            Smarter models and more reasoning consume your usage faster.
           </p>
         </div>
       </div>
@@ -307,44 +296,27 @@
             {{ dictationError }}
           </p>
 
-          <!-- Controls toolbar: model + reasoning side by side on the left, send pinned right -->
+          <!-- Controls toolbar: model + reasoning as one chip and usage on the left, send pinned right -->
           <div class="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
             <!-- min-w-0 + overflow-hidden lets the chips truncate rather than
                  shove the send button off the edge on a narrow sidebar. -->
             <div class="flex flex-nowrap items-center gap-1 min-w-0 flex-1 overflow-hidden">
-              <!-- Model: opens a slider from faster → smarter across the models -->
-              <div ref="modelRoot" class="min-w-0">
+              <!-- Model + reasoning: one chip naming both ("Terra · Medium"),
+                   opening the two faster → smarter sliders together. -->
+              <div ref="tuneRoot" class="min-w-0">
                 <button
                   type="button"
-                  title="Model — slide from faster to smarter"
-                  aria-label="Model"
-                  :aria-expanded="modelOpen"
+                  title="Model and reasoning — slide from faster to smarter"
+                  aria-label="Model and reasoning"
+                  :aria-expanded="tuneOpen"
                   :disabled="!activeInstance"
                   class="control-chip iw-press"
-                  :class="{ 'control-chip--active': modelOpen }"
-                  @click="toggleModel"
+                  :class="{ 'control-chip--active': tuneOpen }"
+                  @click="toggleTune"
                 >
                   <i class="fas fa-microchip control-chip-icon"></i>
-                  <span class="control-chip-label">{{ modelShortName(activeInstance?.selectedModelId) }}</span>
-                  <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': modelOpen }"></i>
-                </button>
-              </div>
-
-              <!-- Reasoning effort: same faster → smarter slider -->
-              <div ref="effortRoot" class="min-w-0">
-                <button
-                  type="button"
-                  title="Reasoning effort — slide from faster to smarter"
-                  aria-label="Reasoning effort"
-                  :aria-expanded="effortOpen"
-                  :disabled="!activeInstance"
-                  class="control-chip iw-press"
-                  :class="{ 'control-chip--active': effortOpen }"
-                  @click="toggleEffort"
-                >
-                  <i class="fas fa-brain control-chip-icon"></i>
-                  <span class="control-chip-label">{{ effortLabel(activeInstance?.selectedEffort) }}</span>
-                  <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': effortOpen }"></i>
+                  <span class="control-chip-label">{{ tuneLabel }}</span>
+                  <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': tuneOpen }"></i>
                 </button>
               </div>
 
@@ -612,18 +584,11 @@ function onDocMousedown(e: MouseEvent) {
     usageOpen.value = false
   }
   if (
-    modelOpen.value &&
-    !modelRoot.value?.contains(target) &&
-    !modelPanel.value?.contains(target)
+    tuneOpen.value &&
+    !tuneRoot.value?.contains(target) &&
+    !tunePanel.value?.contains(target)
   ) {
-    modelOpen.value = false
-  }
-  if (
-    effortOpen.value &&
-    !effortRoot.value?.contains(target) &&
-    !effortPanel.value?.contains(target)
-  ) {
-    effortOpen.value = false
+    tuneOpen.value = false
   }
   if (
     micOpen.value &&
@@ -644,14 +609,11 @@ const usageOpen = ref(false)
 const usageRoot = ref<HTMLElement | null>(null)
 const usagePanel = ref<HTMLElement | null>(null)
 
-// --- Model + reasoning slider popovers ---
+// --- Model + reasoning slider popover (the two sliders share one panel) ---
 
-const modelOpen = ref(false)
-const modelRoot = ref<HTMLElement | null>(null)
-const modelPanel = ref<HTMLElement | null>(null)
-const effortOpen = ref(false)
-const effortRoot = ref<HTMLElement | null>(null)
-const effortPanel = ref<HTMLElement | null>(null)
+const tuneOpen = ref(false)
+const tuneRoot = ref<HTMLElement | null>(null)
+const tunePanel = ref<HTMLElement | null>(null)
 // The microphone picker hangs off the send button (right-click) rather than
 // off a handle of its own.
 const micOpen = ref(false)
@@ -662,8 +624,7 @@ const micPanel = ref<HTMLElement | null>(null)
 // opens at a time.
 function closeControlPanels() {
   usageOpen.value = false
-  modelOpen.value = false
-  effortOpen.value = false
+  tuneOpen.value = false
   micOpen.value = false
 }
 
@@ -675,16 +636,10 @@ function toggleUsage() {
   if (usageOpen.value) void usageStore.fetchUsage()
 }
 
-function toggleModel() {
-  const next = !modelOpen.value
+function toggleTune() {
+  const next = !tuneOpen.value
   closeControlPanels()
-  modelOpen.value = next
-}
-
-function toggleEffort() {
-  const next = !effortOpen.value
-  closeControlPanels()
-  effortOpen.value = next
+  tuneOpen.value = next
 }
 
 /** "Pro plan" — em-dash while the plan is unknown. The allowances belong to
@@ -787,6 +742,12 @@ function effortLabel(id?: string | null): string {
   const option = effortOptions.value.find(o => o.id === id) ?? currentEffort.value
   return option?.name ?? 'Reasoning'
 }
+
+/** The chip reads "Terra · Medium": the model's short name and the reasoning
+ *  rung, so both settings are legible without opening anything. */
+const tuneLabel = computed(
+  () => `${modelShortName(activeInstance.value?.selectedModelId)} · ${effortLabel(activeInstance.value?.selectedEffort)}`
+)
 
 function onEffortSlider(e: Event) {
   const idx = Number((e.target as HTMLInputElement).value)
@@ -1138,6 +1099,12 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 
 .popover__head {
   border-bottom: 1px solid var(--iw-hairline);
+}
+
+/* A second head partway down a panel rules itself off from the section
+   above as well as the one below. */
+.popover__head--mid {
+  border-top: 1px solid var(--iw-hairline);
 }
 
 /* Grows from its bottom edge — the edge nearest the chip that opened it — so
