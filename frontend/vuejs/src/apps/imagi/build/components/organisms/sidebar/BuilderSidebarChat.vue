@@ -365,36 +365,23 @@
               </div>
             </div>
 
-            <!-- Which microphone: a small handle beside the send button is the
-                 whole picker. Hidden where the browser cannot record at all. -->
-            <div v-if="dictationSupported" ref="micRoot" class="flex items-center shrink-0">
-              <button
-                type="button"
-                title="Choose microphone"
-                aria-label="Choose microphone"
-                :aria-expanded="micOpen"
-                :disabled="!activeInstance"
-                class="mic-caret iw-press"
-                :class="{ 'mic-caret--active': micOpen }"
-                @click="toggleMic"
-              >
-                <i class="fas fa-microphone text-[10px]"></i>
-                <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': micOpen }"></i>
-              </button>
-            </div>
-
             <!-- The one button: tap to send (or to stop a run in flight),
                  hold to dictate. Send, stop, and mic are the same shape in
                  different states rather than three controls trading places,
                  so a hold can follow a hold and then a tap without the hand
                  moving. Recording turns it red with a ring that swells with
                  the voice; the click the browser fires when a hold lets go
-                 is swallowed, so letting go never sends. -->
+                 is swallowed, so letting go never sends. Which microphone it
+                 listens on lives behind the same button: a right-click (or
+                 the keyboard's menu key) opens the picker, so there is no
+                 second mic control beside it. -->
             <button
+              ref="sendButton"
               type="button"
               :title="sendTitle"
               :aria-label="sendTitle"
               :aria-pressed="isRecording"
+              :aria-expanded="dictationSupported ? micOpen : undefined"
               :disabled="!activeInstance || isTranscribing"
               class="btn-send iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
               :class="sendClass"
@@ -402,7 +389,7 @@
               @pointerdown="onSendPointerDown"
               @pointerup="onSendPointerUp"
               @pointercancel="onSendPointerUp"
-              @contextmenu.prevent
+              @contextmenu.prevent="toggleMic"
               @click="onSendClick"
             >
               <i v-if="isTranscribing" class="fas fa-circle-notch fa-spin text-[13px]"></i>
@@ -640,7 +627,7 @@ function onDocMousedown(e: MouseEvent) {
   }
   if (
     micOpen.value &&
-    !micRoot.value?.contains(target) &&
+    !sendButton.value?.contains(target) &&
     !micPanel.value?.contains(target)
   ) {
     micOpen.value = false
@@ -665,8 +652,10 @@ const modelPanel = ref<HTMLElement | null>(null)
 const effortOpen = ref(false)
 const effortRoot = ref<HTMLElement | null>(null)
 const effortPanel = ref<HTMLElement | null>(null)
+// The microphone picker hangs off the send button (right-click) rather than
+// off a handle of its own.
 const micOpen = ref(false)
-const micRoot = ref<HTMLElement | null>(null)
+const sendButton = ref<HTMLElement | null>(null)
 const micPanel = ref<HTMLElement | null>(null)
 
 // The three controls share the space above the composer, so only one panel
@@ -843,6 +832,9 @@ const micRingStyle = computed(() => ({
 }))
 
 function toggleMic() {
+  // Nothing to pick from where the browser cannot record, and a right-click
+  // on a disabled button is still a right-click.
+  if (!dictationSupported || !activeInstance.value) return
   const next = !micOpen.value
   closeControlPanels()
   micOpen.value = next
@@ -858,8 +850,9 @@ function chooseMicInput(id: string) {
 const sendTitle = computed(() => {
   if (isTranscribing.value) return 'Transcribing…'
   if (isRecording.value) return `Stop dictating (${dictationShortcut})`
-  if (activeInstance.value?.isProcessing) return `Stop agent · hold to dictate (${dictationShortcut})`
-  return `Send (Enter) · hold to dictate (${dictationShortcut})`
+  const mic = dictationSupported ? ' · right-click to choose microphone' : ''
+  if (activeInstance.value?.isProcessing) return `Stop agent · hold to dictate (${dictationShortcut})${mic}`
+  return `Send (Enter) · hold to dictate (${dictationShortcut})${mic}`
 })
 
 /** Navy ink when a tap does something (there is text to send, or a run to
@@ -903,6 +896,9 @@ function onSendPointerDown(e: PointerEvent) {
   // Keep the caret in the textarea — a tap sends what is typed there and a
   // hold puts words there.
   e.preventDefault()
+  // A press on the button is a send or a hold, never a browse of the
+  // picker it also opens: put the picker away first.
+  micOpen.value = false
   pointerHeld = true
   holdConsumedClick = false
   // Follow the pointer off the button: a thumb that drifts mid-sentence
@@ -1550,52 +1546,6 @@ textarea:active {
 .dark .btn-send--recording:hover:not(:disabled) {
   background-color: #ef4444;
   color: #ffffff;
-}
-
-/* The picker's handle: a small mic and caret beside the send button, in the
-   chips' ghost register. */
-.mic-caret {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.125rem;
-  padding: 0 0.3rem;
-  height: 2rem;
-  border-radius: var(--iw-r-sm);
-  border: 1px solid transparent;
-  background-color: transparent;
-  color: rgba(23, 37, 84, 0.6);
-  cursor: pointer;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-  outline: none;
-}
-
-.mic-caret:hover:not(:disabled),
-.mic-caret--active {
-  background-color: rgba(219, 234, 254, 0.5);
-  color: rgb(23, 37, 84);
-}
-
-.mic-caret:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.mic-caret:focus-visible {
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .mic-caret {
-  color: rgba(219, 234, 254, 0.7);
-}
-
-.dark .mic-caret:hover:not(:disabled),
-.dark .mic-caret--active {
-  background-color: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.95);
 }
 
 /* One microphone per row; the chosen one carries a check. */

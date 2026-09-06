@@ -163,12 +163,17 @@ describe('BuilderSidebarChat dictation', () => {
     vi.useRealTimers()
   })
 
-  it('has one button beside the picker: a mic when empty, an arrow once there is text', async () => {
+  it('has one button and nothing beside it: a mic when empty, an arrow once there is text', async () => {
     wrapper = mountWith()
     expect(wrapper.find('button.btn-dictate').exists()).toBe(false)
+    expect(wrapper.find('button.mic-caret').exists()).toBe(false)
+    // The only microphone glyph in the composer is on the send button itself.
+    expect(wrapper.findAll('.fa-microphone')).toHaveLength(1)
     const button = sendButton(wrapper)
     expect(button.exists()).toBe(true)
-    expect(button.attributes('title')).toBe('Send (Enter) · hold to dictate (⌘D)')
+    expect(button.attributes('title')).toBe(
+      'Send (Enter) · hold to dictate (⌘D) · right-click to choose microphone'
+    )
     // Nothing to send yet, but a hold still records — so never disabled.
     expect(button.attributes('disabled')).toBeUndefined()
     expect(button.classes()).toContain('btn-send--idle')
@@ -294,7 +299,9 @@ describe('BuilderSidebarChat dictation', () => {
   it('while a run is in flight a tap stops the agent and a hold still dictates', async () => {
     wrapper = mountWith(instance({ isProcessing: true }))
     const button = sendButton(wrapper)
-    expect(button.attributes('title')).toBe('Stop agent · hold to dictate (⌘D)')
+    expect(button.attributes('title')).toBe(
+      'Stop agent · hold to dictate (⌘D) · right-click to choose microphone'
+    )
     expect(button.find('.fa-stop').exists()).toBe(true)
 
     await pressFor(wrapper, 400)
@@ -341,14 +348,19 @@ describe('BuilderSidebarChat dictation', () => {
     expect(style.getPropertyValue('--dictate-ring')).toBe('')
   })
 
-  it('offers a microphone picker beside the button, built-in marked and chosen', async () => {
+  it('opens the microphone picker on a right-click of the button, built-in marked and chosen', async () => {
     wrapper = mountWith()
     dictation.inputs.value = [BUILT_IN, AIRPODS]
     dictation.activeInput.value = BUILT_IN
     await nextTick()
     expect(wrapper.find('.mic-panel').exists()).toBe(false)
 
-    await wrapper.find('button.mic-caret').trigger('click')
+    const menu = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 })
+    sendButton(wrapper).element.dispatchEvent(menu)
+    await nextTick()
+    // The browser's own menu never shows over the picker.
+    expect(menu.defaultPrevented).toBe(true)
+    expect(sendButton(wrapper).attributes('aria-expanded')).toBe('true')
     expect(dictation.refreshInputs).toHaveBeenCalled()
     const rows = wrapper.findAll('.mic-panel .mic-option')
     expect(rows).toHaveLength(2)
@@ -364,12 +376,31 @@ describe('BuilderSidebarChat dictation', () => {
     expect(wrapper.find('.mic-panel').exists()).toBe(false)
   })
 
+  it('a right-click never starts a hold, and a press puts the picker away', async () => {
+    wrapper = mountWith()
+    dictation.inputs.value = [BUILT_IN]
+    await nextTick()
+    // The right button going down is the menu, not a hold-to-talk.
+    await pointer(wrapper, 'pointerdown', 2)
+    await sendButton(wrapper).trigger('contextmenu')
+    await vi.advanceTimersByTimeAsync(400)
+    expect(dictation.start).not.toHaveBeenCalled()
+    expect(wrapper.find('.mic-panel').exists()).toBe(true)
+
+    // The picker gives way to a hold the moment the primary button goes down.
+    await pointer(wrapper, 'pointerdown')
+    expect(wrapper.find('.mic-panel').exists()).toBe(false)
+    await vi.advanceTimersByTimeAsync(400)
+    expect(dictation.start).toHaveBeenCalledTimes(1)
+    await pointer(wrapper, 'pointerup')
+  })
+
   it('asks for access first when the browser is hiding microphone names', async () => {
     wrapper = mountWith()
     dictation.inputs.value = [{ id: '', label: '' }]
     dictation.labelsHidden.value = true
     await nextTick()
-    await wrapper.find('button.mic-caret').trigger('click')
+    await sendButton(wrapper).trigger('contextmenu')
     expect(wrapper.find('.mic-panel .mic-option').exists()).toBe(false)
     const allow = wrapper.find('.mic-panel button.mic-allow')
     expect(allow.text()).toBe('Allow microphone access')
@@ -405,7 +436,9 @@ describe('BuilderSidebarChat dictation', () => {
   it('uses Ctrl+D off Apple hardware', () => {
     Object.defineProperty(navigator, 'platform', { value: 'Win32', configurable: true })
     wrapper = mountWith()
-    expect(sendButton(wrapper).attributes('title')).toBe('Send (Enter) · hold to dictate (Ctrl+D)')
+    expect(sendButton(wrapper).attributes('title')).toBe(
+      'Send (Enter) · hold to dictate (Ctrl+D) · right-click to choose microphone'
+    )
     press({ key: 'd', ctrlKey: true })
     expect(dictation.toggle).toHaveBeenCalledTimes(1)
   })
@@ -421,7 +454,7 @@ describe('BuilderSidebarChat dictation', () => {
   it('has no composer and ignores ⌘D on a read-only task thread', () => {
     wrapper = mountWith(instance({ id: 'task-1', kind: 'task', title: 'Contact page' }))
     expect(sendButton(wrapper).exists()).toBe(false)
-    expect(wrapper.find('button.mic-caret').exists()).toBe(false)
+    expect(wrapper.find('.fa-microphone').exists()).toBe(false)
     press({ key: 'd', metaKey: true })
     expect(dictation.toggle).not.toHaveBeenCalled()
   })
@@ -436,10 +469,14 @@ describe('BuilderSidebarChat dictation', () => {
     expect(dictation.cancel).toHaveBeenCalled()
   })
 
-  it('hides the microphone picker where the browser cannot record, but still sends', async () => {
+  it('keeps the microphone picker shut where the browser cannot record, but still sends', async () => {
     dictation.supported = false
     wrapper = mountWith()
     expect(wrapper.find('button.mic-caret').exists()).toBe(false)
+    expect(sendButton(wrapper).attributes('title')).toBe('Send (Enter) · hold to dictate (⌘D)')
+    expect(sendButton(wrapper).attributes('aria-expanded')).toBeUndefined()
+    await sendButton(wrapper).trigger('contextmenu')
+    expect(wrapper.find('.mic-panel').exists()).toBe(false)
     await typePrompt(wrapper, 'Add a contact page')
     await pressFor(wrapper, 80)
     expect(wrapper.props('onPromptSubmit')).toHaveBeenCalledWith('Add a contact page')
