@@ -312,7 +312,7 @@
             <!-- min-w-0 + overflow-hidden lets the chips truncate rather than
                  shove the send button off the edge on a narrow sidebar. -->
             <div class="flex flex-nowrap items-center gap-1 min-w-0 flex-1 overflow-hidden">
-              <!-- Model: opens a slider from faster → smarter across the three models -->
+              <!-- Model: opens a slider from faster → smarter across the models -->
               <div ref="modelRoot" class="min-w-0">
                 <button
                   type="button"
@@ -433,7 +433,7 @@ import { isBuiltInInput, useDictation } from '../../../composables/useDictation'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { CheckInDto, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
-import { REASONING_EFFORTS } from '../../../types/services'
+import { reasoningEffortsForModel } from '../../../types/services'
 
 // Props
 const props = defineProps<{
@@ -723,19 +723,28 @@ const usageMeters = computed(() => {
   }))
 })
 
+// The models offered in the composer. This used to filter on a 'gpt-5.6'
+// prefix, which silently hid GPT 6 Astra; it matches the whole GPT family now,
+// so a new generation shows up without another edit here.
+const SELECTABLE_MODEL_PATTERN = /^gpt-/
 const modelOptions = computed<AIModel[]>(() => {
-  const available = (store.availableModels || []).filter(model => model.id.startsWith('gpt-5.6'))
+  const available = (store.availableModels || []).filter(model =>
+    SELECTABLE_MODEL_PATTERN.test(model.id)
+  )
   if (available.length > 0) {
     return available
   }
   return [
     { id: 'gpt-5.6-terra', name: 'GPT 5.6 Terra', provider: 'openai' } as AIModel,
     { id: 'gpt-5.6-sol', name: 'GPT 5.6 Sol', provider: 'openai' } as AIModel,
-    { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', provider: 'openai' } as AIModel
+    { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', provider: 'openai' } as AIModel,
+    { id: 'gpt-6-astra', name: 'GPT 6 Astra', provider: 'openai' } as AIModel
   ]
 })
 
-const effortOptions = computed<ReasoningEffortOption[]>(() => REASONING_EFFORTS)
+const effortOptions = computed<ReasoningEffortOption[]>(() =>
+  reasoningEffortsForModel(activeInstance.value?.selectedModelId)
+)
 
 // Models ranked faster → smarter (Luna is light/fast, Sol is the flagship) so
 // the slider reads left = faster, right = smarter. Unknown ids sort last but
@@ -744,6 +753,7 @@ const MODEL_RANK: Record<string, number> = {
   'gpt-5.6-luna': 0,
   'gpt-5.6-terra': 1,
   'gpt-5.6-sol': 2,
+  'gpt-6-astra': 3,
 }
 const orderedModels = computed<AIModel[]>(() =>
   [...modelOptions.value].sort(
@@ -756,12 +766,12 @@ const modelIndex = computed(() => {
 })
 const currentModel = computed<AIModel | null>(() => orderedModels.value[modelIndex.value] ?? null)
 
-/** The distinctive part of the model name for the compact chip ("Terra"),
- *  dropping the shared "GPT 5.6" prefix. */
+/** The distinctive part of the model name for the compact chip ("Terra",
+ *  "Astra"), dropping the "GPT <version>" prefix whichever generation it is. */
 function modelShortName(id?: string | null): string {
   const model = orderedModels.value.find(m => m.id === id) ?? currentModel.value
   if (!model) return 'Model'
-  return model.name.replace(/^GPT\s*5\.6\s*/i, '').trim() || model.name
+  return model.name.replace(/^GPT\s*\d+(?:\.\d+)?\s*/i, '').trim() || model.name
 }
 
 function onModelSlider(e: Event) {
@@ -772,7 +782,10 @@ function onModelSlider(e: Event) {
   }
 }
 
-// REASONING_EFFORTS is already ordered minimal → xhigh = faster → smarter.
+// effortOptions is already ordered faster → smarter, and holds only the rungs
+// the selected model accepts — the store clamps selectedEffort onto that same
+// ladder when the model changes, so the slider can't point at a rung the next
+// request would be rejected for.
 const effortIndex = computed(() => {
   const idx = effortOptions.value.findIndex(
     o => o.id === (activeInstance.value?.selectedEffort ?? 'medium')

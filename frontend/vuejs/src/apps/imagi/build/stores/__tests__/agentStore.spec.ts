@@ -814,3 +814,55 @@ describe('agent store subagent outcomes', () => {
     expect(lead.hasUnread).toBe(true)
   })
 })
+
+describe('agentStore reasoning effort ladders', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+    agentService.updateConversation.mockResolvedValue(undefined)
+  })
+
+  it('re-seats an effort the newly picked model rejects', () => {
+    // Astra has no 'minimal' rung. Carried over unclamped it would ride into
+    // the next request and OpenAI would reject the whole call.
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedEffort: 'minimal' })
+    store.instances = [instance]
+
+    store.setInstanceModel(instance.id, 'gpt-6-astra')
+
+    expect(instance.selectedModelId).toBe('gpt-6-astra')
+    expect(instance.selectedEffort).toBe('low')
+  })
+
+  it("drops 'max' back to xhigh when switching to the 5.6 suite", () => {
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'max' })
+    store.instances = [instance]
+
+    store.setInstanceModel(instance.id, 'gpt-5.6-terra')
+
+    expect(instance.selectedEffort).toBe('xhigh')
+  })
+
+  it('leaves an effort both models share untouched', () => {
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedEffort: 'high' })
+    store.instances = [instance]
+
+    store.setInstanceModel(instance.id, 'gpt-6-astra')
+
+    expect(instance.selectedEffort).toBe('high')
+  })
+
+  it('clamps an effort chosen directly against the current model', () => {
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'medium' })
+    store.instances = [instance]
+
+    store.setInstanceEffort(instance.id, 'minimal')
+
+    expect(instance.selectedEffort).toBe('low')
+  })
+})

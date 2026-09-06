@@ -35,6 +35,15 @@ export interface AIModel {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
+  'gpt-6-astra': {
+    maxTokens: 1000000,
+    rateLimits: {
+      tokensPerMinute: 60000,
+      requestsPerMinute: 250
+    },
+    contextWindow: 1000000,
+    capabilities: ['code_generation', 'chat', 'analysis']
+  },
   'gpt-5.6-sol': {
     maxTokens: 128000,
     rateLimits: {
@@ -64,9 +73,11 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   }
 };
 
-// List of standard models — the GPT 5.6 suite (Terra, Sol, Luna). Terra leads:
-// createInstance prefers the `default: true` entry, then falls back to the
-// first of the list, so ordering here is load-bearing.
+// List of standard models — GPT 6 Astra plus the GPT 5.6 suite (Terra, Sol,
+// Luna). Terra leads: createInstance prefers the `default: true` entry, then
+// falls back to the first of the list, so ordering here is load-bearing.
+// Astra is deliberately NOT the default despite being the most capable — it
+// costs ~3x Sol per token, so a user opts into it rather than landing on it.
 export const AI_MODELS: AIModel[] = [
   {
     id: 'gpt-5.6-terra',
@@ -111,6 +122,20 @@ export const AI_MODELS: AIModel[] = [
     inputPricePerMTokens: 1,
     outputPricePerMTokens: 5,
     api_version: 'responses'
+  },
+  {
+    id: 'gpt-6-astra',
+    name: 'GPT 6 Astra',
+    provider: 'openai',
+    type: 'openai',
+    context_window: 1000000,
+    features: ['chat', 'code', 'analysis'],
+    description: 'OpenAI | GPT 6 Astra — frontier model for the hardest building work, with a 1M-token context',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 1000000,
+    inputPricePerMTokens: 20,
+    outputPricePerMTokens: 100,
+    api_version: 'responses'
   }
 ];
 
@@ -122,7 +147,12 @@ export const AI_MODELS: AIModel[] = [
 // is intentionally omitted: it's a different concept than "think less", not a
 // point on this speed/intelligence ladder.) Must stay in step with the
 // backend's REASONING_EFFORT_CHOICES.
-export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+//
+// This is the union across models, not one model's ladder: the rungs at each
+// end are model-specific (see MODEL_REASONING_EFFORTS). Sending a model a rung
+// it doesn't accept fails the request, so always go through
+// reasoningEffortsForModel() / clampEffortToModel() rather than this list.
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export interface ReasoningEffortOption {
   id: ReasoningEffort;
@@ -135,9 +165,52 @@ export const REASONING_EFFORTS: ReasoningEffortOption[] = [
   { id: 'medium', name: 'Medium' },
   { id: 'high', name: 'High' },
   { id: 'xhigh', name: 'Extra High' },
+  { id: 'max', name: 'Max' },
 ];
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
+
+// Which rungs each model actually accepts. The 5.6 suite takes 'minimal' but
+// has no 'max'; Astra is the reverse — it rejects 'minimal' outright and adds
+// a 'max' rung above 'xhigh'. Mirrors `reasoning_efforts` in the backend's
+// models_service.MODELS, which is what the API request is validated against.
+export const MODEL_REASONING_EFFORTS: Record<string, ReasoningEffort[]> = {
+  'gpt-5.6-sol': ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  'gpt-5.6-terra': ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  'gpt-5.6-luna': ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  'gpt-6-astra': ['low', 'medium', 'high', 'xhigh', 'max'],
+};
+
+/** The effort options a model accepts, ordered faster → smarter. Unknown models
+ *  get the full ladder, so a model the backend adds before the frontend knows
+ *  about it still gets a usable picker. */
+export function reasoningEffortsForModel(modelId?: string | null): ReasoningEffortOption[] {
+  const allowed = modelId ? MODEL_REASONING_EFFORTS[modelId] : undefined;
+  if (!allowed) return REASONING_EFFORTS;
+  return REASONING_EFFORTS.filter(option => allowed.includes(option.id));
+}
+
+/** Clamp an effort onto a model's ladder, picking the closest rung and
+ *  breaking ties toward the smarter one. Used when switching models, so a
+ *  selection carried over from another model can't be sent to one that
+ *  rejects it (e.g. 'minimal' held over into Astra). */
+export function clampEffortToModel(
+  effort: ReasoningEffort | null | undefined,
+  modelId?: string | null
+): ReasoningEffort {
+  const options = reasoningEffortsForModel(modelId);
+  if (effort && options.some(option => option.id === effort)) return effort;
+  const ladder = REASONING_EFFORTS.map(option => option.id);
+  const wanted = effort && ladder.includes(effort) ? effort : DEFAULT_REASONING_EFFORT;
+  const target = ladder.indexOf(wanted);
+  return options
+    .map(option => ({ id: option.id, at: ladder.indexOf(option.id) }))
+    .sort(
+      (a, b) =>
+        Math.abs(a.at - target) - Math.abs(b.at - target) ||
+        Number(a.at < target) - Number(b.at < target)
+    )[0]?.id ?? DEFAULT_REASONING_EFFORT;
+}
 
 // Conversation / agent instance types
 

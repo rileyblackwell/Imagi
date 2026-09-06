@@ -11,7 +11,7 @@ import type {
   DispatchedTaskDto,
   ReasoningEffort
 } from '../types/services'
-import { DEFAULT_REASONING_EFFORT } from '../types/services'
+import { DEFAULT_REASONING_EFFORT, clampEffortToModel } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { ProjectFile } from '../types/components'
 import { AgentService } from '../services/agentService'
@@ -1013,6 +1013,11 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.selectedModelId = modelId
+      // Models don't share one reasoning ladder — Astra rejects 'minimal', the
+      // 5.6 suite has no 'max' — so an effort chosen under the old model is
+      // re-seated on the new one's rungs. Left alone it would ride along and
+      // fail the next request.
+      instance.selectedEffort = clampEffortToModel(instance.selectedEffort, modelId)
       if (instance.conversationId) {
         AgentService.updateConversation(instance.conversationId, { model_name: modelId })
           .catch(e => console.error('Failed to persist model:', e))
@@ -1024,7 +1029,7 @@ export const useAgentStore = defineStore('agent', {
     setInstanceEffort(instanceId: string, effort: ReasoningEffort) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
-      instance.selectedEffort = effort
+      instance.selectedEffort = clampEffortToModel(effort, instance.selectedModelId)
     },
 
     setInstanceFile(instanceId: string, file: ProjectFile | null) {

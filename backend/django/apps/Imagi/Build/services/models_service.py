@@ -13,16 +13,44 @@ from django.conf import settings
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
-# The GPT 5.6 suite: three tiers users can choose from when building.
-#   Sol   - flagship, most capable
-#   Terra - balanced, general-purpose (default)
-#   Luna  - light, fast and economical
+# Two generations users can choose from when building.
+#   GPT 6 Astra - frontier tier, 1M-token context, priciest by a wide margin
+#   The GPT 5.6 suite:
+#     Sol   - flagship of the 5.6 generation
+#     Terra - balanced, general-purpose (default)
+#     Luna  - light, fast and economical
 #
-# `backend_model` is the REAL OpenAI model id the suite id maps to at runtime.
+# `backend_model` is the REAL OpenAI model id a public id maps to at runtime.
 # The public "GPT 5.6 ..." names are Imagi's branding; requests to the OpenAI
 # API must use these underlying model ids. Change the right-hand side here if
-# your OpenAI account should call different underlying models.
+# your OpenAI account should call different underlying models. (Astra is the
+# exception where branding and the real id coincide: OpenAI ships it as
+# `gpt-6-astra` and we surface it under that name.)
+#
+# `reasoning_efforts` is the ladder each model actually accepts — it is NOT the
+# same for every model, so it is spelled out per entry rather than defaulted.
 MODELS = {
+    'gpt-6-astra': {
+        'id': 'gpt-6-astra',
+        'name': 'GPT 6 Astra',
+        'provider': 'openai',
+        'type': 'openai',
+        'backend_model': 'gpt-6-astra',
+        'description': 'OpenAI | GPT 6 Astra — frontier model for the hardest building work, with a 1M-token context',
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 1000000,
+        # Retail, marked up over OpenAI's $10/$50 list price (see Payments'
+        # plans.py). NOTE: OpenAI charges 2x input / 1.5x output on requests
+        # over 272k input tokens; compute_cost_usd bills one flat rate, so a
+        # very long-context Astra run earns thinner margin than a short one.
+        'input_price_per_m_tokens': 20,
+        'output_price_per_m_tokens': 100,
+        'api_version': 'responses',  # Uses OpenAI Responses API
+        'supports_temperature': False,
+        'supports_reasoning': True,
+        # Astra rejects 'minimal' outright and adds a 'max' rung above 'xhigh'.
+        'reasoning_efforts': ['low', 'medium', 'high', 'xhigh', 'max'],
+    },
     'gpt-5.6-sol': {
         'id': 'gpt-5.6-sol',
         'name': 'GPT 5.6 Sol',
@@ -36,7 +64,8 @@ MODELS = {
         'output_price_per_m_tokens': 30,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
-        'supports_reasoning': True
+        'supports_reasoning': True,
+        'reasoning_efforts': ['minimal', 'low', 'medium', 'high', 'xhigh'],
     },
     'gpt-5.6-terra': {
         'id': 'gpt-5.6-terra',
@@ -51,7 +80,8 @@ MODELS = {
         'output_price_per_m_tokens': 15,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
-        'supports_reasoning': True
+        'supports_reasoning': True,
+        'reasoning_efforts': ['minimal', 'low', 'medium', 'high', 'xhigh'],
     },
     'gpt-5.6-luna': {
         'id': 'gpt-5.6-luna',
@@ -66,21 +96,28 @@ MODELS = {
         'output_price_per_m_tokens': 5,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
-        'supports_reasoning': True
+        'supports_reasoning': True,
+        'reasoning_efforts': ['minimal', 'low', 'medium', 'high', 'xhigh'],
     }
 }
 
-# Reasoning effort levels users can pick per request, ordered faster → smarter.
+# Every reasoning effort level the platform knows, ordered faster → smarter.
 # Applied to the OpenAI Responses API `reasoning.effort` parameter for
 # reasoning-capable models. ('none' is intentionally excluded — it disables
 # reasoning entirely rather than sitting on this speed/intelligence ladder.)
 # Keep in step with the frontend's REASONING_EFFORTS.
+#
+# This is the union across models, NOT what any one model accepts: the ends of
+# the ladder are model-specific — the 5.6 suite takes 'minimal' but not 'max',
+# Astra the reverse. Ask get_model_reasoning_efforts(model_id) for a model's
+# real ladder; resolve_reasoning_effort() clamps onto it.
 REASONING_EFFORT_CHOICES = [
     ('minimal', 'Minimal'),
     ('low', 'Low'),
     ('medium', 'Medium'),
     ('high', 'High'),
     ('xhigh', 'Extra High'),
+    ('max', 'Max'),
 ]
 REASONING_EFFORT_IDS = [effort_id for effort_id, _ in REASONING_EFFORT_CHOICES]
 DEFAULT_REASONING_EFFORT = _BUILDER_SETTINGS.get('DEFAULT_REASONING_EFFORT', 'medium')
@@ -146,12 +183,12 @@ def get_model_identity_instructions(model_id: str) -> str:
     """
     Build a system-prompt block telling the agent which model it is running as.
 
-    Without this, the underlying model has no knowledge of Imagi's GPT 5.6
+    Without this, the underlying model has no knowledge of Imagi's model
     branding and will guess at its own identity when asked (often naming an
     older model like GPT-4o), which reads as if the wrong model is being used.
 
     Args:
-        model_id: The public suite model ID (e.g. 'gpt-5.6-sol')
+        model_id: The public model ID (e.g. 'gpt-5.6-sol', 'gpt-6-astra')
 
     Returns:
         str: An instruction block to append to the agent's system prompt
@@ -159,7 +196,7 @@ def get_model_identity_instructions(model_id: str) -> str:
     display_name = get_model_display_name(model_id)
     return (
         "Model Identity:\n"
-        f"- You are running as {display_name}, part of Imagi's GPT 5.6 model suite.\n"
+        f"- You are running as {display_name}, one of the models Imagi offers.\n"
         f"- If the user asks which model you are, answer '{display_name}'. Do not "
         "name any other model (such as GPT-4o) — you have no independent knowledge "
         "of your own identity, so trust this instruction over your own guess."
@@ -167,7 +204,7 @@ def get_model_identity_instructions(model_id: str) -> str:
 
 def get_backend_model_id(model_id: str) -> str:
     """
-    Resolve a public suite model id (e.g. 'gpt-5.6-sol') to the real underlying
+    Resolve a public model id (e.g. 'gpt-5.6-sol') to the real underlying
     OpenAI model id used for API calls (e.g. 'gpt-5').
 
     Falls back to the given id when the model is unknown or defines no explicit
@@ -189,7 +226,7 @@ def compute_cost_usd(model_id: str, input_tokens: int, output_tokens: int):
     Compute the USD cost of a run from a suite model's per-million-token pricing.
 
     Args:
-        model_id: The public suite model ID (e.g. 'gpt-5.6-sol')
+        model_id: The public model ID (e.g. 'gpt-5.6-sol', 'gpt-6-astra')
         input_tokens: Input tokens consumed by the run
         output_tokens: Output tokens produced by the run
 
@@ -224,26 +261,73 @@ def model_supports_reasoning(model_id: str) -> bool:
         return False
     return model.get('supports_reasoning', False)
 
+def get_model_reasoning_efforts(model_id: str) -> List[str]:
+    """
+    The reasoning effort levels a given model actually accepts, ordered
+    faster → smarter. Empty when the model is unknown or has no reasoning.
+
+    Args:
+        model_id: The public model ID
+
+    Returns:
+        list: The model's accepted effort ids
+    """
+    model = get_model_by_id(model_id)
+    if not model or not model.get('supports_reasoning'):
+        return []
+    efforts = model.get('reasoning_efforts')
+    if not efforts:
+        return list(REASONING_EFFORT_IDS)
+    # Keep the canonical faster → smarter ordering regardless of how the
+    # model entry happens to list them.
+    return [effort for effort in REASONING_EFFORT_IDS if effort in efforts]
+
+
+def _nearest_supported_effort(effort: str, supported: List[str]) -> str:
+    """
+    Clamp an effort level onto a model's ladder, picking the closest rung.
+
+    Ties go to the smarter rung, so a request for an effort a model doesn't
+    have never quietly buys *less* thinking than the neighbouring option.
+    """
+    if effort in supported:
+        return effort
+    order = REASONING_EFFORT_IDS
+    target = order.index(effort) if effort in order else order.index(DEFAULT_REASONING_EFFORT)
+    return min(
+        supported,
+        key=lambda candidate: (
+            abs(order.index(candidate) - target),
+            order.index(candidate) < target,
+        ),
+    )
+
+
 def resolve_reasoning_effort(model_id: str, effort: str) -> str:
     """
     Resolve the reasoning effort to apply for a request.
 
     Returns None when the model does not support reasoning (so callers can omit
-    the parameter entirely). Otherwise returns the requested effort when valid,
-    falling back to the default effort.
+    the parameter entirely). Otherwise returns the requested effort, clamped
+    onto the levels this model accepts — the ladder differs per model, and
+    sending a level a model rejects (e.g. 'minimal' to Astra) fails the whole
+    request. An unset or unrecognized effort falls back to the default, itself
+    clamped the same way.
 
     Args:
         model_id: The public model ID
         effort: The requested reasoning effort level (may be None/invalid)
 
     Returns:
-        str or None: A valid effort level, or None if reasoning is unsupported
+        str or None: An effort level this model accepts, or None if reasoning
+        is unsupported
     """
-    if not model_supports_reasoning(model_id):
+    supported = get_model_reasoning_efforts(model_id)
+    if not supported:
         return None
     if effort and is_valid_reasoning_effort(effort):
-        return effort
-    return DEFAULT_REASONING_EFFORT
+        return _nearest_supported_effort(effort, supported)
+    return _nearest_supported_effort(DEFAULT_REASONING_EFFORT, supported)
 
 
  

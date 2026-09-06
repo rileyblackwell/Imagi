@@ -46,7 +46,14 @@ from apps.Imagi.Build.services.base_agent import (
     lead_claims_unmade_dispatch,
     make_run_bounds_hook,
 )
-from apps.Imagi.Build.services.models_service import compute_cost_usd
+from apps.Imagi.Build.services.models_service import (
+    compute_cost_usd,
+    get_backend_model_id,
+    get_model_choices,
+    get_model_identity_instructions,
+    get_model_reasoning_efforts,
+    resolve_reasoning_effort,
+)
 from apps.Imagi.Build.services.coding_agent import (
     INITIAL_BUILD_INSTRUCTIONS,
     INITIAL_BUILD_REASONING_EFFORT,
@@ -1106,9 +1113,74 @@ class ComputeCostTests(SimpleTestCase):
         self.assertEqual(compute_cost_usd('gpt-5.6-sol', 1_000_000, 1_000_000), 36.0)
         # Luna: $1/M input + $5/M output
         self.assertEqual(compute_cost_usd('gpt-5.6-luna', 500_000, 200_000), 1.5)
+        # Astra: $20/M input + $100/M output
+        self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 1_000_000), 120.0)
 
     def test_unknown_model_returns_none(self):
         self.assertIsNone(compute_cost_usd('gpt-oops', 1000, 1000))
+
+
+class ModelRegistryTests(SimpleTestCase):
+    """Astra sits alongside the 5.6 suite and maps to a real OpenAI id."""
+
+    def test_astra_is_selectable(self):
+        self.assertIn(
+            ('gpt-6-astra', 'GPT 6 Astra'), get_model_choices()
+        )
+
+    def test_astra_resolves_to_its_openai_id(self):
+        self.assertEqual(get_backend_model_id('gpt-6-astra'), 'gpt-6-astra')
+        # The 5.6 suite still hides its real ids behind Imagi branding.
+        self.assertEqual(get_backend_model_id('gpt-5.6-sol'), 'gpt-5')
+
+    def test_identity_prompt_names_astra(self):
+        instructions = get_model_identity_instructions('gpt-6-astra')
+        self.assertIn('GPT 6 Astra', instructions)
+        # The old copy claimed every model belonged to the 5.6 suite.
+        self.assertNotIn('GPT 5.6 model suite', instructions)
+
+
+class ReasoningEffortLadderTests(SimpleTestCase):
+    """Each model gets only the rungs it accepts, and requests are clamped
+    onto them — sending a rejected level fails the whole OpenAI request."""
+
+    def test_ladders_differ_per_model(self):
+        self.assertEqual(
+            get_model_reasoning_efforts('gpt-6-astra'),
+            ['low', 'medium', 'high', 'xhigh', 'max'],
+        )
+        self.assertEqual(
+            get_model_reasoning_efforts('gpt-5.6-sol'),
+            ['minimal', 'low', 'medium', 'high', 'xhigh'],
+        )
+
+    def test_supported_effort_passes_through(self):
+        for effort in ('low', 'medium', 'high', 'xhigh', 'max'):
+            self.assertEqual(
+                resolve_reasoning_effort('gpt-6-astra', effort), effort
+            )
+
+    def test_minimal_clamps_up_for_astra(self):
+        # Astra rejects 'minimal' outright; 'low' is the neighbouring rung.
+        self.assertEqual(
+            resolve_reasoning_effort('gpt-6-astra', 'minimal'), 'low'
+        )
+
+    def test_max_clamps_down_for_the_suite(self):
+        # 'max' exists only on Astra; the suite tops out at 'xhigh'.
+        self.assertEqual(
+            resolve_reasoning_effort('gpt-5.6-terra', 'max'), 'xhigh'
+        )
+
+    def test_unset_or_invalid_falls_back_to_default(self):
+        for effort in (None, '', 'bogus'):
+            self.assertEqual(
+                resolve_reasoning_effort('gpt-6-astra', effort), 'medium'
+            )
+
+    def test_unknown_model_has_no_effort(self):
+        self.assertIsNone(resolve_reasoning_effort('gpt-oops', 'low'))
+        self.assertEqual(get_model_reasoning_efforts('gpt-oops'), [])
 
 
 class RunBoundsHookTests(SimpleTestCase):
