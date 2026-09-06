@@ -365,26 +365,9 @@
               </div>
             </div>
 
-            <!-- Dictate: a ghost mic beside send. ⌘D toggles it from anywhere
-                 in the workspace, so the button is mostly there to say the
-                 feature exists and to show when the mic is live. Hidden where
-                 the browser cannot record at all. -->
+            <!-- Which microphone: a small handle beside the send button is the
+                 whole picker. Hidden where the browser cannot record at all. -->
             <div v-if="dictationSupported" ref="micRoot" class="flex items-center shrink-0">
-              <button
-                type="button"
-                :title="dictationTitle"
-                :aria-label="dictationTitle"
-                :aria-pressed="isRecording"
-                :disabled="!activeInstance || isTranscribing"
-                class="btn-dictate iw-press flex shrink-0 items-center justify-center w-8 h-8 rounded-full"
-                :class="{ 'btn-dictate--recording': isRecording }"
-                :style="isRecording ? micRingStyle : undefined"
-                @click="toggleDictation"
-              >
-                <i v-if="isTranscribing" class="fas fa-circle-notch fa-spin text-[13px]"></i>
-                <i v-else class="fas fa-microphone text-[13px]"></i>
-              </button>
-              <!-- Which microphone: the caret is the whole picker's handle -->
               <button
                 type="button"
                 title="Choose microphone"
@@ -395,33 +378,38 @@
                 :class="{ 'mic-caret--active': micOpen }"
                 @click="toggleMic"
               >
+                <i class="fas fa-microphone text-[10px]"></i>
                 <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': micOpen }"></i>
               </button>
             </div>
 
-            <!-- Stop Button (replaces send while a run is in flight) -->
+            <!-- The one button: tap to send (or to stop a run in flight),
+                 hold to dictate. Send, stop, and mic are the same shape in
+                 different states rather than three controls trading places,
+                 so a hold can follow a hold and then a tap without the hand
+                 moving. Recording turns it red with a ring that swells with
+                 the voice; the click the browser fires when a hold lets go
+                 is swallowed, so letting go never sends. -->
             <button
-              v-if="activeInstance?.isProcessing"
-              @click="handleStopClick"
-              aria-label="Stop agent"
-              title="Stop agent"
-              class="btn-send btn-send--active iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full text-paper dark:text-blue-950"
-            >
-              <i class="fas fa-stop text-sm"></i>
-            </button>
-
-            <!-- Send Button -->
-            <button
-              v-else
-              @click="handlePrompt"
-              :disabled="!prompt.trim() || !activeInstance"
-              aria-label="Send message"
+              type="button"
+              :title="sendTitle"
+              :aria-label="sendTitle"
+              :aria-pressed="isRecording"
+              :disabled="!activeInstance || isTranscribing"
               class="btn-send iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
-              :class="prompt.trim() && activeInstance
-                ? 'btn-send--active text-paper dark:text-blue-950'
-                : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-blue-100/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
+              :class="sendClass"
+              :style="isRecording ? micRingStyle : undefined"
+              @pointerdown="onSendPointerDown"
+              @pointerup="onSendPointerUp"
+              @pointercancel="onSendPointerUp"
+              @contextmenu.prevent
+              @click="onSendClick"
             >
-              <i class="fas fa-arrow-up text-sm"></i>
+              <i v-if="isTranscribing" class="fas fa-circle-notch fa-spin text-[13px]"></i>
+              <i v-else-if="isRecording" class="fas fa-microphone text-[13px]"></i>
+              <i v-else-if="activeInstance?.isProcessing" class="fas fa-stop text-sm"></i>
+              <i v-else-if="prompt.trim()" class="fas fa-arrow-up text-sm"></i>
+              <i v-else class="fas fa-microphone text-[13px]"></i>
             </button>
           </div>
         </div>
@@ -806,7 +794,7 @@ function onEffortSlider(e: Event) {
   }
 }
 
-// --- Dictation (the mic button, and ⌘D) ---
+// --- Dictation (holding the send button, and ⌘D) ---
 
 // ⌘ on Apple hardware, Ctrl elsewhere: the modifier the rest of the OS
 // already puts its shortcuts on.
@@ -824,6 +812,8 @@ const {
   activeInput: micActive,
   labelsHidden: micLabelsHidden,
   toggle: toggleDictation,
+  start: startDictation,
+  stop: stopDictation,
   cancel: cancelDictation,
   selectInput: selectMicInput,
   unlockInputs: unlockMicInputs,
@@ -852,16 +842,121 @@ function chooseMicInput(id: string) {
   micOpen.value = false
 }
 
-const dictationTitle = computed(() => {
+const sendTitle = computed(() => {
   if (isTranscribing.value) return 'Transcribing…'
-  return isRecording.value
-    ? `Stop dictating (${dictationShortcut})`
-    : `Dictate a prompt (${dictationShortcut})`
+  if (isRecording.value) return `Stop dictating (${dictationShortcut})`
+  if (activeInstance.value?.isProcessing) return `Stop agent · hold to dictate (${dictationShortcut})`
+  return `Send (Enter) · hold to dictate (${dictationShortcut})`
 })
+
+/** Navy ink when a tap does something (there is text to send, or a run to
+ *  stop); red while the mic is live; a ghost otherwise — still pressable,
+ *  because a hold records into an empty box. */
+const sendClass = computed(() => {
+  if (isRecording.value) return 'btn-send--recording'
+  if (activeInstance.value && (prompt.value.trim() || activeInstance.value.isProcessing)) {
+    return 'btn-send--active text-paper dark:text-blue-950'
+  }
+  return 'btn-send--idle'
+})
+
+// --- Tap versus hold on the send button ---
+//
+// A press that lasts HOLD_TO_TALK_MS becomes a hold: the mic opens, and
+// letting go closes it and transcribes. A shorter press is a tap, and the
+// click the browser fires on release does the tap's work (send, or stop the
+// run) — that way a keyboard Enter or Space on the focused button sends too.
+// A hold's release also fires a click, which is swallowed.
+
+/** How long a press must last before it is a hold. Shorter reads as a click. */
+const HOLD_TO_TALK_MS = 250
+
+let holdTimer: ReturnType<typeof setTimeout> | null = null
+let pointerHeld = false
+// Set once a press has become a hold: the click on release is not a tap.
+let holdConsumedClick = false
+// The mic is still opening (permission prompt, device negotiation).
+let holdOpening = false
+
+function clearHoldTimer() {
+  if (holdTimer) clearTimeout(holdTimer)
+  holdTimer = null
+}
+
+function onSendPointerDown(e: PointerEvent) {
+  // Only the primary button: a right-click is the context menu, not a hold.
+  if (e.button !== undefined && e.button !== 0) return
+  if (!activeInstance.value || isTranscribing.value) return
+  // Keep the caret in the textarea — a tap sends what is typed there and a
+  // hold puts words there.
+  e.preventDefault()
+  pointerHeld = true
+  holdConsumedClick = false
+  // Follow the pointer off the button: a thumb that drifts mid-sentence
+  // must still end the recording when it lifts.
+  const el = e.currentTarget as HTMLElement | null
+  if (el && typeof el.setPointerCapture === 'function') {
+    try {
+      el.setPointerCapture(e.pointerId)
+    } catch {
+      // jsdom, or a pointer that is already gone.
+    }
+  }
+  clearHoldTimer()
+  holdTimer = setTimeout(() => {
+    holdTimer = null
+    if (!pointerHeld) return
+    holdConsumedClick = true
+    // Already live from ⌘D: the hold simply takes over, and its release stops.
+    if (isRecording.value) return
+    holdOpening = true
+    void startDictation().finally(() => {
+      holdOpening = false
+    })
+  }, HOLD_TO_TALK_MS)
+}
+
+function onSendPointerUp() {
+  if (!pointerHeld) return
+  pointerHeld = false
+  if (holdTimer) {
+    // Let go before it became a hold: a tap. The click that follows does it.
+    clearHoldTimer()
+    return
+  }
+  if (isRecording.value) {
+    stopDictation()
+  } else if (holdOpening) {
+    // Let go while the microphone was still opening (the permission prompt
+    // was up): nothing was heard, so there is nothing to transcribe.
+    cancelDictation()
+  }
+}
+
+function onSendClick() {
+  if (holdConsumedClick) {
+    holdConsumedClick = false
+    return
+  }
+  // The mic was opened with ⌘D: a tap closes it, and the next tap sends the
+  // words it produced.
+  if (isRecording.value) {
+    stopDictation()
+    return
+  }
+  if (activeInstance.value?.isProcessing) {
+    handleStopClick()
+    return
+  }
+  void handlePrompt()
+}
+
+onBeforeUnmount(clearHoldTimer)
 
 /** Dictated text joins whatever is already typed, after a space, and the
  *  caret lands at the end so the next thing typed (or dictated) follows on.
- *  It is never sent by itself: the user reads it over and presses Enter. */
+ *  It is never sent by itself: the user reads it over, then taps the
+ *  button or presses Enter. */
 function insertDictation(text: string) {
   const current = prompt.value
   prompt.value = current && !/\s$/.test(current) ? `${current} ${text}` : `${current}${text}`
@@ -900,7 +995,7 @@ watch(isTaskThread, readOnly => {
 const promptPlaceholder = computed(() => {
   if (isRecording.value) {
     const mic = micActive.value?.label || 'the default microphone'
-    return `Listening on ${mic}… press ${dictationShortcut} or click the mic when you're done.`
+    return `Listening on ${mic}… let go of the button, or press ${dictationShortcut}, when you're done.`
   }
   if (isTranscribing.value) return 'Transcribing…'
   return 'Ask me to build, edit, or explain anything in your project...'
@@ -1349,11 +1444,17 @@ textarea:active {
 }
 
 /* Navy ink send button - matching the site's primary "Start Building" button.
-   Send and stop are the same button in two states, so the swap between them
-   is a colour and shadow change on one shape rather than two controls trading
-   places. */
+   Send, stop, and the mic are the same button in different states, so the
+   swap between them is a colour and shadow change on one shape rather than
+   controls trading places. Hold-to-talk on touch means no text selection,
+   callout, or scroll may start from a long press on it. */
 .btn-send {
+  border: 1px solid transparent;
   transform: translateZ(0);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
     border-color var(--iw-dur-2) var(--iw-ease-out),
@@ -1367,6 +1468,28 @@ textarea:active {
   box-shadow: var(--iw-focus-ring);
 }
 
+.btn-send:disabled {
+  cursor: not-allowed;
+}
+
+/* Nothing to send yet: a quiet shape in the control chips' ghost register.
+   Still pressable, because a hold records into an empty box. */
+.btn-send--idle {
+  background-color: rgba(219, 234, 254, 0.6);
+  border-color: rgba(191, 219, 254, 0.7);
+  color: rgba(23, 37, 84, 0.45);
+  box-shadow: var(--iw-shadow-1);
+}
+
+.btn-send--idle:hover:not(:disabled) {
+  background-color: rgba(219, 234, 254, 0.9);
+  color: rgba(23, 37, 84, 0.7);
+}
+
+.btn-send--idle:disabled {
+  opacity: 0.6;
+}
+
 .btn-send--active {
   background: theme('colors.blue.950');
   box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -1377,49 +1500,11 @@ textarea:active {
   box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.dark .btn-send--active {
-  background: #f3ede2;
-}
-
-.dark .btn-send--active:hover {
-  background: #ffffff;
-}
-
-/* Dictation: a ghost mic beside send, in the control chips' quiet register
-   until it is live. Recording turns it red with a ring that breathes, so a
-   hot mic can never be mistaken for an idle one. */
-.btn-dictate {
-  border: 1px solid transparent;
-  background-color: transparent;
-  color: rgba(23, 37, 84, 0.6);
-  transform: translateZ(0);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.btn-dictate:hover:not(:disabled) {
-  background-color: rgba(219, 234, 254, 0.5);
-  color: rgb(23, 37, 84);
-}
-
-.btn-dictate:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-dictate:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
 /* Live: red, with a ring whose width is the voice level (set inline as
    --dictate-ring). It sits still on silence and swells as you speak, which
    is the whole point — a mic that hears nothing looks like one. */
-.btn-dictate--recording,
-.btn-dictate--recording:hover:not(:disabled) {
+.btn-send--recording,
+.btn-send--recording:hover:not(:disabled) {
   background-color: #dc2626;
   color: #ffffff;
   box-shadow: 0 0 0 var(--dictate-ring, 2px) rgba(220, 38, 38, 0.35);
@@ -1429,29 +1514,40 @@ textarea:active {
     box-shadow 80ms linear;
 }
 
-.dark .btn-dictate {
-  color: rgba(219, 234, 254, 0.7);
+.dark .btn-send--idle {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(219, 234, 254, 0.5);
 }
 
-.dark .btn-dictate:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.95);
+.dark .btn-send--idle:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.dark .btn-dictate--recording,
-.dark .btn-dictate--recording:hover:not(:disabled) {
+.dark .btn-send--active {
+  background: #f3ede2;
+}
+
+.dark .btn-send--active:hover {
+  background: #ffffff;
+}
+
+.dark .btn-send--recording,
+.dark .btn-send--recording:hover:not(:disabled) {
   background-color: #ef4444;
   color: #ffffff;
 }
 
-/* The picker's handle: a caret hugging the mic, in the chips' ghost register. */
+/* The picker's handle: a small mic and caret beside the send button, in the
+   chips' ghost register. */
 .mic-caret {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1rem;
+  gap: 0.125rem;
+  padding: 0 0.3rem;
   height: 2rem;
-  margin-left: -0.125rem;
   border-radius: var(--iw-r-sm);
   border: 1px solid transparent;
   background-color: transparent;
