@@ -27,8 +27,8 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 # exception where branding and the real id coincide: OpenAI ships it as
 # `gpt-6-astra` and we surface it under that name.)
 #
-# `reasoning_efforts` is the ladder each model actually accepts — it is NOT the
-# same for every model, so it is spelled out per entry rather than defaulted.
+# Every reasoning-capable model climbs the same four-rung ladder — see
+# REASONING_EFFORT_CHOICES below — so no entry spells out its own.
 MODELS = {
     'gpt-6-astra': {
         'id': 'gpt-6-astra',
@@ -48,8 +48,6 @@ MODELS = {
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
         'supports_reasoning': True,
-        # Astra rejects 'minimal' outright and adds a 'max' rung above 'xhigh'.
-        'reasoning_efforts': ['low', 'medium', 'high', 'xhigh', 'max'],
     },
     'gpt-5.6-sol': {
         'id': 'gpt-5.6-sol',
@@ -65,7 +63,6 @@ MODELS = {
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
         'supports_reasoning': True,
-        'reasoning_efforts': ['minimal', 'low', 'medium', 'high', 'xhigh'],
     },
     'gpt-5.6-terra': {
         'id': 'gpt-5.6-terra',
@@ -81,7 +78,6 @@ MODELS = {
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
         'supports_reasoning': True,
-        'reasoning_efforts': ['minimal', 'low', 'medium', 'high', 'xhigh'],
     },
     'gpt-5.6-luna': {
         'id': 'gpt-5.6-luna',
@@ -97,30 +93,35 @@ MODELS = {
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
         'supports_reasoning': True,
-        'reasoning_efforts': ['minimal', 'low', 'medium', 'high', 'xhigh'],
     }
 }
 
-# Every reasoning effort level the platform knows, ordered faster → smarter.
-# Applied to the OpenAI Responses API `reasoning.effort` parameter for
-# reasoning-capable models. ('none' is intentionally excluded — it disables
-# reasoning entirely rather than sitting on this speed/intelligence ladder.)
-# Keep in step with the frontend's REASONING_EFFORTS.
+# The reasoning effort ladder, ordered faster → smarter. Applied to the OpenAI
+# Responses API `reasoning.effort` parameter for reasoning-capable models, and
+# the same for every model. Keep in step with the frontend's REASONING_EFFORTS.
 #
-# This is the union across models, NOT what any one model accepts: the ends of
-# the ladder are model-specific — the 5.6 suite takes 'minimal' but not 'max',
-# Astra the reverse. Ask get_model_reasoning_efforts(model_id) for a model's
-# real ladder; resolve_reasoning_effort() clamps onto it.
+# The OpenAI SDK's ReasoningEffort literal is none/minimal/low/medium/high/xhigh
+# and there is nothing above xhigh: 'max' was never a real value (it failed
+# Reasoning() validation and silently dropped reasoning entirely), and 'none'
+# and 'minimal' are left off the platform ladder — 'none' disables reasoning
+# rather than sitting on the speed/intelligence ladder, and 'minimal' is
+# omitted so every model offers the same four choices.
 REASONING_EFFORT_CHOICES = [
-    ('minimal', 'Minimal'),
     ('low', 'Low'),
     ('medium', 'Medium'),
     ('high', 'High'),
     ('xhigh', 'Extra High'),
-    ('max', 'Max'),
 ]
 REASONING_EFFORT_IDS = [effort_id for effort_id, _ in REASONING_EFFORT_CHOICES]
 DEFAULT_REASONING_EFFORT = _BUILDER_SETTINGS.get('DEFAULT_REASONING_EFFORT', 'medium')
+
+# Rungs the platform used to offer, re-seated onto the ladder so a request from
+# an older client tab still lands on the nearest real level instead of falling
+# back to the default.
+LEGACY_REASONING_EFFORT_ALIASES = {
+    'minimal': 'low',
+    'max': 'xhigh',
+}
 
 # Provider Choices
 PROVIDER_CHOICES = [
@@ -248,7 +249,7 @@ def compute_cost_usd(model_id: str, input_tokens: int, output_tokens: int):
     return round(cost, 6)
 
 def is_valid_reasoning_effort(effort: str) -> bool:
-    """Whether the given reasoning effort level is recognized."""
+    """Whether the given reasoning effort level is on the platform ladder."""
     return effort in REASONING_EFFORT_IDS
 
 def model_supports_reasoning(model_id: str) -> bool:
@@ -263,8 +264,9 @@ def model_supports_reasoning(model_id: str) -> bool:
 
 def get_model_reasoning_efforts(model_id: str) -> List[str]:
     """
-    The reasoning effort levels a given model actually accepts, ordered
-    faster → smarter. Empty when the model is unknown or has no reasoning.
+    The reasoning effort levels a given model accepts, ordered faster → smarter.
+    The full platform ladder for reasoning-capable models; empty when the model
+    is unknown or has no reasoning.
 
     Args:
         model_id: The public model ID
@@ -272,35 +274,9 @@ def get_model_reasoning_efforts(model_id: str) -> List[str]:
     Returns:
         list: The model's accepted effort ids
     """
-    model = get_model_by_id(model_id)
-    if not model or not model.get('supports_reasoning'):
+    if not model_supports_reasoning(model_id):
         return []
-    efforts = model.get('reasoning_efforts')
-    if not efforts:
-        return list(REASONING_EFFORT_IDS)
-    # Keep the canonical faster → smarter ordering regardless of how the
-    # model entry happens to list them.
-    return [effort for effort in REASONING_EFFORT_IDS if effort in efforts]
-
-
-def _nearest_supported_effort(effort: str, supported: List[str]) -> str:
-    """
-    Clamp an effort level onto a model's ladder, picking the closest rung.
-
-    Ties go to the smarter rung, so a request for an effort a model doesn't
-    have never quietly buys *less* thinking than the neighbouring option.
-    """
-    if effort in supported:
-        return effort
-    order = REASONING_EFFORT_IDS
-    target = order.index(effort) if effort in order else order.index(DEFAULT_REASONING_EFFORT)
-    return min(
-        supported,
-        key=lambda candidate: (
-            abs(order.index(candidate) - target),
-            order.index(candidate) < target,
-        ),
-    )
+    return list(REASONING_EFFORT_IDS)
 
 
 def resolve_reasoning_effort(model_id: str, effort: str) -> str:
@@ -308,26 +284,22 @@ def resolve_reasoning_effort(model_id: str, effort: str) -> str:
     Resolve the reasoning effort to apply for a request.
 
     Returns None when the model does not support reasoning (so callers can omit
-    the parameter entirely). Otherwise returns the requested effort, clamped
-    onto the levels this model accepts — the ladder differs per model, and
-    sending a level a model rejects (e.g. 'minimal' to Astra) fails the whole
-    request. An unset or unrecognized effort falls back to the default, itself
-    clamped the same way.
+    the parameter entirely). Otherwise returns the requested effort when it is
+    on the ladder; a legacy rung ('minimal', 'max') is re-seated onto its
+    nearest real level, and anything else — unset, empty, or unrecognized —
+    falls back to the default. The result is always a value the SDK accepts,
+    so reasoning is applied rather than dropped.
 
     Args:
         model_id: The public model ID
         effort: The requested reasoning effort level (may be None/invalid)
 
     Returns:
-        str or None: An effort level this model accepts, or None if reasoning
-        is unsupported
+        str or None: An effort level on the ladder, or None if reasoning is
+        unsupported
     """
-    supported = get_model_reasoning_efforts(model_id)
-    if not supported:
+    if not model_supports_reasoning(model_id):
         return None
     if effort and is_valid_reasoning_effort(effort):
-        return _nearest_supported_effort(effort, supported)
-    return _nearest_supported_effort(DEFAULT_REASONING_EFFORT, supported)
-
-
- 
+        return effort
+    return LEGACY_REASONING_EFFORT_ALIASES.get(effort, DEFAULT_REASONING_EFFORT)

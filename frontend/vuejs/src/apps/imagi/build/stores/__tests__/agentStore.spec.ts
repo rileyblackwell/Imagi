@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import type { AgentInstance } from '../../types/services'
+import type { AgentInstance, ReasoningEffort } from '../../types/services'
 
 // Mock the services the store talks to (no network in unit tests).
 const agentService = vi.hoisted(() => ({
@@ -815,7 +815,7 @@ describe('agent store subagent outcomes', () => {
   })
 })
 
-describe('agentStore reasoning effort ladders', () => {
+describe('agentStore reasoning effort ladder', () => {
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
@@ -823,11 +823,27 @@ describe('agentStore reasoning effort ladders', () => {
     agentService.updateConversation.mockResolvedValue(undefined)
   })
 
-  it('re-seats an effort the newly picked model rejects', () => {
-    // Astra has no 'minimal' rung. Carried over unclamped it would ride into
-    // the next request and OpenAI would reject the whole call.
+  it('leaves an effort on the ladder untouched when switching models', () => {
+    // Every model shares the one ladder, so a switch never moves the rung.
     const store = useAgentStore()
-    const instance = makeInstance({ selectedEffort: 'minimal' })
+    for (const effort of ['low', 'medium', 'high', 'xhigh'] as const) {
+      const instance = makeInstance({ selectedEffort: effort })
+      store.instances = [instance]
+
+      store.setInstanceModel(instance.id, 'gpt-6-astra')
+      expect(instance.selectedModelId).toBe('gpt-6-astra')
+      expect(instance.selectedEffort).toBe(effort)
+
+      store.setInstanceModel(instance.id, 'gpt-5.6-luna')
+      expect(instance.selectedEffort).toBe(effort)
+    }
+  })
+
+  it("re-seats a retired 'minimal' onto low when switching models", () => {
+    // 'minimal' is off the ladder now. Restored from an older session and
+    // carried over unclamped it would ride into the next request.
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedEffort: 'minimal' as ReasoningEffort })
     store.instances = [instance]
 
     store.setInstanceModel(instance.id, 'gpt-6-astra')
@@ -836,9 +852,11 @@ describe('agentStore reasoning effort ladders', () => {
     expect(instance.selectedEffort).toBe('low')
   })
 
-  it("drops 'max' back to xhigh when switching to the 5.6 suite", () => {
+  it("re-seats a retired 'max' onto xhigh when switching models", () => {
+    // 'max' was never a rung the SDK accepted: sent through, the backend
+    // dropped reasoning altogether rather than reasoning harder.
     const store = useAgentStore()
-    const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'max' })
+    const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'max' as ReasoningEffort })
     store.instances = [instance]
 
     store.setInstanceModel(instance.id, 'gpt-5.6-terra')
@@ -846,23 +864,38 @@ describe('agentStore reasoning effort ladders', () => {
     expect(instance.selectedEffort).toBe('xhigh')
   })
 
-  it('leaves an effort both models share untouched', () => {
-    const store = useAgentStore()
-    const instance = makeInstance({ selectedEffort: 'high' })
-    store.instances = [instance]
-
-    store.setInstanceModel(instance.id, 'gpt-6-astra')
-
-    expect(instance.selectedEffort).toBe('high')
-  })
-
-  it('clamps an effort chosen directly against the current model', () => {
+  it('re-seats a retired rung chosen directly', () => {
     const store = useAgentStore()
     const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'medium' })
     store.instances = [instance]
 
-    store.setInstanceEffort(instance.id, 'minimal')
-
+    store.setInstanceEffort(instance.id, 'minimal' as ReasoningEffort)
     expect(instance.selectedEffort).toBe('low')
+
+    store.setInstanceEffort(instance.id, 'max' as ReasoningEffort)
+    expect(instance.selectedEffort).toBe('xhigh')
+  })
+
+  it('keeps an effort on the ladder when chosen directly', () => {
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedEffort: 'medium' })
+    store.instances = [instance]
+
+    store.setInstanceEffort(instance.id, 'xhigh')
+
+    expect(instance.selectedEffort).toBe('xhigh')
+  })
+
+  it('drops an unknown effort back to the default', () => {
+    const store = useAgentStore()
+    const instance = makeInstance({ selectedEffort: 'high' })
+    store.instances = [instance]
+
+    store.setInstanceEffort(instance.id, 'bogus' as ReasoningEffort)
+    expect(instance.selectedEffort).toBe('medium')
+
+    instance.selectedEffort = undefined as unknown as ReasoningEffort
+    store.setInstanceModel(instance.id, 'gpt-5.6-sol')
+    expect(instance.selectedEffort).toBe('medium')
   })
 })

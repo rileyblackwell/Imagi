@@ -329,7 +329,9 @@ def create_coding_agent(
 
     Args:
         model: The public suite model id (mapped to the real OpenAI model)
-        reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
+        reasoning_effort: How much reasoning to use — one of the platform ladder
+            ('low', 'medium', 'high', 'xhigh'), the same for every model;
+            legacy or unknown values are re-seated by resolve_reasoning_effort
         kind: The conversation role this agent runs as. 'chat', 'task', and
             'initial_build' get the full file-editing toolset; 'task' also gets
             ask_user (and stops the run when it is called, handing the question

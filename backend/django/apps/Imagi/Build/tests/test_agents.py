@@ -1141,46 +1141,50 @@ class ModelRegistryTests(SimpleTestCase):
 
 
 class ReasoningEffortLadderTests(SimpleTestCase):
-    """Each model gets only the rungs it accepts, and requests are clamped
-    onto them — sending a rejected level fails the whole OpenAI request."""
+    """One ladder for every model. The OpenAI SDK's ReasoningEffort literal
+    tops out at 'xhigh' — 'max' never existed, so the rung the previous
+    ladder gave Astra failed Reasoning() validation and dropped reasoning
+    entirely. Off-ladder requests are re-seated, never passed through."""
 
-    def test_ladders_differ_per_model(self):
-        self.assertEqual(
-            get_model_reasoning_efforts('gpt-6-astra'),
-            ['low', 'medium', 'high', 'xhigh', 'max'],
-        )
-        self.assertEqual(
-            get_model_reasoning_efforts('gpt-5.6-sol'),
-            ['minimal', 'low', 'medium', 'high', 'xhigh'],
-        )
+    LADDER = ['low', 'medium', 'high', 'xhigh']
+    REASONING_MODELS = ('gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna')
 
-    def test_supported_effort_passes_through(self):
-        for effort in ('low', 'medium', 'high', 'xhigh', 'max'):
-            self.assertEqual(
-                resolve_reasoning_effort('gpt-6-astra', effort), effort
-            )
+    def test_every_model_reports_the_same_ladder(self):
+        for model in self.REASONING_MODELS:
+            with self.subTest(model=model):
+                self.assertEqual(get_model_reasoning_efforts(model), self.LADDER)
 
-    def test_minimal_clamps_up_for_astra(self):
-        # Astra rejects 'minimal' outright; 'low' is the neighbouring rung.
-        self.assertEqual(
-            resolve_reasoning_effort('gpt-6-astra', 'minimal'), 'low'
-        )
+    def test_on_ladder_effort_passes_through_for_every_model(self):
+        for model in self.REASONING_MODELS:
+            for effort in self.LADDER:
+                with self.subTest(model=model, effort=effort):
+                    self.assertEqual(resolve_reasoning_effort(model, effort), effort)
 
-    def test_max_clamps_down_for_the_suite(self):
-        # 'max' exists only on Astra; the suite tops out at 'xhigh'.
-        self.assertEqual(
-            resolve_reasoning_effort('gpt-5.6-terra', 'max'), 'xhigh'
-        )
+    def test_legacy_rungs_are_reseated_on_every_model(self):
+        # An older client tab may still send the rungs the platform dropped.
+        for model in self.REASONING_MODELS:
+            with self.subTest(model=model):
+                self.assertEqual(resolve_reasoning_effort(model, 'minimal'), 'low')
+                self.assertEqual(resolve_reasoning_effort(model, 'max'), 'xhigh')
 
     def test_unset_or_invalid_falls_back_to_default(self):
-        for effort in (None, '', 'bogus'):
-            self.assertEqual(
-                resolve_reasoning_effort('gpt-6-astra', effort), 'medium'
-            )
+        for model in self.REASONING_MODELS:
+            for effort in (None, '', 'bogus'):
+                with self.subTest(model=model, effort=effort):
+                    self.assertEqual(resolve_reasoning_effort(model, effort), 'medium')
 
     def test_unknown_model_has_no_effort(self):
         self.assertIsNone(resolve_reasoning_effort('gpt-oops', 'low'))
         self.assertEqual(get_model_reasoning_efforts('gpt-oops'), [])
+
+    def test_max_on_astra_applies_reasoning_instead_of_dropping_it(self):
+        # The bug this ladder fixes: Reasoning(effort='max') raised in
+        # build_model_settings, which then built ModelSettings with no
+        # reasoning at all. Through the real code path the request now lands
+        # on 'xhigh' and reasoning is actually applied.
+        agent = create_coding_agent(model='gpt-6-astra', reasoning_effort='max')
+        self.assertIsNotNone(agent.model_settings.reasoning)
+        self.assertEqual(agent.model_settings.reasoning.effort, 'xhigh')
 
 
 class RunBoundsHookTests(SimpleTestCase):
