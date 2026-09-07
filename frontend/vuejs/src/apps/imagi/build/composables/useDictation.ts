@@ -33,10 +33,10 @@ export interface Dictation {
   /** True while the browser is withholding device names: the user has not
    *  allowed microphone access yet, so the picker cannot show anything. */
   labelsHidden: ComputedRef<boolean>
-  /** Start when idle, stop when recording — the one entry point the button
-   *  and the keyboard shortcut both call. A no-op while transcribing. */
-  toggle: () => void
+  /** Open the mic. A no-op unless idle, so a second hold cannot start a
+   *  recording underneath one already running. */
   start: () => Promise<void>
+  /** Close the mic and transcribe what was held. */
   stop: () => void
   /** Drop the recorder without transcribing (unmount, thread switch). */
   cancel: () => void
@@ -195,8 +195,8 @@ function writeStoredInput(id: string | null) {
 }
 
 /**
- * Dictation for the composer: hold the mic open, then hand the clip to the
- * backend for OpenAI to transcribe. The transcript goes to onTranscript for
+ * Dictation for the composer: hold the mic open — the button or ⌘D, both are
+ * held — then hand the clip to the backend for OpenAI to transcribe. The transcript goes to onTranscript for
  * the caller to put in the textbox — it is never sent anywhere on its own.
  *
  * One recorder at a time. The returned `supported` is fixed at creation, so
@@ -460,11 +460,6 @@ export function useDictation(opts: DictationOptions): Dictation {
     if (state.value === 'recording') state.value = 'idle'
   }
 
-  function toggle() {
-    if (state.value === 'recording') stop()
-    else if (state.value === 'idle') void start()
-  }
-
   // Keep the list current as headsets come and go.
   const onDeviceChange = () => {
     void refreshInputs()
@@ -492,7 +487,6 @@ export function useDictation(opts: DictationOptions): Dictation {
     inputs,
     activeInput,
     labelsHidden,
-    toggle,
     start,
     stop,
     cancel,

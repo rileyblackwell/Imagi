@@ -19,7 +19,6 @@ const dictation = vi.hoisted(() => ({
   activeInput: null as unknown as Ref<AudioInput | null>,
   labelsHidden: null as unknown as Ref<boolean>,
   supported: true,
-  toggle: vi.fn(),
   start: vi.fn(),
   stop: vi.fn(),
   cancel: vi.fn(),
@@ -49,7 +48,6 @@ vi.mock('../../composables/useDictation', async () => {
         activeInput: dictation.activeInput,
         labelsHidden: dictation.labelsHidden,
         supported: dictation.supported,
-        toggle: dictation.toggle,
         start: dictation.start,
         stop: dictation.stop,
         cancel: dictation.cancel,
@@ -121,6 +119,12 @@ function press(init: KeyboardEventInit, target: EventTarget = document.body) {
   const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init })
   target.dispatchEvent(event)
   return event
+}
+
+/** Letting a key up. Which one matters: macOS delivers no keyup for the
+ *  letter while Command is still down, so the modifier's is all there is. */
+function release(key: string, target: EventTarget = document.body) {
+  target.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true, cancelable: true }))
 }
 
 /** The composer's one button: hold to dictate, click to send. */
@@ -375,7 +379,7 @@ describe('BuilderSidebarChat dictation', () => {
     const button = sendButton(wrapper)
     expect(button.exists()).toBe(true)
     expect(button.attributes('title')).toBe(
-      'Hold to dictate (⌘D) · click to send (Enter) · right-click to choose microphone'
+      'Hold to dictate, or hold ⌘D · click to send (Enter) · right-click to choose microphone'
     )
     // Nothing to send yet, but a hold still records — so never disabled.
     expect(button.attributes('disabled')).toBeUndefined()
@@ -389,7 +393,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(button.find('.fa-microphone').exists()).toBe(true)
     expect(button.find('.fa-arrow-up').exists()).toBe(false)
     expect(button.attributes('title')).toBe(
-      'Hold to dictate (⌘D) · click to send (Enter) · right-click to choose microphone'
+      'Hold to dictate, or hold ⌘D · click to send (Enter) · right-click to choose microphone'
     )
   })
 
@@ -399,7 +403,6 @@ describe('BuilderSidebarChat dictation', () => {
     await pressFor(wrapper, 80)
     expect(wrapper.props('onPromptSubmit')).toHaveBeenCalledWith('Add a contact page')
     expect(dictation.start).not.toHaveBeenCalled()
-    expect(dictation.toggle).not.toHaveBeenCalled()
     expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('')
   })
 
@@ -476,20 +479,20 @@ describe('BuilderSidebarChat dictation', () => {
     open()
   })
 
-  it('a tap while ⌘D has the mic open stops dictating instead of sending', async () => {
+  it('a tap while a ⌘D hold has the mic open stops dictating instead of sending', async () => {
     wrapper = mountWith()
     await typePrompt(wrapper, 'Add a contact page')
     press({ key: 'd', metaKey: true })
-    expect(dictation.toggle).toHaveBeenCalledTimes(1)
-    dictation.state.value = 'recording'
+    expect(dictation.start).toHaveBeenCalledTimes(1)
     await nextTick()
-    expect(sendButton(wrapper).attributes('title')).toBe('Stop dictating (⌘D)')
+    // The button says what ends it, and it is not another press.
+    expect(sendButton(wrapper).attributes('title')).toBe("Listening — let go of ⌘D when you're done")
     await pressFor(wrapper, 80)
     expect(dictation.stop).toHaveBeenCalledTimes(1)
     expect(wrapper.props('onPromptSubmit')).not.toHaveBeenCalled()
   })
 
-  it('a hold while ⌘D has the mic open takes it over: letting go stops', async () => {
+  it('a hold while a ⌘D hold has the mic open takes it over: letting go stops', async () => {
     wrapper = mountWith()
     dictation.state.value = 'recording'
     await nextTick()
@@ -509,7 +512,7 @@ describe('BuilderSidebarChat dictation', () => {
     wrapper = mountWith(instance({ isProcessing: true }))
     const button = sendButton(wrapper)
     expect(button.attributes('title')).toBe(
-      'Hold to dictate (⌘D) · click to stop the agent · right-click to choose microphone'
+      'Hold to dictate, or hold ⌘D · click to stop the agent · right-click to choose microphone'
     )
     expect(button.find('.fa-stop').exists()).toBe(true)
 
@@ -625,12 +628,61 @@ describe('BuilderSidebarChat dictation', () => {
     expect(wrapper.find('.dictation-error').text()).toMatch(/Microphone access is blocked/)
   })
 
-  it('⌘D toggles dictation from anywhere in the workspace', () => {
+  it('⌘D is a hold from anywhere in the workspace: down opens, up closes', async () => {
     wrapper = mountWith()
     const event = press({ key: 'd', metaKey: true })
-    expect(dictation.toggle).toHaveBeenCalledTimes(1)
+    expect(dictation.start).toHaveBeenCalledTimes(1)
     // The browser's own ⌘D (bookmark this page) must not fire too.
     expect(event.defaultPrevented).toBe(true)
+    await nextTick()
+    expect(sendButton(wrapper).classes()).toContain('btn-send--recording')
+    expect(wrapper.find('textarea').attributes('placeholder')).toMatch(/let go of ⌘D when you're done/)
+
+    release('d')
+    expect(dictation.stop).toHaveBeenCalledTimes(1)
+    // Nothing left holding: a stray keyup afterwards is not a second stop.
+    release('Meta')
+    expect(dictation.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('one hold is one recording, however many repeats the key sends', () => {
+    wrapper = mountWith()
+    press({ key: 'd', metaKey: true })
+    const repeat = press({ key: 'd', metaKey: true, repeat: true })
+    press({ key: 'd', metaKey: true, repeat: true })
+    expect(dictation.start).toHaveBeenCalledTimes(1)
+    // Still swallowed, or the browser bookmarks the page mid-sentence.
+    expect(repeat.defaultPrevented).toBe(true)
+  })
+
+  it('ends the hold when the modifier comes up, which is all macOS sends', () => {
+    wrapper = mountWith()
+    press({ key: 'd', metaKey: true })
+    release('Meta')
+    expect(dictation.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('ends the hold when the window goes away mid-sentence', () => {
+    wrapper = mountWith()
+    press({ key: 'd', metaKey: true })
+    window.dispatchEvent(new Event('blur'))
+    expect(dictation.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops the clip when the keys come up while the mic is still opening', async () => {
+    wrapper = mountWith()
+    let open!: () => void
+    dictation.start.mockImplementation(
+      () =>
+        new Promise<void>(resolve => {
+          open = resolve
+        })
+    )
+    press({ key: 'd', metaKey: true })
+    release('d')
+    expect(dictation.cancel).toHaveBeenCalledTimes(1)
+    expect(dictation.stop).not.toHaveBeenCalled()
+    open()
   })
 
   it('leaves other D chords, and plain D, alone', () => {
@@ -639,17 +691,21 @@ describe('BuilderSidebarChat dictation', () => {
     press({ key: 'd', metaKey: true, shiftKey: true })
     press({ key: 'd', ctrlKey: true })
     press({ key: 'k', metaKey: true })
-    expect(dictation.toggle).not.toHaveBeenCalled()
+    expect(dictation.start).not.toHaveBeenCalled()
   })
 
-  it('uses Ctrl+D off Apple hardware', () => {
+  it('uses Ctrl+D off Apple hardware', async () => {
     Object.defineProperty(navigator, 'platform', { value: 'Win32', configurable: true })
     wrapper = mountWith()
     expect(sendButton(wrapper).attributes('title')).toBe(
-      'Hold to dictate (Ctrl+D) · click to send (Enter) · right-click to choose microphone'
+      'Hold to dictate, or hold Ctrl+D · click to send (Enter) · right-click to choose microphone'
     )
     press({ key: 'd', ctrlKey: true })
-    expect(dictation.toggle).toHaveBeenCalledTimes(1)
+    expect(dictation.start).toHaveBeenCalledTimes(1)
+    await nextTick()
+    expect(wrapper.find('textarea').attributes('placeholder')).toMatch(/let go of Ctrl\+D when you're done/)
+    release('Control')
+    expect(dictation.stop).toHaveBeenCalledTimes(1)
   })
 
   it('yields to the preview when it has already taken the keystroke', () => {
@@ -657,7 +713,7 @@ describe('BuilderSidebarChat dictation', () => {
     const event = new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true, cancelable: true })
     event.preventDefault()
     document.body.dispatchEvent(event)
-    expect(dictation.toggle).not.toHaveBeenCalled()
+    expect(dictation.start).not.toHaveBeenCalled()
   })
 
   it('has no composer and ignores ⌘D on a read-only task thread', () => {
@@ -665,7 +721,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(sendButton(wrapper).exists()).toBe(false)
     expect(wrapper.find('.fa-microphone').exists()).toBe(false)
     press({ key: 'd', metaKey: true })
-    expect(dictation.toggle).not.toHaveBeenCalled()
+    expect(dictation.start).not.toHaveBeenCalled()
   })
 
   it('closes a live mic when the thread turns read-only', async () => {
@@ -694,7 +750,7 @@ describe('BuilderSidebarChat dictation', () => {
     await pressFor(wrapper, 80)
     expect(wrapper.props('onPromptSubmit')).toHaveBeenCalledWith('Add a contact page')
     press({ key: 'd', metaKey: true })
-    expect(dictation.toggle).not.toHaveBeenCalled()
+    expect(dictation.start).not.toHaveBeenCalled()
   })
 
   it('drops the transcript into the textbox after what is already there, and never sends it', async () => {
@@ -778,6 +834,9 @@ describe('BuilderSidebarChat dictation', () => {
     wrapper.unmount()
     wrapper = null
     press({ key: 'd', metaKey: true })
-    expect(dictation.toggle).not.toHaveBeenCalled()
+    release('d')
+    window.dispatchEvent(new Event('blur'))
+    expect(dictation.start).not.toHaveBeenCalled()
+    expect(dictation.stop).not.toHaveBeenCalled()
   })
 })

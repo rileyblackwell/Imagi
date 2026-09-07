@@ -901,7 +901,7 @@ watch(tuneOpen, open => {
   if (open) void nextTick(() => modelRowEls.value[modelIndex.value]?.focus())
 })
 
-// --- Dictation (holding the send button, and ⌘D) ---
+// --- Dictation (holding the send button, or holding ⌘D) ---
 
 // ⌘ on Apple hardware, Ctrl elsewhere: the modifier the rest of the OS
 // already puts its shortcuts on.
@@ -918,7 +918,6 @@ const {
   inputs: micInputs,
   activeInput: micActive,
   labelsHidden: micLabelsHidden,
-  toggle: toggleDictation,
   start: startDictation,
   stop: stopDictation,
   cancel: cancelDictation,
@@ -929,6 +928,19 @@ const {
 
 const isRecording = computed(() => dictationState.value === 'recording')
 const isTranscribing = computed(() => dictationState.value === 'transcribing')
+
+/** What is being held to keep the mic open — the button, or the shortcut.
+ *  Written by whichever hold opened it, and read only while recording, so
+ *  the composer can say which one to let go of. */
+const heldBy = ref<'button' | 'key' | null>(null)
+
+/** How a live recording ends, in the words of whatever opened it. Both are
+ *  holds: nothing stops dictation by being pressed a second time. */
+const releaseHint = computed(() => {
+  if (heldBy.value === 'key') return `let go of ${dictationShortcut}`
+  if (heldBy.value === 'button') return 'let go of the button'
+  return 'let go'
+})
 
 /** The red ring around a live mic widens with the voice it hears, so "is it
  *  picking me up?" is answered by looking rather than by sending a clip. */
@@ -956,11 +968,11 @@ function chooseMicInput(id: string) {
  *  button is the microphone first, and a click is how the words leave. */
 const sendTitle = computed(() => {
   if (isTranscribing.value) return 'Transcribing…'
-  if (isRecording.value) return `Stop dictating (${dictationShortcut})`
+  if (isRecording.value) return `Listening — ${releaseHint.value} when you're done`
   const running = !!activeInstance.value?.isProcessing
   if (!dictationSupported) return running ? 'Stop agent' : 'Send (Enter)'
   const click = running ? 'click to stop the agent' : 'click to send (Enter)'
-  return `Hold to dictate (${dictationShortcut}) · ${click} · right-click to choose microphone`
+  return `Hold to dictate, or hold ${dictationShortcut} · ${click} · right-click to choose microphone`
 })
 
 /** Navy ink when a click does something (there is text to send, or a run to
@@ -1025,7 +1037,9 @@ function onSendPointerDown(e: PointerEvent) {
     holdTimer = null
     if (!pointerHeld) return
     holdConsumedClick = true
-    // Already live from ⌘D: the hold simply takes over, and its release stops.
+    // Already live from a ⌘D hold: the button simply takes over, and its
+    // release is what stops the recording now.
+    heldBy.value = 'button'
     if (isRecording.value) return
     holdOpening = true
     void startDictation().finally(() => {
@@ -1056,8 +1070,8 @@ function onSendClick() {
     holdConsumedClick = false
     return
   }
-  // The mic was opened with ⌘D: a tap closes it, and the next tap sends the
-  // words it produced.
+  // Something else has the mic open — a ⌘D hold whose keys are still down.
+  // A tap closes it rather than sending, and the next tap sends the words.
   if (isRecording.value) {
     stopDictation()
     return
@@ -1101,32 +1115,91 @@ function insertDictation(text: string) {
   })
 }
 
+// --- Holding ⌘D ---
+//
+// The shortcut is the button without the mouse: it is held, not pressed. The
+// mic opens on the way down and closes when the keys come up, so a hold is a
+// hold whichever of the two the hand is on, and nothing has to be pressed a
+// second time to stop.
+//
+// Which key comes up first is not ours to choose — and macOS withholds a
+// letter's keyup entirely while Command is still down — so the release is
+// taken from the D, from the modifier, or from the window losing focus
+// mid-hold (⌘-Tab), whichever arrives.
+let keyHeld = false
+// The mic is still opening (permission prompt, device negotiation).
+let keyOpening = false
+
+function isDictationChord(e: KeyboardEvent): boolean {
+  const modifier = isApplePlatform ? e.metaKey : e.ctrlKey
+  return !!modifier && !e.altKey && !e.shiftKey && (e.key || '').toLowerCase() === 'd'
+}
+
 /** ⌘D from anywhere in the workspace — the point of a shortcut is not having
  *  to find the button first. Left alone when the preview has already taken
  *  the keystroke for the app it is showing (it calls preventDefault), on a
  *  read-only task thread (no composer), and where the browser cannot record. */
-function onDictationKey(e: KeyboardEvent) {
+function onDictationKeyDown(e: KeyboardEvent) {
   if (e.defaultPrevented) return
-  const modifier = isApplePlatform ? e.metaKey : e.ctrlKey
-  if (!modifier || e.altKey || e.shiftKey || (e.key || '').toLowerCase() !== 'd') return
+  if (!isDictationChord(e)) return
   if (!dictationSupported || isTaskThread.value || !activeInstance.value) return
+  // The browser's own ⌘D (bookmark this page) must not fire, on the repeats
+  // a held key sends as much as on the first one.
   e.preventDefault()
-  toggleDictation()
+  if (e.repeat || keyHeld) return
+  keyHeld = true
+  heldBy.value = 'key'
+  // Already live from a hold of the button: the keys take over, and their
+  // release stops the recording.
+  if (isRecording.value) return
+  keyOpening = true
+  void startDictation().finally(() => {
+    keyOpening = false
+  })
 }
 
-onMounted(() => document.addEventListener('keydown', onDictationKey))
-onBeforeUnmount(() => document.removeEventListener('keydown', onDictationKey))
+function onDictationKeyUp(e: KeyboardEvent) {
+  const key = (e.key || '').toLowerCase()
+  if (key === 'd' || key === 'meta' || key === 'control') releaseDictationKey()
+}
+
+/** The end of a ⌘D hold, however it ended. */
+function releaseDictationKey() {
+  if (!keyHeld) return
+  keyHeld = false
+  if (isRecording.value) {
+    stopDictation()
+  } else if (keyOpening) {
+    // Let go while the microphone was still opening (the permission prompt
+    // was up): nothing was heard, so there is nothing to transcribe.
+    cancelDictation()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onDictationKeyDown)
+  document.addEventListener('keyup', onDictationKeyUp)
+  window.addEventListener('blur', releaseDictationKey)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onDictationKeyDown)
+  document.removeEventListener('keyup', onDictationKeyUp)
+  window.removeEventListener('blur', releaseDictationKey)
+})
 
 // A task thread has no composer, so a mic left open there would have nowhere
 // to put its words.
 watch(isTaskThread, readOnly => {
-  if (readOnly) cancelDictation()
+  if (readOnly) {
+    keyHeld = false
+    cancelDictation()
+  }
 })
 
 const promptPlaceholder = computed(() => {
   if (isRecording.value) {
     const mic = micActive.value?.label || 'the default microphone'
-    return `Listening on ${mic}… let go of the button, or press ${dictationShortcut}, when you're done.`
+    return `Listening on ${mic}… ${releaseHint.value} when you're done.`
   }
   if (isTranscribing.value) return 'Transcribing…'
   return 'Ask me to build, edit, or explain anything in your project...'
