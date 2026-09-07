@@ -9,6 +9,7 @@ dictation only writes what the user would otherwise have typed.
 
 import logging
 import os
+import re
 
 from django.conf import settings
 
@@ -47,6 +48,12 @@ TRANSCRIPTION_PROMPT = (
     'navbar, footer, hero, CTA, homepage, subagent, deploy.'
 )
 
+# Three words is where "the model read its prompt back" starts and "someone
+# said a couple of these words" stops: to trip the check by speaking, a person
+# would have to say three of the words above, in the order they appear above,
+# and nothing else.
+_ECHO_MIN_WORDS = 3
+
 # List price per token for gpt-4o-transcribe (audio in, text in, text out),
 # used only to debit the plan allowance. A minute of speech is about $0.006.
 _PRICE_PER_TOKEN = {
@@ -66,6 +73,29 @@ class InvalidAudio(ValueError):
 
 class TranscriptionFailed(Exception):
     """OpenAI did not return a transcript for the clip."""
+
+
+def _words(text):
+    """The words of a string, lowercased, with punctuation dropped."""
+    return re.findall(r'[a-z0-9]+', (text or '').lower())
+
+
+def is_prompt_echo(text):
+    """True when a transcript is the priming vocabulary read back.
+
+    A clip with no speech in it gives the model nothing to transcribe, and
+    what it reaches for is the prompt it was primed with — the whole list, or
+    some of its words in the order they appear there. The browser drops a
+    silent clip before it gets here; this catches what still slips through,
+    because the one thing dictation must never do is type words nobody said.
+    """
+    words = _words(text)
+    if len(words) < _ECHO_MIN_WORDS:
+        return False
+    # A shared iterator makes this a subsequence test: each word has to turn
+    # up in the prompt after the one before it did.
+    rest = iter(_words(TRANSCRIPTION_PROMPT))
+    return all(any(word == primed for primed in rest) for word in words)
 
 
 def audio_extension(content_type):
@@ -145,4 +175,8 @@ def transcribe_audio(data, content_type):
     except Exception as exc:
         raise TranscriptionFailed(str(exc)) from exc
     text = (getattr(result, 'text', None) or '').strip()
+    if is_prompt_echo(text):
+        # Nothing was said; the model filled the silence with its own prompt.
+        logger.info('Discarded a dictation transcript that echoed the priming prompt')
+        text = ''
     return text, _usage_from(result)

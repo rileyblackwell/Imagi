@@ -78,6 +78,24 @@ const BUILT_IN_INPUT = /built-in|internal|microphone array|macbook|imac|mac mini
  *  invent words. */
 export const MIN_CLIP_MS = 300
 
+/** How loud one reading of the level meter has to be — RMS of the raw
+ *  waveform, the same number the ring is drawn from — to count as somebody
+ *  speaking rather than the noise a room makes. A laptop's own microphone
+ *  idles well under 0.005 in a quiet room and ordinary speech peaks around
+ *  0.25, so this sits an order of magnitude above the floor and far below a
+ *  voice. */
+export const SPEECH_RMS = 0.01
+
+/** How many such readings a clip needs before it is worth transcribing. Two
+ *  40ms readings: a single pop, a click, or a chair creak is one. */
+const SPEECH_TICKS = 2
+
+/** What a clip with nothing audible in it says. A transcription model handed
+ *  silence does not return nothing — it invents a sentence, or reads its own
+ *  priming vocabulary back — so a clip the meter never heard a voice in is
+ *  dropped here rather than sent and then second-guessed. */
+const NOTHING_HEARD = 'Nothing was heard — check which microphone is selected and try again.'
+
 /** How long a mistake stays on screen before the line clears itself. */
 const ERROR_TTL_MS = 6000
 
@@ -213,6 +231,11 @@ export function useDictation(opts: DictationOptions): Dictation {
   let audioContext: AudioContext | null = null
   let analyser: AnalyserNode | null = null
   let levelTimer: ReturnType<typeof setInterval> | null = null
+  // What the meter made of the clip being recorded: whether it read the
+  // stream at all, and how many readings were loud enough to be a voice.
+  // Both start again with each recording.
+  let meterRead = false
+  let voicedTicks = 0
 
   function setError(message: string) {
     error.value = message
@@ -298,6 +321,8 @@ export function useDictation(opts: DictationOptions): Dictation {
   }
 
   function startLevelMeter(source: MediaStream) {
+    meterRead = false
+    voicedTicks = 0
     if (typeof AudioContext === 'undefined') return
     try {
       audioContext = new AudioContext()
@@ -314,8 +339,11 @@ export function useDictation(opts: DictationOptions): Dictation {
           const v = ((samples[i] ?? 128) - 128) / 128
           sum += v * v
         }
+        const rms = Math.sqrt(sum / samples.length)
+        meterRead = true
+        if (rms >= SPEECH_RMS) voicedTicks += 1
         // Speech peaks around 0.25 RMS; scale so a normal voice fills the ring.
-        level.value = Math.min(1, Math.sqrt(sum / samples.length) * 4)
+        level.value = Math.min(1, rms * 4)
       }
       levelTimer = setInterval(tick, 40)
     } catch {
@@ -384,6 +412,10 @@ export function useDictation(opts: DictationOptions): Dictation {
   async function finish() {
     const type = recorder?.mimeType || chunks[0]?.type || 'audio/webm'
     const heldFor = Date.now() - startedAt
+    // Where the meter ran, its verdict decides: a clip it never heard a
+    // voice in is not sent at all. Where it could not run (no Web Audio),
+    // the clip goes up as before rather than dictation refusing to work.
+    const heardSpeech = !meterRead || voicedTicks >= SPEECH_TICKS
     stopLevelMeter()
     releaseStream()
     recorder = null
@@ -398,10 +430,15 @@ export function useDictation(opts: DictationOptions): Dictation {
       setError('That was too quick — hold the mic a moment longer.')
       return
     }
+    if (!heardSpeech) {
+      state.value = 'idle'
+      setError(NOTHING_HEARD)
+      return
+    }
     try {
       const text = (await AgentService.transcribeAudio(blob)).trim()
       if (text) opts.onTranscript(text)
-      else setError('Nothing was heard — check which microphone is selected and try again.')
+      else setError(NOTHING_HEARD)
     } catch (err) {
       setError(messageForTranscribeError(err))
     } finally {

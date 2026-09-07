@@ -83,6 +83,43 @@ class TranscribeAudioTests(SimpleTestCase):
             text, _ = ts.transcribe_audio(WEBM_BYTES, 'audio/webm')
         self.assertEqual(text, '')
 
+    def test_a_prompt_echo_is_dropped_rather_than_typed(self):
+        # What gpt-4o-transcribe actually returns for a clip with no speech in
+        # it: the priming vocabulary, whole or in pieces, in its own order.
+        for echoed in (
+            ts.TRANSCRIPTION_PROMPT,
+            'vue, Django, Stripe, Railway, API, subagent.',
+            'Vue Django Stripe',
+        ):
+            with self.subTest(echoed=echoed):
+                fake_cls, _ = fake_openai(echoed)
+                with patch('openai.OpenAI', fake_cls):
+                    text, _ = ts.transcribe_audio(WEBM_BYTES, 'audio/webm')
+                self.assertEqual(text, '')
+
+    def test_words_a_person_would_say_are_not_mistaken_for_the_echo(self):
+        for spoken in (
+            'Add a Stripe checkout page to the footer.',
+            'Make the hero smaller and the navbar sticky',
+            'Add a webhook for Stripe',
+            'Deploy it.',
+            'Stripe checkout',
+        ):
+            with self.subTest(spoken=spoken):
+                fake_cls, _ = fake_openai(spoken)
+                with patch('openai.OpenAI', fake_cls):
+                    text, _ = ts.transcribe_audio(WEBM_BYTES, 'audio/webm')
+                self.assertEqual(text, spoken)
+
+    def test_an_echoed_clip_is_still_metered(self):
+        # The tokens were spent whether or not the words were usable.
+        usage = SimpleNamespace(input_tokens=60, output_tokens=14, input_token_details=None)
+        fake_cls, _ = fake_openai(ts.TRANSCRIPTION_PROMPT, usage)
+        with patch('openai.OpenAI', fake_cls):
+            text, metered = ts.transcribe_audio(WEBM_BYTES, 'audio/webm')
+        self.assertEqual(text, '')
+        self.assertEqual(metered['input_tokens'], 60)
+
     def test_prices_usage_from_the_token_breakdown(self):
         usage = SimpleNamespace(
             input_tokens=1100,

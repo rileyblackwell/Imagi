@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const transcribeAudio = vi.hoisted(() => vi.fn())
 vi.mock('../../services/agentService', () => ({ AgentService: { transcribeAudio } }))
 
-import { INPUT_STORAGE_KEY, MIN_CLIP_MS, preferredInput, useDictation } from '../useDictation'
+import { INPUT_STORAGE_KEY, MIN_CLIP_MS, SPEECH_RMS, preferredInput, useDictation } from '../useDictation'
 
 /** A MediaRecorder that hands over one chunk and fires onstop when stopped. */
 class FakeRecorder {
@@ -39,6 +39,43 @@ class FakeStream {
   getAudioTracks() {
     return [{ getSettings: () => ({ deviceId: this.deviceId }) }]
   }
+}
+
+/** A Web Audio stack whose analyser reports whatever loudness the test asks
+ *  for, so a clip can be made silent or spoken. jsdom has no Web Audio of its
+ *  own, which is why the meter is absent — and the gate inert — everywhere
+ *  this is not stubbed in. */
+class FakeAudioContext {
+  /** RMS the analyser will report, 0–1. */
+  static rms = 0
+  createAnalyser() {
+    return {
+      fftSize: 512,
+      getByteTimeDomainData: (samples: Uint8Array) => {
+        // A square wave of this amplitude has exactly that RMS.
+        const swing = Math.round(FakeAudioContext.rms * 128)
+        for (let i = 0; i < samples.length; i++) samples[i] = 128 + (i % 2 ? swing : -swing)
+      },
+    }
+  }
+  createMediaStreamSource() {
+    return { connect: () => {} }
+  }
+  resume() {
+    return Promise.resolve()
+  }
+  close() {
+    return Promise.resolve()
+  }
+}
+
+/** Record with the level meter running, hearing `rms` throughout. */
+async function recordAt(rms: number, dictation: ReturnType<typeof useDictation>) {
+  FakeAudioContext.rms = rms
+  await dictation.start()
+  vi.advanceTimersByTime(1000)
+  dictation.stop()
+  for (let i = 0; i < 8; i++) await Promise.resolve()
 }
 
 const BUILT_IN = { deviceId: 'mic-builtin', kind: 'audioinput', label: 'MacBook Pro Microphone (Built-in)' }
@@ -288,6 +325,57 @@ describe('useDictation', () => {
     expect(onTranscript).not.toHaveBeenCalled()
     expect(dictation.state.value).toBe('idle')
     expect(dictation.error.value).toMatch(/too quick/)
+  })
+
+  it('never sends a clip the meter heard no voice in — silence stays blank', async () => {
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+    const onTranscript = vi.fn()
+    const dictation = useDictation({ onTranscript })
+    // Held long enough to be a sentence, with nothing said into it.
+    await recordAt(0, dictation)
+    expect(transcribeAudio).not.toHaveBeenCalled()
+    expect(onTranscript).not.toHaveBeenCalled()
+    expect(dictation.state.value).toBe('idle')
+    expect(dictation.error.value).toMatch(/Nothing was heard/)
+  })
+
+  it('sends the clip once a voice rises over the room', async () => {
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+    transcribeAudio.mockResolvedValue('Add a contact page')
+    const onTranscript = vi.fn()
+    const dictation = useDictation({ onTranscript })
+    await recordAt(SPEECH_RMS * 5, dictation)
+    expect(transcribeAudio).toHaveBeenCalledTimes(1)
+    expect(onTranscript).toHaveBeenCalledWith('Add a contact page')
+    expect(dictation.error.value).toBeNull()
+  })
+
+  it('is not fooled into sending by a single pop', async () => {
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+    FakeAudioContext.rms = 0
+    const dictation = useDictation({ onTranscript: vi.fn() })
+    await dictation.start()
+    vi.advanceTimersByTime(600)
+    // One reading over the line — a click, a chair, a door — then quiet again.
+    FakeAudioContext.rms = SPEECH_RMS * 5
+    vi.advanceTimersByTime(40)
+    FakeAudioContext.rms = 0
+    vi.advanceTimersByTime(600)
+    dictation.stop()
+    await flush()
+    expect(transcribeAudio).not.toHaveBeenCalled()
+    expect(dictation.error.value).toMatch(/Nothing was heard/)
+  })
+
+  it('sends the clip where the browser has no meter to judge it by', async () => {
+    // No AudioContext (this is jsdom): dictation works as it always did
+    // rather than refusing every clip it cannot listen to.
+    transcribeAudio.mockResolvedValue('Add a contact page')
+    const onTranscript = vi.fn()
+    const dictation = useDictation({ onTranscript })
+    await record(dictation)
+    expect(transcribeAudio).toHaveBeenCalledTimes(1)
+    expect(onTranscript).toHaveBeenCalledWith('Add a contact page')
   })
 
   it('toggle starts when idle and stops when recording', async () => {
