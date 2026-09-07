@@ -180,7 +180,7 @@ describe('useDictation', () => {
     const onTranscript = vi.fn()
     const dictation = useDictation({ onTranscript })
     expect(dictation.supported).toBe(false)
-    dictation.toggle()
+    void dictation.start()
     await flush()
     expect(dictation.state.value).toBe('idle')
     expect(FakeRecorder.instances).toHaveLength(0)
@@ -378,18 +378,21 @@ describe('useDictation', () => {
     expect(onTranscript).toHaveBeenCalledWith('Add a contact page')
   })
 
-  it('toggle starts when idle and stops when recording', async () => {
+  it('one hold is one recording: start and stop are no-ops out of turn', async () => {
     transcribeAudio.mockResolvedValue('hi')
     const dictation = useDictation({ onTranscript: vi.fn() })
-    dictation.toggle()
-    await flush()
+    await dictation.start()
     expect(dictation.state.value).toBe('recording')
+    // A second hold cannot open the mic underneath the one already running.
+    await dictation.start()
+    expect(FakeRecorder.instances).toHaveLength(1)
+
     vi.advanceTimersByTime(1000)
-    dictation.toggle()
+    dictation.stop()
     expect(dictation.state.value).toBe('transcribing')
-    // A third press mid-transcription is ignored rather than opening the mic
-    // again underneath the clip being transcribed.
-    dictation.toggle()
+    // Nor can a hold that begins while the last clip is still being written.
+    await dictation.start()
+    dictation.stop()
     expect(FakeRecorder.instances).toHaveLength(1)
     await flush()
     expect(dictation.state.value).toBe('idle')
