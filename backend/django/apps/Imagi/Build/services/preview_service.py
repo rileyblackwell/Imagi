@@ -3,6 +3,7 @@ Service for project preview operations in the Builder app.
 """
 
 import contextlib
+import socket
 import subprocess
 import os
 import sys
@@ -89,6 +90,104 @@ def npm_install_lock(frontend_path, timeout=NPM_INSTALL_TIMEOUT):
                 os.rmdir(lock_dir)
             except OSError:
                 pass
+
+# How long a freshly spawned dev server may take to start listening before
+# its start is reported as a failure. Django's runserver is up in about a
+# second and Vite in well under one; these are ceilings for a loaded host, not
+# expectations — the wait ends the moment the port answers.
+DJANGO_LISTEN_TIMEOUT = 30
+VITE_LISTEN_TIMEOUT = 30
+LISTEN_POLL_INTERVAL = 0.1
+
+
+def port_accepting(port, host='127.0.0.1'):
+    """Whether a server answers a TCP connect on the port.
+
+    Unlike _port_in_use (which asks psutil whether any process holds the
+    port, and scans every process to find out) this is a readiness check:
+    cheap enough to poll ten times a second, and true only once the server
+    is actually accepting connections.
+    """
+    try:
+        with socket.create_connection((host, port), timeout=0.25):
+            return True
+    except OSError:
+        return False
+
+
+def wait_for_listener(process, port, timeout, poll_interval=LISTEN_POLL_INTERVAL):
+    """Block until ``process`` is listening on ``port`` or has exited.
+
+    Returns None once the port accepts connections, or the process's exit
+    code if it died first. Raises TimeoutError past ``timeout`` seconds.
+
+    The point is to wait exactly as long as the server takes and no longer.
+    The fixed sleeps this replaced cost every preview start eleven seconds
+    against servers that are up in one or two — the single largest share of
+    the wait between a finished first build and the founder seeing their app.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        exit_code = process.poll()
+        if exit_code is not None:
+            return exit_code
+        if port_accepting(port):
+            return None
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"no listener on port {port} after {timeout:.0f}s")
+        time.sleep(poll_interval)
+
+
+# Lock directory beside a project's preview sidecar files while its preview
+# session is being brought up, so two starters serialize instead of racing:
+# the warm-up kicked off at project creation and the workspace opening moments
+# later would otherwise each launch a set of dev servers and a browser, the
+# second overwriting the first's PID files and orphaning its processes. The
+# second starter waits, then reattaches to what the first brought up.
+PREVIEW_START_LOCK_SUFFIX = '_preview_start.lock'
+# A start that takes longer than this is presumed dead and its lock stolen —
+# generous, because a cold dependency store means an npm install in here.
+PREVIEW_START_LOCK_TIMEOUT = NPM_INSTALL_TIMEOUT
+
+
+@contextlib.contextmanager
+def preview_start_lock(pid_dir, stem, timeout=PREVIEW_START_LOCK_TIMEOUT):
+    """Serialize preview session starts for one project across processes.
+
+    Same atomic-mkdir scheme as npm_install_lock: a lock older than a whole
+    start could take is treated as a crashed starter's leftover and stolen,
+    and a lock that cannot be acquired within ``timeout`` is bypassed —
+    starting anyway beats never starting.
+    """
+    lock_dir = os.path.join(pid_dir, f"{stem}{PREVIEW_START_LOCK_SUFFIX}")
+    deadline = time.time() + timeout
+    acquired = False
+    while time.time() < deadline:
+        try:
+            os.mkdir(lock_dir)
+            acquired = True
+            break
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(lock_dir) > timeout + 60:
+                    os.rmdir(lock_dir)
+                    continue
+            except OSError:
+                pass
+            time.sleep(0.1)
+        except OSError:
+            break
+    if not acquired:
+        logger.warning(f"Proceeding without the preview start lock for {stem}")
+    try:
+        yield
+    finally:
+        if acquired:
+            try:
+                os.rmdir(lock_dir)
+            except OSError:
+                pass
+
 
 # The per-project files this service keeps beside the project directory, by
 # filename suffix. They are keyed on the project id, not the timestamped
@@ -241,23 +340,17 @@ class PreviewService:
         """Start both VueJS frontend and Django backend servers."""
         logger.info("Starting dual-stack preview (VueJS + Django)")
 
-        # Start Django backend first
+        # Each start returns once its server is listening (or has failed), so
+        # there is nothing to wait out between them.
         backend_error = self._start_django_backend(backend_path)
         if backend_error:
             raise Exception(f"Django backend failed to start: {backend_error}")
 
-        # Wait a moment for backend to start
-        time.sleep(3)
-
-        # Start VueJS frontend
         frontend_error = self._start_vuejs_frontend(frontend_path)
         if frontend_error:
             # If frontend fails, stop the backend
             self._stop_django_backend(port=self.backend_port)
             raise Exception(f"VueJS frontend failed to start: {frontend_error}")
-
-        # Wait for frontend to start
-        time.sleep(5)
 
         self._save_port_state()
 
@@ -329,14 +422,19 @@ class PreviewService:
 
             logger.info(f"Django backend started with PID {process.pid}")
 
-            # Wait a moment and check if process is still running
-            time.sleep(1)
-            if process.poll() is not None:
+            # Wait for it to listen — as long as that takes and no longer.
+            try:
+                exit_code = wait_for_listener(process, self.backend_port, DJANGO_LISTEN_TIMEOUT)
+            except TimeoutError as e:
+                output = self._read_log_tail(self.backend_log_file)
+                logger.error(f"Django backend never started listening: {e}")
+                return f"Django did not start listening within {DJANGO_LISTEN_TIMEOUT}s: {output}"
+            if exit_code is not None:
                 output = self._read_log_tail(self.backend_log_file)
                 logger.error(f"Django backend process terminated unexpectedly")
-                logger.error(f"Return code: {process.returncode}")
+                logger.error(f"Return code: {exit_code}")
                 logger.error(f"Output: {output}")
-                return f"process exited with code {process.returncode}: {output}"
+                return f"process exited with code {exit_code}: {output}"
 
             return None
 
@@ -403,14 +501,19 @@ class PreviewService:
 
             logger.info(f"VueJS frontend started with PID {process.pid}")
 
-            # Wait a moment and check if process is still running
-            time.sleep(2)
-            if process.poll() is not None:
+            # Wait for Vite to listen — as long as that takes and no longer.
+            try:
+                exit_code = wait_for_listener(process, self.frontend_port, VITE_LISTEN_TIMEOUT)
+            except TimeoutError as e:
+                output = self._read_log_tail(self.frontend_log_file)
+                logger.error(f"VueJS frontend never started listening: {e}")
+                return f"Vite did not start listening within {VITE_LISTEN_TIMEOUT}s: {output}"
+            if exit_code is not None:
                 output = self._read_log_tail(self.frontend_log_file)
                 logger.error(f"VueJS frontend process terminated unexpectedly")
-                logger.error(f"Return code: {process.returncode}")
+                logger.error(f"Return code: {exit_code}")
                 logger.error(f"Output: {output}")
-                return f"process exited with code {process.returncode}: {output}"
+                return f"process exited with code {exit_code}: {output}"
 
             return None
 

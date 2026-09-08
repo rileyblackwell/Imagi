@@ -106,13 +106,9 @@ PAGE_BRIEFS = (
         view_path='frontend/vuejs/src/apps/home/views/HomeView.vue',
         route='/',
         summary='the landing page — the first thing anyone sees',
-        requirements="""Build a whole landing page: a header carrying the business's name, a hero that says plainly what this business does and for whom, three or four well-differentiated sections (what it offers, how it works, proof or testimonials, FAQ — whatever this business actually needs), a closing call to action, and a footer.
+        requirements="""Build a whole landing page: a header with the business's name, a hero that says plainly what this business does and for whom, two well-differentiated content sections (what it offers, how it works, proof or testimonials — whichever two this business actually needs), a closing call to action, and a footer — five blocks in all.
 
-This page also carries the authentication wiring, which the other pages do not. The sign-in and register pages are prebuilt and already working at '/auth/signin' and '/auth/register':
-- Keep the scaffold's script setup as it stands: `import { useAuthStore } from '../../auth/stores/index'` and `const authStore = useAuthStore()`. That is the only import your page needs.
-- In the header, show the signed-in user when `authStore.isAuthenticated` (their username and a sign-out button calling `authStore.logout($router)`), and when signed out show a 'Sign in' link to '/auth/signin' plus a prominent create-account link to '/auth/register'.
-- Make the hero's primary call to action a <router-link> to '/auth/register', worded for this business ("Start your free trial", "Book a table", "Get a quote") rather than a generic "Create account".
-- Keep those two paths exact. Do NOT open, restyle, or modify anything under 'frontend/vuejs/src/apps/auth/' — those pages and their backend are prebuilt and secure.""",
+This page alone carries the sign-in wiring. The auth pages are prebuilt at '/auth/signin' and '/auth/register': keep the scaffold's `import { useAuthStore } from '../../auth/stores/index'` and `const authStore = useAuthStore()` (the only import you need); in the header show the signed-in username with a sign-out button calling `authStore.logout($router)` when `authStore.isAuthenticated`, otherwise a 'Sign in' link to '/auth/signin' and a prominent create-account link to '/auth/register'; and make the hero's primary call to action a <router-link> to '/auth/register' worded for this business ("Start your free trial", "Book a table"). Keep those paths exact. Do NOT open, restyle, or modify anything under 'frontend/vuejs/src/apps/auth/'.""",
     ),
     PageBrief(
         slug='about',
@@ -120,9 +116,7 @@ This page also carries the authentication wiring, which the other pages do not. 
         view_path='frontend/vuejs/src/apps/home/views/AboutView.vue',
         route='/about',
         summary='the about page — who is behind this business and why it exists',
-        requirements="""Build a whole about page: a header, an opening that states what the business stands for, then the sections an about page earns its place with — the story of why it exists, what it believes or how it works, the people or the craft behind it, and a few concrete numbers or milestones if they fit the business. Close with a call to action pointing at the contact page ('/contact') and a footer.
-
-Write it as this specific business would: concrete and grounded, not "we are passionate about excellence". Do NOT add the auth header or the sign-in/register calls to action — the home page owns those. Do not import the auth store.""",
+        requirements="""Build a whole about page: a header, an opening that states what the business stands for, then the story of why it exists, how it works or what it believes, the people or craft behind it, and a few concrete numbers or milestones if they fit — written as this specific business would, concrete and grounded. Close with a call to action pointing at '/contact' and a footer. Do not add the auth header or sign-in calls to action — the home page owns those. Do not import the auth store.""",
     ),
     PageBrief(
         slug='contact',
@@ -130,11 +124,7 @@ Write it as this specific business would: concrete and grounded, not "we are pas
         view_path='frontend/vuejs/src/apps/home/views/ContactView.vue',
         route='/contact',
         summary='the contact page — how a customer reaches this business',
-        requirements="""Build a whole contact page: a header, a short line on what to get in touch about, a contact form (name, email, message, and any field this business actually needs — laid out and styled properly), and the other ways to reach the business alongside it (email address, phone, location or hours) as fits.
-
-The form must be presentational only: bind it to local `ref`s and, on submit, show an inline "thanks, we'll be in touch" confirmation in the page. Do NOT post it anywhere — there is no backend endpoint for it and you must not add one. Keep all of it, `ref` imports included, inside your one file.
-
-Do NOT add the auth header or the sign-in/register calls to action — the home page owns those. Do not import the auth store.""",
+        requirements="""Build a whole contact page: a header, a short line on what to get in touch about, a contact form (name, email, message, plus any field this business needs) laid out properly, and the other ways to reach the business (email, phone, location or hours) alongside it. The form is presentational only: bind it to local `ref`s and on submit show an inline "thanks, we'll be in touch" confirmation; do NOT post it anywhere and do not add a backend endpoint. Do not add the auth header or sign-in calls to action — the home page owns those. Do not import the auth store.""",
     ),
 )
 

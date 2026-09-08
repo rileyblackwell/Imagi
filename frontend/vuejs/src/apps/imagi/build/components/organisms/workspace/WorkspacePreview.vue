@@ -1063,12 +1063,16 @@ const elapsedLabel = computed(() => {
 
 // Thresholds are the shape of a real cold start, not a promise about it — the
 // copy stays true even if a stage runs long, because none of it claims to be
-// nearly done until the wait is genuinely unusual.
+// nearly done until the wait is genuinely unusual. Dependencies are never
+// installed here: every project links to a store installed once per machine
+// at creation, and the servers start in a second or two — so a wait past a
+// few seconds is the app compiling, and only a wait past that on a fresh
+// machine (empty store) is an install.
 const startingStage = computed(() => {
   const s = elapsed.value
-  if (s < 8) return 'Waking the preview server…'
-  if (s < 35) return 'Installing your project\'s dependencies…'
-  if (s < 90) return 'Compiling your app…'
+  if (s < 5) return 'Waking the preview server…'
+  if (s < 30) return 'Compiling your app…'
+  if (s < 90) return 'Still going — a first start on a new machine installs dependencies, which can take a few minutes.'
   return 'Still going — a first start can take a few minutes.'
 })
 

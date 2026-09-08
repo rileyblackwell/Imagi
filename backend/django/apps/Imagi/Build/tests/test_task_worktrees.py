@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
@@ -1146,6 +1147,49 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
             .get(conversation=task, status='pending').kind,
             'done',
         )
+
+    def test_deadline_capped_run_meters_its_usage(self):
+        # The initial build ends at its wall-clock deadline on most runs, and
+        # the exception that ends it loses the SDK result that carries usage.
+        # The bounds hook read the aggregate after every turn, so the run is
+        # metered from there — otherwise first builds would be free.
+        from types import SimpleNamespace
+        from apps.Imagi.Build.services.base_agent import RunDeadlineExceeded
+        from apps.Payments.models import UsageEvent
+
+        task = self._task()
+        self._worktree_with_change(task)
+        hook = SimpleNamespace(
+            last_usage=SimpleNamespace(input_tokens=4_400, output_tokens=3_300)
+        )
+
+        with patch.object(
+            self.service, '_prepare_run',
+            return_value=(task, self._context(), [{'role': 'user', 'content': 'go'}]),
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.make_run_bounds_hook',
+            return_value=hook,
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.Runner.run_sync',
+            side_effect=RunDeadlineExceeded(30.0, 24.0),
+        ):
+            result = self.service.process(
+                user_input='go', user=self.user, project_id=self.project.id,
+                conversation_id=task.id, deadline_at=time.monotonic() + 24,
+            )
+
+        self.assertTrue(result.get('capped'))
+        event = UsageEvent.objects.get(user=self.user)
+        self.assertEqual(event.input_tokens, 4_400)
+        self.assertEqual(event.output_tokens, 3_300)
+        self.assertEqual(event.conversation_id, task.id)
+        # The capped note carries the usage too, like any finished run's.
+        note = (
+            AgentMessage.objects
+            .filter(conversation=task, role='assistant')
+            .latest('created_at')
+        )
+        self.assertEqual(note.metadata['usage']['input_tokens'], 4_400)
 
     def test_auto_apply_holds_off_while_a_tree_writing_run_is_live(self):
         task = self._task()

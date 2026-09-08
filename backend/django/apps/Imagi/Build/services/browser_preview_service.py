@@ -31,12 +31,14 @@ import time
 import psutil
 import requests
 from django.conf import settings
+from django.db import close_old_connections
 from websocket import create_connection, WebSocketException
 
 from .preview_service import (
     BROWSER_PROFILE_SUFFIX,
     BROWSER_STATE_SUFFIX,
     PreviewService,
+    preview_start_lock,
     sidecar_stem,
 )
 
@@ -310,7 +312,16 @@ class BrowserPreviewService:
 
         Idempotent: an already-healthy session is reused, so the workspace
         can call this on every mount without restarting anything.
+
+        The whole bring-up runs under a per-project lock. Two starters race
+        routinely — the warm-up at project creation and the workspace opening
+        moments later — and the second must wait and reattach to what the
+        first brought up, not launch a duplicate session over it.
         """
+        with preview_start_lock(self.pid_dir, sidecar_stem(self.project)):
+            return self._start_locked(viewport, device_scale_factor)
+
+    def _start_locked(self, viewport, device_scale_factor):
         reap_idle_sessions()
 
         server_state = self.servers.ensure_preview()
@@ -918,6 +929,41 @@ def find_chromium():
                 return candidate
 
     return None
+
+
+def start_preview_warmup(project):
+    """Bring the project's preview session up in the background.
+
+    Called when a project is created, so the dev servers and browser are
+    already live — dependencies linked, Vite's dependency pre-bundle done —
+    by the time the founder opens the workspace. Without it the first open
+    pays the whole boot right after they have waited on the build.
+
+    Best-effort: the workspace's own start() remains the call that reports
+    failures to the user, and it simply reattaches when this got there
+    first. Returns the thread, or None when warm-up is disabled.
+    """
+    if not getattr(settings, 'BROWSER_PREVIEW_PREWARM_ON_CREATE', True):
+        return None
+
+    def run():
+        close_old_connections()
+        try:
+            BrowserPreviewService(project).start()
+            logger.info("Preview warmed up for project %s", project.pk)
+        except Exception:
+            logger.warning(
+                "Preview warm-up for project %s did not complete; the workspace "
+                "will start it on demand", project.pk, exc_info=True,
+            )
+        finally:
+            close_old_connections()
+
+    thread = threading.Thread(
+        target=run, name=f"preview-warmup-{project.pk}", daemon=True
+    )
+    thread.start()
+    return thread
 
 
 def reap_idle_sessions():

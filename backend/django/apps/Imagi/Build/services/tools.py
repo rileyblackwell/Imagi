@@ -1002,20 +1002,14 @@ def delete_directory(ctx: RunContextWrapper, dir_path: str) -> str:
 def update_plan(ctx: RunContextWrapper, steps: List[PlanStep]) -> str:
     """Create or update your working plan for a multi-step task. The plan is shown live to the user, so keep it current.
 
-    Call this when a task needs 3 or more distinct steps: once up front with all steps
-    ('pending'), then again whenever a step starts ('in_progress') or finishes
-    ('completed'). Exactly one step should be 'in_progress' at a time. Skip planning
-    for trivial single-step requests.
+    Call it when a task needs 3 or more distinct steps: once up front with every
+    step 'pending', then whenever a step starts ('in_progress', exactly one at a
+    time) or finishes ('completed'). Skip it for trivial requests.
 
-    The user watches this plan tick over while you work, and they are a business
-    owner, not an engineer — for many of them it is the only view they get of how
-    their app is being built. So write every step for THEM: one short line, plain
-    words, about what will be different in their app. No file names, paths,
-    folders, components, frameworks, or jargon. Write "Give the home page a
-    warmer look" and "Make the heading easier to read on a phone", never
-    "Refactor HomeView.vue hero" or "Locate the landing view file". Steps that
-    only describe your own process ("Read the file", "Verify the change") are
-    not worth a line — plan the outcomes, not the keystrokes.
+    The reader is a business owner, not an engineer: write each step as one short
+    plain line about what will be different in their app — "Give the home page a
+    warmer look", never "Refactor HomeView.vue hero" — and plan outcomes, not
+    your own process ("Read the file" is not a step).
 
     Args:
         steps: The full plan as a list of {step, status} objects, where status is
@@ -1040,25 +1034,18 @@ def dispatch_task(
 ) -> str:
     """Dispatch a self-contained task to a background subagent that builds it in an isolated copy of the project, in parallel with this conversation.
 
-    Call this for ANY building work — a feature, a fix, a style tweak, a copy
-    change, large or small. You have no file-editing tools, so every change
-    goes through here. Dispatch immediately rather than pre-reading the project
-    to "scope" it: the subagent is a full coding agent that finds the relevant
-    files itself, and calling this first is what starts the work and frees this
-    thread. A single-draft subagent applies its changes to the project itself
-    when it finishes — the user is never asked to approve them — and its card
-    in this thread turns into "Subagent complete" with its own summary; it
-    interrupts sooner only if it has a question. (Multi-draft variants are
-    built to compare, so those wait for the user to pick one.) Never wait for a
-    dispatched task.
+    Call this for ANY building work, large or small — you have no file-editing
+    tools. Call it immediately rather than pre-reading the project: the subagent
+    finds the relevant files itself. A single-draft subagent applies its changes
+    when it finishes (the user is never asked to approve) and its card in this
+    thread becomes "Subagent complete" with its own summary; it interrupts
+    sooner only with a question. Multi-draft variants wait for the user to pick
+    one. Never wait for a dispatched task.
 
-    ONE job, ONE call, ONE subagent. Call this exactly once for a request, with
-    the whole job in that one brief — never split one job ("redesign the home
-    page") across two subagents by section, layer, or step, and never repeat a
-    call you already made. Each subagent edits its own copy of the project and
-    merges it back, so two working the same job overwrite each other's work.
-    Only a message asking for several genuinely separate things (a different
-    page, an unrelated fix) is more than one call.
+    ONE job, ONE call, ONE subagent: the whole job in one brief. Never split a
+    job by section, layer or step, and never repeat a call — each subagent
+    merges its own copy back, so two on one job overwrite each other. Only
+    genuinely separate asks in one message are more than one call.
 
     Args:
         description: The brief for the subagent, written like a ticket for an

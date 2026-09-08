@@ -343,11 +343,12 @@ class ProjectManagerAPITests(APITestCase):
         project.refresh_from_db()
         self.assertEqual(project.slug, 'rename-me')
 
+    @patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
     @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
     @patch(
         'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
     )
-    def test_create_project(self, mock_create, mock_build):
+    def test_create_project(self, mock_create, mock_build, mock_warmup):
         mock_create.side_effect = lambda project: project
         resp = self.client.post(
             reverse('project_manager:project-create'),
@@ -362,7 +363,15 @@ class ProjectManagerAPITests(APITestCase):
         mock_build.assert_called_once()
         self.assertEqual(mock_build.call_args.args[0].pk, project.pk)
         self.assertEqual(mock_build.call_args.args[1], self.user)
+        # ...and start warming its preview up alongside the build, so the
+        # workspace opens onto a live session once the build is done.
+        mock_warmup.assert_called_once()
+        self.assertEqual(mock_warmup.call_args.args[0].pk, project.pk)
 
+    @patch(
+        'apps.Imagi.ProjectManager.api.views.start_preview_warmup',
+        side_effect=RuntimeError('no browser here'),
+    )
     @patch(
         'apps.Imagi.ProjectManager.api.views.start_initial_build',
         side_effect=RuntimeError('agent unavailable'),
@@ -370,7 +379,9 @@ class ProjectManagerAPITests(APITestCase):
     @patch(
         'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
     )
-    def test_create_succeeds_when_initial_build_kickoff_fails(self, mock_create, mock_build):
+    def test_create_succeeds_when_initial_build_kickoff_fails(
+        self, mock_create, mock_build, mock_warmup
+    ):
         mock_create.side_effect = lambda project: project
         resp = self.client.post(
             reverse('project_manager:project-create'),
@@ -1308,7 +1319,8 @@ class ProjectNameValidationTests(APITestCase):
 
     def test_ordinary_name_is_accepted(self):
         with patch('apps.Imagi.ProjectManager.api.views.ProjectCreationService'), \
-                patch('apps.Imagi.ProjectManager.api.views.start_initial_build'):
+                patch('apps.Imagi.ProjectManager.api.views.start_initial_build'), \
+                patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup'):
             resp = self._create('My Corner Shop')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
@@ -1316,7 +1328,8 @@ class ProjectNameValidationTests(APITestCase):
         # The update path is the one an attacker actually uses: create a
         # normal project, then PATCH the name.
         with patch('apps.Imagi.ProjectManager.api.views.ProjectCreationService'), \
-                patch('apps.Imagi.ProjectManager.api.views.start_initial_build'):
+                patch('apps.Imagi.ProjectManager.api.views.start_initial_build'), \
+                patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup'):
             created = self._create('My Corner Shop')
         project_id = created.data['id']
 
