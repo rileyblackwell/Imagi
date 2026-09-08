@@ -332,10 +332,14 @@ IMAGI_BUILDER = {
     # project already holds a working home + auth scaffold from the moment it is
     # created, so a build that stops early degrades to "less tailoring", never
     # to a broken or empty app.
-    # The target is a 30-second wait, so the agents' own runs get 28: the
+    # The target is a 30-second wait. The agents' own runs get 24 of it: the
     # founder additionally waits on the work either side of them (worktree
-    # setup, then the merges and database mirror on the way out) — measured at
-    # ~2s combined.
+    # setup, then the merges and database mirror on the way out — ~2s
+    # combined), and the deadline is only checked BETWEEN model turns, so a
+    # run that finishes its page write with time to spare goes on to a short
+    # summary turn (~4s) before it ends. 24 is what lets that summary land
+    # inside the 30 when the write was quick, and skips it — the founder gets
+    # the stock "your page is built" note instead — when the write ran late.
     #
     # The budget is shared by every page, not spent per page: the pages below
     # are built CONCURRENTLY, one subagent each, so half a minute buys all of
@@ -343,7 +347,16 @@ IMAGI_BUILDER = {
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
     'INITIAL_BUILD_MODEL': 'gpt-5.6-terra',
-    'INITIAL_BUILD_TIME_BUDGET_S': 28,
+    'INITIAL_BUILD_TIME_BUDGET_S': 24,
+    # OpenAI service tier for the first build's requests. A page write is one
+    # long streamed tool call, so its wall clock is output throughput: on the
+    # default tier gpt-5-mini streamed ~75 tokens/s in Sep 2026 measurements
+    # (a 10 KB page ≈ 3.3K tokens ≈ 45s); on 'priority', 120–150 tokens/s
+    # (the same page ≈ 26s). Priority is billed at 2x the API list price per
+    # token, which on a ~4K-in/3K-out page is under a cent; the retail rates
+    # in models_service that meter the founder are unaffected. None uses the
+    # account's default tier.
+    'INITIAL_BUILD_SERVICE_TIER': 'priority',
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS
     # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).
@@ -353,7 +366,9 @@ IMAGI_BUILDER = {
     # First builds create UI from a description rather than reasoning about
     # existing code, so they run at low effort: it roughly halves per-turn
     # latency, which buys more pages inside the time budget than deeper
-    # reasoning does.
+    # reasoning does. Not 'minimal': it would save only the ~2–3s of reasoning
+    # 'low' spends, and in measurements gpt-5-mini at minimal skipped the file
+    # write outright in one run of three, answering in prose instead.
     'INITIAL_BUILD_REASONING_EFFORT': 'low',
     # Cost and turns are runaway backstops now, not the operative limit — the
     # time budget stops a normal build long before either binds. Both are PER
@@ -447,6 +462,11 @@ BROWSER_PREVIEW_EXECUTABLE = os.environ.get('BROWSER_PREVIEW_EXECUTABLE', '')
 # Preview sessions (browser + dev servers) idle longer than this many seconds
 # are shut down opportunistically when another preview starts. 0 disables.
 BROWSER_PREVIEW_IDLE_TIMEOUT = int(os.environ.get('BROWSER_PREVIEW_IDLE_TIMEOUT', '1800'))
+# Start a project's preview session (dev servers + browser) the moment the
+# project is created, alongside its first build, so the workspace opens onto
+# a live session instead of paying the boot after the founder has already
+# waited on the build. Set to 0 to start previews only on demand.
+BROWSER_PREVIEW_PREWARM_ON_CREATE = os.environ.get('BROWSER_PREVIEW_PREWARM_ON_CREATE', '1') == '1'
 
 
 # Marketing / Twilio

@@ -269,6 +269,16 @@ def make_run_bounds_hook(
         # Set once a bound is passed on a turn whose tool calls still need to
         # run; raised before the next model turn starts instead.
         deferred_stop = None
+        # The run's aggregate usage as of the last model turn. A run this hook
+        # stops loses the SDK result that normally carries its usage, and the
+        # initial build ends that way on most runs — so the caller meters it
+        # from here instead.
+        last_usage = None
+
+        def _remember_usage(self, context):
+            usage = getattr(context, 'usage', None)
+            if usage is not None:
+                self.last_usage = usage
 
         def _exceeded_bound(self, context):
             """The exception for whichever bound this turn passed, if any."""
@@ -288,12 +298,16 @@ def make_run_bounds_hook(
             return None
 
         async def on_llm_start(self, context, agent, system_prompt, input_items):  # noqa: ANN001
+            self._remember_usage(context)
             # The previous turn's tools have run by now, so this is the first
             # moment a deferred stop costs nothing.
             if self.deferred_stop is not None:
                 raise self.deferred_stop
 
         async def on_llm_end(self, context, agent, response):  # noqa: ANN001
+            # The SDK adds the turn's usage before calling this, so the
+            # reading is complete through the turn that passes a bound.
+            self._remember_usage(context)
             # Reached only on an SDK without on_llm_start: the deferred turn's
             # tools have long since run, so stop here rather than never.
             if self.deferred_stop is not None:
@@ -312,6 +326,7 @@ def make_run_bounds_hook(
 def build_model_settings(
     reasoning_effort: Optional[str] = None,
     parallel_tool_calls: Optional[bool] = None,
+    service_tier: Optional[str] = None,
 ):
     """
     Build ModelSettings for an agent, applying a reasoning effort level when one
@@ -321,6 +336,10 @@ def build_model_settings(
     tool with side effects the model cannot see until it returns (dispatch_task
     creating a subagent) cannot be fired twice in the same message.
 
+    service_tier names an OpenAI processing tier ('priority', 'flex', ...) for
+    the agent's requests. The SDK has no field for it, so it rides in
+    extra_args, which the Responses model merges into every create() call.
+
     Returns None when ModelSettings is unavailable, so callers can omit the
     argument entirely and fall back to SDK defaults.
     """
@@ -329,6 +348,8 @@ def build_model_settings(
     kwargs = {}
     if parallel_tool_calls is not None:
         kwargs['parallel_tool_calls'] = parallel_tool_calls
+    if service_tier:
+        kwargs['extra_args'] = {'service_tier': service_tier}
     if reasoning_effort and Reasoning is not None:
         try:
             return ModelSettings(reasoning=Reasoning(effort=reasoning_effort), **kwargs)
@@ -496,14 +517,13 @@ def extract_dispatched_tasks(output) -> Optional[List[Dict[str, Any]]]:
     return None
 
 
-def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
-    """Token usage (with cost when priceable) from an SDK run result, or None.
+def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
+    """Token usage (with cost when priceable) from an SDK Usage object, or None.
 
-    The SDK aggregates usage on the run's context wrapper. An all-zero
-    reading means nothing was tracked (a real run always spends input
-    tokens), so it is treated as unavailable rather than reported as free.
+    An all-zero reading means nothing was tracked (a real run always spends
+    input tokens), so it is treated as unavailable rather than reported as
+    free.
     """
-    usage = getattr(getattr(result, 'context_wrapper', None), 'usage', None)
     input_tokens = getattr(usage, 'input_tokens', None)
     output_tokens = getattr(usage, 'output_tokens', None)
     if not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
@@ -518,6 +538,16 @@ def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
     if cost is not None:
         payload["cost_usd"] = cost
     return payload
+
+
+def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
+    """Token usage from an SDK run result — see usage_payload.
+
+    The SDK aggregates usage on the run's context wrapper.
+    """
+    return usage_payload(
+        getattr(getattr(result, 'context_wrapper', None), 'usage', None), model_id
+    )
 
 
 def _page_name(path: str) -> str:
@@ -2109,6 +2139,7 @@ class ImagiAgentService:
         conversation = None
         context = None
         run_state: Dict[str, Any] = {}
+        bounds_hook = None
         try:
             if not user_input:
                 return {"success": False, "error": "Message is required"}
@@ -2209,6 +2240,13 @@ class ImagiAgentService:
                         conversation.id if conversation else None, cap)
             files_changed = self._capped_run_files(conversation)
             capped_note = _capped_run_note(files_changed)
+            # The SDK result that carries a run's usage is lost with the
+            # exception, but the bounds hook read the aggregate after every
+            # turn. Without this, a run the hook stops — the initial build,
+            # on most runs — would never be metered.
+            usage = usage_payload(
+                getattr(bounds_hook, 'last_usage', None), model or self.model
+            )
             if conversation is not None:
                 try:
                     self.add_assistant_message(
@@ -2217,6 +2255,7 @@ class ImagiAgentService:
                         build_message_metadata(
                             files_changed=files_changed,
                             plan=list(getattr(context, "plan", []) or []),
+                            usage=usage,
                         ),
                     )
                 except Exception:  # pragma: no cover - best effort persistence
@@ -2226,6 +2265,7 @@ class ImagiAgentService:
                 # capped task would sit at 'active' forever — never applied,
                 # never reviewed, and never reported to the user.
                 self._finalize_task_run(conversation, context, capped_note)
+                self._record_usage_event(user, model, usage, conversation)
             return {
                 "success": True,
                 "capped": True,

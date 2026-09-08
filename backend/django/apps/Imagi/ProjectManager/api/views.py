@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, APIException
 from rest_framework.views import APIView
 from apps.Payments.services.usage_service import check_usage_allowed
+from apps.Imagi.Build.services.browser_preview_service import start_preview_warmup
 from ..services import ProjectCreationService, ProjectManagementService, start_initial_build
 from .serializers import (
     ProjectSerializer,
@@ -51,6 +52,14 @@ class ProjectCreateView(generics.CreateAPIView):
                 start_initial_build(project, request.user)
             except Exception:
                 logger.exception("Failed to start initial AI build for project %s", project.id)
+            # Bring the preview up now, alongside the build, so the workspace
+            # opens onto a live session rather than paying the boot after the
+            # founder has already waited on the build. Best-effort, like the
+            # build kickoff.
+            try:
+                start_preview_warmup(project)
+            except Exception:
+                logger.exception("Failed to start preview warm-up for project %s", project.id)
 
             response_serializer = ProjectSerializer(project)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)

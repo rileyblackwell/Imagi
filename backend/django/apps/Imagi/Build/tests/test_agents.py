@@ -41,10 +41,12 @@ from apps.Imagi.Build.services.base_agent import (
     RunBudgetExceeded,
     RunDeadlineExceeded,
     _capped_run_note,
+    build_model_settings,
     compact_history,
     extract_run_metadata,
     lead_claims_unmade_dispatch,
     make_run_bounds_hook,
+    usage_payload,
 )
 from apps.Imagi.Build.services.models_service import (
     compute_cost_usd,
@@ -57,6 +59,7 @@ from apps.Imagi.Build.services.models_service import (
 from apps.Imagi.Build.services.coding_agent import (
     INITIAL_BUILD_INSTRUCTIONS,
     INITIAL_BUILD_REASONING_EFFORT,
+    INITIAL_BUILD_SERVICE_TIER,
     INITIAL_BUILD_TIME_BUDGET_S,
     LEAD_AGENT_INSTRUCTIONS,
     PROJECT_MEMORY_MAX_CHARS,
@@ -1238,6 +1241,29 @@ class RunBoundsHookTests(SimpleTestCase):
         with self.assertRaises(RunBudgetExceeded):
             self._fire(hook, input_tokens=1_000_000, output_tokens=0)
 
+    def test_hook_keeps_the_latest_usage_reading(self):
+        # A run the hook stops loses the SDK result that carries its usage;
+        # the caller meters it from the hook's last reading instead.
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', deadline_at=time.monotonic() + 300
+        )
+        self.assertIsNone(hook.last_usage)
+        self._fire(hook, input_tokens=1000, output_tokens=100)
+        self.assertEqual(hook.last_usage.output_tokens, 100)
+        # A start-of-turn call carrying no context keeps the last reading.
+        self._start_turn(hook)
+        self.assertEqual(hook.last_usage.output_tokens, 100)
+
+    def test_usage_is_read_on_the_turn_that_passes_the_deadline(self):
+        # The turn that overshoots is the one holding most of the tokens.
+        hook = make_run_bounds_hook(
+            'gpt-5.6-sol', deadline_at=time.monotonic() - 1
+        )
+        with self.assertRaises(RunDeadlineExceeded):
+            self._fire(hook, input_tokens=4000, output_tokens=3000)
+        self.assertEqual(hook.last_usage.input_tokens, 4000)
+        self.assertEqual(hook.last_usage.output_tokens, 3000)
+
     def test_pending_tool_calls_run_before_the_stop(self):
         # The turn that ends over the deadline is usually the turn that wrote
         # the page. Stopping on the spot would discard it, so its tool calls
@@ -1359,6 +1385,90 @@ class InitialBuildAgentTests(SimpleTestCase):
         self.assertEqual(
             agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
         )
+
+    def test_initial_build_requests_its_configured_service_tier(self):
+        # A page write is one long streamed tool call, so its wall clock is
+        # output throughput, and the tier is what buys more of it. The SDK has
+        # no field for it, so it travels in extra_args to every create() call.
+        agent = create_coding_agent(kind='initial_build')
+        self.assertEqual(
+            agent.model_settings.extra_args,
+            {'service_tier': INITIAL_BUILD_SERVICE_TIER},
+        )
+
+    def test_only_the_initial_build_requests_a_service_tier(self):
+        # The founder watches a clock on the first build alone; every other
+        # run stays on the account's default tier, at its default price.
+        for kind in ('chat', 'task', 'lead'):
+            with self.subTest(kind=kind):
+                agent = create_coding_agent(kind=kind)
+                self.assertIsNone(agent.model_settings.extra_args)
+
+    def test_prompt_sizes_the_page_for_the_clock_and_forbids_a_second_write(self):
+        # The deadline can only stop a run between turns, so an oversized
+        # page — or a second write after a quick first one — is time the
+        # founder waits past the budget, with nothing to show for it.
+        self.assertIn('stay under 10 KB', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('One write is the whole build', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertNotIn('If you finish with time left', INITIAL_BUILD_INSTRUCTIONS)
+
+
+class PromptSizeTests(SimpleTestCase):
+    """The prompts stay short: the current request plus the project context it
+    needs, not an ever-growing list of rules. Ceilings, so growth is a choice."""
+
+    def test_each_role_prompt_stays_under_its_ceiling(self):
+        from apps.Imagi.Build.services.coding_agent import CODING_AGENT_INSTRUCTIONS
+
+        for name, prompt, ceiling in (
+            ('chat', CODING_AGENT_INSTRUCTIONS, 3_000),
+            ('lead', LEAD_AGENT_INSTRUCTIONS, 5_500),
+            ('task role', TASK_AGENT_INSTRUCTIONS, 3_500),
+            ('initial build', INITIAL_BUILD_INSTRUCTIONS, 5_000),
+        ):
+            with self.subTest(role=name):
+                self.assertLess(len(prompt), ceiling, f"{name} prompt is {len(prompt)} chars")
+
+    def test_the_first_build_carries_no_general_project_guidance(self):
+        # A first build rewrites one already-routed file; the layout, API and
+        # payments guidance the other roles need is dead weight on its clock.
+        from apps.Imagi.Build.services.coding_agent import SHARED_PROJECT_GUIDANCE
+
+        self.assertNotIn(SHARED_PROJECT_GUIDANCE, INITIAL_BUILD_INSTRUCTIONS)
+
+
+class BuildModelSettingsTests(SimpleTestCase):
+    """Request-level settings that ride on every model call."""
+
+    def test_service_tier_rides_in_extra_args(self):
+        settings_ = build_model_settings('low', service_tier='priority')
+        self.assertEqual(settings_.extra_args, {'service_tier': 'priority'})
+        self.assertEqual(settings_.reasoning.effort, 'low')
+
+    def test_no_service_tier_means_no_extra_args(self):
+        # Absent, not {}: the SDK merges extra_args into every request, and
+        # an empty dict is a needless key on each one.
+        self.assertIsNone(build_model_settings('low').extra_args)
+
+
+class UsagePayloadTests(SimpleTestCase):
+    """The metered shape of an SDK usage reading."""
+
+    def test_prices_a_reading(self):
+        payload = usage_payload(
+            SimpleNamespace(input_tokens=1000, output_tokens=100), 'gpt-5.6-terra'
+        )
+        self.assertEqual(payload['input_tokens'], 1000)
+        self.assertEqual(payload['output_tokens'], 100)
+        self.assertEqual(
+            payload['cost_usd'], compute_cost_usd('gpt-5.6-terra', 1000, 100)
+        )
+
+    def test_nothing_tracked_is_unknown_not_free(self):
+        self.assertIsNone(usage_payload(None, 'gpt-5.6-terra'))
+        self.assertIsNone(usage_payload(
+            SimpleNamespace(input_tokens=0, output_tokens=0), 'gpt-5.6-terra'
+        ))
 
 
 class TaskSignOffPromptTests(SimpleTestCase):
