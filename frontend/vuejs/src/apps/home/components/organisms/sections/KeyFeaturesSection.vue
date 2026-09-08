@@ -53,7 +53,7 @@
           src="/product/run-sell.webp"
           alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
           :width="1800"
-          :height="420"
+          :height="414"
           label="imagi — sell"
           caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
         />
