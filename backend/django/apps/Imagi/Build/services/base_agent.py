@@ -55,7 +55,7 @@ OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Default model for agents
-DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
+DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'claude-opus-5-5')
 
 # Upper bound on agent-loop iterations for a single request: room for
 # plan → search → read → edit → verify cycles without letting a confused
@@ -132,7 +132,7 @@ TASK_REPORT_MAX_CHARS = 2000
 # smallest suite tier (Luna) so naming a thread costs the least usage possible —
 # it should never feel like it competes with the build itself. Resolved through
 # the registry so it tracks Luna's real backend id if that mapping ever changes.
-TITLE_SUITE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'gpt-5.6-luna')
+TITLE_SUITE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'gpt-6-luna')
 
 
 def _clean_title(raw: str) -> Optional[str]:
@@ -178,7 +178,9 @@ def generate_conversation_title(user_input: str, assistant_reply: str) -> Option
             model=get_backend_model_id(TITLE_SUITE_MODEL),
             input=prompt,
             max_output_tokens=500,
-            reasoning={"effort": "minimal"},
+            # Naming a thread needs no reasoning. GPT 6 takes 'none' and
+            # rejects 'minimal', which only the GPT 5 generation accepted.
+            reasoning={"effort": "none"},
         )
         return _clean_title(getattr(response, "output_text", "") or "")
     except Exception as e:
@@ -781,7 +783,7 @@ class ImagiAgentService:
         Initialize the agent service.
 
         Args:
-            model: The OpenAI model to use (default: gpt-5.6-terra)
+            model: The public model id to use (default: claude-opus-5-5)
             reasoning_effort: How much reasoning the model should use
                 ('low', 'medium', 'high'). None uses the model default.
             agent_kind: Run the agent in this role regardless of the

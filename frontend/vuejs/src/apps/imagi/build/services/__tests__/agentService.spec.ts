@@ -49,7 +49,7 @@ describe('AgentService.streamAgent', () => {
   })
 
   const call = (handlers = {}) =>
-    AgentService.streamAgent('13', { prompt: 'hi', model: 'gpt-5.6-sol' }, handlers)
+    AgentService.streamAgent('13', { prompt: 'hi', model: 'gpt-6-astra' }, handlers)
 
   it('reports deltas as they arrive and resolves with the done payload', async () => {
     vi.mocked(fetch).mockResolvedValue(
@@ -284,14 +284,14 @@ describe('AgentService.createConversation', () => {
   it('sends kind, parent and variant_group when dispatching a task', async () => {
     apiPost.mockResolvedValue({ data: { id: 5 } })
     await AgentService.createConversation(3, {
-      modelName: 'gpt-5.6-terra',
+      modelName: 'claude-opus-5-5',
       kind: 'task',
       parent: 9,
       variantGroup: 'uuid-1',
     })
     expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/', {
       project_id: 3,
-      model_name: 'gpt-5.6-terra',
+      model_name: 'claude-opus-5-5',
       title: '',
       kind: 'task',
       parent: 9,
@@ -301,10 +301,10 @@ describe('AgentService.createConversation', () => {
 
   it('omits the task fields entirely for plain conversations', async () => {
     apiPost.mockResolvedValue({ data: { id: 6 } })
-    await AgentService.createConversation(3, { modelName: 'gpt-5.6-terra' })
+    await AgentService.createConversation(3, { modelName: 'claude-opus-5-5' })
     expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/', {
       project_id: 3,
-      model_name: 'gpt-5.6-terra',
+      model_name: 'claude-opus-5-5',
       title: '',
     })
   })

@@ -11,15 +11,15 @@ import type {
   DispatchedTaskDto,
   ReasoningEffort
 } from '../types/services'
-import { DEFAULT_REASONING_EFFORT, clampEffortToModel } from '../types/services'
+import { DEFAULT_REASONING_EFFORT, canonicalModelId, clampEffortToModel } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { ProjectFile } from '../types/components'
 import { AgentService } from '../services/agentService'
 
-const DEFAULT_MODEL_ID = 'gpt-5.6-terra'
+const DEFAULT_MODEL_ID = 'claude-opus-5-5'
 
 // The catalog's `default: true` entry wins over list order, so the effective
-// default stays Terra even if the served ordering changes.
+// default stays Opus 5.5 even if the served ordering changes.
 function pickDefaultModelId(models: AIModel[]): string {
   return models.find(m => m.default)?.id ?? models[0]?.id ?? DEFAULT_MODEL_ID
 }
@@ -127,7 +127,8 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     hasWorktree: !!dto.has_worktree,
     // null means the tokens were never captured (unknown), never "0 tokens"
     totalTokens: typeof dto.total_tokens === 'number' ? dto.total_tokens : null,
-    selectedModelId: dto.model_name || fallbackModelId,
+    // A conversation stored on a retired model reopens on its successor.
+    selectedModelId: canonicalModelId(dto.model_name) || fallbackModelId,
     selectedEffort: DEFAULT_REASONING_EFFORT,
     selectedFile: null,
     conversation: [],

@@ -289,9 +289,8 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 # getattr(settings, 'IMAGI_BUILDER', {}) with matching fallbacks, so tests
 # and scripts work without it.
 IMAGI_BUILDER = {
-    # Public suite model id the agent runs on (see Build/services/models_service.py
-    # for the mapping to real OpenAI model ids).
-    'DEFAULT_MODEL': 'gpt-5.6-terra',
+    # Public model id the agent runs on (see Build/services/models_service.py).
+    'DEFAULT_MODEL': 'claude-opus-5-5',
     # Reasoning effort used when a request doesn't specify one.
     'DEFAULT_REASONING_EFFORT': 'medium',
     # Upper bound on agent-loop iterations for a single request.
@@ -346,16 +345,21 @@ IMAGI_BUILDER = {
     # them rather than just one. Wall clock is the slowest page; what scales
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
-    'INITIAL_BUILD_MODEL': 'gpt-5.6-terra',
+    # The first build's pages run on the quick tier: it is racing the clock,
+    # and a page write's wall clock is output throughput. The project's main
+    # thread still gets DEFAULT_MODEL — this only picks the page builders.
+    'INITIAL_BUILD_MODEL': 'gpt-6-luna',
     'INITIAL_BUILD_TIME_BUDGET_S': 24,
     # OpenAI service tier for the first build's requests. A page write is one
     # long streamed tool call, so its wall clock is output throughput: on the
     # default tier gpt-5-mini streamed ~75 tokens/s in Sep 2026 measurements
     # (a 10 KB page ≈ 3.3K tokens ≈ 45s); on 'priority', 120–150 tokens/s
-    # (the same page ≈ 26s). Priority is billed at 2x the API list price per
-    # token, which on a ~4K-in/3K-out page is under a cent; the retail rates
-    # in models_service that meter the founder are unaffected. None uses the
-    # account's default tier.
+    # (the same page ≈ 26s). GPT 6 models serve 'priority' as their 'fast'
+    # tier: gpt-6-luna streamed ~235 tokens/s there in late-Sep 2026
+    # measurements (gpt-6-sol 165–190, gpt-5-mini on priority ~195). Either is
+    # billed at 2x the API list price per token — well under a cent a page on
+    # gpt-6-luna; the retail rates in models_service that meter the founder
+    # are unaffected. None uses the account's default tier.
     'INITIAL_BUILD_SERVICE_TIER': 'priority',
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS

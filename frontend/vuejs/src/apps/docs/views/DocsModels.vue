@@ -30,25 +30,25 @@
           The Models
         </h2>
         <p class="lede lede--section">
-          Imagi's builder runs on the <strong class="ink-strong">GPT 5.6</strong> family—three
-          models tuned for different jobs, ordered from fastest to smartest. Each has a large context window, so it can hold
-          a lot of your project in mind at once.
+          Imagi offers three models—one for each kind of job, ordered from fastest to smartest. They come from different
+          AI companies because each is the best current fit for its tier, and the lineup is updated as better models
+          ship. Every one has a large context window, so it can hold a lot of your project in mind at once.
         </p>
         <div class="rule-cols">
           <DocsCard title="Luna">
-            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Light &amp; fast</span></p>
-            The most economical model—quick and light. Great for small edits, quick questions, and simple changes where you
-            want an answer fast and want to stretch your usage.
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Quick &amp; efficient · GPT 6</span></p>
+            Cheap, quick and efficient. Great for small edits, quick questions, and simple changes where you want an answer
+            fast and want to stretch your usage. New projects' first builds run on Luna, so they're ready in seconds.
           </DocsCard>
-          <DocsCard title="Terra">
-            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced · default</span></p>
-            The everyday default—a balance of speed and capability that handles most chat and building work well. Start here,
-            and switch only when a task needs it.
+          <DocsCard title="Opus 5.5">
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced · default · Claude</span></p>
+            A great all-around model for driving every kind of work—pages, features, fixes and questions alike. Start
+            here, and switch only when a task needs it.
           </DocsCard>
-          <DocsCard title="Sol">
-            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Flagship</span></p>
-            The most capable model—reach for it on the most demanding building tasks, where you want the best possible result
-            and don't mind that it uses more of your usage.
+          <DocsCard title="Astra">
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Frontier · GPT 6</span></p>
+            Frontier intelligence for the hardest, most complex work, where you want the best possible result and don't
+            mind that it uses much more of your usage.
           </DocsCard>
         </div>
         <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
@@ -56,10 +56,9 @@
             How the model picker works
           </h4>
           <p class="callout__body">
-            Open the model chip in the chat toolbar (it shows the current model and reasoning, like "Terra · Medium") to
-            reveal a list of models ordered from <strong class="ink-strong">Faster</strong> (Luna) to
-            <strong class="ink-strong">Smarter</strong>, each with its relative usage cost beside it and Terra tagged as
-            the default. Smarter models consume your usage faster.
+            Open the model chip in the chat toolbar (it shows the current model and reasoning, like "Opus 5.5 · Medium").
+            Slide <strong class="ink-strong">Intelligence</strong> between Luna, Opus 5.5 and Astra, and a short note
+            under the slider describes the model you've landed on. Smarter models consume your usage faster.
           </p>
         </div>
       </section>
@@ -71,8 +70,8 @@
         </h2>
         <p class="lede lede--section">
           Separate from which model you pick, reasoning effort controls how hard the model thinks before it answers. It sits
-          under the model list in the same panel as a <em class="font-display italic">Low → Extra High</em> selector, four
-          levels ordered <em class="font-display italic">Faster → Smarter</em>. More reasoning
+          under the intelligence slider in the same panel as a second slider, four levels from
+          <em class="font-display italic">Low → Extra High</em>. More reasoning
           helps on complex, multi-step tasks; less is snappier for simple ones. The default is
           <strong class="ink-strong">Medium</strong>.
         </p>
@@ -107,13 +106,13 @@
         </h2>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Quick edits & small tweaks">
-            Lean toward Luna or Terra with Low reasoning. You'll get fast results and stretch your usage further.
+            Slide down to Luna, with Low reasoning. You'll get fast results and stretch your usage further.
           </DocsCard>
           <DocsCard title="Everyday building">
-            Stick with the defaults—Terra at Medium reasoning. It handles most pages, features, and changes comfortably.
+            Stick with the defaults—Opus 5.5 at Medium reasoning. It handles most pages, features, and changes comfortably.
           </DocsCard>
           <DocsCard title="Complex features">
-            Move up to Sol and High or Extra High reasoning when a task is large or intricate and getting it right matters most.
+            Move up to Astra and High or Extra High reasoning when a task is large or intricate and getting it right matters most.
           </DocsCard>
           <DocsCard title="Watch your usage">
             Smarter models and more reasoning use your plan's usage faster. The Usage panel in the workspace shows where you

@@ -16,7 +16,7 @@ function makeTask(overrides: Partial<AgentInstance> = {}): AgentInstance {
     variantGroup: '',
     hasWorktree: true,
     totalTokens: null,
-    selectedModelId: 'gpt-5.6-terra',
+    selectedModelId: 'claude-opus-5-5',
     selectedEffort: 'medium',
     selectedFile: null,
     conversation: [],

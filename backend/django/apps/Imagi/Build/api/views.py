@@ -41,7 +41,7 @@ from ..services.usage_limits import check_usage_allowed, record_usage
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
-from ..services.models_service import get_model_by_id
+from ..services.models_service import canonical_model_id, get_model_by_id
 from ..services.transcription_service import (
     TRANSCRIPTION_MODEL,
     InvalidAudio,
@@ -740,13 +740,14 @@ class CreateAppView(APIView):
 
 def resolve_model(model):
     """
-    Resolve a requested model id to a valid GPT 5.6 suite model.
+    Resolve a requested model id to a current model.
 
-    Any of the available suite models (Sol, Terra, Luna) is accepted; anything
-    unrecognized falls back to the default model.
+    Any offered model is accepted, a retired id (an older tab, a stored
+    conversation) becomes its successor, and anything unrecognized falls back
+    to the default model.
     """
     if model and get_model_by_id(model):
-        return model
+        return canonical_model_id(model)
     return DEFAULT_MODEL
 
 

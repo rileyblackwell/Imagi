@@ -49,7 +49,9 @@ from apps.Imagi.Build.services.base_agent import (
     usage_payload,
 )
 from apps.Imagi.Build.services.models_service import (
+    canonical_model_id,
     compute_cost_usd,
+    get_model_provider,
     get_backend_model_id,
     get_model_choices,
     get_model_identity_instructions,
@@ -1112,10 +1114,10 @@ class CheckpointTests(TestCase):
 
 class ComputeCostTests(SimpleTestCase):
     def test_computes_from_suite_pricing(self):
-        # Sol: $6/M input + $30/M output
-        self.assertEqual(compute_cost_usd('gpt-5.6-sol', 1_000_000, 1_000_000), 36.0)
-        # Luna: $1/M input + $5/M output
-        self.assertEqual(compute_cost_usd('gpt-5.6-luna', 500_000, 200_000), 1.5)
+        # Opus 5.5: $8/M input + $40/M output
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 1_000_000), 48.0)
+        # Luna: $0.20/M input + $1/M output
+        self.assertEqual(compute_cost_usd('gpt-6-luna', 500_000, 200_000), 0.3)
         # Astra: $20/M input + $100/M output
         self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 1_000_000), 120.0)
 
@@ -1124,17 +1126,43 @@ class ComputeCostTests(SimpleTestCase):
 
 
 class ModelRegistryTests(SimpleTestCase):
-    """Astra sits alongside the 5.6 suite and maps to a real OpenAI id."""
+    """Three tiers — Luna, Opus 5.5, Astra — each mapped to its real provider
+    id; retired 5.6 ids resolve to the current model for their tier."""
 
     def test_astra_is_selectable(self):
         self.assertIn(
             ('gpt-6-astra', 'GPT 6 Astra'), get_model_choices()
         )
 
-    def test_astra_resolves_to_its_openai_id(self):
-        self.assertEqual(get_backend_model_id('gpt-6-astra'), 'gpt-6-astra')
-        # The 5.6 suite still hides its real ids behind Imagi branding.
-        self.assertEqual(get_backend_model_id('gpt-5.6-sol'), 'gpt-5')
+    def test_the_lineup_is_one_model_per_tier(self):
+        ids = [model_id for model_id, _ in get_model_choices()]
+        self.assertEqual(ids[:3], ['gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra'])
+
+    def test_each_tier_resolves_to_its_provider_id(self):
+        for model in ('gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra'):
+            with self.subTest(model=model):
+                self.assertEqual(get_backend_model_id(model), model)
+
+    def test_retired_5_6_ids_resolve_to_their_successors(self):
+        # Stored conversations and older tabs still carry these ids.
+        self.assertEqual(get_backend_model_id('gpt-5.6-sol'), 'claude-opus-5-5')
+        self.assertEqual(get_backend_model_id('gpt-5.6-terra'), 'claude-opus-5-5')
+        self.assertEqual(get_backend_model_id('gpt-5.6-luna'), 'gpt-6-luna')
+        self.assertEqual(canonical_model_id('gpt-5.6-terra'), 'claude-opus-5-5')
+        self.assertEqual(canonical_model_id('gpt-6-astra'), 'gpt-6-astra')
+        # Billed, named and served as the successor it now runs on.
+        self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 8.0)
+        self.assertIn('Claude Opus 5.5', get_model_identity_instructions('gpt-5.6-terra'))
+        self.assertEqual(get_model_provider('gpt-5.6-terra'), 'anthropic')
+        # Still valid stored values on the conversation's model_name field.
+        ids = [model_id for model_id, _ in get_model_choices()]
+        self.assertIn('gpt-5.6-terra', ids)
+
+    def test_the_request_path_upgrades_a_retired_id(self):
+        from apps.Imagi.Build.api.views import resolve_model
+        self.assertEqual(resolve_model('gpt-5.6-luna'), 'gpt-6-luna')
+        self.assertEqual(resolve_model('claude-opus-5-5'), 'claude-opus-5-5')
+        self.assertEqual(resolve_model('gpt-oops'), 'claude-opus-5-5')
 
     def test_identity_prompt_names_astra(self):
         instructions = get_model_identity_instructions('gpt-6-astra')
@@ -1150,7 +1178,7 @@ class ReasoningEffortLadderTests(SimpleTestCase):
     entirely. Off-ladder requests are re-seated, never passed through."""
 
     LADDER = ['low', 'medium', 'high', 'xhigh']
-    REASONING_MODELS = ('gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna')
+    REASONING_MODELS = ('gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra', 'gpt-5.6-terra')
 
     def test_every_model_reports_the_same_ladder(self):
         for model in self.REASONING_MODELS:

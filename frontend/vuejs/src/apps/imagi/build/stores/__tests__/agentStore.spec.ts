@@ -39,7 +39,7 @@ function makeInstance(overrides: Partial<AgentInstance> = {}): AgentInstance {
     variantGroup: '',
     hasWorktree: false,
     totalTokens: null,
-    selectedModelId: 'gpt-5.6-terra',
+    selectedModelId: 'claude-opus-5-5',
     selectedEffort: 'medium',
     selectedFile: null,
     conversation: [],
@@ -262,7 +262,7 @@ describe('agent store startDispatchedTasks', () => {
         + 'headline and a photo, so visitors see what you offer straight away.',
       variant_group: '',
       parent: 1,
-      model_name: 'gpt-5.6-terra',
+      model_name: 'claude-opus-5-5',
       ...overrides,
     }
   }
@@ -285,6 +285,24 @@ describe('agent store startDispatchedTasks', () => {
     expect(adopted?.kind).toBe('task')
     expect(runs).toHaveBeenCalledTimes(1)
     expect(runs.mock.calls[0]![0]).toBe(adopted!.id)
+  })
+
+  it('opens a conversation stored on a retired model on its tier\'s current model', () => {
+    // A thread started on GPT 5.6 Terra must not reopen on a model the picker
+    // no longer offers (the chip would name one model and the run use another).
+    const store = useAgentStore()
+    store.setTaskRunner(vi.fn())
+
+    store.startDispatchedTasks([
+      dispatched(9010, { model_name: 'gpt-5.6-terra' }),
+      dispatched(9011, { model_name: 'gpt-5.6-luna' }),
+      dispatched(9012, { model_name: 'gpt-6-astra' }),
+    ])
+
+    const model = (id: number) => store.instances.find(i => i.conversationId === id)?.selectedModelId
+    expect(model(9010)).toBe('claude-opus-5-5')
+    expect(model(9011)).toBe('gpt-6-luna')
+    expect(model(9012)).toBe('gpt-6-astra')
   })
 
   it('carries the lead\'s goal and overview onto the card from the first frame', async () => {
@@ -344,7 +362,7 @@ describe('agent store parallel subagents', () => {
       goal: 'Doing a job.',
       variant_group: '',
       parent: 1,
-      model_name: 'gpt-5.6-terra',
+      model_name: 'claude-opus-5-5',
       ...overrides,
     }
   }
@@ -476,7 +494,7 @@ describe('agent store failed subagents', () => {
     return {
       id: 1,
       title: 'Job',
-      model_name: 'gpt-5.6-terra',
+      model_name: 'claude-opus-5-5',
       project_id: 1,
       kind: 'task',
       parent: 1,
@@ -701,7 +719,7 @@ describe('agent store subagent outcomes', () => {
     return {
       id,
       title: 'Home page',
-      model_name: 'gpt-5.6-terra',
+      model_name: 'claude-opus-5-5',
       project_id: 1,
       kind: 'task',
       parent: 1,
@@ -834,7 +852,7 @@ describe('agentStore reasoning effort ladder', () => {
       expect(instance.selectedModelId).toBe('gpt-6-astra')
       expect(instance.selectedEffort).toBe(effort)
 
-      store.setInstanceModel(instance.id, 'gpt-5.6-luna')
+      store.setInstanceModel(instance.id, 'gpt-6-luna')
       expect(instance.selectedEffort).toBe(effort)
     }
   })
@@ -859,7 +877,7 @@ describe('agentStore reasoning effort ladder', () => {
     const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'max' as ReasoningEffort })
     store.instances = [instance]
 
-    store.setInstanceModel(instance.id, 'gpt-5.6-terra')
+    store.setInstanceModel(instance.id, 'claude-opus-5-5')
 
     expect(instance.selectedEffort).toBe('xhigh')
   })
@@ -895,7 +913,7 @@ describe('agentStore reasoning effort ladder', () => {
     expect(instance.selectedEffort).toBe('medium')
 
     instance.selectedEffort = undefined as unknown as ReasoningEffort
-    store.setInstanceModel(instance.id, 'gpt-5.6-sol')
+    store.setInstanceModel(instance.id, 'gpt-6-astra')
     expect(instance.selectedEffort).toBe('medium')
   })
 })

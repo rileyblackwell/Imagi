@@ -35,7 +35,7 @@ export interface AIModel {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'gpt-6-astra': {
+  'gpt-6-luna': {
     maxTokens: 1000000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -44,84 +44,62 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 1000000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-5.6-sol': {
-    maxTokens: 128000,
+  'claude-opus-5-5': {
+    maxTokens: 1000000,
     rateLimits: {
       tokensPerMinute: 60000,
       requestsPerMinute: 250
     },
-    contextWindow: 128000,
+    contextWindow: 1000000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-5.6-terra': {
-    maxTokens: 128000,
+  'gpt-6-astra': {
+    maxTokens: 1000000,
     rateLimits: {
       tokensPerMinute: 60000,
       requestsPerMinute: 250
     },
-    contextWindow: 128000,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  },
-  'gpt-5.6-luna': {
-    maxTokens: 128000,
-    rateLimits: {
-      tokensPerMinute: 60000,
-      requestsPerMinute: 250
-    },
-    contextWindow: 128000,
+    contextWindow: 1000000,
     capabilities: ['code_generation', 'chat', 'analysis']
   }
 };
 
-// List of standard models — GPT 6 Astra plus the GPT 5.6 suite (Terra, Sol,
-// Luna). Terra leads: createInstance prefers the `default: true` entry, then
-// falls back to the first of the list, so ordering here is load-bearing.
-// Astra is deliberately NOT the default despite being the most capable — it
-// costs ~3x Sol per token, so a user opts into it rather than landing on it.
+// The three models on offer, one per tier and ordered faster → smarter —
+// the order the composer's intelligence slider runs in. The lineup blends
+// providers on purpose: each tier gets the best current fit, and it is
+// revisited as better fits ship. Mirrors the backend registry, including
+// retail prices (2x the provider's list price). Opus 5.5 carries the
+// `default` flag: createInstance prefers it over list order.
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gpt-5.6-terra',
-    name: 'GPT 5.6 Terra',
+    id: 'gpt-6-luna',
+    name: 'GPT 6 Luna',
     provider: 'openai',
     type: 'openai',
-    context_window: 128000,
-    features: ['chat', 'code', 'analysis'],
-    default: true,
-    description: 'OpenAI | GPT 5.6 Terra — balanced model for everyday chat and building assistance',
-    capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 128000,
-    inputPricePerMTokens: 3,
-    outputPricePerMTokens: 15,
-    api_version: 'responses'
-  },
-  {
-    id: 'gpt-5.6-sol',
-    name: 'GPT 5.6 Sol',
-    provider: 'openai',
-    type: 'openai',
-    context_window: 128000,
+    context_window: 1000000,
     features: ['chat', 'code', 'analysis'],
     default: false,
-    description: 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks',
+    description: 'OpenAI | GPT 6 Luna — cheap, quick and efficient',
     capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 128000,
-    inputPricePerMTokens: 6,
-    outputPricePerMTokens: 30,
+    maxTokens: 1000000,
+    inputPricePerMTokens: 0.2,
+    outputPricePerMTokens: 1,
     api_version: 'responses'
   },
   {
-    id: 'gpt-5.6-luna',
-    name: 'GPT 5.6 Luna',
-    provider: 'openai',
-    type: 'openai',
-    context_window: 128000,
+    id: 'claude-opus-5-5',
+    name: 'Claude Opus 5.5',
+    provider: 'anthropic',
+    type: 'anthropic',
+    context_window: 1000000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | GPT 5.6 Luna — light, fast and economical model for quick tasks',
+    default: true,
+    description: 'Anthropic | Claude Opus 5.5 — balanced, great all-around model for every kind of work',
     capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 128000,
-    inputPricePerMTokens: 1,
-    outputPricePerMTokens: 5,
-    api_version: 'responses'
+    maxTokens: 1000000,
+    inputPricePerMTokens: 8,
+    outputPricePerMTokens: 40,
+    api_version: 'messages'
   },
   {
     id: 'gpt-6-astra',
@@ -130,7 +108,8 @@ export const AI_MODELS: AIModel[] = [
     type: 'openai',
     context_window: 1000000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | GPT 6 Astra — frontier model for the hardest building work, with a 1M-token context',
+    default: false,
+    description: 'OpenAI | GPT 6 Astra — frontier intelligence for the hardest work',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 1000000,
     inputPricePerMTokens: 20,
@@ -138,6 +117,25 @@ export const AI_MODELS: AIModel[] = [
     api_version: 'responses'
   }
 ];
+
+/** Models the platform used to offer, mapped to the current model for their
+ *  tier. A stored conversation or an older tab can still carry one. Mirrors
+ *  the backend's LEGACY_MODEL_ALIASES. */
+export const LEGACY_MODEL_ALIASES: Record<string, string> = {
+  'gpt-5.6-luna': 'gpt-6-luna',
+  'gpt-5.6-terra': 'claude-opus-5-5',
+  'gpt-5.6-sol': 'claude-opus-5-5',
+};
+
+/** The current id for a model: a retired id becomes its successor. */
+export function canonicalModelId(modelId: string): string;
+export function canonicalModelId(modelId: string | null | undefined): string | null;
+export function canonicalModelId(modelId: string | null | undefined): string | null {
+  if (!modelId) return null;
+  return Object.prototype.hasOwnProperty.call(LEGACY_MODEL_ALIASES, modelId)
+    ? LEGACY_MODEL_ALIASES[modelId]!
+    : modelId;
+}
 
 /**
  * Reasoning effort levels — how much reasoning the model uses per request.
