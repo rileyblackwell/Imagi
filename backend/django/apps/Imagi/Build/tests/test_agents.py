@@ -19,6 +19,7 @@ from unittest.mock import PropertyMock, patch
 from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
+from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -1443,11 +1444,16 @@ class InitialBuildAgentTests(SimpleTestCase):
         # A page write is one long streamed tool call, so its wall clock is
         # output throughput, and the tier is what buys more of it. The SDK has
         # no field for it, so it travels in extra_args to every create() call.
-        agent = create_coding_agent(kind='initial_build')
+        agent = create_coding_agent(
+            settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'], kind='initial_build'
+        )
         self.assertEqual(
             agent.model_settings.extra_args,
             {'service_tier': INITIAL_BUILD_SERVICE_TIER},
         )
+        # GPT 6's name for the throughput tier, on GPT 6 Luna.
+        self.assertEqual(INITIAL_BUILD_SERVICE_TIER, 'fast')
+        self.assertEqual(agent.model, 'gpt-6-luna')
 
     def test_only_the_initial_build_requests_a_service_tier(self):
         # The founder watches a clock on the first build alone; every other

@@ -354,13 +354,14 @@ IMAGI_BUILDER = {
     # long streamed tool call, so its wall clock is output throughput: on the
     # default tier gpt-5-mini streamed ~75 tokens/s in Sep 2026 measurements
     # (a 10 KB page ≈ 3.3K tokens ≈ 45s); on 'priority', 120–150 tokens/s
-    # (the same page ≈ 26s). GPT 6 models serve 'priority' as their 'fast'
-    # tier: gpt-6-luna streamed ~235 tokens/s there in late-Sep 2026
-    # measurements (gpt-6-sol 165–190, gpt-5-mini on priority ~195). Either is
-    # billed at 2x the API list price per token — well under a cent a page on
-    # gpt-6-luna. The founder's allowance is metered at the standard list
-    # price either way (models_service). None uses the account's default tier.
-    'INITIAL_BUILD_SERVICE_TIER': 'priority',
+    # (the same page ≈ 26s). GPT 6 renamed that tier 'fast' (it still serves
+    # 'priority' as 'fast', but 'fast' is the name it reports back):
+    # gpt-6-luna streamed ~235 tokens/s there in late-Sep 2026 measurements
+    # (gpt-6-sol 165–190, gpt-5-mini on priority ~195). Fast is billed at 2x
+    # the API list price per token — well under a cent a page on gpt-6-luna.
+    # The founder's allowance is metered at the standard list price either
+    # way (models_service). None uses the account's default tier.
+    'INITIAL_BUILD_SERVICE_TIER': 'fast',
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS
     # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).

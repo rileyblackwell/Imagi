@@ -340,7 +340,7 @@ def build_model_settings(
     tool with side effects the model cannot see until it returns (dispatch_task
     creating a subagent) cannot be fired twice in the same message.
 
-    service_tier names an OpenAI processing tier ('priority', 'flex', ...) for
+    service_tier names an OpenAI processing tier ('fast', 'flex', ...) for
     the agent's requests. The SDK has no field for it, so it rides in
     extra_args, which the Responses model merges into every create() call.
 
