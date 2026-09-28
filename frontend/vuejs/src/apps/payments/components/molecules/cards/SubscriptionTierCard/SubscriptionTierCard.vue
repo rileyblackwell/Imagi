@@ -53,7 +53,7 @@
     <button
       class="tier__cta"
       :class="isPopular ? 'btn-primary' : 'btn-outline'"
-      :disabled="loading"
+      :disabled="loading || isCurrent"
       @click="$emit('subscribe', active.lookupKey)"
     >
       <span v-if="loading" class="inline-flex items-center gap-2">
@@ -63,7 +63,7 @@
         </svg>
         Processing…
       </span>
-      <span v-else>{{ cta ?? 'Get started' }}</span>
+      <span v-else>{{ ctaLabel }}</span>
     </button>
   </div>
 </template>
@@ -91,6 +91,10 @@ const props = defineProps<{
   features?: string[]
   // …multi-option tiers (e.g. Max) pass these instead.
   options?: TierOption[]
+  // The signed-in user's plan, as its lookup key: null is Free, undefined is
+  // unknown (signed out, or not loaded yet). A subscriber switches plans
+  // rather than starting a new one, so the buttons say so.
+  currentPlanKey?: string | null
 }>()
 
 defineEmits<{
@@ -110,6 +114,18 @@ const active = computed(() => {
     weeklyLimit: props.weeklyLimit ?? '',
     features: props.features ?? [],
   }
+})
+
+const isCurrent = computed(
+  () => props.currentPlanKey !== undefined && active.value.lookupKey === props.currentPlanKey
+)
+
+const ctaLabel = computed(() => {
+  if (isCurrent.value) return 'Current plan'
+  // A paying subscriber changes plan on their subscription; going to Free is
+  // cancelling it, which happens in the billing portal.
+  if (props.currentPlanKey) return active.value.lookupKey ? 'Switch to this plan' : 'Manage billing'
+  return props.cta ?? 'Get started'
 })
 </script>
 

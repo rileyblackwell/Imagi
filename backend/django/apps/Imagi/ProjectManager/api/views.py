@@ -4,6 +4,10 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, APIException
 from rest_framework.views import APIView
+from django.contrib.auth import get_user_model
+from django.db import transaction
+
+from apps.Payments.services.plans import check_project_limit
 from apps.Payments.services.usage_service import check_usage_allowed
 from apps.Imagi.Build.services.browser_preview_service import start_preview_warmup
 from ..services import ProjectCreationService, ProjectManagementService, start_initial_build
@@ -41,7 +45,15 @@ class ProjectCreateView(generics.CreateAPIView):
 
         project = None
         try:
-            project = serializer.save()  # Don't pass user here, handle it in serializer
+            # The plan's project limit. Checked and the row saved under a lock
+            # on the user, so two creates sent at once can't both see room for
+            # one more and go over it.
+            with transaction.atomic():
+                get_user_model().objects.select_for_update().filter(pk=request.user.pk).first()
+                allowed, limit_payload = check_project_limit(request.user)
+                if not allowed:
+                    return Response(limit_payload, status=status.HTTP_403_FORBIDDEN)
+                project = serializer.save()  # Don't pass user here, handle it in serializer
             service = ProjectCreationService(request.user)
             service.create_project(project)
 

@@ -10,6 +10,10 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+# Subscription statuses that still bill the customer. A second subscription
+# alongside any of these would charge them twice.
+LIVE_SUBSCRIPTION_STATUSES = ('active', 'trialing', 'past_due')
+
 class StripeService:
     """Service for interacting with Stripe API."""
     
@@ -178,6 +182,63 @@ class StripeService:
             return portal_session
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error creating portal session: {str(e)}")
+            raise
+
+    def list_live_subscriptions(self, customer_id: str) -> list:
+        """
+        The customer's subscriptions that are still billing, newest first.
+
+        'active' and 'trialing' are in good standing; 'past_due' is still
+        live too — Stripe is retrying its charge and will keep invoicing — so
+        it counts when deciding whether a second subscription would double
+        bill.
+        """
+        try:
+            subscriptions = stripe.Subscription.list(
+                customer=customer_id, status='all', limit=20
+            )
+            live = [
+                sub for sub in subscriptions.data
+                if sub.get('status') in LIVE_SUBSCRIPTION_STATUSES
+            ]
+            return sorted(live, key=lambda sub: sub.get('created') or 0, reverse=True)
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error listing subscriptions: {str(e)}")
+            raise
+
+    def change_subscription_price(self, subscription: Any, price_id: str) -> Any:
+        """
+        Move a subscription onto a different price, in place.
+
+        The one line item is swapped rather than a second subscription being
+        created, so the customer is only ever billed once. The prorated
+        difference is invoiced immediately (always_invoice), and with
+        pending_if_incomplete the switch only takes effect once that invoice
+        is paid — an upgrade whose charge fails leaves the old plan in place
+        instead of granting the bigger allowance unpaid.
+        """
+        items = (subscription.get('items') or {}).get('data') or []
+        if len(items) != 1:
+            raise ValueError(
+                f"Subscription {subscription.get('id')} has {len(items)} items; expected 1"
+            )
+        try:
+            return stripe.Subscription.modify(
+                subscription['id'],
+                items=[{'id': items[0]['id'], 'price': price_id}],
+                proration_behavior='always_invoice',
+                payment_behavior='pending_if_incomplete',
+            )
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error changing subscription price: {str(e)}")
+            raise
+
+    def cancel_subscription(self, subscription_id: str) -> Any:
+        """Cancel a subscription now, crediting its unused time."""
+        try:
+            return stripe.Subscription.cancel(subscription_id, prorate=True)
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error cancelling subscription: {str(e)}")
             raise
 
     def verify_webhook_event(self, payload: bytes, signature: str, webhook_secret: str) -> Dict[str, Any]:

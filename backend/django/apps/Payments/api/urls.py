@@ -21,6 +21,7 @@ urlpatterns = [
     # Subscription checkout & management
     path('create-checkout-session/', views.create_checkout_session, name='api-create-checkout-session'),
     path('session-status/', views.get_session_status, name='api-session-status'),
+    path('change-plan/', views.change_plan, name='api-change-plan'),
     path('create-portal-session/', views.create_portal_session, name='api-create-portal-session'),
 
     # Stripe webhook (the only path that grants or revokes a plan)

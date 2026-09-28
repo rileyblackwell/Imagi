@@ -1356,3 +1356,61 @@ class ProjectNameValidationTests(APITestCase):
             format='json',
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
+@patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
+@patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
+@patch(
+    'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project',
+    side_effect=lambda project: project,
+)
+class ProjectLimitTests(APITestCase):
+    """The plan's active-project limit is enforced when a project is created."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.client.force_authenticate(user=self.user)
+
+    def _create(self, name):
+        return self.client.post(
+            reverse('project_manager:project-create'),
+            {'name': name, 'description': VALID_DESCRIPTION},
+        )
+
+    def _subscribe(self, plan):
+        from apps.Payments.models import Subscription
+        Subscription.objects.update_or_create(user=self.user, defaults={'plan': plan})
+
+    def test_free_plan_allows_one_active_project(self, _create, mock_build, _warmup):
+        self.assertEqual(self._create('First Shop').status_code, status.HTTP_201_CREATED)
+
+        resp = self._create('Second Shop')
+
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data['code'], 'project_limit')
+        self.assertIn('Free plan includes 1 active project', resp.data['error'])
+        self.assertFalse(Project.objects.filter(name='Second Shop').exists())
+        # Refused before any build work starts (and before it is metered).
+        self.assertEqual(mock_build.call_count, 1)
+
+    def test_deleting_a_project_frees_the_slot(self, *_):
+        existing = Project.objects.create(user=self.user, name='Old Shop')
+        existing.delete()  # soft delete: no longer active
+        self.assertEqual(self._create('New Shop').status_code, status.HTTP_201_CREATED)
+
+    def test_paid_plans_have_no_project_limit(self, *_):
+        self._subscribe('pro')
+        for name in ('Shop One', 'Shop Two', 'Shop Three'):
+            self.assertEqual(self._create(name).status_code, status.HTTP_201_CREATED)
+
+    def test_dropping_to_free_keeps_projects_but_blocks_new_ones(self, *_):
+        self._subscribe('pro')
+        self._create('Shop One')
+        self._create('Shop Two')
+        self._subscribe('free')
+
+        resp = self._create('Shop Three')
+
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Project.objects.filter(user=self.user, is_active=True).count(), 2)

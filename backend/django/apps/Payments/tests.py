@@ -192,9 +192,15 @@ class PlanRegistryTests(APITestCase):
     def test_plans_carry_no_figure_the_meter_does_not_enforce(self):
         # The weekly window is the only one checked, so it is the only
         # allowance a plan may advertise — a monthly or per-session figure
-        # would be a number we publish but never enforce.
+        # would be a number we publish but never enforce. The project limit
+        # is enforced at creation (ProjectLimitTests).
         for plan in PLANS.values():
-            self.assertEqual(set(plan), {'id', 'name', 'weekly_usd'})
+            self.assertEqual(set(plan), {'id', 'name', 'weekly_usd', 'max_active_projects'})
+
+    def test_only_free_limits_projects(self):
+        self.assertEqual(PLANS['free']['max_active_projects'], 1)
+        for plan_id in ('pro', 'max_5x', 'max_20x'):
+            self.assertIsNone(PLANS[plan_id]['max_active_projects'])
 
 
 # --------------------------------------------------------------------------- #
@@ -225,9 +231,9 @@ class RecordUsageTests(APITestCase):
 
     def test_unpriced_run_falls_back_to_the_priciest_rate(self):
         # A run we couldn't price must never meter as free — it is charged at
-        # the most expensive tier's rate instead.
+        # the most expensive tier's rate instead (Astra's $10 per M input).
         event = record_usage(self.user, 'mystery-model', 1_000_000, 0)
-        self.assertEqual(event.cost_usd, Decimal('6.000000'))
+        self.assertEqual(event.cost_usd, Decimal('10.000000'))
 
     def test_sub_cent_cost_is_not_rounded_away(self):
         event = record_usage(self.user, 'gpt-5.6-luna', 100, 10, cost_usd=0.00015)
@@ -299,6 +305,20 @@ class UsageWindowTests(APITestCase):
         both = get_usage_status(self.user)['windows']['weekly']['used_usd']
         self.assertEqual(cheap, 1.0)
         self.assertEqual(both - cheap, 6.0)
+
+
+class FallbackRateTests(APITestCase):
+    def test_fallback_is_the_priciest_model(self):
+        # An unpriced run must never meter cheaper than any real model.
+        from apps.Imagi.Build.services.models_service import MODELS
+        from apps.Payments.services.usage_service import (
+            FALLBACK_INPUT_PRICE_PER_M,
+            FALLBACK_OUTPUT_PRICE_PER_M,
+        )
+        for model in MODELS.values():
+            self.assertGreaterEqual(FALLBACK_INPUT_PRICE_PER_M, Decimal(str(model['input_price_per_m_tokens'])))
+            self.assertGreaterEqual(FALLBACK_OUTPUT_PRICE_PER_M, Decimal(str(model['output_price_per_m_tokens'])))
+        self.assertEqual(FALLBACK_OUTPUT_PRICE_PER_M, Decimal('50'))
 
 
 class CheckUsageAllowedTests(APITestCase):
@@ -571,6 +591,71 @@ class SubscriptionWebhookTests(APITestCase):
 # --------------------------------------------------------------------------- #
 # API endpoints
 # --------------------------------------------------------------------------- #
+class ReplacedSubscriptionTests(APITestCase):
+    """A second subscription that completes cancels the one it replaced."""
+
+    def setUp(self):
+        self.user = make_user()
+        StripeCustomer.objects.create(user=self.user, stripe_customer_id='cus_42')
+        Subscription.objects.create(user=self.user, plan='pro', stripe_subscription_id='sub_old')
+        self.url = reverse('api-stripe-webhook')
+
+    def _post_created(self, sub_id, old_status='active'):
+        event = SimpleNamespace(
+            type='customer.subscription.created',
+            data=SimpleNamespace(object={
+                'id': sub_id,
+                'customer': 'cus_42',
+                'status': 'active',
+                'items': {'data': [{'price': {'lookup_key': 'max_5x_monthly'}}]},
+                'metadata': {},
+            }),
+        )
+        with override_settings(STRIPE_WEBHOOK_SECRET='whsec_test'), \
+                patch('apps.Payments.api.views.stripe_service') as mock_service, \
+                patch('apps.Payments.api.views.stripe.Subscription.retrieve') as mock_retrieve:
+            mock_service.verify_webhook_event.return_value = event
+            mock_retrieve.return_value = {'id': 'sub_old', 'status': old_status}
+            resp = self.client.post(self.url, {}, HTTP_STRIPE_SIGNATURE='sig')
+        return resp, mock_service, mock_retrieve
+
+    def test_new_subscription_cancels_the_replaced_one(self):
+        resp, mock_service, _ = self._post_created('sub_new')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
+        mock_service.cancel_subscription.assert_called_once_with('sub_old')
+
+    def test_an_already_ended_subscription_is_left_alone(self):
+        _, mock_service, _ = self._post_created('sub_new', old_status='canceled')
+        mock_service.cancel_subscription.assert_not_called()
+
+    def test_an_update_to_the_same_subscription_cancels_nothing(self):
+        _, mock_service, mock_retrieve = self._post_created('sub_old')
+        mock_service.cancel_subscription.assert_not_called()
+        mock_retrieve.assert_not_called()
+
+    def test_a_failed_cancel_still_grants_the_new_plan(self):
+        event = SimpleNamespace(
+            type='customer.subscription.created',
+            data=SimpleNamespace(object={
+                'id': 'sub_new', 'customer': 'cus_42', 'status': 'active',
+                'items': {'data': [{'price': {'lookup_key': 'max_5x_monthly'}}]},
+                'metadata': {},
+            }),
+        )
+        with override_settings(STRIPE_WEBHOOK_SECRET='whsec_test'), \
+                patch('apps.Payments.api.views.stripe_service') as mock_service, \
+                patch('apps.Payments.api.views.stripe.Subscription.retrieve',
+                      side_effect=Exception('stripe down')):
+            mock_service.verify_webhook_event.return_value = event
+            resp = self.client.post(self.url, {}, HTTP_STRIPE_SIGNATURE='sig')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
+
+
 class PaymentsAPITests(APITestCase):
     def setUp(self):
         self.user = make_user()
@@ -654,6 +739,21 @@ class CheckoutSessionTests(APITestCase):
         self.assertEqual(kwargs['mode'], 'subscription')
         self.assertEqual(kwargs['customer'], 'cus_new')
 
+    @patch('apps.Payments.api.views.stripe.Price.list')
+    @patch('apps.Payments.api.views.stripe_service')
+    def test_existing_subscriber_cannot_start_a_second_subscription(self, mock_stripe, mock_prices):
+        # A second checkout would bill them twice; plan changes go through
+        # change_plan on the subscription they already have.
+        StripeCustomer.objects.create(user=self.user, stripe_customer_id='cus_1')
+        mock_stripe.list_live_subscriptions.return_value = [{'id': 'sub_1', 'status': 'active'}]
+
+        resp = self.client.post(self.url, {'lookup_key': 'max_5x_monthly'})
+
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(resp.data['code'], 'subscription_exists')
+        mock_stripe.create_checkout_session.assert_not_called()
+        mock_prices.assert_not_called()
+
     def test_lookup_key_is_required(self):
         # There is no one-time purchase mode any more, so an amount alone is
         # not a valid checkout.
@@ -664,6 +764,72 @@ class CheckoutSessionTests(APITestCase):
         # Selling a price the webhook can't resolve would take money without
         # granting a plan.
         resp = self.client.post(self.url, {'lookup_key': 'mystery_monthly'})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePlanTests(APITestCase):
+    """Plan changes swap the price on the existing subscription."""
+
+    def setUp(self):
+        self.user = make_user()
+        self.client.force_authenticate(user=self.user)
+        StripeCustomer.objects.create(user=self.user, stripe_customer_id='cus_1')
+        Subscription.objects.create(user=self.user, plan='pro', stripe_subscription_id='sub_1')
+        self.url = reverse('api-change-plan')
+        self.live = {
+            'id': 'sub_1',
+            'status': 'active',
+            'items': {'data': [{'id': 'si_1', 'price': {'id': 'price_pro'}}]},
+        }
+
+    def _post(self, lookup_key='max_5x_monthly', live=None, updated=None, price_id='price_max5'):
+        with patch('apps.Payments.api.views.stripe_service') as mock_service, \
+                patch('apps.Payments.api.views.stripe.Price.list') as mock_prices:
+            mock_service.list_live_subscriptions.return_value = [self.live] if live is None else live
+            mock_service.change_subscription_price.return_value = (
+                updated if updated is not None else {'id': 'sub_1', 'pending_update': None}
+            )
+            mock_prices.return_value = SimpleNamespace(data=[SimpleNamespace(id=price_id)])
+            resp = self.client.post(self.url, {'lookup_key': lookup_key}, format='json')
+        return resp, mock_service
+
+    def test_upgrade_changes_the_existing_subscription(self):
+        resp, mock_service = self._post()
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        mock_service.change_subscription_price.assert_called_once_with(self.live, 'price_max5')
+        mock_service.create_checkout_session.assert_not_called()
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
+
+    def test_a_pending_update_grants_nothing(self):
+        # pending_if_incomplete: the proration invoice wasn't paid, so the
+        # old price is still in force.
+        resp, _ = self._post(updated={'id': 'sub_1', 'pending_update': {'expires_at': 1}})
+        self.assertEqual(resp.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'pro')
+
+    def test_without_a_subscription_there_is_nothing_to_change(self):
+        resp, mock_service = self._post(live=[])
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data['code'], 'no_subscription')
+        mock_service.change_subscription_price.assert_not_called()
+
+    def test_past_due_must_fix_payment_first(self):
+        resp, mock_service = self._post(live=[dict(self.live, status='past_due')])
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
+        mock_service.change_subscription_price.assert_not_called()
+
+    def test_same_plan_is_refused(self):
+        resp, mock_service = self._post(lookup_key='pro_monthly', price_id='price_pro')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data['code'], 'same_plan')
+        mock_service.change_subscription_price.assert_not_called()
+
+    def test_free_is_not_a_plan_change(self):
+        # Going to Free is a cancellation, handled in the billing portal.
+        resp, _ = self._post(lookup_key='free_monthly')
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
 

@@ -108,6 +108,20 @@ class PaymentService implements IPaymentService {
   }
 
   /**
+   * Move an existing subscriber to another paid plan. The subscription they
+   * already have is changed in place (never a second checkout), and Stripe
+   * charges or credits the prorated difference.
+   */
+  async changePlan(lookupKey: string): Promise<{ status: string; plan: string }> {
+    try {
+      const response = await api.post('/v1/payments/change-plan/', { lookup_key: lookupKey })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error as Error)
+    }
+  }
+
+  /**
    * Create a Stripe Billing Portal session for subscription management
    */
   async createPortalSession(returnUrl?: string): Promise<{ url: string }> {
