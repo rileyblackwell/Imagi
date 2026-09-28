@@ -404,10 +404,19 @@ class AnthropicModel(Model):
             'thinking': {'type': 'adaptive'},
             # An agent loop resends a growing prefix every turn; caching it is
             # the difference between paying for it once and paying every turn.
+            # This automatic breakpoint caches up to the end of the request,
+            # which the loop's next turn extends.
             'cache_control': {'type': 'ephemeral'},
         }
         if system:
-            request['system'] = system
+            # A second breakpoint after the tools and system prompt — the part
+            # every request in the conversation shares. The automatic one
+            # alone only pays off inside a run: the next user message changes
+            # the end of the prompt, so without this the whole prefix would be
+            # rebilled at the full input rate on every new message.
+            request['system'] = [
+                {'type': 'text', 'text': system, 'cache_control': {'type': 'ephemeral'}}
+            ]
 
         output_config: Dict[str, Any] = {}
         reasoning = getattr(model_settings, 'reasoning', None)

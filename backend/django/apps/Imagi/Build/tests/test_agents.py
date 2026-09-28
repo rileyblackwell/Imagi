@@ -1113,13 +1113,25 @@ class CheckpointTests(TestCase):
 
 
 class ComputeCostTests(SimpleTestCase):
-    def test_computes_from_suite_pricing(self):
-        # Opus 5.5: $8/M input + $40/M output
-        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 1_000_000), 48.0)
-        # Luna: $0.20/M input + $1/M output
-        self.assertEqual(compute_cost_usd('gpt-6-luna', 500_000, 200_000), 0.3)
-        # Astra: $20/M input + $100/M output
-        self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 1_000_000), 120.0)
+    def test_bills_at_list_price_with_no_markup(self):
+        # Opus 5.5: $4/M input + $20/M output
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 1_000_000), 24.0)
+        # Luna: $0.10/M input + $0.50/M output
+        self.assertEqual(compute_cost_usd('gpt-6-luna', 500_000, 200_000), 0.15)
+        # Astra: $10/M input + $50/M output
+        self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 1_000_000), 60.0)
+
+    def test_cached_input_bills_at_the_cached_rate(self):
+        # An agent loop resends most of its prompt each turn; the provider
+        # serves it from cache at a fraction of the input rate.
+        # Opus 5.5: 900k cached at $0.20/M + 100k fresh at $4/M.
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, 900_000), 0.58)
+        # Luna: cached at $0.01/M; Astra: cached at $1/M.
+        self.assertEqual(compute_cost_usd('gpt-6-luna', 1_000_000, 0, 1_000_000), 0.01)
+        self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 0, 500_000), 5.5)
+        # A cached count past the input it belongs to is capped, never negative.
+        self.assertEqual(compute_cost_usd('gpt-6-luna', 1_000_000, 0, 5_000_000), 0.01)
+        self.assertEqual(compute_cost_usd('gpt-6-luna', 1_000_000, 0, -5), 0.1)
 
     def test_unknown_model_returns_none(self):
         self.assertIsNone(compute_cost_usd('gpt-oops', 1000, 1000))
@@ -1151,7 +1163,7 @@ class ModelRegistryTests(SimpleTestCase):
         self.assertEqual(canonical_model_id('gpt-5.6-terra'), 'claude-opus-5-5')
         self.assertEqual(canonical_model_id('gpt-6-astra'), 'gpt-6-astra')
         # Billed, named and served as the successor it now runs on.
-        self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 8.0)
+        self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 4.0)
         self.assertIn('Claude Opus 5.5', get_model_identity_instructions('gpt-5.6-terra'))
         self.assertEqual(get_model_provider('gpt-5.6-terra'), 'anthropic')
         # Still valid stored values on the conversation's model_name field.
@@ -1266,6 +1278,19 @@ class RunBoundsHookTests(SimpleTestCase):
 
     def test_spent_budget_stops_the_run(self):
         hook = make_run_bounds_hook('gpt-5.6-sol', budget_usd=1.0)
+        with self.assertRaises(RunBudgetExceeded):
+            self._fire(hook, input_tokens=1_000_000, output_tokens=0)
+
+    def test_budget_counts_cached_input_at_the_cached_rate(self):
+        # 1M input on Opus 5.5 is $4 fresh but $0.20 from cache: a $1 budget
+        # stops the first run and lets the cached one carry on.
+        hook = make_run_bounds_hook('claude-opus-5-5', budget_usd=1.0)
+        context = SimpleNamespace(usage=SimpleNamespace(
+            input_tokens=1_000_000,
+            output_tokens=0,
+            input_tokens_details=SimpleNamespace(cached_tokens=1_000_000),
+        ))
+        async_to_sync(hook.on_llm_end)(context, None, None)
         with self.assertRaises(RunBudgetExceeded):
             self._fire(hook, input_tokens=1_000_000, output_tokens=0)
 
@@ -1491,6 +1516,17 @@ class UsagePayloadTests(SimpleTestCase):
         self.assertEqual(
             payload['cost_usd'], compute_cost_usd('gpt-5.6-terra', 1000, 100)
         )
+
+    def test_cached_input_from_the_reading_is_priced_at_the_cached_rate(self):
+        reading = SimpleNamespace(
+            input_tokens=100_000,
+            output_tokens=1_000,
+            input_tokens_details=SimpleNamespace(cached_tokens=90_000),
+        )
+        payload = usage_payload(reading, 'claude-opus-5-5')
+        # 10k fresh at $4/M + 90k cached at $0.20/M + 1k out at $20/M.
+        self.assertEqual(payload['cost_usd'], 0.078)
+        self.assertEqual(payload['input_tokens'], 100_000)
 
     def test_nothing_tracked_is_unknown_not_free(self):
         self.assertIsNone(usage_payload(None, 'gpt-5.6-terra'))

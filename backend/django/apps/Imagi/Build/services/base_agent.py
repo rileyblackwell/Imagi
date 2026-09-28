@@ -294,7 +294,9 @@ def make_run_bounds_hook(
                 usage = getattr(context, 'usage', None)
                 input_tokens = getattr(usage, 'input_tokens', 0) or 0
                 output_tokens = getattr(usage, 'output_tokens', 0) or 0
-                cost = compute_cost_usd(model_id, input_tokens, output_tokens)
+                cost = compute_cost_usd(
+                    model_id, input_tokens, output_tokens, cached_input_tokens(usage)
+                )
                 if cost is not None and cost >= budget_usd:
                     return RunBudgetExceeded(cost, budget_usd)
             return None
@@ -519,6 +521,13 @@ def extract_dispatched_tasks(output) -> Optional[List[Dict[str, Any]]]:
     return None
 
 
+def cached_input_tokens(usage) -> int:
+    """How many of a usage reading's input tokens came from the prompt cache."""
+    details = getattr(usage, 'input_tokens_details', None)
+    cached = getattr(details, 'cached_tokens', 0)
+    return cached if isinstance(cached, int) else 0
+
+
 def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
     """Token usage (with cost when priceable) from an SDK Usage object, or None.
 
@@ -536,7 +545,9 @@ def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
-    cost = compute_cost_usd(model_id, input_tokens, output_tokens)
+    cost = compute_cost_usd(
+        model_id, input_tokens, output_tokens, cached_input_tokens(usage)
+    )
     if cost is not None:
         payload["cost_usd"] = cost
     return payload
