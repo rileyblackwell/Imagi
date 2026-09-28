@@ -90,7 +90,7 @@
         </h2>
         <p class="lede lede--section">
           Since usage is metered by what each run actually costs, the two dials you control are the model and the reasoning
-          effort. Reach for GPT 5.6 Sol at high effort when a task genuinely needs it, and drop to Terra or Luna at a lower
+          effort. Reach for Astra at high effort when a task genuinely needs it, and drop to Opus 5.5 or Luna at a lower
           effort for routine edits, copy tweaks, and questions—it costs a fraction as much and is usually faster too.
         </p>
         <div class="callout">

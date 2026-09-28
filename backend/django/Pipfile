@@ -14,6 +14,7 @@ psutil = "*"
 requests = "*"
 cryptography = "*"
 websocket-client = "*"
+anthropic = "*"
 
 [dev-packages]
 

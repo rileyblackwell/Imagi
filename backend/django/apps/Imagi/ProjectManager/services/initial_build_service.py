@@ -433,7 +433,11 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             for page in pages
         }
 
-        lead = _ensure_lead_conversation(service, user, project_id, model)
+        # The main thread outlives the build — it is where the founder keeps
+        # chatting — so it runs on the everyday default, not the build model.
+        lead = _ensure_lead_conversation(
+            service, user, project_id, builder.get('DEFAULT_MODEL') or model
+        )
         tasks = [
             _create_build_task(
                 user, lead, project_id, model, prompts[page.slug], page

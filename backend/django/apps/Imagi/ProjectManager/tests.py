@@ -649,6 +649,23 @@ class InitialBuildServiceTests(TransactionTestCase):
             task.model_name, settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL']
         )
 
+    def test_main_thread_runs_on_the_default_model_not_the_build_model(self):
+        # The pages race the clock on the quick tier; the main thread is where
+        # the founder keeps working afterwards, so it gets the everyday default.
+        from apps.Imagi.Build.models import AgentConversation
+
+        self._run_build(['accept'])
+
+        lead = AgentConversation.objects.get(
+            user=self.user, project_id=self.project.pk, kind='lead'
+        )
+        task = AgentConversation.objects.get(
+            user=self.user, project_id=self.project.pk, kind='task'
+        )
+        self.assertEqual(lead.model_name, settings.IMAGI_BUILDER['DEFAULT_MODEL'])
+        self.assertEqual(task.model_name, settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'])
+        self.assertNotEqual(lead.model_name, task.model_name)
+
     def test_reuses_an_existing_main_thread(self):
         from apps.Imagi.Build.models import AgentConversation
         from apps.Imagi.Build.services.base_agent import ImagiAgentService

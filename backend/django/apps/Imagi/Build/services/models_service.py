@@ -13,87 +13,86 @@ from django.conf import settings
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
-# Two generations users can choose from when building.
-#   GPT 6 Astra - frontier tier, 1M-token context, priciest by a wide margin
-#   The GPT 5.6 suite:
-#     Sol   - flagship of the 5.6 generation
-#     Terra - balanced, general-purpose (default)
-#     Luna  - light, fast and economical
+# Three tiers, one model each, chosen for what the tier needs rather than for
+# provider — the lineup is a blend of OpenAI and Anthropic, and gets revisited
+# as better fits ship:
+#   Luna     (OpenAI GPT 6 Luna)      - cheap, quick and efficient
+#   Opus 5.5 (Anthropic Claude)       - balanced all-rounder (default)
+#   Astra    (OpenAI GPT 6 Astra)     - frontier intelligence
 #
-# `backend_model` is the REAL OpenAI model id a public id maps to at runtime.
-# The public "GPT 5.6 ..." names are Imagi's branding; requests to the OpenAI
-# API must use these underlying model ids. Change the right-hand side here if
-# your OpenAI account should call different underlying models. (Astra is the
-# exception where branding and the real id coincide: OpenAI ships it as
-# `gpt-6-astra` and we surface it under that name.)
+# `backend_model` is the real provider model id a public id maps to at
+# runtime; for every current model the two coincide. `provider` picks the
+# client: OpenAI models run through the Responses API, Claude models through
+# services/anthropic_model.py.
 #
-# Every reasoning-capable model climbs the same four-rung ladder — see
+# Retail prices are 2x the provider's list price (see Payments' plans.py).
+# NOTE: OpenAI charges 2x input on requests over 272k input tokens;
+# compute_cost_usd bills one flat rate, so a very long-context run earns
+# thinner margin than a short one.
+#
+# Every model climbs the same four-rung reasoning ladder — see
 # REASONING_EFFORT_CHOICES below — so no entry spells out its own.
 MODELS = {
+    'gpt-6-luna': {
+        'id': 'gpt-6-luna',
+        'name': 'GPT 6 Luna',
+        'provider': 'openai',
+        'type': 'openai',
+        'backend_model': 'gpt-6-luna',
+        'description': 'OpenAI | GPT 6 Luna — cheap, quick and efficient',
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 1000000,
+        # List $0.10 / $0.50.
+        'input_price_per_m_tokens': 0.2,
+        'output_price_per_m_tokens': 1,
+        'api_version': 'responses',  # Uses OpenAI Responses API
+        'supports_temperature': False,
+        'supports_reasoning': True,
+    },
+    'claude-opus-5-5': {
+        'id': 'claude-opus-5-5',
+        'name': 'Claude Opus 5.5',
+        'provider': 'anthropic',
+        'type': 'anthropic',
+        'backend_model': 'claude-opus-5-5',
+        'description': 'Anthropic | Claude Opus 5.5 — balanced, great all-around model for every kind of work',
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 1000000,
+        # List $4 / $20.
+        'input_price_per_m_tokens': 8,
+        'output_price_per_m_tokens': 40,
+        'api_version': 'messages',  # Uses the Anthropic Messages API
+        'supports_temperature': False,
+        'supports_reasoning': True,
+        # Safety classifiers can decline a request; re-run it server-side on
+        # Anthropic's recommended fallback instead of failing the turn.
+        'refusal_fallback': True,
+    },
     'gpt-6-astra': {
         'id': 'gpt-6-astra',
         'name': 'GPT 6 Astra',
         'provider': 'openai',
         'type': 'openai',
         'backend_model': 'gpt-6-astra',
-        'description': 'OpenAI | GPT 6 Astra — frontier model for the hardest building work, with a 1M-token context',
+        'description': 'OpenAI | GPT 6 Astra — frontier intelligence for the hardest work',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
-        # Retail, marked up over OpenAI's $10/$50 list price (see Payments'
-        # plans.py). NOTE: OpenAI charges 2x input / 1.5x output on requests
-        # over 272k input tokens; compute_cost_usd bills one flat rate, so a
-        # very long-context Astra run earns thinner margin than a short one.
+        # List $10 / $50.
         'input_price_per_m_tokens': 20,
         'output_price_per_m_tokens': 100,
-        'api_version': 'responses',  # Uses OpenAI Responses API
+        'api_version': 'responses',
         'supports_temperature': False,
         'supports_reasoning': True,
     },
-    'gpt-5.6-sol': {
-        'id': 'gpt-5.6-sol',
-        'name': 'GPT 5.6 Sol',
-        'provider': 'openai',
-        'type': 'openai',
-        'backend_model': 'gpt-5',
-        'description': 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks',
-        'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 128000,
-        'input_price_per_m_tokens': 6,
-        'output_price_per_m_tokens': 30,
-        'api_version': 'responses',  # Uses OpenAI Responses API
-        'supports_temperature': False,
-        'supports_reasoning': True,
-    },
-    'gpt-5.6-terra': {
-        'id': 'gpt-5.6-terra',
-        'name': 'GPT 5.6 Terra',
-        'provider': 'openai',
-        'type': 'openai',
-        'backend_model': 'gpt-5-mini',
-        'description': 'OpenAI | GPT 5.6 Terra — balanced model for everyday chat and building assistance',
-        'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 128000,
-        'input_price_per_m_tokens': 3,
-        'output_price_per_m_tokens': 15,
-        'api_version': 'responses',  # Uses OpenAI Responses API
-        'supports_temperature': False,
-        'supports_reasoning': True,
-    },
-    'gpt-5.6-luna': {
-        'id': 'gpt-5.6-luna',
-        'name': 'GPT 5.6 Luna',
-        'provider': 'openai',
-        'type': 'openai',
-        'backend_model': 'gpt-5-nano',
-        'description': 'OpenAI | GPT 5.6 Luna — light, fast and economical model for quick tasks',
-        'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 128000,
-        'input_price_per_m_tokens': 1,
-        'output_price_per_m_tokens': 5,
-        'api_version': 'responses',  # Uses OpenAI Responses API
-        'supports_temperature': False,
-        'supports_reasoning': True,
-    }
+}
+
+# Models the platform used to offer, re-seated onto the current model for
+# their tier. Conversations, dispatched subagents and open client tabs can
+# still carry these ids.
+LEGACY_MODEL_ALIASES = {
+    'gpt-5.6-luna': 'gpt-6-luna',
+    'gpt-5.6-terra': 'claude-opus-5-5',
+    'gpt-5.6-sol': 'claude-opus-5-5',
 }
 
 # The reasoning effort ladder, ordered faster → smarter. Applied to the OpenAI
@@ -126,6 +125,7 @@ LEGACY_REASONING_EFFORT_ALIASES = {
 # Provider Choices
 PROVIDER_CHOICES = [
     ('openai', 'OpenAI'),
+    ('anthropic', 'Anthropic'),
 ]
 
 def get_model_choices() -> List[Tuple[str, str]]:
@@ -135,7 +135,13 @@ def get_model_choices() -> List[Tuple[str, str]]:
     Returns:
         list: List of tuples with (id, name) for Django model choices
     """
-    return [(model_id, model_data['name']) for model_id, model_data in MODELS.items()]
+    choices = [(model_id, model_data['name']) for model_id, model_data in MODELS.items()]
+    # Retired ids stay valid choices: existing conversations still store them.
+    choices += [
+        (legacy_id, f"{legacy_id} (now {MODELS[successor]['name']})")
+        for legacy_id, successor in LEGACY_MODEL_ALIASES.items()
+    ]
+    return choices
 
 def get_provider_choices() -> List[Tuple[str, str]]:
     """
@@ -155,9 +161,14 @@ def get_default_provider() -> str:
     """
     return 'openai'
 
+def canonical_model_id(model_id: str) -> str:
+    """The current id for a model: a retired id maps to its successor."""
+    return LEGACY_MODEL_ALIASES.get(model_id, model_id)
+
 def get_model_by_id(model_id: str) -> dict:
     """
-    Get a model definition by its ID.
+    Get a model definition by its ID. A retired id resolves to its
+    successor's definition (see LEGACY_MODEL_ALIASES).
     
     Args:
         model_id: The model ID to look up
@@ -165,7 +176,15 @@ def get_model_by_id(model_id: str) -> dict:
     Returns:
         dict: The model definition or None if not found
     """
-    return MODELS.get(model_id)
+    return MODELS.get(canonical_model_id(model_id))
+
+def get_model_provider(model_id: str) -> str:
+    """
+    The provider that serves a model ('openai' or 'anthropic'). Unknown ids
+    report 'openai', matching how the agent treats a raw model string.
+    """
+    model = get_model_by_id(model_id)
+    return model.get('provider', 'openai') if model else 'openai'
 
 def get_model_display_name(model_id: str) -> str:
     """
@@ -189,7 +208,7 @@ def get_model_identity_instructions(model_id: str) -> str:
     older model like GPT-4o), which reads as if the wrong model is being used.
 
     Args:
-        model_id: The public model ID (e.g. 'gpt-5.6-sol', 'gpt-6-astra')
+        model_id: The public model ID (e.g. 'gpt-6-luna', 'claude-opus-5-5')
 
     Returns:
         str: An instruction block to append to the agent's system prompt
@@ -205,8 +224,8 @@ def get_model_identity_instructions(model_id: str) -> str:
 
 def get_backend_model_id(model_id: str) -> str:
     """
-    Resolve a public model id (e.g. 'gpt-5.6-sol') to the real underlying
-    OpenAI model id used for API calls (e.g. 'gpt-5').
+    Resolve a public model id (e.g. 'gpt-6-luna', or a retired 'gpt-5.6-terra')
+    to the real underlying provider model id used for API calls.
 
     Falls back to the given id when the model is unknown or defines no explicit
     backend model, so callers always receive a usable string.
@@ -227,7 +246,7 @@ def compute_cost_usd(model_id: str, input_tokens: int, output_tokens: int):
     Compute the USD cost of a run from a suite model's per-million-token pricing.
 
     Args:
-        model_id: The public model ID (e.g. 'gpt-5.6-sol', 'gpt-6-astra')
+        model_id: The public model ID (e.g. 'gpt-6-luna', 'claude-opus-5-5')
         input_tokens: Input tokens consumed by the run
         output_tokens: Output tokens produced by the run
 

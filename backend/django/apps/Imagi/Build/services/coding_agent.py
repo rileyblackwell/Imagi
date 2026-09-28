@@ -28,7 +28,9 @@ except ImportError:  # pragma: no cover - defensive fallback
 
 from apps.Imagi.Build.services.models_service import (
     get_backend_model_id,
+    get_model_by_id,
     get_model_identity_instructions,
+    get_model_provider,
     resolve_reasoning_effort,
 )
 from .base_agent import build_model_settings
@@ -46,7 +48,7 @@ logger = logging.getLogger(__name__)
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Default model
-DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-terra')
+DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'claude-opus-5-5')
 
 # The lead thread only triages (reply vs job) and writes short briefs — cheap,
 # near-mechanical work that doesn't need the builders' reasoning budget. It
@@ -281,6 +283,23 @@ def get_dynamic_coding_instructions(
     return instructions
 
 
+def build_agent_model(model: str):
+    """
+    What the Agent's `model` is for a public model id: the real OpenAI model id
+    (a string, which the SDK serves through the Responses API) for GPT models,
+    or an AnthropicModel for Claude models.
+    """
+    backend_model = get_backend_model_id(model)
+    if get_model_provider(model) == 'anthropic':
+        from .anthropic_model import AnthropicModel
+        definition = get_model_by_id(model) or {}
+        return AnthropicModel(
+            backend_model,
+            refusal_fallback=bool(definition.get('refusal_fallback')),
+        )
+    return backend_model
+
+
 def create_coding_agent(
     model: str = DEFAULT_MODEL,
     reasoning_effort: Optional[str] = None,
@@ -290,7 +309,7 @@ def create_coding_agent(
     Create the Imagi agent for a given conversation role.
 
     Args:
-        model: The public suite model id (mapped to the real OpenAI model)
+        model: The public model id (mapped to the real OpenAI or Anthropic model)
         reasoning_effort: How much reasoning to use — one of the platform ladder
             ('low', 'medium', 'high', 'xhigh'), the same for every model;
             legacy or unknown values are re-seated by resolve_reasoning_effort
@@ -306,7 +325,6 @@ def create_coding_agent(
     Returns:
         Agent: The configured agent for that role
     """
-    backend_model = get_backend_model_id(model)
     # The lead coordinates; it never builds. Force its low reasoning effort here
     # (ignoring the per-request setting, which is meant for the builders) so
     # triage-and-dispatch stays fast regardless of what the user picked.
@@ -382,7 +400,7 @@ def create_coding_agent(
     return Agent(
         name="Imagi",
         instructions=instructions_with_identity,
-        model=backend_model,
+        model=build_agent_model(model),
         tools=tools,
         **kwargs
     )
