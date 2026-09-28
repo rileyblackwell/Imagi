@@ -25,14 +25,14 @@ describe('the selectable model list', () => {
     expect(defaults[0]!.id).toBe('claude-opus-5-5')
   })
 
-  it('prices every tier at its retail rate (2x list) with the 1M window', () => {
+  it('prices every tier at its list price, no markup, with the 1M window', () => {
     const prices = Object.fromEntries(
       AI_MODELS.map(m => [m.id, [m.inputPricePerMTokens, m.outputPricePerMTokens, m.context_window]])
     )
     expect(prices).toEqual({
-      'gpt-6-luna': [0.2, 1, 1000000],
-      'claude-opus-5-5': [8, 40, 1000000],
-      'gpt-6-astra': [20, 100, 1000000],
+      'gpt-6-luna': [0.1, 0.5, 1000000],
+      'claude-opus-5-5': [4, 20, 1000000],
+      'gpt-6-astra': [10, 50, 1000000],
     })
   })
 

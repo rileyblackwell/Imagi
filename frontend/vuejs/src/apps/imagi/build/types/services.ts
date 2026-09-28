@@ -68,7 +68,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
 // the order the composer's intelligence slider runs in. The lineup blends
 // providers on purpose: each tier gets the best current fit, and it is
 // revisited as better fits ship. Mirrors the backend registry, including
-// retail prices (2x the provider's list price). Opus 5.5 carries the
+// prices (the provider's list price, no markup). Opus 5.5 carries the
 // `default` flag: createInstance prefers it over list order.
 export const AI_MODELS: AIModel[] = [
   {
@@ -82,8 +82,8 @@ export const AI_MODELS: AIModel[] = [
     description: 'OpenAI | GPT 6 Luna — cheap, quick and efficient',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 1000000,
-    inputPricePerMTokens: 0.2,
-    outputPricePerMTokens: 1,
+    inputPricePerMTokens: 0.1,
+    outputPricePerMTokens: 0.5,
     api_version: 'responses'
   },
   {
@@ -97,8 +97,8 @@ export const AI_MODELS: AIModel[] = [
     description: 'Anthropic | Claude Opus 5.5 — balanced, great all-around model for every kind of work',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 1000000,
-    inputPricePerMTokens: 8,
-    outputPricePerMTokens: 40,
+    inputPricePerMTokens: 4,
+    outputPricePerMTokens: 20,
     api_version: 'messages'
   },
   {
@@ -112,8 +112,8 @@ export const AI_MODELS: AIModel[] = [
     description: 'OpenAI | GPT 6 Astra — frontier intelligence for the hardest work',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 1000000,
-    inputPricePerMTokens: 20,
-    outputPricePerMTokens: 100,
+    inputPricePerMTokens: 10,
+    outputPricePerMTokens: 50,
     api_version: 'responses'
   }
 ];

@@ -25,10 +25,13 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 # client: OpenAI models run through the Responses API, Claude models through
 # services/anthropic_model.py.
 #
-# Retail prices are 2x the provider's list price (see Payments' plans.py).
-# NOTE: OpenAI charges 2x input on requests over 272k input tokens;
-# compute_cost_usd bills one flat rate, so a very long-context run earns
-# thinner margin than a short one.
+# Prices are the provider's list price per million tokens, with no markup:
+# a run draws down a user's allowance by what it actually costs (see
+# Payments' plans.py). Cached input is billed at the provider's cached rate,
+# since an agent loop resends most of its prompt every turn and the provider
+# charges a small fraction for it. Not modelled: OpenAI's 2x rates on
+# requests over 272k input tokens, and Anthropic's 1.25x premium on writing
+# the cache (those tokens bill at the plain input rate).
 #
 # Every model climbs the same four-rung reasoning ladder — see
 # REASONING_EFFORT_CHOICES below — so no entry spells out its own.
@@ -42,9 +45,9 @@ MODELS = {
         'description': 'OpenAI | GPT 6 Luna — cheap, quick and efficient',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
-        # List $0.10 / $0.50.
-        'input_price_per_m_tokens': 0.2,
-        'output_price_per_m_tokens': 1,
+        'input_price_per_m_tokens': 0.1,
+        'cached_input_price_per_m_tokens': 0.01,
+        'output_price_per_m_tokens': 0.5,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False,
         'supports_reasoning': True,
@@ -58,9 +61,9 @@ MODELS = {
         'description': 'Anthropic | Claude Opus 5.5 — balanced, great all-around model for every kind of work',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
-        # List $4 / $20.
-        'input_price_per_m_tokens': 8,
-        'output_price_per_m_tokens': 40,
+        'input_price_per_m_tokens': 4,
+        'cached_input_price_per_m_tokens': 0.2,
+        'output_price_per_m_tokens': 20,
         'api_version': 'messages',  # Uses the Anthropic Messages API
         'supports_temperature': False,
         'supports_reasoning': True,
@@ -77,9 +80,9 @@ MODELS = {
         'description': 'OpenAI | GPT 6 Astra — frontier intelligence for the hardest work',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
-        # List $10 / $50.
-        'input_price_per_m_tokens': 20,
-        'output_price_per_m_tokens': 100,
+        'input_price_per_m_tokens': 10,
+        'cached_input_price_per_m_tokens': 1,
+        'output_price_per_m_tokens': 50,
         'api_version': 'responses',
         'supports_temperature': False,
         'supports_reasoning': True,
@@ -241,14 +244,21 @@ def get_backend_model_id(model_id: str) -> str:
         return model['backend_model']
     return model_id
 
-def compute_cost_usd(model_id: str, input_tokens: int, output_tokens: int):
+def compute_cost_usd(
+    model_id: str,
+    input_tokens: int,
+    output_tokens: int,
+    cached_input_tokens: int = 0,
+):
     """
-    Compute the USD cost of a run from a suite model's per-million-token pricing.
+    Compute the USD cost of a run at the model's list price.
 
     Args:
         model_id: The public model ID (e.g. 'gpt-6-luna', 'claude-opus-5-5')
-        input_tokens: Input tokens consumed by the run
+        input_tokens: All input tokens the run consumed, cached ones included
         output_tokens: Output tokens produced by the run
+        cached_input_tokens: How many of input_tokens were served from the
+            provider's prompt cache; they bill at the cached-input rate
 
     Returns:
         float or None: The cost in USD, or None when the model (or its
@@ -261,8 +271,12 @@ def compute_cost_usd(model_id: str, input_tokens: int, output_tokens: int):
     output_price = model.get('output_price_per_m_tokens')
     if input_price is None or output_price is None:
         return None
+    cached_price = model.get('cached_input_price_per_m_tokens', input_price)
+    # A cached count can't exceed the input it is part of.
+    cached = min(max(cached_input_tokens or 0, 0), input_tokens or 0)
     cost = (
-        (input_tokens or 0) * input_price
+        ((input_tokens or 0) - cached) * input_price
+        + cached * cached_price
         + (output_tokens or 0) * output_price
     ) / 1_000_000
     return round(cost, 6)

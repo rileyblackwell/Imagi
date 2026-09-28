@@ -72,8 +72,8 @@ INITIAL_BUILD_TIME_BUDGET_S = _BUILDER_SETTINGS.get('INITIAL_BUILD_TIME_BUDGET_S
 
 # The OpenAI service tier the first build requests (IMAGI_BUILDER in settings).
 # A page write is one long streamed tool call, so its wall clock is output
-# throughput, and 'priority' roughly doubles it. None leaves the account
-# default.
+# throughput, and the 'fast' tier (GPT 6's name for what earlier models
+# called 'priority') roughly doubles it. None leaves the account default.
 INITIAL_BUILD_SERVICE_TIER = _BUILDER_SETTINGS.get('INITIAL_BUILD_SERVICE_TIER')
 
 # Project memory files, in priority order (Codex reads AGENTS.md,

@@ -354,13 +354,14 @@ IMAGI_BUILDER = {
     # long streamed tool call, so its wall clock is output throughput: on the
     # default tier gpt-5-mini streamed ~75 tokens/s in Sep 2026 measurements
     # (a 10 KB page ≈ 3.3K tokens ≈ 45s); on 'priority', 120–150 tokens/s
-    # (the same page ≈ 26s). GPT 6 models serve 'priority' as their 'fast'
-    # tier: gpt-6-luna streamed ~235 tokens/s there in late-Sep 2026
-    # measurements (gpt-6-sol 165–190, gpt-5-mini on priority ~195). Either is
-    # billed at 2x the API list price per token — well under a cent a page on
-    # gpt-6-luna; the retail rates in models_service that meter the founder
-    # are unaffected. None uses the account's default tier.
-    'INITIAL_BUILD_SERVICE_TIER': 'priority',
+    # (the same page ≈ 26s). GPT 6 renamed that tier 'fast' (it still serves
+    # 'priority' as 'fast', but 'fast' is the name it reports back):
+    # gpt-6-luna streamed ~235 tokens/s there in late-Sep 2026 measurements
+    # (gpt-6-sol 165–190, gpt-5-mini on priority ~195). Fast is billed at 2x
+    # the API list price per token — well under a cent a page on gpt-6-luna.
+    # The founder's allowance is metered at the standard list price either
+    # way (models_service). None uses the account's default tier.
+    'INITIAL_BUILD_SERVICE_TIER': 'fast',
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS
     # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).
@@ -377,11 +378,10 @@ IMAGI_BUILDER = {
     # Cost and turns are runaway backstops now, not the operative limit — the
     # time budget stops a normal build long before either binds. Both are PER
     # PAGE, so the ceiling for a whole build is this times the page count.
-    # NOTE: the cost figure is priced with the *suite retail* rates in
-    # models_service (what a run is displayed as costing), which are a multiple
-    # of the underlying API price — so this is deliberately well above real
-    # expected spend. Sized so it never cuts a build short on its own; time
-    # does that.
+    # The cost figure is metered at list price (models_service), and at
+    # GPT 6 Luna's rates a page costs well under a cent — so this is far above
+    # real expected spend. Sized so it never cuts a build short on its own;
+    # time does that.
     'INITIAL_BUILD_COST_BUDGET_USD': 1.50,
     'INITIAL_BUILD_MAX_TURNS': 12,
     # A build that stops at a cap can leave a page importing a component it

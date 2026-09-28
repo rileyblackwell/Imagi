@@ -104,10 +104,11 @@ class ClaudeRegistryTests(SimpleTestCase):
         self.assertEqual(get_model_provider('gpt-6-luna'), 'openai')
         self.assertEqual(get_model_provider('gpt-6-astra'), 'openai')
 
-    def test_claude_is_billed_at_twice_list_price(self):
-        # Opus 5.5 lists at $4 / $20 per million tokens.
-        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0), 8.0)
-        self.assertEqual(compute_cost_usd('claude-opus-5-5', 0, 1_000_000), 40.0)
+    def test_claude_is_billed_at_list_price(self):
+        # Opus 5.5 lists at $4 / $20 per million tokens, $0.20 cache reads.
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0), 4.0)
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 0, 1_000_000), 20.0)
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, 1_000_000), 0.2)
 
     def test_the_agent_is_served_by_the_provider_of_its_model(self):
         self.assertEqual(build_agent_model('gpt-6-luna'), 'gpt-6-luna')
@@ -132,7 +133,11 @@ class ClaudeRequestTests(SimpleTestCase):
             None,
         )
         self.assertEqual(request['model'], 'claude-opus-5-5')
-        self.assertEqual(request['system'], 'You are Imagi.')
+        # The shared prefix (tools + system) gets its own cache breakpoint, so
+        # it is reused across messages, not just within one run's loop.
+        self.assertEqual(request['system'], [
+            {'type': 'text', 'text': 'You are Imagi.', 'cache_control': {'type': 'ephemeral'}},
+        ])
         self.assertEqual(request['messages'], [{'role': 'user', 'content': 'hello'}])
         self.assertEqual(request['max_tokens'], DEFAULT_MAX_TOKENS)
         self.assertEqual(request['thinking'], {'type': 'adaptive'})

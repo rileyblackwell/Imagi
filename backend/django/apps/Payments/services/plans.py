@@ -42,8 +42,9 @@ def _windows(weekly_usd):
 # subscribers through get_plan()'s unknown-id fallback and silently drop them to
 # the free allowance.
 #
-# The Max tiers allow more retail usage than their sticker price, which is
-# viable because our per-token prices are marked up over real API cost.
+# Usage is metered at the providers' list prices with no markup, so an
+# allowance is real API spend: a user who uses all of it every week costs
+# about 4.3x the weekly figure a month. Price allowances with that in mind.
 PLANS = {
     'free': {
         'id': 'free',
