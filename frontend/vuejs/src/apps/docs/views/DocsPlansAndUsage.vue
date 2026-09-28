@@ -27,17 +27,26 @@
             (see <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>).
           </p>
           <p>
+            Usage is metered at the AI providers' own list prices, with no markup. Follow-up messages in a conversation cost
+            less than the first, because the parts of your project the model has already read are billed at the providers'
+            lower cached rate. Besides chatting with the agent, creating a project (its automatic first build) and voice
+            dictation also count toward your allowance.
+          </p>
+          <p>
             Because the window rolls, allowance frees up gradually as older activity ages out—rather than resetting all at once.
           </p>
         </div>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="The Usage panel">
-            In the Build workspace, the Usage panel shows the week's spend against your allowance, with a meter
-            and a "resets" time, so you always know where you stand. It refreshes automatically after each agent run.
+            In the Build workspace, the Usage button in the chat toolbar opens a panel showing how much of the week's
+            allowance you've used, as a percentage with a meter, and when usage next frees up. It refreshes after each agent
+            run and whenever you open it.
           </DocsCard>
           <DocsCard title="Running out">
-            If you use up the week's allowance, the agent tells you clearly and when it resets. You can wait for it to free up
-            as the window rolls, switch to a lighter model or lower reasoning effort, or upgrade your plan.
+            If you use up the week's allowance, the agent tells you clearly and when usage frees up. You can wait for it to
+            free up as the window rolls, switch to a lighter model or lower reasoning effort, or upgrade your plan. The check
+            happens before each run starts, so a run already underway always finishes—which can take you slightly past the
+            allowance.
           </DocsCard>
         </div>
       </section>
@@ -98,8 +107,8 @@
             Keeping an eye on it
           </h4>
           <p class="callout__body">
-            The Build workspace shows how much of your weekly allowance is left right in the toolbar, and the Usage panel
-            shows the same figure in dollars. Both refresh shortly after each AI run.
+            Open the Usage panel from the Build workspace's chat toolbar to see how much of your weekly allowance you've
+            used. It refreshes shortly after each AI run.
           </p>
         </div>
       </section>
@@ -115,8 +124,11 @@
             stored by Imagi.
           </DocsCard>
           <DocsCard title="Manage your plan">
-            Upgrade, downgrade, or cancel any time through the billing portal. Changes take effect on your account right
-            away, adjusting your usage allowance accordingly.
+            Switch between paid plans from the Pricing page: your existing subscription is changed, never duplicated, and the
+            difference is prorated—charged right away when you move up, credited to future invoices when you move down. The
+            new allowance applies as soon as the change goes through. To update your card or cancel, choose "Manage billing"
+            on the Pricing page to open Stripe's billing portal; a cancelled plan stays active until the end of the current
+            billing period, then moves to Free.
           </DocsCard>
         </div>
       </section>
