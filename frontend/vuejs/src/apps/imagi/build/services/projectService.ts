@@ -228,10 +228,14 @@ export const ProjectService = {
         throw new Error(`Description error: ${error.response.data.description}`)
       } else if (error.response?.status === 401) {
         throw new Error('You must be logged in to create a project')
+      } else if (error.response?.status === 429 && error.response?.data?.detail) {
+        // The usage allowance: `error` is a code, `detail` the sentence.
+        throw new Error(error.response.data.detail)
+      } else if (error.response?.data?.error) {
+        // Includes the plan's project limit (403), which explains itself.
+        throw new Error(error.response.data.error)
       } else if (error.response?.status === 403) {
         throw new Error('You do not have permission to create projects')
-      } else if (error.response?.data?.error) {
-        throw new Error(error.response.data.error)
       } else if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
       }

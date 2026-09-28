@@ -14,12 +14,14 @@
         </h2>
         <div class="lede space-y-4 text-lg">
           <p>
-            Imagi is an all-in-one platform for building and running a business. First, you build your
-            web application with AI-powered tools: design visually, chat with AI to plan and write code,
-            and launch to the web—all designed to be fast, affordable, and approachable.
+            Imagi is an all-in-one platform for building and running a business. Each business is a
+            <strong class="ink-strong">project</strong>. First, you build its web application with AI: describe what you
+            want in chat, and Imagi's agents plan and write the code while you watch it take shape in a live preview—all
+            designed to be fast, affordable, and approachable.
           </p>
           <p>
-            Then you run your business with built-in tools for marketing, sales, and finance. Whether you're
+            Then you run your business from the same project with built-in tools for marketing, sales, and day-to-day
+            operations. Whether you're
             launching a startup or growing a small business, Imagi takes you from idea to a running business
             without requiring a technical team.
           </p>
@@ -36,12 +38,42 @@
             Go from idea to a running business without hiring a team—build your product, then find customers and grow revenue.
           </DocsCard>
           <DocsCard title="Small Business Owners">
-            Get your business online and manage marketing, sales, and finances in one place instead of juggling separate tools.
+            Build your business's web app and manage marketing, sales, and finances in one place instead of juggling separate tools.
           </DocsCard>
           <DocsCard title="Creators & Side Hustlers">
             Turn a project or passion into a real business—build the app, market it, take payments, and track the money.
           </DocsCard>
         </div>
+      </section>
+
+      <!-- Getting started -->
+      <section class="mb-16">
+        <h2 class="display display--section">
+          Getting Started
+        </h2>
+        <ul class="space-y-3">
+          <li class="flex items-start gap-3">
+            <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
+            <span class="text-lg leading-relaxed"><strong class="ink-strong">Create a project</strong> — give your business a
+              name, describe what it does, and optionally describe the look you want.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
+            <span class="text-lg leading-relaxed"><strong class="ink-strong">Get a first build automatically</strong> — Imagi
+              turns your description into a starting app in about half a minute, with AI agents building its pages in
+              parallel on top of a working foundation.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
+            <span class="text-lg leading-relaxed"><strong class="ink-strong">Keep building by chatting</strong> — open the
+              Build workspace and ask for changes; the preview updates as the agents work.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
+            <span class="text-lg leading-relaxed"><strong class="ink-strong">Run the business</strong> — the project's hub
+              links to Build and to the Sell, Market, and Operate workspaces.</span>
+          </li>
+        </ul>
       </section>
 
       <!-- How Does Imagi Work -->
@@ -64,11 +96,11 @@
           </DocsCard>
           <DocsCard title="Market">
             Reach and engage your audience over text and voice with Twilio-powered campaigns, hold two-way
-            conversations in a shared inbox, and keep an eye on your Google and Meta ad campaigns in one place.
+            conversations in an inbox, and keep an eye on your Google and Meta ad campaigns in one place.
           </DocsCard>
           <DocsCard title="Operate">
-            Run the day-to-day from a single command center—record income and expenses, send invoices and get
-            paid, and track your tasks, with dashboards that show the health of your business at a glance.
+            Run the day-to-day from a single command center—record income and expenses, track invoices from draft
+            to paid, and manage your tasks, with dashboards that show the health of your business at a glance.
           </DocsCard>
         </div>
       </section>
@@ -84,20 +116,20 @@
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Everything in One Place">
-            Build your product and run marketing, sales, and finance from a single platform. No more stitching
+            Build your product and run marketing, sales, and operations from a single platform. No more stitching
             together a dozen separate subscriptions to keep your business running.
           </DocsCard>
           <DocsCard title="Affordable & Transparent">
-            Get started for a fraction of the cost of hiring developers or a full software stack. No hidden fees,
-            no vendor lock-in—just straightforward pricing that scales with your needs.
+            Get started for a fraction of the cost of hiring developers or a full software stack. AI usage is metered
+            at the AI providers' own list prices with no markup, and a free plan lets you try everything first.
           </DocsCard>
           <DocsCard title="Built to Move Fast">
-            Go from idea to a live product and paying customers quickly. Every feature is designed to help you
+            Go from idea to a working app and paying customers quickly. Every feature is designed to help you
             launch, find traction, and grow without technical roadblocks.
           </DocsCard>
           <DocsCard title="Room to Grow">
-            As your business scales, your app grows with you. Imagi generates standard Vue.js and Django code
-            that any developer can pick up and extend when you're ready.
+            As your business scales, your app grows with you. Imagi builds it with Vue.js and Django—standard,
+            widely used open-source frameworks, not a proprietary format.
           </DocsCard>
         </div>
       </section>

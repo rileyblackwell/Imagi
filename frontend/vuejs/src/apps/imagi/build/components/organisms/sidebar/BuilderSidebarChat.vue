@@ -47,13 +47,12 @@
          can anchor to the full section width — the sidebar clips overflow,
          so a panel anchored to its narrow button couldn't fit. -->
     <div class="shrink-0 relative bg-canvas transition-colors duration-300">
-      <!-- Model + reasoning panel (opens upward above the composer): two
-           sliders over the one trade-off — how smart a model and how hard it
-           thinks, both running faster → smarter — so they share a dropdown
-           rather than trading places in two. Each slider is a native range
-           input: it is the tab stop, arrows and Home/End move it, and every
-           step is one idempotent write to the workspace. The stop labels
-           under it are pointer shortcuts to the same values.
+      <!-- Model + reasoning menu (opens upward above the composer). The
+           model is a short list — three tiers, each with what it is for and
+           a check on the one in use — and reasoning effort is a four-bar
+           meter under it, both running faster → smarter. Each is a radio
+           group: one tab stop, arrows move the choice, and every change is
+           one idempotent write to the workspace.
 
            The panels share one popover treatment: a translucent material
            that grows out of the chip that opened it (transform-origin sits
@@ -71,81 +70,91 @@
       >
         <!-- Body scrolls on short viewports so the panel never grows past the
              top of the sidebar (the usage panel's recipe). -->
-        <div class="iw-scroll max-h-[min(24rem,calc(100vh-19rem))] overflow-y-auto">
+        <div class="iw-scroll max-h-[min(26rem,calc(100vh-19rem))] overflow-y-auto">
           <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
-            <label for="tune-model" class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
-              Intelligence
-            </label>
-            <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
-              {{ currentModel?.name || '—' }}
+            <span id="tune-model-heading" class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+              Model
             </span>
           </div>
-          <div class="px-3 pt-3 pb-3">
-            <input
-              id="tune-model"
-              ref="modelSlider"
-              type="range"
-              class="tune-slider"
-              min="0"
-              :max="Math.max(orderedModels.length - 1, 0)"
-              step="1"
-              :value="modelIndex"
+          <div
+            role="radiogroup"
+            aria-labelledby="tune-model-heading"
+            class="p-1"
+            @keydown="onModelKeydown"
+          >
+            <button
+              v-for="(m, i) in orderedModels"
+              :key="m.id"
+              ref="modelRows"
+              type="button"
+              role="radio"
+              :aria-checked="i === modelIndex"
+              :tabindex="i === modelIndex ? 0 : -1"
               :disabled="!activeInstance"
-              :style="sliderFill(modelIndex, orderedModels.length)"
-              :aria-valuetext="currentModel ? `${modelShortName(currentModel.id)}: ${modelBlurb(currentModel.id)}` : undefined"
-              @input="onModelSlide"
-            />
-            <div class="tune-stops" aria-hidden="true">
-              <span
-                v-for="(m, i) in orderedModels"
-                :key="m.id"
-                class="tune-stop"
-                :class="{ 'tune-stop--on': i === modelIndex, 'tune-stop--off': !activeInstance }"
-                :style="stopAt(i, orderedModels.length)"
-                @click="activeInstance && pickModel(m.id)"
-              >{{ modelShortName(m.id) }}</span>
-            </div>
-            <p class="tune-hint">{{ currentModel ? modelBlurb(currentModel.id) : '' }}</p>
+              class="model-row"
+              :class="{ 'model-row--on': i === modelIndex }"
+              @click="pickModel(m.id)"
+            >
+              <span class="min-w-0 flex-1">
+                <span class="model-row__name">
+                  {{ modelShortName(m.id) }}
+                  <span class="model-row__tier">{{ modelTier(m.id) }}</span>
+                </span>
+                <span class="model-row__blurb">{{ modelBlurb(m.id) }}</span>
+              </span>
+              <i
+                class="fas fa-check model-row__check"
+                :class="{ 'opacity-0': i !== modelIndex }"
+                aria-hidden="true"
+              ></i>
+            </button>
           </div>
 
           <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
-            <label for="tune-effort" class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            <span id="tune-effort-heading" class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
               Reasoning effort
-            </label>
-            <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
-              {{ currentEffort?.name || '—' }}
             </span>
           </div>
-          <div class="px-3 pt-3 pb-3">
-            <input
-              id="tune-effort"
-              type="range"
-              class="tune-slider"
-              min="0"
-              :max="Math.max(effortOptions.length - 1, 0)"
-              step="1"
-              :value="effortIndex"
-              :disabled="!activeInstance"
-              :style="sliderFill(effortIndex, effortOptions.length)"
-              :aria-valuetext="currentEffort ? `${currentEffort.name}: ${currentEffort.description}` : undefined"
+          <div class="flex items-center gap-3 px-3 pt-3 pb-2">
+            <!-- Bars rise with the rung and fill up to the chosen one, so the
+                 row reads as a meter. Hovering a bar previews its rung in
+                 the text beside it. -->
+            <div
+              role="radiogroup"
+              aria-labelledby="tune-effort-heading"
               aria-describedby="tune-effort-note"
-              @input="onEffortSlide"
-            />
-            <div class="tune-stops" aria-hidden="true">
-              <span
+              class="effort-bars"
+              @mouseleave="effortPreview = null"
+              @keydown="onEffortKeydown"
+            >
+              <button
                 v-for="(o, i) in effortOptions"
                 :key="o.id"
-                class="tune-stop"
-                :class="{ 'tune-stop--on': i === effortIndex, 'tune-stop--off': !activeInstance }"
-                :style="stopAt(i, effortOptions.length)"
-                @click="activeInstance && pickEffort(o.id)"
-              >{{ o.name }}</span>
+                ref="effortBars"
+                type="button"
+                role="radio"
+                :aria-checked="i === effortIndex"
+                :aria-label="`${o.name}: ${o.description}`"
+                :tabindex="i === effortIndex ? 0 : -1"
+                :disabled="!activeInstance"
+                class="effort-bar"
+                :class="{
+                  'effort-bar--on': i <= (effortPreview ?? effortIndex),
+                  'effort-bar--preview': effortPreview !== null && i <= effortPreview && i > effortIndex,
+                }"
+                :style="{ '--rung': i }"
+                @mouseenter="effortPreview = i"
+                @click="pickEffort(o.id)"
+              ><span class="effort-bar__fill" aria-hidden="true"></span></button>
             </div>
-            <p class="tune-hint">{{ currentEffort?.description }}</p>
-            <p id="tune-effort-note" class="tune-note">
-              More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default.
-            </p>
+            <div class="min-w-0 flex-1" aria-hidden="true">
+              <p class="effort-readout__name">{{ shownEffort?.name }}</p>
+              <p class="effort-readout__desc">{{ shownEffort?.description }}</p>
+            </div>
           </div>
+          <p id="tune-effort-note" class="tune-note px-3 pt-1 pb-3">
+            More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default.
+          </p>
         </div>
       </div>
       </Transition>
@@ -333,8 +342,8 @@
             <!-- min-w-0 + overflow-hidden lets the chips truncate rather than
                  shove the send button off the edge on a narrow sidebar. -->
             <div class="flex flex-nowrap items-center gap-1 min-w-0 flex-1 overflow-hidden">
-              <!-- Model + reasoning: one chip naming both ("Sol · Medium"),
-                   opening the model list and the reasoning dial together. -->
+              <!-- Model + reasoning: one chip naming both ("Opus 5.5 · Medium"),
+                   opening the model list and the effort meter together. -->
               <div ref="tuneRoot" class="min-w-0">
                 <button
                   type="button"
@@ -637,8 +646,8 @@ function onDocMousedown(e: MouseEvent) {
   }
 }
 
-// Escape closes the tuning panel from anywhere, not only while focus is
-// inside it — a keyboard user who Tabs past the last segment would otherwise
+// Escape closes the model menu from anywhere, not only while focus is
+// inside it — a keyboard user who Tabs past the last control would otherwise
 // have no way back to dismiss it. Inside the panel its own handler fires
 // first and stops the event, so this never runs twice.
 function onDocKeydown(e: KeyboardEvent) {
@@ -661,7 +670,7 @@ const usageOpen = ref(false)
 const usageRoot = ref<HTMLElement | null>(null)
 const usagePanel = ref<HTMLElement | null>(null)
 
-// --- Model + reasoning popover (the model list and the reasoning dial share one panel) ---
+// --- Model + reasoning menu (the model list and the effort meter share one panel) ---
 
 const tuneOpen = ref(false)
 const tuneRoot = ref<HTMLElement | null>(null)
@@ -741,8 +750,8 @@ const effortOptions = computed<ReasoningEffortOption[]>(() =>
   reasoningEffortsForModel(activeInstance.value?.selectedModelId)
 )
 
-// The tiers ranked faster → smarter, the order the intelligence slider runs
-// in. Unknown ids sort last but still appear, so the slider degrades
+// The tiers ranked faster → smarter, the order the model menu lists them
+// in. Unknown ids sort last but still appear, so the menu degrades
 // gracefully if the lineup changes before this table does.
 const MODEL_RANK: Record<string, number> = {
   'gpt-6-luna': 0,
@@ -754,8 +763,8 @@ const orderedModels = computed<AIModel[]>(() =>
     (a, b) => (MODEL_RANK[a.id] ?? 99) - (MODEL_RANK[b.id] ?? 99)
   )
 )
-// A conversation on a model the slider does not offer shows the default's
-// stop rather than an arbitrary end of the scale.
+// A conversation on a model the menu does not offer shows the default
+// rather than an arbitrary end of the lineup.
 const modelIndex = computed(() => {
   const models = orderedModels.value
   const idx = models.findIndex(m => m.id === activeInstance.value?.selectedModelId)
@@ -765,7 +774,7 @@ const modelIndex = computed(() => {
 })
 const currentModel = computed<AIModel | null>(() => orderedModels.value[modelIndex.value] ?? null)
 
-/** The distinctive part of the model name for the chip and the slider stops
+/** The distinctive part of the model name for the chip
  *  ("Luna", "Opus 5.5", "Astra"), dropping the "GPT <version>" or "Claude"
  *  prefix. */
 function modelShortName(id?: string | null): string {
@@ -774,11 +783,11 @@ function modelShortName(id?: string | null): string {
   return model.name.replace(/^(?:GPT\s*\d+(?:\.\d+)?|Claude)\s*/i, '').trim() || model.name
 }
 
-// What each tier is for, shown under the slider. Static: the models endpoint
+// What each tier is for, shown under its name in the menu. Static: the models endpoint
 // sends no copy, and the composer's fallback list has none either.
 const MODEL_BLURBS: Record<string, string> = {
-  'gpt-6-luna': 'Cheap, quick and efficient — great for small edits and fast answers.',
-  'claude-opus-5-5': 'Balanced and great all-around — the default for every kind of work.',
+  'gpt-6-luna': 'Fast and inexpensive, yet capable at most tasks — turn up reasoning for harder ones.',
+  'claude-opus-5-5': 'Thoughtful and dependable, with strong judgment on code and design. The default.',
   'gpt-6-astra': 'Frontier intelligence for the hardest, most complex work.',
 }
 const modelBlurb = (id: string) =>
@@ -786,7 +795,7 @@ const modelBlurb = (id: string) =>
 
 // effortOptions is the one ladder every model shares, ordered faster →
 // smarter. The store re-seats a legacy selectedEffort onto it when the model
-// changes, so the slider can't point at a rung the next request would reject —
+// changes, so the meter can't point at a rung the next request would reject —
 // and changing model never moves it.
 const effortIndex = computed(() => {
   const idx = effortOptions.value.findIndex(
@@ -794,20 +803,20 @@ const effortIndex = computed(() => {
   )
   return idx >= 0 ? idx : 0
 })
-const currentEffort = computed<ReasoningEffortOption | null>(() => effortOptions.value[effortIndex.value] ?? null)
 
-function effortLabel(id?: string | null): string {
-  const option = effortOptions.value.find(o => o.id === id) ?? currentEffort.value
-  return option?.name ?? 'Reasoning'
+// The tier tag beside each model's name in the menu.
+const MODEL_TIERS: Record<string, string> = {
+  'gpt-6-luna': 'Fast',
+  'claude-opus-5-5': 'Balanced',
+  'gpt-6-astra': 'Frontier',
 }
+const modelTier = (id: string) => MODEL_TIERS[id] ?? ''
 
 /** The chip reads "Opus 5.5 · Medium": the model's short name and the
  *  reasoning rung, so both settings are legible without opening anything. */
 const tuneLabel = computed(
-  () => `${modelShortName(activeInstance.value?.selectedModelId)} · ${effortLabel(activeInstance.value?.selectedEffort)}`
+  () => `${modelShortName(currentModel.value?.id)} · ${effortOptions.value[effortIndex.value]?.name ?? 'Reasoning'}`
 )
-
-const modelSlider = ref<HTMLInputElement | null>(null)
 
 function pickModel(id: string) {
   if (id !== activeInstance.value?.selectedModelId) void handleModelSelect(id)
@@ -817,38 +826,65 @@ function pickEffort(id: ReasoningEffort) {
   if (id !== activeInstance.value?.selectedEffort) void handleEffortSelect(id)
 }
 
-const sliderStep = (e: Event) => Number((e.target as HTMLInputElement).value)
+// The bar under the pointer, whose rung the readout previews; null when the
+// pointer is elsewhere and the readout shows the rung in use.
+const effortPreview = ref<number | null>(null)
+const shownEffort = computed<ReasoningEffortOption | null>(
+  () => effortOptions.value[effortPreview.value ?? effortIndex.value] ?? null
+)
 
-function onModelSlide(e: Event) {
-  const model = orderedModels.value[sliderStep(e)]
-  if (model) pickModel(model.id)
+const modelRows = ref<HTMLButtonElement[]>([])
+const effortBars = ref<HTMLButtonElement[]>([])
+
+/** Radio-group keys: arrows step one option (clamped at the ends rather than
+ *  wrapping — both groups run faster → smarter, so they have a top), Home/End
+ *  jump to them. `upIsMore` says which way ArrowUp goes: toward the top of
+ *  the model list is faster, while the effort bars stand left to right, so
+ *  there Up means more. Returns the index to move to, or null to ignore. */
+function radioStep(key: string, current: number, count: number, upIsMore: boolean): number | null {
+  const steps: Record<string, number> = {
+    ArrowRight: current + 1,
+    ArrowLeft: current - 1,
+    ArrowDown: upIsMore ? current - 1 : current + 1,
+    ArrowUp: upIsMore ? current + 1 : current - 1,
+    Home: 0,
+    End: count - 1,
+  }
+  if (!(key in steps) || count === 0) return null
+  return Math.min(Math.max(steps[key]!, 0), count - 1)
 }
 
-function onEffortSlide(e: Event) {
-  const option = effortOptions.value[sliderStep(e)]
-  if (option) pickEffort(option.id)
+// Focus follows the choice, since the chosen option is its group's one tab
+// stop.
+function onModelKeydown(e: KeyboardEvent) {
+  const target = radioStep(e.key, modelIndex.value, orderedModels.value.length, false)
+  if (target === null || !activeInstance.value) return
+  e.preventDefault()
+  pickModel(orderedModels.value[target]!.id)
+  void nextTick(() => modelRows.value[target]?.focus())
 }
 
-/** How much of a slider's track is filled: up to the thumb. */
-function sliderFill(index: number, count: number) {
-  return { '--fill': count > 1 ? `${(index / (count - 1)) * 100}%` : '0%' }
-}
-
-/** Where a stop label sits: under the thumb's centre at that step. */
-function stopAt(index: number, count: number) {
-  return { '--at': count > 1 ? index / (count - 1) : 0 }
+function onEffortKeydown(e: KeyboardEvent) {
+  const target = radioStep(e.key, effortIndex.value, effortOptions.value.length, true)
+  if (target === null || !activeInstance.value) return
+  e.preventDefault()
+  effortPreview.value = null
+  pickEffort(effortOptions.value[target]!.id)
+  void nextTick(() => effortBars.value[target]?.focus())
 }
 
 /** Escape: the panel goes and focus returns to the chip that opened it, so a
  *  keyboard user is not dropped on the page body. */
 function closeTune() {
   tuneOpen.value = false
+  effortPreview.value = null
   void nextTick(() => tuneRoot.value?.querySelector<HTMLButtonElement>('button')?.focus())
 }
 
 watch(tuneOpen, open => {
-  // Focus lands on the intelligence slider, so the arrows work straight away.
-  if (open) void nextTick(() => modelSlider.value?.focus())
+  // Focus lands on the model in use, so the arrows work straight away.
+  if (open) void nextTick(() => modelRows.value[modelIndex.value]?.focus())
+  else effortPreview.value = null
 })
 
 // --- Dictation (holding the send button, or holding ⌘D) ---
@@ -1447,165 +1483,182 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   transition: transform var(--iw-dur-3) var(--iw-ease-inout);
 }
 
-/* Tuning sliders: a hairline track filled in the send button's navy (cream in
-   dark) up to the thumb, and a thumb cut from the same ink. The fill reads the
-   --fill share set per slider, since a range input has no filled-track part
-   of its own in WebKit. */
-.tune-slider {
-  --thumb: 1rem;
-  --track: rgba(var(--iw-ink), 0.12);
-  --ink: theme('colors.blue.950');
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
+/* Model menu rows: name, tier tag and what the tier is for, with a check on
+   the model in use. Ghost rows that tint on hover, like the chip. */
+.model-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   width: 100%;
-  height: 1.25rem;
-  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: var(--iw-r-sm);
   background: transparent;
+  text-align: left;
   cursor: pointer;
   outline: none;
-  --iw-focus-base: rgb(var(--iw-surface));
+  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.dark .tune-slider {
-  --track: rgba(255, 255, 255, 0.14);
-  --ink: #f3ede2;
+.model-row:hover:not(:disabled) {
+  background-color: rgba(219, 234, 254, 0.5);
 }
 
-.tune-slider:disabled {
+.model-row--on {
+  background-color: rgba(219, 234, 254, 0.35);
+}
+
+.model-row:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.tune-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(to right, var(--ink) var(--fill), var(--track) var(--fill));
-}
-
-.tune-slider::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(to right, var(--ink) var(--fill), var(--track) var(--fill));
-}
-
-.tune-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: var(--thumb);
-  height: var(--thumb);
-  margin-top: calc((4px - var(--thumb)) / 2);
-  border: 2px solid rgb(var(--iw-surface));
-  border-radius: 999px;
-  background: var(--ink);
-  box-shadow: var(--iw-shadow-1);
-  transition: transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.tune-slider::-moz-range-thumb {
-  width: var(--thumb);
-  height: var(--thumb);
-  box-sizing: border-box;
-  border: 2px solid rgb(var(--iw-surface));
-  border-radius: 999px;
-  background: var(--ink);
-  box-shadow: var(--iw-shadow-1);
-  transition: transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.tune-slider:active:not(:disabled)::-webkit-slider-thumb {
-  transform: scale(1.12);
-}
-
-.tune-slider:active:not(:disabled)::-moz-range-thumb {
-  transform: scale(1.12);
-}
-
-.tune-slider:focus-visible::-webkit-slider-thumb {
+.model-row:focus-visible {
   box-shadow: var(--iw-focus-ring);
 }
 
-.tune-slider:focus-visible::-moz-range-thumb {
-  box-shadow: var(--iw-focus-ring);
+.dark .model-row:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.07);
 }
 
-/* Stop labels, each centred under the thumb's position at its step (--at, 0
-   to 1, across the track inset by half a thumb); the two ends hug the edges
-   so a long end label ("Extra High") never overhangs the panel. */
-.tune-stops {
-  position: relative;
-  height: 1rem;
-  margin-top: 0.25rem;
-  --thumb-r: 0.5rem;
+.dark .model-row--on {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-.tune-stop {
-  position: absolute;
-  top: 0;
-  left: calc(var(--thumb-r) + (100% - 2 * var(--thumb-r)) * var(--at));
-  transform: translateX(-50%);
-  font-size: 0.6875rem;
-  line-height: 1rem;
+.model-row__name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  white-space: nowrap;
+  line-height: 1.25rem;
+  color: rgb(23, 37, 84);
+}
+
+.dark .model-row__name {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.model-row__tier {
+  font-size: 0.6875rem;
+  font-weight: 500;
   color: rgba(23, 37, 84, 0.55);
-  cursor: pointer;
-  transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.tune-stop:first-child {
-  left: 0;
-  transform: none;
+.dark .model-row__tier {
+  color: rgba(255, 255, 255, 0.45);
 }
 
-.tune-stop:last-child {
-  left: 100%;
-  transform: translateX(-100%);
-}
-
-.tune-stop:hover {
-  color: rgb(23, 37, 84);
-}
-
-.tune-stop--on {
-  font-weight: 600;
-  color: rgb(23, 37, 84);
-}
-
-.tune-stop--off {
-  cursor: not-allowed;
-}
-
-.dark .tune-stop {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.dark .tune-stop:hover,
-.dark .tune-stop--on {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-@media (max-width: 360px) {
-  .tune-stop {
-    font-size: 0.625rem;
-  }
-}
-
-/* What the chosen stop means. The opacities here clear 4.5:1 for 11px text
-   over the glass. */
-.tune-hint {
-  margin-top: 0.5rem;
-  min-height: 1rem;
+.model-row__blurb {
+  display: block;
   font-size: 0.6875rem;
   line-height: 1rem;
   color: rgba(23, 37, 84, 0.7);
 }
 
-.dark .tune-hint {
+.dark .model-row__blurb {
   color: rgba(255, 255, 255, 0.55);
 }
 
+.model-row__check {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: rgb(23, 37, 84);
+}
+
+.dark .model-row__check {
+  color: #f3ede2;
+}
+
+/* Reasoning effort meter: bars that rise with the rung, filled up to the
+   chosen one in the send button's navy (cream in dark); the rest are hairline
+   outlines. A hovered rung above the chosen one previews at half strength.
+   Each bar's hit target is the full column, not just the ink. */
+.effort-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.1875rem;
+  flex-shrink: 0;
+}
+
+.effort-bar {
+  display: flex;
+  align-items: flex-end;
+  width: 1rem;
+  height: 1.75rem;
+  padding: 0 0.125rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.effort-bar:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.effort-bar:focus-visible {
+  box-shadow: var(--iw-focus-ring);
+}
+
+.effort-bar__fill {
+  display: block;
+  width: 100%;
+  height: calc(0.5rem + var(--rung) * 0.375rem);
+  border-radius: 0.1875rem;
+  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.25);
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.effort-bar--on .effort-bar__fill {
+  background-color: rgb(23, 37, 84);
+  box-shadow: none;
+}
+
+.effort-bar--preview .effort-bar__fill {
+  background-color: rgba(23, 37, 84, 0.35);
+}
+
+.dark .effort-bar__fill {
+  box-shadow: inset 0 0 0 1px rgba(243, 237, 226, 0.3);
+}
+
+.dark .effort-bar--on .effort-bar__fill {
+  background-color: #f3ede2;
+}
+
+.dark .effort-bar--preview .effort-bar__fill {
+  background-color: rgba(243, 237, 226, 0.4);
+}
+
+.effort-readout__name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: rgb(23, 37, 84);
+}
+
+.dark .effort-readout__name {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.effort-readout__desc {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: rgba(23, 37, 84, 0.7);
+}
+
+.dark .effort-readout__desc {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* What more reasoning costs. The opacities here clear 4.5:1 for 10px text
+   over the glass. */
 .tune-note {
-  margin-top: 0.5rem;
   font-size: 0.625rem;
   line-height: 0.875rem;
   color: rgba(23, 37, 84, 0.55);
@@ -1613,6 +1666,13 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 
 .dark .tune-note {
   color: rgba(255, 255, 255, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-row,
+  .effort-bar__fill {
+    transition: none;
+  }
 }
 
 /* Usage-window meter: quiet navy ink bar (cream in dark mode, matching the

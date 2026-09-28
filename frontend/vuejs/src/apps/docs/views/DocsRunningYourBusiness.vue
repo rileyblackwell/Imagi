@@ -15,7 +15,7 @@
             running the business: <strong class="ink-strong">Sell</strong>,
             <strong class="ink-strong">Market</strong>, and
             <strong class="ink-strong">Operate</strong>. You open them from your project hub,
-            right alongside Build.
+            right alongside Build. The hub also shows the status of your app's first build while it's running.
           </p>
           <p>
             Sell and Market connect to your own third-party accounts—Stripe for payments, Twilio for messaging—so money and
@@ -35,7 +35,8 @@
         </p>
         <p class="lede lede--section">
           Sell is your storefront and payments back office. You build a product catalog, collect money through shareable
-          checkout links or prebuilt payment pages, and track the orders and customers that result. Payments run through
+          checkout links or prebuilt payment pages, and track the orders and customers that result. An Overview tab sums
+          it all up. Payments run through
           <strong class="ink-strong">your own Stripe account</strong>—Imagi never holds your funds.
         </p>
         <div class="rule-cols rule-cols--2">
@@ -60,9 +61,12 @@
             Connecting Stripe
           </h4>
           <p class="callout__body">
-            In Sell's Settings, paste your Stripe keys and pick a currency. Your secret key is stored encrypted and never
-            shown again. A "Test connection" check confirms your account is ready to take charges, and a "Connected" badge
-            appears once you're set up.
+            In Sell's Settings, paste your Stripe keys and pick a currency (USD, EUR, GBP, CAD, or AUD). Your secret key is
+            stored encrypted and never shown again. A "Test connection" check confirms your account is ready to take
+            charges, and a "Connected" badge appears once you're set up. Optionally, add a webhook signing secret—Settings
+            shows the endpoint URL to give Stripe—so orders update to paid on their own; without it, use "Refresh status" on
+            a pending order. Settings also lists the storefront API your app can call to list products and start a
+            checkout.
           </p>
         </div>
       </section>
@@ -82,20 +86,24 @@
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="SMS & voice campaigns">
-            Compose a campaign, pick a channel—text blast or automated voice broadcast—and send it now or schedule it for later.
-            Personalize each message with the contact's name, and see a live character count as you write.
+            Compose a campaign, pick a channel—text blast or automated voice broadcast in the voice you choose—and send it
+            now. Text campaigns can also be scheduled from 15 minutes to 35 days ahead (this needs a Twilio Messaging Service
+            SID in Settings), and a scheduled campaign can be canceled. Personalize messages with
+            <code v-pre>{{first_name}}</code>, <code v-pre>{{last_name}}</code>, or
+            <code v-pre>{{name}}</code>, and watch a live character and SMS-segment count as you write.
           </DocsCard>
           <DocsCard title="Two-way inbox">
-            Read and reply to customer texts in a shared inbox, one conversation per contact. Delivery and reply tracking
-            let you see exactly how a campaign landed.
+            Read and reply to customer texts in an inbox, one conversation per contact. Each campaign reports how many
+            messages were delivered, pending, or failed, and the Overview tracks replies across all your messaging.
           </DocsCard>
           <DocsCard title="Audience">
             Manage your contacts as a searchable list with tags and consent front and center. Add people one at a time or
-            bulk-import a batch, and segment campaigns by tag.
+            bulk-import a batch by pasting one contact per line, and segment campaigns by tag.
           </DocsCard>
           <DocsCard title="Ads">
-            Connect Google Ads and Meta Ads to monitor spend, impressions, clicks, and conversions in one dashboard—and
-            pause or resume campaigns without leaving Imagi.
+            Connect Google Ads and Meta Ads in Market's Settings by pasting your API credentials, then monitor spend,
+            impressions, clicks, and conversions in one dashboard—sync on demand, filter by platform, and pause or resume
+            campaigns without leaving Imagi.
           </DocsCard>
         </div>
         <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
@@ -103,8 +111,9 @@
             Messaging responsibly
           </h4>
           <p class="callout__body">
-            Market only sends to contacts who've opted in. Replies of "STOP" unsubscribe someone automatically, and "START"
-            re-subscribes them—so your audience stays consent-based and compliant.
+            Campaigns only go to subscribed contacts. New contacts—added by hand or imported—start out subscribed, so only
+            add people who've agreed to hear from you. Replies of "STOP" unsubscribe someone automatically, and "START"
+            re-subscribes them, keeping your audience consent-based.
           </p>
         </div>
       </section>
@@ -129,14 +138,16 @@
           </DocsCard>
           <DocsCard title="Finance">
             Record income and expenses in a simple ledger, each with a category, amount, and date. Marking an invoice paid
-            records the income for you automatically.
+            records the income for you automatically. Stripe sales from Sell aren't added to the ledger—they show up in the
+            dashboard's "Across your business" view instead.
           </DocsCard>
           <DocsCard title="Invoices">
-            Create invoices with line items, issue and due dates, and notes. Move each from draft to sent to paid, and
-            overdue invoices are flagged so nothing slips.
+            Create invoices with line items, issue and due dates, and notes, and track each from draft to sent to paid—or
+            void it to cancel. Imagi doesn't email invoices; send them to your customer yourself, then mark them sent.
+            Overdue invoices are flagged so nothing slips.
           </DocsCard>
           <DocsCard title="Tasks">
-            Keep the day-to-day organized with a task list—priorities, due dates, and simple open / in-progress / done
+            Keep the day-to-day organized with a task list—priorities, due dates, and simple to do / in progress / done
             states so the work stays on track.
           </DocsCard>
         </div>

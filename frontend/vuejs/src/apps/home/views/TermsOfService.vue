@@ -26,7 +26,7 @@
               The agreement between you and Imagi covering accounts, acceptable use, payment, and the limits of the service.
             </p>
             <p class="mt-8 pt-5 text-sm" style="border-top: 1px solid var(--rule); color: var(--ink-40)">
-              Last updated: June 18, 2026
+              Last updated: September 28, 2026
             </p>
           </div>
         </section>
@@ -170,7 +170,7 @@ export default defineComponent({
           },
           { 
             title: '5.4 Usage Limits and Fair Use', 
-            text: 'We may impose usage limits on our services to maintain quality, performance, and availability for all users. This includes limits on API requests, project size, storage capacity, bandwidth, and generation frequency. Usage limits vary by subscription tier and may change over time. We reserve the right to throttle or temporarily suspend accounts that exceed fair use thresholds or engage in activity that degrades service quality for other users. If your usage needs exceed standard limits, contact our sales team about enterprise plans with higher capacity.' 
+            text: 'We may impose usage limits on our services to maintain quality, performance, and availability for all users. Our plans currently limit metered AI usage over a rolling weekly window and, on the Free plan, the number of active projects. Usage limits vary by subscription tier and may change over time, and we may introduce other limits in the future. We reserve the right to throttle or temporarily suspend accounts that exceed fair use thresholds or engage in activity that degrades service quality for other users. If your usage needs exceed our largest plan, contact our support team.' 
           },
           {
             title: '5.5 Third-Party Dependencies',
@@ -218,15 +218,15 @@ export default defineComponent({
         items: [
           {
             title: '7.1 Subscription Plans and Pricing',
-            text: 'We offer various subscription plans with different features and usage limits. Current pricing is available on our website and may change over time. We will provide at least 30 days notice before implementing price increases for existing subscribers. Any price changes will take effect at the start of your next billing cycle. You can view your current subscription, usage, and billing information in your account dashboard.'
+            text: 'We offer various subscription plans with different features and usage limits. Current pricing is available on our website and may change over time. We will provide at least 30 days notice before implementing price increases for existing subscribers. Any price changes will take effect at the start of your next billing cycle. You can see your current usage in the Build workspace, and manage your subscription and billing information through the billing portal provided by our payment processor.'
           },
           {
             title: '7.2 Billing and Payment Processing',
-            text: 'Subscription fees are billed in advance on a recurring basis (monthly or annually, depending on your plan). You authorize us to charge your payment method on file for all applicable fees. We use third-party payment processors (such as Stripe) to handle payment processing securely. If a payment fails, we will notify you and attempt to process the payment again. Your service may be suspended if payment issues are not resolved within a reasonable timeframe.'
+            text: 'Subscription fees are billed monthly, in advance. If you move to a different paid plan partway through a billing period, the change is prorated: moving to a higher plan is charged right away for the remainder of the period, and moving to a lower plan is credited toward your future invoices. You authorize us to charge your payment method on file for all applicable fees. We use third-party payment processors (such as Stripe) to handle payment processing securely. If a payment fails, we will notify you and attempt to process the payment again. Your service may be suspended if payment issues are not resolved within a reasonable timeframe.'
           },
           {
             title: '7.3 Refunds and Cancellation',
-            text: 'You may cancel your subscription at any time through your account settings. Cancellation takes effect at the end of your current billing period, and you will retain access to paid features until that time. We do not provide refunds for partial subscription periods, except as required by law or in cases of service failure on our part. If you believe you are entitled to a refund due to service issues, contact our support team within 30 days of the charge.'
+            text: 'You may cancel your subscription at any time through the billing portal. Cancellation takes effect at the end of your current billing period, and you will retain access to paid features until that time. We do not provide refunds for partial subscription periods, except as required by law or in cases of service failure on our part. If you believe you are entitled to a refund due to service issues, contact our support team within 30 days of the charge.'
           },
           {
             title: '7.4 Taxes',
@@ -244,7 +244,7 @@ export default defineComponent({
       },
       {
         badge: '10. Termination',
-        description: 'Either party may terminate this agreement at any time. You may close your account through your account settings or by contacting support. We may suspend or terminate your account immediately, without prior notice, if we believe you have violated these terms, engaged in fraudulent activity, or for any other reason at our sole discretion. Upon termination, your right to use our services ceases immediately. We will provide you with a reasonable opportunity to export your data following termination, but we are not obligated to retain your data indefinitely. Provisions of these terms that by their nature should survive termination will survive, including intellectual property rights, limitation of liability, indemnification, and dispute resolution.'
+        description: 'Either party may terminate this agreement at any time. You may close your account by contacting support. We may suspend or terminate your account immediately, without prior notice, if we believe you have violated these terms, engaged in fraudulent activity, or for any other reason at our sole discretion. Upon termination, your right to use our services ceases immediately. We will provide you with a reasonable opportunity to export your data following termination, but we are not obligated to retain your data indefinitely. Provisions of these terms that by their nature should survive termination will survive, including intellectual property rights, limitation of liability, indemnification, and dispute resolution.'
       },
       {
         badge: '11. Dispute Resolution and Governing Law',

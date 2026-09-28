@@ -21,7 +21,7 @@ from django.conf import settings
 from imagi.redirect_urls import UnsafeRedirectError, resolve_redirect_url
 
 from ..models import StripeCustomer, Subscription
-from ..services.stripe_service import StripeService
+from ..services.stripe_service import LIVE_SUBSCRIPTION_STATUSES, StripeService
 from ..services.transaction_service import TransactionService
 from ..services.payment_method_service import PaymentMethodService
 from ..services.plans import DEFAULT_PLAN_ID, PLANS, list_plans, plan_id_for_lookup_key
@@ -214,6 +214,15 @@ def attach_payment_method(request):
         raise
 
 
+def _price_for_lookup_key(lookup_key):
+    """The Stripe price with this lookup_key (Stripe's recommended pattern), or None."""
+    prices = stripe.Price.list(
+        lookup_keys=[lookup_key],
+        expand=['data.product'],
+    )
+    return prices.data[0] if prices.data else None
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_checkout_session(request):
@@ -250,18 +259,23 @@ def create_checkout_session(request):
                 'error': f'Unknown plan for lookup_key: {lookup_key}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Look up the price by lookup_key (Stripe's recommended pattern)
-        prices = stripe.Price.list(
-            lookup_keys=[lookup_key],
-            expand=['data.product'],
-        )
+        # A customer who is already paying changes plan on that subscription
+        # (change_plan) — a second checkout would start a second subscription
+        # and bill them twice.
+        existing_customer_id = payment_method_service.get_stripe_customer_id(request.user)
+        if existing_customer_id and stripe_service.list_live_subscriptions(existing_customer_id):
+            return Response({
+                'error': 'You already have a subscription. Change your plan instead of starting a new one.',
+                'code': 'subscription_exists',
+            }, status=status.HTTP_409_CONFLICT)
 
-        if not prices.data:
+        price = _price_for_lookup_key(lookup_key)
+        if price is None:
             return Response({
                 'error': f'No price found for lookup_key: {lookup_key}'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        line_items = [{'price': prices.data[0].id, 'quantity': 1}]
+        line_items = [{'price': price.id, 'quantity': 1}]
         metadata = {
             'user_id': str(request.user.id),
             'lookup_key': lookup_key,
@@ -289,6 +303,81 @@ def create_checkout_session(request):
 
     except Exception:
         logger.exception("Error creating checkout session")
+        raise
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_plan(request):
+    """Move an existing subscriber to another paid plan, in place.
+
+    The subscription's price is swapped rather than a new subscription being
+    sold, so the customer is billed once: Stripe invoices the prorated
+    difference straight away, and the switch only lands once that invoice is
+    paid. Going down to Free is a cancellation, which lives in the billing
+    portal. The local plan is updated from Stripe's response here so the new
+    allowance applies at once; the subscription webhook re-affirms it.
+    """
+    try:
+        lookup_key = request.data.get('lookup_key')
+        plan_id = plan_id_for_lookup_key(lookup_key) if lookup_key else None
+        if plan_id is None:
+            return Response({
+                'error': 'A paid plan is required.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        customer_id = payment_method_service.get_stripe_customer_id(request.user)
+        live = stripe_service.list_live_subscriptions(customer_id) if customer_id else []
+        if not live:
+            return Response({
+                'error': "You don't have a subscription to change. Choose a plan to subscribe.",
+                'code': 'no_subscription',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        subscription = live[0]
+        if subscription.get('status') not in ('active', 'trialing'):
+            return Response({
+                'error': 'Your last payment failed. Update your payment method in the billing portal before changing plans.',
+                'code': 'payment_issue',
+            }, status=status.HTTP_409_CONFLICT)
+
+        price = _price_for_lookup_key(lookup_key)
+        if price is None:
+            return Response({
+                'error': f'No price found for lookup_key: {lookup_key}'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        items = (subscription.get('items') or {}).get('data') or []
+        if any((item.get('price') or {}).get('id') == price.id for item in items):
+            return Response({
+                'error': "You're already on this plan.",
+                'code': 'same_plan',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            updated = stripe_service.change_subscription_price(subscription, price.id)
+        except stripe.error.CardError as e:
+            return Response({
+                'error': e.user_message or 'Your card was declined. Your plan has not changed.',
+                'code': 'payment_failed',
+            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        # With pending_if_incomplete, an unpaid proration leaves the change
+        # pending and the old price in force: report that, grant nothing.
+        if updated.get('pending_update'):
+            return Response({
+                'error': "The payment for the new plan didn't go through, so your plan has not changed. Check your card in the billing portal and try again.",
+                'code': 'payment_failed',
+            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        Subscription.objects.update_or_create(
+            user=request.user,
+            defaults={'plan': plan_id, 'stripe_subscription_id': updated['id']},
+        )
+        logger.info(f"User {request.user.id} changed plan to {plan_id} on {updated['id']}")
+        return Response({'status': 'updated', 'plan': PLANS[plan_id]['id']})
+
+    except Exception:
+        logger.exception("Error changing plan")
         raise
 
 
@@ -431,6 +520,26 @@ def _resolve_subscription_plan_id(subscription):
     return None
 
 
+def _cancel_replaced_subscription(user, subscription_id):
+    """Cancel a subscription a newer one replaced, if it is still billing.
+
+    Best-effort: a failure is logged for follow-up rather than raised, since
+    the new plan has already been granted and the webhook must still ack.
+    """
+    try:
+        old = stripe.Subscription.retrieve(subscription_id)
+        if old.get('status') in LIVE_SUBSCRIPTION_STATUSES:
+            stripe_service.cancel_subscription(subscription_id)
+            logger.info(
+                f"Cancelled replaced subscription {subscription_id} for user {user.id}"
+            )
+    except Exception:
+        logger.exception(
+            f"Could not cancel replaced subscription {subscription_id} for user {user.id} "
+            "— it may still be billing"
+        )
+
+
 def handle_subscription_event(event_type, subscription):
     """Sync a user's Subscription row from a Stripe subscription event.
 
@@ -438,8 +547,8 @@ def handle_subscription_event(event_type, subscription):
     resolved through StripeCustomer.stripe_customer_id — the single store of
     the Stripe customer id.
 
-    A customer can have several Stripe subscriptions at once (the upgrade
-    checkout creates a new one before the old one is cancelled), and Stripe
+    A customer can briefly have several Stripe subscriptions (two checkouts
+    completed side by side; the replaced one is cancelled below), and Stripe
     does not guarantee event ordering — so events for a subscription other
     than the stored one must never clobber the active plan. Entitlement also
     follows the subscription's standing: a subscription that is not
@@ -474,8 +583,9 @@ def handle_subscription_event(event_type, subscription):
 
         if event_type == 'customer.subscription.deleted':
             # Only the stored subscription may downgrade the plan: deleting
-            # an old/secondary subscription (e.g. the one an upgrade checkout
-            # replaced) must not strip the plan the user is paying for.
+            # an old/secondary subscription (e.g. one a newer checkout replaced,
+            # which is cancelled below) must not strip the plan the user is
+            # paying for.
             if not is_stored_subscription:
                 logger.info(
                     f"Ignoring deleted event for subscription {event_sub_id} "
@@ -490,8 +600,8 @@ def handle_subscription_event(event_type, subscription):
             return
 
         # created/updated. A different subscription than the stored one takes
-        # over only when it is newly created and in good standing (the
-        # upgrade-checkout path); stale updates to a replaced subscription
+        # over only when it is newly created and in good standing (a second
+        # checkout that completed); stale updates to a replaced subscription
         # are ignored.
         if not is_stored_subscription and not (
             event_type == 'customer.subscription.created' and in_good_standing
@@ -544,6 +654,13 @@ def handle_subscription_event(event_type, subscription):
             },
         )
         logger.info(f"Subscription {event_type}: user {user.id} on plan {plan_id}")
+
+        # A new subscription just replaced the stored one. Checkout refuses a
+        # second subscription, but two checkouts opened side by side can both
+        # complete — so the replaced one is cancelled here rather than left
+        # billing alongside the new one.
+        if stored_id and event_sub_id and stored_id != event_sub_id:
+            _cancel_replaced_subscription(user, stored_id)
 
     except Exception as e:
         logger.error(f"Error handling subscription event {event_type}: {str(e)}")

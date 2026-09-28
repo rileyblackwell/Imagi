@@ -20,9 +20,10 @@
           </p>
           <p>
             The workspace has two halves. On the left is your <strong class="ink-strong">conversation</strong>
-            with the agent (and the Agent Manager, for running several agents at once). On the right is a
+            with your main agent (and the Subagents pane, which shows the agents it has put to work). On the right is a
             <strong class="ink-strong">live, interactive preview</strong> of your actual
-            running app that updates as the agent works.
+            running app that updates as the agents work. On a phone, the two share the screen—use the Preview switch in the
+            chat header to flip to your app.
           </p>
         </div>
         <div class="rule-cols">
@@ -33,7 +34,7 @@
             Generate and refine pages in real time. Every change the agent makes shows up in your project immediately.
           </DocsCard>
           <DocsCard title="Instant preview">
-            See your product as a running app you can click through—no build step, no deploy button, no waiting.
+            See your product as a running app you can click through—no build step, no server setup, no waiting.
           </DocsCard>
         </div>
       </section>
@@ -46,10 +47,11 @@
 
         <DocsStepCard :number="1" title="Create a Project">
           <p class="text-lg leading-relaxed mb-6">
-            From your Projects page, give your project a <strong class="ink-strong">Business Name</strong>
-            and a <strong class="ink-strong">Business Description</strong>. The description matters:
+            From your Projects page, give your project a <strong class="ink-strong">Business name</strong>
+            and fill in <strong class="ink-strong">What the business does</strong>. The description matters:
             Imagi's AI uses it to build the very first version of your app, so describe what your business does, who its
-            customers are, and how you'll sell.
+            customers are, and how you'll sell. An optional <strong class="ink-strong">Design direction</strong> field lets
+            you describe the look you want.
           </p>
           <div class="callout">
             <h4 class="callout__title">
@@ -57,8 +59,9 @@
             </h4>
             <p class="callout__body">
               As soon as you create a project, Imagi runs an AI build in the background to generate a tailored first
-              version from your description. Your project hub shows a "Building your app" state, and the Build workspace
-              opens automatically the moment that first build is ready.
+              version from your description—several agents build its pages at the same time, so it takes about half a
+              minute. Your project hub shows the build's progress, and the Build card unlocks as soon as it's ready: click
+              it to open the workspace.
             </p>
           </div>
           <div class="section-rule my-6" aria-hidden="true"></div>
@@ -96,6 +99,12 @@
               <span class="text-lg leading-relaxed">"Make the site look great on phones"</span>
             </li>
           </ul>
+          <p class="text-lg leading-relaxed mb-6">
+            Press <strong class="ink-strong">Enter</strong> to send and
+            <strong class="ink-strong">Shift+Enter</strong> for a new line. Rather talk? Hold the microphone button (or hold
+            <strong class="ink-strong">⌘D</strong>, Ctrl+D on Windows) and speak—your words are transcribed into the message
+            box so you can read them over before sending. Right-click the button to pick which microphone to use.
+          </p>
           <p class="text-lg leading-relaxed">
             Before you send, you can choose which AI <strong class="ink-strong">model</strong>
             and how much <strong class="ink-strong">reasoning effort</strong> to use for the
@@ -106,7 +115,9 @@
 
         <DocsStepCard :number="3" title="Watch the Agent Work">
           <p class="text-lg leading-relaxed mb-6">
-            The agent doesn't just reply—it builds. As it works you'll see a live status line
+            Your main agent answers questions itself, and hands every change you ask for to a
+            <strong class="ink-strong">subagent</strong>—a card appears in your chat naming the job, and you can open it to
+            follow along. The subagent doesn't just reply—it builds. As it works you'll see a live status line
             (<em class="font-display italic">"Planning…," "Reading project files…," "Editing project files…"</em>)
             and an <strong class="ink-strong">activity feed</strong> that checks off each
             step it takes in plain language. For bigger requests it posts a <strong class="ink-strong">plan
@@ -115,17 +126,17 @@
           <p class="text-lg leading-relaxed">
             You stay in control the whole time: you can <strong class="ink-strong">stop</strong>
             a run at any point and keep what was already done, or queue a follow-up message that sends automatically when the
-            current run finishes.
+            current run finishes. You can queue one message at a time—sending another replaces it.
           </p>
         </DocsStepCard>
 
         <DocsStepCard :number="4" title="Preview It Live">
           <p class="text-lg leading-relaxed">
             Your app runs live in the preview pane on the right—a real, interactive browser you can click, type, and scroll
-            through, not a static mockup. It updates as the agent makes changes, and a built-in page selector lets you jump
-            to any page in your app. If something in your app ever throws an error, a
-            <strong class="ink-strong">"Fix it"</strong> button hands the details straight
-            to the agent to investigate.
+            through, not a static mockup. It updates as the agents make changes. The preview's toolbar has back, forward,
+            refresh, and home buttons, plus a page selector that lets you jump to any page in your app. If something in your
+            app ever throws an error, a <strong class="ink-strong">"Fix it"</strong> button
+            hands the details straight to the agent to investigate.
           </p>
         </DocsStepCard>
       </section>
@@ -152,39 +163,42 @@
             After each run, a chip such as "3 files updated" shows exactly what changed—hover to see the list of files.
           </DocsCard>
           <DocsCard title="Graceful limits">
-            If you reach a usage limit or a task is too big for one run, the agent tells you clearly and suggests the next
-            step—like sending "Continue" to pick up where it left off.
+            If a task is too big for one run, the agent stops cleanly and suggests sending "Continue" to pick up where it left
+            off. If you've used up your weekly allowance, it tells you when usage frees up and suggests a lighter model, less
+            reasoning, or upgrading your plan.
           </DocsCard>
         </div>
       </section>
 
-      <!-- Agent Manager -->
+      <!-- Subagents -->
       <section class="mb-16">
         <h2 class="display display--section">
-          The Agent Manager
+          Your Main Agent and Subagents
         </h2>
         <p class="lede lede--section">
-          For bigger builds, the <strong class="ink-strong">Agent Manager</strong> turns the
-          workspace into a small team of agents you direct. You steer the build from one main thread while dispatching
-          side-jobs that run in parallel—each in its own isolated copy of your app, so nothing collides.
+          You direct the whole build from one conversation. Your <strong class="ink-strong">main agent</strong> works out
+          what you're asking for and puts <strong class="ink-strong">subagents</strong> to work on the building—each in its
+          own isolated copy of your app, so several can run at once without colliding.
         </p>
         <div class="rule-cols rule-cols--2">
-          <DocsCard title="Lead thread">
-            Your primary conversation—the one place you direct the build from. Its changes go straight into your project's
-            main timeline.
+          <DocsCard title="Main thread">
+            Your primary conversation—the one place you direct the build from. Ask for changes here and your main agent hands
+            each separate request to its own subagent; ask several things at once and they're built in parallel.
           </DocsCard>
-          <DocsCard title="Tasks">
-            Dispatch a side-job with the "+" button and it runs in parallel without disturbing your lead thread. Run several
-            at once to get more done at the same time.
+          <DocsCard title="Subagents">
+            Each job appears as a card in your chat that turns into "Subagent complete" when it's done, with a summary of
+            what changed. The <strong class="ink-strong">Subagents</strong> switch in the chat header shows how many are
+            working and opens a list of active and past subagents; open any one to read its thread, then "Back to main
+            thread".
           </DocsCard>
-          <DocsCard title="Parallel drafts">
-            When you dispatch a task, choose how many drafts to build—1, 2, or 3. Imagi builds each as an independent attempt
-            at the same request, so you can compare and pick the best.
+          <DocsCard title="Applied automatically">
+            When a subagent finishes, its work goes into your app on its own—you don't need to approve it. Updates collect
+            under "From your subagents" above the message box: "Got it" to clear one, or "See the work" to open its thread.
+            If a subagent needs a decision from you, it asks there and waits for your answer.
           </DocsCard>
-          <DocsCard title="Review &amp; accept">
-            Finished tasks wait for your decision. Review what each one changed, then <strong class="ink-strong">Accept</strong>
-            to merge it into your app or <strong class="ink-strong">Dismiss</strong> to
-            discard it—nothing touches your app until you say so.
+          <DocsCard title="Alternatives to compare">
+            Ask for alternatives—"show me two versions of the homepage"—and up to three subagents build independent takes on
+            the same request. Those wait for you: pick "Use this one" on the version you want, and "Discard" the rest.
           </DocsCard>
         </div>
       </section>
@@ -195,17 +209,19 @@
           Never Lose Your Work
         </h2>
         <p class="lede lede--section">
-          Every message you send is a checkpoint. Imagi saves your app's state before the agent starts working, so you never
-          have to think about saving—and you can always go back.
+          Imagi saves your app's state before the agent starts working on a message, so you never have to think about
+          saving—and you can always go back.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Checkpoints in the chat">
-            Your restore points live right in the conversation: each message you sent marks the moment before the agent
-            acted on it, so the chat itself is your app's history.
+            Your restore points live right in your main conversation: messages you sent mark the moment before the agent
+            acted on them, so the chat itself is your app's history.
           </DocsCard>
           <DocsCard title="Restore a checkpoint">
-            Hover any earlier message and choose "Restore checkpoint" to roll both your app and the conversation back to the
-            moment before that message—handy for trying a different direction.
+            Hover an earlier message and choose "Restore checkpoint" to roll both your app and the conversation back to the
+            moment before that message. After you confirm, the messages that came after it are removed and your original
+            message is put back in the message box, ready to edit and resend—handy for trying a different direction.
+            Restoring isn't available while the agent is working.
           </DocsCard>
         </div>
       </section>

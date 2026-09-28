@@ -35,6 +35,13 @@ def _windows(weekly_usd):
     return {'weekly_usd': round(weekly_usd, 2)}
 
 
+# How many active projects a plan may hold at once; None means no limit.
+# Enforced when a project is created (ProjectCreateView). Deleting a project
+# frees its slot. A subscriber who drops back to Free keeps the projects they
+# already have, but cannot create another until they're under the limit.
+UNLIMITED_PROJECTS = None
+
+
 # Names mirror the purchasable tiers on the pricing page (Free, Pro, Max), and
 # the two Max tiers are named for what they actually give you: 5x and 20x Pro's
 # weekly allowance. The ids are stored on every Subscription row and mapped from
@@ -50,11 +57,13 @@ PLANS = {
         'id': 'free',
         'name': 'Free',
         **_windows(5),
+        'max_active_projects': 1,
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
         **_windows(15),
+        'max_active_projects': UNLIMITED_PROJECTS,
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
     # distinct plans, not one collapsed tier, so the higher price really does
@@ -63,11 +72,13 @@ PLANS = {
         'id': 'max_5x',
         'name': 'Max (5x)',
         **_windows(75),
+        'max_active_projects': UNLIMITED_PROJECTS,
     },
     'max_20x': {
         'id': 'max_20x',
         'name': 'Max (20x)',
         **_windows(300),
+        'max_active_projects': UNLIMITED_PROJECTS,
     },
 }
 
@@ -112,6 +123,35 @@ def get_plan_for_user(user):
 
     subscription = Subscription.objects.filter(user=user).first()
     return get_plan(subscription.plan if subscription else DEFAULT_PLAN_ID)
+
+
+def check_project_limit(user):
+    """Whether the user's plan lets them create another project.
+
+    Returns (allowed, payload): payload is None when allowed, and otherwise
+    the error body the create endpoint returns, naming the plan and its limit
+    so the message can say what to do about it.
+    """
+    from apps.Imagi.ProjectManager.models import Project
+
+    plan = get_plan_for_user(user)
+    limit = plan.get('max_active_projects')
+    if limit is None:
+        return True, None
+    active = Project.objects.filter(user=user, is_active=True).count()
+    if active < limit:
+        return True, None
+    noun = 'project' if limit == 1 else 'projects'
+    return False, {
+        'error': (
+            f"The {plan['name']} plan includes {limit} active {noun}. Delete a "
+            "project or upgrade your plan to create another."
+        ),
+        'code': 'project_limit',
+        'plan': {'id': plan['id'], 'name': plan['name']},
+        'max_active_projects': limit,
+        'active_projects': active,
+    }
 
 
 def list_plans():

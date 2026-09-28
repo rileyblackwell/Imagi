@@ -20,6 +20,8 @@ from django.db.models import Min, Sum
 from django.utils import timezone
 
 from ..models import UsageEvent
+from apps.Imagi.Build.services.models_service import MODELS
+
 from .plans import get_plan_for_user
 
 logger = logging.getLogger(__name__)
@@ -27,11 +29,17 @@ logger = logging.getLogger(__name__)
 WEEKLY_WINDOW = timedelta(days=7)
 
 # Per-million-token prices used only when a run's cost could not be computed
-# (an unpriced or unknown model). Deliberately the priciest tier in Build's
-# models_service, so an unpriced model meters conservatively instead of
-# metering as free — unknown must never be the cheap path.
-FALLBACK_INPUT_PRICE_PER_M = Decimal('6')
-FALLBACK_OUTPUT_PRICE_PER_M = Decimal('30')
+# (an unpriced or unknown model). Read off the priciest model in Build's
+# registry, so an unpriced model meters conservatively instead of metering as
+# free — unknown must never be the cheap path — and the fallback can't fall
+# behind when a pricier model joins the lineup (it once sat at $6/$30 after
+# Astra arrived at $10/$50).
+FALLBACK_INPUT_PRICE_PER_M = Decimal(str(max(
+    model['input_price_per_m_tokens'] for model in MODELS.values()
+)))
+FALLBACK_OUTPUT_PRICE_PER_M = Decimal(str(max(
+    model['output_price_per_m_tokens'] for model in MODELS.values()
+)))
 
 
 def _fallback_cost(input_tokens, output_tokens):
