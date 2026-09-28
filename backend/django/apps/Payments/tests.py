@@ -169,10 +169,10 @@ class PlanRegistryTests(APITestCase):
         self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_weekly_allowances_are_the_advertised_dollar_figures(self):
-        self.assertEqual(PLANS['free']['weekly_usd'], 10)
-        self.assertEqual(PLANS['pro']['weekly_usd'], 20)
-        self.assertEqual(PLANS['max_5x']['weekly_usd'], 100)
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 200)
+        self.assertEqual(PLANS['free']['weekly_usd'], 5)
+        self.assertEqual(PLANS['pro']['weekly_usd'], 15)
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 75)
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 300)
 
     def test_allowances_rise_with_the_tier(self):
         # A pricier plan must never buy a smaller allowance.
@@ -182,14 +182,12 @@ class PlanRegistryTests(APITestCase):
 
     def test_max_tier_names_state_their_real_multiple_of_pro(self):
         # The Max tiers are named for what they give you, so the names have to
-        # keep matching the allowances. Note the id and the name disagree by
-        # design: 'max_20x' is displayed as "Max (10x)" because the id is
-        # stored on Subscription rows and mapped from a Stripe lookup_key.
+        # keep matching the allowances.
         pro = PLANS['pro']['weekly_usd']
         self.assertEqual(PLANS['max_5x']['name'], 'Max (5x)')
         self.assertEqual(PLANS['max_5x']['weekly_usd'], 5 * pro)
-        self.assertEqual(PLANS['max_20x']['name'], 'Max (10x)')
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 10 * pro)
+        self.assertEqual(PLANS['max_20x']['name'], 'Max (20x)')
+        self.assertEqual(PLANS['max_20x']['weekly_usd'], 20 * pro)
 
     def test_plans_carry_no_figure_the_meter_does_not_enforce(self):
         # The weekly window is the only one checked, so it is the only
@@ -339,7 +337,6 @@ class CheckUsageAllowedTests(APITestCase):
 
     def test_top_max_allowance_far_exceeds_pro(self):
         # A spend that exhausts Pro's week barely dents the top Max tier's.
-        # Plan id 'max_20x' is the tier displayed as "Max (10x)".
         Subscription.objects.create(user=self.user, plan='max_20x')
         event = record_usage(
             self.user, 'gpt-5.6-sol', 1_000, 0,
