@@ -96,7 +96,7 @@ const tiers: Tier[] = [
     price: 0,
     lookupKey: null,
     cta: 'Start for free',
-    weeklyLimit: '$10 of usage per week',
+    weeklyLimit: '$5 of usage per week',
     features: [
       'Access to the core AI builder',
       '1 active project',
@@ -109,7 +109,7 @@ const tiers: Tier[] = [
     price: 25,
     lookupKey: 'pro_monthly',
     cta: 'Get started',
-    weeklyLimit: '$20 of usage per week',
+    weeklyLimit: '$15 of usage per week',
     features: [
       'Everything in Free',
       'Unlimited projects',
@@ -122,15 +122,13 @@ const tiers: Tier[] = [
     cta: 'Get started',
     isPopular: false,
     // A single Max plan with selectable usage options, mirroring Claude's Max
-    // tier. "5×"/"10×" are literal multiples of Pro's weekly allowance. The
-    // lookupKey for the 10× option is still 'max_20x_monthly' — that is the
-    // Stripe price's name, which did not change when the tier was renamed.
+    // tier. "5×"/"20×" are literal multiples of Pro's weekly allowance.
     options: [
       {
         label: '5× usage',
         price: 100,
         lookupKey: 'max_5x_monthly',
-        weeklyLimit: '$100 of usage per week',
+        weeklyLimit: '$75 of usage per week',
         features: [
           'Everything in Pro',
           '5× more usage than Pro',
@@ -138,13 +136,13 @@ const tiers: Tier[] = [
         ],
       },
       {
-        label: '10× usage',
+        label: '20× usage',
         price: 200,
         lookupKey: 'max_20x_monthly',
-        weeklyLimit: '$200 of usage per week',
+        weeklyLimit: '$300 of usage per week',
         features: [
           'Everything in Pro',
-          '10× more usage than Pro',
+          '20× more usage than Pro',
           'Priority access at peak times',
         ],
       },

@@ -36,12 +36,11 @@ def _windows(weekly_usd):
 
 
 # Names mirror the purchasable tiers on the pricing page (Free, Pro, Max), and
-# the two Max tiers are named for what they actually give you: 5x and 10x Pro's
-# weekly allowance. The ids do NOT track the names — 'max_20x' is the tier now
-# displayed as "Max (10x)". It kept its id because that id is stored on every
-# Subscription row and mapped from a Stripe lookup_key; renaming it would send
-# existing subscribers through get_plan()'s unknown-id fallback and silently
-# drop them to the free allowance.
+# the two Max tiers are named for what they actually give you: 5x and 20x Pro's
+# weekly allowance. The ids are stored on every Subscription row and mapped from
+# a Stripe lookup_key, so they must never be renamed: that would send existing
+# subscribers through get_plan()'s unknown-id fallback and silently drop them to
+# the free allowance.
 #
 # The Max tiers allow more retail usage than their sticker price, which is
 # viable because our per-token prices are marked up over real API cost.
@@ -49,12 +48,12 @@ PLANS = {
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(10),
+        **_windows(5),
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
-        **_windows(20),
+        **_windows(15),
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
     # distinct plans, not one collapsed tier, so the higher price really does
@@ -62,12 +61,12 @@ PLANS = {
     'max_5x': {
         'id': 'max_5x',
         'name': 'Max (5x)',
-        **_windows(100),
+        **_windows(75),
     },
     'max_20x': {
         'id': 'max_20x',
-        'name': 'Max (10x)',
-        **_windows(200),
+        'name': 'Max (20x)',
+        **_windows(300),
     },
 }
 
@@ -75,9 +74,6 @@ PLANS = {
 # (PricingView.vue) checks out by these lookup_keys, and the subscription
 # webhook resolves them back to a plan through this map. The two Max price
 # points map to their own tiers so they don't collapse to one allowance.
-# 'max_20x_monthly' is the lookup_key of the tier now displayed as "Max (10x)";
-# it is configured in Stripe, so it keeps its name for the same reason the plan
-# id does.
 LOOKUP_KEY_TO_PLAN = {
     'pro_monthly': 'pro',
     'max_5x_monthly': 'max_5x',
