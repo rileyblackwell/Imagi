@@ -16,7 +16,7 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 # Three tiers, one model each, chosen for what the tier needs rather than for
 # provider — the lineup is a blend of OpenAI and Anthropic, and gets revisited
 # as better fits ship:
-#   Luna     (OpenAI GPT 6 Luna)      - cheap, quick and efficient
+#   Luna     (OpenAI GPT 6 Luna)      - fast and inexpensive, yet capable at most tasks
 #   Opus 5.5 (Anthropic Claude)       - balanced all-rounder (default)
 #   Astra    (OpenAI GPT 6 Astra)     - frontier intelligence
 #
@@ -42,7 +42,7 @@ MODELS = {
         'provider': 'openai',
         'type': 'openai',
         'backend_model': 'gpt-6-luna',
-        'description': 'OpenAI | GPT 6 Luna — cheap, quick and efficient',
+        'description': 'OpenAI | GPT 6 Luna — fast and inexpensive, yet capable at most tasks',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
         'input_price_per_m_tokens': 0.1,
@@ -58,7 +58,7 @@ MODELS = {
         'provider': 'anthropic',
         'type': 'anthropic',
         'backend_model': 'claude-opus-5-5',
-        'description': 'Anthropic | Claude Opus 5.5 — balanced, great all-around model for every kind of work',
+        'description': 'Anthropic | Claude Opus 5.5 — thoughtful and dependable, with strong judgment on code and design',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
         'input_price_per_m_tokens': 4,
