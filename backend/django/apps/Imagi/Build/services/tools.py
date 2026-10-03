@@ -20,10 +20,12 @@ import logging
 import os
 import re
 import time
+from datetime import timedelta
 from typing import List, Optional
 from typing_extensions import TypedDict
 
 from agents import RunContextWrapper, function_tool
+from django.utils import timezone
 
 from apps.Imagi.ProjectManager.models import Project
 from apps.Imagi.Build.services.view_file_service import ViewFileService
@@ -745,6 +747,169 @@ def dispatch_task_impl(
     }
 
 
+# The lead's view of its subagents: how many it is shown each turn, and how
+# much of a waiting question it quotes. A roster is for routing and status
+# answers, not a transcript, so it stays short.
+LEAD_ROSTER_MAX_TASKS = 10
+LEAD_ROSTER_QUESTION_MAX_CHARS = 200
+# A run marker older than this is a crashed worker, not a live run (matches
+# the API's RUN_STALENESS_WINDOW).
+LEAD_ROSTER_RUN_FRESHNESS = timedelta(minutes=10)
+# Cap on a follow-up the lead forwards into a subagent's thread.
+MESSAGE_TASK_MAX_CHARS = DISPATCH_BRIEF_MAX_CHARS
+
+# Where each subagent can stand, in the words the lead reads them in.
+_ROSTER_STATUS = {
+    'active': 'working on it now',
+    'input': 'waiting on an answer from the user',
+    'ready': 'finished its draft; waiting for the user to pick between the drafts',
+    'failed': 'stopped before finishing',
+    'accepted': 'finished; its work is in the app',
+}
+
+
+def lead_task_roster(lead) -> str:
+    """The lead's live list of its subagents, for its instructions each turn.
+
+    In Claude Projects the coordinator always knows which threads exist and
+    where each one stands, which is what lets it route a follow-up to the
+    thread already doing that work and answer "where are we?" without asking
+    anyone. The lead's history only holds the reports of subagents that
+    finished; this adds the ones still working, waiting or stopped, with the
+    ids message_task needs. Dismissed and archived subagents are left out —
+    their work is gone, so nothing can be routed to them.
+    """
+    from apps.Imagi.Build.models import AgentCheckIn, AgentConversation
+
+    if lead is None or getattr(lead, 'kind', '') != 'lead':
+        return ''
+    tasks = list(
+        AgentConversation.objects.filter(
+            parent=lead, kind='task', archived_at__isnull=True,
+            review_status__in=tuple(_ROSTER_STATUS),
+        ).order_by('-updated_at')[:LEAD_ROSTER_MAX_TASKS]
+    )
+    if not tasks:
+        return ''
+    questions = {
+        c.conversation_id: c.body
+        for c in AgentCheckIn.objects.filter(
+            conversation__in=tasks, kind='question', status='pending'
+        )
+    }
+    lines = []
+    for task in tasks:
+        job = (task.goal or task.title or '').strip() or 'Untitled job'
+        running = bool(
+            task.run_started_at
+            and timezone.now() - task.run_started_at < LEAD_ROSTER_RUN_FRESHNESS
+        )
+        if task.review_status == 'active' and task.queued_prompt and not running:
+            state = 'about to start'
+        else:
+            state = _ROSTER_STATUS[task.review_status]
+        line = f'- Subagent {task.id}: "{job}" — {state}'
+        question = ' '.join((questions.get(task.id) or '').split())
+        if question:
+            if len(question) > LEAD_ROSTER_QUESTION_MAX_CHARS:
+                question = question[:LEAD_ROSTER_QUESTION_MAX_CHARS] + '…'
+            line += f'. Its question: "{question}"'
+        lines.append(line)
+    return (
+        "Your subagents (most recent first; the number is the id message_task "
+        "takes):\n" + "\n".join(lines)
+    )
+
+
+def message_task_impl(ctx, task_id, message: str) -> dict:
+    """Forward a follow-up from the main thread into an existing subagent.
+
+    The Claude Projects rule for a follow-up: it goes to the thread already
+    doing that work, not to a new one. A user who says "make that button blue
+    too" about something a subagent is building, or answers a subagent's
+    question in the main thread, is talking to that subagent — and a fresh
+    dispatch would put a second agent on files the first one owns.
+
+    Like dispatch_task, this only stages the message: the workspace client
+    owns the streaming connections, so it delivers the message as the
+    subagent's next turn — straight away if it is idle, or as soon as its
+    current run ends if it is mid-run. The payload rides the same channel as
+    a dispatch (context.dispatched_tasks), so the reply links to the subagent
+    the message went to.
+    """
+    from apps.Imagi.Build.models import AgentConversation
+
+    text = (message or '').strip()
+    if not text:
+        raise ValueError("message must say what to tell the subagent")
+    text = text[:MESSAGE_TASK_MAX_CHARS]
+
+    try:
+        task_pk = int(task_id)
+    except (TypeError, ValueError):
+        raise ValueError("task_id must be a subagent's number from your roster")
+
+    lead = AgentConversation.objects.filter(
+        id=getattr(ctx, 'conversation_id', None), user_id=ctx.user_id
+    ).first()
+    if lead is None:
+        raise ValueError("Could not resolve the current conversation")
+    if lead.kind != 'lead':
+        raise ValueError("Only the lead thread can message its subagents")
+
+    task = AgentConversation.objects.filter(
+        id=task_pk, user_id=ctx.user_id, kind='task', parent=lead,
+    ).first()
+    if task is None:
+        raise ValueError(
+            f"There is no subagent {task_id} in this thread. Use an id from "
+            "your roster, or dispatch_task if this is new work."
+        )
+    if task.archived_at is not None or task.review_status == 'dismissed':
+        raise ValueError(
+            f"Subagent {task_pk}'s work was discarded, so there is nothing to "
+            "follow up on. Use dispatch_task to start it fresh."
+        )
+
+    # Persisted like a dispatch brief, so a reload before the message is
+    # delivered still finds it waiting (the client re-fires staged prompts on
+    # load), and consumed the same way: the run that delivers it clears it.
+    # A message that arrives while an earlier one is still waiting joins it
+    # rather than replacing it — the subagent should hear both.
+    queued = task.queued_prompt.strip()
+    task.queued_prompt = f"{queued}\n\n{text}" if queued else text
+    task.save(update_fields=['queued_prompt'])
+
+    payload = {
+        'conversation_id': task.id,
+        'title': task.title,
+        'brief': text,
+        'goal': task.goal,
+        'overview': task.overview,
+        'variant_group': task.variant_group,
+        'parent': lead.id,
+        'model_name': task.model_name,
+        # Not a new subagent: the client delivers `brief` as this one's next
+        # message instead of starting it from scratch.
+        'follow_up': True,
+    }
+    tracked = getattr(ctx, 'dispatched_tasks', None)
+    if isinstance(tracked, list):
+        tracked.append(payload)
+
+    return {
+        'success': True,
+        'dispatched_tasks': [payload],
+        'instruction': (
+            f"Your message is on its way to subagent {task.id}; it picks it up "
+            "as its next turn (after its current run, if it is mid-run) and "
+            "reports back on its own card. Tell the user in ONE short sentence "
+            "that you passed it to the subagent already on that job, then end "
+            "your turn — do not also dispatch_task for it."
+        ),
+    }
+
+
 def set_plan(context, steps: List[PlanStep]) -> dict:
     """Validate and store the agent's plan on the run context."""
     valid_statuses = {'pending', 'in_progress', 'completed'}
@@ -1091,6 +1256,34 @@ def dispatch_task(
 
 
 @function_tool
+def message_task(ctx: RunContextWrapper, task_id: int, message: str) -> str:
+    """Send a follow-up to a subagent that already has this job, instead of starting a new one.
+
+    Use it whenever the user's message is about work one of your subagents is
+    doing or has done: a change to it ("make that button blue too"), a
+    correction, more detail, or the answer to a question it asked. The
+    subagent gets your message as its next turn — at once if it is idle, or
+    as soon as its current run ends — keeps its own context and files, and
+    reports back on its own card. Finished subagents can be messaged too; they
+    apply the follow-up the same way they applied the original work.
+
+    Use dispatch_task instead only for genuinely new work no subagent has.
+
+    Args:
+        task_id: The subagent's number, from the roster in your instructions.
+        message: What the subagent should do, written to it like a note from a
+            colleague: the change or answer, with the user's own specifics.
+            Quote the user's words when they matter.
+    """
+    try:
+        result = message_task_impl(ctx.context, task_id, message)
+        return json.dumps(result)
+    except Exception as e:
+        logger.error(f"Error messaging task: {e}")
+        return _error_result(str(e))
+
+
+@function_tool
 def ask_user(ctx: RunContextWrapper, question: str) -> str:
     """Ask the user a question and END YOUR TURN — their answer arrives as the next message in this conversation.
 
@@ -1142,7 +1335,8 @@ LEAD_AGENT_READONLY_TOOLS = [
 ]
 
 # Role-specific extras. The chat/task roles build on CODING_AGENT_TOOLS; the
-# lead builds on LEAD_AGENT_READONLY_TOOLS (above). The lead can delegate, and
-# a task subagent can hand a question back to the user.
-LEAD_AGENT_EXTRA_TOOLS = [dispatch_task]
+# lead builds on LEAD_AGENT_READONLY_TOOLS (above). The lead can delegate new
+# work or follow up with a subagent it already has, and a task subagent can
+# hand a question back to the user.
+LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task]
 TASK_AGENT_EXTRA_TOOLS = [ask_user]

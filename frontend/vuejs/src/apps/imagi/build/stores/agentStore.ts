@@ -450,6 +450,10 @@ export const useAgentStore = defineStore('agent', {
     startDispatchedTasks(tasks: DispatchedTaskDto[]) {
       const fallback = pickDefaultModelId(this.availableModels)
       for (const task of tasks) {
+        if (task.follow_up) {
+          this.deliverFollowUp(task)
+          continue
+        }
         if (firedDispatches.has(task.conversation_id)) continue
         let instance = this.instances.find(i => i.conversationId === task.conversation_id)
         if (!instance) {
@@ -493,6 +497,36 @@ export const useAgentStore = defineStore('agent', {
         }
         instance.pendingBrief = task.brief
       }
+      this.firePendingDispatches()
+    },
+
+    /**
+     * The lead forwarded a follow-up to a subagent it already has — a change
+     * to its work, or the answer to its question — instead of starting a new
+     * one. The message is that subagent's next turn: queued behind its current
+     * run when it is mid-run, otherwise staged like a dispatch so it still
+     * waits for a free slot. A message already waiting there is joined, not
+     * replaced, so the subagent hears both — the server stages them the same
+     * way. The stream already de-duplicates one run's events, so every
+     * follow-up that reaches here is a new message.
+     */
+    deliverFollowUp(task: DispatchedTaskDto) {
+      const instance = this.instances.find(i => i.conversationId === task.conversation_id)
+      if (!instance || instance.kind !== 'task' || !task.brief) return
+      const join = (waiting?: string | null) =>
+        waiting ? `${waiting}\n\n${task.brief}` : task.brief
+      if (instance.isProcessing) {
+        this.queuePrompt(instance.id, join(instance.queuedPrompt))
+        return
+      }
+      // The run's start re-opens it server-side and supersedes whatever it
+      // last asked; mirror both now so its card reads "working" at once.
+      this.removeCheckInsForTask(task.conversation_id)
+      instance.reviewStatus = 'active'
+      instance.hasUnread = false
+      firedDispatches.delete(task.conversation_id)
+      dispatchRetryAt.delete(task.conversation_id)
+      instance.pendingBrief = join(instance.pendingBrief)
       this.firePendingDispatches()
     },
 

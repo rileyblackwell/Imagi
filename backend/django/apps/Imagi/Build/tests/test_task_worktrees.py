@@ -37,6 +37,8 @@ from apps.Imagi.Build.services.tools import (
     _get_project,
     dispatch_task_impl,
     edit_file_impl,
+    lead_task_roster,
+    message_task_impl,
 )
 from apps.Imagi.Build.services.version_control_service import (
     MergeConflict,
@@ -1842,6 +1844,171 @@ class DispatchTaskDuplicateTests(TestCase):
         self.assertEqual(
             AgentConversation.objects.filter(kind='task', parent=self.lead).count(), 1
         )
+
+
+class LeadFollowUpTests(GitRepoTestMixin, TestCase):
+    """A follow-up goes to the subagent already on that job, not a new one.
+
+    The Claude Projects shape: the main thread routes a message about existing
+    work into that work's thread, and always knows which threads exist and
+    where each one stands.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='followup', password='pw123456')
+        self.repo = self._make_repo()
+        self.project = Project.objects.create(
+            user=self.user, name='P', project_path=self.repo, is_active=True
+        )
+        self.service = ImagiAgentService()
+        self.lead = self.service.create_conversation(
+            self.user, 'gpt-5.6-terra', project_id=self.project.id, kind='lead'
+        )
+
+    def _context(self, conversation=None):
+        conversation = conversation or self.lead
+        return AgentContext(
+            user_id=self.user.id,
+            project_id=self.project.id,
+            conversation_id=conversation.id,
+            conversation_kind=conversation.kind,
+        )
+
+    def _task(self, **fields):
+        defaults = dict(
+            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id,
+            kind='task', parent=self.lead, review_status='active',
+            title='Menu fix', goal='Fixing the menu on phones',
+        )
+        defaults.update(fields)
+        return AgentConversation.objects.create(**defaults)
+
+    # --- message_task ------------------------------------------------------
+
+    def test_a_follow_up_is_staged_on_the_existing_subagent(self):
+        task = self._task(review_status='accepted')
+        context = self._context()
+
+        result = message_task_impl(context, task.id, 'Make the menu button blue too.')
+
+        self.assertTrue(result['success'])
+        payload = result['dispatched_tasks'][0]
+        self.assertEqual(payload['conversation_id'], task.id)
+        self.assertTrue(payload['follow_up'])
+        self.assertEqual(payload['brief'], 'Make the menu button blue too.')
+        # Nothing new was started.
+        self.assertEqual(AgentConversation.objects.filter(kind='task').count(), 1)
+        # Persisted, so a reload before delivery still finds it waiting.
+        task.refresh_from_db()
+        self.assertEqual(task.queued_prompt, 'Make the menu button blue too.')
+        # Tracked on the run, so the reply links to the subagent and the
+        # unbacked-claim guard sees a real hand-off.
+        self.assertEqual(context.dispatched_tasks, [payload])
+
+    def test_a_second_follow_up_joins_the_one_still_waiting(self):
+        task = self._task()
+        message_task_impl(self._context(), task.id, 'Make it blue.')
+        message_task_impl(self._context(), task.id, 'And a bit bigger.')
+
+        task.refresh_from_db()
+        self.assertEqual(task.queued_prompt, 'Make it blue.\n\nAnd a bit bigger.')
+
+    def test_only_this_leads_live_subagents_can_be_messaged(self):
+        other_lead = AgentConversation.objects.create(
+            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id + 1,
+            kind='lead',
+        )
+        foreign = self._task(parent=other_lead)
+        dismissed = self._task(review_status='dismissed')
+        archived = self._task(archived_at=timezone.now())
+
+        for task_id in (foreign.id, dismissed.id, archived.id, 999999, 'menu'):
+            with self.subTest(task_id=task_id), self.assertRaises(ValueError):
+                message_task_impl(self._context(), task_id, 'Make it blue.')
+
+    def test_only_the_lead_can_message_subagents(self):
+        task = self._task()
+        with self.assertRaises(ValueError):
+            message_task_impl(self._context(task), task.id, 'Make it blue.')
+
+    def test_an_empty_follow_up_is_refused(self):
+        task = self._task()
+        with self.assertRaises(ValueError):
+            message_task_impl(self._context(), task.id, '   ')
+
+    def test_a_follow_up_reopens_a_finished_subagent(self):
+        # A subagent whose work already merged takes the follow-up as a new
+        # run: it reads as working again, and lands (and merges) the same way.
+        task = self._task(review_status='accepted')
+        AgentCheckIn.objects.create(
+            user=self.user, project_id=self.project.id, conversation=task,
+            lead=self.lead, kind='done', body='I fixed the menu.',
+        )
+
+        self.service._prepare_run(
+            user_input='Make the menu button blue too.',
+            user=self.user,
+            project_id=self.project.id,
+            conversation_id=task.id,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.review_status, 'active')
+        self.assertTrue(os.path.isdir(task_worktree_path(self.repo, task.id)))
+        self.assertFalse(
+            AgentCheckIn.objects.filter(conversation=task, status='pending').exists()
+        )
+
+    # --- the lead's roster -------------------------------------------------
+
+    def test_the_roster_says_where_each_subagent_stands(self):
+        working = self._task(goal='Adding customer reviews', run_started_at=timezone.now())
+        waiting = self._task(goal='Building a booking page', review_status='input')
+        AgentCheckIn.objects.create(
+            user=self.user, project_id=self.project.id, conversation=waiting,
+            lead=self.lead, kind='question', body='Which days are you open?',
+        )
+        done = self._task(goal='Fixing the menu on phones', review_status='accepted')
+        queued = self._task(goal='Adding a pricing page', queued_prompt='Build pricing')
+        self._task(goal='Discarded idea', review_status='dismissed')
+        self._task(goal='Archived idea', archived_at=timezone.now())
+
+        roster = lead_task_roster(self.lead)
+
+        self.assertIn(f'Subagent {working.id}: "Adding customer reviews" — working on it now', roster)
+        self.assertIn(
+            f'Subagent {waiting.id}: "Building a booking page" — waiting on an answer '
+            'from the user. Its question: "Which days are you open?"',
+            roster,
+        )
+        self.assertIn(f'Subagent {done.id}: "Fixing the menu on phones" — finished', roster)
+        self.assertIn(f'Subagent {queued.id}: "Adding a pricing page" — about to start', roster)
+        self.assertNotIn('Discarded idea', roster)
+        self.assertNotIn('Archived idea', roster)
+
+    def test_a_running_subagent_with_a_follow_up_waiting_still_reads_as_working(self):
+        task = self._task(run_started_at=timezone.now(), queued_prompt='Make it blue.')
+        self.assertIn(f'Subagent {task.id}: "Fixing the menu on phones" — working on it now',
+                      lead_task_roster(self.lead))
+
+    def test_no_subagents_means_no_roster(self):
+        self.assertEqual(lead_task_roster(self.lead), '')
+
+    def test_a_lead_run_carries_its_roster_into_its_instructions(self):
+        from agents import RunContextWrapper
+        from apps.Imagi.Build.services.coding_agent import get_dynamic_coding_instructions
+
+        task = self._task()
+        _, context, _ = self.service._prepare_run(
+            user_input='Is the menu done yet?',
+            user=self.user,
+            project_id=self.project.id,
+            conversation_id=self.lead.id,
+        )
+
+        self.assertIn(f'Subagent {task.id}', context.task_roster)
+        instructions = get_dynamic_coding_instructions(RunContextWrapper(context), None)
+        self.assertIn(context.task_roster, instructions)
 
 
 class CheckInEndpointTests(TestCase):

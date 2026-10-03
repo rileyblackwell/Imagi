@@ -350,6 +350,80 @@ describe('agent store startDispatchedTasks', () => {
   })
 })
 
+describe('agent store follow-ups to an existing subagent', () => {
+  // The lead routes a message about existing work to the subagent already
+  // doing it (message_task). The payload rides the dispatch channel with
+  // follow_up set, and must become that subagent's next turn — never a new
+  // subagent, and never dropped because the task was fired once already.
+  function followUp(conversationId: number, brief: string) {
+    return {
+      conversation_id: conversationId,
+      title: 'Menu fix',
+      brief,
+      goal: 'Fixing the menu on phones',
+      overview: '',
+      variant_group: '',
+      parent: 1,
+      model_name: 'claude-opus-5-5',
+      follow_up: true,
+    }
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('runs an idle subagent again with the follow-up, even one already fired', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    store.startDispatchedTasks([{ ...followUp(9701, 'Fix the menu.'), follow_up: false }])
+    await Promise.resolve()
+    const task = store.instances.find(i => i.conversationId === 9701)!
+    task.reviewStatus = 'accepted'
+
+    store.startDispatchedTasks([followUp(9701, 'Make the menu button blue too.')])
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledTimes(2)
+    expect(runs.mock.calls[1]).toEqual([task.id, 'Make the menu button blue too.'])
+    expect(task.reviewStatus).toBe('active')
+    expect(store.instances.filter(i => i.kind === 'task')).toHaveLength(1)
+  })
+
+  it('queues the follow-up behind a run that is still going', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({ kind: 'task', conversationId: 9702, reviewStatus: 'active', isProcessing: true })
+    store.instances.push(task)
+
+    store.startDispatchedTasks([followUp(9702, 'Make it blue.')])
+    store.startDispatchedTasks([followUp(9702, 'And a bit bigger.')])
+    await Promise.resolve()
+
+    expect(runs).not.toHaveBeenCalled()
+    // Both reach the subagent: the second joins the first rather than
+    // replacing it.
+    expect(store.instances.find(i => i.conversationId === 9702)!.queuedPrompt)
+      .toBe('Make it blue.\n\nAnd a bit bigger.')
+  })
+
+  it('ignores a follow-up for a subagent this tab does not have', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+
+    store.startDispatchedTasks([followUp(9703, 'Make it blue.')])
+    await Promise.resolve()
+
+    expect(store.instances).toHaveLength(0)
+    expect(runs).not.toHaveBeenCalled()
+  })
+})
+
 describe('agent store parallel subagents', () => {
   // Several subagents are meant to work at once. What matters is that a
   // dispatch is never lost: it either starts now or waits for a slot, and
