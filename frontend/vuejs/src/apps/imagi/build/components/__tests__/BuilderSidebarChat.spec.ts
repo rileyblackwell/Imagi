@@ -351,7 +351,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(tuneChip(wrapper).attributes('disabled')).toBeDefined()
   })
 
-  it('has one button and nothing beside it, and it stays the microphone once there is text', async () => {
+  it('has one button and nothing beside it, and it gains a send arrow once there is text', async () => {
     wrapper = mountWith()
     expect(wrapper.find('button.btn-dictate').exists()).toBe(false)
     expect(wrapper.find('button.mic-caret').exists()).toBe(false)
@@ -367,15 +367,47 @@ describe('BuilderSidebarChat dictation', () => {
     expect(button.classes()).toContain('btn-send--idle')
     expect(button.find('.fa-microphone').exists()).toBe(true)
 
-    // Text fills the button in, so a click visibly has something to do, but
-    // it is still the mic: the words may be added to before they are sent.
+    // Text turns it into the red record button wearing a send arrow, so a
+    // click visibly sends; a hold still records more onto the words.
     await typePrompt(wrapper, 'Add a contact page')
-    expect(button.classes()).toContain('btn-send--active')
-    expect(button.find('.fa-microphone').exists()).toBe(true)
-    expect(button.find('.fa-arrow-up').exists()).toBe(false)
+    expect(button.classes()).toContain('btn-send--ready')
+    expect(button.find('.fa-arrow-up').exists()).toBe(true)
+    expect(button.find('.fa-microphone').exists()).toBe(false)
     expect(button.attributes('title')).toBe(
       'Hold to dictate, or hold ⌘D · click to send (Enter) · right-click to choose microphone'
     )
+
+    // Whitespace alone is nothing to send.
+    await typePrompt(wrapper, '   ')
+    expect(button.classes()).toContain('btn-send--idle')
+    expect(button.find('.fa-microphone').exists()).toBe(true)
+  })
+
+  it('goes back to the plain mic once the box is emptied by sending', async () => {
+    wrapper = mountWith()
+    await typePrompt(wrapper, 'Add a contact page')
+    const button = sendButton(wrapper)
+    expect(button.find('.fa-arrow-up').exists()).toBe(true)
+    await pressFor(wrapper, 80)
+    expect(wrapper.props('onPromptSubmit')).toHaveBeenCalledWith('Add a contact page')
+    expect(button.classes()).toContain('btn-send--idle')
+    expect(button.find('.fa-microphone').exists()).toBe(true)
+    expect(button.find('.fa-arrow-up').exists()).toBe(false)
+  })
+
+  it('shows the mic, not the arrow, while a hold over existing text is recording', async () => {
+    wrapper = mountWith()
+    await typePrompt(wrapper, 'Add a contact page')
+    const button = sendButton(wrapper)
+    await pointer(wrapper, 'pointerdown')
+    await vi.advanceTimersByTimeAsync(300)
+    expect(dictation.start).toHaveBeenCalledTimes(1)
+    expect(button.classes()).toContain('btn-send--recording')
+    expect(button.find('.fa-microphone').exists()).toBe(true)
+    expect(button.find('.fa-arrow-up').exists()).toBe(false)
+    await pointer(wrapper, 'pointerup')
+    await button.trigger('click')
+    expect(wrapper.props('onPromptSubmit')).not.toHaveBeenCalled()
   })
 
   it('a click sends the prompt and never touches the mic', async () => {
@@ -769,7 +801,10 @@ describe('BuilderSidebarChat dictation', () => {
     el.dispatchEvent(backspace)
     expect(backspace.defaultPrevented).toBe(false)
     await textarea.setValue('Add a  page')
-    expect(sendButton(wrapper).find('.fa-microphone').exists()).toBe(true)
+    // Words in the box: the record button wears its send arrow, and a hold
+    // on it still records more.
+    expect(sendButton(wrapper).classes()).toContain('btn-send--ready')
+    expect(sendButton(wrapper).find('.fa-arrow-up').exists()).toBe(true)
 
     // A hold after the edit puts its words where the caret was left.
     el.setSelectionRange(6, 6)

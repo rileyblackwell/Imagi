@@ -379,15 +379,16 @@
               </div>
             </div>
 
-            <!-- The one button, and it stays the microphone: hold to dictate,
-                 click to send (or to stop a run in flight). The glyph never
-                 turns into an arrow once there is text, because the words in
-                 the box are as likely to be added to — record, read it over,
-                 record some more — as sent, and a button that had become
-                 "send" would say the mic was gone. What changes is the fill
-                 (navy once a click has something to do) and the run-in-flight
-                 state, where a click stops the agent and so wears the stop
-                 glyph. Recording turns it red with a ring that swells with
+            <!-- The one button, and it is the microphone first: hold to
+                 dictate, click to send (or to stop a run in flight). Once
+                 the box has words in it, typed or dictated, it turns into
+                 the red record button with a send arrow on it, so the tap
+                 that sends is obvious; a hold still records more onto the
+                 end, which is why it stays red rather than turning into a
+                 plain send button. Emptying the box (sending, or deleting
+                 the text) turns it back into the quiet mic. A run in flight
+                 makes it navy with the stop glyph, since a click stops the
+                 agent. Recording turns it red with a ring that swells with
                  the voice; the click the browser fires when a hold lets go
                  is swallowed, so letting go never sends. Which microphone it
                  listens on lives behind the same button: a right-click (or
@@ -402,7 +403,7 @@
               :aria-pressed="isRecording"
               :aria-expanded="dictationSupported ? micOpen : undefined"
               :disabled="!activeInstance || isTranscribing"
-              class="btn-send iw-press flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
+              class="btn-send iw-press relative flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
               :class="sendClass"
               :style="isRecording ? micRingStyle : undefined"
               @pointerdown="onSendPointerDown"
@@ -411,11 +412,11 @@
               @contextmenu.prevent="toggleMic"
               @click="onSendClick"
             >
-              <i v-if="isTranscribing" class="fas fa-circle-notch fa-spin text-[13px]"></i>
-              <i v-else-if="isRecording" class="fas fa-microphone text-[13px]"></i>
-              <i v-else-if="activeInstance?.isProcessing" class="fas fa-stop text-sm"></i>
-              <i v-else-if="!dictationSupported" class="fas fa-arrow-up text-sm"></i>
-              <i v-else class="fas fa-microphone text-[13px]"></i>
+              <!-- One glyph at a time; a change cross-fades the old one out
+                   as the new one turns in, rather than snapping. -->
+              <Transition name="send-glyph">
+                <i :key="sendGlyph" :class="sendGlyphClass" aria-hidden="true"></i>
+              </Transition>
             </button>
           </div>
         </div>
@@ -961,13 +962,45 @@ const sendTitle = computed(() => {
   return `Hold to dictate, or hold ${dictationShortcut} · ${click} · right-click to choose microphone`
 })
 
-/** Navy ink when a click does something (there is text to send, or a run to
- *  stop); red while the mic is live; a ghost otherwise — still pressable,
- *  because a hold records into an empty box. The fill is all that changes
- *  with the text: the glyph stays a microphone. */
+/** There is something a click would send. */
+const hasPromptText = computed(() => !!activeInstance.value && !!prompt.value.trim())
+
+/** Words in the box and nothing running: the button is the red record
+ *  button with a send arrow on it. A tap sends; a hold still records more. */
+const isReadyToSend = computed(
+  () => dictationSupported && hasPromptText.value && !activeInstance.value?.isProcessing
+)
+
+/** Which glyph the button wears. Keyed, so a change animates. */
+const sendGlyph = computed(() => {
+  if (isTranscribing.value) return 'transcribing'
+  if (isRecording.value) return 'mic'
+  if (activeInstance.value?.isProcessing) return 'stop'
+  if (!dictationSupported || isReadyToSend.value) return 'arrow'
+  return 'mic'
+})
+
+const sendGlyphClass = computed(() => {
+  switch (sendGlyph.value) {
+    case 'transcribing':
+      return 'send-glyph fas fa-circle-notch fa-spin text-[13px]'
+    case 'stop':
+      return 'send-glyph fas fa-stop text-sm'
+    case 'arrow':
+      return 'send-glyph fas fa-arrow-up text-sm'
+    default:
+      return 'send-glyph fas fa-microphone text-[13px]'
+  }
+})
+
+/** Red while the mic is live, and red with an arrow once there are words to
+ *  send (still the record button, since a hold adds to them); navy ink when
+ *  a click stops a run, or sends where the browser cannot record; a ghost
+ *  otherwise — still pressable, because a hold records into an empty box. */
 const sendClass = computed(() => {
   if (isRecording.value) return 'btn-send--recording'
-  if (activeInstance.value && (prompt.value.trim() || activeInstance.value.isProcessing)) {
+  if (isReadyToSend.value) return 'btn-send--ready'
+  if (activeInstance.value && (hasPromptText.value || activeInstance.value.isProcessing)) {
     return 'btn-send--active text-paper dark:text-blue-950'
   }
   return 'btn-send--idle'
@@ -1819,6 +1852,64 @@ textarea:active {
     background-color var(--iw-dur-2) var(--iw-ease-out),
     color var(--iw-dur-2) var(--iw-ease-out),
     box-shadow 80ms linear;
+}
+
+/* Words to send: the record button, red, wearing a send arrow. Calmer than
+   live recording — no ring — so the two never read as the same state. */
+.btn-send--ready {
+  background-color: #dc2626;
+  color: #ffffff;
+  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.btn-send--ready:hover:not(:disabled) {
+  background-color: #b91c1c;
+  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* The glyph swap: the old one fades and shrinks out on the spot while the
+   new one turns up into place. The leaving glyph is taken out of flow so the
+   two overlap in the middle of the button instead of sitting side by side. */
+.send-glyph-enter-active,
+.send-glyph-leave-active {
+  transition:
+    opacity var(--iw-dur-2) var(--iw-ease-out),
+    transform var(--iw-dur-3) var(--iw-ease-spring);
+}
+
+.send-glyph-leave-active {
+  position: absolute;
+}
+
+.send-glyph-enter-from {
+  opacity: 0;
+  transform: translateY(6px) scale(0.6);
+}
+
+.send-glyph-leave-to {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .send-glyph-enter-active,
+  .send-glyph-leave-active {
+    transition: opacity var(--iw-dur-1) linear;
+  }
+
+  .send-glyph-enter-from,
+  .send-glyph-leave-to {
+    transform: none;
+  }
+}
+
+.dark .btn-send--ready {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.dark .btn-send--ready:hover:not(:disabled) {
+  background-color: #f87171;
 }
 
 .dark .btn-send--idle {
