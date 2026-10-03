@@ -88,7 +88,8 @@ LEAD_DISPATCH_RETRY_PROMPT = (
     "no subagent exists and nothing is being built. If the user's request is a "
     "job, call dispatch_task NOW with the full brief, goal and overview, then "
     "reply with ONE short sentence telling the user you are putting a subagent "
-    "on it and end your turn. "
+    "on it and end your turn. If it is a follow-up for a subagent you already "
+    "have, call message_task for that subagent instead. "
     "If you were not actually claiming to have started new "
     "work (for example, a subagent from an earlier turn is already on it), "
     "answer the user plainly instead. Never tell the user work was kicked off "
@@ -649,16 +650,20 @@ def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[L
 
 
 # A lead reply narrating a kickoff: delegation verbs ("kicked off",
-# "dispatched", "spun up") or delegate nouns ("subagent", "background task").
-# Deliberately broad — a match only ever costs one corrective turn, whose
-# prompt lets the model answer plainly if no dispatch was intended.
+# "dispatched", "spun up", "putting a subagent on it", "passed it to the
+# subagent"). Verbs, not the bare nouns: the lead answers status questions
+# from its roster ("the subagent on your menu is still working"), and a reply
+# that merely mentions a subagent claims nothing. A match only ever costs one
+# corrective turn, whose prompt lets the model answer plainly if no dispatch
+# was intended.
 _LEAD_DISPATCH_CLAIM_RE = re.compile(
     r'\bkick(?:ed|ing)?\s+(?:\w+\s+){0,2}?off\b'
     r'|\bdispatch(?:ed|ing)\b'
     r'|\bsp(?:un|inning)\s+up\b'
     r'|\bhand(?:ed|ing)\s+(?:\w+\s+){0,2}?(?:off|over|to)\b'
-    r'|\bsub-?agents?\b'
-    r'|\bbackground\s+(?:task|agent|job|worker)s?\b',
+    r'|\bput(?:ting)?\s+(?:a\s+|another\s+)?(?:sub-?agent|background\s+\w+)\b'
+    r'|\b(?:pass(?:ed|ing)?|sent|sending)\s+(?:\w+\s+){0,3}?(?:on\s+)?to\s+(?:the\s+|your\s+|a\s+)?sub-?agent\b'
+    r'|\bstart(?:ed|ing)\s+(?:a\s+)?(?:sub-?agent|background\s+(?:task|agent|job|worker))\b',
     re.IGNORECASE,
 )
 
@@ -773,6 +778,10 @@ class AgentContext:
     # Tasks staged by the lead's dispatch_task tool during this run
     # ([{conversation_id, title, brief, variant_group, ...}]).
     dispatched_tasks: List[Dict[str, Any]] = field(default_factory=list)
+    # Lead runs only: where each of its subagents stands, rendered into its
+    # instructions (tools.lead_task_roster). Built in _prepare_run because the
+    # instructions callable runs on the event loop, where the ORM may not.
+    task_roster: str = ''
 
 
 class ImagiAgentService:
@@ -1095,8 +1104,10 @@ class ImagiAgentService:
             effective_root = self._ensure_task_worktree(conversation, effective_root)
 
         # A fresh prompt reopens a task that was awaiting review ('ready'),
-        # awaiting an answer ('input' — the prompt IS the answer), or parked
-        # after a dead run ('failed' — the prompt is the retry). Any pending
+        # awaiting an answer ('input' — the prompt IS the answer), parked
+        # after a dead run ('failed' — the prompt is the retry), or already
+        # merged ('accepted' — a follow-up on finished work, which forks a
+        # fresh worktree and merges again when it lands). Any pending
         # check-ins it filed are superseded by this new run: the next run end
         # files fresh ones, so stale queue entries must not linger.
         #
@@ -1107,7 +1118,7 @@ class ImagiAgentService:
         # sweep parks as failed.
         reopen_task = (
             conversation.kind == 'task'
-            and conversation.review_status in ('ready', 'input', 'failed')
+            and conversation.review_status in ('ready', 'input', 'failed', 'accepted')
         )
         if conversation.kind == 'task':
             self._resolve_pending_check_ins(conversation)
@@ -1151,6 +1162,14 @@ class ImagiAgentService:
             conversation_kind=conversation.kind,
             current_file=current_file,
         )
+        if conversation.kind == 'lead':
+            # Best-effort: a lead that cannot see its roster still works, it
+            # just routes follow-ups less well.
+            try:
+                from .tools import lead_task_roster
+                context.task_roster = lead_task_roster(conversation)
+            except Exception as e:  # pragma: no cover - best effort
+                logger.warning(f"Could not build the lead's subagent roster: {e}")
         # The `agent` property builds the kind-matched variant (delegation
         # tools for lead, ask_user for task) from here on. An explicit
         # agent_kind wins: it selects the persona while the conversation keeps

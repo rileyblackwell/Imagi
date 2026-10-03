@@ -269,6 +269,10 @@ export interface DispatchedTaskDto {
    *  that existing task instead of staging a new one, so it is linked on the
    *  reply but its run is NOT started again. */
   already_running?: boolean;
+  /** Not a new subagent: the lead forwarded a follow-up to one it already has.
+   *  `brief` is that message, delivered as the subagent's next turn (after its
+   *  current run, if it is mid-run) instead of a fresh dispatch. */
+  follow_up?: boolean;
 }
 
 /** A transcript's link to a subagent the lead kicked off during that reply —

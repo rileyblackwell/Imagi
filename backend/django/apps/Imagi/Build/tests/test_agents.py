@@ -1620,6 +1620,21 @@ class LeadAgentConfigurationTests(SimpleTestCase):
             agent = create_coding_agent(kind=kind)
             self.assertIsNot(agent.model_settings.parallel_tool_calls, False, kind)
 
+    def test_the_lead_can_follow_up_with_a_subagent_it_already_has(self):
+        # A follow-up goes to the thread already doing the work; the lead
+        # needs a tool for that, and the prompt has to tell it when to use it.
+        agent = create_coding_agent(kind='lead')
+        names = {tool.name for tool in agent.tools}
+        self.assertIn('dispatch_task', names)
+        self.assertIn('message_task', names)
+        self.assertIn('A FOLLOW-UP', LEAD_AGENT_INSTRUCTIONS)
+        self.assertIn('message_task', LEAD_AGENT_INSTRUCTIONS)
+
+    def test_only_the_lead_messages_subagents(self):
+        for kind in ('chat', 'task', 'initial_build'):
+            agent = create_coding_agent(kind=kind)
+            self.assertNotIn('message_task', {tool.name for tool in agent.tools}, kind)
+
     def test_the_lead_is_told_one_job_is_one_subagent(self):
         self.assertIn(
             'ONE job, ONE dispatch_task call, ONE subagent', LEAD_AGENT_INSTRUCTIONS
@@ -1674,6 +1689,29 @@ class LeadDispatchClaimTests(SimpleTestCase):
             "Spinning up a background job to fix the nav.",
         ):
             self.assertTrue(
+                lead_claims_unmade_dispatch(self.lead, self.context, text), text
+            )
+
+    def test_follow_up_claims_without_a_hand_off_are_caught(self):
+        for text in (
+            "I'm putting a subagent on your home page now.",
+            "I passed that on to the subagent already working on your menu.",
+            "Sent it to the subagent on your booking page.",
+        ):
+            self.assertTrue(
+                lead_claims_unmade_dispatch(self.lead, self.context, text), text
+            )
+
+    def test_status_answers_that_mention_a_subagent_pass(self):
+        # The lead answers "where are we?" from its roster, and naming the
+        # subagent doing a job claims no new work. Caught, these spent a
+        # corrective turn and could end in the "nothing was dispatched" note.
+        for text in (
+            "The subagent on your menu is still working on it.",
+            "Your booking page subagent is waiting on you: which days are you open?",
+            "Two background tasks are finished and one is still going.",
+        ):
+            self.assertFalse(
                 lead_claims_unmade_dispatch(self.lead, self.context, text), text
             )
 

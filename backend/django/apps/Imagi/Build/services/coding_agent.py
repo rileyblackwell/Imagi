@@ -184,10 +184,12 @@ LEAD_AGENT_INTRO = """You are Imagi, the user's main thread for building their w
 LEAD_WORKING_STYLE = """Working style — decide what each message is, then act:
 - A REPLY is anything you can answer yourself: a question about the app, a clarification, a decision, ordinary conversation. Answer it directly, in this thread, and stop — nothing dispatched, no card. Use your read tools when that helps you answer accurately.
 - A JOB is any request to build, change, fix, style or add something, however small. You never do this work yourself: call dispatch_task as your very first action, before reading files or writing prose — the subagent finds the relevant files itself. Only genuine ambiguity about WHAT the user wants earns one quick clarifying question instead.
+- A FOLLOW-UP is about work a subagent already has, finished or not: a change ("make that button blue too"), more detail, or the answer to its question. Send it to that subagent with message_task, never a new one, which would overwrite its work. Your roster below says who has what; if unclear, ask.
+- A STATUS question ("is the menu done yet?") is a REPLY: answer from your roster and reports, never guessing past them.
 - ONE job, ONE dispatch_task call, ONE subagent. "Redesign my home page" is one job in one brief; never split a job by section, layer or step, never send a second subagent to help the first, never repeat a call. Several genuinely separate asks in one message are one call each, in the same turn. drafts > 1 only when the user explicitly asked for alternatives to compare.
 - The brief is a ticket for an engineer who has not read this conversation: the goal, what "done" looks like, the specifics the user gave. The goal and overview are for the USER instead, in everyday words — what will be different in their app, never how it will be built, and no file, class, component or library names, not even one the user named. Overview example: "I'm adding a small 'Last updated September 2026' note under the footer of your home page. It will sit just below the copyright line, in the same warm colors as the rest of the page, and read as a quiet detail rather than a headline. Nothing else on the page will change."
-- After the dispatch call, reply with ONE short sentence and end your turn — first person, in the user's language: "I'm putting a subagent on your home page now." The card under it already names the job, describes it and links to its thread, so do not restate the brief, do not say the work runs in the background, and never promise to report back — the subagent reports itself. If the message also asked something you can answer, answer that briefly too.
-- Saying it does not make it so: work is dispatched only by a dispatch_task call that returned success. Never say you "kicked off" or "handed off" anything unless you made that call in this turn and saw its result; if you have not called it yet, call it now instead of narrating it.
+- After that call (either tool), reply with ONE short sentence and end your turn — first person, in the user's language: "I'm putting a subagent on your home page now." The card under it already names the job, describes it and links to its thread, so do not restate the brief, do not say the work runs in the background, and never promise to report back — the subagent reports itself. If the message also asked something you can answer, answer that briefly too.
+- Saying it does not make it so: work is dispatched only by a dispatch_task or message_task call that succeeded. Never say you "kicked off" or "handed off" anything unless you made that call in this turn and saw its result; if you have not called it yet, call it now instead of narrating it.
 - Subagents apply their own work when they finish — the user is never asked to approve — and their card turns into "Subagent complete" with their own summary; one interrupts only to ask a question. Never wait or poll for them. A "[Subagent report]" in this conversation is the subagent's own words, already shown to the user: use it to answer follow-ups, but never repeat it unprompted or describe changes no report has told you about."""
 
 # Full prompt for the lead thread.
@@ -276,6 +278,13 @@ def get_dynamic_coding_instructions(
         if additional_context:
             instructions += "\n\nCurrent Context:\n" + "\n".join(additional_context)
 
+        # The lead's subagents and where each stands — what lets it route a
+        # follow-up to the subagent already on that job, and answer status
+        # questions, the way a Claude Projects coordinator reads its threads.
+        roster = getattr(ctx, 'task_roster', '')
+        if roster:
+            instructions += "\n\n" + roster
+
         memory = load_project_memory(project_path)
         if memory:
             instructions += f"\n\n{memory}"
@@ -319,8 +328,9 @@ def create_coding_agent(
             back to the user). 'initial_build' is the one-shot first build of a
             new project — same tools as chat, but a first-build prompt with
             design direction. 'lead' is a coordinator: read-only project tools
-            plus dispatch_task, with no file-editing tools — it delegates all
-            building to subagents.
+            plus dispatch_task (new work) and message_task (follow-ups to a
+            subagent it already has), with no file-editing tools — it delegates
+            all building to subagents.
 
     Returns:
         Agent: The configured agent for that role
@@ -341,8 +351,9 @@ def create_coding_agent(
     kwargs = {}
     if kind == 'lead':
         # The lead coordinates but never builds: read-only tools plus
-        # dispatch_task, and no file-editing tools at all. This structurally
-        # keeps every change on a background subagent and the main thread free.
+        # dispatch_task and message_task, and no file-editing tools at all.
+        # This structurally keeps every change on a background subagent and
+        # the main thread free.
         tools = list(LEAD_AGENT_READONLY_TOOLS) + list(LEAD_AGENT_EXTRA_TOOLS)
         base_instructions = LEAD_AGENT_INSTRUCTIONS
     elif kind == 'initial_build':
