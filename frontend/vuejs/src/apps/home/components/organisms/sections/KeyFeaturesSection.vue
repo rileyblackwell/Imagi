@@ -6,9 +6,10 @@
   than asserted.
 -->
 <template>
-  <section class="relative py-20 md:py-28">
+  <!-- Set on a faint ink-tinted band: the page's Build half sits on paper and
+       its Run half one shade deeper, so the two halves read as two halves. -->
+  <section class="run-band relative py-24 md:py-32">
     <div class="section-shell">
-      <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
 
       <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
         <div class="max-w-xl">
@@ -112,6 +113,16 @@ export default defineComponent({
      shared/styles/editorial.css -->
 
 <style scoped>
+.run-band {
+  background: rgba(19, 26, 44, 0.03);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+:global(.dark) .run-band {
+  background: rgba(255, 255, 255, 0.025);
+}
+
 /* Stacked, not side by side: these crops are 1800px of dense UI, and at half
    the measure their tab labels stop being readable — which defeats the point
    of showing them at all. */

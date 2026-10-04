@@ -32,15 +32,11 @@
         </p>
       </div>
 
-      <div v-reveal="{ delay: 80 }" class="mt-11 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-7">
-        <router-link :to="getAuthenticatedRedirect" class="btn-primary group">
-          <span>{{ primaryButtonText }}</span>
-          <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </router-link>
-
-        <router-link v-if="showSecondaryButton" :to="secondaryButtonTo" class="btn-quiet">
+      <!-- Same prompt as the hero, so the page closes on the action it opened
+           with. Pricing stays one quiet link away. -->
+      <div v-reveal="{ delay: 80 }" class="closing-prompt mt-11">
+        <IdeaPrompt input-id="closing-idea" size="md" :submit-label="primaryButtonText" />
+        <router-link v-if="showSecondaryButton" :to="secondaryButtonTo" class="btn-quiet mt-5">
           <span>{{ secondaryButtonText }}</span>
         </router-link>
       </div>
@@ -55,12 +51,13 @@
 </template>
 
 <script>
-import { defineComponent, computed } from 'vue'
-import { useAuthStore } from '@/shared/stores/auth'
+import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
+import IdeaPrompt from '@/apps/home/components/molecules/IdeaPrompt.vue'
 
 export default defineComponent({
   name: 'CTASection',
+  components: { IdeaPrompt },
   directives: { reveal },
   props: {
     title: { type: String, default: 'Start your business today' },
@@ -69,25 +66,10 @@ export default defineComponent({
       default: 'Describe what you want to build, and have a working web app the same afternoon — with the tools to market, sell and run it waiting in the same project.'
     },
     primaryButtonText: { type: String, default: 'Start building' },
-    primaryButtonTo: { type: [String, Object], default: '/imagi/projects' },
     showSecondaryButton: { type: Boolean, default: true },
     secondaryButtonText: { type: String, default: 'See pricing' },
     secondaryButtonTo: { type: [String, Object], default: '/payments/pricing' },
     footnote: { type: String, default: 'Start for free. Upgrade anytime as you grow.' }
-  },
-  setup(props) {
-    const authStore = useAuthStore()
-    const isAuthenticated = computed(() => authStore.isAuthenticated)
-
-    const getAuthenticatedRedirect = computed(() =>
-      isAuthenticated.value
-        ? typeof props.primaryButtonTo === 'string'
-          ? props.primaryButtonTo
-          : '/imagi/projects'
-        : '/auth/signin'
-    )
-
-    return { isAuthenticated, getAuthenticatedRedirect }
   }
 })
 </script>
@@ -96,6 +78,17 @@ export default defineComponent({
 .closing-rule {
   height: 1px;
   background: var(--rule-strong);
+}
+
+.closing-prompt {
+  max-width: 44rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.closing-prompt > :first-child {
+  align-self: stretch;
 }
 
 .footnote {
