@@ -26,6 +26,11 @@ describe('HeroSection', () => {
     expect(wrapper.find('.hero-accent').text()).toBe('run')
   })
 
+  it('keeps the hero free of product shots', () => {
+    mockReducedMotion(true)
+    expect(mount(HeroSection, { global: { stubs } }).find('img').exists()).toBe(false)
+  })
+
   it('shows the first example at rest, all four pieces, when motion is reduced', async () => {
     mockReducedMotion(true)
     const wrapper = mount(HeroSection, { global: { stubs } })
