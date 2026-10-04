@@ -101,6 +101,7 @@
                       <label class="field__label" for="project-name">Business name</label>
                       <input
                         id="project-name"
+                        ref="projectNameInput"
                         v-model="newProjectName"
                         type="text"
                         class="field__input disabled:opacity-50 disabled:cursor-not-allowed"
@@ -294,6 +295,7 @@ import type { Project } from '@/apps/imagi/build/types/components'
 import { normalizeProject } from '@/apps/imagi/build/types/components'
 import { projectSlug } from '@/apps/imagi/build/utils/slug'
 import { ConfirmModal } from '@/apps/imagi/build/components/organisms/modals'
+import { takePendingIdea } from '@/apps/home/utils/pendingIdea'
 
 
 const router = useRouter()
@@ -310,6 +312,7 @@ const newProjectDescription = ref('')
 // fine — the build carries strong default design direction on its own.
 const newProjectDesign = ref('')
 const isCreating = ref(false)
+const projectNameInput = ref<HTMLInputElement | null>(null)
 
 // The description seeds the initial AI build, so require enough signal to
 // work with. Keep in sync with MIN_DESCRIPTION_LENGTH on the backend
@@ -556,6 +559,17 @@ const confirmDelete = async (project: Project) => {
 // Set up watchers and lifecycle hooks
 onMounted(async () => {
   console.debug('Projects mounted')
+
+  // An idea typed into the home page's prompt arrives here as the business
+  // description; the visitor only has to name it. Signed-out visitors keep it
+  // until they come back signed in, since the form only renders for them.
+  if (authStore.isAuthenticated) {
+    const idea = takePendingIdea()
+    if (idea && !newProjectDescription.value) {
+      newProjectDescription.value = idea
+      requestAnimationFrame(() => projectNameInput.value?.focus())
+    }
+  }
 
   // Always force refresh projects when the dashboard loads to ensure we have the latest data
   try {
