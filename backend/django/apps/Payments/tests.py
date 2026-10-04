@@ -164,19 +164,29 @@ class PlanRegistryTests(APITestCase):
         Subscription.objects.create(user=self.user, plan='max_5x')
         self.assertEqual(get_plan_for_user(self.user)['id'], 'max_5x')
 
+    def test_retired_max_20x_id_resolves_to_max_10x(self):
+        # Rows written before the $200 tier became 10x keep their allowance.
+        Subscription.objects.create(user=self.user, plan='max_20x')
+        self.assertEqual(get_plan_for_user(self.user)['id'], 'max_10x')
+
+    def test_old_max_20x_lookup_key_resolves_to_max_10x(self):
+        from apps.Payments.services.plans import plan_id_for_lookup_key
+        self.assertEqual(plan_id_for_lookup_key('max_20x_monthly'), 'max_10x')
+        self.assertEqual(plan_id_for_lookup_key('max_10x_monthly'), 'max_10x')
+
     def test_stale_subscription_plan_falls_back_to_free(self):
         Subscription.objects.create(user=self.user, plan='discontinued')
         self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_weekly_allowances_are_the_advertised_dollar_figures(self):
-        self.assertEqual(PLANS['free']['weekly_usd'], 5)
-        self.assertEqual(PLANS['pro']['weekly_usd'], 15)
-        self.assertEqual(PLANS['max_5x']['weekly_usd'], 75)
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 300)
+        self.assertEqual(PLANS['free']['weekly_usd'], 3)
+        self.assertEqual(PLANS['pro']['weekly_usd'], 10)
+        self.assertEqual(PLANS['max_5x']['weekly_usd'], 50)
+        self.assertEqual(PLANS['max_10x']['weekly_usd'], 100)
 
     def test_allowances_rise_with_the_tier(self):
         # A pricier plan must never buy a smaller allowance.
-        weekly = [PLANS[p]['weekly_usd'] for p in ('free', 'pro', 'max_5x', 'max_20x')]
+        weekly = [PLANS[p]['weekly_usd'] for p in ('free', 'pro', 'max_5x', 'max_10x')]
         self.assertEqual(weekly, sorted(weekly))
         self.assertEqual(len(set(weekly)), len(weekly))
 
@@ -186,8 +196,8 @@ class PlanRegistryTests(APITestCase):
         pro = PLANS['pro']['weekly_usd']
         self.assertEqual(PLANS['max_5x']['name'], 'Max (5x)')
         self.assertEqual(PLANS['max_5x']['weekly_usd'], 5 * pro)
-        self.assertEqual(PLANS['max_20x']['name'], 'Max (20x)')
-        self.assertEqual(PLANS['max_20x']['weekly_usd'], 20 * pro)
+        self.assertEqual(PLANS['max_10x']['name'], 'Max (10x)')
+        self.assertEqual(PLANS['max_10x']['weekly_usd'], 10 * pro)
 
     def test_plans_carry_no_figure_the_meter_does_not_enforce(self):
         # The weekly window is the only one checked, so it is the only
@@ -199,7 +209,7 @@ class PlanRegistryTests(APITestCase):
 
     def test_only_free_limits_projects(self):
         self.assertEqual(PLANS['free']['max_active_projects'], 1)
-        for plan_id in ('pro', 'max_5x', 'max_20x'):
+        for plan_id in ('pro', 'max_5x', 'max_10x'):
             self.assertIsNone(PLANS[plan_id]['max_active_projects'])
 
 
@@ -357,7 +367,7 @@ class CheckUsageAllowedTests(APITestCase):
 
     def test_top_max_allowance_far_exceeds_pro(self):
         # A spend that exhausts Pro's week barely dents the top Max tier's.
-        Subscription.objects.create(user=self.user, plan='max_20x')
+        Subscription.objects.create(user=self.user, plan='max_10x')
         event = record_usage(
             self.user, 'gpt-5.6-sol', 1_000, 0,
             cost_usd=PLANS['pro']['weekly_usd'],
@@ -368,7 +378,7 @@ class CheckUsageAllowedTests(APITestCase):
         allowed, payload = check_usage_allowed(self.user)
         self.assertTrue(allowed)
         weekly = payload['windows']['weekly']
-        self.assertEqual(weekly['limit_usd'], PLANS['max_20x']['weekly_usd'])
+        self.assertEqual(weekly['limit_usd'], PLANS['max_10x']['weekly_usd'])
         self.assertGreater(weekly['limit_usd'], PLANS['pro']['weekly_usd'])
 
 
@@ -403,7 +413,7 @@ class SubscriptionWebhookTests(APITestCase):
         """
         event = SimpleNamespace(
             type='customer.subscription.created',
-            data=SimpleNamespace(object=self._subscription(lookup_key='max_20x_monthly')),
+            data=SimpleNamespace(object=self._subscription(lookup_key='max_10x_monthly')),
         )
         with override_settings(STRIPE_WEBHOOK_SECRET=''):
             with patch('apps.Payments.api.views.stripe_service') as mock_stripe:
@@ -441,9 +451,9 @@ class SubscriptionWebhookTests(APITestCase):
         # The two Max price points are separate plans, not one collapsed tier.
         self._post_event(
             'customer.subscription.created',
-            self._subscription(lookup_key='max_20x_monthly'),
+            self._subscription(lookup_key='max_10x_monthly'),
         )
-        self.assertEqual(self.user.subscription.plan, 'max_20x')
+        self.assertEqual(self.user.subscription.plan, 'max_10x')
 
     def test_lookup_key_that_is_a_plan_id_resolves(self):
         # Backward-compatible fallback: a lookup_key equal to a plan id works.
@@ -679,7 +689,7 @@ class PaymentsAPITests(APITestCase):
         # The registry rides along so the frontend can render plan options.
         self.assertEqual(
             [p['id'] for p in resp.data['plans']],
-            ['free', 'pro', 'max_5x', 'max_20x'],
+            ['free', 'pro', 'max_5x', 'max_10x'],
         )
         self.assertEqual(
             resp.data['plans'][0]['weekly_usd'],
@@ -956,11 +966,11 @@ class RealStripeObjectTests(APITestCase):
             'id': 'evt_1',
             'object': 'event',
             'type': 'customer.subscription.created',
-            'data': {'object': _subscription_payload(lookup_key='max_20x_monthly')},
+            'data': {'object': _subscription_payload(lookup_key='max_10x_monthly')},
         })
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.user.subscription.refresh_from_db()
-        self.assertEqual(self.user.subscription.plan, 'max_20x')
+        self.assertEqual(self.user.subscription.plan, 'max_10x')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
 
     def test_a_failed_sync_is_not_acked(self):

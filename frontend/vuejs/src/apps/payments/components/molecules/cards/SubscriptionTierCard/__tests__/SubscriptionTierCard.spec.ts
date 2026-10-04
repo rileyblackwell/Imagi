@@ -8,8 +8,8 @@ const max = {
   name: 'Max',
   cta: 'Get started',
   options: [
-    { label: '5× usage', price: 100, lookupKey: 'max_5x_monthly', weeklyLimit: '$75', features: [] },
-    { label: '20× usage', price: 200, lookupKey: 'max_20x_monthly', weeklyLimit: '$300', features: [] },
+    { label: '5× usage', price: 100, lookupKey: 'max_5x_monthly', weeklyLimit: '$50', features: [] },
+    { label: '10× usage', price: 200, lookupKey: 'max_10x_monthly', weeklyLimit: '$100', features: [] },
   ],
 }
 
@@ -40,7 +40,7 @@ describe('SubscriptionTierCard', () => {
   })
 
   it('a multi-option tier marks only the option in use as current', async () => {
-    const wrapper = mount(SubscriptionTierCard, { props: { ...max, currentPlanKey: 'max_20x_monthly' } })
+    const wrapper = mount(SubscriptionTierCard, { props: { ...max, currentPlanKey: 'max_10x_monthly' } })
     expect(cta(wrapper).text()).toBe('Switch to this plan')
     await wrapper.findAll('button.tier__option')[1]!.trigger('click')
     expect(cta(wrapper).text()).toBe('Current plan')
