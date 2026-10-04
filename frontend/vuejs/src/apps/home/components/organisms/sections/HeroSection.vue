@@ -1,19 +1,16 @@
 <!--
   Hero — the page's opening statement.
 
+  Copy only. The build workspace screenshot used to sit here, but it belongs
+  with step 01 ("Build your web app"), which is what it actually illustrates —
+  so the hero is now a plain statement and the product appears where the page
+  starts explaining it.
+
   Built from the same parts as every section below it: the eyebrow and the
   headline-left / supporting-copy-right header, differing only in scale.
-
-  Below the copy sits the project hub, the one screenshot that shows the
-  headline's whole claim at once: a business with Build, Sell, Market and
-  Operate in one place. Copy alone left the first screen half empty, so this
-  puts the product in view before the visitor scrolls. It stands on a soft warm
-  wash — the accent at very low strength — so the dark shot sits on the paper
-  rather than being dropped onto it. The build workspace stays with step 01,
-  which is what it illustrates.
 -->
 <template>
-  <section class="hero relative pt-28 sm:pt-36 md:pt-40 pb-6 md:pb-10">
+  <section class="relative pt-32 sm:pt-40 md:pt-44 pb-20 md:pb-28">
     <div class="section-shell">
 
       <!-- Header: the section pattern, one size up -->
@@ -52,19 +49,6 @@
         </button>
       </div>
 
-      <!-- The product, in view on the first screen -->
-      <div class="hero-item hero-stage mt-16 md:mt-20" style="animation-delay: 270ms">
-        <ProductShot
-          src="/product/project-hub.webp"
-          alt="The project hub for Ticker Insights, showing its four workspaces: Build, Sell, Market and Operate."
-          :width="2400"
-          :height="1752"
-          label="imagi — project hub"
-          caption="One project, four workspaces. Build makes the product; Sell, Market and Operate run the business around it."
-          eager
-        />
-      </div>
-
     </div>
   </section>
 </template>
@@ -72,11 +56,9 @@
 <script>
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/shared/stores/auth'
-import { ProductShot } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'HeroSection',
-  components: { ProductShot },
   setup() {
     const authStore = useAuthStore()
 
@@ -126,35 +108,6 @@ export default defineComponent({
   font-weight: 500;
   color: var(--accent);
   font-variation-settings: 'SOFT' 100, 'WONK' 1;
-}
-
-/* The wash below reaches past the shell on narrow screens; clip it here
-   rather than letting it widen the page. */
-.hero {
-  overflow-x: clip;
-}
-
-/* A warm wash behind the shot: wider than the frame and fading out at every
-   edge, so there is no box — just light on the paper. */
-.hero-stage {
-  position: relative;
-}
-
-.hero-stage::before {
-  content: '';
-  position: absolute;
-  inset: -4rem -6rem -2rem;
-  z-index: -1;
-  background:
-    radial-gradient(ellipse 60% 55% at 50% 36%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
-    radial-gradient(ellipse 80% 60% at 50% 55%, rgba(19, 26, 44, 0.05), transparent 72%);
-  filter: blur(8px);
-  pointer-events: none;
-}
-
-.dark .hero-stage::before {
-  background:
-    radial-gradient(ellipse 55% 50% at 50% 38%, var(--accent-soft), transparent 70%);
 }
 
 </style>

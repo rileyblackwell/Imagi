@@ -1,10 +1,9 @@
 <!--
   "Why Imagi" — the shape of the product, shown rather than asserted.
 
-  This is where the two-halves idea lands: a spec row of the few numbers we can
-  state honestly, and the audiences as hairline-ruled columns instead of cards.
-  The project hub screenshot that used to open this section now stands in the
-  hero, directly above it.
+  This is where the two-halves idea lands: a screenshot of the real project hub
+  (Build / Sell / Market / Operate), a spec row of the few numbers we can state
+  honestly, and the audiences as hairline-ruled columns instead of cards.
 -->
 <template>
   <section id="why-imagi" class="relative py-20 md:py-28 scroll-mt-14">
@@ -28,8 +27,20 @@
         </p>
       </div>
 
+      <!-- The hub itself: four workspaces, one project -->
+      <div v-reveal="{ delay: 90 }" class="mt-14 md:mt-16">
+        <ProductShot
+          src="/product/project-hub.webp"
+          alt="The project hub for Ticker Insights, showing its four workspaces: Build, Sell, Market and Operate."
+          :width="2400"
+          :height="1752"
+          label="imagi — project hub"
+          caption="The hub for Ticker Insights. Build makes the product; Sell, Market and Operate run the business around it."
+        />
+      </div>
+
       <!-- Spec row: only numbers we can actually stand behind -->
-      <dl v-reveal="{ delay: 90 }" class="spec-row mt-14 md:mt-16">
+      <dl v-reveal="{ delay: 120 }" class="spec-row mt-16 md:mt-20">
         <div v-for="stat in stats" :key="stat.label" class="spec">
           <dt class="spec__label">{{ stat.label }}</dt>
           <dd class="spec__value display">
@@ -54,11 +65,12 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
+import { ProductShot } from '@/apps/home/components/atoms'
 import { LineIcon } from '@/shared/components'
 
 export default defineComponent({
   name: 'StatsSection',
-  components: { LineIcon },
+  components: { LineIcon, ProductShot },
   directives: { reveal },
   props: {
     stats: {
