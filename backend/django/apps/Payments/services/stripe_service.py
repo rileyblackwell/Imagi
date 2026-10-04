@@ -14,6 +14,20 @@ logger = logging.getLogger(__name__)
 # alongside any of these would charge them twice.
 LIVE_SUBSCRIPTION_STATUSES = ('active', 'trialing', 'past_due')
 
+
+def to_plain_dict(obj):
+    """Normalize a StripeObject to plain nested dicts; anything else passes through.
+
+    Since stripe-python 13, StripeObject is no longer a dict subclass: it has
+    item access but no .get(), so code written against dicts raises
+    AttributeError on a real API response (mocked dicts in tests never show
+    it). Everything this app reads off a subscription goes through here first.
+    """
+    if isinstance(obj, stripe.StripeObject):
+        return obj.to_dict()
+    return obj
+
+
 class StripeService:
     """Service for interacting with Stripe API."""
     
@@ -123,7 +137,8 @@ class StripeService:
     
     def create_checkout_session(self, line_items: list, metadata: Dict[str, str],
                                 success_url: str, cancel_url: str,
-                                mode: str = 'subscription', customer: Optional[str] = None) -> Any:
+                                mode: str = 'subscription', customer: Optional[str] = None,
+                                subscription_metadata: Optional[Dict[str, str]] = None) -> Any:
         """
         Create a Stripe Checkout Session.
 
@@ -134,6 +149,8 @@ class StripeService:
             cancel_url: URL to redirect on cancel
             mode: Checkout mode; only 'subscription' is used
             customer: Stripe customer ID (required for subscription mode)
+            subscription_metadata: Metadata copied onto the subscription the
+                session creates (session metadata stays on the session only)
         """
         try:
             params = {
@@ -145,6 +162,8 @@ class StripeService:
             }
             if customer:
                 params['customer'] = customer
+            if subscription_metadata:
+                params['subscription_data'] = {'metadata': subscription_metadata}
 
             session = stripe.checkout.Session.create(**params)
             return session
@@ -198,7 +217,7 @@ class StripeService:
                 customer=customer_id, status='all', limit=20
             )
             live = [
-                sub for sub in subscriptions.data
+                sub for sub in (to_plain_dict(s) for s in subscriptions.data)
                 if sub.get('status') in LIVE_SUBSCRIPTION_STATUSES
             ]
             return sorted(live, key=lambda sub: sub.get('created') or 0, reverse=True)
@@ -223,12 +242,12 @@ class StripeService:
                 f"Subscription {subscription.get('id')} has {len(items)} items; expected 1"
             )
         try:
-            return stripe.Subscription.modify(
+            return to_plain_dict(stripe.Subscription.modify(
                 subscription['id'],
                 items=[{'id': items[0]['id'], 'price': price_id}],
                 proration_behavior='always_invoice',
                 payment_behavior='pending_if_incomplete',
-            )
+            ))
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error changing subscription price: {str(e)}")
             raise

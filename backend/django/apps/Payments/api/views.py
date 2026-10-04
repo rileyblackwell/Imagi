@@ -21,7 +21,7 @@ from django.conf import settings
 from imagi.redirect_urls import UnsafeRedirectError, resolve_redirect_url
 
 from ..models import StripeCustomer, Subscription
-from ..services.stripe_service import LIVE_SUBSCRIPTION_STATUSES, StripeService
+from ..services.stripe_service import LIVE_SUBSCRIPTION_STATUSES, StripeService, to_plain_dict
 from ..services.transaction_service import TransactionService
 from ..services.payment_method_service import PaymentMethodService
 from ..services.plans import DEFAULT_PLAN_ID, PLANS, list_plans, plan_id_for_lookup_key
@@ -294,6 +294,11 @@ def create_checkout_session(request):
             cancel_url=cancel_url,
             mode='subscription',
             customer=customer_id,
+            # Lands on the Stripe subscription itself (session metadata stays
+            # on the session), so the dashboard shows whose it is. No plan
+            # here: change_plan swaps the price without touching metadata, so
+            # a plan label would go stale — the price lookup_key is the truth.
+            subscription_metadata={'user_id': str(request.user.id)},
         )
 
         return Response({
@@ -432,15 +437,16 @@ def get_session_status(request):
         # caller. session_id is exposed in the success-page URL, so without
         # this any authenticated user holding another user's id could read
         # that user's checkout.
-        if session.metadata.get('user_id') != str(request.user.id):
+        session = to_plain_dict(session)
+        if (session.get('metadata') or {}).get('user_id') != str(request.user.id):
             return Response({
                 'error': 'Session not found'
             }, status=status.HTTP_404_NOT_FOUND)
 
         return Response({
-            'status': 'complete' if session.payment_status == 'paid' else 'pending',
-            'payment_status': session.payment_status,
-            'mode': session.mode,
+            'status': 'complete' if session.get('payment_status') == 'paid' else 'pending',
+            'payment_status': session.get('payment_status'),
+            'mode': session.get('mode'),
         })
 
     except stripe.error.StripeError as e:
@@ -491,7 +497,7 @@ def webhook(request):
             'customer.subscription.updated',
             'customer.subscription.deleted',
         ):
-            handle_subscription_event(event.type, event.data.object)
+            handle_subscription_event(event.type, to_plain_dict(event.data.object))
 
         # Return success response
         return Response({'status': 'success'})
@@ -527,7 +533,7 @@ def _cancel_replaced_subscription(user, subscription_id):
     the new plan has already been granted and the webhook must still ack.
     """
     try:
-        old = stripe.Subscription.retrieve(subscription_id)
+        old = to_plain_dict(stripe.Subscription.retrieve(subscription_id))
         if old.get('status') in LIVE_SUBSCRIPTION_STATUSES:
             stripe_service.cancel_subscription(subscription_id)
             logger.info(
@@ -662,5 +668,9 @@ def handle_subscription_event(event_type, subscription):
         if stored_id and event_sub_id and stored_id != event_sub_id:
             _cancel_replaced_subscription(user, stored_id)
 
-    except Exception as e:
-        logger.error(f"Error handling subscription event {event_type}: {str(e)}")
+    except Exception:
+        # Re-raised so the webhook answers 500 and Stripe retries the event.
+        # Acking a failed sync with 200 would drop it for good: the customer
+        # keeps paying while their plan never changes.
+        logger.exception(f"Error handling subscription event {event_type}")
+        raise

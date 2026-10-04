@@ -532,10 +532,13 @@ class SubscriptionWebhookTests(APITestCase):
         Subscription.objects.create(
             user=self.user, plan='pro', stripe_subscription_id='sub_old'
         )
-        self._post_event(
-            'customer.subscription.created',
-            self._subscription(lookup_key='max_5x_monthly', sub_id='sub_new'),
-        )
+        # Replacing sub_old cancels it; keep that lookup off the network.
+        with patch('apps.Payments.api.views.stripe.Subscription.retrieve',
+                   return_value={'id': 'sub_old', 'status': 'canceled'}):
+            self._post_event(
+                'customer.subscription.created',
+                self._subscription(lookup_key='max_5x_monthly', sub_id='sub_new'),
+            )
         self.user.subscription.refresh_from_db()
         self.assertEqual(self.user.subscription.plan, 'max_5x')
         self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_new')
@@ -895,3 +898,139 @@ class RedirectUrlAllowlistTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         kwargs = mock_service.create_checkout_session.call_args.kwargs
         self.assertEqual(kwargs['cancel_url'], 'https://app.imagi.test/payments/goodbye')
+
+
+# --------------------------------------------------------------------------- #
+# Real Stripe objects (not dicts)
+# --------------------------------------------------------------------------- #
+def _stripe_object(data):
+    """What the Stripe library actually hands back: a StripeObject, not a dict."""
+    import stripe
+    return stripe.StripeObject.construct_from(data, 'sk_test_x')
+
+
+def _subscription_payload(sub_id='sub_1', lookup_key='pro_monthly', sub_status='active'):
+    return {
+        'id': sub_id,
+        'object': 'subscription',
+        'customer': 'cus_42',
+        'status': sub_status,
+        'created': 1,
+        'items': {
+            'object': 'list',
+            'data': [{'id': 'si_1', 'price': {'id': 'price_1', 'lookup_key': lookup_key}}],
+        },
+        'metadata': {},
+    }
+
+
+class RealStripeObjectTests(APITestCase):
+    """The mocked tests above pass dicts; Stripe passes StripeObjects.
+
+    stripe-python 13+ StripeObjects have no .get(), so every path that reads a
+    subscription is exercised here with the real type.
+    """
+
+    def setUp(self):
+        self.user = make_user()
+        StripeCustomer.objects.create(user=self.user, stripe_customer_id='cus_42')
+
+    def _signed_post(self, payload, secret='whsec_test'):
+        import hashlib
+        import hmac
+        import json
+        import time
+        body = json.dumps(payload)
+        ts = int(time.time())
+        sig = hmac.new(secret.encode(), f'{ts}.{body}'.encode(), hashlib.sha256).hexdigest()
+        with override_settings(STRIPE_WEBHOOK_SECRET=secret):
+            return self.client.post(
+                reverse('api-stripe-webhook'), body, content_type='application/json',
+                HTTP_STRIPE_SIGNATURE=f't={ts},v1={sig}',
+            )
+
+    def test_a_genuinely_signed_event_grants_the_plan(self):
+        # End to end through stripe.Webhook.construct_event, which yields a
+        # StripeObject — the shape a real Stripe delivery has.
+        resp = self._signed_post({
+            'id': 'evt_1',
+            'object': 'event',
+            'type': 'customer.subscription.created',
+            'data': {'object': _subscription_payload(lookup_key='max_20x_monthly')},
+        })
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'max_20x')
+        self.assertEqual(self.user.subscription.stripe_subscription_id, 'sub_1')
+
+    def test_a_failed_sync_is_not_acked(self):
+        # A 200 would tell Stripe to stop retrying an event that was never
+        # applied, so the customer pays while the plan never changes.
+        with patch('apps.Payments.api.views.Subscription.objects.update_or_create',
+                   side_effect=RuntimeError('db down')):
+            resp = self._signed_post({
+                'id': 'evt_2',
+                'object': 'event',
+                'type': 'customer.subscription.created',
+                'data': {'object': _subscription_payload()},
+            })
+        self.assertEqual(resp.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def test_list_live_subscriptions_reads_stripe_objects(self):
+        from apps.Payments.services.stripe_service import StripeService
+        listing = SimpleNamespace(data=[
+            _stripe_object(_subscription_payload('sub_old', sub_status='canceled')),
+            _stripe_object(_subscription_payload('sub_live')),
+        ])
+        with patch('apps.Payments.services.stripe_service.stripe.Subscription.list',
+                   return_value=listing):
+            live = StripeService().list_live_subscriptions('cus_42')
+        self.assertEqual([s['id'] for s in live], ['sub_live'])
+        self.assertIsInstance(live[0], dict)
+
+    def test_change_plan_with_stripe_objects(self):
+        self.client.force_authenticate(user=self.user)
+        Subscription.objects.create(user=self.user, plan='pro', stripe_subscription_id='sub_1')
+        updated = _stripe_object(dict(
+            _subscription_payload(lookup_key='max_5x_monthly'), pending_update=None,
+        ))
+        with patch('apps.Payments.services.stripe_service.stripe.Subscription.list',
+                   return_value=SimpleNamespace(data=[_stripe_object(_subscription_payload())])), \
+                patch('apps.Payments.services.stripe_service.stripe.Subscription.modify',
+                      return_value=updated) as mock_modify, \
+                patch('apps.Payments.api.views.stripe.Price.list',
+                      return_value=SimpleNamespace(data=[SimpleNamespace(id='price_max5')])):
+            resp = self.client.post(
+                reverse('api-change-plan'), {'lookup_key': 'max_5x_monthly'}, format='json'
+            )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(mock_modify.call_args.kwargs['items'], [{'id': 'si_1', 'price': 'price_max5'}])
+        self.user.subscription.refresh_from_db()
+        self.assertEqual(self.user.subscription.plan, 'max_5x')
+
+    def test_session_status_reads_a_stripe_object(self):
+        self.client.force_authenticate(user=self.user)
+        session = _stripe_object({
+            'id': 'cs_1', 'object': 'checkout.session', 'payment_status': 'paid',
+            'mode': 'subscription', 'metadata': {'user_id': str(self.user.id)},
+        })
+        with patch('apps.Payments.api.views.stripe_service') as mock_service:
+            mock_service.get_session_status.return_value = session
+            resp = self.client.get(reverse('api-session-status'), {'session_id': 'cs_1'})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['status'], 'complete')
+
+    @patch('apps.Payments.api.views.stripe.Price.list')
+    @patch('apps.Payments.api.views.stripe_service')
+    def test_checkout_tags_the_subscription_with_its_user(self, mock_service, mock_prices):
+        self.client.force_authenticate(user=self.user)
+        mock_service.list_live_subscriptions.return_value = []
+        mock_prices.return_value = SimpleNamespace(data=[SimpleNamespace(id='price_pro')])
+        mock_service.create_checkout_session.return_value = MagicMock(id='cs_1', url='https://x')
+        with patch('apps.Payments.api.views.payment_method_service.get_stripe_customer_id',
+                   return_value='cus_42'):
+            self.client.post(reverse('api-create-checkout-session'), {'lookup_key': 'pro_monthly'})
+        self.assertEqual(
+            mock_service.create_checkout_session.call_args.kwargs['subscription_metadata'],
+            {'user_id': str(self.user.id)},
+        )
