@@ -52,10 +52,11 @@
   --iw-r-lg: 1rem;
 
   /* ── Ink ─────────────────────────────────────────────────────────────────
-     The workspace is navy ink on paper in light, cream on black in dark.
+     The site's editorial ink on paper in light, bone on black in dark — the
+     same two inks the home page is set in (Tailwind `ink` / `bone`).
      Components tint from these rather than re-typing the rgb triplet. */
-  --iw-ink: 23, 37, 84;              /* blue-950 */
-  --iw-accent: 59, 130, 246;         /* blue-500 */
+  --iw-ink: 19, 26, 44;              /* ink, #131a2c */
+  --iw-accent: 194, 65, 12;          /* the site accent, #c2410c */
   --iw-surface: 255, 255, 255;
 
   /* ── Elevation ────────────────────────────────────────────────────────────
@@ -94,8 +95,8 @@
 }
 
 :root.dark {
-  --iw-ink: 255, 255, 255;
-  --iw-accent: 147, 197, 253;
+  --iw-ink: 246, 244, 240;           /* bone, #f6f4f0 */
+  --iw-accent: 251, 191, 36;         /* amber-400 */
   --iw-surface: 10, 10, 10;
 
   /* Dark surfaces take light rather than casting shade, so the ladder is

@@ -12,19 +12,19 @@
     <div class="flex items-center gap-5 mb-4">
       <span v-for="entry in legend" :key="entry.label" class="inline-flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-[3px]" :style="{ backgroundColor: entry.color }"></span>
-        <span class="text-xs font-medium text-blue-950/60 dark:text-blue-100/60">{{ entry.label }}</span>
+        <span class="text-xs font-medium text-ink/60 dark:text-bone/60">{{ entry.label }}</span>
       </span>
     </div>
 
-    <div v-if="!hasData" class="flex items-center justify-center h-40 rounded-xl border border-dashed border-blue-200/70 dark:border-white/[0.12]">
-      <p class="text-sm text-blue-950/50 dark:text-blue-100/50">No transactions yet — the chart fills in as you record income and expenses.</p>
+    <div v-if="!hasData" class="flex items-center justify-center h-40 rounded-xl border border-dashed border-ink/10 dark:border-white/[0.12]">
+      <p class="text-sm text-ink/50 dark:text-bone/50">No transactions yet — the chart fills in as you record income and expenses.</p>
     </div>
 
     <div v-else class="relative">
       <!-- Tooltip -->
       <div
         v-if="hovered"
-        class="absolute z-10 -top-2 -translate-y-full -translate-x-1/2 px-3 py-2 rounded-xl bg-blue-950 dark:bg-[#26262c] text-white text-xs shadow-lg whitespace-nowrap pointer-events-none"
+        class="absolute z-10 -top-2 -translate-y-full -translate-x-1/2 px-3 py-2 rounded-xl bg-ink dark:bg-[#26262c] text-white text-xs shadow-lg whitespace-nowrap pointer-events-none"
         :style="{ left: `${(hoveredIndex + 0.5) / points.length * 100}%` }"
       >
         <p class="font-semibold mb-1">{{ hovered.label }}</p>
@@ -48,7 +48,7 @@
         >
           <div
             class="flex items-end gap-[2px] w-full max-w-[44px] h-full px-1.5 pt-1 rounded-lg transition-colors duration-150"
-            :class="hoveredIndex === index ? 'bg-blue-950/[0.04] dark:bg-white/[0.05]' : ''"
+            :class="hoveredIndex === index ? 'bg-ink/[0.04] dark:bg-white/[0.05]' : ''"
           >
             <div
               class="flex-1 rounded-t-[4px] min-h-[2px]"
@@ -63,11 +63,11 @@
       </div>
 
       <!-- Baseline + month labels -->
-      <div class="border-t border-blue-950/10 dark:border-white/[0.1] mt-0.5 pt-1.5 flex">
+      <div class="border-t border-ink/10 dark:border-white/[0.1] mt-0.5 pt-1.5 flex">
         <span
           v-for="point in points"
           :key="point.month"
-          class="flex-1 text-center text-[11px] text-blue-950/50 dark:text-blue-100/50"
+          class="flex-1 text-center text-[11px] text-ink/50 dark:text-bone/50"
         >
           {{ point.label }}
         </span>

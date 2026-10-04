@@ -31,7 +31,7 @@
           <span
             v-else
             key="pending"
-            class="w-[7px] h-[7px] rounded-full border border-blue-950/25 dark:border-white/25"
+            class="w-[7px] h-[7px] rounded-full border border-ink/25 dark:border-white/25"
           ></span>
         </Transition>
       </span>
@@ -48,9 +48,9 @@ defineProps<{
 }>()
 
 function stepTextClass(step: AgentPlanStep): string {
-  if (step.status === 'completed') return 'text-blue-950/40 dark:text-white/35'
-  if (step.status === 'in_progress') return 'font-medium text-blue-950 dark:text-white/90'
-  return 'text-blue-950/65 dark:text-white/60'
+  if (step.status === 'completed') return 'text-ink/40 dark:text-white/35'
+  if (step.status === 'in_progress') return 'font-medium text-ink dark:text-white/90'
+  return 'text-ink/65 dark:text-white/60'
 }
 </script>
 

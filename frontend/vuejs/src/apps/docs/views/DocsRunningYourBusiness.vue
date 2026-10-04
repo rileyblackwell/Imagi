@@ -56,7 +56,7 @@
             spent, order history, and notes.
           </DocsCard>
         </div>
-        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
+        <div class="bg-ink/[0.03] dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
           <h4 class="callout__title">
             Connecting Stripe
           </h4>
@@ -106,7 +106,7 @@
             campaigns without leaving Imagi.
           </DocsCard>
         </div>
-        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
+        <div class="bg-ink/[0.03] dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
           <h4 class="callout__title">
             Messaging responsibly
           </h4>

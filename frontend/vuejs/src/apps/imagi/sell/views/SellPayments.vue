@@ -86,7 +86,7 @@
           <li
             v-for="feature in template.features"
             :key="feature"
-            class="flex items-start gap-2.5 text-sm text-blue-950/70 dark:text-blue-100/70"
+            class="flex items-start gap-2.5 text-sm text-ink/70 dark:text-bone/70"
           >
             <i class="fas fa-check text-xs text-emerald-600 dark:text-emerald-300 mt-1"></i>
             {{ feature }}
@@ -113,7 +113,7 @@
           <div class="w-11 h-11 text-lg" :class="ui.iconTile">
             <i class="fas fa-link"></i>
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full border border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-950/60 dark:text-blue-100/60">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full border border-ink/10 dark:border-white/15 bg-ink/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/60 dark:text-bone/60">
             No code
           </span>
         </div>
@@ -128,7 +128,7 @@
           <li
             v-for="feature in paymentLinkFeatures"
             :key="feature"
-            class="flex items-start gap-2.5 text-sm text-blue-950/70 dark:text-blue-100/70"
+            class="flex items-start gap-2.5 text-sm text-ink/70 dark:text-bone/70"
           >
             <i class="fas fa-check text-xs text-emerald-600 dark:text-emerald-300 mt-1"></i>
             {{ feature }}
@@ -156,8 +156,8 @@
             <i :class="['fas', point.icon]"></i>
           </div>
           <div>
-            <p class="text-sm font-medium text-blue-950 dark:text-white mb-0.5">{{ point.title }}</p>
-            <p class="text-xs text-blue-950/60 dark:text-blue-100/60">{{ point.text }}</p>
+            <p class="text-sm font-medium text-ink dark:text-white mb-0.5">{{ point.title }}</p>
+            <p class="text-xs text-ink/60 dark:text-bone/60">{{ point.text }}</p>
           </div>
         </div>
       </div>

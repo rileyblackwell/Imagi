@@ -150,7 +150,7 @@
             <div>
               <span :class="ui.label">Incoming messages</span>
               <div class="flex items-center gap-2">
-                <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.inbound_webhook_url }}</code>
+                <code class="flex-1 px-3 py-2 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.08] font-mono text-[11px] text-ink/80 dark:text-bone/80 break-all">{{ settings.inbound_webhook_url }}</code>
                 <button
                   :class="ui.iconBtn"
                   type="button"
@@ -168,7 +168,7 @@
             <div>
               <span :class="ui.label">Delivery status</span>
               <div class="flex items-center gap-2">
-                <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.status_callback_url }}</code>
+                <code class="flex-1 px-3 py-2 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.08] font-mono text-[11px] text-ink/80 dark:text-bone/80 break-all">{{ settings.status_callback_url }}</code>
                 <button
                   :class="ui.iconBtn"
                   type="button"
@@ -195,7 +195,7 @@
       <!-- Compliance -->
       <section class="p-6" :class="ui.card">
         <h2 :class="ui.panelHeading" class="mb-3">Messaging rules</h2>
-        <ul class="space-y-2.5 text-sm text-blue-950/70 dark:text-blue-100/70">
+        <ul class="space-y-2.5 text-sm text-ink/70 dark:text-bone/70">
           <li class="flex gap-2.5">
             <i class="fas fa-circle-check text-emerald-600 dark:text-emerald-300 mt-0.5 text-xs"></i>
             Only message people who agreed to hear from your business.

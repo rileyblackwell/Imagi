@@ -13,9 +13,9 @@
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
             <i :class="['fas', stat.icon]" class="text-xs text-blue-700 dark:text-blue-300"></i>
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
-          <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
+          <p class="text-2xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
           <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
@@ -41,7 +41,7 @@
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
             <h2 :class="ui.panelHeading">Advertising</h2>
-            <span class="flex items-center gap-2 text-blue-950/40 dark:text-blue-100/40 text-xs">
+            <span class="flex items-center gap-2 text-ink/40 dark:text-bone/40 text-xs">
               <i v-if="ads.connected_providers.includes('google')" class="fab fa-google" title="Google Ads connected"></i>
               <i v-if="ads.connected_providers.includes('meta')" class="fab fa-meta" title="Meta Ads connected"></i>
             </span>
@@ -55,8 +55,8 @@
         </div>
         <div v-if="ads.connected_providers.length" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div v-for="stat in adStatCards" :key="stat.label">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-1">{{ stat.label }}</p>
-            <p class="text-xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50 mb-1">{{ stat.label }}</p>
+            <p class="text-xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
           </div>
         </div>
         <p :class="ui.bodyText" v-else>
@@ -82,13 +82,13 @@
               v-for="campaign in overview.recent_campaigns"
               :key="campaign.id"
               :to="{ name: 'marketing-campaign-detail', params: { projectName: route.params.projectName, campaignId: campaign.id } }"
-              class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08] hover:border-blue-300/70 dark:hover:border-blue-400/30 hover:bg-blue-50/50 dark:hover:bg-blue-400/[0.06] transition-all duration-200 focus-ring"
+              class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08] hover:border-ink/25 dark:hover:border-blue-400/30 hover:bg-ink/[0.03] dark:hover:bg-blue-400/[0.06] transition-all duration-200 focus-ring"
             >
               <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
                 <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']" class="text-sm"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ campaign.name }}</p>
+                <p class="text-sm font-medium text-ink dark:text-white truncate">{{ campaign.name }}</p>
                 <p :class="ui.hintText">
                   {{ campaign.stats.recipients }} recipient{{ campaign.stats.recipients === 1 ? '' : 's' }} · {{ formatDateTime(campaign.created_at) }}
                 </p>
@@ -119,17 +119,17 @@
             <div
               v-for="message in overview.recent_inbound"
               :key="message.id"
-              class="flex items-start gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08]"
+              class="flex items-start gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08]"
             >
-              <div class="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border bg-blue-50 dark:bg-blue-400/10 border-blue-200/60 dark:border-blue-400/25 text-blue-600 dark:text-blue-300">
+              <div class="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border bg-ink/[0.04] dark:bg-blue-400/10 border-ink/10 dark:border-blue-400/25 text-blue-600 dark:text-blue-300">
                 <i class="fas fa-reply text-sm"></i>
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
-                  <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ message.contact_name }}</p>
+                  <p class="text-sm font-medium text-ink dark:text-white truncate">{{ message.contact_name }}</p>
                   <p :class="ui.hintText" class="whitespace-nowrap">{{ formatDateTime(message.created_at) }}</p>
                 </div>
-                <p class="text-sm text-blue-950/70 dark:text-blue-100/70 truncate">{{ message.body || '(no text)' }}</p>
+                <p class="text-sm text-ink/70 dark:text-bone/70 truncate">{{ message.body || '(no text)' }}</p>
               </div>
             </div>
           </div>

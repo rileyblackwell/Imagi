@@ -7,7 +7,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
       <div class="relative flex-1 max-w-sm">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-ink/40 dark:text-bone/30"></i>
         <input
           v-model="search"
           type="search"
@@ -43,13 +43,13 @@
             <i class="fas fa-user text-sm"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ customer.display_name }}</p>
+            <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ customer.display_name }}</p>
             <p :class="ui.hintText" class="truncate">{{ customer.email }}</p>
           </div>
         </div>
         <div class="flex items-center gap-4 shrink-0 text-right">
           <div>
-            <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
+            <p class="text-sm font-semibold text-ink dark:text-white tabular-nums">
               {{ formatMoney(customer.total_spent_cents, store.currency) }}
             </p>
             <p :class="ui.hintText">
@@ -60,7 +60,7 @@
             class="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em]"
             :class="customer.source === 'checkout'
               ? 'border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-              : 'border-blue-200/80 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300'"
+              : 'border-ink/10 dark:border-blue-400/25 bg-ink/[0.03] dark:bg-blue-400/10 text-blue-700 dark:text-blue-300'"
           >
             {{ customer.source === 'checkout' ? 'Buyer' : 'Manual' }}
           </span>
@@ -127,22 +127,22 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <span :class="ui.label">Email</span>
-            <p class="text-sm text-blue-950 dark:text-white break-all">{{ detailCustomer.email }}</p>
+            <p class="text-sm text-ink dark:text-white break-all">{{ detailCustomer.email }}</p>
           </div>
           <div>
             <span :class="ui.label">Phone</span>
-            <p class="text-sm text-blue-950 dark:text-white">{{ detailCustomer.phone || '—' }}</p>
+            <p class="text-sm text-ink dark:text-white">{{ detailCustomer.phone || '—' }}</p>
           </div>
           <div>
             <span :class="ui.label">Total spent</span>
-            <p class="text-sm text-blue-950 dark:text-white tabular-nums">
+            <p class="text-sm text-ink dark:text-white tabular-nums">
               {{ formatMoney(detailCustomer.total_spent_cents, store.currency) }}
             </p>
           </div>
         </div>
         <div v-if="detailCustomer.notes">
           <span :class="ui.label">Notes</span>
-          <p class="text-sm text-blue-950/70 dark:text-blue-100/70 whitespace-pre-line">{{ detailCustomer.notes }}</p>
+          <p class="text-sm text-ink/70 dark:text-bone/70 whitespace-pre-line">{{ detailCustomer.notes }}</p>
         </div>
 
         <div>
@@ -154,14 +154,14 @@
             <div
               v-for="order in detailOrders"
               :key="order.id"
-              class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08]"
+              class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08]"
             >
               <div class="flex-1 min-w-0">
-                <p class="text-sm text-blue-950 dark:text-white truncate">
+                <p class="text-sm text-ink dark:text-white truncate">
                   Order #{{ order.id }} · {{ formatDateTime(order.created_at) }}
                 </p>
               </div>
-              <span class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
+              <span class="text-sm font-semibold text-ink dark:text-white tabular-nums">
                 {{ formatMoney(order.amount_total_cents, order.currency) }}
               </span>
               <OrderStatusBadge :status="order.status" />

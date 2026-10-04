@@ -25,7 +25,7 @@
           <!-- Back link -->
           <router-link
             :to="{ name: 'project-hub', params: { projectName } }"
-            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-blue-950/70 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
+            class="inline-flex items-center gap-2 rounded-full text-sm font-medium text-ink/70 dark:text-bone/55 hover:text-ink dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>Project workspace</span>
@@ -33,13 +33,13 @@
 
           <!-- Unknown category -->
           <div v-if="!tool" class="flex flex-col items-center justify-center py-24 text-center">
-            <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.14] rounded-full flex items-center justify-center mb-6">
-              <i class="fas fa-circle-question text-2xl text-blue-950/40 dark:text-blue-100/40"></i>
+            <div class="w-16 h-16 bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.14] rounded-full flex items-center justify-center mb-6">
+              <i class="fas fa-circle-question text-2xl text-ink/40 dark:text-bone/40"></i>
             </div>
-            <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Tool not found</h2>
+            <h2 class="text-2xl font-semibold tracking-tight text-ink dark:text-white mb-3 transition-colors duration-300">Tool not found</h2>
             <router-link
               :to="{ name: 'project-hub', params: { projectName } }"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-ink/[0.14] text-ink/80 hover:text-ink hover:border-ink/30 hover:bg-ink/[0.03] dark:border-white/[0.16] dark:text-bone/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-ring"
             >
               <i class="fas fa-arrow-left text-sm"></i>
               <span>Back to workspace</span>
@@ -57,10 +57,10 @@
               </div>
               <div>
                 <div class="flex items-center gap-3 mb-1.5">
-                  <h1 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white tracking-[-0.02em] leading-[1.05] transition-colors duration-300">{{ tool.name }}</h1>
-                  <span class="inline-flex items-center px-2.5 py-1 rounded-full border border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-950/70 dark:text-blue-100/55 transition-colors duration-300">Coming soon</span>
+                  <h1 class="font-display text-3xl sm:text-4xl font-semibold text-ink dark:text-white tracking-[-0.02em] leading-[1.05] transition-colors duration-300">{{ tool.name }}</h1>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full border border-ink/10 dark:border-white/15 bg-ink/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/70 dark:text-bone/55 transition-colors duration-300">Coming soon</span>
                 </div>
-                <p class="text-base text-blue-950/65 dark:text-blue-100/65 max-w-2xl leading-relaxed transition-colors duration-300">{{ tool.description }}</p>
+                <p class="text-base text-ink/65 dark:text-bone/65 max-w-2xl leading-relaxed transition-colors duration-300">{{ tool.description }}</p>
               </div>
             </section>
 
@@ -71,30 +71,30 @@
                 <div
                   v-for="feature in tool.features"
                   :key="feature.name"
-                  class="crisp-card p-5 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] transition-colors duration-300"
+                  class="crisp-card p-5 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-ink/10 dark:border-white/10 transition-colors duration-300"
                 >
                   <div class="w-10 h-10 rounded-xl flex items-center justify-center border mb-3 transition-colors duration-300" :class="accent.iconWrap">
                     <i :class="['fas', feature.icon, accent.iconText]"></i>
                   </div>
-                  <h3 class="text-base font-semibold tracking-tight text-blue-950 dark:text-white mb-1 transition-colors duration-300">{{ feature.name }}</h3>
-                  <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-snug transition-colors duration-300">{{ feature.description }}</p>
+                  <h3 class="text-base font-semibold tracking-tight text-ink dark:text-white mb-1 transition-colors duration-300">{{ feature.name }}</h3>
+                  <p class="text-sm text-ink/65 dark:text-bone/65 leading-snug transition-colors duration-300">{{ feature.description }}</p>
                 </div>
               </div>
             </section>
 
             <!-- Placeholder notice -->
             <section class="rise-item" style="animation-delay: 180ms">
-              <div class="crisp-card p-6 md:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] text-center transition-colors duration-300">
-                <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.14] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i class="fas fa-screwdriver-wrench text-xl text-blue-950/40 dark:text-blue-100/40"></i>
+              <div class="crisp-card p-6 md:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-ink/10 dark:border-white/10 text-center transition-colors duration-300">
+                <div class="w-12 h-12 bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.14] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fas fa-screwdriver-wrench text-xl text-ink/40 dark:text-bone/40"></i>
                 </div>
-                <h3 class="text-lg font-semibold tracking-tight text-blue-950 dark:text-white mb-2 transition-colors duration-300">We're building this workspace</h3>
-                <p class="text-sm text-blue-950/65 dark:text-blue-100/65 max-w-md mx-auto mb-6 transition-colors duration-300">
+                <h3 class="text-lg font-semibold tracking-tight text-ink dark:text-white mb-2 transition-colors duration-300">We're building this workspace</h3>
+                <p class="text-sm text-ink/65 dark:text-bone/65 max-w-md mx-auto mb-6 transition-colors duration-300">
                   {{ tool.name }} tools aren't available yet. In the meantime, you can start building your product with the app builder.
                 </p>
                 <router-link
                   :to="{ name: 'builder-workspace', params: { projectName } }"
-                  class="group inline-flex items-center justify-center gap-3 px-7 py-3 rounded-full font-medium text-base bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-ring"
+                  class="group inline-flex items-center justify-center gap-3 px-7 py-3 rounded-full font-medium text-base bg-ink text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-ink dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(19,26,44,0.2),0_3px_8px_-2px_rgba(19,26,44,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-ring"
                 >
                   <i class="fas fa-wand-magic-sparkles"></i>
                   <span>Open the app builder</span>

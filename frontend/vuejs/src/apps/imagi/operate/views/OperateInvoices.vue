@@ -7,7 +7,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row gap-3 mb-6">
       <div class="relative flex-1">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-ink/40 dark:text-bone/30"></i>
         <input
           v-model="search"
           type="search"
@@ -51,10 +51,10 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2 mb-0.5">
-              <p class="text-sm font-semibold text-blue-950 dark:text-white">{{ invoice.number }}</p>
+              <p class="text-sm font-semibold text-ink dark:text-white">{{ invoice.number }}</p>
               <StatusBadge :status="invoice.is_overdue ? 'overdue' : invoice.status" />
             </div>
-            <p class="text-sm text-blue-950/70 dark:text-blue-100/70 truncate">{{ invoice.customer_name }}</p>
+            <p class="text-sm text-ink/70 dark:text-bone/70 truncate">{{ invoice.customer_name }}</p>
             <p :class="ui.hintText" class="mt-0.5">
               Issued {{ formatDate(invoice.issue_date) }}
               <template v-if="invoice.due_date"> · due {{ formatDate(invoice.due_date) }}</template>
@@ -84,7 +84,7 @@
             <button
               v-if="invoice.status === 'draft' || invoice.status === 'sent'"
               type="button"
-              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
+              class="w-9 h-9 rounded-full flex items-center justify-center border border-ink/[0.14] dark:border-white/[0.16] text-ink/40 dark:text-bone/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
               :disabled="busyId === invoice.id"
               aria-label="Void invoice"
               title="Void invoice"
@@ -95,7 +95,7 @@
             <button
               v-if="invoice.status === 'draft' || invoice.status === 'void'"
               type="button"
-              class="w-9 h-9 rounded-full flex items-center justify-center border border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
+              class="w-9 h-9 rounded-full flex items-center justify-center border border-ink/[0.14] dark:border-white/[0.16] text-ink/40 dark:text-bone/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-400/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring"
               aria-label="Delete invoice"
               title="Delete invoice"
               @click="confirmDelete(invoice)"
@@ -107,17 +107,17 @@
 
         <!-- Line items -->
         <details v-if="invoice.line_items.length" class="mt-3">
-          <summary class="rounded-md text-xs font-medium text-blue-950/50 dark:text-blue-100/50 cursor-pointer hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-ring">
+          <summary class="rounded-md text-xs font-medium text-ink/50 dark:text-bone/50 cursor-pointer hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring">
             {{ invoice.line_items.length }} line item{{ invoice.line_items.length === 1 ? '' : 's' }}
           </summary>
-          <div class="mt-2 rounded-xl border border-blue-200/60 dark:border-white/[0.08] divide-y divide-blue-200/60 dark:divide-white/[0.08]">
+          <div class="mt-2 rounded-xl border border-ink/10 dark:border-white/[0.08] divide-y divide-ink/10 dark:divide-white/[0.08]">
             <div
               v-for="(item, index) in invoice.line_items"
               :key="index"
               class="flex items-center justify-between gap-4 px-4 py-2.5 text-sm"
             >
-              <span class="text-blue-950/80 dark:text-blue-100/80 truncate">{{ item.description }}</span>
-              <span class="text-blue-950/60 dark:text-blue-100/60 tabular-nums whitespace-nowrap">
+              <span class="text-ink/80 dark:text-bone/80 truncate">{{ item.description }}</span>
+              <span class="text-ink/60 dark:text-bone/60 tabular-nums whitespace-nowrap">
                 {{ item.quantity }} × {{ formatMoney(item.unit_price) }}
               </span>
             </div>
@@ -154,7 +154,7 @@
 
     <!-- Delete confirm -->
     <BaseModal v-if="deleting" title="Delete invoice" @close="deleting = null">
-      <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
+      <p class="text-sm text-ink/70 dark:text-bone/70 mb-6">
         Delete {{ deleting.number }} for {{ deleting.customer_name }}? This can't be undone.
       </p>
       <div v-if="deleteError" :class="ui.errorBox" class="mb-4">{{ deleteError }}</div>

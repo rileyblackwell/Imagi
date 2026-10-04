@@ -17,14 +17,14 @@
           <template #menu>
             <router-link
               :to="{ name: 'builder' }"
-              class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 hover:bg-blue-50 dark:hover:bg-blue-400/10"
+              class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 hover:bg-ink/[0.04] dark:hover:bg-blue-400/10"
               @click="isProductsMenuOpen = false"
             >
               <span class="min-w-0">
-                <span class="block text-sm font-semibold tracking-tight text-blue-950 dark:text-white">Imagi</span>
-                <span class="block text-xs text-blue-950/60 dark:text-blue-100/60">Build and run your business</span>
+                <span class="block text-sm font-semibold tracking-tight text-ink dark:text-white">Imagi</span>
+                <span class="block text-xs text-ink/60 dark:text-bone/60">Build and run your business</span>
               </span>
-              <i class="fas fa-arrow-right text-xs text-blue-950/40 dark:text-blue-100/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-300"></i>
+              <i class="fas fa-arrow-right text-xs text-ink/40 dark:text-bone/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-300"></i>
             </router-link>
           </template>
         </SiteNavbarDropdown>
@@ -49,7 +49,7 @@
           <button
             type="button"
             @click="handleLogout"
-            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] transition-colors duration-200 focus-ring"
+            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm border border-ink/[0.14] text-ink/80 hover:text-ink hover:border-ink/30 hover:bg-ink/[0.03] dark:border-white/[0.16] dark:text-bone/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] transition-colors duration-200 focus-ring"
           >
             Sign Out
           </button>
@@ -58,7 +58,7 @@
           <!-- Sign In: small navy ink pill — the one conversion action in the bar -->
           <router-link
             to="/auth/signin"
-            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm bg-blue-950 text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-blue-950 dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-ring"
+            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm bg-ink text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-ink dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(19,26,44,0.2),0_3px_8px_-2px_rgba(19,26,44,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-ring"
           >
             Sign In
           </router-link>
@@ -138,7 +138,7 @@ export default defineComponent({
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
   background: transparent;
   transition: opacity 0.2s ease;
 }

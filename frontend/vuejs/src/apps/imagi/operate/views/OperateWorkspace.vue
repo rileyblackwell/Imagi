@@ -9,103 +9,32 @@
   Route: /imagi/project/:projectName/operations
 -->
 <template>
-  <DefaultLayout>
-    <div class="relative min-h-screen overflow-hidden page-canvas">
-      <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
-        <div class="max-w-6xl mx-auto w-full">
-
-          <!-- Back link -->
-          <router-link
-            :to="{ name: 'project-hub', params: { projectName } }"
-            class="inline-flex items-center gap-2 rounded-md text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-ring"
-          >
-            <i class="fas fa-arrow-left text-xs"></i>
-            <span>Project workspace</span>
-          </router-link>
-
-          <!-- Loading -->
-          <div v-if="isLoading" class="flex flex-col items-center justify-center py-24">
-            <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
-              <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
-            </div>
-            <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading operate workspace...</p>
-          </div>
-
-          <!-- Not found -->
-          <div v-else-if="!project" class="flex flex-col items-center justify-center py-24 text-center">
-            <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-6">
-              <i class="fas fa-folder-open text-2xl text-blue-950/40 dark:text-blue-100/40"></i>
-            </div>
-            <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-3 transition-colors duration-300">Project not found</h2>
-            <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md transition-colors duration-300">We couldn't find this project. It may have been deleted.</p>
-            <router-link :to="{ name: 'projects' }" :class="ui.secondaryBtn">
-              <i class="fas fa-arrow-left text-sm"></i>
-              <span>Back to projects</span>
-            </router-link>
-          </div>
-
-          <template v-else>
-            <!-- Header -->
-            <section class="flex flex-col sm:flex-row sm:items-center gap-5 mb-6">
-              <div class="w-16 h-16 text-2xl shrink-0" :class="ui.iconTile">
-                <i class="fas fa-briefcase"></i>
-              </div>
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-3 mb-1.5">
-                  <h1 class="font-display text-3xl font-semibold text-blue-950 dark:text-white tracking-[-0.02em] leading-[1.05] transition-colors duration-300">Operate</h1>
-                  <span :class="ui.sectionBadge">{{ project.name }}</span>
-                </div>
-                <p class="text-base text-blue-950/70 dark:text-blue-100/70 max-w-2xl transition-colors duration-300">
-                  The central hub for running your business — money in and out, invoices, and the day-to-day work, all in one place.
-                </p>
-              </div>
-            </section>
-
-            <!-- Tabs -->
-            <nav class="flex items-center gap-1.5 overflow-x-auto pb-px mb-6 border-b border-blue-200/60 dark:border-white/[0.1]">
-              <router-link
-                v-for="tab in tabs"
-                :key="tab.name"
-                :to="{ name: tab.name, params: { projectName } }"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-ring-inset"
-                :class="route.name === tab.name
-                  ? 'border-orange-500 dark:border-orange-400 text-blue-950 dark:text-white'
-                  : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
-              >
-                <i :class="['fas', tab.icon]" class="text-xs"></i>
-                {{ tab.label }}
-              </router-link>
-            </nav>
-
-            <!-- Active tab -->
-            <router-view v-if="operateStore.projectId" />
-          </template>
-        </div>
-      </main>
-    </div>
-  </DefaultLayout>
+  <ToolWorkspaceShell
+    :project-name="projectName"
+    :project="project"
+    :is-loading="isLoading"
+    title="Operate"
+    description="The central hub for running your business — money in and out, invoices, and the day-to-day work, all in one place."
+    loading-label="Loading operate workspace…"
+    :tabs="tabs"
+  >
+    <router-view v-if="operateStore.projectId" />
+  </ToolWorkspaceShell>
 </template>
 
 <script setup lang="ts">
 import { watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useProjectFromSlug } from '@/apps/imagi/shared'
-import { DefaultLayout } from '@/shared/layouts'
+import { useProjectFromSlug, ToolWorkspaceShell, type ToolTab } from '@/apps/imagi/shared'
 import { useOperateStore } from '../stores/operate'
-import { ui } from '../utils/ui'
 
 const props = defineProps<{
   projectName: string
 }>()
 
-const route = useRoute()
-
 const { project, isLoading } = useProjectFromSlug(() => props.projectName, 'the operate workspace')
 const operateStore = useOperateStore()
 
-interface Tab { name: string; label: string; icon: string }
-
-const tabs: Tab[] = [
+const tabs: ToolTab[] = [
   { name: 'operate-dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
   { name: 'operate-finance', label: 'Finance', icon: 'fa-file-invoice-dollar' },
   { name: 'operate-invoices', label: 'Invoices', icon: 'fa-receipt' },
@@ -120,7 +49,3 @@ watch(project, (resolved) => {
 }, { immediate: true })
 
 </script>
-
-<!-- Unscoped so the crisp-card treatment reaches the tab views rendered in
-     the child router-view. Matches the definition used on Home/hub cards. -->
-

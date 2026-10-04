@@ -28,16 +28,16 @@
           type="button"
           class="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 focus-ring"
           :class="form.channel === option.value
-            ? 'border-blue-300 dark:border-blue-400/50 bg-blue-50/80 dark:bg-blue-400/10 ring-1 ring-blue-300/50 dark:ring-blue-400/30'
-            : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-blue-300/70 dark:hover:border-blue-400/30'"
+            ? 'border-blue-300 dark:border-blue-400/50 bg-ink/[0.03] dark:bg-blue-400/10 ring-1 ring-blue-300/50 dark:ring-blue-400/30'
+            : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-ink/25 dark:hover:border-blue-400/30'"
           @click="form.channel = option.value"
         >
           <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
             <i :class="['fas', option.icon]"></i>
           </div>
           <div>
-            <p class="text-sm font-semibold text-blue-950 dark:text-white">{{ option.label }}</p>
-            <p class="text-xs text-blue-950/60 dark:text-blue-100/60 leading-snug mt-0.5">{{ option.hint }}</p>
+            <p class="text-sm font-semibold text-ink dark:text-white">{{ option.label }}</p>
+            <p class="text-xs text-ink/60 dark:text-bone/60 leading-snug mt-0.5">{{ option.hint }}</p>
           </div>
         </button>
       </div>
@@ -69,11 +69,11 @@
     <div>
       <span :class="ui.label">Audience</span>
       <div class="space-y-2.5">
-        <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
+        <label class="flex items-center gap-2.5 text-sm text-ink dark:text-white cursor-pointer">
           <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
           All subscribed contacts
         </label>
-        <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
+        <label class="flex items-center gap-2.5 text-sm text-ink dark:text-white cursor-pointer">
           <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
           Contacts with any of these tags
         </label>
@@ -85,8 +85,8 @@
               type="button"
               class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 focus-ring"
               :class="isTagSelected(tag.tag)
-                ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
-                : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/70 dark:text-blue-100/70 hover:border-blue-300/70 dark:hover:border-blue-400/30'"
+                ? 'border-ink/20 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
+                : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-ink/70 dark:text-bone/70 hover:border-ink/25 dark:hover:border-blue-400/30'"
               @click="toggleTag(tag.tag)"
             >
               {{ tag.tag }} <span class="opacity-60">· {{ tag.count }}</span>

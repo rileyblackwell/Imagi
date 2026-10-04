@@ -30,13 +30,13 @@
       </nav>
     </template>
 
-    <!-- Warm porcelain canvas with a soft baby-blue wash and film grain (matching the home page) -->
+    <!-- Flat editorial paper and film grain (matching the home page) -->
     <div class="fixed inset-0 pointer-events-none z-0" aria-hidden="true">
       <div class="docs-canvas absolute inset-0"></div>
       <div class="grain-overlay absolute inset-0"></div>
     </div>
 
-    <div class="editorial min-h-screen relative">
+    <div class="editorial min-h-screen relative font-body">
       <div class="relative z-10 p-6 md:p-8 lg:p-12 docs-content">
         <slot></slot>
       </div>
@@ -71,6 +71,13 @@ const isActive = (path) => route.path === path
 
 :root.dark .docs-canvas {
   background: #08080a;
+}
+
+/* Running text that sets no colour of its own (the Getting Started lists)
+   would otherwise inherit App.vue's near-black and read louder than the prose
+   around it. */
+.docs-content {
+  color: var(--ink-70);
 }
 
 .docs-content :deep(a) {

@@ -22,19 +22,19 @@
 
 /** The one edge, at rest: a hairline that warms slightly on hover. */
 export const fieldBorder =
-  'border border-blue-950/[0.12] dark:border-white/[0.14] ' +
-  'hover:border-blue-950/25 dark:hover:border-white/25'
+  'border border-ink/[0.12] dark:border-white/[0.14] ' +
+  'hover:border-ink/25 dark:hover:border-white/25'
 
 /** Focus: the same hairline, one step deeper. No accent, no ring, no halo. */
 export const fieldFocus =
-  'focus:outline-none focus:border-blue-950/45 dark:focus:border-white/45'
+  'focus:outline-none focus:border-ink/45 dark:focus:border-white/45'
 
 /**
  * Same treatment for a wrapper that hosts a field it doesn't own — the Stripe
  * card element, for instance, which mounts its own iframe inside our shell.
  */
 export const fieldFocusWithin =
-  'focus-within:border-blue-950/45 dark:focus-within:border-white/45'
+  'focus-within:border-ink/45 dark:focus-within:border-white/45'
 
 /** Error state: still one border, red instead of ink. */
 export const fieldFocusError =

@@ -46,6 +46,19 @@ defineProps<{
   border-top-color: var(--accent);
 }
 
+/* These sit two-up in a `rule-cols--2` grid, which has no column gap of its
+   own (its columns pad themselves) — without this the left card's arrow butts
+   into the right card's title. */
+@media (min-width: 768px) {
+  .docs-next:nth-child(odd) {
+    margin-right: 1.5rem;
+  }
+
+  .docs-next:nth-child(even) {
+    margin-left: 1.5rem;
+  }
+}
+
 .docs-next:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;

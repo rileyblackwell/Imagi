@@ -161,7 +161,7 @@ function confirmDelete() {
 }
 
 .row:hover .row__arrow {
-  color: var(--ink);
+  color: var(--accent);
   transform: translateX(3px);
 }
 

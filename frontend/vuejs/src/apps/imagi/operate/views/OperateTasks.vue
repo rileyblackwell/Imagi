@@ -14,7 +14,7 @@
           class="px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors duration-200 focus-ring"
           :class="statusFilter === option.value
             ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
-            : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
+            : 'border-transparent text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white'"
           @click="setFilter(option.value)"
         >
           {{ option.label }}
@@ -34,7 +34,7 @@
     <LoadingSpinner v-if="store.tasksLoading && !store.tasks.length" />
 
     <!-- Task list -->
-    <section v-else-if="store.tasks.length" :class="ui.card" class="divide-y divide-blue-200/60 dark:divide-white/[0.08]">
+    <section v-else-if="store.tasks.length" :class="ui.card" class="divide-y divide-ink/10 dark:divide-white/[0.08]">
       <div
         v-for="task in store.tasks"
         :key="task.id"
@@ -46,7 +46,7 @@
           class="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors duration-200 focus-ring"
           :class="task.status === 'done'
             ? 'border-emerald-500 bg-emerald-500 text-white'
-            : 'border-blue-950/25 dark:border-white/25 text-transparent hover:border-emerald-500'"
+            : 'border-ink/25 dark:border-white/25 text-transparent hover:border-emerald-500'"
           :disabled="busyId === task.id"
           :aria-label="task.status === 'done' ? 'Reopen task' : 'Mark task done'"
           @click="toggleDone(task)"
@@ -57,11 +57,11 @@
         <div class="flex-1 min-w-0">
           <p
             class="text-sm font-medium truncate transition-colors duration-200"
-            :class="task.status === 'done' ? 'text-blue-950/40 dark:text-blue-100/40 line-through' : 'text-blue-950 dark:text-white'"
+            :class="task.status === 'done' ? 'text-ink/40 dark:text-bone/40 line-through' : 'text-ink dark:text-white'"
           >
             {{ task.title }}
           </p>
-          <p class="text-xs" :class="task.is_overdue ? 'text-red-600 dark:text-red-300' : 'text-blue-950/50 dark:text-blue-100/50'">
+          <p class="text-xs" :class="task.is_overdue ? 'text-red-600 dark:text-red-300' : 'text-ink/50 dark:text-bone/50'">
             <span :class="priorityClass(task.priority)">{{ task.priority }} priority</span>
             <template v-if="task.due_date"> · {{ task.is_overdue ? 'overdue — ' : 'due ' }}{{ formatDate(task.due_date) }}</template>
             <template v-if="task.notes"> · {{ task.notes }}</template>
@@ -133,7 +133,7 @@
 
     <!-- Delete confirm -->
     <BaseModal v-if="deleting" title="Delete task" @close="deleting = null">
-      <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
+      <p class="text-sm text-ink/70 dark:text-bone/70 mb-6">
         Delete "{{ deleting.title }}"? This can't be undone.
       </p>
       <div v-if="deleteError" :class="ui.errorBox" class="mb-4">{{ deleteError }}</div>
@@ -185,7 +185,7 @@ const filterOptions = computed(() => {
 
 function priorityClass(priority: TaskPriority): string {
   if (priority === 'high') return 'text-red-600 dark:text-red-300 font-medium'
-  if (priority === 'low') return 'text-blue-950/40 dark:text-blue-100/40'
+  if (priority === 'low') return 'text-ink/40 dark:text-bone/40'
   return ''
 }
 

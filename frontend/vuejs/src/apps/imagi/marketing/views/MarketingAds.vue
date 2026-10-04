@@ -16,7 +16,7 @@
       <div class="w-16 h-16 mx-auto text-2xl mb-5" :class="ui.iconTile">
         <i class="fas fa-rectangle-ad"></i>
       </div>
-      <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">Bring your ad campaigns into Imagi</h2>
+      <h2 class="text-xl font-semibold text-ink dark:text-white mb-2">Bring your ad campaigns into Imagi</h2>
       <p :class="ui.bodyText" class="max-w-lg mx-auto mb-7">
         Connect your Google Ads or Meta Ads account to see every campaign, its spend, and its
         results in one dashboard — and pause or resume campaigns without leaving Imagi.
@@ -27,7 +27,7 @@
           Connect ad accounts
         </router-link>
       </div>
-      <div class="flex items-center justify-center gap-6 mt-7 text-blue-950/40 dark:text-blue-100/40">
+      <div class="flex items-center justify-center gap-6 mt-7 text-ink/40 dark:text-bone/40">
         <span class="inline-flex items-center gap-2 text-sm"><i class="fab fa-google"></i> Google Ads</span>
         <span class="inline-flex items-center gap-2 text-sm"><i class="fab fa-meta"></i> Meta Ads</span>
       </div>
@@ -39,9 +39,9 @@
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
             <i :class="['fas', stat.icon]" class="text-xs text-blue-700 dark:text-blue-300"></i>
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
-          <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
+          <p class="text-2xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
           <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
@@ -55,8 +55,8 @@
             type="button"
             class="px-3.5 py-2 rounded-full text-sm font-medium border transition-colors duration-200 focus-ring"
             :class="providerFilter === option.value
-              ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
-              : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white'"
+              ? 'border-ink/20 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
+              : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white'"
             @click="setProviderFilter(option.value)"
           >
             <i v-if="option.icon" :class="option.icon" class="text-xs mr-1.5"></i>
@@ -83,8 +83,8 @@
         <div v-else-if="campaigns.length" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-blue-200/60 dark:border-white/[0.08] text-left">
-                <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">Campaign</th>
+              <tr class="border-b border-ink/10 dark:border-white/[0.08] text-left">
+                <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">Campaign</th>
                 <th :class="ui.tableHead">Status</th>
                 <th :class="ui.tableHead" class="text-right">Budget/day</th>
                 <th :class="ui.tableHead" class="text-right">Impressions</th>
@@ -100,25 +100,25 @@
               <tr
                 v-for="campaign in campaigns"
                 :key="campaign.id"
-                class="border-b border-blue-200/40 dark:border-white/[0.05] last:border-0 hover:bg-blue-50/40 dark:hover:bg-white/[0.03] transition-colors duration-150"
+                class="border-b border-ink/[0.06] dark:border-white/[0.05] last:border-0 hover:bg-ink/[0.03] dark:hover:bg-white/[0.03] transition-colors duration-150"
               >
                 <td class="px-5 py-3.5">
                   <div class="flex items-center gap-3 min-w-0">
-                    <i :class="AD_PROVIDERS[campaign.provider].icon" class="text-blue-950/50 dark:text-blue-100/50 shrink-0" :title="AD_PROVIDERS[campaign.provider].label"></i>
+                    <i :class="AD_PROVIDERS[campaign.provider].icon" class="text-ink/50 dark:text-bone/50 shrink-0" :title="AD_PROVIDERS[campaign.provider].label"></i>
                     <div class="min-w-0">
-                      <p class="font-medium text-blue-950 dark:text-white truncate max-w-56" :title="campaign.name">{{ campaign.name }}</p>
+                      <p class="font-medium text-ink dark:text-white truncate max-w-56" :title="campaign.name">{{ campaign.name }}</p>
                       <p :class="ui.hintText" v-if="campaign.objective" class="truncate">{{ formatObjective(campaign.objective) }}</p>
                     </div>
                   </div>
                 </td>
                 <td class="px-4 py-3.5"><StatusBadge :status="campaign.status" /></td>
-                <td class="px-4 py-3.5 text-right tabular-nums text-blue-950/80 dark:text-blue-100/80">{{ formatCurrency(campaign.daily_budget, campaign.currency) }}</td>
-                <td class="px-4 py-3.5 text-right tabular-nums text-blue-950/80 dark:text-blue-100/80">{{ formatCompactNumber(campaign.impressions) }}</td>
-                <td class="px-4 py-3.5 text-right tabular-nums text-blue-950/80 dark:text-blue-100/80">{{ formatCompactNumber(campaign.clicks) }}</td>
-                <td class="px-4 py-3.5 text-right tabular-nums text-blue-950/80 dark:text-blue-100/80">{{ campaign.ctr === null ? '—' : `${campaign.ctr}%` }}</td>
-                <td class="px-4 py-3.5 text-right tabular-nums font-medium text-blue-950 dark:text-white">{{ formatCurrency(campaign.spend, campaign.currency) }}</td>
-                <td class="px-4 py-3.5 text-right tabular-nums text-blue-950/80 dark:text-blue-100/80">{{ formatCurrency(campaign.cpc, campaign.currency) }}</td>
-                <td class="px-4 py-3.5 text-right tabular-nums text-blue-950/80 dark:text-blue-100/80">{{ campaign.conversions === null ? '—' : formatCompactNumber(parseFloat(campaign.conversions)) }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums text-ink/80 dark:text-bone/80">{{ formatCurrency(campaign.daily_budget, campaign.currency) }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums text-ink/80 dark:text-bone/80">{{ formatCompactNumber(campaign.impressions) }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums text-ink/80 dark:text-bone/80">{{ formatCompactNumber(campaign.clicks) }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums text-ink/80 dark:text-bone/80">{{ campaign.ctr === null ? '—' : `${campaign.ctr}%` }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums font-medium text-ink dark:text-white">{{ formatCurrency(campaign.spend, campaign.currency) }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums text-ink/80 dark:text-bone/80">{{ formatCurrency(campaign.cpc, campaign.currency) }}</td>
+                <td class="px-4 py-3.5 text-right tabular-nums text-ink/80 dark:text-bone/80">{{ campaign.conversions === null ? '—' : formatCompactNumber(parseFloat(campaign.conversions)) }}</td>
                 <td class="px-5 py-3.5">
                   <div class="flex items-center justify-end gap-1.5">
                     <button

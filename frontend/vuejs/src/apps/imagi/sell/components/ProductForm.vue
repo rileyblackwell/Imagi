@@ -38,7 +38,7 @@
           class="px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors duration-150 focus-ring"
           :class="form.billing_interval === option.value
             ? 'border-emerald-400 dark:border-emerald-400/60 bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-200'
-            : 'border-blue-950/[0.14] dark:border-white/[0.14] bg-white dark:bg-white/[0.06] text-blue-950/70 dark:text-blue-100/70 hover:border-blue-950/30 dark:hover:border-white/25'"
+            : 'border-ink/[0.14] dark:border-white/[0.14] bg-white dark:bg-white/[0.06] text-ink/70 dark:text-bone/70 hover:border-ink/30 dark:hover:border-white/25'"
           @click="form.billing_interval = option.value"
         >
           {{ option.label }}
@@ -81,8 +81,8 @@
       </div>
     </div>
 
-    <label class="flex items-center gap-2.5 text-sm text-blue-950/80 dark:text-blue-100/80 cursor-pointer">
-      <input v-model="form.is_active" type="checkbox" class="rounded border-blue-950/30 dark:border-white/30 text-blue-950 dark:text-blue-400 focus-ring" />
+    <label class="flex items-center gap-2.5 text-sm text-ink/80 dark:text-bone/80 cursor-pointer">
+      <input v-model="form.is_active" type="checkbox" class="rounded border-ink/30 dark:border-white/30 text-ink dark:text-blue-400 focus-ring" />
       Available for purchase
     </label>
 

@@ -9,7 +9,7 @@
   <div>
     <router-link
       :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
-      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-ring"
+      class="inline-flex items-center gap-2 text-sm font-medium text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-ring"
     >
       <i class="fas fa-arrow-left text-xs"></i>
       <span>All campaigns</span>
@@ -28,7 +28,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-2xl font-semibold text-blue-950 dark:text-white tracking-tight truncate">{{ campaign.name }}</h1>
+            <h1 class="text-2xl font-semibold text-ink dark:text-white tracking-tight truncate">{{ campaign.name }}</h1>
             <StatusBadge :status="campaign.status" />
           </div>
           <p :class="ui.bodyText" class="mt-1">
@@ -104,7 +104,7 @@
             <!-- Audience preview -->
             <section class="p-6" :class="ui.card">
               <h2 :class="ui.panelHeading" class="mb-3">Audience</h2>
-              <p class="text-3xl font-semibold text-blue-950 dark:text-white tabular-nums mb-1">
+              <p class="text-3xl font-semibold text-ink dark:text-white tabular-nums mb-1">
                 {{ recipientCount === null ? '—' : recipientCount.toLocaleString() }}
               </p>
               <p :class="ui.bodyText">
@@ -130,7 +130,7 @@
                 Send now
               </button>
 
-              <div class="pt-4 border-t border-blue-200/60 dark:border-white/[0.1]">
+              <div class="pt-4 border-t border-ink/10 dark:border-white/[0.1]">
                 <label :class="ui.label" for="schedule-time">Or schedule for later</label>
                 <input
                   id="schedule-time"
@@ -170,17 +170,17 @@
         <!-- Stats -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div v-for="stat in reportStats" :key="stat.label" class="p-5" :class="ui.card">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-2">{{ stat.label }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50 mb-2">{{ stat.label }}</p>
             <p class="text-2xl font-semibold tabular-nums" :class="stat.tone">{{ stat.value }}</p>
           </div>
         </section>
 
         <!-- Message body -->
         <section class="p-6 mb-6" :class="ui.card">
-          <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-3">
+          <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50 mb-3">
             {{ campaign.channel === 'voice' ? 'Voice script' : 'Message' }}
           </h2>
-          <p class="text-sm text-blue-950 dark:text-white whitespace-pre-wrap">{{ campaign.body }}</p>
+          <p class="text-sm text-ink dark:text-white whitespace-pre-wrap">{{ campaign.body }}</p>
         </section>
 
         <!-- Recipients -->
@@ -189,7 +189,7 @@
           <div v-if="messages.length" class="overflow-x-auto -mx-2">
             <table class="w-full text-sm min-w-[560px]">
               <thead>
-                <tr class="text-left text-xs font-semibold uppercase tracking-[0.12em] text-blue-950/50 dark:text-blue-100/50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-[0.12em] text-ink/50 dark:text-bone/50">
                   <th class="px-2 py-2.5 font-semibold">Contact</th>
                   <th class="px-2 py-2.5 font-semibold">Number</th>
                   <th class="px-2 py-2.5 font-semibold">Status</th>
@@ -202,10 +202,10 @@
                   :key="message.id"
                   class="border-t border-blue-200/50 dark:border-white/[0.06]"
                 >
-                  <td class="px-2 py-3 text-blue-950 dark:text-white font-medium">{{ message.contact_name || '—' }}</td>
-                  <td class="px-2 py-3 text-blue-950/70 dark:text-blue-100/70 font-mono text-xs">{{ message.to_number }}</td>
+                  <td class="px-2 py-3 text-ink dark:text-white font-medium">{{ message.contact_name || '—' }}</td>
+                  <td class="px-2 py-3 text-ink/70 dark:text-bone/70 font-mono text-xs">{{ message.to_number }}</td>
                   <td class="px-2 py-3"><StatusBadge :status="message.status" /></td>
-                  <td class="px-2 py-3 text-xs text-blue-950/60 dark:text-blue-100/60">
+                  <td class="px-2 py-3 text-xs text-ink/60 dark:text-bone/60">
                     {{ message.error_message || (message.error_code ? `Error ${message.error_code}` : '—') }}
                   </td>
                 </tr>
@@ -256,7 +256,7 @@ const canSchedule = computed(() =>
 const reportStats = computed(() => {
   const stats = campaign.value?.stats
   if (!stats) return []
-  const ink = 'text-blue-950 dark:text-white'
+  const ink = 'text-ink dark:text-white'
   return [
     { label: 'Recipients', value: stats.recipients.toLocaleString(), tone: ink },
     { label: 'Delivered', value: stats.delivered.toLocaleString(), tone: 'text-emerald-600 dark:text-emerald-300' },

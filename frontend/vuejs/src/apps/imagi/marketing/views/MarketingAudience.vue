@@ -8,7 +8,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col lg:flex-row lg:items-center gap-3 mb-6">
       <div class="relative flex-1">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-ink/40 dark:text-bone/30"></i>
         <input
           v-model="search"
           type="search"
@@ -47,7 +47,7 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm min-w-[720px]">
           <thead>
-            <tr class="text-left text-xs font-semibold uppercase tracking-[0.12em] text-blue-950/50 dark:text-blue-100/50 border-b border-blue-200/60 dark:border-white/[0.08]">
+            <tr class="text-left text-xs font-semibold uppercase tracking-[0.12em] text-ink/50 dark:text-bone/50 border-b border-ink/10 dark:border-white/[0.08]">
               <th class="px-5 py-3.5 font-semibold">Name</th>
               <th class="px-5 py-3.5 font-semibold">Phone</th>
               <th class="px-5 py-3.5 font-semibold">Tags</th>
@@ -60,33 +60,33 @@
             <tr
               v-for="contact in store.contacts"
               :key="contact.id"
-              class="border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 hover:bg-blue-50/40 dark:hover:bg-blue-400/[0.05] transition-colors duration-150"
+              class="border-b border-ink/[0.06] dark:border-white/[0.05] last:border-b-0 hover:bg-ink/[0.03] dark:hover:bg-blue-400/[0.05] transition-colors duration-150"
             >
               <td class="px-5 py-3.5">
-                <p class="font-medium text-blue-950 dark:text-white">{{ contact.display_name }}</p>
+                <p class="font-medium text-ink dark:text-white">{{ contact.display_name }}</p>
                 <p :class="ui.hintText" v-if="contact.email">{{ contact.email }}</p>
               </td>
-              <td class="px-5 py-3.5 font-mono text-xs text-blue-950/70 dark:text-blue-100/70">{{ contact.phone_number }}</td>
+              <td class="px-5 py-3.5 font-mono text-xs text-ink/70 dark:text-bone/70">{{ contact.phone_number }}</td>
               <td class="px-5 py-3.5">
                 <div class="flex flex-wrap gap-1.5">
                   <span
                     v-for="tag in contact.tags"
                     :key="tag"
-                    class="px-2 py-0.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-[11px] font-medium text-blue-700 dark:text-blue-300"
+                    class="px-2 py-0.5 rounded-full border border-ink/10 dark:border-blue-400/25 bg-ink/[0.03] dark:bg-blue-400/10 text-[11px] font-medium text-blue-700 dark:text-blue-300"
                   >
                     {{ tag }}
                   </span>
-                  <span v-if="!contact.tags.length" class="text-xs text-blue-950/40 dark:text-blue-100/30">—</span>
+                  <span v-if="!contact.tags.length" class="text-xs text-ink/40 dark:text-bone/30">—</span>
                 </div>
               </td>
               <td class="px-5 py-3.5"><StatusBadge :status="contact.consent" /></td>
-              <td class="px-5 py-3.5 text-xs text-blue-950/60 dark:text-blue-100/60 whitespace-nowrap">{{ formatDateTime(contact.created_at) }}</td>
+              <td class="px-5 py-3.5 text-xs text-ink/60 dark:text-bone/60 whitespace-nowrap">{{ formatDateTime(contact.created_at) }}</td>
               <td class="px-5 py-3.5">
                 <div class="flex items-center justify-end gap-1">
                   <router-link
                     v-if="contact.consent === 'subscribed'"
                     :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName }, query: { contact: contact.id } }"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors duration-150 focus-ring"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-ink/50 dark:text-bone/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-ink/[0.04] dark:hover:bg-blue-400/10 transition-colors duration-150 focus-ring"
                     title="Send a message"
                   >
                     <i class="fas fa-paper-plane text-xs"></i>
@@ -115,7 +115,7 @@
           </tbody>
         </table>
       </div>
-      <div :class="ui.hintText" class="px-5 py-3 border-t border-blue-200/60 dark:border-white/[0.08]">
+      <div :class="ui.hintText" class="px-5 py-3 border-t border-ink/10 dark:border-white/[0.08]">
         {{ store.contacts.length }} of {{ store.contactsTotal }} contact{{ store.contactsTotal === 1 ? '' : 's' }}
       </div>
     </section>
@@ -125,7 +125,7 @@
       <div class="w-16 h-16 text-2xl mb-5" :class="ui.iconTile">
         <i class="fas fa-address-book"></i>
       </div>
-      <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">
+      <h2 class="text-xl font-semibold text-ink dark:text-white mb-2">
         {{ hasFilters ? 'No contacts match' : 'Build your audience' }}
       </h2>
       <p :class="ui.bodyText" class="max-w-md mb-6">
@@ -181,7 +181,7 @@
           <input id="contact-tags" v-model="form.tagsText" type="text" placeholder="vip, newsletter" :class="ui.input" />
         </div>
         <div v-if="editingContact">
-          <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
+          <label class="flex items-center gap-2.5 text-sm text-ink dark:text-white cursor-pointer">
             <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
             Subscribed to messages
           </label>
@@ -205,9 +205,9 @@
     <!-- Import modal -->
     <BaseModal v-if="showImport" title="Import contacts" wide @close="closeImport">
       <div class="space-y-4">
-        <p class="text-sm text-blue-950/70 dark:text-blue-100/70">
+        <p class="text-sm text-ink/70 dark:text-bone/70">
           Paste one contact per line:
-          <code class="font-mono text-xs px-1.5 py-0.5 rounded bg-blue-950/[0.05] dark:bg-white/[0.08]">phone, first name, last name, email, tag1; tag2</code>
+          <code class="font-mono text-xs px-1.5 py-0.5 rounded bg-ink/[0.05] dark:bg-white/[0.08]">phone, first name, last name, email, tag1; tag2</code>
           — only the phone number is required.
         </p>
         <textarea

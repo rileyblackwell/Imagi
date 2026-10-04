@@ -135,6 +135,21 @@ const target = computed<RouteLocationRaw>(() => {
 
 .module:hover .module__cta {
   color: var(--ink);
+  border-top-color: var(--accent);
+}
+
+.module:hover .module__arrow {
+  color: var(--accent);
+}
+
+/* The module's icon lifts a touch as the column is hovered, the one bit of
+   motion the column gets — the same small nudge the homepage's links make. */
+.module .rule-col__icon {
+  transition: transform 0.25s var(--app-ease);
+}
+
+.module:hover .rule-col__icon {
+  transform: translateY(-2px);
 }
 
 .module__arrow {
@@ -207,7 +222,8 @@ const target = computed<RouteLocationRaw>(() => {
     animation: none;
   }
 
-  .module:hover .module__arrow {
+  .module:hover .module__arrow,
+  .module:hover .rule-col__icon {
     transform: none;
   }
 }

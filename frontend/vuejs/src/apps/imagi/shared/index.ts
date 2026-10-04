@@ -6,3 +6,5 @@
  * belongs here rather than in the site-wide `shared/`.
  */
 export { useProjectFromSlug } from './composables/useProjectFromSlug'
+export { default as ToolWorkspaceShell } from './components/ToolWorkspaceShell.vue'
+export type { ToolTab } from './components/ToolWorkspaceShell.vue'

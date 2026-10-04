@@ -14,8 +14,8 @@
           type="button"
           class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-ring"
           :class="statusFilter === option.value
-            ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
-            : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
+            ? 'border-ink/20 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
+            : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white'"
           @click="setStatusFilter(option.value)"
         >
           {{ option.label }}
@@ -52,17 +52,17 @@
         </div>
         <div class="flex items-center gap-5 shrink-0">
           <div v-if="campaign.status !== 'draft'" class="text-right">
-            <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
+            <p class="text-sm font-semibold text-ink dark:text-white tabular-nums">
               {{ campaign.stats.delivered }}/{{ campaign.stats.recipients }}
             </p>
             <p :class="ui.hintText">delivered</p>
           </div>
           <div class="text-right hidden md:block">
-            <p class="text-sm text-blue-950/70 dark:text-blue-100/70">{{ formatDateTime(campaign.scheduled_at || campaign.created_at) }}</p>
+            <p class="text-sm text-ink/70 dark:text-bone/70">{{ formatDateTime(campaign.scheduled_at || campaign.created_at) }}</p>
             <p :class="ui.hintText">{{ campaign.scheduled_at ? 'scheduled for' : 'created' }}</p>
           </div>
           <StatusBadge :status="campaign.status" />
-          <i class="fas fa-chevron-right text-xs text-blue-950/30 dark:text-blue-100/30 group-hover:translate-x-0.5 transition-transform duration-200"></i>
+          <i class="fas fa-chevron-right text-xs text-ink/30 dark:text-bone/30 group-hover:translate-x-0.5 transition-transform duration-200"></i>
         </div>
       </router-link>
     </div>
@@ -72,7 +72,7 @@
       <div class="w-16 h-16 text-2xl mb-5" :class="ui.iconTile">
         <i class="fas fa-paper-plane"></i>
       </div>
-      <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">
+      <h2 class="text-xl font-semibold text-ink dark:text-white mb-2">
         {{ statusFilter ? 'No campaigns with this status' : 'No campaigns yet' }}
       </h2>
       <p :class="ui.bodyText" class="max-w-md mb-6">

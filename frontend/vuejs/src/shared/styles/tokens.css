@@ -35,16 +35,20 @@
      `paper-inverted` and `canvas`, so a template writes `bg-paper` — and gets
      the right colour in both themes without a `dark:` twin, because the
      variable itself changes below. */
-  --app-paper: 253 249 242;          /* warm porcelain — the default canvas */
+  --app-paper: 251 250 247;          /* warm paper — the editorial --paper */
   --app-paper-raised: 255 255 255;   /* a card lifted off the paper */
-  --app-paper-inverted: 243 237 226; /* cream — the dark theme's button fill */
+  --app-paper-inverted: 246 244 240; /* bone — the dark theme's button fill */
   --app-canvas: 255 255 255;         /* the signed-in app's content area */
 
   /* ── Ink ──────────────────────────────────────────────────────────────────
      Kept as channels too, so components can tint from them at any opacity
-     rather than re-typing the rgb(). blue-950 in light, white in dark. */
-  --app-ink: 23, 37, 84;
-  --app-accent: 59, 130, 246;    /* blue-500 — focus, selection, links */
+     rather than re-typing the rgb(). The editorial ink in light (#131a2c,
+     Tailwind `ink`), bone in dark (#f6f4f0, Tailwind `bone`). */
+  --app-ink: 19, 26, 44;
+  /* The home page's one accent — burnt orange in light, amber in dark — so a
+     focus ring in the Sell workspace is the same mark as one on the pricing
+     page. */
+  --app-accent: 194, 65, 12;
   --app-focus-tint: rgba(var(--app-accent), 0.4);
 
   /* ── Elevation ────────────────────────────────────────────────────────────
@@ -78,13 +82,13 @@
 }
 
 .dark {
-  --app-paper: 12 12 14;
+  --app-paper: 8 8 10;
   --app-paper-raised: 22 22 26;
-  --app-paper-inverted: 243 237 226; /* stays cream: it inverts the ink */
+  --app-paper-inverted: 246 244 240; /* stays bone: it inverts the ink */
   --app-canvas: 10 10 10;
 
-  --app-ink: 255, 255, 255;
-  --app-accent: 147, 197, 253; /* blue-300 — the dark theme's accent */
+  --app-ink: 246, 244, 240;
+  --app-accent: 251, 191, 36; /* amber-400 — the dark theme's accent */
   --app-focus-tint: rgba(var(--app-accent), 0.5);
 
   /* Dark surfaces take light rather than cast shade: mostly black, plus a
@@ -244,12 +248,12 @@
    the midpoint had drifted between 45% and 60%. */
 
 .page-canvas {
-  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 50%, #ffffff 100%);
+  background: linear-gradient(180deg, #fbfaf7 0%, #fbfaf7 70%, #ffffff 100%);
   transition: background 0.5s ease;
 }
 
 .dark .page-canvas {
-  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
+  background: linear-gradient(180deg, #08080a 0%, #08080a 70%, #0a0a0a 100%);
 }
 
 /* --- Selection -----------------------------------------------------------
@@ -258,13 +262,13 @@
    editorial.css), which is why this opts in rather than landing on :root. */
 
 .brand-selection ::selection {
-  background: rgba(158, 205, 243, 0.55);
-  color: #172554;
+  background: rgba(194, 65, 12, 0.16);
+  color: #131a2c;
 }
 
 .dark .brand-selection ::selection {
-  background: rgba(96, 165, 250, 0.4);
-  color: #eff6ff;
+  background: rgba(251, 191, 36, 0.22);
+  color: #f6f4f0;
 }
 
 /* --- Grain ---------------------------------------------------------------

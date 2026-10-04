@@ -333,10 +333,10 @@ const revealLabel = computed(
 /* Every colour on the card comes from these four, so a state change is one
    block of overrides rather than a rule per element. */
 .dispatch-card {
-  --rail: rgba(23, 37, 84, 0.14);
-  --status: rgba(23, 37, 84, 0.5);
-  --chip-bg: rgba(23, 37, 84, 0.08);
-  --chip-fg: rgba(23, 37, 84, 0.8);
+  --rail: rgba(19, 26, 44, 0.14);
+  --status: rgba(19, 26, 44, 0.5);
+  --chip-bg: rgba(19, 26, 44, 0.08);
+  --chip-fg: rgba(19, 26, 44, 0.8);
 
   position: relative;
   /* Stacked, not two columns: the job is the card, and giving it the full
@@ -348,7 +348,7 @@ const revealLabel = computed(
   width: 100%;
   padding: 0.5rem 0.625rem 0.5625rem 0.875rem;
   border-radius: var(--iw-r-lg);
-  border: 1px solid rgba(23, 37, 84, 0.08);
+  border: 1px solid rgba(19, 26, 44, 0.08);
   background: rgba(239, 246, 255, 0.5);
   text-align: left;
   overflow: hidden;
@@ -369,7 +369,7 @@ const revealLabel = computed(
 }
 
 .dispatch-card:hover {
-  border-color: rgba(23, 37, 84, 0.14);
+  border-color: rgba(19, 26, 44, 0.14);
   box-shadow: var(--iw-shadow-2);
   transform: translateY(-1px);
 }
@@ -419,7 +419,7 @@ const revealLabel = computed(
 .dispatch-card--starting {
   --rail: repeating-linear-gradient(
     180deg,
-    rgba(23, 37, 84, 0.3) 0 3px,
+    rgba(19, 26, 44, 0.3) 0 3px,
     transparent 3px 7px
   );
 }
@@ -492,10 +492,10 @@ const revealLabel = computed(
    the workspace's "this one is on you" mark. */
 .dispatch-card--asking {
   --rail: theme('colors.blue.950');
-  --status: rgba(23, 37, 84, 0.78);
-  --chip-bg: rgba(23, 37, 84, 0.1);
+  --status: rgba(19, 26, 44, 0.78);
+  --chip-bg: rgba(19, 26, 44, 0.1);
   --chip-fg: theme('colors.blue.950');
-  border-color: rgba(23, 37, 84, 0.16);
+  border-color: rgba(19, 26, 44, 0.16);
 }
 
 .dark .dispatch-card--asking {
@@ -641,7 +641,7 @@ const revealLabel = computed(
   font-weight: 550;
   line-height: 1.4;
   letter-spacing: -0.006em;
-  color: rgba(23, 37, 84, 0.88);
+  color: rgba(19, 26, 44, 0.88);
   overflow-wrap: anywhere;
 }
 
@@ -663,10 +663,10 @@ const revealLabel = computed(
   z-index: 1;
   margin-top: 0.0625rem;
   padding-top: 0.375rem;
-  border-top: 1px solid rgba(23, 37, 84, 0.08);
+  border-top: 1px solid rgba(19, 26, 44, 0.08);
   font-size: 0.75rem;
   line-height: 1.55;
-  color: rgba(23, 37, 84, 0.72);
+  color: rgba(19, 26, 44, 0.72);
   overflow-wrap: anywhere;
 }
 
@@ -728,7 +728,7 @@ const revealLabel = computed(
   font-size: 0.625rem;
   font-weight: 550;
   letter-spacing: 0.005em;
-  color: rgba(23, 37, 84, 0.5);
+  color: rgba(19, 26, 44, 0.5);
   transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
@@ -737,7 +737,7 @@ const revealLabel = computed(
 }
 
 .dispatch-card:hover .dispatch-card__reveal {
-  color: rgba(23, 37, 84, 0.8);
+  color: rgba(19, 26, 44, 0.8);
 }
 
 .dark .dispatch-card:hover .dispatch-card__reveal {
@@ -759,7 +759,7 @@ const revealLabel = computed(
   border-radius: var(--iw-r-sm);
   font-size: 0.625rem;
   font-weight: 550;
-  color: rgba(23, 37, 84, 0.55);
+  color: rgba(19, 26, 44, 0.55);
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
     color var(--iw-dur-2) var(--iw-ease-out);
@@ -775,8 +775,8 @@ const revealLabel = computed(
 }
 
 .dispatch-card__more:hover {
-  background: rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.85);
+  background: rgba(19, 26, 44, 0.06);
+  color: rgba(19, 26, 44, 0.85);
 }
 
 .dark .dispatch-card__more:hover {

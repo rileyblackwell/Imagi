@@ -10,7 +10,7 @@
 <template>
   <div class="flex justify-center" :class="padded ? 'py-16' : ''">
     <div
-      class="border-2 rounded-full animate-spin motion-reduce:animate-none border-blue-950/15 dark:border-white/15 border-t-blue-950/60 dark:border-t-white/70"
+      class="border-2 rounded-full animate-spin motion-reduce:animate-none border-ink/15 dark:border-white/15 border-t-ink/60 dark:border-t-white/70"
       :class="sizeClass"
       role="status"
       :aria-label="label"
