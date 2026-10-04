@@ -16,7 +16,7 @@
           class="px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors duration-200 focus-ring"
           :class="form.kind === option.value
             ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
-            : 'border-blue-200/70 dark:border-white/[0.12] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
+            : 'border-ink/10 dark:border-white/[0.12] text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white'"
           @click="setKind(option.value)"
         >
           <i :class="['fas', option.icon]" class="text-xs mr-1.5"></i>

@@ -37,7 +37,7 @@
               <!-- Close button -->
               <button
                 type="button"
-                class="text-blue-950/40 hover:text-blue-950/70 dark:text-blue-100/50 dark:hover:text-white p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 focus-ring"
+                class="text-ink/40 hover:text-ink/70 dark:text-bone/50 dark:hover:text-white p-1 rounded-lg hover:bg-ink/[0.04] dark:hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 focus-ring"
                 @click="handleCancel"
                 aria-label="Close"
               >
@@ -47,7 +47,7 @@
           </div>
 
           <!-- Footer / Actions -->
-          <div class="px-6 py-4 bg-blue-50/60 dark:bg-white/[0.03] flex items-center justify-end gap-3">
+          <div class="px-6 py-4 bg-ink/[0.03] dark:bg-white/[0.03] flex items-center justify-end gap-3">
             <button
               type="button"
               class="px-5 py-2.5 text-sm font-medium rounded-full border transition-colors duration-200 focus-ring"
@@ -134,7 +134,7 @@ const modalClasses = computed(() => {
     case 'success':
       return `${baseClasses} border-green-200 dark:border-green-500/30`
     default:
-      return `${baseClasses} border-blue-200 dark:border-blue-300/[0.16]`
+      return `${baseClasses} border-ink/[0.12] dark:border-white/10`
   }
 })
 
@@ -147,7 +147,7 @@ const headerClasses = computed(() => {
     case 'success':
       return 'border-green-100 dark:border-green-500/20 bg-green-50/50 dark:bg-green-500/[0.06]'
     default:
-      return 'border-blue-100 dark:border-blue-400/20 bg-blue-50/50 dark:bg-blue-400/[0.06]'
+      return 'border-blue-100 dark:border-blue-400/20 bg-ink/[0.03] dark:bg-blue-400/[0.06]'
   }
 })
 
@@ -160,7 +160,7 @@ const iconContainerClasses = computed(() => {
     case 'success':
       return 'bg-green-100 dark:bg-green-500/[0.12] border border-green-200 dark:border-green-500/30'
     default:
-      return 'bg-blue-100 dark:bg-blue-400/[0.12] border border-blue-200 dark:border-blue-400/30'
+      return 'bg-blue-100 dark:bg-blue-400/[0.12] border border-ink/[0.12] dark:border-blue-400/30'
   }
 })
 
@@ -178,15 +178,15 @@ const iconClasses = computed(() => {
 })
 
 const titleClasses = computed(() => {
-  return 'text-blue-950 dark:text-white'
+  return 'text-ink dark:text-white'
 })
 
 const messageClasses = computed(() => {
-  return 'text-blue-950/70 dark:text-blue-100/70'
+  return 'text-ink/70 dark:text-bone/70'
 })
 
 const cancelButtonClasses = computed(() => {
-  return 'bg-white dark:bg-white/[0.03] border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30 hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed'
+  return 'bg-white dark:bg-white/[0.03] border-ink/[0.14] dark:border-white/[0.16] text-ink/80 dark:text-bone/80 hover:text-ink dark:hover:text-white hover:border-ink/30 dark:hover:border-white/30 hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed'
 })
 
 const confirmButtonClasses = computed(() => {
@@ -198,7 +198,7 @@ const confirmButtonClasses = computed(() => {
     case 'success':
       return 'bg-green-600 dark:bg-green-600 border-transparent text-white hover:bg-green-700 dark:hover:bg-green-500 shadow-[0_1px_2px_rgba(20,83,45,0.2),0_3px_8px_-2px_rgba(20,83,45,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
     default:
-      return 'bg-blue-950 dark:bg-paper-inverted border-transparent text-paper dark:text-blue-950 hover:bg-blue-900 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-ink dark:bg-paper-inverted border-transparent text-paper dark:text-ink hover:bg-blue-900 dark:hover:bg-white shadow-[0_1px_2px_rgba(19,26,44,0.2),0_3px_8px_-2px_rgba(19,26,44,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed'
   }
 })
 

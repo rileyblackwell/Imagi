@@ -18,7 +18,7 @@
       </div>
       <p :class="ui.bodyText" class="mb-6">
         Find these under
-        <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" class="rounded-sm font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white underline underline-offset-2 decoration-blue-950/30 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-ring">Developers → API keys</a>
+        <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" class="rounded-sm font-medium text-ink/80 dark:text-bone/80 hover:text-ink dark:hover:text-white underline underline-offset-2 decoration-ink/30 dark:decoration-bone/30 hover:decoration-ink/60 dark:hover:decoration-bone/70 transition-colors duration-200 focus-ring">Developers → API keys</a>
         in your Stripe dashboard. Payments go directly to your own Stripe account.
       </p>
 
@@ -122,7 +122,7 @@
         <template v-if="settings?.stripe_webhook_url">
           <span :class="ui.label">Endpoint URL</span>
           <div class="flex items-center gap-2">
-            <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.stripe_webhook_url }}</code>
+            <code class="flex-1 px-3 py-2 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.08] font-mono text-[11px] text-ink/80 dark:text-bone/80 break-all">{{ settings.stripe_webhook_url }}</code>
             <button
               :class="ui.iconBtn"
               type="button"
@@ -158,11 +158,11 @@
         <div class="space-y-4">
           <div>
             <span :class="ui.label">List products</span>
-            <code class="block px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">GET /api/v1/sell/storefront/{{ store.projectId }}/products/</code>
+            <code class="block px-3 py-2 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.08] font-mono text-[11px] text-ink/80 dark:text-bone/80 break-all">GET /api/v1/sell/storefront/{{ store.projectId }}/products/</code>
           </div>
           <div>
             <span :class="ui.label">Start a checkout</span>
-            <code class="block px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">POST /api/v1/sell/storefront/{{ store.projectId }}/checkout/</code>
+            <code class="block px-3 py-2 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] border border-ink/10 dark:border-white/[0.08] font-mono text-[11px] text-ink/80 dark:text-bone/80 break-all">POST /api/v1/sell/storefront/{{ store.projectId }}/checkout/</code>
             <p :class="ui.hintText" class="mt-1.5">
               Body: <code class="font-mono">{"items": [{"product_id": 1, "quantity": 2}]}</code> →
               returns a <code class="font-mono">checkout_url</code> to redirect the customer to.

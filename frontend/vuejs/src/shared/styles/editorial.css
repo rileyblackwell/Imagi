@@ -609,6 +609,16 @@
   border-bottom-color: var(--accent);
 }
 
+.editorial .field__input--error,
+.editorial .field__input--error:focus {
+  border-bottom-color: #dc2626;
+}
+
+.dark .editorial .field__input--error,
+.dark .editorial .field__input--error:focus {
+  border-bottom-color: #f87171;
+}
+
 .editorial .field__error {
   margin-top: 0.5rem;
   font-size: 0.8125rem;

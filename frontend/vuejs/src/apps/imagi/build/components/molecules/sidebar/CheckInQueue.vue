@@ -84,7 +84,7 @@
               v-model="answer"
               rows="2"
               placeholder="Answer to send back…"
-              class="answer-textarea w-full rounded-lg bg-white/70 dark:bg-white/[0.04] border border-blue-950/[0.1] dark:border-white/[0.12] text-blue-950 dark:text-white/90 placeholder-blue-950/35 dark:placeholder-white/30 text-[11px] px-2 py-1.5 resize-none leading-relaxed"
+              class="answer-textarea w-full rounded-lg bg-white/70 dark:bg-white/[0.04] border border-ink/[0.1] dark:border-white/[0.12] text-ink dark:text-white/90 placeholder-ink/35 dark:placeholder-white/30 text-[11px] px-2 py-1.5 resize-none leading-relaxed"
               @keydown.enter.exact.prevent="sendAnswer"
             ></textarea>
             <div class="flex items-center gap-1.5 mt-1.5">
@@ -93,8 +93,8 @@
                 :disabled="!answer.trim()"
                 class="btn-primary iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                 :class="answer.trim()
-                  ? 'btn-primary--active text-paper dark:text-blue-950'
-                  : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12]'"
+                  ? 'btn-primary--active text-paper dark:text-ink'
+                  : 'bg-blue-100/60 dark:bg-white/[0.05] text-ink/40 dark:text-white/40 cursor-not-allowed border border-ink/10 dark:border-white/[0.12]'"
                 @click="sendAnswer"
               >
                 Send answer
@@ -117,7 +117,7 @@
           <div v-else-if="current.kind === 'done'" class="flex items-center gap-1.5 mt-2">
             <button
               type="button"
-              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-blue-950"
+              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-ink"
               @click="emit('skip', current)"
             >
               Got it
@@ -138,7 +138,7 @@
             <button
               type="button"
               :disabled="busy"
-              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-blue-950 disabled:opacity-50"
+              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-ink disabled:opacity-50"
               @click="emit('accept', current)"
             >
               <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>
@@ -317,7 +317,7 @@ function sendAnswer() {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: rgba(23, 37, 84, 0.45);
+  color: rgba(19, 26, 44, 0.45);
 }
 
 .dark .queue-head__label {
@@ -327,8 +327,8 @@ function sendAnswer() {
 .queue-head__count {
   padding: 0 0.25rem;
   border-radius: 0.25rem;
-  background: rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.5);
+  background: rgba(19, 26, 44, 0.06);
+  color: rgba(19, 26, 44, 0.5);
   font-size: 0.5625rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -343,7 +343,7 @@ function sendAnswer() {
 .queue-head__rule {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(23, 37, 84, 0.12) 0%, rgba(23, 37, 84, 0) 100%);
+  background: linear-gradient(90deg, rgba(19, 26, 44, 0.12) 0%, rgba(19, 26, 44, 0) 100%);
 }
 
 .dark .queue-head__rule {
@@ -376,7 +376,7 @@ function sendAnswer() {
   left: 0.375rem;
   right: 0.375rem;
   height: 0.625rem;
-  border: 1px solid rgba(23, 37, 84, 0.09);
+  border: 1px solid rgba(19, 26, 44, 0.09);
   border-top: none;
   border-radius: 0 0 var(--iw-r-md) var(--iw-r-md);
   background: rgba(239, 246, 255, 0.7);
@@ -421,13 +421,13 @@ function sendAnswer() {
 
 .check-in {
   --rail: theme('colors.blue.950');
-  --status: rgba(23, 37, 84, 0.75);
+  --status: rgba(19, 26, 44, 0.75);
 
   position: relative;
   z-index: 2;
   display: flex;
   border-radius: var(--iw-r-md);
-  border: 1px solid rgba(23, 37, 84, 0.1);
+  border: 1px solid rgba(19, 26, 44, 0.1);
   background: rgba(239, 246, 255, 0.75);
   box-shadow: var(--iw-shadow-1);
   overflow: hidden;
@@ -516,8 +516,8 @@ function sendAnswer() {
   margin-top: 0.0625rem;
   padding: 0 0.25rem;
   border-radius: 0.25rem;
-  background: rgba(23, 37, 84, 0.07);
-  color: rgba(23, 37, 84, 0.55);
+  background: rgba(19, 26, 44, 0.07);
+  color: rgba(19, 26, 44, 0.55);
   font-size: 0.5625rem;
   font-weight: 600;
   line-height: 1.05rem;
@@ -538,7 +538,7 @@ function sendAnswer() {
   height: 1.25rem;
   margin: -0.0625rem -0.125rem 0 0;
   border-radius: var(--iw-r-xs);
-  color: rgba(23, 37, 84, 0.35);
+  color: rgba(19, 26, 44, 0.35);
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
     color var(--iw-dur-2) var(--iw-ease-out),
@@ -551,8 +551,8 @@ function sendAnswer() {
 }
 
 .check-in__open:hover {
-  background: rgba(23, 37, 84, 0.07);
-  color: rgba(23, 37, 84, 0.75);
+  background: rgba(19, 26, 44, 0.07);
+  color: rgba(19, 26, 44, 0.75);
 }
 
 .dark .check-in__open {
@@ -583,7 +583,7 @@ function sendAnswer() {
   margin-top: 0.375rem;
   font-size: 0.6875rem;
   line-height: 1.45;
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
   overflow-wrap: break-word;
 }
 
@@ -647,14 +647,14 @@ function sendAnswer() {
 /* Ghost secondary - quiet outline that only tints on hover */
 .btn-ghost {
   border: 1px solid rgba(191, 219, 254, 0.7);
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
   background: transparent;
 }
 
 .btn-ghost:hover:not(:disabled) {
   background: rgba(239, 246, 255, 0.9);
   border-color: rgba(147, 197, 253, 0.9);
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .dark .btn-ghost {
@@ -694,7 +694,7 @@ function sendAnswer() {
 }
 
 .answer-textarea:focus {
-  border-color: rgba(23, 37, 84, 0.45);
+  border-color: rgba(19, 26, 44, 0.45);
   box-shadow: 0 0 0 3px rgba(var(--iw-accent), 0.14);
 }
 

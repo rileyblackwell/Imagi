@@ -7,23 +7,23 @@
     <!-- Summary for the current filter -->
     <section v-if="summary" class="grid grid-cols-3 gap-4 mb-6">
       <div class="p-5" :class="ui.card">
-        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-2">Income</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50 mb-2">Income</p>
         <p class="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 tabular-nums">{{ formatMoney(summary.income) }}</p>
       </div>
       <div class="p-5" :class="ui.card">
-        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-2">Expenses</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50 mb-2">Expenses</p>
         <p class="text-2xl font-semibold text-red-600 dark:text-red-300 tabular-nums">{{ formatMoney(summary.expenses) }}</p>
       </div>
       <div class="p-5" :class="ui.card">
-        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-2">Net</p>
-        <p class="text-2xl font-semibold tabular-nums" :class="summary.net < 0 ? 'text-red-600 dark:text-red-300' : 'text-blue-950 dark:text-white'">{{ formatMoney(summary.net) }}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50 mb-2">Net</p>
+        <p class="text-2xl font-semibold tabular-nums" :class="summary.net < 0 ? 'text-red-600 dark:text-red-300' : 'text-ink dark:text-white'">{{ formatMoney(summary.net) }}</p>
       </div>
     </section>
 
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row gap-3 mb-6">
       <div class="relative flex-1">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-ink/40 dark:text-bone/30"></i>
         <input
           v-model="search"
           type="search"
@@ -50,7 +50,7 @@
     <LoadingSpinner v-if="store.transactionsLoading && !store.transactions.length" />
 
     <!-- Ledger -->
-    <section v-else-if="store.transactions.length" :class="ui.card" class="divide-y divide-blue-200/60 dark:divide-white/[0.08]">
+    <section v-else-if="store.transactions.length" :class="ui.card" class="divide-y divide-ink/10 dark:divide-white/[0.08]">
       <div
         v-for="transaction in store.transactions"
         :key="transaction.id"
@@ -65,7 +65,7 @@
           <i :class="['fas', transaction.kind === 'income' ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down']" class="text-sm"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ transaction.description }}</p>
+          <p class="text-sm font-medium text-ink dark:text-white truncate">{{ transaction.description }}</p>
           <p :class="ui.hintText">
             {{ CATEGORY_LABELS[transaction.category] ?? transaction.category }} · {{ formatDate(transaction.occurred_on) }}
             <template v-if="transaction.invoice_number"> · from {{ transaction.invoice_number }}</template>
@@ -127,7 +127,7 @@
 
     <!-- Delete confirm -->
     <BaseModal v-if="deleting" title="Delete transaction" @close="deleting = null">
-      <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
+      <p class="text-sm text-ink/70 dark:text-bone/70 mb-6">
         Remove "{{ deleting.description }}" ({{ formatMoney(deleting.amount) }}) from the ledger? This can't be undone.
       </p>
       <div v-if="deleteError" :class="ui.errorBox" class="mb-4">{{ deleteError }}</div>

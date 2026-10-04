@@ -13,9 +13,9 @@
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
             <i :class="['fas', stat.icon]" class="text-xs text-emerald-600 dark:text-emerald-300"></i>
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
-          <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
+          <p class="text-2xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
           <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
@@ -57,7 +57,7 @@
           <h2 :class="ui.panelHeading">Recent orders</h2>
           <router-link
             :to="{ name: 'sell-orders', params: { projectName: route.params.projectName } }"
-            class="rounded-sm text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline underline-offset-4 decoration-blue-950/25 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-ring"
+            class="rounded-sm text-sm font-medium text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white underline underline-offset-4 decoration-ink/25 dark:decoration-bone/30 hover:decoration-ink/60 dark:hover:decoration-bone/70 transition-colors duration-200 focus-ring"
           >
             View all
           </router-link>
@@ -66,20 +66,20 @@
           <div
             v-for="order in overview.recent_orders"
             :key="order.id"
-            class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08]"
+            class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08]"
           >
             <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
               <i class="fas fa-receipt text-sm"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-blue-950 dark:text-white truncate">
+              <p class="text-sm font-medium text-ink dark:text-white truncate">
                 {{ orderSummary(order) }}
               </p>
               <p :class="ui.hintText">
                 {{ order.customer_email || 'No email yet' }} · {{ formatDateTime(order.created_at) }}
               </p>
             </div>
-            <span class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
+            <span class="text-sm font-semibold text-ink dark:text-white tabular-nums">
               {{ formatMoney(order.amount_total_cents, order.currency) }}
             </span>
             <OrderStatusBadge :status="order.status" />

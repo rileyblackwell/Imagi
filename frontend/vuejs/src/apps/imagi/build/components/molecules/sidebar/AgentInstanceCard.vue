@@ -169,8 +169,8 @@ function relativeTime(iso: string): string {
 /* ── The card ───────────────────────────────────────────────────────────── */
 
 .agent-card {
-  --rail: rgba(23, 37, 84, 0.14);
-  --status: rgba(23, 37, 84, 0.55);
+  --rail: rgba(19, 26, 44, 0.14);
+  --status: rgba(19, 26, 44, 0.55);
 
   position: relative;
   display: flex;
@@ -178,7 +178,7 @@ function relativeTime(iso: string): string {
   gap: 0.375rem;
   padding: 0.4375rem 0.5rem 0.4375rem 0.75rem;
   border-radius: var(--iw-r-md);
-  border: 1px solid rgba(23, 37, 84, 0.07);
+  border: 1px solid rgba(19, 26, 44, 0.07);
   background: rgba(239, 246, 255, 0.4);
   box-shadow: none;
   cursor: pointer;
@@ -205,7 +205,7 @@ function relativeTime(iso: string): string {
    a list this dense. Rising is silent. */
 .agent-card:hover {
   background: rgba(239, 246, 255, 0.95);
-  border-color: rgba(23, 37, 84, 0.13);
+  border-color: rgba(19, 26, 44, 0.13);
   box-shadow: var(--iw-shadow-2);
   transform: translateY(-1px);
 }
@@ -336,7 +336,7 @@ function relativeTime(iso: string): string {
    top of the list without reading a word. */
 .agent-card--waiting {
   --rail: theme('colors.blue.950');
-  --status: rgba(23, 37, 84, 0.78);
+  --status: rgba(19, 26, 44, 0.78);
 }
 
 .dark .agent-card--waiting {
@@ -360,10 +360,10 @@ function relativeTime(iso: string): string {
 .agent-card--starting {
   --rail: repeating-linear-gradient(
     180deg,
-    rgba(23, 37, 84, 0.3) 0 3px,
+    rgba(19, 26, 44, 0.3) 0 3px,
     transparent 3px 7px
   );
-  --status: rgba(23, 37, 84, 0.5);
+  --status: rgba(19, 26, 44, 0.5);
 }
 
 .dark .agent-card--starting {
@@ -377,8 +377,8 @@ function relativeTime(iso: string): string {
 
 /* Settled work recedes to a hairline */
 .agent-card--settled {
-  --rail: rgba(23, 37, 84, 0.1);
-  --status: rgba(23, 37, 84, 0.42);
+  --rail: rgba(19, 26, 44, 0.1);
+  --status: rgba(19, 26, 44, 0.42);
 }
 
 .dark .agent-card--settled {
@@ -408,7 +408,7 @@ function relativeTime(iso: string): string {
   font-weight: 550;
   line-height: 1.25;
   letter-spacing: -0.006em;
-  color: rgba(23, 37, 84, 0.86);
+  color: rgba(19, 26, 44, 0.86);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -439,8 +439,8 @@ function relativeTime(iso: string): string {
   margin-top: 0.0625rem;
   padding: 0 0.25rem;
   border-radius: 0.25rem;
-  background: rgba(23, 37, 84, 0.07);
-  color: rgba(23, 37, 84, 0.55);
+  background: rgba(19, 26, 44, 0.07);
+  color: rgba(19, 26, 44, 0.55);
   font-size: 0.5625rem;
   font-weight: 600;
   line-height: 1.05rem;
@@ -499,7 +499,7 @@ function relativeTime(iso: string): string {
   font-size: 0.625rem;
   letter-spacing: 0.004em;
   font-variant-numeric: tabular-nums;
-  color: rgba(23, 37, 84, 0.38);
+  color: rgba(19, 26, 44, 0.38);
 }
 
 .dark .agent-card__meta {
@@ -521,7 +521,7 @@ function relativeTime(iso: string): string {
   flex-shrink: 0;
   align-self: center;
   font-size: 0.5rem;
-  color: rgba(23, 37, 84, 0.3);
+  color: rgba(19, 26, 44, 0.3);
   opacity: 0;
   transform: translateX(-4px);
   transition:

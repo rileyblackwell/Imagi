@@ -13,7 +13,7 @@
         class="px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] border transition-colors duration-150 focus-ring"
         :class="statusFilter === option.value
           ? 'border-emerald-300 dark:border-emerald-400/40 bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300'
-          : 'border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30'"
+          : 'border-ink/[0.14] dark:border-white/[0.16] text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white hover:border-ink/30 dark:hover:border-white/30'"
         @click="setFilter(option.value)"
       >
         {{ option.label }}
@@ -34,7 +34,7 @@
               <i class="fas fa-receipt text-sm"></i>
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">
+              <p class="text-sm font-semibold text-ink dark:text-white truncate">
                 Order #{{ order.id }} · {{ itemsSummary(order) }}
               </p>
               <p :class="ui.hintText">
@@ -43,14 +43,14 @@
             </div>
           </div>
           <div class="flex items-center gap-3 shrink-0">
-            <span class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
+            <span class="text-sm font-semibold text-ink dark:text-white tabular-nums">
               {{ formatMoney(order.amount_total_cents, order.currency) }}
             </span>
             <OrderStatusBadge :status="order.status" />
             <button
               v-if="order.status === 'paid'"
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-ink/80 dark:text-bone/80 hover:text-ink dark:hover:text-white hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] border border-ink/[0.14] dark:border-white/[0.16] hover:border-ink/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
               :disabled="busyOrderId === order.id"
               @click="fulfill(order.id)"
             >
@@ -60,7 +60,7 @@
             <button
               v-if="order.status === 'pending' && order.stripe_checkout_session_id"
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-ink/80 dark:text-bone/80 hover:text-ink dark:hover:text-white hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] border border-ink/[0.14] dark:border-white/[0.16] hover:border-ink/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
               title="Check the payment status with Stripe"
               :disabled="busyOrderId === order.id"
               @click="sync(order.id)"
@@ -72,7 +72,7 @@
         </div>
         <!-- Items -->
         <div v-if="order.items.length" class="mt-3 pl-[52px]">
-          <p v-for="item in order.items" :key="item.id" class="text-xs text-blue-950/60 dark:text-blue-100/60">
+          <p v-for="item in order.items" :key="item.id" class="text-xs text-ink/60 dark:text-bone/60">
             {{ item.quantity }} × {{ item.product_name }} — {{ formatMoney(item.unit_price_cents * item.quantity, order.currency) }}
           </p>
         </div>

@@ -72,7 +72,7 @@
              top of the sidebar (the usage panel's recipe). -->
         <div class="iw-scroll max-h-[min(26rem,calc(100vh-19rem))] overflow-y-auto">
           <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
-            <span id="tune-model-heading" class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            <span id="tune-model-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
               Model
             </span>
           </div>
@@ -111,7 +111,7 @@
           </div>
 
           <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
-            <span id="tune-effort-heading" class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+            <span id="tune-effort-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
               Reasoning effort
             </span>
           </div>
@@ -167,10 +167,10 @@
         class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
       >
         <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
             Usage
           </span>
-          <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
+          <span class="text-[11px] font-medium text-ink/70 dark:text-white/70 truncate">
             {{ planSummary }}
           </span>
         </div>
@@ -181,18 +181,18 @@
           <div class="px-3 py-2.5 space-y-3">
             <div v-for="meter in usageMeters" :key="meter.key">
               <div class="flex items-baseline justify-between gap-2">
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-white/40">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-ink/40 dark:text-white/40">
                   {{ meter.label }}
                 </span>
                 <!-- Unknown usage shows an em-dash and no bar — never 0% -->
-                <span class="text-[11px] font-medium tabular-nums text-blue-950/70 dark:text-white/70">
+                <span class="text-[11px] font-medium tabular-nums text-ink/70 dark:text-white/70">
                   {{ meter.usedText }}
                 </span>
               </div>
               <div v-if="meter.percent !== null" class="usage-meter mt-1.5">
                 <div class="usage-meter-fill" :style="{ width: `${meter.percent}%` }"></div>
               </div>
-              <p v-if="meter.resetsAt" class="mt-1 text-[10px] text-blue-950/40 dark:text-white/35">
+              <p v-if="meter.resetsAt" class="mt-1 text-[10px] text-ink/40 dark:text-white/35">
                 Resets {{ meter.resetsAt }}
               </p>
             </div>
@@ -210,21 +210,21 @@
         class="popover mic-panel absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
       >
         <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-950/50 dark:text-white/50">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
             Microphone
           </span>
-          <span class="text-[11px] font-medium text-blue-950/70 dark:text-white/70 truncate">
+          <span class="text-[11px] font-medium text-ink/70 dark:text-white/70 truncate">
             {{ micActive?.label || (micLabelsHidden ? 'Not allowed yet' : 'System default') }}
           </span>
         </div>
         <div v-if="micLabelsHidden || micInputs.length === 0" class="px-3 py-3">
-          <p class="text-[11px] leading-snug text-blue-950/60 dark:text-white/55">
+          <p class="text-[11px] leading-snug text-ink/60 dark:text-white/55">
             Allow microphone access to see and choose your microphones. Until
             then, dictation records from your computer's default input.
           </p>
           <button
             type="button"
-            class="mic-allow iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
+            class="mic-allow iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
             @click="unlockMicInputs"
           >
             Allow microphone access
@@ -245,7 +245,7 @@
             <span class="truncate">{{ input.label || 'Microphone' }}</span>
             <span v-if="isBuiltInInput(input)" class="mic-option-tag">Built-in</span>
           </button>
-          <p class="px-3 pb-2 pt-1.5 text-[10px] leading-snug text-blue-950/45 dark:text-white/40">
+          <p class="px-3 pb-2 pt-1.5 text-[10px] leading-snug text-ink/45 dark:text-white/40">
             Your computer's built-in microphone is used unless you pick another.
           </p>
         </div>
@@ -256,14 +256,14 @@
            thread (dispatch, and answers relayed from the check-in queue), so
            there is no composer here — just a way back. -->
       <div v-if="isTaskThread" class="px-2 pt-1 pb-3">
-        <div class="rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.14] bg-blue-50/40 dark:bg-white/[0.03] px-3 py-2.5">
-          <p class="text-[11px] leading-snug text-blue-950/60 dark:text-white/55">
+        <div class="rounded-2xl border border-ink/[0.08] dark:border-white/[0.14] bg-ink/[0.03] dark:bg-white/[0.03] px-3 py-2.5">
+          <p class="text-[11px] leading-snug text-ink/60 dark:text-white/55">
             This agent is working in the background. You direct it from your main
             thread — its results and questions arrive there.
           </p>
           <button
             type="button"
-            class="btn-back-to-lead iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
+            class="btn-back-to-lead iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
             @click="goToLead"
           >
             Back to main thread
@@ -292,20 +292,20 @@
         <Transition name="queued">
         <div
           v-if="activeInstance?.queuedPrompt"
-          class="queued-row flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
+          class="queued-row flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-ink/[0.03] dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
         >
-          <i class="fas fa-hourglass-half text-[10px] text-blue-950/40 dark:text-white/40 shrink-0"></i>
+          <i class="fas fa-hourglass-half text-[10px] text-ink/40 dark:text-white/40 shrink-0"></i>
           <div class="flex-1 min-w-0">
-            <p class="text-[11px] font-medium text-blue-950/75 dark:text-white/70 truncate" :title="activeInstance.queuedPrompt">
+            <p class="text-[11px] font-medium text-ink/75 dark:text-white/70 truncate" :title="activeInstance.queuedPrompt">
               {{ activeInstance.queuedPrompt }}
             </p>
-            <p class="text-[10px] text-blue-950/40 dark:text-white/35">Queued — sends when the agent finishes</p>
+            <p class="text-[10px] text-ink/40 dark:text-white/35">Queued — sends when the agent finishes</p>
           </div>
           <button
             type="button"
             title="Cancel queued message"
             aria-label="Cancel queued message"
-            class="queued-cancel iw-press shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-blue-950/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-blue-950/70 dark:hover:text-white/70"
+            class="queued-cancel iw-press shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-ink/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-ink/70 dark:hover:text-white/70"
             @click="cancelQueuedPrompt"
           >
             <i class="fas fa-times text-[10px]"></i>
@@ -314,7 +314,7 @@
         </Transition>
 
         <!-- Input shell: textarea on top, controls toolbar below -->
-        <div class="chat-input-shell rounded-2xl bg-blue-50/40 dark:bg-white/[0.03] border border-blue-950/[0.08] dark:border-white/[0.14] shadow-sm">
+        <div class="chat-input-shell rounded-2xl bg-ink/[0.03] dark:bg-white/[0.03] border border-ink/[0.08] dark:border-white/[0.14] shadow-sm">
           <textarea
             ref="promptTextarea"
             v-model="prompt"
@@ -324,7 +324,7 @@
             @input="autoResizeTextarea"
             :disabled="!activeInstance"
             rows="4"
-            class="chat-textarea w-full bg-transparent text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-blue-100/40 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
+            class="chat-textarea w-full bg-transparent text-ink dark:text-white/90 placeholder-ink/40 dark:placeholder-bone/40 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
             style="min-height: 92px; max-height: 240px;"
           ></textarea>
 
@@ -1001,7 +1001,7 @@ const sendClass = computed(() => {
   if (isRecording.value) return 'btn-send--recording'
   if (isReadyToSend.value) return 'btn-send--ready'
   if (activeInstance.value && (hasPromptText.value || activeInstance.value.isProcessing)) {
-    return 'btn-send--active text-paper dark:text-blue-950'
+    return 'btn-send--active text-paper dark:text-ink'
   }
   return 'btn-send--idle'
 })
@@ -1400,7 +1400,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 }
 
 .chat-input-shell:focus-within {
-  border-color: rgba(23, 37, 84, 0.4);
+  border-color: rgba(19, 26, 44, 0.4);
   box-shadow: 0 0 0 3px rgba(var(--iw-accent), 0.13);
 }
 
@@ -1451,7 +1451,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   border-radius: var(--iw-r-sm);
   border: 1px solid transparent;
   background-color: transparent;
-  color: rgba(23, 37, 84, 0.75);
+  color: rgba(19, 26, 44, 0.75);
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -1466,12 +1466,12 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 
 .control-chip:hover:not(:disabled) {
   background-color: rgba(219, 234, 254, 0.5);
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .control-chip--active {
   background-color: rgba(219, 234, 254, 0.7);
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .control-chip:disabled {
@@ -1565,7 +1565,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.25rem;
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .dark .model-row__name {
@@ -1575,7 +1575,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 .model-row__tier {
   font-size: 0.6875rem;
   font-weight: 500;
-  color: rgba(23, 37, 84, 0.55);
+  color: rgba(19, 26, 44, 0.55);
 }
 
 .dark .model-row__tier {
@@ -1586,7 +1586,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   display: block;
   font-size: 0.6875rem;
   line-height: 1rem;
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
 }
 
 .dark .model-row__blurb {
@@ -1596,7 +1596,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 .model-row__check {
   flex-shrink: 0;
   font-size: 0.6875rem;
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .dark .model-row__check {
@@ -1641,19 +1641,19 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   width: 100%;
   height: calc(0.5rem + var(--rung) * 0.375rem);
   border-radius: 0.1875rem;
-  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(19, 26, 44, 0.25);
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
     box-shadow var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .effort-bar--on .effort-bar__fill {
-  background-color: rgb(23, 37, 84);
+  background-color: rgb(19, 26, 44);
   box-shadow: none;
 }
 
 .effort-bar--preview .effort-bar__fill {
-  background-color: rgba(23, 37, 84, 0.35);
+  background-color: rgba(19, 26, 44, 0.35);
 }
 
 .dark .effort-bar__fill {
@@ -1672,7 +1672,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.25rem;
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .dark .effort-readout__name {
@@ -1682,7 +1682,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 .effort-readout__desc {
   font-size: 0.6875rem;
   line-height: 1rem;
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
 }
 
 .dark .effort-readout__desc {
@@ -1694,7 +1694,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 .tune-note {
   font-size: 0.625rem;
   line-height: 0.875rem;
-  color: rgba(23, 37, 84, 0.55);
+  color: rgba(19, 26, 44, 0.55);
 }
 
 .dark .tune-note {
@@ -1714,7 +1714,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   position: relative;
   height: 0.25rem;
   border-radius: 9999px;
-  background: rgba(23, 37, 84, 0.1);
+  background: rgba(19, 26, 44, 0.1);
   overflow: hidden;
 }
 
@@ -1817,13 +1817,13 @@ textarea:active {
 .btn-send--idle {
   background-color: rgba(219, 234, 254, 0.6);
   border-color: rgba(191, 219, 254, 0.7);
-  color: rgba(23, 37, 84, 0.45);
+  color: rgba(19, 26, 44, 0.45);
   box-shadow: var(--iw-shadow-1);
 }
 
 .btn-send--idle:hover:not(:disabled) {
   background-color: rgba(219, 234, 254, 0.9);
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
 }
 
 .btn-send--idle:disabled {
@@ -1947,7 +1947,7 @@ textarea:active {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: left;
-  color: rgba(23, 37, 84, 0.75);
+  color: rgba(19, 26, 44, 0.75);
   background-color: transparent;
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
@@ -1958,11 +1958,11 @@ textarea:active {
 .mic-option:hover,
 .mic-option:focus-visible {
   background-color: rgba(219, 234, 254, 0.5);
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .mic-option--active {
-  color: rgb(23, 37, 84);
+  color: rgb(19, 26, 44);
 }
 
 .mic-option-mark {
@@ -1985,7 +1985,7 @@ textarea:active {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(23, 37, 84, 0.6);
+  color: rgba(19, 26, 44, 0.6);
   background-color: rgba(219, 234, 254, 0.7);
 }
 

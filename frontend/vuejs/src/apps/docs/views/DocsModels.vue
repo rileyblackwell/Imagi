@@ -53,7 +53,7 @@
             mind that it uses much more of your usage.
           </DocsCard>
         </div>
-        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
+        <div class="bg-ink/[0.03] dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
           <h4 class="callout__title">
             How the model picker works
           </h4>

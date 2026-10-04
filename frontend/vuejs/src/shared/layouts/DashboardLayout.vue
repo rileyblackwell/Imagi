@@ -20,7 +20,7 @@
            page. On mobile it drops below the navbar and becomes an off-canvas
            drawer that floats over the content. -->
       <aside
-        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col top-nav border-r border-blue-950/[0.08] dark:border-white/[0.08] bg-canvas/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
+        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col top-nav border-r border-ink/[0.08] dark:border-white/[0.08] bg-canvas/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
         :class="[
           asideWidthClass,
           isSidebarCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
@@ -31,7 +31,7 @@
              builder put their own header inside #sidebar-content instead. -->
         <div
           v-if="$slots['sidebar-header']"
-          class="flex-shrink-0 h-14 flex items-center gap-2 px-3 border-b border-blue-950/[0.08] dark:border-white/[0.08]"
+          class="flex-shrink-0 h-14 flex items-center gap-2 px-3 border-b border-ink/[0.08] dark:border-white/[0.08]"
         >
           <div class="flex-1 min-w-0">
             <slot name="sidebar-header"></slot>
@@ -62,7 +62,7 @@
         <!-- Navbar. It anchors itself to the top of the viewport; this only
              restates the surface it wears inside the app shell. -->
         <BaseNavbar
-          class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
+          class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]"
           fluid
         >
           <!-- The permanent show/hide control, pinned to the far left of the
@@ -107,7 +107,7 @@
       >
         <div
           v-if="!isSidebarCollapsed"
-          class="md:hidden fixed top-nav left-0 right-0 bottom-0 z-20 bg-blue-950/25 dark:bg-black/45 backdrop-blur-[1px]"
+          class="md:hidden fixed top-nav left-0 right-0 bottom-0 z-20 bg-ink/25 dark:bg-black/45 backdrop-blur-[1px]"
           aria-hidden="true"
           @click="setSidebarCollapsed(true)"
         ></div>

@@ -46,8 +46,8 @@
       :class="[
         'relative z-10 flex items-center justify-center px-3 py-1.5 rounded-full transition-all duration-300',
         currentTheme === 'dark' 
-          ? 'text-indigo-600 dark:text-indigo-400' 
-          : 'text-gray-600 dark:text-white/60 hover:text-indigo-500 dark:hover:text-indigo-400'
+          ? 'text-ink dark:text-bone' 
+          : 'text-gray-600 dark:text-white/60 hover:text-ink dark:hover:text-bone'
       ]"
       title="Dark theme"
       aria-label="Use dark theme"

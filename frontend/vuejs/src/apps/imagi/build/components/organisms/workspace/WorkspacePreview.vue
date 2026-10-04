@@ -1193,9 +1193,9 @@ defineExpose({ reload })
   gap: 0.5rem;
   padding: 0.4375rem 0.625rem;
   background: linear-gradient(180deg, rgba(239, 246, 255, 0.5) 0%, rgba(239, 246, 255, 0) 100%);
-  border-bottom: 1px solid rgba(23, 37, 84, 0.08);
+  border-bottom: 1px solid rgba(19, 26, 44, 0.08);
   /* Casts onto the stage so the app reads as seated *under* the chrome. */
-  box-shadow: 0 8px 16px -14px rgba(23, 37, 84, 0.55);
+  box-shadow: 0 8px 16px -14px rgba(19, 26, 44, 0.55);
 }
 
 .dark .pv-bar {
@@ -1212,8 +1212,8 @@ defineExpose({ reload })
   gap: 0.0625rem;
   padding: 0.125rem;
   border-radius: 9999px;
-  background: rgba(23, 37, 84, 0.045);
-  box-shadow: inset 0 1px 2px rgba(23, 37, 84, 0.05);
+  background: rgba(19, 26, 44, 0.045);
+  box-shadow: inset 0 1px 2px rgba(19, 26, 44, 0.05);
 }
 
 .dark .pv-rail {
@@ -1229,7 +1229,7 @@ defineExpose({ reload })
   height: 1.75rem;
   border-radius: 9999px;
   font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.55);
+  color: rgba(19, 26, 44, 0.55);
   cursor: pointer;
   transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
@@ -1237,7 +1237,7 @@ defineExpose({ reload })
 .pv-nav:hover:not(:disabled) {
   color: theme('colors.blue.950');
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 2px rgba(23, 37, 84, 0.12);
+  box-shadow: 0 1px 2px rgba(19, 26, 44, 0.12);
 }
 
 .pv-nav:active:not(:disabled) {
@@ -1251,7 +1251,7 @@ defineExpose({ reload })
 
 .pv-nav:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
 }
 
 .dark .pv-nav {
@@ -1265,7 +1265,7 @@ defineExpose({ reload })
 }
 
 .dark .pv-nav:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(251, 191, 36, 0.5);
 }
 
 /* --- Back to the main agent ---------------------------------------------- */
@@ -1282,9 +1282,9 @@ defineExpose({ reload })
   height: 1.75rem;
   padding: 0 0.5625rem;
   border-radius: 9999px;
-  border: 1px solid rgba(23, 37, 84, 0.1);
+  border: 1px solid rgba(19, 26, 44, 0.1);
   background: rgba(255, 255, 255, 0.85);
-  color: rgba(23, 37, 84, 0.72);
+  color: rgba(19, 26, 44, 0.72);
   font-size: 0.6875rem;
   font-weight: 500;
   white-space: nowrap;
@@ -1295,14 +1295,14 @@ defineExpose({ reload })
 
 .pv-switch:hover {
   background: #ffffff;
-  border-color: rgba(23, 37, 84, 0.22);
+  border-color: rgba(19, 26, 44, 0.22);
   color: theme('colors.blue.950');
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(23, 37, 84, 0.08);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(19, 26, 44, 0.08);
 }
 
 .pv-switch:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
 }
 
 .dark .pv-switch {
@@ -1320,7 +1320,7 @@ defineExpose({ reload })
 }
 
 .dark .pv-switch:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(251, 191, 36, 0.5);
 }
 
 .pv-switch-chevron {
@@ -1355,7 +1355,7 @@ defineExpose({ reload })
   padding: 0 0.25rem;
   border-radius: 9999px;
   background: theme('colors.blue.950');
-  color: #fdf9f2;
+  color: #fbfaf7;
   font-size: 0.625rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1428,7 +1428,7 @@ defineExpose({ reload })
   /* An address reads from the left even when it doesn't fill the plate — a
      button's centred default would float the page name mid-bar. */
   text-align: left;
-  border: 1px solid rgba(23, 37, 84, 0.1);
+  border: 1px solid rgba(19, 26, 44, 0.1);
   background: rgba(255, 255, 255, 0.85);
   box-shadow: inset 0 1px 0 #ffffff;
   cursor: pointer;
@@ -1436,9 +1436,9 @@ defineExpose({ reload })
 }
 
 .pv-plate:hover:not(:disabled) {
-  border-color: rgba(23, 37, 84, 0.22);
+  border-color: rgba(19, 26, 44, 0.22);
   background: #ffffff;
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(23, 37, 84, 0.08);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(19, 26, 44, 0.08);
 }
 
 .pv-plate:disabled {
@@ -1448,7 +1448,7 @@ defineExpose({ reload })
 
 .pv-plate:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
 }
 
 .dark .pv-plate {
@@ -1463,7 +1463,7 @@ defineExpose({ reload })
 }
 
 .dark .pv-plate:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(251, 191, 36, 0.5);
 }
 
 /* The plate reads as one path — the folder set back, the page carrying the
@@ -1479,13 +1479,13 @@ defineExpose({ reload })
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: -0.008em;
-  color: rgba(23, 37, 84, 0.42);
+  color: rgba(19, 26, 44, 0.42);
 }
 
 .pv-plate-sep {
   flex-shrink: 0;
   font-size: 0.8125rem;
-  color: rgba(23, 37, 84, 0.24);
+  color: rgba(19, 26, 44, 0.24);
 }
 
 .pv-plate-page {
@@ -1519,7 +1519,7 @@ defineExpose({ reload })
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.5625rem;
-  color: rgba(23, 37, 84, 0.35);
+  color: rgba(19, 26, 44, 0.35);
   pointer-events: none;
   transition: transform 0.2s ease;
 }
@@ -1548,7 +1548,7 @@ defineExpose({ reload })
   top: 0;
   bottom: 0;
   width: 34%;
-  background: linear-gradient(90deg, transparent, rgba(23, 37, 84, 0.7), transparent);
+  background: linear-gradient(90deg, transparent, rgba(19, 26, 44, 0.7), transparent);
   animation: pv-slide 1.2s ease-in-out infinite;
 }
 
@@ -1573,12 +1573,12 @@ defineExpose({ reload })
   overflow-y: auto;
   padding: 0.375rem;
   border-radius: 1rem;
-  border: 1px solid rgba(23, 37, 84, 0.08);
+  border: 1px solid rgba(19, 26, 44, 0.08);
   background: #ffffff;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 18px 48px -14px rgba(23, 37, 84, 0.24),
-    0 2px 6px -2px rgba(23, 37, 84, 0.1);
+    0 18px 48px -14px rgba(19, 26, 44, 0.24),
+    0 2px 6px -2px rgba(19, 26, 44, 0.1);
   transform-origin: top left;
   animation: pv-menu-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
@@ -1628,11 +1628,11 @@ defineExpose({ reload })
   transition: background-color 0.14s ease;
 }
 
-.pv-folder:hover { background: rgba(23, 37, 84, 0.05); }
+.pv-folder:hover { background: rgba(19, 26, 44, 0.05); }
 
 .pv-folder:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+  box-shadow: inset 0 0 0 2px rgba(194, 65, 12, 0.4);
 }
 
 .dark .pv-folder { color: #ffffff; }
@@ -1642,17 +1642,17 @@ defineExpose({ reload })
   width: 0.75rem;
   flex-shrink: 0;
   font-size: 0.5625rem;
-  color: rgba(23, 37, 84, 0.3);
+  color: rgba(19, 26, 44, 0.3);
   transition: transform 0.2s ease, color 0.14s ease;
 }
 
-.pv-folder:hover .pv-folder-chevron { color: rgba(23, 37, 84, 0.5); }
+.pv-folder:hover .pv-folder-chevron { color: rgba(19, 26, 44, 0.5); }
 .pv-folder-chevron.rotate-90 { transform: rotate(90deg); }
 
 .pv-folder-icon {
   flex-shrink: 0;
   font-size: 0.75rem;
-  color: rgba(23, 37, 84, 0.4);
+  color: rgba(19, 26, 44, 0.4);
 }
 
 .dark .pv-folder-chevron { color: rgba(219, 234, 254, 0.35); }
@@ -1662,7 +1662,7 @@ defineExpose({ reload })
 .pv-files {
   margin-left: 1.05rem;
   padding-left: 0.5rem;
-  border-left: 1px solid rgba(23, 37, 84, 0.08);
+  border-left: 1px solid rgba(19, 26, 44, 0.08);
 }
 
 .dark .pv-files { border-left-color: rgba(255, 255, 255, 0.1); }
@@ -1671,7 +1671,7 @@ defineExpose({ reload })
   padding: 0.375rem 0.5rem;
   font-size: 0.75rem;
   font-style: italic;
-  color: rgba(23, 37, 84, 0.35);
+  color: rgba(19, 26, 44, 0.35);
 }
 
 .dark .pv-files-empty { color: rgba(219, 234, 254, 0.35); }
@@ -1685,19 +1685,19 @@ defineExpose({ reload })
   border-radius: 0.5rem;
   font-size: 0.8125rem;
   text-align: left;
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
   cursor: pointer;
   transition: background-color 0.14s ease, color 0.14s ease;
 }
 
 .pv-file:hover {
-  background: rgba(23, 37, 84, 0.05);
+  background: rgba(19, 26, 44, 0.05);
   color: theme('colors.blue.950');
 }
 
 .pv-file:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+  box-shadow: inset 0 0 0 2px rgba(194, 65, 12, 0.4);
 }
 
 .pv-file--current {
@@ -1710,7 +1710,7 @@ defineExpose({ reload })
   width: 0.875rem;
   flex-shrink: 0;
   font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.3);
+  color: rgba(19, 26, 44, 0.3);
 }
 
 .pv-file--current .pv-file-icon { color: theme('colors.blue.600'); }
@@ -1724,7 +1724,7 @@ defineExpose({ reload })
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.625rem;
-  color: rgba(23, 37, 84, 0.28);
+  color: rgba(19, 26, 44, 0.28);
   opacity: 0;
   transition: opacity 0.14s ease;
 }
@@ -1746,7 +1746,7 @@ defineExpose({ reload })
    opens a gap — what shows through is matting, not a glitch. */
 .pv-stage {
   background-color: #f5f0e7;
-  background-image: radial-gradient(circle at 1px 1px, rgba(23, 37, 84, 0.055) 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, rgba(19, 26, 44, 0.055) 1px, transparent 0);
   background-size: 14px 14px;
 }
 
@@ -1782,12 +1782,12 @@ defineExpose({ reload })
   max-width: 23rem;
   padding: 1.75rem 1.5rem 1.5rem;
   border-radius: 1.25rem;
-  border: 1px solid rgba(23, 37, 84, 0.08);
-  background: #fdf9f2;
+  border: 1px solid rgba(19, 26, 44, 0.08);
+  background: #fbfaf7;
   text-align: center;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 24px 60px -24px rgba(23, 37, 84, 0.3);
+    0 24px 60px -24px rgba(19, 26, 44, 0.3);
   animation: pv-notice-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
@@ -1819,7 +1819,7 @@ defineExpose({ reload })
   max-width: 19rem;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: rgba(23, 37, 84, 0.55);
+  color: rgba(19, 26, 44, 0.55);
 }
 
 .dark .pv-notice-body { color: rgba(219, 234, 254, 0.55); }
@@ -1831,7 +1831,7 @@ defineExpose({ reload })
   font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
-  color: rgba(23, 37, 84, 0.35);
+  color: rgba(19, 26, 44, 0.35);
 }
 
 .dark .pv-clock { color: rgba(219, 234, 254, 0.35); }
@@ -1853,9 +1853,9 @@ defineExpose({ reload })
   border-radius: 9999px;
   background: conic-gradient(
     from 0deg,
-    rgba(23, 37, 84, 0) 0deg,
-    rgba(23, 37, 84, 0.1) 150deg,
-    rgba(23, 37, 84, 0.85) 355deg
+    rgba(19, 26, 44, 0) 0deg,
+    rgba(19, 26, 44, 0.1) 150deg,
+    rgba(19, 26, 44, 0.85) 355deg
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
@@ -1893,10 +1893,10 @@ defineExpose({ reload })
   height: 2.75rem;
   margin-bottom: 0.5rem;
   border-radius: 0.875rem;
-  background: rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.6);
+  background: rgba(19, 26, 44, 0.06);
+  color: rgba(19, 26, 44, 0.6);
   font-size: 0.9375rem;
-  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(19, 26, 44, 0.06);
 }
 
 .pv-mark--alert {
@@ -1926,15 +1926,15 @@ defineExpose({ reload })
   margin: 0.375rem 0 0.25rem;
   padding: 0.5rem 0.625rem;
   border-radius: 0.625rem;
-  border: 1px solid rgba(23, 37, 84, 0.08);
-  background: rgba(23, 37, 84, 0.035);
+  border: 1px solid rgba(19, 26, 44, 0.08);
+  background: rgba(19, 26, 44, 0.035);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.6875rem;
   line-height: 1.5;
   text-align: left;
   white-space: pre-wrap;
   word-break: break-word;
-  color: rgba(23, 37, 84, 0.65);
+  color: rgba(19, 26, 44, 0.65);
 }
 
 .dark .pv-code {
@@ -1969,25 +1969,25 @@ defineExpose({ reload })
 
 .pv-btn--ink {
   background: theme('colors.blue.950');
-  color: #fdf9f2;
+  color: #fbfaf7;
   box-shadow:
-    0 1px 2px rgba(23, 37, 84, 0.2),
-    0 3px 8px -2px rgba(23, 37, 84, 0.25);
+    0 1px 2px rgba(19, 26, 44, 0.2),
+    0 3px 8px -2px rgba(19, 26, 44, 0.25);
 }
 
 .pv-btn--ink:hover {
   background: theme('colors.blue.900');
   transform: translateY(-1px);
   box-shadow:
-    0 2px 3px rgba(23, 37, 84, 0.2),
-    0 6px 14px -4px rgba(23, 37, 84, 0.3);
+    0 2px 3px rgba(19, 26, 44, 0.2),
+    0 6px 14px -4px rgba(19, 26, 44, 0.3);
 }
 
 .pv-btn--ink:active { transform: translateY(0); }
 
 .pv-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
 }
 
 .dark .pv-btn--ink {
@@ -2001,7 +2001,7 @@ defineExpose({ reload })
 .dark .pv-btn--ink:hover { background: #ffffff; }
 
 .dark .pv-btn:focus-visible {
-  box-shadow: 0 0 0 2px #121214, 0 0 0 4px rgba(147, 197, 253, 0.5);
+  box-shadow: 0 0 0 2px #121214, 0 0 0 4px rgba(251, 191, 36, 0.5);
 }
 
 /* --- Console-error banner ------------------------------------------------- */
@@ -2018,12 +2018,12 @@ defineExpose({ reload })
   overflow: hidden;
   padding: 0.5rem 0.625rem 0.5rem 0.875rem;
   border-radius: 0.875rem;
-  border: 1px solid rgba(23, 37, 84, 0.08);
+  border: 1px solid rgba(19, 26, 44, 0.08);
   background: rgba(253, 249, 242, 0.96);
   backdrop-filter: blur(8px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 16px 36px -16px rgba(23, 37, 84, 0.4);
+    0 16px 36px -16px rgba(19, 26, 44, 0.4);
   animation: pv-alert-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
@@ -2084,7 +2084,7 @@ defineExpose({ reload })
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.5);
+  color: rgba(19, 26, 44, 0.5);
 }
 
 .dark .pv-alert-detail { color: rgba(219, 234, 254, 0.45); }
@@ -2098,19 +2098,19 @@ defineExpose({ reload })
   height: 1.75rem;
   border-radius: 9999px;
   font-size: 0.6875rem;
-  color: rgba(23, 37, 84, 0.4);
+  color: rgba(19, 26, 44, 0.4);
   cursor: pointer;
   transition: background-color 0.14s ease, color 0.14s ease;
 }
 
 .pv-alert-dismiss:hover {
-  background: rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.7);
+  background: rgba(19, 26, 44, 0.06);
+  color: rgba(19, 26, 44, 0.7);
 }
 
 .pv-alert-dismiss:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #fdf9f2, 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
 }
 
 .dark .pv-alert-dismiss { color: rgba(255, 255, 255, 0.4); }

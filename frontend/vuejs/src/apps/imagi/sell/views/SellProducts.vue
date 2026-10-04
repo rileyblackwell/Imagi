@@ -7,7 +7,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
       <div class="relative flex-1 max-w-sm">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-ink/40 dark:text-bone/30"></i>
         <input
           v-model="search"
           type="search"
@@ -40,7 +40,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ product.name }}</p>
+              <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ product.name }}</p>
               <p :class="ui.bodyText" class="tabular-nums">
                 {{ formatMoney(product.price_cents, store.currency) }}<span v-if="product.billing_interval === 'month'"> / month</span><span v-else-if="product.billing_interval === 'year'"> / year</span>
               </p>
@@ -48,7 +48,7 @@
             <div class="flex items-center gap-1.5 shrink-0">
               <span
                 v-if="product.billing_interval !== 'one_time'"
-                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-blue-200/80 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap text-blue-700 dark:text-blue-300"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-ink/10 dark:border-blue-400/25 bg-ink/[0.03] dark:bg-blue-400/10 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap text-blue-700 dark:text-blue-300"
               >
                 <i class="fas fa-arrows-rotate text-[9px]"></i>
                 Subscription
@@ -57,7 +57,7 @@
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap"
                 :class="product.is_active
                   ? 'border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                  : 'border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60'"
+                  : 'border-ink/10 dark:border-white/15 bg-ink/[0.03] dark:bg-white/[0.04] text-ink/60 dark:text-bone/60'"
               >
                 {{ product.is_active ? 'Active' : 'Hidden' }}
               </span>
@@ -67,7 +67,7 @@
           <div class="flex flex-wrap items-center gap-2 mt-3">
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring disabled:opacity-50"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-ink/80 dark:text-bone/80 hover:text-ink dark:hover:text-white hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] border border-ink/[0.14] dark:border-white/[0.16] hover:border-ink/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring disabled:opacity-50"
               :disabled="!product.is_active || linkLoadingId === product.id || !store.isConfigured"
               :title="store.isConfigured ? 'Create a Stripe Checkout link and copy it' : 'Connect Stripe in Settings first'"
               @click="copyPaymentLink(product.id)"
@@ -77,7 +77,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-ink/80 dark:text-bone/80 hover:text-ink dark:hover:text-white hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] border border-ink/[0.14] dark:border-white/[0.16] hover:border-ink/30 dark:hover:border-white/30 transition-colors duration-150 focus-ring"
               @click="openEdit(product)"
             >
               <i class="fas fa-pen"></i>
@@ -128,7 +128,7 @@
 
     <!-- Delete confirmation -->
     <BaseModal v-if="deletingProduct" title="Delete product" @close="deletingProduct = null">
-      <p class="text-sm text-blue-950/70 dark:text-blue-100/70 mb-6">
+      <p class="text-sm text-ink/70 dark:text-bone/70 mb-6">
         Delete “{{ deletingProduct.name }}”? Existing orders keep their history, but the
         product can no longer be bought. To stop selling it temporarily, edit it and
         uncheck “Available for purchase” instead.

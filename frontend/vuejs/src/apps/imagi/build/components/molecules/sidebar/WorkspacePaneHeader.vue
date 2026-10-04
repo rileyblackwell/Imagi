@@ -350,7 +350,7 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 }
 
 .pane-dot--idle {
-  background: rgba(23, 37, 84, 0.22);
+  background: rgba(19, 26, 44, 0.22);
 }
 
 .pane-dot--waiting {
@@ -412,8 +412,8 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.pane-status--idle { color: rgba(23, 37, 84, 0.42); }
-.pane-status--waiting { color: rgba(23, 37, 84, 0.78); }
+.pane-status--idle { color: rgba(19, 26, 44, 0.42); }
+.pane-status--waiting { color: rgba(19, 26, 44, 0.78); }
 .pane-status--working { color: theme('colors.blue.600'); }
 
 .dark .pane-status--idle { color: rgba(219, 234, 254, 0.4); }
@@ -468,9 +468,9 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   height: 1.75rem;
   padding: 0 0.5625rem;
   border-radius: 9999px;
-  border: 1px solid rgba(23, 37, 84, 0.1);
+  border: 1px solid rgba(19, 26, 44, 0.1);
   background: rgba(255, 255, 255, 0.85);
-  color: rgba(23, 37, 84, 0.72);
+  color: rgba(19, 26, 44, 0.72);
   font-size: 0.6875rem;
   font-weight: 500;
   cursor: pointer;
@@ -560,9 +560,9 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 
 .pane-switch:hover {
   background: #ffffff;
-  border-color: rgba(23, 37, 84, 0.22);
+  border-color: rgba(19, 26, 44, 0.22);
   color: theme('colors.blue.950');
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(23, 37, 84, 0.08);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(19, 26, 44, 0.08);
 }
 
 .pane-switch:focus-visible {
@@ -663,7 +663,7 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   padding: 0 0.25rem;
   border-radius: 9999px;
   background: theme('colors.blue.950');
-  color: #fdf9f2;
+  color: #fbfaf7;
   font-size: 0.625rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;

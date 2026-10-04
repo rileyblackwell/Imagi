@@ -21,7 +21,7 @@
     <button
       v-if="!streaming"
       type="button"
-      class="feed-toggle inline-flex items-center gap-1.5 rounded text-blue-950/50 dark:text-white/45 hover:text-blue-950/80 dark:hover:text-white/75"
+      class="feed-toggle inline-flex items-center gap-1.5 rounded text-ink/50 dark:text-white/45 hover:text-ink/80 dark:hover:text-white/75"
       :aria-expanded="expanded"
       @click="expanded = !expanded"
     >
@@ -53,7 +53,7 @@
           ></i>
           <i v-else class="fas fa-check text-[9px] text-blue-600/60 dark:text-blue-300/60"></i>
         </span>
-        <span class="min-w-0 text-blue-950/70 dark:text-white/65">{{ step.label }}</span>
+        <span class="min-w-0 text-ink/70 dark:text-white/65">{{ step.label }}</span>
       </li>
     </TransitionGroup>
 
@@ -67,7 +67,7 @@
           <span class="flex w-3.5 shrink-0 items-center justify-center mt-[3px]">
             <i class="fas fa-check text-[9px] text-blue-600/60 dark:text-blue-300/60"></i>
           </span>
-          <span class="min-w-0 text-blue-950/70 dark:text-white/65">{{ step.label }}</span>
+          <span class="min-w-0 text-ink/70 dark:text-white/65">{{ step.label }}</span>
         </li>
       </ul>
     </FoldTransition>

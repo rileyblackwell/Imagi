@@ -28,7 +28,7 @@
       <div v-show="isOpen" class="absolute left-1/2 -translate-x-1/2 pt-3 w-max origin-top z-50">
         <!-- crisp-card is the shared shadow ladder from tokens.css; this panel
              had its own copy of it under a different class name. -->
-        <div class="crisp-card rounded-2xl bg-paper-raised/95 border border-blue-200/60 dark:border-blue-400/[0.14] backdrop-blur-xl overflow-hidden p-1.5 transition-colors duration-300">
+        <div class="crisp-card rounded-2xl bg-paper-raised/95 border border-ink/10 dark:border-blue-400/[0.14] backdrop-blur-xl overflow-hidden p-1.5 transition-colors duration-300">
           <slot name="menu"></slot>
         </div>
       </div>

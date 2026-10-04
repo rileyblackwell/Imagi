@@ -20,6 +20,13 @@ export default {
         'paper-inverted': 'rgb(var(--app-paper-inverted) / <alpha-value>)',
         canvas: 'rgb(var(--app-canvas) / <alpha-value>)',
 
+        // The two inks, shared with the editorial surface (editorial.css
+        // --ink). `ink` is the light theme's text and the primary button fill;
+        // `bone` is the dark theme's text — a warm off-white rather than a blue
+        // tint, so the signed-in tools read in the same voice as the home page.
+        ink: '#131a2c',
+        bone: '#f6f4f0',
+
         // Clean neutral palette
         dark: {
           950: '#0a0a0a',
@@ -44,8 +51,11 @@ export default {
         },
       },
       fontFamily: {
+        // Instrument Sans is the site's text face (it is what index.html
+        // loads). This used to lead with Inter, which nothing loads, so every
+        // element not explicitly set in `font-body` fell through to Arial.
         sans: [
-          'Inter',
+          'Instrument Sans',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',

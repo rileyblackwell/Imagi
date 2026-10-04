@@ -9,7 +9,7 @@
   <router-link :to="to" class="flex items-center" :class="[iconOnly ? '' : 'space-x-2']">
     <!-- Logo Text -->
     <span
-      class="wordmark font-display font-semibold leading-none tracking-[-0.01em] text-blue-950 dark:text-white transition-colors duration-300"
+      class="wordmark font-display font-semibold leading-none tracking-[-0.01em] text-ink dark:text-white transition-colors duration-300"
       :class="[
         size === 'sm' ? 'text-lg' :
         size === 'md' ? 'text-[1.35rem]' :

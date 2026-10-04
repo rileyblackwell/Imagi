@@ -13,20 +13,20 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <!-- Overlay -->
       <div
-        class="absolute inset-0 bg-blue-950/40 dark:bg-black/60 backdrop-blur-sm"
+        class="absolute inset-0 bg-ink/40 dark:bg-black/60 backdrop-blur-sm"
         @click="$emit('close')"
       ></div>
 
       <!-- Panel -->
       <div
-        class="relative w-full max-h-[88vh] overflow-y-auto crisp-card rounded-2xl bg-paper-raised border border-blue-200/70 dark:border-blue-300/[0.16] p-6"
+        class="relative w-full max-h-[88vh] overflow-y-auto crisp-card rounded-2xl bg-paper-raised border border-ink/10 dark:border-white/10 p-6"
         :class="wide ? 'max-w-2xl' : 'max-w-lg'"
         role="dialog"
         aria-modal="true"
         :aria-label="title"
       >
         <div class="flex items-start justify-between gap-4 mb-5">
-          <h3 class="text-lg font-semibold text-blue-950 dark:text-white transition-colors duration-300">
+          <h3 class="text-lg font-semibold text-ink dark:text-white transition-colors duration-300">
             {{ title }}
           </h3>
           <button

@@ -4,7 +4,7 @@
     <div ref="messagesContainer" class="iw-scroll iw-surface flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
       <!-- Empty state: one quiet line, nothing to dismiss or click -->
       <div v-if="!processedMessages.length" class="h-full flex items-center justify-center px-6 py-4 text-center min-h-0">
-        <p class="text-xs text-blue-950/45 dark:text-blue-100/45 max-w-[230px] leading-relaxed">
+        <p class="text-xs text-ink/45 dark:text-bone/45 max-w-[230px] leading-relaxed">
           Describe a change and the agent will build it into your app.
         </p>
       </div>
@@ -29,7 +29,7 @@
               <button
                 v-if="message.checkpoint && message.dbId && restoreAllowed"
                 type="button"
-                class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-blue-950/40 dark:text-white/35 hover:text-blue-950/75 dark:hover:text-white/75 hover:bg-blue-50/80 dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-ink/40 dark:text-white/35 hover:text-ink/75 dark:hover:text-white/75 hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                 title="Restore your app and this conversation to the moment before this message"
                 @click="emit('restore-checkpoint', message)"
               >
@@ -92,7 +92,7 @@
               </Transition>
               <div v-if="message.filesChanged?.length" class="mt-2">
                 <span
-                  class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 dark:border-white/[0.08] bg-blue-50/60 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-blue-950/70 dark:text-white/60"
+                  class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 dark:border-white/[0.08] bg-ink/[0.03] dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-ink/70 dark:text-white/60"
                   :title="message.filesChanged.join('\n')"
                 >
                   <i class="fas fa-file-pen text-[9px] text-blue-600/70 dark:text-blue-300/70"></i>
@@ -105,7 +105,7 @@
                    never "0 tokens". -->
               <p
                 v-if="typeof messageTokens(message) === 'number'"
-                class="mt-1.5 text-[10px] text-blue-950/35 dark:text-white/30"
+                class="mt-1.5 text-[10px] text-ink/35 dark:text-white/30"
               >
                 {{ formatTokens(messageTokens(message)!) }}
               </p>
@@ -116,7 +116,7 @@
               class="msg-row flex justify-center"
               :class="{ 'animate-fade-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
+              <span class="text-xs text-ink/40 dark:text-bone/40 px-3 py-1">{{ message.content }}</span>
             </div>
 
             <!-- Other message types -->
@@ -124,7 +124,7 @@
               class="msg-row flex justify-center"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
+              <span class="text-xs text-ink/40 dark:text-bone/40 px-3 py-1">{{ message.content }}</span>
             </div>
           </template>
 
@@ -522,7 +522,7 @@ const formatTokens = (total: number): string => {
   padding-left: 0.0625rem;
   font-size: 0.6875rem;
   line-height: 1.5;
-  color: rgba(23, 37, 84, 0.45);
+  color: rgba(19, 26, 44, 0.45);
 }
 
 .dark .handback {
@@ -661,7 +661,7 @@ const formatTokens = (total: number): string => {
 
 /* Ink-tinted list markers instead of the typography plugin's gray */
 .prose ::marker {
-  color: rgba(23, 37, 84, 0.4);
+  color: rgba(19, 26, 44, 0.4);
 }
 
 .dark .prose ::marker {
@@ -778,9 +778,9 @@ const formatTokens = (total: number): string => {
 .status-shimmer {
   background-image: linear-gradient(
     100deg,
-    rgba(23, 37, 84, 0.4) 20%,
+    rgba(19, 26, 44, 0.4) 20%,
     rgba(59, 130, 246, 0.95) 50%,
-    rgba(23, 37, 84, 0.4) 80%
+    rgba(19, 26, 44, 0.4) 80%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
@@ -825,7 +825,7 @@ const formatTokens = (total: number): string => {
     background-clip: unset;
     -webkit-background-clip: unset;
     background-image: none;
-    color: rgba(23, 37, 84, 0.55);
+    color: rgba(19, 26, 44, 0.55);
   }
 
   .dark .status-shimmer {

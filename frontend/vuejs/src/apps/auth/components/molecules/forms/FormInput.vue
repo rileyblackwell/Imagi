@@ -1,10 +1,9 @@
 <template>
+  <!-- The editorial field: a tracked label over a hairline underline, the
+       same treatment as the "Start a project" form on the projects page. -->
   <div class="form-group">
-    <label class="relative block group">
-      <span class="sr-only">{{ label }}</span>
-      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10 pointer-events-none">
-        <i :class="[icon, 'text-blue-950/40 dark:text-blue-100/40 transition-colors duration-200']"></i>
-      </span>
+    <label class="field">
+      <span class="field__label">{{ label }}</span>
       <input
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
@@ -15,18 +14,12 @@
         :autocomplete="autocomplete"
         :disabled="disabled"
         :placeholder="placeholder"
-        class="w-full py-4 pl-12 pr-4 rounded-xl
-               text-blue-950 dark:text-white
-               placeholder-blue-950/40 dark:placeholder-blue-100/35
-               disabled:opacity-50 disabled:cursor-not-allowed
-               transition-colors duration-200
-               border bg-white/70 dark:bg-white/[0.04] backdrop-blur-sm"
-        :class="[
-          hasError ? `bg-red-50 dark:bg-red-500/5 ${fieldFocusError}` : `${fieldBorder} ${fieldFocus}`
-        ]"
+        class="field__input disabled:opacity-50 disabled:cursor-not-allowed"
+        :class="{ 'field__input--error': hasError }"
+        :aria-invalid="hasError ? 'true' : undefined"
       >
     </label>
-    <ErrorMessage v-if="showError" :name="name" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+    <ErrorMessage v-if="showError" :name="name" class="field__error flex items-center gap-2">
       <i class="fas fa-exclamation-circle text-xs"></i>
     </ErrorMessage>
   </div>
@@ -35,7 +28,6 @@
 <script setup>
 import { ErrorMessage } from 'vee-validate'
 import { computed } from 'vue'
-import { fieldBorder, fieldFocus, fieldFocusError } from '@/shared/styles/forms'
 
 const props = defineProps({
   modelValue: {
@@ -54,9 +46,10 @@ const props = defineProps({
     type: String,
     default: 'text'
   },
+  // Accepted for backwards compatibility; the editorial field has no icon.
   icon: {
     type: String,
-    required: true
+    default: ''
   },
   disabled: {
     type: Boolean,
@@ -104,18 +97,18 @@ input::-moz-focus-inner {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #172554;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(253, 249, 242, 1) inset;
+  -webkit-text-fill-color: #131a2c;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
-  border-color: rgba(23, 37, 84, 0.25) !important;
+  border-color: rgba(19, 26, 44, 0.25) !important;
 }
 
 /* Autofill styling for dark mode */
 :root.dark input:-webkit-autofill,
 :root.dark input:-webkit-autofill:hover,
 :root.dark input:-webkit-autofill:focus {
-  -webkit-text-fill-color: white;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(28, 29, 33, 1) inset;
+  -webkit-text-fill-color: #f6f4f0;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(18, 18, 20, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
   border-color: rgba(255, 255, 255, 0.14) !important;
 }

@@ -12,7 +12,7 @@
       <div class="w-16 h-16 text-2xl mb-5" :class="ui.iconTile">
         <i class="fas fa-inbox"></i>
       </div>
-      <h2 class="text-xl font-semibold text-blue-950 dark:text-white mb-2">No conversations yet</h2>
+      <h2 class="text-xl font-semibold text-ink dark:text-white mb-2">No conversations yet</h2>
       <p :class="ui.bodyText" class="max-w-md mb-2">
         Threads appear here once you message a contact or a customer texts your Twilio number.
       </p>
@@ -33,8 +33,8 @@
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
       <!-- Conversation list -->
       <section class="overflow-hidden lg:max-h-[640px] flex flex-col" :class="ui.card">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-blue-200/60 dark:border-white/[0.08]">
-          <h2 class="text-sm font-semibold text-blue-950 dark:text-white">Conversations</h2>
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink/10 dark:border-white/[0.08]">
+          <h2 class="text-sm font-semibold text-ink dark:text-white">Conversations</h2>
           <button
             :class="ui.iconBtn"
             type="button"
@@ -50,10 +50,10 @@
             v-for="conversation in store.conversations"
             :key="conversation.id"
             type="button"
-            class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 transition-colors duration-150 focus-ring-inset"
+            class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-ink/[0.06] dark:border-white/[0.05] last:border-b-0 transition-colors duration-150 focus-ring-inset"
             :class="selectedId === conversation.id
-              ? 'bg-blue-50/80 dark:bg-blue-400/10'
-              : 'hover:bg-blue-50/60 dark:hover:bg-white/[0.04]'"
+              ? 'bg-ink/[0.03] dark:bg-blue-400/10'
+              : 'hover:bg-ink/[0.03] dark:hover:bg-white/[0.04]'"
             @click="selectConversation(conversation.id)"
           >
             <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] text-blue-700 dark:text-blue-200 text-xs font-semibold uppercase">
@@ -61,10 +61,10 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
-                <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ conversation.display_name }}</p>
-                <p class="text-[11px] text-blue-950/50 dark:text-blue-100/50 whitespace-nowrap">{{ formatDateTime(conversation.last_message_at) }}</p>
+                <p class="text-sm font-medium text-ink dark:text-white truncate">{{ conversation.display_name }}</p>
+                <p class="text-[11px] text-ink/50 dark:text-bone/50 whitespace-nowrap">{{ formatDateTime(conversation.last_message_at) }}</p>
               </div>
-              <p class="text-xs text-blue-950/60 dark:text-blue-100/60 truncate">
+              <p class="text-xs text-ink/60 dark:text-bone/60 truncate">
                 <i
                   :class="['fas', conversation.last_message_direction === 'inbound' ? 'fa-reply' : 'fa-share', 'text-[10px] mr-1 opacity-60']"
                 ></i>
@@ -79,9 +79,9 @@
       <section class="lg:col-span-2 flex flex-col lg:max-h-[640px] min-h-[420px]" :class="ui.card">
         <template v-if="thread">
           <!-- Thread header -->
-          <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-blue-200/60 dark:border-white/[0.08]">
+          <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-ink/10 dark:border-white/[0.08]">
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ thread.contact.display_name }}</p>
+              <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ thread.contact.display_name }}</p>
               <p :class="ui.hintText" class="font-mono">{{ thread.contact.phone_number }}</p>
             </div>
             <StatusBadge :status="thread.contact.consent" />
@@ -90,7 +90,7 @@
           <!-- Messages -->
           <div ref="threadPane" class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             <div v-if="threadLoading" class="flex justify-center py-8">
-              <div class="w-5 h-5 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
+              <div class="w-5 h-5 border-2 border-ink/[0.12] dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
             </div>
             <template v-else>
               <div
@@ -103,8 +103,8 @@
                   <div
                     class="px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
                     :class="message.direction === 'outbound'
-                      ? 'bg-blue-950 text-paper dark:bg-paper-inverted dark:text-blue-950 rounded-br-md'
-                      : 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white border border-blue-200/60 dark:border-white/[0.08] rounded-bl-md'"
+                      ? 'bg-ink text-paper dark:bg-paper-inverted dark:text-ink rounded-br-md'
+                      : 'bg-ink/[0.04] dark:bg-white/[0.08] text-ink dark:text-white border border-ink/10 dark:border-white/[0.08] rounded-bl-md'"
                   >
                     <span v-if="message.channel === 'voice'" class="block text-[11px] uppercase tracking-wide opacity-70 mb-0.5">
                       <i class="fas fa-phone-volume mr-1"></i>Voice call
@@ -112,7 +112,7 @@
                     {{ message.body || '(no text)' }}
                   </div>
                   <p
-                    class="text-[11px] text-blue-950/50 dark:text-blue-100/50 mt-1 px-1"
+                    class="text-[11px] text-ink/50 dark:text-bone/50 mt-1 px-1"
                     :class="message.direction === 'outbound' ? 'text-right' : ''"
                   >
                     {{ formatDateTime(message.created_at) }}
@@ -125,7 +125,7 @@
           </div>
 
           <!-- Reply box -->
-          <div class="px-5 py-4 border-t border-blue-200/60 dark:border-white/[0.08]">
+          <div class="px-5 py-4 border-t border-ink/10 dark:border-white/[0.08]">
             <div v-if="thread.contact.consent !== 'subscribed'" :class="ui.infoBox">
               This contact unsubscribed (STOP). You can't message them unless they text START.
             </div>
@@ -149,7 +149,7 @@
         </template>
 
         <div v-else class="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
-          <i class="fas fa-comments text-2xl text-blue-950/20 dark:text-blue-100/20 mb-4"></i>
+          <i class="fas fa-comments text-2xl text-ink/20 dark:text-bone/20 mb-4"></i>
           <p :class="ui.bodyText">Select a conversation to read and reply.</p>
         </div>
       </section>

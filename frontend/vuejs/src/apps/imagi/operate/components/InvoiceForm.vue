@@ -74,7 +74,7 @@
           />
           <button
             type="button"
-            class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring disabled:opacity-40"
+            class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-ink/40 dark:text-bone/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-ring disabled:opacity-40"
             :disabled="form.line_items.length === 1"
             :aria-label="`Remove line item ${index + 1}`"
             @click="removeItem(index)"
@@ -88,7 +88,7 @@
           <i class="fas fa-plus text-xs"></i>
           Add line item
         </button>
-        <p class="text-sm font-semibold text-blue-950 dark:text-white tabular-nums">
+        <p class="text-sm font-semibold text-ink dark:text-white tabular-nums">
           Total: {{ formatMoney(total) }}
         </p>
       </div>

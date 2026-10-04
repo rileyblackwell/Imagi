@@ -14,9 +14,9 @@
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
             <i :class="['fas', stat.icon]" class="text-xs text-orange-600 dark:text-orange-300"></i>
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
-          <p class="text-2xl font-semibold tabular-nums" :class="stat.tone ?? 'text-blue-950 dark:text-white'">{{ stat.value }}</p>
+          <p class="text-2xl font-semibold tabular-nums" :class="stat.tone ?? 'text-ink dark:text-white'">{{ stat.value }}</p>
           <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
         </div>
       </section>
@@ -53,7 +53,7 @@
             <h2 :class="ui.panelHeading">Awaiting payment</h2>
             <router-link
               :to="{ name: 'operate-invoices', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
+              class="rounded-md text-sm font-medium text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white underline decoration-ink/20 dark:decoration-bone/25 hover:decoration-ink/50 dark:hover:decoration-bone/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               View all
             </router-link>
@@ -62,13 +62,13 @@
             <div
               v-for="invoice in dashboard.open_invoices"
               :key="invoice.id"
-              class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08]"
+              class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08]"
             >
               <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
                 <i class="fas fa-receipt text-sm"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ invoice.number }} · {{ invoice.customer_name }}</p>
+                <p class="text-sm font-medium text-ink dark:text-white truncate">{{ invoice.number }} · {{ invoice.customer_name }}</p>
                 <p :class="ui.hintText">
                   {{ formatMoney(invoice.total) }}<template v-if="invoice.due_date"> · due {{ formatDate(invoice.due_date) }}</template>
                 </p>
@@ -90,7 +90,7 @@
             <h2 :class="ui.panelHeading">Up next</h2>
             <router-link
               :to="{ name: 'operate-tasks', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
+              class="rounded-md text-sm font-medium text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white underline decoration-ink/20 dark:decoration-bone/25 hover:decoration-ink/50 dark:hover:decoration-bone/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               View all
             </router-link>
@@ -99,14 +99,14 @@
             <div
               v-for="task in dashboard.upcoming_tasks"
               :key="task.id"
-              class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08]"
+              class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08]"
             >
               <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
                 <i class="fas fa-list-check text-sm"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-blue-950 dark:text-white truncate">{{ task.title }}</p>
-                <p class="text-xs" :class="task.is_overdue ? 'text-red-600 dark:text-red-300' : 'text-blue-950/50 dark:text-blue-100/50'">
+                <p class="text-sm font-medium text-ink dark:text-white truncate">{{ task.title }}</p>
+                <p class="text-xs" :class="task.is_overdue ? 'text-red-600 dark:text-red-300' : 'text-ink/50 dark:text-bone/50'">
                   <template v-if="task.due_date">{{ task.is_overdue ? 'overdue — ' : 'due ' }}{{ formatDate(task.due_date) }}</template>
                   <template v-else>no due date</template>
                   · {{ task.priority }} priority
@@ -131,25 +131,25 @@
           <div class="flex items-center gap-4">
             <router-link
               :to="{ name: 'sell-overview', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
+              class="rounded-md text-sm font-medium text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white underline decoration-ink/20 dark:decoration-bone/25 hover:decoration-ink/50 dark:hover:decoration-bone/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               Open Sell
             </router-link>
             <router-link
               :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
-              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-ring"
+              class="rounded-md text-sm font-medium text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white underline decoration-ink/20 dark:decoration-bone/25 hover:decoration-ink/50 dark:hover:decoration-bone/60 underline-offset-4 transition-colors duration-200 focus-ring"
             >
               Open Market
             </router-link>
           </div>
         </div>
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="stat in pulseCards" :key="stat.label" class="p-4 rounded-xl border border-blue-200/60 dark:border-white/[0.08]">
+          <div v-for="stat in pulseCards" :key="stat.label" class="p-4 rounded-xl border border-ink/10 dark:border-white/[0.08]">
             <div class="flex items-center gap-2 mb-1.5">
               <i :class="['fas', stat.icon, stat.iconClass]" class="text-xs"></i>
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
             </div>
-            <p class="text-xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
+            <p class="text-xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
             <p :class="ui.hintText" class="mt-0.5">{{ stat.caption }}</p>
           </div>
         </div>

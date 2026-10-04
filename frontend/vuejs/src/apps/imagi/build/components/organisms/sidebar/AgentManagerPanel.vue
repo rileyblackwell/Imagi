@@ -43,15 +43,15 @@
       <!-- No composer: this thread is driven from the main thread (dispatch,
            and answers relayed from the check-in queue). -->
       <div class="shrink-0 px-2 pt-1 pb-3">
-        <div class="rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.14] bg-blue-50/40 dark:bg-white/[0.03] px-3 py-2.5">
-          <p class="text-[11px] leading-snug text-blue-950/60 dark:text-white/55">
+        <div class="rounded-2xl border border-ink/[0.08] dark:border-white/[0.14] bg-ink/[0.03] dark:bg-white/[0.03] px-3 py-2.5">
+          <p class="text-[11px] leading-snug text-ink/60 dark:text-white/55">
             {{ opened.isProcessing
               ? 'This agent is working in the background. You direct it from your main thread — its results and questions arrive there.'
               : 'A record of what this agent did. You direct subagents from your main thread.' }}
           </p>
           <button
             type="button"
-            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-blue-950"
+            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
             @click="closeOpened"
           >
             Back to subagents
@@ -106,7 +106,7 @@
             <div class="skeleton-line skeleton-line--faint" :style="{ width: n === 3 ? '34%' : '46%' }"></div>
           </div>
         </div>
-        <p class="pt-1 text-center text-[10px] text-blue-950/35 dark:text-white/30">Loading agents…</p>
+        <p class="pt-1 text-center text-[10px] text-ink/35 dark:text-white/30">Loading agents…</p>
       </div>
 
       <template v-else>
@@ -418,7 +418,7 @@ async function openByConversation(conversationId: number) {
 }
 
 .fleet-meter__seg--starting {
-  background: rgba(23, 37, 84, 0.2);
+  background: rgba(19, 26, 44, 0.2);
 }
 
 .dark .fleet-meter__seg--working {
@@ -530,7 +530,7 @@ async function openByConversation(conversationId: number) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: rgba(23, 37, 84, 0.45);
+  color: rgba(19, 26, 44, 0.45);
   transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
@@ -539,7 +539,7 @@ async function openByConversation(conversationId: number) {
 }
 
 .section-head--button:hover .section-head__label {
-  color: rgba(23, 37, 84, 0.72);
+  color: rgba(19, 26, 44, 0.72);
 }
 
 .dark .section-head--button:hover .section-head__label {
@@ -552,8 +552,8 @@ async function openByConversation(conversationId: number) {
   font-variant-numeric: tabular-nums;
   padding: 0 0.25rem;
   border-radius: 0.25rem;
-  background: rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.5);
+  background: rgba(19, 26, 44, 0.06);
+  color: rgba(19, 26, 44, 0.5);
   line-height: 0.9375rem;
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
@@ -568,7 +568,7 @@ async function openByConversation(conversationId: number) {
 .section-head__rule {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(23, 37, 84, 0.12) 0%, rgba(23, 37, 84, 0) 100%);
+  background: linear-gradient(90deg, rgba(19, 26, 44, 0.12) 0%, rgba(19, 26, 44, 0) 100%);
 }
 
 .dark .section-head__rule {
@@ -577,7 +577,7 @@ async function openByConversation(conversationId: number) {
 
 .section-head__chevron {
   font-size: 0.5rem;
-  color: rgba(23, 37, 84, 0.35);
+  color: rgba(19, 26, 44, 0.35);
   transition: transform var(--iw-dur-3) var(--iw-ease-inout);
 }
 
@@ -596,7 +596,7 @@ async function openByConversation(conversationId: number) {
 .empty-plate {
   margin: 0.125rem 0.125rem 0;
   padding: 1.125rem 0.875rem 1.25rem;
-  border: 1px dashed rgba(23, 37, 84, 0.14);
+  border: 1px dashed rgba(19, 26, 44, 0.14);
   border-radius: var(--iw-r-md);
   background: linear-gradient(180deg, rgba(239, 246, 255, 0.55) 0%, rgba(239, 246, 255, 0) 100%);
   text-align: center;
@@ -623,9 +623,9 @@ async function openByConversation(conversationId: number) {
   height: 1.625rem;
   margin-bottom: 0.5rem;
   border-radius: 0.5rem;
-  background: rgba(23, 37, 84, 0.06);
-  color: rgba(23, 37, 84, 0.4);
-  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.05);
+  background: rgba(19, 26, 44, 0.06);
+  color: rgba(19, 26, 44, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(19, 26, 44, 0.05);
 }
 
 .dark .empty-plate__mark {
@@ -639,7 +639,7 @@ async function openByConversation(conversationId: number) {
   font-variation-settings: 'opsz' 12, 'SOFT' 30, 'WONK' 1;
   font-size: 0.8125rem;
   font-weight: 550;
-  color: rgba(23, 37, 84, 0.7);
+  color: rgba(19, 26, 44, 0.7);
 }
 
 .dark .empty-plate__title {
@@ -650,7 +650,7 @@ async function openByConversation(conversationId: number) {
   margin-top: 0.25rem;
   font-size: 0.6875rem;
   line-height: 1.45;
-  color: rgba(23, 37, 84, 0.42);
+  color: rgba(19, 26, 44, 0.42);
 }
 
 .dark .empty-plate__body {
@@ -666,7 +666,7 @@ async function openByConversation(conversationId: number) {
   display: flex;
   gap: 0.625rem;
   padding: 0.5rem 0.5rem 0.5rem 0.75rem;
-  border: 1px solid rgba(23, 37, 84, 0.06);
+  border: 1px solid rgba(19, 26, 44, 0.06);
   border-radius: var(--iw-r-md);
   overflow: hidden;
   opacity: 0;
@@ -684,7 +684,7 @@ async function openByConversation(conversationId: number) {
   top: 0;
   bottom: 0;
   width: 0.1875rem;
-  background: rgba(23, 37, 84, 0.13);
+  background: rgba(19, 26, 44, 0.13);
 }
 
 .dark .skeleton-rail {
@@ -696,9 +696,9 @@ async function openByConversation(conversationId: number) {
   border-radius: 9999px;
   background: linear-gradient(
     90deg,
-    rgba(23, 37, 84, 0.07) 0%,
-    rgba(23, 37, 84, 0.13) 50%,
-    rgba(23, 37, 84, 0.07) 100%
+    rgba(19, 26, 44, 0.07) 0%,
+    rgba(19, 26, 44, 0.13) 50%,
+    rgba(19, 26, 44, 0.07) 100%
   );
   background-size: 200% 100%;
   animation: skeleton-sweep 1.6s ease-in-out infinite;
