@@ -22,10 +22,29 @@
           </h2>
         </div>
         <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
-          Every business you start on Imagi gets a workspace to build its web app and a
-          set of tools to run the business behind it &mdash; not two products stitched together.
+          Every business on Imagi is one project with two sets of tools: one for building
+          its web app, and one for running the business once the app is live.
         </p>
       </div>
+
+      <!-- The two halves, spelled out -->
+      <div v-reveal="{ delay: 60 }" class="rule-cols rule-cols--2 mt-14 md:mt-16">
+        <div v-for="half in halves" :key="half.name" class="rule-col">
+          <p class="half__name">
+            <span class="half__mark" aria-hidden="true"></span>{{ half.name }}
+          </p>
+          <h3 class="half__title display">{{ half.title }}</h3>
+          <p class="rule-col__body">{{ half.body }}</p>
+          <ul class="half__tools">
+            <li v-for="tool in half.tools" :key="tool">{{ tool }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <p v-reveal="{ delay: 90 }" class="half__join">
+        Both halves live in the same project, so the business and its app are never
+        in two places.
+      </p>
 
       <!-- The hub itself: four workspaces, one project -->
       <div v-reveal="{ delay: 90 }" class="mt-14 md:mt-16">
@@ -73,6 +92,23 @@ export default defineComponent({
   components: { LineIcon, ProductShot },
   directives: { reveal },
   props: {
+    halves: {
+      type: Array,
+      default: () => [
+        {
+          name: 'Build',
+          title: 'Tools to build the app',
+          body: 'Describe the business and an AI agent writes a real web app for it. You watch it take shape in a live preview, change it by chatting, and put it online in a click.',
+          tools: ['AI agent', 'Live preview', 'Real Vue and Django code', 'One-click deploy']
+        },
+        {
+          name: 'Run',
+          title: 'Tools to run the business',
+          body: 'Once the app is live, the same project carries everything around it: taking payments, finding and talking to customers, and keeping the money and the work in order.',
+          tools: ['Sell: products, checkout, orders', 'Market: campaigns, contacts, inbox', 'Operate: invoices, books, tasks']
+        }
+      ]
+    },
     stats: {
       type: Array,
       default: () => [
@@ -121,6 +157,56 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.half__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.half__mark {
+  width: 0.3rem;
+  height: 0.3rem;
+  transform: rotate(45deg);
+  background: var(--accent);
+}
+
+.half__title {
+  margin-top: 0.9rem;
+  font-size: 1.75rem;
+}
+
+.half__tools {
+  margin: auto 0 0;
+  padding: 1.1rem 0 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  border-top: 1px solid var(--rule);
+}
+
+.half__tools li {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-70);
+}
+
+.half__join {
+  margin-top: 2.5rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--ink-70);
+  text-wrap: balance;
+}
+
 /* Only the spec row is local — the ruled columns below it come from
    .rule-cols in shared/styles/editorial.css. */
 .spec-row {

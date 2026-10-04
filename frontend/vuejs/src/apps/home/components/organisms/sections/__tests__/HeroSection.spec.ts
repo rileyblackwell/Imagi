@@ -26,18 +26,21 @@ describe('HeroSection', () => {
     expect(wrapper.find('.hero-accent').text()).toBe('run')
   })
 
+  it('has nothing below the prompt but its own meta line', () => {
+    mockReducedMotion(true)
+    expect(mount(HeroSection, { global: { stubs } }).find('.outputs').exists()).toBe(false)
+  })
+
   it('keeps the hero free of product shots', () => {
     mockReducedMotion(true)
     expect(mount(HeroSection, { global: { stubs } }).find('img').exists()).toBe(false)
   })
 
-  it('shows the first example at rest, all four pieces, when motion is reduced', async () => {
+  it('keeps a plain instruction in the box when motion is reduced', async () => {
     mockReducedMotion(true)
     const wrapper = mount(HeroSection, { global: { stubs } })
     vi.advanceTimersByTime(20000)
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.outputs-label__example').text()).toBe(EXAMPLES[0].name)
-    expect(wrapper.findAll('.output--shown')).toHaveLength(4)
     expect(wrapper.find('textarea').attributes('placeholder')).toBe('Describe the business you want to start…')
   })
 
@@ -47,14 +50,12 @@ describe('HeroSection', () => {
     vi.advanceTimersByTime(1500)
     await wrapper.vm.$nextTick()
     const partial = wrapper.find('textarea').attributes('placeholder')!
-    expect(EXAMPLES[0].prompt.startsWith(partial)).toBe(true)
-    expect(partial.length).toBeLessThan(EXAMPLES[0].prompt.length)
+    expect(EXAMPLES[0].startsWith(partial)).toBe(true)
+    expect(partial.length).toBeLessThan(EXAMPLES[0].length)
 
     await wrapper.find('textarea').trigger('focus')
     vi.advanceTimersByTime(30000)
     await wrapper.vm.$nextTick()
     expect(wrapper.find('textarea').attributes('placeholder')).toBe('Describe the business you want to start…')
-    expect(wrapper.find('.outputs-label__example').text()).toBe(EXAMPLES[0].name)
-    expect(wrapper.findAll('.output--shown')).toHaveLength(4)
   })
 })
