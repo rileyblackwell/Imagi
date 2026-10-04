@@ -64,8 +64,12 @@
               :disabled="authStore.loading || isSubmitting"
               :hasError="!!errorMessage && formSubmitCount> 0"
             />
-            <!-- Password requirements, set under the field as a quiet list -->
-            <div class="mt-4">
+            <!-- Password requirements on a warm porcelain inset panel -->
+            <div class="mt-4 p-4 rounded-xl
+                        border border-blue-950/[0.08] dark:border-white/[0.1]
+                        bg-paper/80 dark:bg-white/[0.03]
+                        backdrop-blur-sm
+                        transition-all duration-300">
               <PasswordRequirements 
                 :password="value || ''"
                 ref="passwordRequirements"
@@ -83,7 +87,6 @@
               @update:modelValue="field.onChange"
               @blur="field.onBlur"
               name="password_confirmation"
-              label="Confirm password"
               autocomplete="new-password"
               placeholder="Confirm password"
               :disabled="authStore.loading || isSubmitting"
@@ -103,11 +106,11 @@
       <div class="space-y-5 pt-2">
         <!-- Terms checkbox on a warm porcelain inset panel -->
         <div class="p-4 rounded-xl
-                    border border-ink/[0.08] dark:border-white/[0.1]
+                    border border-blue-950/[0.08] dark:border-white/[0.1]
                     bg-paper/80 dark:bg-white/[0.03]
                     backdrop-blur-sm
                     hover:bg-paper dark:hover:bg-white/[0.05]
-                    hover:border-ink/[0.16] dark:hover:border-white/[0.16]
+                    hover:border-blue-950/[0.16] dark:hover:border-white/[0.16]
                     transition-all duration-300">
           <Field name="agreeToTerms" :rules="{ required: { allowFalse: false } }" :validateOnBlur="false" v-slot="{ errorMessage }">
             <FormCheckbox 
@@ -115,11 +118,11 @@
               :disabled="authStore.loading || isSubmitting"
             >
               I agree to the
-              <router-link to="/terms" class="font-medium text-ink dark:text-bone border-b border-ink/25 dark:border-bone/30 hover:border-ink/60 dark:hover:border-bone/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
+              <router-link to="/terms" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="font-medium text-ink dark:text-bone border-b border-ink/25 dark:border-bone/30 hover:border-ink/60 dark:hover:border-bone/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
+              <router-link to="/privacy" class="font-medium text-blue-950 dark:text-blue-100 border-b border-blue-950/25 dark:border-blue-100/30 hover:border-blue-950/60 dark:hover:border-blue-100/70 pb-0.5 transition-colors duration-200 rounded-sm focus-ring">
                 Privacy Policy
               </router-link>
             </FormCheckbox>

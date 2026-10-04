@@ -96,7 +96,10 @@
                     from what you say here, so the more it knows the closer the first draft lands.
                   </p>
 
-                  <form class="mt-10 grid gap-8" @submit.prevent="createProject">
+                  <!-- The homepage's prompt card: a raised sheet with a warm glow
+                       behind it, so starting a business here looks like the
+                       box a visitor typed their idea into on the way in. -->
+                  <form class="compose mt-10" @submit.prevent="createProject">
                     <div class="field">
                       <label class="field__label" for="project-name">Business name</label>
                       <input
@@ -143,22 +146,24 @@
                       ></textarea>
                     </div>
 
-                    <button
-                      type="submit"
-                      class="btn-primary group w-full"
-                      :disabled="!canCreate || isCreating"
-                    >
-                      <template v-if="isCreating">
-                        <span class="spinner" aria-hidden="true"></span>
-                        <span>Creating&hellip;</span>
-                      </template>
-                      <template v-else>
-                        <span>Create project</span>
-                        <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                      </template>
-                    </button>
+                    <div class="compose__foot">
+                      <button
+                        type="submit"
+                        class="btn-primary group compose__submit"
+                        :disabled="!canCreate || isCreating"
+                      >
+                        <template v-if="isCreating">
+                          <span class="spinner" aria-hidden="true"></span>
+                          <span>Creating&hellip;</span>
+                        </template>
+                        <template v-else>
+                          <span>Create project</span>
+                          <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                          </svg>
+                        </template>
+                      </button>
+                    </div>
                   </form>
                 </div>
 
@@ -634,6 +639,76 @@ input[type='search']::-webkit-search-cancel-button {
    the form beside it down to a third of the measure. */
 .rule-col {
   min-width: 0;
+}
+
+/* --- Compose --------------------------------------------------------------
+   The create form, in the same raised sheet as the homepage's idea prompt
+   (IdeaPrompt.vue): paper lifted off the page, a stronger hairline, a long
+   soft shadow, and the accent halo while any field inside has focus. */
+
+.compose {
+  position: relative;
+  display: grid;
+  gap: 1.9rem;
+  padding: 1.6rem 1.5rem 1.25rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 1.4rem;
+  box-shadow:
+    0 1px 0 rgba(19, 26, 44, 0.03),
+    0 28px 60px -34px rgba(19, 26, 44, 0.32);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .compose {
+    padding: 1.9rem 1.85rem 1.4rem;
+  }
+}
+
+.compose:focus-within {
+  border-color: var(--ink-40);
+  box-shadow:
+    0 0 0 4px var(--accent-soft),
+    0 28px 60px -34px rgba(19, 26, 44, 0.32);
+}
+
+:global(.dark) .compose {
+  box-shadow: 0 28px 60px -30px rgba(0, 0, 0, 0.7);
+}
+
+:global(.dark) .compose:focus-within {
+  box-shadow:
+    0 0 0 4px var(--accent-soft),
+    0 28px 60px -30px rgba(0, 0, 0, 0.7);
+}
+
+/* The low warm glow the homepage hero sets behind its prompt. */
+.compose::before {
+  content: '';
+  position: absolute;
+  inset: -2.5rem -3rem -2rem -3rem;
+  z-index: -1;
+  background: radial-gradient(60% 70% at 40% 50%, var(--accent-soft), transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.compose__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Two selectors so this beats `.editorial .btn-primary`'s padding. */
+.compose .compose__submit {
+  padding: 0.75rem 1.35rem;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 480px) {
+  .compose .compose__submit {
+    width: 100%;
+  }
 }
 
 /* The project count, sitting opposite the eyebrow it annotates. */

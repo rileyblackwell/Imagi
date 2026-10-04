@@ -1,7 +1,10 @@
 <template>
-  <div class="field">
-    <label :for="id" class="field__label">{{ label || 'Password' }}</label>
-    <div class="relative">
+  <div>
+    <label v-if="label" :for="id" class="sr-only">{{ label }}</label>
+    <div class="relative group">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10 pointer-events-none">
+        <i class="fas fa-lock text-blue-950/40 dark:text-blue-100/40 transition-colors duration-200"></i>
+      </span>
       <input
         :id="id"
         :value="modelValue"
@@ -14,21 +17,27 @@
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
-        class="field__input pr-11 disabled:opacity-50 disabled:cursor-not-allowed"
-        :class="{ 'field__input--error': hasError }"
-        :aria-invalid="hasError ? 'true' : undefined"
+        class="w-full py-4 pl-12 pr-12 rounded-xl
+               text-blue-950 dark:text-white
+               placeholder-blue-950/40 dark:placeholder-blue-100/35
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-colors duration-200
+               border bg-white/70 dark:bg-white/[0.04] backdrop-blur-sm"
+        :class="[
+          hasError ? `bg-red-50 dark:bg-red-500/5 ${fieldFocusError}` : `${fieldBorder} ${fieldFocus}`
+        ]"
       >
       <button
         type="button"
         @click="togglePassword"
         :aria-label="isVisible ? 'Hide password' : 'Show password'"
-        class="absolute inset-y-0 right-0 flex items-center justify-center w-9 rounded-md
-               text-ink/40 dark:text-bone/40
-               hover:text-ink dark:hover:text-bone
+        class="absolute inset-y-2 right-2 flex items-center justify-center w-9 my-auto rounded-lg
+               text-blue-950/40 dark:text-blue-100/40
+               hover:text-blue-950 dark:hover:text-white
                focus-ring
                transition-colors duration-200 z-10"
       >
-        <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']" class="text-sm"></i>
+        <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']"></i>
       </button>
     </div>
   </div>
@@ -36,6 +45,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { fieldBorder, fieldFocus, fieldFocusError } from '@/shared/styles/forms'
 
 const isVisible = ref(false)
 
@@ -104,18 +114,18 @@ input::-moz-focus-inner {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #131a2c;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 1) inset;
+  -webkit-text-fill-color: #172554;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(253, 249, 242, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
-  border-color: rgba(19, 26, 44, 0.25) !important;
+  border-color: rgba(23, 37, 84, 0.25) !important;
 }
 
 /* Autofill styling for dark mode */
 :root.dark input:-webkit-autofill,
 :root.dark input:-webkit-autofill:hover,
 :root.dark input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f6f4f0;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(18, 18, 20, 1) inset;
+  -webkit-text-fill-color: white;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(28, 29, 33, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
   border-color: rgba(255, 255, 255, 0.14) !important;
 }

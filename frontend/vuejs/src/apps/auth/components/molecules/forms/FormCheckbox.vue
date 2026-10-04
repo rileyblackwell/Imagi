@@ -12,19 +12,19 @@
           v-bind="field"
           :disabled="disabled"
           class="w-4 h-4 rounded
-                 accent-ink dark:accent-blue-400
-                 border-ink/[0.25] dark:border-white/25
+                 accent-blue-950 dark:accent-blue-400
+                 border-blue-950/[0.25] dark:border-white/25
                  bg-white/70 dark:bg-white/[0.05]
-                 text-ink dark:text-blue-400
+                 text-blue-950 dark:text-blue-400
                  disabled:opacity-50 disabled:cursor-not-allowed
                  transition-all duration-300
-                 checked:bg-ink checked:border-ink dark:checked:bg-blue-400 dark:checked:border-blue-400"
+                 checked:bg-blue-950 checked:border-blue-950 dark:checked:bg-blue-400 dark:checked:border-blue-400"
           :class="controlFocus"
         >
       </Field>
     </div>
     <div class="ml-3">
-      <label class="text-sm text-ink/65 dark:text-bone/65 leading-relaxed">
+      <label class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed">
         <slot></slot>
       </label>
     </div>
