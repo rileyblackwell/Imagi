@@ -43,11 +43,12 @@ UNLIMITED_PROJECTS = None
 
 
 # Names mirror the purchasable tiers on the pricing page (Free, Pro, Max), and
-# the two Max tiers are named for what they actually give you: 5x and 20x Pro's
+# the two Max tiers are named for what they actually give you: 5x and 10x Pro's
 # weekly allowance. The ids are stored on every Subscription row and mapped from
-# a Stripe lookup_key, so they must never be renamed: that would send existing
-# subscribers through get_plan()'s unknown-id fallback and silently drop them to
-# the free allowance.
+# a Stripe lookup_key, so renaming one needs a data migration for the stored
+# rows and an entry in LEGACY_PLAN_IDS: otherwise existing subscribers go
+# through get_plan()'s unknown-id fallback and silently drop to the free
+# allowance. (max_20x became max_10x this way; see migration 0005.)
 #
 # Usage is metered at the providers' list prices with no markup, so an
 # allowance is real API spend: a user who uses all of it every week costs
@@ -56,13 +57,13 @@ PLANS = {
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(5),
+        **_windows(3),
         'max_active_projects': 1,
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
-        **_windows(15),
+        **_windows(10),
         'max_active_projects': UNLIMITED_PROJECTS,
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
@@ -71,13 +72,13 @@ PLANS = {
     'max_5x': {
         'id': 'max_5x',
         'name': 'Max (5x)',
-        **_windows(75),
+        **_windows(50),
         'max_active_projects': UNLIMITED_PROJECTS,
     },
-    'max_20x': {
-        'id': 'max_20x',
-        'name': 'Max (20x)',
-        **_windows(300),
+    'max_10x': {
+        'id': 'max_10x',
+        'name': 'Max (10x)',
+        **_windows(100),
         'max_active_projects': UNLIMITED_PROJECTS,
     },
 }
@@ -89,7 +90,17 @@ PLANS = {
 LOOKUP_KEY_TO_PLAN = {
     'pro_monthly': 'pro',
     'max_5x_monthly': 'max_5x',
-    'max_20x_monthly': 'max_20x',
+    'max_10x_monthly': 'max_10x',
+    # The $200 price was sold as max_20x_monthly before the tier became 10x.
+    # Kept so a subscription still on that Stripe price resolves to the tier
+    # it now is instead of being left unrecognized by the webhook.
+    'max_20x_monthly': 'max_10x',
+}
+
+# Retired plan id -> the id that replaced it. Migration 0005 rewrote the stored
+# rows; this covers anything written by code still running the old id.
+LEGACY_PLAN_IDS = {
+    'max_20x': 'max_10x',
 }
 
 
@@ -113,7 +124,7 @@ def get_plan(plan_id):
     Unknown ids resolve to 'free' so a stale/renamed plan value in the
     database can never disable metering.
     """
-    plan = PLANS.get(plan_id)
+    plan = PLANS.get(LEGACY_PLAN_IDS.get(plan_id, plan_id))
     return plan if plan else PLANS[DEFAULT_PLAN_ID]
 
 

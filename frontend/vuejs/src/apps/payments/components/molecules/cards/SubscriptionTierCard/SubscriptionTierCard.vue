@@ -14,7 +14,7 @@
       >/month</span>
     </p>
 
-    <!-- Usage option selector (Max-style tiers pick between 5× and 20×) -->
+    <!-- Usage option selector (Max-style tiers pick between 5× and 10×) -->
     <div
       v-if="options && options.length> 1"
       class="tier__options"

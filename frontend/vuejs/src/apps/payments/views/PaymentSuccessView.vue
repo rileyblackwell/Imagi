@@ -116,7 +116,7 @@ const error = ref('')
 const paymentProcessed = ref(false)
 const portalLoading = ref(false)
 
-/** "Pro — $15 of usage per week", or null until the plan webhook has landed.
+/** "Pro — $10 of usage per week", or null until the plan webhook has landed.
  *  Quoted per week because that is the window the meter actually enforces. */
 const planSummary = computed(() => {
   const plan = usageStore.plan

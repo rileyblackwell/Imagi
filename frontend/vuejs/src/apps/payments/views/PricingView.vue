@@ -137,7 +137,7 @@ const PLAN_LOOKUP_KEYS: Record<string, string | null> = {
   free: null,
   pro: 'pro_monthly',
   max_5x: 'max_5x_monthly',
-  max_20x: 'max_20x_monthly',
+  max_10x: 'max_10x_monthly',
 }
 
 // The signed-in user's plan as a lookup key: null = Free, undefined = not
@@ -175,7 +175,7 @@ const tiers: Tier[] = [
     price: 0,
     lookupKey: null,
     cta: 'Start for free',
-    weeklyLimit: '$5 of usage per week',
+    weeklyLimit: '$3 of usage per week',
     features: [
       'Access to the core AI builder',
       '1 active project',
@@ -188,7 +188,7 @@ const tiers: Tier[] = [
     price: 25,
     lookupKey: 'pro_monthly',
     cta: 'Get started',
-    weeklyLimit: '$15 of usage per week',
+    weeklyLimit: '$10 of usage per week',
     features: [
       'Everything in Free',
       'Unlimited projects',
@@ -201,13 +201,13 @@ const tiers: Tier[] = [
     cta: 'Get started',
     isPopular: false,
     // A single Max plan with selectable usage options, mirroring Claude's Max
-    // tier. "5×"/"20×" are literal multiples of Pro's weekly allowance.
+    // tier. "5×"/"10×" are literal multiples of Pro's weekly allowance.
     options: [
       {
         label: '5× usage',
         price: 100,
         lookupKey: 'max_5x_monthly',
-        weeklyLimit: '$75 of usage per week',
+        weeklyLimit: '$50 of usage per week',
         features: [
           'Everything in Pro',
           '5× more usage than Pro',
@@ -215,13 +215,13 @@ const tiers: Tier[] = [
         ],
       },
       {
-        label: '20× usage',
+        label: '10× usage',
         price: 200,
-        lookupKey: 'max_20x_monthly',
-        weeklyLimit: '$300 of usage per week',
+        lookupKey: 'max_10x_monthly',
+        weeklyLimit: '$100 of usage per week',
         features: [
           'Everything in Pro',
-          '20× more usage than Pro',
+          '10× more usage than Pro',
           'Priority access at peak times',
         ],
       },

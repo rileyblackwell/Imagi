@@ -15,7 +15,7 @@
         <div class="space-y-4 text-[color:var(--ink-55)] text-lg leading-relaxed mb-8 transition-colors duration-300">
           <p>
             Every plan includes a <strong class="ink-strong">weekly usage allowance</strong>,
-            quoted in dollars of AI work—$5 a week on Free, $15 on Pro. Nothing is charged per run: each run's cost is
+            quoted in dollars of AI work—$3 a week on Free, $10 on Pro. Nothing is charged per run: each run's cost is
             simply metered against one
             <strong class="ink-strong">rolling weekly window</strong>. That window is the only
             limit you'll ever see—there is no session cap and no separate monthly counter running in the background.
@@ -63,28 +63,28 @@
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Free — $0">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$5 of AI usage per week</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$3 of AI usage per week</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>1 active project</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Community support</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Pro — $25 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$15 of AI usage per week</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$10 of AI usage per week</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Unlimited projects</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority support</span></li>
             </ul>
           </DocsCard>
           <DocsCard title="Max (5×) — $100 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$75 of AI usage per week — 5× Pro</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$50 of AI usage per week — 5× Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Early access to new features</span></li>
             </ul>
           </DocsCard>
-          <DocsCard title="Max (20×) — $200 / month">
+          <DocsCard title="Max (10×) — $200 / month">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$300 of AI usage per week — 20× Pro</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$100 of AI usage per week — 10× Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority access at peak times</span></li>
             </ul>
