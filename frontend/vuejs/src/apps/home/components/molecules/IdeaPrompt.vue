@@ -245,21 +245,14 @@ export default defineComponent({
   border: 1px solid transparent;
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(26, 29, 40, 0.94), rgba(18, 20, 28, 0.97)) padding-box,
-    linear-gradient(140deg, rgba(255, 107, 90, 0.75), rgba(255, 181, 71, 0.35) 35%, rgba(255, 255, 255, 0.08) 60%, rgba(255, 181, 71, 0.45)) border-box;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.4),
-    0 30px 80px -20px rgba(255, 110, 70, 0.35),
-    0 0 60px -10px var(--sl-glow);
+    var(--sl-prompt-bg) padding-box,
+    var(--sl-prompt-edge) border-box;
+  box-shadow: var(--sl-prompt-shadow);
   backdrop-filter: blur(14px);
 }
 
 .spotlight .idea--focused {
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.4),
-    0 0 0 4px rgba(255, 181, 71, 0.16),
-    0 30px 80px -20px rgba(255, 110, 70, 0.45),
-    0 0 70px -10px var(--sl-glow);
+  box-shadow: var(--sl-prompt-shadow-focus);
 }
 
 .spotlight .idea__input {
@@ -276,7 +269,7 @@ export default defineComponent({
 }
 
 .spotlight .idea__input::placeholder {
-  color: #c9cddb;
+  color: var(--sl-placeholder);
 }
 
 .spotlight .idea--md .idea__input::placeholder {
@@ -304,17 +297,17 @@ export default defineComponent({
   font-weight: 500;
   color: var(--sl-muted);
   border: 1px solid var(--sl-line);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--sl-chip-bg);
 }
 
 .spotlight .idea__chip:hover {
   color: var(--sl-text);
   border-color: var(--sl-line-strong);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--sl-chip-bg-hover);
 }
 
 .spotlight .idea__chip:focus-visible {
-  outline-color: var(--sl-amber);
+  outline-color: var(--sl-focus);
 }
 
 .spotlight .idea__submit {
@@ -331,17 +324,13 @@ export default defineComponent({
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow:
-    0 8px 28px -6px rgba(255, 120, 80, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: var(--sl-btn-shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .spotlight .idea__submit:hover {
   transform: translateY(-1px);
-  box-shadow:
-    0 12px 34px -6px rgba(255, 120, 80, 0.75),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: var(--sl-btn-shadow-hover);
 }
 
 .spotlight .idea__submit:focus-visible {

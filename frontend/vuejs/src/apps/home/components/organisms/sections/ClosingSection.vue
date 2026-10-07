@@ -64,8 +64,8 @@ export default defineComponent({
 /* The light sits over the headline here, not at the top edge */
 .closing .closing__spot {
   background:
-    radial-gradient(ellipse 38% 48% at 50% 30%, rgba(255, 170, 110, 0.26) 0%, rgba(255, 120, 80, 0.1) 45%, transparent 75%),
-    radial-gradient(ellipse 30% 25% at 50% 100%, rgba(255, 120, 80, 0.1), transparent 70%);
+    radial-gradient(ellipse 38% 48% at 50% 30%, var(--sl-spot-core) 0%, var(--sl-spot-mid) 45%, transparent 75%),
+    radial-gradient(ellipse 30% 25% at 50% 100%, var(--sl-spot-wide), transparent 70%);
 }
 
 .closing .closing__spot::before {
@@ -110,6 +110,6 @@ export default defineComponent({
 }
 
 .closing__link:hover {
-  border-bottom-color: var(--sl-amber);
+  border-bottom-color: var(--sl-focus);
 }
 </style>

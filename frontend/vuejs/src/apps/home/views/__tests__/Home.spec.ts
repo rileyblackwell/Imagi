@@ -17,13 +17,17 @@ const stubs = {
 }
 
 describe('Home (Spotlight)', () => {
-  it('renders the page, navbar and footer included, on the dark Spotlight stage', () => {
+  it('renders the page, navbar and footer included, on the Spotlight stage', () => {
     const root = mount(Home, { global: { stubs } }).element as HTMLElement
     expect(root.classList.contains('spotlight')).toBe(true)
-    // `dark` sits on the same wrapper so the shared navbar and footer use
-    // their dark variants here whatever the visitor's saved theme is.
-    expect(root.classList.contains('dark')).toBe(true)
     expect(root.querySelector('.layout')).not.toBeNull()
+  })
+
+  it('follows the site theme instead of forcing dark', () => {
+    // The light and dark palettes both live in spotlight.css, keyed off the
+    // `.dark` class the theme store puts on <html>.
+    const root = mount(Home, { global: { stubs } }).element as HTMLElement
+    expect(root.classList.contains('dark')).toBe(false)
   })
 
   it('keeps the sections in order and closes on the Spotlight closing section', () => {
