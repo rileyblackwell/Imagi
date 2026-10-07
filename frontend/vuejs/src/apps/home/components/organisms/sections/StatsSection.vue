@@ -1,53 +1,51 @@
 <!--
   "Why Imagi" — the shape of the product, shown rather than asserted.
-
-  This is where the two-halves idea lands: a screenshot of the real project hub
-  (Build / Sell / Market / Operate), a spec row of the few numbers we can state
-  honestly, and the audiences as hairline-ruled columns instead of cards.
+  This is where the two-halves idea lands: Build and Run as two lit panels
+  (Build cool, Run warm), the real project hub on stage, a row of the few
+  numbers we can state honestly, and the audiences as cards.
 -->
 <template>
-  <section id="why-imagi" class="relative py-20 md:py-28 scroll-mt-14">
-    <div class="section-shell">
-      <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
-
-      <!-- Header: headline left, supporting copy right -->
-      <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
-        <div class="max-w-xl">
-          <p class="eyebrow">
-            <span class="eyebrow__rule" aria-hidden="true"></span>
-            <span>Why Imagi</span>
-          </p>
-          <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
-            One project. Two halves.
-          </h2>
-        </div>
-        <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
+  <section id="why-imagi" class="sl-sec scroll-mt-14">
+    <div class="sl-wrap">
+      <div v-reveal class="sl-head">
+        <p class="sl-eyebrow">Why Imagi</p>
+        <h2 class="sl-display sl-h2">One project. Two halves.</h2>
+        <p class="sl-lede">
           Every business on Imagi is one project with two sets of tools: one for building
           its web app, and one for running the business once the app is live.
         </p>
       </div>
 
       <!-- The two halves, spelled out -->
-      <div v-reveal="{ delay: 60 }" class="rule-cols rule-cols--2 mt-14 md:mt-16">
-        <div v-for="half in halves" :key="half.name" class="rule-col">
-          <p class="half__name">
-            <span class="half__mark" aria-hidden="true"></span>{{ half.name }}
-          </p>
-          <h3 class="half__title display">{{ half.title }}</h3>
-          <p class="rule-col__body">{{ half.body }}</p>
+      <div v-reveal="{ delay: 60 }" class="halves">
+        <article
+          v-for="half in halves"
+          :key="half.name"
+          class="half"
+          :class="half.name === 'Build' ? 'half--build' : 'half--run'"
+        >
+          <div class="half__label">
+            <span class="half__badge">
+              <svg v-if="half.name === 'Build'" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" /></svg>
+              <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8" /><path d="M15 8h5v5" /></svg>
+            </span>
+            <span class="half__name">{{ half.name }}</span>
+          </div>
+          <h3 class="half__title sl-display">{{ half.title }}</h3>
+          <p class="half__body">{{ half.body }}</p>
           <ul class="half__tools">
             <li v-for="tool in half.tools" :key="tool">{{ tool }}</li>
           </ul>
-        </div>
+        </article>
       </div>
 
-      <p v-reveal="{ delay: 90 }" class="half__join">
+      <p v-reveal="{ delay: 90 }" class="half__join sl-display">
         Both halves live in the same project, so the business and its app are never
         in two places.
       </p>
 
       <!-- The hub itself: four workspaces, one project -->
-      <div v-reveal="{ delay: 90 }" class="mt-14 md:mt-16">
+      <div v-reveal="{ delay: 90 }" class="sl-stage">
         <ProductShot
           src="/product/project-hub.webp"
           alt="The project hub for Ticker Insights, showing its four workspaces: Build, Sell, Market and Operate."
@@ -59,23 +57,23 @@
       </div>
 
       <!-- Spec row: only numbers we can actually stand behind -->
-      <dl v-reveal="{ delay: 120 }" class="spec-row mt-16 md:mt-20">
+      <dl v-reveal="{ delay: 120 }" class="spec-row">
         <div v-for="stat in stats" :key="stat.label" class="spec">
           <dt class="spec__label">{{ stat.label }}</dt>
-          <dd class="spec__value display">
-            {{ stat.value }}<span v-if="stat.unit" class="spec__unit">{{ stat.unit }}</span>
+          <dd class="spec__value sl-display sl-grad-text">
+            {{ stat.value }}<span v-if="stat.unit" class="spec__unit">&nbsp;{{ stat.unit }}</span>
           </dd>
           <p class="spec__caption">{{ stat.caption }}</p>
         </div>
       </dl>
 
       <!-- Audiences -->
-      <div v-reveal="{ delay: 150 }" class="rule-cols mt-16 md:mt-20">
-        <div v-for="metric in metrics" :key="metric.title" class="rule-col">
-          <LineIcon :name="metric.icon" class="rule-col__icon" />
-          <h3 class="rule-col__title">{{ metric.title }}</h3>
-          <p class="rule-col__body">{{ metric.description }}</p>
-        </div>
+      <div v-reveal="{ delay: 150 }" class="sl-cards audiences">
+        <article v-for="metric in metrics" :key="metric.title" class="sl-card">
+          <span class="sl-card__icon"><LineIcon :name="metric.icon" /></span>
+          <h3 class="sl-card__title">{{ metric.title }}</h3>
+          <p class="sl-card__body">{{ metric.description }}</p>
+        </article>
       </div>
     </div>
   </section>
@@ -157,113 +155,191 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.half__name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink-55);
-}
-
-.half__mark {
-  width: 0.3rem;
-  height: 0.3rem;
-  transform: rotate(45deg);
-  background: var(--accent);
-}
-
-.half__title {
-  margin-top: 0.9rem;
-  font-size: 1.75rem;
-}
-
-.half__tools {
-  margin: auto 0 0;
-  padding: 1.1rem 0 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  border-top: 1px solid var(--rule);
-}
-
-.half__tools li {
-  font-size: 0.8rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--rule);
-  color: var(--ink-70);
-}
-
-.half__join {
-  margin-top: 2.5rem;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.2rem;
-  color: var(--ink-70);
-  text-wrap: balance;
-}
-
-/* Only the spec row is local — the ruled columns below it come from
-   .rule-cols in shared/styles/editorial.css. */
-.spec-row {
+.halves {
   display: grid;
-  grid-template-columns: 1fr;
-  border-top: 1px solid var(--rule);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: clamp(48px, 6vw, 72px);
 }
 
-.spec {
-  padding: 2rem 0;
-  border-bottom: 1px solid var(--rule);
+.half {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(26px, 3.4vw, 40px);
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--sl-line);
 }
 
-@media (min-width: 768px) {
-  .spec-row {
-    grid-template-columns: repeat(3, 1fr);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .spec {
-    padding: 2.25rem 2rem 2.25rem 0;
-    border-bottom: 0;
-  }
-
-  .spec + .spec {
-    padding-left: 2rem;
-    border-left: 1px solid var(--rule);
-  }
+/* Build is lit cool from the left, Run warm from the right */
+.half--build {
+  border-color: var(--sl-cool-line);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(110, 160, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, #121520, var(--sl-surface));
+  --half-ink: var(--sl-cool);
 }
 
-.spec__label {
-  font-size: 0.7rem;
+.half--run {
+  border-color: var(--sl-warm-line);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(255, 130, 80, 0.14), transparent 55%),
+    linear-gradient(180deg, #19141a, var(--sl-surface));
+  --half-ink: var(--sl-amber);
+}
+
+.half__label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.half__badge {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--sl-line-strong);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.half__badge svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--half-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.half__name {
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-40);
+  color: var(--half-ink);
 }
 
-.spec__value {
-  margin: 0.75rem 0 0;
-  font-size: 3rem;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+.half .half__title {
+  margin-top: 8px;
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
-.spec__unit {
-  font-size: 1.5rem;
+.half__body {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--sl-muted);
+}
+
+.half__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.half__tools li {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--sl-line);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13.5px;
   font-weight: 500;
-  color: var(--ink-40);
-  margin-left: 0.3rem;
+}
+
+/* The join: a short beam of light falling onto one line */
+.sl-wrap .half__join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 34ch;
+  margin: 44px auto 0;
+  text-align: center;
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.half__join::before {
+  content: '';
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(180deg, transparent, var(--sl-amber));
+}
+
+.spec-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: clamp(72px, 9vw, 120px) 0 0;
+  border-top: 1px solid var(--sl-line);
+  border-bottom: 1px solid var(--sl-line);
+}
+
+.spec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 40px clamp(20px, 3vw, 40px);
+  text-align: center;
+}
+
+.spec + .spec {
+  border-left: 1px solid var(--sl-line);
+}
+
+.spec__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sl-muted);
+}
+
+.spec .spec__value {
+  margin: 0;
+  padding-block: 6px;
+  font-size: clamp(64px, 7.6vw, 104px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  filter: drop-shadow(0 0 30px rgba(255, 120, 80, 0.25));
 }
 
 .spec__caption {
-  margin-top: 0.9rem;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--ink-55);
+  margin: 0;
+  max-width: 30ch;
+  font-size: 15px;
+  color: var(--sl-muted);
   text-wrap: pretty;
+}
+
+.audiences {
+  margin-top: clamp(56px, 7vw, 88px);
+}
+
+@media (max-width: 900px) {
+  .halves,
+  .spec-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spec + .spec {
+    border-left: 0;
+    border-top: 1px solid var(--sl-line);
+  }
 }
 </style>

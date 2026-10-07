@@ -673,11 +673,11 @@ input[type='search']::-webkit-search-cancel-button {
     0 28px 60px -34px rgba(19, 26, 44, 0.32);
 }
 
-:global(.dark) .compose {
+.dark .compose {
   box-shadow: 0 28px 60px -30px rgba(0, 0, 0, 0.7);
 }
 
-:global(.dark) .compose:focus-within {
+.dark .compose:focus-within {
   box-shadow:
     0 0 0 4px var(--accent-soft),
     0 28px 60px -30px rgba(0, 0, 0, 0.7);

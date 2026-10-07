@@ -1,31 +1,29 @@
 <!--
-  Home landing page.
+  Home landing page — "Spotlight".
 
-  Design direction: "quiet paper, loud product". The page itself is deliberately
-  plain — one flat paper tone, one ink, one accent, hairline rules instead of
-  cards — so the thing that carries the visual weight is the product itself:
-  real screenshots of the build workspace and the project hub, shot from the
-  running app and framed in a minimal window chrome.
+  A dark stage: warm coral-to-amber light falls from above onto a blue-black
+  floor, the prompt sits in it like a command bar, and the real product
+  screenshots further down are lit like objects on stage.
 
-  The palette and primitives live in shared/styles/editorial.css, scoped to the
-  .editorial class every public page carries.
+  The tokens and shared primitives live in apps/home/styles/spotlight.css,
+  scoped to .spotlight. `dark` sits on the same wrapper so the shared navbar
+  and footer render in their dark variant here whatever the visitor's saved
+  theme is (see the note at the top of spotlight.css).
 -->
 <template>
-  <DefaultLayout>
-    <div class="editorial home-page relative min-h-screen font-body">
-
-      <!-- Whisper of grain: keeps the flat paper from reading as dead pixels -->
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
-
-      <main class="relative z-10">
+  <div class="spotlight dark home-page">
+    <DefaultLayout>
+      <div class="relative">
         <HeroSection />
         <StatsSection />
+        <div class="sl-divider" aria-hidden="true"></div>
         <FeaturesSection />
+        <div class="sl-divider" aria-hidden="true"></div>
         <KeyFeaturesSection />
-        <CTASection />
-      </main>
-    </div>
-  </DefaultLayout>
+        <ClosingSection />
+      </div>
+    </DefaultLayout>
+  </div>
 </template>
 
 <script>
@@ -36,9 +34,10 @@ import {
   FeaturesSection,
   KeyFeaturesSection,
   StatsSection,
-  CTASection
+  ClosingSection
 } from '@/apps/home/components/organisms/sections'
 import { checkBackendHealth } from '@/apps/home/services/healthService'
+import '@/apps/home/styles/spotlight.css'
 
 export default defineComponent({
   name: 'HomePage',
@@ -48,7 +47,7 @@ export default defineComponent({
     FeaturesSection,
     KeyFeaturesSection,
     StatsSection,
-    CTASection
+    ClosingSection
   },
   setup() {
     onMounted(async () => {
@@ -64,8 +63,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Everything else lives in shared/styles/editorial.css — this page only needs
-   smooth in-page scrolling for the hero's "see how it works" jump. */
+/* Everything else lives in apps/home/styles/spotlight.css — this page only
+   needs smooth in-page scrolling for the hero's "see how it works" jump. */
 :deep(html) {
   scroll-behavior: smooth;
 }

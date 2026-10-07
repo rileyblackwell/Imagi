@@ -7,6 +7,11 @@
   An empty submit still goes to the projects page, like the old button did.
 
   Enter submits; Shift+Enter adds a line. The textarea grows with its content.
+
+  Two looks. On the editorial pages (About, Terms, Privacy) it is paper lifted
+  off the page. Inside the home page's .spotlight it becomes a glassy command
+  bar with a glowing gradient edge — those rules are the .spotlight
+  block at the bottom.
 -->
 <template>
   <form
@@ -152,7 +157,7 @@ export default defineComponent({
     0 28px 60px -34px rgba(19, 26, 44, 0.32);
 }
 
-:global(.dark) .idea {
+.dark .idea {
   box-shadow: 0 28px 60px -30px rgba(0, 0, 0, 0.7);
 }
 
@@ -227,6 +232,146 @@ export default defineComponent({
 @media (max-width: 480px) {
   .idea__submit {
     width: 100%;
+  }
+}
+
+/* --- Spotlight (home page) ----------------------------------------------- */
+
+/* The gradient edge is a second background clipped to the border box, so the
+   panel keeps one element and one radius. */
+.spotlight .idea {
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(26, 29, 40, 0.94), rgba(18, 20, 28, 0.97)) padding-box,
+    linear-gradient(140deg, rgba(255, 107, 90, 0.75), rgba(255, 181, 71, 0.35) 35%, rgba(255, 255, 255, 0.08) 60%, rgba(255, 181, 71, 0.45)) border-box;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 30px 80px -20px rgba(255, 110, 70, 0.35),
+    0 0 60px -10px var(--sl-glow);
+  backdrop-filter: blur(14px);
+}
+
+.spotlight .idea--focused {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 4px rgba(255, 181, 71, 0.16),
+    0 30px 80px -20px rgba(255, 110, 70, 0.45),
+    0 0 70px -10px var(--sl-glow);
+}
+
+.spotlight .idea__input {
+  min-height: 84px;
+  padding: 4px 4px 0;
+  color: var(--sl-text);
+  font-family: var(--sl-font-body);
+  font-size: 19px;
+}
+
+.spotlight .idea--md .idea__input {
+  min-height: 56px;
+  font-size: 17px;
+}
+
+.spotlight .idea__input::placeholder {
+  color: #c9cddb;
+}
+
+.spotlight .idea--md .idea__input::placeholder {
+  color: var(--sl-faint);
+}
+
+.spotlight .idea__foot {
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sl-line);
+}
+
+.spotlight .idea--md .idea__foot {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.spotlight .idea__chips {
+  gap: 8px;
+}
+
+.spotlight .idea__chip {
+  padding: 9px 13px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sl-muted);
+  border: 1px solid var(--sl-line);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.spotlight .idea__chip:hover {
+  color: var(--sl-text);
+  border-color: var(--sl-line-strong);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.spotlight .idea__chip:focus-visible {
+  outline-color: var(--sl-amber);
+}
+
+.spotlight .idea__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 18px 13px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sl-grad);
+  color: var(--sl-on-accent);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    0 8px 28px -6px rgba(255, 120, 80, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spotlight .idea__submit:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 34px -6px rgba(255, 120, 80, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.spotlight .idea__submit:focus-visible {
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+@media (max-width: 560px) {
+  .spotlight .idea {
+    padding: 14px;
+  }
+
+  .spotlight .idea__input {
+    font-size: 17px;
+    min-height: 92px;
+  }
+
+  .spotlight .idea__submit {
+    width: 100%;
+    padding-block: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight .idea__submit {
+    transition: none;
+  }
+
+  .spotlight .idea__submit:hover {
+    transform: none;
   }
 }
 </style>
