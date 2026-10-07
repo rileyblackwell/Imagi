@@ -7,7 +7,7 @@
   dark, a warm daylight floor in light.
 
   The tokens and shared primitives for both themes live in
-  apps/home/styles/spotlight.css, scoped to .spotlight.
+  shared/styles/spotlight.css, scoped to .spotlight.
 -->
 <template>
   <div class="spotlight home-page">
@@ -36,7 +36,6 @@ import {
   ClosingSection
 } from '@/apps/home/components/organisms/sections'
 import { checkBackendHealth } from '@/apps/home/services/healthService'
-import '@/apps/home/styles/spotlight.css'
 
 export default defineComponent({
   name: 'HomePage',
@@ -62,7 +61,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Everything else lives in apps/home/styles/spotlight.css — this page only
+/* Everything else lives in shared/styles/spotlight.css — this page only
    needs smooth in-page scrolling for the hero's "see how it works" jump. */
 :deep(html) {
   scroll-behavior: smooth;

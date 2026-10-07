@@ -10,18 +10,18 @@
   next to the sections that explain them.
 -->
 <template>
-  <section class="hero">
+  <section class="hero sl-opener">
     <div class="sl-spot" aria-hidden="true"></div>
     <div class="sl-dots" aria-hidden="true"></div>
 
-    <div class="sl-wrap hero-inner">
-      <p class="hero-item sl-eyebrow hero-eyebrow" style="animation-delay: 0ms">
-        <span class="hero-pip" aria-hidden="true"></span>
+    <div class="sl-wrap sl-opener__inner">
+      <p class="hero-item sl-eyebrow sl-pill" style="animation-delay: 0ms">
+        <span class="sl-pip" aria-hidden="true"></span>
         <span>The all-in-one business platform</span>
       </p>
 
-      <h1 class="hero-item sl-display hero-title" style="animation-delay: 60ms">
-        Build and <em class="hero-accent sl-grad-text">run</em> your business
+      <h1 class="hero-item sl-display sl-h1 hero-title" style="animation-delay: 60ms">
+        Build and <em class="hero-accent sl-run">run</em> your business
       </h1>
 
       <p class="hero-item sl-lede hero-lede" style="animation-delay: 120ms">
@@ -141,23 +141,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  /* The navbar is fixed; the light starts behind it, the content below it. */
-  padding-top: calc(3.5rem + clamp(56px, 8vw, 112px));
-  padding-bottom: clamp(72px, 10vw, 128px);
-}
-
-.hero-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  text-align: center;
-}
-
 /* Staggered entrance on load */
 .hero-item {
   animation: hero-rise 0.85s var(--app-ease) both;
@@ -174,39 +157,9 @@ export default defineComponent({
   }
 }
 
-.hero .hero-eyebrow {
-  margin: 0;
-  padding: 7px 14px 7px 10px;
-  border: 1px solid var(--sl-line-strong);
-  border-radius: 999px;
-  background: var(--sl-pill-bg);
-  backdrop-filter: blur(6px);
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
-}
-
-.hero-pip {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--sl-grad);
-  box-shadow: 0 0 10px var(--sl-coral);
-}
-
 .hero .hero-title {
   max-width: 11ch;
   margin-top: 6px;
-  font-size: clamp(48px, 9.2vw, 124px);
-  line-height: 0.95;
-  letter-spacing: -0.035em;
-}
-
-/* "run" — the half of the promise most site builders leave out — is the one
-   word lit by the gradient. Bricolage has no italic; the light does the work. */
-.hero-accent {
-  font-style: normal;
-  padding-inline: 0.04em;
-  filter: drop-shadow(0 0 28px var(--sl-text-glow));
 }
 
 .hero-prompt {

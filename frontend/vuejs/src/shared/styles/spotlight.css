@@ -13,9 +13,9 @@
  *   surfaces with soft shadows, and the spotlight as a peach wash from above.
  *   The gradient is pulled a step deeper so it holds up on white.
  *
- * Every colour the home components use is a token here, so the two themes
- * differ only in this file. Scoped to `.spotlight`, which Home.vue puts on its
- * root.
+ * Every colour the Spotlight pages use is a token here, so the two themes
+ * differ only in this file. Scoped to `.spotlight`, which a page puts on its
+ * root (Home.vue, About.vue); imported once in main.ts.
  */
 
 .spotlight {
@@ -243,6 +243,64 @@
   text-align: center;
 }
 
+/* --- Page opener ---------------------------------------------------------- */
+
+/* The first section of a Spotlight page: the light falls on it from behind the
+   fixed navbar, and its content starts below the bar. */
+.spotlight .sl-opener {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-top: calc(3.5rem + clamp(56px, 8vw, 112px));
+  padding-bottom: clamp(72px, 10vw, 128px);
+}
+
+.spotlight .sl-opener__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+}
+
+.spotlight .sl-h1 {
+  font-size: clamp(48px, 9.2vw, 124px);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+
+/* Pill eyebrow with a lit pip — the page's opening label */
+.spotlight .sl-pill {
+  margin: 0;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid var(--sl-line-strong);
+  border-radius: 999px;
+  background: var(--sl-pill-bg);
+  backdrop-filter: blur(6px);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+}
+
+.spotlight .sl-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sl-grad);
+  box-shadow: 0 0 10px var(--sl-coral);
+}
+
+/* "run" — the half of the promise most site builders leave out — is the one
+   word lit by the gradient. Bricolage has no italic; the light does the work. */
+.spotlight .sl-run {
+  font-style: normal;
+  padding-inline: 0.04em;
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px var(--sl-text-glow));
+}
+
 /* --- Light ---------------------------------------------------------------- */
 
 /* The warm pool of light from above. Positioned by its section. */
@@ -390,8 +448,13 @@
   filter: blur(20px);
 }
 
+.spotlight .sl-cards--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 900px) {
-  .spotlight .sl-cards {
+  .spotlight .sl-cards,
+  .spotlight .sl-cards--2 {
     grid-template-columns: minmax(0, 1fr);
   }
 }
