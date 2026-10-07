@@ -497,7 +497,7 @@ function sendAnswer() {
 .check-in__title {
   flex: 1;
   min-width: 0;
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
   font-size: 0.8125rem;
   font-weight: 600;

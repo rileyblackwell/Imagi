@@ -1,9 +1,7 @@
 <!--
-  Closing — the home page ends where it began: under a spotlight, with the
-  same prompt box. Pricing stays one quiet link away.
-
-  This is the home page's own closing. About, Terms and Privacy keep the
-  editorial CTASection, which shares the prompt but not the stage.
+  Closing — a Spotlight page ends where the home page began: under a
+  spotlight, with the same prompt box. Pricing (or the page's own sibling)
+  stays one quiet link away. Home, About, Terms and Privacy all close here.
 -->
 <template>
   <section class="closing">

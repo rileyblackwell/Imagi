@@ -13,9 +13,9 @@
  *   surfaces with soft shadows, and the spotlight as a peach wash from above.
  *   The gradient is pulled a step deeper so it holds up on white.
  *
- * Every colour the home components use is a token here, so the two themes
- * differ only in this file. Scoped to `.spotlight`, which Home.vue puts on its
- * root.
+ * Every colour the Spotlight pages use is a token here, so the two themes
+ * differ only in this file. Scoped to `.spotlight`, which a page puts on its
+ * root (Home.vue, About.vue); imported once in main.ts.
  */
 
 .spotlight {
@@ -243,6 +243,64 @@
   text-align: center;
 }
 
+/* --- Page opener ---------------------------------------------------------- */
+
+/* The first section of a Spotlight page: the light falls on it from behind the
+   fixed navbar, and its content starts below the bar. */
+.spotlight .sl-opener {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-top: calc(3.5rem + clamp(56px, 8vw, 112px));
+  padding-bottom: clamp(72px, 10vw, 128px);
+}
+
+.spotlight .sl-opener__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+}
+
+.spotlight .sl-h1 {
+  font-size: clamp(48px, 9.2vw, 124px);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+
+/* Pill eyebrow with a lit pip — the page's opening label */
+.spotlight .sl-pill {
+  margin: 0;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid var(--sl-line-strong);
+  border-radius: 999px;
+  background: var(--sl-pill-bg);
+  backdrop-filter: blur(6px);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+}
+
+.spotlight .sl-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sl-grad);
+  box-shadow: 0 0 10px var(--sl-coral);
+}
+
+/* "run" — the half of the promise most site builders leave out — is the one
+   word lit by the gradient. Bricolage has no italic; the light does the work. */
+.spotlight .sl-run {
+  font-style: normal;
+  padding-inline: 0.04em;
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px var(--sl-text-glow));
+}
+
 /* --- Light ---------------------------------------------------------------- */
 
 /* The warm pool of light from above. Positioned by its section. */
@@ -390,8 +448,13 @@
   filter: blur(20px);
 }
 
+.spotlight .sl-cards--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 900px) {
-  .spotlight .sl-cards {
+  .spotlight .sl-cards,
+  .spotlight .sl-cards--2 {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -409,4 +472,166 @@
   .spotlight .sl-card:hover {
     transform: none;
   }
+}
+
+/* --- Bridge: the older page language under Spotlight ----------------------
+   Most of the site was built on the editorial surface (editorial.css) and the
+   shared materials in tokens.css. A page that wraps itself in .spotlight
+   keeps that markup and is re-lit here: the editorial tokens point at the
+   Spotlight ones, the serif display becomes Bricolage, the accent becomes
+   the coral → amber light, and the grain gives way to the clean stage.
+
+   Selectors carry the same weight as editorial.css's own and this file loads
+   after it, so these win without !important. */
+
+.spotlight.editorial,
+.spotlight .editorial {
+  --font-display: var(--sl-font-display);
+  --paper: var(--sl-bg);
+  --paper-raised: var(--sl-surface);
+  --ink: var(--sl-text);
+  --ink-70: color-mix(in srgb, var(--sl-text) 74%, transparent);
+  --ink-55: var(--sl-muted);
+  --ink-40: var(--sl-faint);
+  --rule: var(--sl-line);
+  --rule-strong: var(--sl-line-strong);
+  --accent: var(--sl-coral);
+  --accent-soft: var(--sl-selection);
+
+  background: var(--sl-bg);
+  font-family: var(--sl-font-body);
+}
+
+.spotlight .grain-overlay {
+  display: none;
+}
+
+.spotlight .page-canvas,
+.dark .spotlight .page-canvas {
+  background: var(--sl-bg);
+}
+
+.spotlight .page-glow-warm,
+.dark .spotlight .page-glow-warm {
+  background: radial-gradient(closest-side, var(--sl-spot-core), var(--sl-spot-mid) 55%, transparent 75%);
+}
+
+.spotlight .crisp-card {
+  box-shadow: var(--sl-card-shadow), 0 0 0 1px var(--sl-line);
+}
+
+.spotlight .crisp-card--hover:hover,
+.spotlight .crisp-card--lift:hover {
+  box-shadow: var(--sl-card-shadow), 0 0 0 1px var(--sl-line-strong), 0 18px 40px -24px var(--sl-glow);
+}
+
+.spotlight .accent-ink,
+.dark .spotlight .accent-ink {
+  font-style: normal;
+  font-variation-settings: normal;
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 24px var(--sl-text-glow));
+}
+
+.spotlight .brand-selection ::selection,
+.dark .spotlight .brand-selection ::selection {
+  background: var(--sl-selection);
+  color: var(--sl-text);
+}
+
+/* Type */
+.spotlight .display,
+.spotlight .prose h2 {
+  font-weight: 800;
+  font-variation-settings: 'opsz' 96;
+  letter-spacing: -0.03em;
+}
+
+.spotlight .display {
+  line-height: 1;
+}
+
+.spotlight .sec-num,
+.spotlight .eyebrow__num,
+.spotlight .callout__title {
+  font-family: var(--sl-font-body);
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.spotlight .eyebrow__mark,
+.spotlight .checklist__tick,
+.spotlight .prose ul li::before {
+  border-radius: 2px;
+  background: var(--sl-grad);
+}
+
+.spotlight .checklist__tick,
+.spotlight .prose ul li::before {
+  transform: translateY(-0.15em) rotate(45deg);
+}
+
+.spotlight .eyebrow__rule {
+  background: linear-gradient(90deg, var(--sl-coral), var(--sl-amber));
+}
+
+.spotlight .callout,
+.dark .spotlight .callout {
+  border-radius: 16px;
+  border-color: var(--sl-line);
+  background: var(--sl-chip-bg);
+}
+
+.spotlight .rule-col__icon {
+  color: var(--sl-coral);
+}
+
+/* Buttons: the primary is the lit gradient pill the home page uses */
+.spotlight .btn-primary {
+  border: 0;
+  background: var(--sl-grad);
+  color: var(--sl-on-accent);
+  font-weight: 650;
+  box-shadow: var(--sl-btn-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.spotlight .btn-primary:hover {
+  background: var(--sl-grad);
+  color: var(--sl-on-accent);
+  box-shadow: var(--sl-btn-shadow-hover);
+  filter: saturate(1.08);
+  transform: translateY(-1px);
+}
+
+.spotlight .btn-outline {
+  background: var(--sl-chip-bg);
+  border-color: var(--sl-line-strong);
+}
+
+.spotlight .btn-outline:hover {
+  background: var(--sl-chip-bg-hover);
+  border-color: var(--sl-text);
+}
+
+.spotlight .btn-primary:focus-visible,
+.spotlight .btn-outline:focus-visible,
+.spotlight .btn-quiet:focus-visible {
+  outline-color: var(--sl-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight .btn-primary:hover {
+    transform: none;
+  }
+}
+
+/* The app's Tailwind display face (Fraunces) becomes the Spotlight one */
+.spotlight .font-display:not(.wordmark) {
+  font-family: var(--sl-font-display);
+  letter-spacing: -0.025em;
 }

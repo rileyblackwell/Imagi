@@ -36,9 +36,12 @@ defineProps<{
   width: 2rem;
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .step__body {

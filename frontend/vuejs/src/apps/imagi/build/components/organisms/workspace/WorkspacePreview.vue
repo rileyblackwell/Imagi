@@ -1165,17 +1165,17 @@ defineExpose({ reload })
    The preview pane is the other half of the workspace: the chat sits on the
    left in a porcelain plate, and the user's own app sits here. So the chrome
    wears the same materials as WorkspacePaneHeader — the wash, the hairline,
-   the brand serif — and then gets out of the way. Everything below the plate
+   the display face — and then gets out of the way. Everything below the plate
    belongs to the app being built, which is why the stage is a quiet matte
    rather than another surface competing for attention.
    --------------------------------------------------------------------------- */
 
 .pv-root {
-  background: #ffffff;
+  background: var(--sl-surface, #ffffff);
 }
 
 .dark .pv-root {
-  background: #0a0a0a;
+  background: var(--sl-bg, #0a0a0a);
 }
 
 /* --- The plate ----------------------------------------------------------- */
@@ -1415,7 +1415,7 @@ defineExpose({ reload })
 /* --- The nameplate ------------------------------------------------------- */
 
 /* Three typefaces doing three jobs: the app in small caps (where you are), the
-   page in Fraunces (what you're looking at), the path in mono (the truth). */
+   page in the display face (what you're looking at), the path in mono (the truth). */
 .pv-plate {
   position: relative;
   display: flex;
@@ -1474,7 +1474,7 @@ defineExpose({ reload })
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
   font-size: 0.875rem;
   font-weight: 500;
@@ -1495,7 +1495,7 @@ defineExpose({ reload })
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
   font-size: 0.875rem;
   font-weight: 600;
@@ -1745,14 +1745,14 @@ defineExpose({ reload })
    pane and the remote viewport briefly disagree — or an optimistic scroll
    opens a gap — what shows through is matting, not a glitch. */
 .pv-stage {
-  background-color: #f5f0e7;
-  background-image: radial-gradient(circle at 1px 1px, rgba(19, 26, 44, 0.055) 1px, transparent 0);
+  background-color: var(--sl-bg-deep, #f5f0e7);
+  background-image: radial-gradient(circle at 1px 1px, var(--sl-dot, rgba(19, 26, 44, 0.055)) 1px, transparent 0);
   background-size: 14px 14px;
 }
 
 .dark .pv-stage {
-  background-color: #0b0b0d;
-  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-color: var(--sl-bg-deep, #0b0b0d);
+  background-image: radial-gradient(circle at 1px 1px, var(--sl-dot, rgba(255, 255, 255, 0.05)) 1px, transparent 0);
 }
 
 /* --- Notices (starting / stopped / error) -------------------------------- */
@@ -1764,14 +1764,14 @@ defineExpose({ reload })
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: rgba(245, 240, 231, 0.86);
+  background: color-mix(in srgb, var(--sl-bg-deep, #f5f0e7) 86%, transparent);
   backdrop-filter: blur(6px);
 }
 
-.pv-veil--solid { background: #f5f0e7; }
+.pv-veil--solid { background: var(--sl-bg-deep, #f5f0e7); }
 
-.dark .pv-veil { background: rgba(11, 11, 13, 0.88); }
-.dark .pv-veil--solid { background: #0b0b0d; }
+.dark .pv-veil { background: color-mix(in srgb, var(--sl-bg-deep, #0b0b0d) 88%, transparent); }
+.dark .pv-veil--solid { background: var(--sl-bg-deep, #0b0b0d); }
 
 .pv-notice {
   display: flex;
@@ -1805,7 +1805,7 @@ defineExpose({ reload })
 }
 
 .pv-notice-title {
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 24, 'SOFT' 30, 'WONK' 1;
   font-size: 1.0625rem;
   font-weight: 600;

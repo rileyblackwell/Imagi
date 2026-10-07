@@ -204,3 +204,58 @@
     transform: none;
   }
 }
+
+/* ── Spotlight ───────────────────────────────────────────────────────────────
+   The workspace sits on the Spotlight floor (Workspace.vue puts .spotlight on
+   its root). The ink becomes Spotlight's text and the accent its coral, so a
+   focus ring or a selected row in the workspace is the same light as the home
+   page's. The derived tokens are restated here because a custom property is
+   computed where it is declared — those on :root would keep the old ink. */
+.spotlight {
+  --iw-ink: 20, 21, 28;              /* --sl-text, #14151c */
+  --iw-accent: 236, 74, 51;          /* --sl-coral, #ec4a33 */
+  --iw-surface: 255, 255, 255;
+
+  --iw-shadow-1:
+    0 1px 1px rgba(var(--iw-ink), 0.04),
+    0 1px 2px rgba(var(--iw-ink), 0.06);
+  --iw-shadow-2:
+    0 1px 2px rgba(var(--iw-ink), 0.06),
+    0 4px 12px -4px rgba(var(--iw-ink), 0.14);
+  --iw-shadow-3:
+    0 2px 4px rgba(var(--iw-ink), 0.07),
+    0 12px 32px -10px rgba(var(--iw-ink), 0.22);
+
+  --iw-material-bg: rgba(255, 255, 255, 0.78);
+  --iw-material-border: rgba(var(--iw-ink), 0.09);
+  --iw-hairline: rgba(var(--iw-ink), 0.08);
+
+  --iw-focus-base: #f8f7f4;
+  --iw-focus-tint: rgba(var(--iw-accent), 0.45);
+  --iw-focus-ring:
+    0 0 0 2px var(--iw-focus-base),
+    0 0 0 4px var(--iw-focus-tint);
+}
+
+.dark .spotlight {
+  --iw-ink: 238, 240, 246;           /* --sl-text, #eef0f6 */
+  --iw-accent: 255, 181, 71;         /* --sl-amber, #ffb547 */
+  --iw-surface: 11, 12, 17;
+
+  --iw-shadow-1:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --iw-shadow-2:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 8px 20px -8px rgba(0, 0, 0, 0.6);
+  --iw-shadow-3:
+    0 4px 8px rgba(0, 0, 0, 0.45),
+    0 20px 44px -16px rgba(0, 0, 0, 0.7);
+
+  --iw-material-bg: rgba(16, 18, 25, 0.78);
+  --iw-material-border: rgba(255, 255, 255, 0.1);
+  --iw-hairline: rgba(255, 255, 255, 0.08);
+
+  --iw-focus-base: #0b0c11;
+  --iw-focus-tint: rgba(var(--iw-accent), 0.5);
+}

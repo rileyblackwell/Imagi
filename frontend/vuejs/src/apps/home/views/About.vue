@@ -1,163 +1,131 @@
 <!--
-  About page.
+  About page — on the home page's Spotlight stage.
 
-  Same editorial surface as the home page: paper and ink, hairline rules,
-  headline-left / copy-right section headers, and ruled columns in place of
-  cards. Everything visual comes from shared/styles/editorial.css.
+  The same lit stage as Home: an opener under the spotlight, centered section
+  headers, cards for the points, and the closing prompt. Light and dark come
+  from shared/styles/spotlight.css, which follows the site theme.
 -->
 <template>
-  <DefaultLayout>
-    <div class="editorial relative min-h-screen font-body">
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+  <div class="spotlight about-page">
+    <DefaultLayout>
+      <!-- Opening statement -->
+      <section class="sl-opener">
+        <div class="sl-spot" aria-hidden="true"></div>
+        <div class="sl-dots" aria-hidden="true"></div>
 
-      <main class="relative z-10">
+        <div class="sl-wrap sl-opener__inner">
+          <p class="about-rise sl-eyebrow sl-pill">
+            <span class="sl-pip" aria-hidden="true"></span>
+            <span>About Imagi</span>
+          </p>
+          <h1 class="about-rise sl-display sl-h1 about-title" style="animation-delay: 60ms">
+            Build and <em class="sl-run">run</em> a business
+          </h1>
+          <p class="about-rise sl-lede" style="animation-delay: 120ms">
+            One platform for the whole thing: make the product with AI, then market it,
+            sell it and keep the books &mdash; without a technical team behind you.
+          </p>
+        </div>
+      </section>
 
-        <!-- Opening statement -->
-        <section class="relative pt-32 sm:pt-40 md:pt-44 pb-4">
-          <div class="section-shell">
-            <div class="md:flex md:items-end md:justify-between gap-12 lg:gap-16">
-              <div class="max-w-[36rem]">
-                <p class="eyebrow">
-                  <span class="eyebrow__rule" aria-hidden="true"></span>
-                  <span>About Imagi</span>
-                </p>
-                <h1 class="display mt-7 text-[2.75rem] sm:text-6xl md:text-[3.9rem]">
-                  Build and run a business
-                </h1>
-              </div>
-              <p class="lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg">
-                One platform for the whole thing: make the product with AI, then market it,
-                sell it and keep the books &mdash; without a technical team behind you.
-              </p>
-            </div>
+      <!-- Mission -->
+      <section class="sl-sec about-step">
+        <div class="sl-wrap">
+          <div v-reveal class="sl-head">
+            <p class="sl-eyebrow"><span class="sl-grad-text about-num">01</span><span>Our mission</span></p>
+            <h2 class="sl-display sl-h2">Entrepreneurship, without the gatekeeping</h2>
+            <p class="sl-lede">
+              Starting a business shouldn't require a co-founder who codes. We give you the
+              tools to build the product and the tools to run the company behind it.
+            </p>
           </div>
-        </section>
 
-        <!-- Mission -->
-        <section class="relative py-20 md:py-28">
-          <div class="section-shell">
-            <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
-
-            <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
-              <div class="max-w-xl">
-                <p class="eyebrow">
-                  <span class="eyebrow__num">01</span>
-                  <span class="eyebrow__rule" aria-hidden="true"></span>
-                  <span>Our mission</span>
-                </p>
-                <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
-                  Entrepreneurship, without the gatekeeping
-                </h2>
-              </div>
-              <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
-                Starting a business shouldn't require a co-founder who codes. We give you the
-                tools to build the product and the tools to run the company behind it.
-              </p>
-            </div>
-
-            <div class="rule-cols mt-14 md:mt-16">
-              <div
-                v-for="(card, index) in missionCards"
-                :key="card.title"
-                v-reveal="{ delay: 80 + index * 80 }"
-                class="rule-col"
-              >
-                <h3 class="rule-col__title !mt-0">{{ card.title }}</h3>
-                <p class="rule-col__body !mb-0">{{ card.description }}</p>
-              </div>
-            </div>
+          <div class="sl-cards">
+            <article
+              v-for="(card, index) in missionCards"
+              :key="card.title"
+              v-reveal="{ delay: 80 + index * 80 }"
+              class="sl-card"
+            >
+              <h3 class="sl-card__title">{{ card.title }}</h3>
+              <p class="sl-card__body">{{ card.description }}</p>
+            </article>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <!-- What we do -->
-        <section class="relative py-20 md:py-28">
-          <div class="section-shell">
-            <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
+      <div class="sl-divider" aria-hidden="true"></div>
 
-            <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
-              <div class="max-w-xl">
-                <p class="eyebrow">
-                  <span class="eyebrow__num">02</span>
-                  <span class="eyebrow__rule" aria-hidden="true"></span>
-                  <span>What we do</span>
-                </p>
-                <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
-                  One platform, not a dozen subscriptions
-                </h2>
-              </div>
-              <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
-                AI-built web apps and the everyday operating tools in the same project, so the
-                two halves of a business actually know about each other.
-              </p>
-            </div>
-
-            <div class="rule-cols mt-14 md:mt-16">
-              <div
-                v-for="(feature, index) in features"
-                :key="feature.title"
-                v-reveal="{ delay: 80 + index * 80 }"
-                class="rule-col"
-              >
-                <LineIcon :name="feature.icon" class="rule-col__icon" />
-                <h3 class="rule-col__title">{{ feature.title }}</h3>
-                <p class="rule-col__body !mb-0">{{ feature.description }}</p>
-              </div>
-            </div>
+      <!-- What we do -->
+      <section class="sl-sec about-step">
+        <div class="sl-wrap">
+          <div v-reveal class="sl-head">
+            <p class="sl-eyebrow"><span class="sl-grad-text about-num">02</span><span>What we do</span></p>
+            <h2 class="sl-display sl-h2">One platform, not a dozen subscriptions</h2>
+            <p class="sl-lede">
+              AI-built web apps and the everyday operating tools in the same project, so the
+              two halves of a business actually know about each other.
+            </p>
           </div>
-        </section>
 
-        <!-- Who we serve -->
-        <section class="relative py-20 md:py-28">
-          <div class="section-shell">
-            <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
-
-            <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
-              <div class="max-w-xl">
-                <p class="eyebrow">
-                  <span class="eyebrow__num">03</span>
-                  <span class="eyebrow__rule" aria-hidden="true"></span>
-                  <span>Who we serve</span>
-                </p>
-                <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
-                  Anyone with an idea and no engineering queue
-                </h2>
-              </div>
-              <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
-                Founders, small businesses, teams and side projects &mdash; the common thread is
-                wanting to ship without waiting on someone else to write it.
-              </p>
-            </div>
-
-            <div class="rule-cols rule-cols--2 mt-14 md:mt-16">
-              <div
-                v-for="(userType, index) in userTypes"
-                :key="userType.title"
-                v-reveal="{ delay: 80 + index * 80 }"
-                class="rule-col"
-              >
-                <h3 class="rule-col__title !mt-0">{{ userType.title }}</h3>
-                <p class="rule-col__body !mb-0">{{ userType.description }}</p>
-              </div>
-            </div>
+          <div class="sl-cards">
+            <article
+              v-for="(feature, index) in features"
+              :key="feature.title"
+              v-reveal="{ delay: 80 + index * 80 }"
+              class="sl-card"
+            >
+              <span class="sl-card__icon"><LineIcon :name="feature.icon" /></span>
+              <h3 class="sl-card__title">{{ feature.title }}</h3>
+              <p class="sl-card__body">{{ feature.description }}</p>
+            </article>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <CTASection
-          title="Ready to start?"
-          description="Describe what you want to build, and have a working web app the same afternoon — with the tools to market, sell and run it waiting in the same project."
-          primaryButtonText="Start building"
-          secondaryButtonText="Read the docs"
-          secondaryButtonTo="/docs"
-        />
-      </main>
-    </div>
-  </DefaultLayout>
+      <div class="sl-divider" aria-hidden="true"></div>
+
+      <!-- Who we serve -->
+      <section class="sl-sec about-step">
+        <div class="sl-wrap">
+          <div v-reveal class="sl-head">
+            <p class="sl-eyebrow"><span class="sl-grad-text about-num">03</span><span>Who we serve</span></p>
+            <h2 class="sl-display sl-h2">Anyone with an idea and no engineering queue</h2>
+            <p class="sl-lede">
+              Founders, small businesses, teams and side projects &mdash; the common thread is
+              wanting to ship without waiting on someone else to write it.
+            </p>
+          </div>
+
+          <div class="sl-cards sl-cards--2">
+            <article
+              v-for="(userType, index) in userTypes"
+              :key="userType.title"
+              v-reveal="{ delay: 80 + index * 80 }"
+              class="sl-card"
+            >
+              <h3 class="sl-card__title">{{ userType.title }}</h3>
+              <p class="sl-card__body">{{ userType.description }}</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <ClosingSection
+        title="Ready to start?"
+        description="Describe what you want to build, and have a working web app the same afternoon — with the tools to market, sell and run it waiting in the same project."
+        primary-button-text="Start building"
+        secondary-button-text="Read the docs"
+        secondary-button-to="/docs"
+      />
+    </DefaultLayout>
+  </div>
 </template>
 
 <script>
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { CTASection } from '@/apps/home/components/organisms/sections'
+import { ClosingSection } from '@/apps/home/components/organisms/sections'
 import { LineIcon } from '@/shared/components'
 import reveal from '@/apps/home/directives/reveal'
 
@@ -165,7 +133,7 @@ export default defineComponent({
   name: 'About',
   components: {
     DefaultLayout,
-    CTASection,
+    ClosingSection,
     LineIcon
   },
   directives: { reveal },
@@ -226,3 +194,58 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+/* Staggered entrance on load, as on the home hero */
+.about-rise {
+  animation: about-rise 0.85s var(--app-ease) both;
+}
+
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* "Build and run a business" is one word longer than the home headline, so it
+   gets a little more measure and a step down in size. */
+.sl-opener .about-title {
+  max-width: 12ch;
+  margin-top: 6px;
+  font-size: clamp(46px, 8.4vw, 112px);
+}
+
+.about-num {
+  font-weight: 700;
+}
+
+/* A softer pool of light at the top of each section, as on Home's steps */
+.about-step {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.about-step::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: -1;
+  width: min(1100px, 140vw);
+  height: 560px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 60% at 50% 0%, var(--sl-section-glow), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-rise {
+    animation: none;
+  }
+}
+</style>

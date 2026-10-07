@@ -1,38 +1,32 @@
 <!--
   Privacy policy.
 
-  Long-form legal text on the editorial prose surface: a narrow measure, a
-  hairline before each section, and no cards. Styling comes from the .prose
-  rules in shared/styles/editorial.css, so this file carries none of its own.
+  Long-form legal text on the Spotlight stage: a lit opener, then the
+  editorial prose measure (a hairline before each section, no cards), re-lit
+  by the bridge in shared/styles/spotlight.css.
 -->
 <template>
+  <div class="spotlight legal-page">
   <DefaultLayout>
-    <div class="editorial relative min-h-screen font-body">
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+    <div class="editorial relative min-h-screen">
+      <main class="relative">
 
-      <main class="relative z-10">
-
-        <!-- Masthead -->
-        <section class="relative pt-32 sm:pt-40 md:pt-44 pb-4">
-          <div class="prose-shell">
-            <p class="eyebrow">
-              <span class="eyebrow__rule" aria-hidden="true"></span>
-              <span>Legal</span>
-            </p>
-            <h1 class="display mt-7 text-[2.5rem] sm:text-5xl md:text-[3.4rem]">
-              Privacy Policy
-            </h1>
-            <p class="lede mt-6 text-lg">
+        <!-- Opener -->
+        <section class="sl-opener legal-opener">
+          <div class="sl-spot" aria-hidden="true"></div>
+          <div class="sl-dots" aria-hidden="true"></div>
+          <div class="sl-wrap sl-opener__inner">
+            <p class="sl-eyebrow sl-pill legal-rise"><span class="sl-pip" aria-hidden="true"></span>Legal</p>
+            <h1 class="sl-display sl-h1 legal-title legal-rise">Privacy Policy</h1>
+            <p class="sl-lede legal-rise">
               How Imagi handles your data — what we collect, how it is stored, who it is shared with, and the control you have over it.
             </p>
-            <p class="mt-8 pt-5 text-sm" style="border-top: 1px solid var(--rule); color: var(--ink-40)">
-              Last updated: June 18, 2026
-            </p>
+            <p class="legal-updated legal-rise">Last updated: June 18, 2026</p>
           </div>
         </section>
 
         <!-- Sections -->
-        <section class="relative pt-6 pb-20 md:pb-28">
+        <section class="relative pt-2 pb-20 md:pb-28">
           <div class="prose-shell prose">
             <template v-for="section in sections" :key="section.badge">
               <h2>
@@ -51,28 +45,29 @@
           </div>
         </section>
 
-        <CTASection
+        <ClosingSection
           title="Ready to start?"
           description="Your data stays yours. Describe what you want to build, and have a working web app the same afternoon."
-          primaryButtonText="Start building"
-          secondaryButtonText="Terms of Service"
-          secondaryButtonTo="/terms"
+          primary-button-text="Start building"
+          secondary-button-text="Terms of Service"
+          secondary-button-to="/terms"
         />
       </main>
     </div>
   </DefaultLayout>
+  </div>
 </template>
 
 <script>
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { CTASection } from '@/apps/home/components/organisms/sections'
+import { ClosingSection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
   name: 'PrivacyPolicy',
   components: {
     DefaultLayout,
-    CTASection
+    ClosingSection
   },
   setup() {
     // Split a badge like "1. Introduction" into an eyebrow label and a title.
@@ -265,3 +260,39 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+.sl-opener .legal-title {
+  font-size: clamp(44px, 7.4vw, 96px);
+}
+
+.sl-opener.legal-opener {
+  padding-bottom: clamp(40px, 6vw, 72px);
+}
+
+.legal-updated {
+  margin: 4px 0 0;
+  padding: 6px 12px;
+  border: 1px solid var(--sl-line);
+  border-radius: 999px;
+  color: var(--sl-faint);
+  font-size: 13px;
+}
+
+.legal-rise {
+  animation: legal-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.legal-rise:nth-child(2) { animation-delay: 60ms; }
+.legal-rise:nth-child(3) { animation-delay: 120ms; }
+.legal-rise:nth-child(4) { animation-delay: 180ms; }
+
+@keyframes legal-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legal-rise { animation: none; }
+}
+</style>

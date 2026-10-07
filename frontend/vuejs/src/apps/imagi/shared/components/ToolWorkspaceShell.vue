@@ -4,21 +4,22 @@
   The three workspaces were three copies of the same template (back link,
   loading and not-found states, an icon-tile header, a connect banner and a tab
   strip) that had drifted apart in small ways. They now share this one, and it
-  wears the editorial surface the project hub and the home page wear: a tracked
-  eyebrow, a Fraunces headline with the lede set opposite it, hairline rules,
-  flat ink. Crossing from the hub into a tool no longer changes typeface,
-  paper or ink.
+  wears the Spotlight stage the project hub and the home page wear: a soft
+  light over the header, a Bricolage headline with the lede set opposite it,
+  hairline rules. Crossing from the hub into a tool no longer changes typeface,
+  floor or light. (The editorial markup is re-lit by the bridge in
+  shared/styles/spotlight.css.)
 
   The tool's own content (cards, tables, forms) renders in the default slot,
   and still uses the denser app vocabulary from shared/styles/ui.ts.
 -->
 <template>
+  <div class="spotlight tool-root">
   <DefaultLayout>
-    <div class="editorial tool-page relative min-h-screen font-body">
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
-
-      <main class="relative z-10">
-        <section class="pt-24 sm:pt-28 pb-20 md:pb-24">
+    <div class="editorial tool-page relative min-h-screen">
+      <main class="relative">
+        <section class="relative isolate overflow-hidden pt-24 sm:pt-28 pb-20 md:pb-24">
+          <div class="sl-spot tool-spot" aria-hidden="true"></div>
           <div class="tool-shell">
 
             <!-- Back link -->
@@ -102,6 +103,7 @@
       </main>
     </div>
   </DefaultLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -136,6 +138,14 @@ function isActiveTab(tab: ToolTab): boolean {
 </script>
 
 <style scoped>
+/* A low pool of light over the header only — the tool's own content below
+   is dense and wants an even floor. */
+.tool-page .tool-spot {
+  height: 560px;
+  bottom: auto;
+  opacity: 0.8;
+}
+
 /* A touch wider than the editorial 68rem measure: these pages carry tables
    and four-across stat rows, not prose. */
 .tool-shell {

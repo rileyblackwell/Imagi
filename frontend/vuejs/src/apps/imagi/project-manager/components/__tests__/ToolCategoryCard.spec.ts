@@ -19,8 +19,8 @@ describe('ToolCategoryCard', () => {
 
   it('names the module, says what it is for, and lists what it holds', () => {
     const wrapper = mountWith({ tool: tool('sell') })
-    expect(wrapper.find('.rule-col__title').text()).toBe('Sell')
-    expect(wrapper.find('.rule-col__body').text()).toBe('Turn visitors into customers')
+    expect(wrapper.find('.sl-card__title').text()).toBe('Sell')
+    expect(wrapper.find('.sl-card__body').text()).toBe('Turn visitors into customers')
     expect(wrapper.findAll('.module__features li')).toHaveLength(3)
   })
 

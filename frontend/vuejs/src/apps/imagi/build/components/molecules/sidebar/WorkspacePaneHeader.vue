@@ -273,8 +273,8 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   }
 }
 
-/* The name carries the brand serif (Fraunces) — the same face as the Imagi
-   mark — so the workspace chrome speaks in the product's own voice instead of
+/* The name carries the display face (Bricolage under Spotlight, Fraunces
+   outside it) — so the workspace chrome speaks in the product's own voice instead of
    another line of bold UI sans. Set at the preview nameplate's size and optical
    axis, because the two are the same thing on opposite sides of the divider:
    what you are looking at, named. */
@@ -306,7 +306,7 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 }
 
 .pane-title {
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
   font-size: 0.875rem;
   font-weight: 600;

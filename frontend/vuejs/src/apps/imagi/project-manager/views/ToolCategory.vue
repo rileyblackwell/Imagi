@@ -9,6 +9,7 @@
   Route: /imagi/project/:projectName/:category
 -->
 <template>
+  <div class="spotlight">
   <DefaultLayout>
     <div class="tool-page page-canvas brand-selection crisp-text relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
       <!-- Grain texture over the porcelain canvas -->
@@ -106,6 +107,7 @@
       </main>
     </div>
   </DefaultLayout>
+  </div>
 </template>
 
 <script setup lang="ts">

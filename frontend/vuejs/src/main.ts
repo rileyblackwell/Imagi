@@ -20,6 +20,10 @@ import '@/shared/styles/tokens.css'
 // auth). Scoped to `.editorial`, so the signed-in app is unaffected.
 import '@/shared/styles/editorial.css'
 
+// The Spotlight design system — the home and About pages so far, with more
+// public pages moving onto it. Scoped to `.spotlight`, light and dark.
+import '@/shared/styles/spotlight.css'
+
 // Note: icons are rendered as <i class="fas fa-…"> against the Font Awesome
 // stylesheet loaded in index.html. The Vue component packages were registered
 // here for a <font-awesome-icon> that no template ever used, so they and their

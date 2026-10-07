@@ -1,8 +1,11 @@
-<!-- Auth layout — the editorial surface, with the form in a hairline panel. -->
+<!-- Auth layout — the Spotlight stage, with the form in one centered card
+     standing in the light. -->
 <template>
+  <div class="spotlight auth-root">
   <DefaultLayout minimal-nav>
-    <div class="editorial auth-page min-h-screen relative font-body">
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+    <div class="editorial auth-page min-h-screen relative isolate overflow-hidden">
+      <div class="sl-spot auth-spot" aria-hidden="true"></div>
+      <div class="sl-dots" aria-hidden="true"></div>
 
       <div class="relative z-10 flex min-h-screen w-full items-center justify-center px-6 py-16 pt-28 sm:pt-32">
         <div class="w-full max-w-[30rem] auth-rise">
@@ -12,10 +15,10 @@
                    wrapper to sit under text-center. -->
               <span class="inline-flex"><ImagiLogo size="lg" to="/" /></span>
 
-              <h1 class="display mt-8 text-3xl sm:text-[2.4rem]">
+              <h1 class="sl-display auth-title">
                 {{ route.meta.title }}
               </h1>
-              <p class="lede mt-3">
+              <p class="sl-lede auth-lede">
                 {{ route.meta.subtitle }}
               </p>
             </div>
@@ -32,6 +35,7 @@
       </div>
     </div>
   </DefaultLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -43,13 +47,92 @@ const route = useRoute()
 </script>
 
 <style scoped>
-/* A hairline panel rather than a shadowed card — the form still reads as a
-   contained task without a floating slab on the paper. */
+/* The light sits over the card rather than the top edge of the page */
+.auth-page .auth-spot {
+  background:
+    radial-gradient(ellipse 42% 50% at 50% 12%, var(--sl-spot-core) 0%, var(--sl-spot-mid) 45%, transparent 75%),
+    radial-gradient(ellipse 80% 60% at 50% -10%, var(--sl-spot-wide), transparent 65%);
+}
+
+.auth-title {
+  margin-top: 1.75rem;
+  font-size: clamp(32px, 4.4vw, 42px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.auth-lede {
+  margin: 0.75rem auto 0;
+  font-size: 16px;
+}
+
+/* One card in the light, edged with the same glowing gradient as the home
+   page's prompt bar. */
 .auth-panel {
+  position: relative;
   padding: 2.5rem 2rem;
-  border: 1px solid var(--rule);
-  border-radius: 1rem;
-  background: var(--paper-raised);
+  border: 1px solid transparent;
+  border-radius: 22px;
+  background:
+    var(--sl-prompt-bg) padding-box,
+    var(--sl-prompt-edge) border-box;
+  box-shadow: var(--sl-prompt-shadow);
+}
+
+/* The form controls take the stage's colours. Their Tailwind classes are
+   shared with the signed-in app, so they are re-lit here rather than at the
+   source. */
+.auth-panel :deep(input:not([type='checkbox'])) {
+  border-color: var(--sl-line-strong);
+  border-radius: 14px;
+  background: var(--sl-chip-bg);
+  color: var(--sl-text);
+  font-family: var(--sl-font-body);
+}
+
+.auth-panel :deep(input:not([type='checkbox'])::placeholder) {
+  color: var(--sl-faint);
+}
+
+.auth-panel :deep(input:not([type='checkbox']):hover) {
+  border-color: color-mix(in srgb, var(--sl-text) 28%, transparent);
+}
+
+.auth-panel :deep(input:not([type='checkbox']):focus) {
+  border-color: var(--sl-focus);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sl-amber) 16%, transparent);
+}
+
+.auth-panel :deep(.group > span > i),
+.auth-panel :deep(label > span > i),
+.auth-panel :deep(input ~ button) {
+  color: var(--sl-faint);
+}
+
+.auth-panel :deep(input ~ button:hover) {
+  color: var(--sl-text);
+}
+
+.auth-panel :deep(input[type='checkbox']) {
+  accent-color: var(--sl-coral);
+}
+
+.auth-panel :deep(.ml-3 > label) {
+  color: var(--sl-muted);
+}
+
+.auth-panel :deep(.ml-3 a) {
+  color: var(--sl-text);
+  border-color: var(--sl-line-strong);
+}
+
+.auth-panel :deep(.ml-3 a:hover) {
+  border-color: var(--sl-focus);
+}
+
+.auth-panel :deep(.bg-paper\/80) {
+  border-color: var(--sl-line);
+  background: var(--sl-chip-bg);
 }
 
 @media (min-width: 640px) {
