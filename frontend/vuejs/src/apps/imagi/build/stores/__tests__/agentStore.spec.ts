@@ -9,7 +9,6 @@ const agentService = vi.hoisted(() => ({
   getConversation: vi.fn(),
   getConversationMessages: vi.fn(),
   updateConversation: vi.fn(),
-  deleteConversation: vi.fn(),
   cancelConversationRun: vi.fn(),
   acceptTask: vi.fn(),
   dismissTask: vi.fn(),
@@ -192,59 +191,6 @@ describe('agent store openSubagent', () => {
     await store.openSubagent(null)
 
     expect(store.openedSubagent).toBeNull()
-  })
-
-  it('closes a subagent the user deleted', async () => {
-    const store = useAgentStore()
-    const lead = makeInstance({ kind: 'lead' })
-    const task = makeInstance({ kind: 'task' })
-    store.instances = [lead, task]
-    store.activeInstanceId = lead.id
-    agentService.deleteConversation.mockResolvedValue(undefined)
-
-    await store.openSubagent(task.id)
-    await store.deleteInstance(task.id)
-
-    expect(store.openedSubagentId).toBeNull()
-  })
-})
-
-describe('agent store deleteInstance', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    setActivePinia(createPinia())
-    Object.values(agentService).forEach((fn) => fn.mockReset())
-  })
-
-  it('removes the instance when the server delete succeeds', async () => {
-    const store = useAgentStore()
-    const lead = makeInstance({ kind: 'lead' })
-    const task = makeInstance({ kind: 'task' })
-    store.instances = [lead, task]
-    store.activeInstanceId = lead.id
-    agentService.deleteConversation.mockResolvedValue(undefined)
-
-    await store.deleteInstance(task.id)
-
-    expect(store.instances.map(i => i.id)).toEqual([lead.id])
-  })
-
-  it('keeps the instance and rethrows when the server refuses the delete', async () => {
-    // A 409 agent_busy (running task) must not fake a local deletion that
-    // resurrects on reload.
-    const store = useAgentStore()
-    const lead = makeInstance({ kind: 'lead' })
-    const task = makeInstance({ kind: 'task', isProcessing: true })
-    store.instances = [lead, task]
-    store.activeInstanceId = lead.id
-    const busy = Object.assign(new Error('agent_busy'), {
-      response: { status: 409, data: { detail: 'agent_busy' } },
-    })
-    agentService.deleteConversation.mockRejectedValue(busy)
-
-    await expect(store.deleteInstance(task.id)).rejects.toBe(busy)
-
-    expect(store.instances.map(i => i.id)).toEqual([lead.id, task.id])
   })
 })
 
@@ -989,5 +935,189 @@ describe('agentStore reasoning effort ladder', () => {
     instance.selectedEffort = undefined as unknown as ReasoningEffort
     store.setInstanceModel(instance.id, 'gpt-6-astra')
     expect(instance.selectedEffort).toBe('medium')
+  })
+})
+
+describe('agent store workspace bootstrap', () => {
+  // loadInstances is what opening a project's workspace runs: it decides
+  // which thread the user lands in and picks up runs still going on the
+  // server. Getting it wrong strands the user in a thread they cannot type
+  // in, or leaves a finished run looking like it is still working.
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+    agentService.getConversationMessages.mockResolvedValue([])
+    agentService.listCheckIns.mockResolvedValue([])
+  })
+
+  function dto(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 1,
+      title: '',
+      model_name: 'claude-opus-5-5',
+      project_id: 1,
+      kind: 'lead',
+      parent: null,
+      review_status: '',
+      variant_group: '',
+      has_worktree: false,
+      archived_at: null,
+      created_at: '2026-10-01T00:00:00Z',
+      updated_at: '2026-10-01T00:00:00Z',
+      last_message_preview: '',
+      is_running: false,
+      total_tokens: null,
+      ...overrides,
+    }
+  }
+
+  async function load(store: ReturnType<typeof useAgentStore>) {
+    store.setProjectId('1')
+    await store.loadInstances('1')
+  }
+
+  it('creates the lead thread when the project has none', async () => {
+    const store = useAgentStore()
+    agentService.listConversations.mockResolvedValue([])
+    agentService.createConversation.mockResolvedValue(dto({ id: 9501 }))
+
+    await load(store)
+    store.stopCheckInPolling()
+
+    expect(agentService.createConversation).toHaveBeenCalledWith(
+      '1', expect.objectContaining({ kind: 'lead' })
+    )
+    expect(store.activeInstance?.conversationId).toBe(9501)
+  })
+
+  it('reuses the existing lead instead of creating another', async () => {
+    const store = useAgentStore()
+    agentService.listConversations.mockResolvedValue([dto({ id: 9502 })])
+
+    await load(store)
+    store.stopCheckInPolling()
+
+    expect(agentService.createConversation).not.toHaveBeenCalled()
+    expect(store.activeInstance?.conversationId).toBe(9502)
+  })
+
+  it('never restores a subagent as the active thread', async () => {
+    // A subagent's thread has no composer; landing in it on reload would
+    // leave the user nowhere to type.
+    const store = useAgentStore()
+    localStorage.setItem('activeAgentInstance_1', '9504')
+    agentService.listConversations.mockResolvedValue([
+      dto({ id: 9503 }),
+      dto({ id: 9504, kind: 'task', parent: 9503, review_status: 'ready' }),
+    ])
+
+    await load(store)
+    store.stopCheckInPolling()
+
+    expect(store.activeInstance?.conversationId).toBe(9503)
+  })
+
+  it('reloads a restored run once the server says it finished', async () => {
+    vi.useFakeTimers()
+    try {
+      const store = useAgentStore()
+      agentService.listConversations.mockResolvedValue([dto({ id: 9505, is_running: true })])
+      await load(store)
+      store.stopCheckInPolling()
+      const lead = store.instances.find(i => i.conversationId === 9505)!
+      expect(lead.isProcessing).toBe(true)
+      agentService.getConversationMessages.mockClear()
+
+      agentService.getConversation.mockResolvedValue(
+        dto({ id: 9505, is_running: false, last_message_preview: 'Done' })
+      )
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(lead.isProcessing).toBe(false)
+      expect(lead.lastMessagePreview).toBe('Done')
+      expect(agentService.getConversationMessages).toHaveBeenCalledWith(9505)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps polling while the server run is still going', async () => {
+    vi.useFakeTimers()
+    try {
+      const store = useAgentStore()
+      agentService.listConversations.mockResolvedValue([dto({ id: 9506, is_running: true })])
+      await load(store)
+      store.stopCheckInPolling()
+      agentService.getConversation.mockResolvedValue(dto({ id: 9506, is_running: true }))
+
+      await vi.advanceTimersByTimeAsync(10_000)
+
+      expect(agentService.getConversation).toHaveBeenCalledTimes(2)
+      expect(store.instances[0].isProcessing).toBe(true)
+    } finally {
+      // Let the poller see the run end so its interval clears itself.
+      agentService.getConversation.mockResolvedValue(dto({ id: 9506, is_running: false }))
+      await vi.advanceTimersByTimeAsync(10_000)
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('agent store check-in actions', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  function queued(id: number, taskId: number) {
+    return {
+      id,
+      kind: 'question',
+      body: 'Which colour?',
+      status: 'pending',
+      task: { id: taskId, title: 'Job', review_status: 'active' },
+    } as any
+  }
+
+  it('puts a check-in back when the server fails to resolve it', async () => {
+    // Dropping it locally on a failed resolve would lose the item for good.
+    const store = useAgentStore()
+    store.setProjectId('1')
+    const item = queued(9601, 9701)
+    store.checkIns = [item]
+    agentService.resolveCheckIn.mockRejectedValue(new Error('offline'))
+    agentService.listCheckIns.mockResolvedValue([item])
+
+    await store.resolveCheckIn(9601)
+    await vi.waitFor(() => expect(store.checkIns.map(c => c.id)).toEqual([9601]))
+  })
+
+  it('answers a question by restarting that subagent with the reply', () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({ kind: 'task', conversationId: 9702 })
+    store.instances = [task]
+    store.checkIns = [queued(9602, 9702)]
+
+    store.answerCheckIn(queued(9602, 9702), '  Blue  ')
+
+    expect(runs).toHaveBeenCalledWith(task.id, 'Blue')
+    expect(store.checkIns).toEqual([])
+  })
+
+  it('ignores an empty answer', () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    store.instances = [makeInstance({ kind: 'task', conversationId: 9703 })]
+    store.checkIns = [queued(9603, 9703)]
+
+    store.answerCheckIn(queued(9603, 9703), '   ')
+
+    expect(runs).not.toHaveBeenCalled()
+    expect(store.checkIns).toHaveLength(1)
   })
 })

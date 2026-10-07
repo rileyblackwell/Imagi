@@ -104,16 +104,20 @@ class PreviewStartLockTests(SimpleTestCase):
     def test_second_starter_waits_for_the_first(self):
         with tempfile.TemporaryDirectory() as pid_dir:
             order = []
+            holding = threading.Event()
 
             def starter(name, hold):
                 with preview_start_lock(pid_dir, 'p1'):
                     order.append(f'{name}:in')
+                    holding.set()
                     time.sleep(hold)
                     order.append(f'{name}:out')
 
             first = threading.Thread(target=starter, args=('a', 0.3))
             first.start()
-            time.sleep(0.05)
+            # Start the second only once the first holds the lock, rather than
+            # guessing with a sleep that a loaded CI box can outrun.
+            self.assertTrue(holding.wait(timeout=5))
             second = threading.Thread(target=starter, args=('b', 0))
             second.start()
             first.join()

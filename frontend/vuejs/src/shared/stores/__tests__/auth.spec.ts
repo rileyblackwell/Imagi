@@ -40,7 +40,7 @@ describe('auth store', () => {
 
       expect(store.isAuthenticated).toBe(true)
       expect(store.token).toBe('tok-123')
-      expect(store.currentUser).toEqual(sampleUser)
+      expect(store.user).toEqual(sampleUser)
       expect(axios.defaults.headers.common['Authorization']).toBe('Token tok-123')
 
       // Token stored with an expiry envelope; user stored as JSON.
@@ -59,20 +59,6 @@ describe('auth store', () => {
       expect(localStorage.getItem('token')).toBeNull()
       expect(localStorage.getItem('user')).toBeNull()
       expect(axios.defaults.headers.common['Authorization']).toBeUndefined()
-    })
-  })
-
-  describe('getters', () => {
-    it('exposes the current user and balance', () => {
-      const store = useAuthStore()
-      store.setAuthState(sampleUser, 'tok-123')
-      expect(store.currentUser).toEqual(sampleUser)
-      expect(store.userBalance).toBe(42)
-    })
-
-    it('defaults balance to 0 when no user', () => {
-      const store = useAuthStore()
-      expect(store.userBalance).toBe(0)
     })
   })
 
@@ -149,7 +135,7 @@ describe('auth store', () => {
 
       expect(result).toBe(true)
       expect(apiMock.get).toHaveBeenCalledWith('/v1/auth/init/')
-      expect(store.currentUser).toEqual(sampleUser)
+      expect(store.user).toEqual(sampleUser)
       expect(store.isAuthenticated).toBe(true)
     })
 

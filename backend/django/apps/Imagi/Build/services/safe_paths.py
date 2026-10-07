@@ -29,6 +29,12 @@ def resolve_within(project_path, file_path):
     full = os.path.realpath(os.path.join(root, file_path))
     if full != root and not full.startswith(root + os.sep):
         raise UnsafePathError(f"Path '{file_path}' is outside the project directory")
+    # The project's git metadata is off limits too. Writing .git/config can set
+    # core.fsmonitor or core.hooksPath, which the backend's own git calls would
+    # then execute; deleting .git wipes the version history and checkpoints.
+    # Lowercased because macOS filesystems treat '.GIT' as the same directory.
+    if '.git' in os.path.relpath(full, root).lower().split(os.sep):
+        raise UnsafePathError(f"Path '{file_path}' is inside the project's .git directory")
     return full
 
 

@@ -295,23 +295,6 @@ def model_supports_reasoning(model_id: str) -> bool:
         return False
     return model.get('supports_reasoning', False)
 
-def get_model_reasoning_efforts(model_id: str) -> List[str]:
-    """
-    The reasoning effort levels a given model accepts, ordered faster → smarter.
-    The full platform ladder for reasoning-capable models; empty when the model
-    is unknown or has no reasoning.
-
-    Args:
-        model_id: The public model ID
-
-    Returns:
-        list: The model's accepted effort ids
-    """
-    if not model_supports_reasoning(model_id):
-        return []
-    return list(REASONING_EFFORT_IDS)
-
-
 def resolve_reasoning_effort(model_id: str, effort: str) -> str:
     """
     Resolve the reasoning effort to apply for a request.

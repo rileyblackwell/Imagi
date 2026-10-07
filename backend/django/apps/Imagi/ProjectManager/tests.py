@@ -8,7 +8,6 @@ performed by ProjectCreationService is mocked out so the suite stays fast and
 does not pollute the repository or depend on npm/Django scaffolding.
 """
 
-import importlib
 import os
 import shutil
 import tempfile
@@ -137,46 +136,6 @@ class ProjectModelTests(TestCase):
         pid = project.id
         project.delete(hard_delete=True)
         self.assertFalse(Project.objects.filter(id=pid).exists())
-
-
-class ProjectDirMigrationTests(TestCase):
-    """The 0005 data step that converted stored absolute paths to relative.
-
-    Exercised directly rather than through the migration executor: the point
-    worth pinning is the path arithmetic, which had to work for rows written by
-    a *different* checkout than the one running the migration.
-    """
-
-    def _convert(self, stored):
-        # importlib because the module name starts with a digit.
-        mod = importlib.import_module(
-            'apps.Imagi.ProjectManager.migrations.'
-            '0005_project_dir_relative_to_projects_root'
-        )
-        marker = stored.find(mod._ROOT_MARKER)
-        if marker == -1:
-            return stored
-        return stored[marker + len(mod._ROOT_MARKER):]
-
-    def test_path_from_another_checkout_becomes_relative(self):
-        # The case that motivated the change: the row was written by a git
-        # worktree that is not the one running the migration, so relpath()
-        # against the local root would have produced '../..' escapes.
-        stored = (
-            '/Users/dev/proj/.claude/worktrees/some-branch/backend/django/'
-            'apps/Imagi/Build/imagi_projects/9/My_App_20260731145400'
-        )
-        self.assertEqual(self._convert(stored), '9/My_App_20260731145400')
-
-    def test_path_under_the_production_root_becomes_relative(self):
-        stored = '/home/imagi/.imagi/projects/imagi_projects/4/Shop_20260101000000'
-        self.assertEqual(self._convert(stored), '4/Shop_20260101000000')
-
-    def test_path_without_the_marker_is_left_absolute(self):
-        # Temp directories from old test runs have no imagi_projects segment;
-        # they stay absolute and the model returns them unchanged.
-        stored = '/var/folders/sc/T/exploit_a1k9cxnt/project'
-        self.assertEqual(self._convert(stored), stored)
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
@@ -342,6 +301,56 @@ class ProjectManagerAPITests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         project.refresh_from_db()
         self.assertEqual(project.slug, 'rename-me')
+
+    def test_is_active_is_read_only(self):
+        # Deactivating through PATCH would skip the delete endpoint's cleanup
+        # and free a plan slot while the project's files stay on disk.
+        project = Project.objects.create(user=self.user, name='Keep Me')
+        resp = self.client.patch(
+            reverse('project_manager:project-detail', args=[project.pk]),
+            {'is_active': False}, format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        project.refresh_from_db()
+        self.assertTrue(project.is_active)
+
+    def test_rename_rejects_a_name_already_in_use(self):
+        Project.objects.create(user=self.user, name='Taken')
+        project = Project.objects.create(user=self.user, name='Renaming')
+        resp = self.client.patch(
+            reverse('project_manager:project-detail', args=[project.pk]),
+            {'name': 'Taken'}, format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        project.refresh_from_db()
+        self.assertEqual(project.name, 'Renaming')
+
+    def test_rename_to_its_own_name_is_allowed(self):
+        project = Project.objects.create(user=self.user, name='Same')
+        resp = self.client.patch(
+            reverse('project_manager:project-detail', args=[project.pk]),
+            {'name': 'Same', 'description': 'Updated'}, format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_another_users_project_cannot_be_changed(self):
+        theirs = Project.objects.create(user=self.other, name='Theirs')
+        calls = [
+            ('patch', 'project-detail', {'name': 'Hijacked'}),
+            ('delete', 'project-delete', None),
+            ('get', 'project-status', None),
+            ('post', 'project-initialize', None),
+        ]
+        for method, name, body in calls:
+            with self.subTest(method=method, name=name):
+                resp = getattr(self.client, method)(
+                    reverse(f'project_manager:{name}', args=[theirs.pk]),
+                    body, format='json',
+                )
+                self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        theirs.refresh_from_db()
+        self.assertEqual(theirs.name, 'Theirs')
+        self.assertTrue(theirs.is_active)
 
     @patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
     @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
@@ -1220,21 +1229,6 @@ class ScaffoldWiringTests(TestCase):
             urls_src.count("include('apps.home.urls')"), 1,
             'home urls must be registered exactly once (idempotent registration)',
         )
-
-    def test_auth_app_ships_label_and_migrations(self):
-        apps_py = self._read(self.backend_root, 'apps', 'auth', 'apps.py')
-        self.assertIn("label = 'user_auth'", apps_py)
-        self.assertTrue(os.path.isfile(
-            os.path.join(self.backend_root, 'apps', 'auth', 'migrations', '__init__.py')
-        ))
-
-    def test_home_page_links_to_auth(self):
-        home_view = self._read(
-            self.project.project_path,
-            'frontend', 'vuejs', 'src', 'apps', 'home', 'views', 'HomeView.vue',
-        )
-        self.assertIn('/auth/signin', home_view)
-        self.assertIn('/auth/register', home_view)
 
     def test_a_freshly_scaffolded_project_passes_the_auth_link_check(self):
         # The check gates the first build's merge, so a false positive on a

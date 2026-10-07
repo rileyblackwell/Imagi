@@ -81,7 +81,6 @@ class UserSerializerTests(APITestCase):
         user = User.objects.create_user(username='carol', password='whatever123')
         data = UserSerializer(user).data
         self.assertEqual(data['name'], 'carol')
-        self.assertEqual(data['balance'], 0)
         self.assertEqual(data['username'], 'carol')
 
     def test_name_uses_full_name_when_available(self):
@@ -92,16 +91,12 @@ class UserSerializerTests(APITestCase):
         data = UserSerializer(user).data
         self.assertEqual(data['name'], 'Dave Smith')
 
-    def test_balance_and_id_are_read_only(self):
+    def test_username_is_writable(self):
         user = User.objects.create_user(username='erin', password='whatever123')
-        serializer = UserSerializer(
-            user, data={'balance': 999, 'username': 'erin2'}, partial=True
-        )
+        serializer = UserSerializer(user, data={'username': 'erin2'}, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
         updated = serializer.save()
-        # username is writable, balance is not.
         self.assertEqual(updated.username, 'erin2')
-        self.assertEqual(UserSerializer(updated).data['balance'], 0)
 
 
 class SigninViewTests(APITestCase):

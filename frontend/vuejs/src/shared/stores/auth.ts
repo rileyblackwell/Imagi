@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import axios from 'axios'
 import api from '@/shared/services/api'
 import { clearAppDataCaches } from '@/shared/services/appCaches'
@@ -65,10 +65,6 @@ export const useAuthStore = defineStore('global-auth', () => {
   function getStoredUser(): User | null {
     return safeJSONParse(localStorage.getItem('user'), null)
   }
-
-  // Getters
-  const currentUser = computed(() => user.value)
-  const userBalance = computed(() => user.value?.balance || 0)
 
   // Actions
   const setAuthState = (userData: User | null, authToken: string | null) => {
@@ -293,11 +289,7 @@ export const useAuthStore = defineStore('global-auth', () => {
     sessionTimeout,
     initialized,
     loading,
-    
-    // Getters
-    currentUser,
-    userBalance,
-    
+
     // Actions
     setAuthState,
     initAuth,

@@ -411,9 +411,11 @@ class SingleLeadTests(TestCase):
         self.user = User.objects.create_user(username='leaduser', password='pw123456')
         self.client.force_login(self.user)
         self.url = reverse('conversations_list_create')
+        self.project = Project.objects.create(user=self.user, name='Lead Project')
+        self.second_project = Project.objects.create(user=self.user, name='Second Project')
 
     def _create(self, **payload):
-        payload.setdefault('project_id', 1)
+        payload.setdefault('project_id', self.project.id)
         return self.client.post(self.url, data=payload, content_type='application/json')
 
     def test_lead_created_once_then_reused(self):
@@ -426,7 +428,7 @@ class SingleLeadTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(second.json()['id'], first.json()['id'])
         self.assertEqual(
-            AgentConversation.objects.filter(kind='lead', project_id=1).count(), 1
+            AgentConversation.objects.filter(kind='lead', project_id=self.project.id).count(), 1
         )
 
     def test_archived_lead_does_not_block_a_new_one(self):
@@ -444,7 +446,7 @@ class SingleLeadTests(TestCase):
         self._create(kind='lead')
         with self.assertRaises(IntegrityError), transaction.atomic():
             AgentConversation.objects.create(
-                user=self.user, model_name='gpt-5.6-terra', project_id=1,
+                user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id,
                 kind='lead',
             )
 
@@ -483,8 +485,8 @@ class SingleLeadTests(TestCase):
         self.assertIsNone(resp.json()['archived_at'])
 
     def test_leads_are_scoped_per_project(self):
-        first = self._create(kind='lead', project_id=1)
-        second = self._create(kind='lead', project_id=2)
+        first = self._create(kind='lead', project_id=self.project.id)
+        second = self._create(kind='lead', project_id=self.second_project.id)
         self.assertEqual(second.status_code, 201)
         self.assertNotEqual(second.json()['id'], first.json()['id'])
 
@@ -508,12 +510,21 @@ class SingleLeadTests(TestCase):
 
     def test_legacy_rows_default_to_chat(self):
         conversation = AgentConversation.objects.create(
-            user=self.user, model_name='gpt-5.6-terra', project_id=1
+            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id
         )
         self.assertEqual(conversation.kind, 'chat')
         self.assertEqual(conversation.review_status, '')
         self.assertEqual(conversation.worktree_path, '')
         self.assertIsNone(conversation.parent)
+
+    def test_cannot_create_a_conversation_on_another_users_project(self):
+        other = User.objects.create_user(username='leadother', password='pw123456')
+        theirs = Project.objects.create(user=other, name='Their Project')
+
+        resp = self._create(kind='lead', project_id=theirs.id)
+
+        self.assertEqual(resp.status_code, 404)
+        self.assertFalse(AgentConversation.objects.filter(project_id=theirs.id).exists())
 
 
 class TaskRunLifecycleTests(GitRepoTestMixin, TestCase):
@@ -2112,3 +2123,158 @@ class CheckInEndpointTests(TestCase):
         self.assertEqual(resp.status_code, 404)
         check_in.refresh_from_db()
         self.assertEqual(check_in.status, 'pending')
+
+
+class ConversationOwnershipTests(TestCase):
+    """Every per-conversation endpoint is scoped to the conversation's owner.
+
+    Another user's conversation id must look like it does not exist (404), and
+    nothing about it may change: these endpoints can merge, discard, restore
+    and cancel work, so a missing user filter on any of them is a data leak or
+    worse.
+    """
+
+    def setUp(self):
+        self.owner = User.objects.create_user(username='owner', password='pw123456')
+        self.intruder = User.objects.create_user(username='intruder', password='pw123456')
+        self.client.force_login(self.intruder)
+        self.project = Project.objects.create(user=self.owner, name='Owned')
+        self.lead = AgentConversation.objects.create(
+            user=self.owner, model_name='claude-opus-5-5',
+            project_id=self.project.id, kind='lead', title='Mine',
+        )
+        self.task = AgentConversation.objects.create(
+            user=self.owner, model_name='claude-opus-5-5',
+            project_id=self.project.id, kind='task', parent=self.lead,
+            review_status='ready', run_started_at=timezone.now(),
+        )
+        self.message = AgentMessage.objects.create(
+            conversation=self.lead, role='user', content='secret plan',
+            metadata={'checkpoint': 'abc1234'},
+        )
+
+    def test_reads_are_404(self):
+        for name in ('conversation_detail', 'conversation_messages'):
+            with self.subTest(name=name):
+                resp = self.client.get(reverse(name, args=[self.lead.id]))
+                self.assertEqual(resp.status_code, 404)
+                self.assertNotIn('secret plan', resp.content.decode())
+
+    def test_list_never_includes_another_users_conversations(self):
+        resp = self.client.get(
+            reverse('conversations_list_create'), {'project_id': self.project.id}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), [])
+
+    def test_writes_are_404_and_change_nothing(self):
+        calls = [
+            ('patch', 'conversation_detail', self.lead, {'title': 'Hijacked'}),
+            ('delete', 'conversation_detail', self.lead, None),
+            ('post', 'conversation_cancel', self.task, None),
+            ('post', 'conversation_accept', self.task, None),
+            ('post', 'conversation_dismiss', self.task, None),
+            ('post', 'conversation_restore_checkpoint', self.lead,
+             {'message_id': self.message.id}),
+        ]
+        for method, name, conversation, body in calls:
+            with self.subTest(method=method, name=name):
+                resp = getattr(self.client, method)(
+                    reverse(name, args=[conversation.id]),
+                    data=body or {}, content_type='application/json',
+                )
+                self.assertEqual(resp.status_code, 404)
+
+        self.lead.refresh_from_db()
+        self.task.refresh_from_db()
+        self.assertEqual(self.lead.title, 'Mine')
+        self.assertEqual(self.task.review_status, 'ready')
+        self.assertIsNotNone(self.task.run_started_at)
+
+
+class VersionControlEndpointTests(GitRepoTestMixin, TestCase):
+    """The project history and reset-to-version REST endpoints."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='historian', password='pw123456')
+        self.client.force_login(self.user)
+        self.repo = self._make_repo()
+        self.first = _git(self.repo, 'rev-parse', 'HEAD').stdout.strip()
+        self.second = self._write_commit(self.repo, 'app.txt', 'changed', 'second')
+        self.project = Project.objects.create(
+            user=self.user, name='Versioned', project_path=self.repo, is_active=True
+        )
+
+    def _reset(self, commit_hash, project=None):
+        return self.client.post(
+            reverse('api-version-reset', args=[(project or self.project).id]),
+            data={'commit_hash': commit_hash}, content_type='application/json',
+        )
+
+    def _read(self, name):
+        with open(os.path.join(self.repo, name)) as f:
+            return f.read()
+
+    def test_history_lists_commits_newest_first(self):
+        resp = self.client.get(reverse('api-version-history', args=[self.project.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        hashes = [v['hash'] for v in resp.json()['versions']]
+        self.assertEqual(hashes, [self.second, self.first])
+
+    def test_reset_rewinds_disk_and_the_file_mirror(self):
+        resp = self._reset(self.first)
+
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(self._read('app.txt'), 'hello')
+        mirror = ProjectFile.objects.get(project=self.project, path='app.txt')
+        self.assertEqual(mirror.content, 'hello')
+
+    def test_reset_is_refused_while_the_main_thread_runs(self):
+        # `git reset --hard` would wipe the live lead run's uncommitted edits.
+        AgentConversation.objects.create(
+            user=self.user, model_name='claude-opus-5-5', project_id=self.project.id,
+            kind='lead', run_started_at=timezone.now(),
+        )
+
+        resp = self._reset(self.first)
+
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.json()['detail'], 'agent_busy')
+        self.assertEqual(self._read('app.txt'), 'changed')
+
+    def test_reset_is_allowed_while_only_a_task_runs(self):
+        # Tasks edit their own worktree, so a canonical reset cannot hurt them.
+        AgentConversation.objects.create(
+            user=self.user, model_name='claude-opus-5-5', project_id=self.project.id,
+            kind='task', run_started_at=timezone.now(),
+        )
+
+        resp = self._reset(self.first)
+
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(self._read('app.txt'), 'hello')
+
+    def test_reset_rejects_anything_but_a_hex_commit(self):
+        for bad in ('', '--git-dir', 'HEAD~1', 'main', self.first + '; rm -rf /'):
+            with self.subTest(commit_hash=bad):
+                resp = self._reset(bad)
+                self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self._read('app.txt'), 'changed')
+
+    def test_reset_of_an_unknown_commit_is_a_400(self):
+        resp = self._reset('deadbeef')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self._read('app.txt'), 'changed')
+
+    def test_another_users_project_is_404(self):
+        other = User.objects.create_user(username='vcother', password='pw123456')
+        theirs = Project.objects.create(
+            user=other, name='Theirs', project_path=self.repo, is_active=True
+        )
+
+        self.assertEqual(
+            self.client.get(reverse('api-version-history', args=[theirs.id])).status_code, 404
+        )
+        self.assertEqual(self._reset(self.first, project=theirs).status_code, 404)
+        self.assertEqual(self._read('app.txt'), 'changed')
