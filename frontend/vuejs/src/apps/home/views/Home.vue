@@ -1,17 +1,16 @@
 <!--
   Home landing page — "Spotlight".
 
-  A dark stage: warm coral-to-amber light falls from above onto a blue-black
-  floor, the prompt sits in it like a command bar, and the real product
-  screenshots further down are lit like objects on stage.
+  A lit stage: warm coral-to-amber light falls from above, the prompt sits in
+  it like a command bar, and the real product screenshots further down are lit
+  like objects on stage. It follows the site theme — a blue-black floor in
+  dark, a warm daylight floor in light.
 
-  The tokens and shared primitives live in apps/home/styles/spotlight.css,
-  scoped to .spotlight. `dark` sits on the same wrapper so the shared navbar
-  and footer render in their dark variant here whatever the visitor's saved
-  theme is (see the note at the top of spotlight.css).
+  The tokens and shared primitives for both themes live in
+  apps/home/styles/spotlight.css, scoped to .spotlight.
 -->
 <template>
-  <div class="spotlight dark home-page">
+  <div class="spotlight home-page">
     <DefaultLayout>
       <div class="relative">
         <HeroSection />

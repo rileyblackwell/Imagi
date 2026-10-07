@@ -102,7 +102,7 @@ export default defineComponent({
   height: 560px;
   transform: translateX(-50%);
   pointer-events: none;
-  background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255, 150, 90, 0.1), transparent 70%);
+  background: radial-gradient(ellipse 50% 60% at 50% 0%, var(--sl-section-glow), transparent 70%);
 }
 
 .step-num {

@@ -172,23 +172,20 @@ export default defineComponent({
   overflow: hidden;
   border-radius: 20px;
   border: 1px solid var(--sl-line);
+  box-shadow: var(--sl-card-shadow);
 }
 
 /* Build is lit cool from the left, Run warm from the right */
 .half--build {
   border-color: var(--sl-cool-line);
-  background:
-    radial-gradient(120% 90% at 0% 0%, rgba(110, 160, 255, 0.12), transparent 55%),
-    linear-gradient(180deg, #121520, var(--sl-surface));
+  background: var(--sl-half-build-bg);
   --half-ink: var(--sl-cool);
 }
 
 .half--run {
   border-color: var(--sl-warm-line);
-  background:
-    radial-gradient(120% 90% at 100% 0%, rgba(255, 130, 80, 0.14), transparent 55%),
-    linear-gradient(180deg, #19141a, var(--sl-surface));
-  --half-ink: var(--sl-amber);
+  background: var(--sl-half-run-bg);
+  --half-ink: var(--sl-focus);
 }
 
 .half__label {
@@ -204,7 +201,7 @@ export default defineComponent({
   height: 40px;
   border-radius: 12px;
   border: 1px solid var(--sl-line-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--sl-chip-bg);
 }
 
 .half__badge svg {
@@ -252,7 +249,7 @@ export default defineComponent({
   padding: 7px 12px;
   border-radius: 999px;
   border: 1px solid var(--sl-line);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--sl-chip-bg);
   font-size: 13.5px;
   font-weight: 500;
 }
@@ -316,7 +313,7 @@ export default defineComponent({
   line-height: 1;
   letter-spacing: -0.05em;
   font-variant-numeric: tabular-nums;
-  filter: drop-shadow(0 0 30px rgba(255, 120, 80, 0.25));
+  filter: drop-shadow(0 0 30px var(--sl-text-glow));
 }
 
 .spec__caption {

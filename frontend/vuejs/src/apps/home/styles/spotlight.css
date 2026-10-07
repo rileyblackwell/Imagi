@@ -1,22 +1,102 @@
 /*
  * Spotlight — the home page's design system.
  *
- * A dark stage: a blue-black floor, a warm coral-to-amber light falling from
- * above, and the product screenshots lit like objects at a keynote. The one
- * accent is the coral → amber gradient, and it is spent on very little: the
- * word "run", the Start building button, the stat numerals and the light
- * itself. Everything else is text at two strengths on dark surfaces.
+ * A lit stage: a warm coral-to-amber light falling from above, and the
+ * product screenshots lit like objects at a keynote. The one accent is the
+ * coral → amber gradient, and it is spent on very little: the word "run", the
+ * Start building button, the stat numerals and the light itself. Everything
+ * else is text at two strengths on quiet surfaces.
  *
- * Scoped to `.spotlight`, which Home.vue puts on its root together with
- * `.dark`. The page is dark in both site themes on purpose — the design is a
- * lit stage, and a light version of it is a different design. Putting `.dark`
- * on the wrapper keeps the shared navbar and footer (Tailwind `dark:` variants
- * and the app tokens in tokens.css) in step with it without touching the
- * visitor's saved theme.
+ * Two themes, following the site's theme setting (`.dark` on <html>):
+ * - Dark is the original stage — a blue-black floor under a spotlight.
+ * - Light is the same stage in daylight — a warm off-white floor, white
+ *   surfaces with soft shadows, and the spotlight as a peach wash from above.
+ *   The gradient is pulled a step deeper so it holds up on white.
+ *
+ * Every colour the home components use is a token here, so the two themes
+ * differ only in this file. Scoped to `.spotlight`, which Home.vue puts on its
+ * root.
  */
 
 .spotlight {
   /* App tokens the shared navbar, footer and page frame read */
+  --app-canvas: 248 247 244;
+  --app-paper: 248 247 244;
+  --app-paper-raised: 255 255 255;
+
+  --sl-bg: #f8f7f4;
+  --sl-bg-deep: #f0eee9;
+  --sl-surface: #ffffff;
+  --sl-surface-2: #ffffff;
+  --sl-line: rgba(20, 21, 30, 0.09);
+  --sl-line-strong: rgba(20, 21, 30, 0.15);
+  --sl-text: #14151c;
+  --sl-muted: #5c6172;
+  --sl-faint: #8a8fa0;
+  --sl-coral: #ec4a33;
+  --sl-amber: #ee8c10;
+  --sl-grad: linear-gradient(100deg, var(--sl-coral) 0%, var(--sl-amber) 100%);
+  --sl-focus: #d9730d;
+  --sl-selection: rgba(255, 140, 90, 0.25);
+  --sl-glow: rgba(255, 120, 80, 0.2);
+  --sl-glow-soft: rgba(255, 150, 80, 0.14);
+  --sl-text-glow: rgba(255, 120, 80, 0.18);
+  --sl-cool: #3a5fd0;
+  --sl-cool-line: rgba(58, 95, 208, 0.2);
+  --sl-warm-line: rgba(236, 120, 50, 0.26);
+  --sl-on-accent: #1a0e08;
+
+  /* Light sources */
+  --sl-spot-core: rgba(255, 170, 110, 0.38);
+  --sl-spot-mid: rgba(255, 140, 90, 0.14);
+  --sl-spot-wide: rgba(255, 140, 90, 0.1);
+  --sl-beam-edge: rgba(255, 170, 110, 0.12);
+  --sl-beam-core: rgba(255, 180, 120, 0.16);
+  --sl-section-glow: rgba(255, 150, 90, 0.13);
+  --sl-dot: rgba(20, 21, 30, 0.085);
+
+  /* Surfaces */
+  --sl-chip-bg: rgba(20, 21, 30, 0.035);
+  --sl-chip-bg-hover: rgba(20, 21, 30, 0.065);
+  --sl-pill-bg: rgba(255, 255, 255, 0.75);
+  --sl-card-bg: linear-gradient(180deg, #ffffff, #fdfcfa);
+  --sl-card-shadow: 0 1px 2px rgba(20, 21, 30, 0.04), 0 14px 34px -20px rgba(20, 21, 30, 0.2);
+  --sl-half-build-bg:
+    radial-gradient(120% 90% at 0% 0%, rgba(80, 120, 240, 0.1), transparent 55%),
+    linear-gradient(180deg, #f6f8ff, #ffffff);
+  --sl-half-run-bg:
+    radial-gradient(120% 90% at 100% 0%, rgba(255, 130, 80, 0.13), transparent 55%),
+    linear-gradient(180deg, #fff6f1, #ffffff);
+
+  /* The prompt: a command bar with a glowing gradient edge */
+  --sl-prompt-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.93));
+  --sl-prompt-edge: linear-gradient(140deg, rgba(236, 74, 51, 0.6), rgba(238, 140, 16, 0.32) 35%, rgba(20, 21, 30, 0.08) 60%, rgba(238, 140, 16, 0.42));
+  --sl-prompt-shadow: 0 0 0 1px rgba(20, 21, 30, 0.03), 0 30px 70px -26px rgba(240, 110, 60, 0.32), 0 0 60px -14px rgba(255, 140, 90, 0.28);
+  --sl-prompt-shadow-focus: 0 0 0 1px rgba(20, 21, 30, 0.03), 0 0 0 4px rgba(238, 140, 16, 0.16), 0 30px 70px -26px rgba(240, 110, 60, 0.4), 0 0 70px -14px rgba(255, 140, 90, 0.32);
+  --sl-placeholder: #6b7080;
+  --sl-btn-shadow: 0 8px 24px -8px rgba(236, 90, 50, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --sl-btn-shadow-hover: 0 12px 30px -8px rgba(236, 90, 50, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+  /* Screenshot windows */
+  --sl-win-edge: linear-gradient(170deg, rgba(238, 140, 16, 0.5), rgba(20, 21, 30, 0.1) 30%, rgba(20, 21, 30, 0.06) 70%, rgba(236, 74, 51, 0.4));
+  --sl-win-shadow: 0 0 0 1px rgba(20, 21, 30, 0.04), 0 40px 90px -40px rgba(20, 21, 30, 0.45), 0 60px 90px -50px rgba(255, 130, 80, 0.4);
+  --sl-chrome-bg: linear-gradient(180deg, #ffffff, #f4f3f0);
+  --sl-chrome-dot: #dcdad5;
+  --sl-chrome-dot-edge: rgba(20, 21, 30, 0.06);
+
+  --sl-font-display: 'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sl-font-body: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  background: var(--sl-bg);
+  color: var(--sl-text);
+  color-scheme: light;
+  font-family: var(--sl-font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The original stage: a blue-black floor under a spotlight */
+.dark .spotlight {
   --app-canvas: 11 12 17;
   --app-paper: 11 12 17;
   --app-paper-raised: 20 22 31;
@@ -32,32 +112,59 @@
   --sl-faint: #6b7186;
   --sl-coral: #ff6b5a;
   --sl-amber: #ffb547;
-  --sl-grad: linear-gradient(100deg, var(--sl-coral) 0%, var(--sl-amber) 100%);
+  --sl-focus: #ffb547;
+  --sl-selection: rgba(255, 140, 90, 0.3);
   --sl-glow: rgba(255, 120, 80, 0.22);
   --sl-glow-soft: rgba(255, 150, 80, 0.1);
+  --sl-text-glow: rgba(255, 120, 80, 0.35);
   --sl-cool: #a9c4ff;
   --sl-cool-line: rgba(140, 180, 255, 0.16);
   --sl-warm-line: rgba(255, 150, 100, 0.18);
-  --sl-on-accent: #1a0e08;
 
-  --sl-font-display: 'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --sl-font-body: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sl-spot-core: rgba(255, 170, 110, 0.3);
+  --sl-spot-mid: rgba(255, 120, 80, 0.12);
+  --sl-spot-wide: rgba(255, 120, 80, 0.1);
+  --sl-beam-edge: rgba(255, 190, 140, 0.07);
+  --sl-beam-core: rgba(255, 200, 150, 0.1);
+  --sl-section-glow: rgba(255, 150, 90, 0.1);
+  --sl-dot: rgba(255, 255, 255, 0.075);
 
-  background: var(--sl-bg);
-  color: var(--sl-text);
+  --sl-chip-bg: rgba(255, 255, 255, 0.04);
+  --sl-chip-bg-hover: rgba(255, 255, 255, 0.07);
+  --sl-pill-bg: rgba(20, 22, 31, 0.6);
+  --sl-card-bg: linear-gradient(180deg, var(--sl-surface-2), var(--sl-surface));
+  --sl-card-shadow: none;
+  --sl-half-build-bg:
+    radial-gradient(120% 90% at 0% 0%, rgba(110, 160, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, #121520, var(--sl-surface));
+  --sl-half-run-bg:
+    radial-gradient(120% 90% at 100% 0%, rgba(255, 130, 80, 0.14), transparent 55%),
+    linear-gradient(180deg, #19141a, var(--sl-surface));
+
+  --sl-prompt-bg: linear-gradient(180deg, rgba(26, 29, 40, 0.94), rgba(18, 20, 28, 0.97));
+  --sl-prompt-edge: linear-gradient(140deg, rgba(255, 107, 90, 0.75), rgba(255, 181, 71, 0.35) 35%, rgba(255, 255, 255, 0.08) 60%, rgba(255, 181, 71, 0.45));
+  --sl-prompt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 30px 80px -20px rgba(255, 110, 70, 0.35), 0 0 60px -10px rgba(255, 120, 80, 0.22);
+  --sl-prompt-shadow-focus: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 181, 71, 0.16), 0 30px 80px -20px rgba(255, 110, 70, 0.45), 0 0 70px -10px rgba(255, 120, 80, 0.22);
+  --sl-placeholder: #c9cddb;
+  --sl-btn-shadow: 0 8px 28px -6px rgba(255, 120, 80, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --sl-btn-shadow-hover: 0 12px 34px -6px rgba(255, 120, 80, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+  --sl-win-edge: linear-gradient(170deg, rgba(255, 181, 71, 0.45), rgba(255, 255, 255, 0.1) 30%, rgba(255, 255, 255, 0.05) 70%, rgba(255, 107, 90, 0.35));
+  --sl-win-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 40px 120px -30px rgba(0, 0, 0, 0.9), 0 60px 90px -50px rgba(255, 130, 80, 0.45);
+  --sl-chrome-bg: linear-gradient(180deg, #1b1e29, #161821);
+  --sl-chrome-dot: #2a2e3b;
+  --sl-chrome-dot-edge: rgba(255, 255, 255, 0.06);
+
   color-scheme: dark;
-  font-family: var(--sl-font-body);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 .spotlight ::selection {
-  background: rgba(255, 140, 90, 0.3);
+  background: var(--sl-selection);
   color: var(--sl-text);
 }
 
 .spotlight :focus-visible {
-  outline: 2px solid var(--sl-amber);
+  outline: 2px solid var(--sl-focus);
   outline-offset: 3px;
 }
 
@@ -145,8 +252,8 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 46% 60% at 50% -8%, rgba(255, 170, 110, 0.3) 0%, rgba(255, 120, 80, 0.12) 38%, transparent 70%),
-    radial-gradient(ellipse 80% 70% at 50% -20%, rgba(255, 120, 80, 0.1) 0%, transparent 60%);
+    radial-gradient(ellipse 46% 60% at 50% -8%, var(--sl-spot-core) 0%, var(--sl-spot-mid) 38%, transparent 70%),
+    radial-gradient(ellipse 80% 70% at 50% -20%, var(--sl-spot-wide) 0%, transparent 60%);
 }
 
 /* The beam: a soft cone inside the pool */
@@ -158,7 +265,7 @@
   width: min(900px, 120vw);
   height: 110%;
   transform: translateX(-50%);
-  background: conic-gradient(from 180deg at 50% 0%, transparent 160deg, rgba(255, 190, 140, 0.07) 172deg, rgba(255, 200, 150, 0.1) 180deg, rgba(255, 190, 140, 0.07) 188deg, transparent 200deg);
+  background: conic-gradient(from 180deg at 50% 0%, transparent 160deg, var(--sl-beam-edge) 172deg, var(--sl-beam-core) 180deg, var(--sl-beam-edge) 188deg, transparent 200deg);
   filter: blur(8px);
   -webkit-mask-image: radial-gradient(ellipse 50% 85% at 50% 0%, #000 30%, transparent 80%);
   mask-image: radial-gradient(ellipse 50% 85% at 50% 0%, #000 30%, transparent 80%);
@@ -170,7 +277,7 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.075) 1px, transparent 1.2px);
+  background-image: radial-gradient(var(--sl-dot) 1px, transparent 1.2px);
   background-size: 22px 22px;
   -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 20%, #000 0%, transparent 75%);
   mask-image: radial-gradient(ellipse 60% 70% at 50% 20%, #000 0%, transparent 75%);
@@ -193,7 +300,8 @@
   padding: 28px;
   border-radius: 18px;
   border: 1px solid var(--sl-line);
-  background: linear-gradient(180deg, var(--sl-surface-2), var(--sl-surface));
+  background: var(--sl-card-bg);
+  box-shadow: var(--sl-card-shadow);
   transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
@@ -210,7 +318,7 @@
   margin-bottom: 8px;
   border-radius: 12px;
   border: 1px solid var(--sl-line-strong);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--sl-chip-bg);
   color: var(--sl-text);
 }
 

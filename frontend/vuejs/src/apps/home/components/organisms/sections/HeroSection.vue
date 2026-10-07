@@ -179,7 +179,7 @@ export default defineComponent({
   padding: 7px 14px 7px 10px;
   border: 1px solid var(--sl-line-strong);
   border-radius: 999px;
-  background: rgba(20, 22, 31, 0.6);
+  background: var(--sl-pill-bg);
   backdrop-filter: blur(6px);
   font-size: 11.5px;
   letter-spacing: 0.14em;
@@ -206,7 +206,7 @@ export default defineComponent({
 .hero-accent {
   font-style: normal;
   padding-inline: 0.04em;
-  filter: drop-shadow(0 0 28px rgba(255, 120, 80, 0.35));
+  filter: drop-shadow(0 0 28px var(--sl-text-glow));
 }
 
 .hero-prompt {
@@ -250,7 +250,7 @@ export default defineComponent({
 }
 
 .hero-meta__link:hover {
-  border-bottom-color: var(--sl-amber);
+  border-bottom-color: var(--sl-focus);
 }
 
 .hero-meta__link svg {
