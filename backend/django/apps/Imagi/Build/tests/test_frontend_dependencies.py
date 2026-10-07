@@ -12,12 +12,14 @@ npm is stubbed so the tests stay hermetic and fast — the store install is
 exercised through a fake that materializes node_modules the way npm would.
 """
 
+import io
 import json
 import os
 import shutil
 import tempfile
 from unittest import mock
 
+from django.core.management import call_command
 from django.test import SimpleTestCase, override_settings
 
 from apps.Imagi.Build.services import frontend_dependencies as deps
@@ -171,3 +173,41 @@ class StoreInstallHardeningTests(SimpleTestCase):
         self.assertNotIn('DJANGO_SECRET_KEY', env)
         self.assertNotIn('STRIPE_SECRET_KEY', env)
         self.assertIn('PATH', env)
+
+
+class WarmFrontendDepsCommandTests(SimpleTestCase):
+    """The build-time warm step rides out a registry that is mid-publish."""
+
+    def setUp(self):
+        self.storeroot = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.storeroot, ignore_errors=True)
+
+    def _warm(self, results):
+        calls = iter(results)
+
+        def run(cmd, cwd=None, **kwargs):
+            if next(calls):
+                return _fake_npm_install(cmd, cwd=cwd)
+            return mock.Mock(returncode=1, stdout='', stderr='npm error code ETARGET')
+
+        with override_settings(FRONTEND_DEP_STORE_ROOT=self.storeroot), \
+                mock.patch('shutil.which', return_value='/usr/bin/npm'), \
+                mock.patch('subprocess.run', side_effect=run) as npm, \
+                mock.patch('time.sleep') as sleep:
+            try:
+                call_command('warm_frontend_deps', stdout=io.StringIO(), stderr=io.StringIO())
+                ok = True
+            except SystemExit:
+                ok = False
+        return ok, npm.call_count, sleep
+
+    def test_retries_a_failed_install_until_it_succeeds(self):
+        ok, installs, sleep = self._warm([False, True])
+        self.assertTrue(ok)
+        self.assertEqual(installs, 2)
+        sleep.assert_called_once_with(60)
+
+    def test_fails_the_build_once_retries_are_exhausted(self):
+        ok, installs, _ = self._warm([False, False, False])
+        self.assertFalse(ok)
+        self.assertEqual(installs, 3)

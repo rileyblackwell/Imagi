@@ -17,11 +17,20 @@ resolve to at runtime — no hardcoded hash to keep in sync.
 import json
 import os
 import tempfile
+import time
 
 from django.core.management.base import BaseCommand
 
 from apps.Imagi.Build.services import frontend_dependencies as deps
 from apps.Imagi.ProjectManager.services.codegen import templates as tpl
+
+# Seconds to wait before each retry of a failed install. The install resolves
+# against the live npm registry with no lockfile, so it can land mid-publish:
+# on 2026-10-07 tldts@7.4.17 went live two seconds before this step ran, and
+# the tldts-core@^7.4.17 it requires followed almost two minutes later, failing
+# the Workspace image with ETARGET. Waiting out a window that size lets the
+# same build succeed instead of needing a manual redeploy.
+RETRY_DELAYS = (60, 120)
 
 
 class Command(BaseCommand):
@@ -42,6 +51,12 @@ class Command(BaseCommand):
                 json.dump(package_json, f, indent=2)
 
             node_modules = deps.ensure_store(package_json_path)
+            for delay in RETRY_DELAYS:
+                if node_modules:
+                    break
+                self.stderr.write(f"Install failed; retrying in {delay}s...")
+                time.sleep(delay)
+                node_modules = deps.ensure_store(package_json_path)
 
         if not node_modules:
             # Non-fatal for an image build: runtime falls back to per-project
