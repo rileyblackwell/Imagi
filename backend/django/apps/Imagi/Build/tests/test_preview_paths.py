@@ -5,6 +5,9 @@ files beside the project directory. Those filenames used to interpolate
 ``project.name`` — a free-form, renamable field — which let a crafted name
 write, read-and-kill, and rmtree outside the owner's own directory, and let one
 tenant's browser-preview state resolve to another's live CDP session.
+
+Also covers the browser preview's validation of client-supplied navigation
+paths and viewport sizes.
 """
 
 import os
@@ -15,6 +18,13 @@ from types import SimpleNamespace
 from django.test import SimpleTestCase, override_settings
 
 from apps.Imagi.Build.services import preview_service
+from apps.Imagi.Build.services.browser_preview_service import (
+    DEFAULT_VIEWPORT,
+    MAX_VIEWPORT,
+    MIN_VIEWPORT,
+    BrowserPreviewError,
+    BrowserPreviewService,
+)
 from apps.Imagi.Build.services.preview_service import sidecar_path, sidecar_stem
 
 
@@ -116,3 +126,41 @@ class GrepPatternGuardTests(SimpleTestCase):
             r'\d{3}-\d{4}',
         ):
             self.assertIsNotNone(self._compile(pattern), pattern)
+
+
+class PreviewInputValidationTests(SimpleTestCase):
+    """The preview browser's guards on client-supplied paths and sizes.
+
+    The navigate path is typed by the user into the preview's address bar and
+    loaded by a headless browser on the server, so anything that could leave
+    the project's own dev server has to be refused before it reaches CDP.
+    """
+
+    def test_paths_inside_the_app_are_normalized(self):
+        normalize = BrowserPreviewService._normalize_path
+        self.assertEqual(normalize(None), '/')
+        self.assertEqual(normalize(''), '/')
+        self.assertEqual(normalize('about'), '/about')
+        self.assertEqual(normalize('  /shop?page=2  '), '/shop?page=2')
+
+    def test_paths_that_could_leave_the_app_are_refused(self):
+        for path in ('//evil.example', 'http://evil.example', '/a\\b',
+                     '/redirect?to=https://evil.example', 5, ['/']):
+            with self.subTest(path=path):
+                with self.assertRaises(BrowserPreviewError):
+                    BrowserPreviewService._normalize_path(path)
+
+    def test_viewport_is_clamped_to_sane_bounds(self):
+        clamp = BrowserPreviewService._clamp_viewport
+        self.assertEqual(clamp(1024, 768), (1024, 768))
+        self.assertEqual(clamp(10, 10), (MIN_VIEWPORT, MIN_VIEWPORT))
+        self.assertEqual(clamp(99999, 99999), (MAX_VIEWPORT, MAX_VIEWPORT))
+        self.assertEqual(clamp('wide', None), DEFAULT_VIEWPORT)
+
+    def test_device_scale_factor_is_clamped(self):
+        clamp = BrowserPreviewService._clamp_dsf
+        self.assertEqual(clamp(2), 2.0)
+        self.assertEqual(clamp(0.1), 1.0)
+        self.assertEqual(clamp(10), 3.0)
+        self.assertEqual(clamp(None), 1.0)
+        self.assertEqual(clamp('retina'), 1.0)

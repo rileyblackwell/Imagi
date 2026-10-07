@@ -331,6 +331,58 @@ class FilePathContainmentTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         self.assertTrue(os.path.exists(os.path.join(self.project_root, 'src/App.vue')))
 
+    def _make_git_config(self):
+        git_dir = os.path.join(self.project_root, '.git')
+        os.makedirs(os.path.join(git_dir, 'hooks'))
+        config = os.path.join(git_dir, 'config')
+        with open(config, 'w', encoding='utf-8') as f:
+            f.write('[core]\n')
+        return config
+
+    def test_file_content_write_rejects_git_metadata(self):
+        # A write to .git/config could set core.fsmonitor, which the backend's
+        # own `git status` would then execute with the server's environment.
+        config = self._make_git_config()
+        resp = self.client.post(
+            reverse('api-file-content', args=[self.project.id, '.git/config']),
+            {'content': '[core]\n\tfsmonitor = touch /tmp/pwned\n'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        with open(config, encoding='utf-8') as f:
+            self.assertEqual(f.read(), '[core]\n')
+
+    def test_create_file_rejects_git_hooks(self):
+        self._make_git_config()
+        for path in ('.git/hooks/pre-commit', 'frontend/../.GIT/hooks/post-merge'):
+            with self.subTest(path=path):
+                resp = self.client.post(
+                    reverse('api-create-file', args=[self.project.id]),
+                    {'path': path, 'content': '#!/bin/sh\n'},
+                    format='json',
+                )
+                self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(os.listdir(os.path.join(self.project_root, '.git', 'hooks')), [])
+
+    def test_delete_file_rejects_git_metadata(self):
+        config = self._make_git_config()
+        resp = self.client.delete(
+            reverse('api-delete-file', args=[self.project.id, '.git/config'])
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(os.path.exists(config))
+
+    def test_names_that_only_contain_git_are_allowed(self):
+        # The guard matches the .git path segment, not any name containing it.
+        for path in ('.gitignore', 'docs/.github/workflow.yml', 'src/my.git.notes.txt'):
+            with self.subTest(path=path):
+                resp = self.client.post(
+                    reverse('api-create-file', args=[self.project.id]),
+                    {'path': path, 'content': 'ok'},
+                    format='json',
+                )
+                self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
 
 class CreateFileServiceTests(TestCase):
     def setUp(self):
@@ -535,6 +587,42 @@ class PreviewEndpointTests(APITestCase):
         )
         self.assertEqual(resp.status_code, 409)
         self.assertFalse(resp.json()['running'])
+
+    def test_session_status_reports_not_running_when_idle(self):
+        resp = self.client.get(reverse('api-preview', args=[self.project.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {'running': False})
+
+    @patch.object(BrowserPreviewService, 'start')
+    def test_session_start_passes_the_viewport_through(self, mock_start):
+        mock_start.return_value = {'url': '/'}
+        resp = self.client.post(
+            reverse('api-preview', args=[self.project.id]),
+            {'viewport': {'width': 390, 'height': 844}, 'device_scale_factor': 2},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {'url': '/', 'running': True})
+        mock_start.assert_called_once_with(viewport=(390, 844), device_scale_factor=2)
+
+    @patch.object(BrowserPreviewService, 'start', side_effect=RuntimeError('npm install failed'))
+    def test_session_start_failure_is_a_503_with_the_reason(self, _start):
+        # The reason concerns the user's own project, so it is shown to them.
+        resp = self.client.post(reverse('api-preview', args=[self.project.id]), {}, format='json')
+        self.assertEqual(resp.status_code, 503)
+        self.assertFalse(resp.json()['running'])
+        self.assertIn('npm install failed', resp.json()['error'])
+
+    def test_session_and_pages_of_another_users_project_are_404(self):
+        other = User.objects.create_user(username='previewother', password='pw123456')
+        theirs = PMProject.objects.create(
+            user=other, name='Their Preview', project_path=self.project.project_path
+        )
+        for method, name in (('get', 'api-preview'), ('post', 'api-preview'),
+                             ('delete', 'api-preview'), ('get', 'api-project-pages')):
+            with self.subTest(method=method, name=name):
+                resp = getattr(self.client, method)(reverse(name, args=[theirs.id]))
+                self.assertEqual(resp.status_code, 404)
 
     def test_navigate_and_resize_report_browser_not_running_as_409(self):
         for name, body in (

@@ -67,17 +67,6 @@ describe('project store', () => {
     })
   })
 
-  describe('sortedProjects', () => {
-    it('orders projects newest-first by created_at', () => {
-      const store = useProjectStore()
-      store.updateProjects([
-        { id: 1, name: 'Older', created_at: '2024-01-01T00:00:00Z' },
-        { id: 2, name: 'Newer', created_at: '2024-06-01T00:00:00Z' },
-      ])
-      expect(store.sortedProjects.map((p) => p.name)).toEqual(['Newer', 'Older'])
-    })
-  })
-
   describe('setAuthenticated', () => {
     it('clears projects when logging out', () => {
       const store = useProjectStore()

@@ -20,7 +20,7 @@ from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
@@ -56,7 +56,6 @@ from apps.Imagi.Build.services.models_service import (
     get_backend_model_id,
     get_model_choices,
     get_model_identity_instructions,
-    get_model_reasoning_efforts,
     resolve_reasoning_effort,
 )
 from apps.Imagi.Build.services.coding_agent import (
@@ -128,6 +127,15 @@ class PathSafetyTests(ToolTestBase):
             resolve_safe_path(self.project, '../outside.txt')
         with self.assertRaises(ValueError):
             resolve_safe_path(self.project, 'frontend/../../etc/passwd')
+
+    def test_resolve_safe_path_blocks_git_metadata(self):
+        for path in ('.git', '.git/config', 'frontend/../.git/hooks/pre-commit', '.GIT/config'):
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError):
+                    resolve_safe_path(self.project, path)
+        # Only the .git segment is off limits, not names that contain it.
+        resolve_safe_path(self.project, '.gitignore')
+        resolve_safe_path(self.project, '.github/workflows/ci.yml')
 
     def test_normalize_adds_frontend_prefix_for_dual_stack(self):
         self.assertEqual(
@@ -232,6 +240,123 @@ class EditFileTests(TestCase):
             self.project, 'src/App.vue', '<div>App</div>', '<div>Normalized</div>'
         )
         self.assertEqual(result['path'], 'frontend/vuejs/src/App.vue')
+
+    def test_edit_refuses_git_metadata(self):
+        # .git/config can name a command (core.fsmonitor) that the backend's
+        # own git calls would run, so the agent may never edit it.
+        config = self._write('.git/config', '[core]\n\tbare = false\n')
+        with self.assertRaises(ValueError):
+            edit_file_impl(self.project, '.git/config', 'bare = false', 'fsmonitor = x')
+        with open(config) as f:
+            self.assertEqual(f.read(), '[core]\n\tbare = false\n')
+
+
+class ToolWrapperTests(TransactionTestCase):
+    """The @function_tool wrappers, invoked the way the Agents SDK invokes them.
+
+    The *_impl functions have their own tests; these pin what the wrappers add
+    on top: the JSON success/failure contract the model reads, the post-write
+    disk checks, and the ProjectFile mirror.
+
+    TransactionTestCase because the SDK runs sync tools on a worker thread,
+    which cannot see rows held in a TestCase's open transaction.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix='agents_wrappers_')
+        self.addCleanup(lambda: shutil.rmtree(self.root, ignore_errors=True))
+        self.user = User.objects.create_user(username='wrapperuser', password='testpass123')
+
+        from apps.Imagi.ProjectManager.models import Project as PMProject
+        self.project = PMProject.objects.create(
+            user=self.user, name='Wrapper Project', project_path=self.root
+        )
+        os.makedirs(os.path.join(self.root, 'frontend', 'vuejs', 'src'))
+        os.makedirs(os.path.join(self.root, 'backend', 'django'))
+
+    def _invoke(self, tool, ctx=None, **args):
+        from agents.tool_context import ToolContext
+
+        context = ctx or AgentContext(
+            user_id=self.user.id, project_id=self.project.id, project_path=self.root
+        )
+        tool_ctx = ToolContext(
+            context=context, tool_name=tool.name, tool_call_id='call_1',
+            tool_arguments=json.dumps(args),
+        )
+        raw = async_to_sync(tool.on_invoke_tool)(tool_ctx, json.dumps(args))
+        return json.loads(raw)
+
+    def _mirror_paths(self):
+        from apps.Imagi.Build.models import ProjectFile
+        return set(
+            ProjectFile.objects.filter(project=self.project).values_list('path', flat=True)
+        )
+
+    def test_create_then_delete_file_keeps_disk_and_mirror_in_step(self):
+        from apps.Imagi.Build.services.tools import create_file, delete_file
+
+        created = self._invoke(create_file, file_path='src/Hello.vue', content='<template/>')
+        self.assertTrue(created['success'], created)
+        self.assertEqual(created['path'], 'frontend/vuejs/src/Hello.vue')
+        self.assertTrue(os.path.isfile(os.path.join(self.root, created['path'])))
+        self.assertIn(created['path'], self._mirror_paths())
+
+        deleted = self._invoke(delete_file, file_path=created['path'])
+        self.assertTrue(deleted['success'], deleted)
+        self.assertFalse(os.path.exists(os.path.join(self.root, created['path'])))
+        self.assertNotIn(created['path'], self._mirror_paths())
+
+    def test_failures_tell_the_model_the_operation_failed(self):
+        from apps.Imagi.Build.services.tools import update_file
+
+        result = self._invoke(update_file, file_path='../outside.txt', content='x')
+        self.assertFalse(result['success'])
+        self.assertIn('FAILED', result['instruction'])
+        self.assertFalse(os.path.exists(os.path.join(os.path.dirname(self.root), 'outside.txt')))
+
+    def test_delete_directory_refuses_the_project_root(self):
+        from apps.Imagi.Build.services.tools import delete_directory
+
+        for dir_path in ('', '.', '/'):
+            with self.subTest(dir_path=dir_path):
+                result = self._invoke(delete_directory, dir_path=dir_path)
+                self.assertFalse(result['success'], result)
+        self.assertTrue(os.path.isdir(os.path.join(self.root, 'frontend', 'vuejs', 'src')))
+
+    def test_delete_directory_refuses_git_metadata(self):
+        from apps.Imagi.Build.services.tools import delete_directory
+
+        os.makedirs(os.path.join(self.root, '.git', 'objects'))
+        result = self._invoke(delete_directory, dir_path='.git')
+        self.assertFalse(result['success'], result)
+        self.assertTrue(os.path.isdir(os.path.join(self.root, '.git', 'objects')))
+
+    def test_worktree_runs_write_disk_but_not_the_mirror(self):
+        # A task run edits its own worktree; mirroring those unmerged writes
+        # under the canonical project would corrupt the mirror.
+        from apps.Imagi.Build.services.tools import create_file
+
+        worktree = tempfile.mkdtemp(prefix='agents_worktree_')
+        self.addCleanup(lambda: shutil.rmtree(worktree, ignore_errors=True))
+        ctx = AgentContext(
+            user_id=self.user.id, project_id=self.project.id,
+            project_path=self.root, effective_project_path=worktree,
+        )
+        result = self._invoke(create_file, ctx=ctx, file_path='notes.md', content='hi')
+        self.assertTrue(result['success'], result)
+        self.assertTrue(os.path.isfile(os.path.join(worktree, 'notes.md')))
+        self.assertFalse(os.path.exists(os.path.join(self.root, 'notes.md')))
+        self.assertNotIn('notes.md', self._mirror_paths())
+
+    def test_another_users_project_is_unreachable(self):
+        from apps.Imagi.Build.services.tools import read_file
+
+        other = User.objects.create_user(username='wrapperother', password='testpass123')
+        ctx = AgentContext(user_id=other.id, project_id=self.project.id)
+        result = self._invoke(read_file, ctx=ctx, file_path='frontend/vuejs/src/App.vue')
+        self.assertFalse(result['success'])
+        self.assertIn('not found', result['error'])
 
 
 class GrepGlobTests(ToolTestBase):
@@ -1193,11 +1318,6 @@ class ReasoningEffortLadderTests(SimpleTestCase):
     LADDER = ['low', 'medium', 'high', 'xhigh']
     REASONING_MODELS = ('gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra', 'gpt-5.6-terra')
 
-    def test_every_model_reports_the_same_ladder(self):
-        for model in self.REASONING_MODELS:
-            with self.subTest(model=model):
-                self.assertEqual(get_model_reasoning_efforts(model), self.LADDER)
-
     def test_on_ladder_effort_passes_through_for_every_model(self):
         for model in self.REASONING_MODELS:
             for effort in self.LADDER:
@@ -1219,7 +1339,6 @@ class ReasoningEffortLadderTests(SimpleTestCase):
 
     def test_unknown_model_has_no_effort(self):
         self.assertIsNone(resolve_reasoning_effort('gpt-oops', 'low'))
-        self.assertEqual(get_model_reasoning_efforts('gpt-oops'), [])
 
     def test_max_on_astra_applies_reasoning_instead_of_dropping_it(self):
         # The bug this ladder fixes: Reasoning(effort='max') raised in

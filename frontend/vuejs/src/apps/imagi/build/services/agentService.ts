@@ -469,10 +469,6 @@ export const AgentService = {
     return response.data as ConversationDto
   },
 
-  async deleteConversation(conversationId: number): Promise<void> {
-    await api.delete(`/v1/agents/conversations/${conversationId}/`)
-  },
-
   /**
    * Release a conversation's server-side running-run marker (clears
    * is_running and lifts the project's agent_busy guard). Cannot halt a run

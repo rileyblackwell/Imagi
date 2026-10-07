@@ -647,6 +647,14 @@ class VersionControlResetView(APIView):
                     'success': False,
                     'error': 'Commit hash is required'
                 }, status=status.HTTP_400_BAD_REQUEST)
+            # The hash is handed to `git rev-parse` and `git reset` as an
+            # argument, so anything but a hex object name (an option such as
+            # '--git-dir', a ref expression) is refused up front.
+            if not re.fullmatch(r'[0-9a-fA-F]{4,40}', str(commit_hash)):
+                return Response({
+                    'success': False,
+                    'error': 'Invalid commit hash'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # The reset runs `git reset --hard` on the canonical working
             # tree, so refuse while a canonical-tree (chat/lead) run is
@@ -1304,6 +1312,9 @@ def conversations_list_create(request):
                 project_id = int(project_id)
             except (ValueError, TypeError):
                 return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
+            # Only the caller's own projects can hold their conversations.
+            if not PMProject.objects.filter(id=project_id, user=request.user).exists():
+                return create_error_response('Project not found', status.HTTP_404_NOT_FOUND)
 
         kind = request.data.get('kind')
         if kind not in ('lead', 'task'):

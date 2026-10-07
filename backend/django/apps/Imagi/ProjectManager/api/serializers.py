@@ -34,11 +34,21 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['id', 'name', 'slug', 'description', 'design_preferences', 'created_at', 'updated_at', 'is_active']
-        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
+        # is_active is read-only: flipping it off here would hide a project
+        # without the delete endpoint's cleanup, and free a plan slot (the
+        # project limit counts active rows) while its files stay on disk.
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at', 'is_active']
 
     def validate_name(self, value):
         """Applies on the writable update path (PATCH /projects/<pk>/)."""
-        return validate_project_name(value)
+        value = validate_project_name(value)
+        # Same uniqueness rule as creation, so a rename can't produce two
+        # active projects with one name.
+        if self.instance is not None and Project.objects.filter(
+            user=self.instance.user, name=value, is_active=True
+        ).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError("A project with this name already exists.")
+        return value
 
 # The description seeds the initial AI build, so it has to carry enough
 # signal for the agent to work with. Mirrored by the creation form.

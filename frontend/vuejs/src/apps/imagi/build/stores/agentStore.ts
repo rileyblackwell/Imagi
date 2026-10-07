@@ -932,32 +932,6 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    async deleteInstance(instanceId: string) {
-      const instance = this._findInstance(instanceId)
-      if (!instance) return
-      const wasActive = this.activeInstanceId === instance.id
-      if (instance.conversationId) {
-        // The server delete can be refused (409 agent_busy while a task's
-        // run is live). Keep the instance and rethrow: removing it locally
-        // would show a deletion that never happened and resurrects on
-        // reload.
-        await AgentService.deleteConversation(instance.conversationId)
-      }
-      this.instances = this.instances.filter(i => i.id !== instance.id)
-      if (this.openedSubagentId === instance.id) this.openedSubagentId = null
-      if (wasActive) {
-        // Fall back to the lead thread; never auto-create plain chats.
-        const next = this.leadInstance
-          || this.instances.find(i => !i.archivedAt)
-          || this.instances[0]
-        if (next) {
-          await this.switchInstance(next.id)
-        } else {
-          await this.createInstance({ kind: 'lead' })
-        }
-      }
-    },
-
     /**
      * Re-pull one conversation's DTO and patch the instance in place.
      * Deliberately NOT loadInstances: rebuilding the whole list regenerates

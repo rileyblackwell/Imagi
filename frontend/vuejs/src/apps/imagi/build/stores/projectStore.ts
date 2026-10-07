@@ -76,12 +76,6 @@ export const useProjectStore = defineStore('builder', () => {
     return findProjectBySlug(projects.value, slug)
   }
 
-  const sortedProjects = computed(() => {
-    return [...projects.value].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-  })
-
   // Actions - Project Management (Dashboard)
   
   /**
@@ -669,7 +663,6 @@ export const useProjectStore = defineStore('builder', () => {
     hasProjects,
     getProjectById,
     getProjectBySlug,
-    sortedProjects,
 
     // Actions
     updateProjects,

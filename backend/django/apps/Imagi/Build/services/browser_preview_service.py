@@ -882,6 +882,8 @@ class BrowserPreviewService:
 
     @staticmethod
     def _normalize_path(path):
+        if path is not None and not isinstance(path, str):
+            raise BrowserPreviewError('Path must be a string.')
         clean = (path or '/').strip()
         if not clean.startswith('/'):
             clean = '/' + clean

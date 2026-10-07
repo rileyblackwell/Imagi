@@ -26,10 +26,8 @@ from apps.Imagi.Build.services.anthropic_model import (
 from apps.Imagi.Build.services.base_agent import build_model_settings
 from apps.Imagi.Build.services.coding_agent import build_agent_model, create_coding_agent
 from apps.Imagi.Build.services.models_service import (
-    compute_cost_usd,
     get_model_choices,
     get_model_provider,
-    get_model_reasoning_efforts,
     resolve_reasoning_effort,
 )
 
@@ -99,16 +97,9 @@ class ClaudeRegistryTests(SimpleTestCase):
         for model_id in CLAUDE_MODELS:
             self.assertIn(model_id, ids)
             self.assertEqual(get_model_provider(model_id), 'anthropic')
-            self.assertEqual(get_model_reasoning_efforts(model_id), ['low', 'medium', 'high', 'xhigh'])
             self.assertEqual(resolve_reasoning_effort(model_id, 'max'), 'xhigh')
         self.assertEqual(get_model_provider('gpt-6-luna'), 'openai')
         self.assertEqual(get_model_provider('gpt-6-astra'), 'openai')
-
-    def test_claude_is_billed_at_list_price(self):
-        # Opus 5.5 lists at $4 / $20 per million tokens, $0.20 cache reads.
-        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0), 4.0)
-        self.assertEqual(compute_cost_usd('claude-opus-5-5', 0, 1_000_000), 20.0)
-        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, 1_000_000), 0.2)
 
     def test_the_agent_is_served_by_the_provider_of_its_model(self):
         self.assertEqual(build_agent_model('gpt-6-luna'), 'gpt-6-luna')

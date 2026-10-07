@@ -17,10 +17,6 @@ vi.mock('@/shared/services/api', () => ({
   getAuthToken: () => 'test-token',
 }))
 
-vi.mock('@/apps/payments/stores/payments', () => ({
-  usePaymentStore: () => ({ fetchBalance: vi.fn() }),
-}))
-
 /** A fetch Response whose body streams the given chunks verbatim. */
 function streamingResponse(chunks: string[]) {
   const encoder = new TextEncoder()
