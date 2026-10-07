@@ -1,20 +1,20 @@
 <!--
-  Docs page masthead — the site's standard eyebrow + headline + lede, at the
-  scale a documentation page wants. No coloured word in the title; the accent
-  is carried by the eyebrow alone.
+  Docs page masthead — the Spotlight pill eyebrow, headline and lede, at the
+  scale a documentation page wants. No coloured word in the title; the light
+  is carried by the pill's pip alone.
 -->
 <template>
   <header class="docs-header">
-    <p class="eyebrow">
-      <span class="eyebrow__rule" aria-hidden="true"></span>
+    <p class="sl-eyebrow sl-pill">
+      <span class="sl-pip" aria-hidden="true"></span>
       <span>{{ badgeText }}</span>
     </p>
 
-    <h1 class="display mt-6 text-[2.4rem] sm:text-5xl md:text-[3.4rem]">
+    <h1 class="sl-display docs-header__title">
       {{ title }}
     </h1>
 
-    <p class="lede mt-5 text-lg max-w-2xl">
+    <p class="sl-lede docs-header__lede">
       {{ description }}
     </p>
 
@@ -34,6 +34,18 @@ withDefaults(
 </script>
 
 <style scoped>
+.docs-header .docs-header__title {
+  margin-top: 1.5rem;
+  color: var(--sl-text);
+  font-size: clamp(40px, 5.6vw, 68px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.docs-header .docs-header__lede {
+  margin-top: 1.25rem;
+}
+
 .docs-header {
   margin-bottom: 3rem;
   animation: docs-header-rise 0.8s var(--app-ease) both;

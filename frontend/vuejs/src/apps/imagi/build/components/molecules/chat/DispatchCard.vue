@@ -635,7 +635,7 @@ const revealLabel = computed(
 .dispatch-card__job {
   position: relative;
   z-index: 1;
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
   font-size: 0.8125rem;
   font-weight: 550;

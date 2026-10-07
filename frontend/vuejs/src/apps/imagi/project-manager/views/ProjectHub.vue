@@ -8,18 +8,19 @@
   The modules are driven by utils/businessTools.ts. This view is the shell — it
   does not implement any of the tools themselves.
 
-  Design: the editorial surface, same as the projects list it is reached from —
-  a header and four ruled columns, mirroring how the home page introduces the
-  same four modules. Everything visual comes from shared/styles/editorial.css.
+  Design: the Spotlight stage, same as the projects list it is reached from —
+  the project's name lit in an opener, then four cards mirroring how the home
+  page introduces the same four modules.
 -->
 <template>
+  <div class="spotlight hub-root">
   <DefaultLayout>
-    <div class="editorial hub-page relative min-h-screen font-body">
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
-
-      <main class="relative z-10">
-        <section class="relative pt-28 sm:pt-36 md:pt-40 pb-20 md:pb-28">
-          <div class="section-shell">
+    <div class="editorial hub-page relative min-h-screen">
+      <main class="relative">
+        <section class="sl-opener hub-stage">
+          <div class="sl-spot" aria-hidden="true"></div>
+          <div class="sl-dots" aria-hidden="true"></div>
+          <div class="sl-wrap">
 
             <!-- Back link -->
             <router-link :to="{ name: 'projects' }" class="back">
@@ -36,14 +37,13 @@
             </p>
 
             <!-- Not found -->
-            <div v-else-if="!project" class="mt-16 max-w-xl">
-              <p class="eyebrow">
-                <span class="eyebrow__mark" aria-hidden="true"></span>
-                <span class="eyebrow__rule" aria-hidden="true"></span>
+            <div v-else-if="!project" class="sl-opener__inner hub-head">
+              <p class="sl-eyebrow sl-pill">
+                <span class="sl-pip" aria-hidden="true"></span>
                 <span>Not found</span>
               </p>
-              <h1 class="display mt-6 text-4xl sm:text-5xl">This project isn't here</h1>
-              <p class="lede mt-6 text-lg">
+              <h1 class="sl-display hub-missing">This project isn't here</h1>
+              <p class="sl-lede">
                 We couldn't find it. It may have been deleted, or the link may be out of date.
               </p>
               <router-link :to="{ name: 'projects' }" class="btn-outline mt-9">
@@ -54,33 +54,28 @@
             <!-- Hub -->
             <template v-else>
               <!-- Project header -->
-              <div class="rise-item mt-12 md:mt-16 md:flex md:items-end md:justify-between gap-12 lg:gap-16">
-                <div class="max-w-[36rem]">
-                  <p class="eyebrow">
-                    <span class="eyebrow__rule" aria-hidden="true"></span>
-                    <span>Project</span>
-                  </p>
-                  <h1 class="display mt-7 text-[2.5rem] sm:text-5xl md:text-[3.6rem]">
-                    {{ project.name }}
-                  </h1>
-                </div>
-                <p class="rise-item lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg" style="animation-delay: 90ms">
+              <div class="sl-opener__inner hub-head">
+                <p class="rise-item sl-eyebrow sl-pill">
+                  <span class="sl-pip" aria-hidden="true"></span>
+                  <span>Project</span>
+                </p>
+                <h1 class="rise-item sl-display sl-h1 hub-title" style="animation-delay: 60ms">
+                  {{ project.name }}
+                </h1>
+                <p class="rise-item sl-lede" style="animation-delay: 120ms">
                   {{ project.description || 'Build the product and run the business behind it — all in one project. Pick a module to get started.' }}
                 </p>
               </div>
 
               <!-- Modules -->
-              <div class="rise-item mt-16 md:mt-20" style="animation-delay: 180ms">
-                <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
-                <div class="rule-cols rule-cols--4">
-                  <ToolCategoryCard
-                    v-for="tool in businessTools"
-                    :key="tool.id"
-                    :tool="tool"
-                    :project-slug="projectSlug"
-                    :build-status="buildStatus"
-                  />
-                </div>
+              <div class="rise-item sl-cards hub-modules" style="animation-delay: 180ms">
+                <ToolCategoryCard
+                  v-for="tool in businessTools"
+                  :key="tool.id"
+                  :tool="tool"
+                  :project-slug="projectSlug"
+                  :build-status="buildStatus"
+                />
               </div>
             </template>
           </div>
@@ -88,6 +83,7 @@
       </main>
     </div>
   </DefaultLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -161,6 +157,45 @@ onBeforeUnmount(stopBuildStatusPolling)
 </script>
 
 <style scoped>
+/* The stage starts a little higher than a marketing opener: the back link
+   sits above the pill. */
+.sl-opener.hub-stage {
+  padding-top: calc(3.5rem + clamp(32px, 4vw, 56px));
+  padding-bottom: clamp(72px, 9vw, 120px);
+}
+
+.hub-head {
+  margin-top: clamp(28px, 4vw, 48px);
+}
+
+.sl-opener .hub-title {
+  max-width: 14ch;
+  font-size: clamp(44px, 7.6vw, 104px);
+  overflow-wrap: anywhere;
+}
+
+.hub-missing {
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.spotlight .hub-modules {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .spotlight .hub-modules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .spotlight .hub-modules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* The one step back up the hierarchy. Quieter than a button, because it is a
    trail rather than an action. */
 .back {
@@ -171,7 +206,7 @@ onBeforeUnmount(stopBuildStatusPolling)
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-40);
+  color: var(--sl-faint);
   transition: color 0.18s ease;
 }
 
@@ -198,6 +233,7 @@ onBeforeUnmount(stopBuildStatusPolling)
   display: flex;
   align-items: center;
   gap: 0.7rem;
+  justify-content: center;
   margin-top: 5rem;
   font-size: 0.9375rem;
   color: var(--ink-55);

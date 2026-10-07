@@ -397,12 +397,12 @@ function relativeTime(iso: string): string {
   min-width: 0;
 }
 
-/* The name carries the brand serif (Fraunces), the same face as the pane
+/* The name carries the display face, the same face as the pane
    masthead — a subagent gets a byline, not a filename. */
 .agent-card__title {
   flex: 1;
   min-width: 0;
-  font-family: theme('fontFamily.display');
+  font-family: var(--sl-font-display, theme('fontFamily.display'));
   font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
   font-size: 0.8125rem;
   font-weight: 550;

@@ -1,27 +1,27 @@
 <!--
   ToolCategoryCard.vue — one module on the project hub.
 
-  Renders a BusinessTool (Build / Sell / Market / Operate) as a ruled column in
-  the editorial language: the same mark, title, body and checklist the home page
-  uses to describe the same four modules, with the tool's own accent deliberately
-  left out. The editorial surface has one accent, and four differently-coloured
-  columns on one page would read as decoration rather than as navigation.
+  Renders a BusinessTool (Build / Sell / Market / Operate) as a Spotlight card:
+  the same mark, title, body and highlights the home page uses to describe the
+  same four modules, with the tool's own accent deliberately left out. The
+  stage has one light, and four differently-coloured cards on one page would
+  read as decoration rather than as navigation.
 -->
 <template>
   <component
     :is="isBuildLocked ? 'div' : 'router-link'"
     :to="isBuildLocked ? undefined : target"
-    class="rule-col module"
+    class="sl-card module"
     :class="{ 'module--building': isBuildLocked }"
     :title="isBuildLocked ? 'Imagi is building your app — this module unlocks the moment the build finishes' : tool.name"
     :aria-disabled="isBuildLocked ? 'true' : undefined"
   >
-    <LineIcon :name="tool.lineIcon" class="rule-col__icon" />
-    <h3 class="rule-col__title">{{ tool.name }}</h3>
+    <span class="sl-card__icon module__icon"><LineIcon :name="tool.lineIcon" /></span>
+    <h3 class="sl-card__title">{{ tool.name }}</h3>
 
     <!-- ==================== BUILDING STATE ==================== -->
     <template v-if="isBuildLocked">
-      <p class="rule-col__body">
+      <p class="sl-card__body">
         Imagi is turning your business description into a tailored first version. This
         usually takes a moment.
       </p>
@@ -40,13 +40,10 @@
 
     <!-- ==================== DEFAULT STATE ==================== -->
     <template v-else>
-      <p class="rule-col__body">{{ tool.tagline }}</p>
+      <p class="sl-card__body">{{ tool.tagline }}</p>
 
-      <ul class="checklist module__features">
-        <li v-for="feature in tool.features" :key="feature.name">
-          <span class="checklist__tick" aria-hidden="true"></span>
-          <span>{{ feature.name }}</span>
-        </li>
+      <ul class="sl-highlights module__features">
+        <li v-for="feature in tool.features" :key="feature.name">{{ feature.name }}</li>
       </ul>
 
       <p class="module__cta">
@@ -100,56 +97,65 @@ const target = computed<RouteLocationRaw>(() => {
 </script>
 
 <style scoped>
-/* The column is a link, so it needs states a ruled column on a marketing page
-   never had. They are carried by the "Open" line at its foot resolving from
-   muted ink to full ink — no lift, no shadow, nothing that would make the
-   column float off the paper. The column's own geometry is left to .rule-col,
-   which already owns the gutters and the hairline between columns. */
+/* The card is a link, so it carries the states: the "Open" line at its foot
+   resolves from muted to full text and the arrow takes the light. The lift and
+   border come from .sl-card. */
+.module {
+  color: var(--sl-text);
+  text-decoration: none;
+}
+
 .module:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--sl-focus);
   outline-offset: 4px;
 }
 
-/* Two selectors, so this beats `.editorial .checklist`'s `margin-top: auto` —
-   the CTA below owns the auto margin instead, and the four "Open" lines land on
-   one baseline however many capabilities each module lists. */
+/* The card's own highlights pin to its foot with an auto margin; here the CTA
+   below owns it instead, so the four "Open" lines land on one baseline however
+   many capabilities each module lists. */
 .module .module__features {
-  margin-top: 1.75rem;
-  margin-bottom: 1.75rem;
+  margin: 8px 0 22px;
+}
+
+.module__icon :deep(svg) {
+  width: 22px;
+  height: 22px;
 }
 
 .module__cta {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: auto;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--rule);
-  font-size: 0.8125rem;
+  margin: auto 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sl-line);
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-40);
+  color: var(--sl-faint);
   transition: color 0.18s ease;
 }
 
 .module:hover .module__cta {
-  color: var(--ink);
-  border-top-color: var(--accent);
+  color: var(--sl-text);
 }
 
 .module:hover .module__arrow {
-  color: var(--accent);
+  color: var(--sl-coral);
 }
 
-/* The module's icon lifts a touch as the column is hovered, the one bit of
-   motion the column gets — the same small nudge the homepage's links make. */
-.module .rule-col__icon {
-  transition: transform 0.25s var(--app-ease);
+.module:hover {
+  box-shadow: var(--sl-card-shadow), 0 24px 50px -30px var(--sl-glow);
 }
 
-.module:hover .rule-col__icon {
+.module .module__icon {
+  transition: transform 0.25s var(--app-ease), border-color 0.25s ease;
+}
+
+.module:hover .module__icon {
   transform: translateY(-2px);
+  border-color: var(--sl-warm-line);
 }
 
 .module__arrow {
@@ -164,29 +170,34 @@ const target = computed<RouteLocationRaw>(() => {
 }
 
 /* --- Building ------------------------------------------------------------
-   The one module that can be busy. It keeps the column's shape and swaps the
+   The one module that can be busy. It keeps the card's shape and swaps the
    capability list for the reason it can't be opened yet. */
 
 .module--building {
   cursor: progress;
 }
 
-.module--building .rule-col__icon {
+.spotlight .module--building:hover {
+  transform: none;
+}
+
+.module--building .module__icon {
   animation: module-pulse 2.4s ease-in-out infinite;
 }
 
 .module__track {
   margin-top: auto;
-  height: 1px;
+  height: 2px;
   overflow: hidden;
-  background: var(--rule);
+  border-radius: 2px;
+  background: var(--sl-line);
 }
 
 .module__bar {
   display: block;
   width: 40%;
   height: 100%;
-  background: var(--accent);
+  background: var(--sl-grad);
   animation: module-sweep 1.8s ease-in-out infinite;
 }
 
@@ -194,7 +205,10 @@ const target = computed<RouteLocationRaw>(() => {
 .module__cta--waiting {
   margin-top: 0;
   border-top: 0;
-  color: var(--accent);
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @keyframes module-sweep {
@@ -218,12 +232,12 @@ const target = computed<RouteLocationRaw>(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .module__bar,
-  .module--building .rule-col__icon {
+  .module--building .module__icon {
     animation: none;
   }
 
   .module:hover .module__arrow,
-  .module:hover .rule-col__icon {
+  .module:hover .module__icon {
     transform: none;
   }
 }

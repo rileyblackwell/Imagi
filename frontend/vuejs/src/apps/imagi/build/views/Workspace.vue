@@ -6,7 +6,9 @@
   2. Chatting with the Imagi agent, which edits project files directly
 -->
 <template>
-  <div class="relative">
+  <!-- .spotlight puts the workspace on the same floor, type and light as the
+       rest of the site; workspace.css re-points its --iw-* accent at it. -->
+  <div class="spotlight workspace-root relative">
     <!-- Single confirm host for the whole workspace (useConfirm state is
          global): manager deletes and checkpoint restores both open this modal. -->
     <ConfirmModal

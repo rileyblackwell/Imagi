@@ -10,13 +10,13 @@
   It should NOT be responsible for:
   - Project file editing (handled by the build workspace)
 
-  Design: the editorial surface the rest of the site wears — paper and ink,
-  hairline rules, one accent. The page is a header and two ruled columns:
-  starting a business on the left, the ones you already have on the right.
-  Everything visual comes from shared/styles/editorial.css.
+  Design: the Spotlight stage the rest of the site wears — a lit opener, then
+  two ruled columns: starting a business on the left, the ones you already
+  have on the right. The create form is the home page's glowing prompt card.
+  The editorial markup is re-lit by the bridge in shared/styles/spotlight.css.
 -->
 <template>
-  <div>
+  <div class="spotlight projects-root">
     <!-- Confirm Modal (uses Teleport to body) -->
     <ConfirmModal
       :is-open="confirmModal.isModalOpen.value"
@@ -26,29 +26,25 @@
     />
 
     <DefaultLayout>
-      <div class="editorial projects-page relative min-h-screen font-body">
-        <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
-
-        <main class="relative z-10">
+      <div class="editorial projects-page relative min-h-screen">
+        <main class="relative">
 
           <!-- Opening statement -->
-          <section class="relative pt-32 sm:pt-40 md:pt-44 pb-4">
-            <div class="section-shell">
-              <div class="md:flex md:items-end md:justify-between gap-12 lg:gap-16">
-                <div class="rise-item max-w-[36rem]">
-                  <p class="eyebrow">
-                    <span class="eyebrow__rule" aria-hidden="true"></span>
-                    <span>Your workspace</span>
-                  </p>
-                  <h1 class="display mt-7 text-[2.75rem] sm:text-6xl md:text-[3.9rem]">
-                    Projects
-                  </h1>
-                </div>
-                <p class="rise-item lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg" style="animation-delay: 90ms">
-                  Every business you run on Imagi lives in a project &mdash; its app and the tools
-                  behind it. Start a new one, or pick up where you left off.
-                </p>
-              </div>
+          <section class="sl-opener projects-opener">
+            <div class="sl-spot" aria-hidden="true"></div>
+            <div class="sl-dots" aria-hidden="true"></div>
+            <div class="sl-wrap sl-opener__inner">
+              <p class="rise-item sl-eyebrow sl-pill">
+                <span class="sl-pip" aria-hidden="true"></span>
+                <span>Your workspace</span>
+              </p>
+              <h1 class="rise-item sl-display sl-h1 projects-title" style="animation-delay: 60ms">
+                Projects
+              </h1>
+              <p class="rise-item sl-lede" style="animation-delay: 120ms">
+                Every business you run on Imagi lives in a project &mdash; its app and the tools
+                behind it. Start a new one, or pick up where you left off.
+              </p>
             </div>
           </section>
 
@@ -77,7 +73,7 @@
           </section>
 
           <!-- Start one / continue one -->
-          <section v-else class="relative pt-16 md:pt-20 pb-20 md:pb-28">
+          <section v-else class="relative pt-4 md:pt-6 pb-20 md:pb-28">
             <div class="section-shell">
               <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
 
@@ -651,13 +647,13 @@ input[type='search']::-webkit-search-cancel-button {
   display: grid;
   gap: 1.9rem;
   padding: 1.6rem 1.5rem 1.25rem;
-  background: var(--paper-raised);
-  border: 1px solid var(--rule-strong);
+  border: 1px solid transparent;
   border-radius: 1.4rem;
-  box-shadow:
-    0 1px 0 rgba(19, 26, 44, 0.03),
-    0 28px 60px -34px rgba(19, 26, 44, 0.32);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background:
+    var(--sl-prompt-bg) padding-box,
+    var(--sl-prompt-edge) border-box;
+  box-shadow: var(--sl-prompt-shadow);
+  transition: box-shadow 0.25s ease;
 }
 
 @media (min-width: 640px) {
@@ -667,31 +663,26 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .compose:focus-within {
-  border-color: var(--ink-40);
-  box-shadow:
-    0 0 0 4px var(--accent-soft),
-    0 28px 60px -34px rgba(19, 26, 44, 0.32);
+  box-shadow: var(--sl-prompt-shadow-focus);
 }
 
-.dark .compose {
-  box-shadow: 0 28px 60px -30px rgba(0, 0, 0, 0.7);
-}
-
-.dark .compose:focus-within {
-  box-shadow:
-    0 0 0 4px var(--accent-soft),
-    0 28px 60px -30px rgba(0, 0, 0, 0.7);
-}
-
-/* The low warm glow the homepage hero sets behind its prompt. */
+/* The warm light the home page sets behind its prompt. */
 .compose::before {
   content: '';
   position: absolute;
   inset: -2.5rem -3rem -2rem -3rem;
   z-index: -1;
-  background: radial-gradient(60% 70% at 40% 50%, var(--accent-soft), transparent 70%);
-  filter: blur(8px);
+  background: radial-gradient(60% 70% at 40% 50%, var(--sl-glow-soft), transparent 70%);
+  filter: blur(10px);
   pointer-events: none;
+}
+
+.sl-opener.projects-opener {
+  padding-bottom: clamp(48px, 7vw, 88px);
+}
+
+.sl-opener .projects-title {
+  font-size: clamp(52px, 8.4vw, 112px);
 }
 
 .compose__foot {
