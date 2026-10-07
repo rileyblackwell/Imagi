@@ -5,6 +5,10 @@
   The screenshots in /public/product are captured from the dev app at 2x, so
   every instance passes intrinsic width/height and the browser reserves the box
   before the image lands (no layout shift on a page that is mostly imagery).
+
+  Inside the home page's .spotlight the frame is lit: a thin gradient edge, a
+  deep shadow, and a warm pool of light underneath, with the caption centered
+  below it.
 -->
 <template>
   <figure class="shot">
@@ -121,5 +125,83 @@ export default defineComponent({
   line-height: 1.5;
   color: var(--ink-40);
   text-wrap: pretty;
+}
+
+/* --- Spotlight (home page) ----------------------------------------------- */
+
+.spotlight .shot {
+  position: relative;
+  z-index: 1;
+}
+
+/* Gradient edge as a border-box background, so one element keeps one radius */
+/* .shot in the selector outranks the .dark rule above (the home wrapper is .dark too) */
+.spotlight .shot .shot__frame {
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(var(--sl-surface), var(--sl-surface)) padding-box,
+    linear-gradient(170deg, rgba(255, 181, 71, 0.45), rgba(255, 255, 255, 0.1) 30%, rgba(255, 255, 255, 0.05) 70%, rgba(255, 107, 90, 0.35)) border-box;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 40px 120px -30px rgba(0, 0, 0, 0.9),
+    0 60px 90px -50px rgba(255, 130, 80, 0.45);
+}
+
+.spotlight .shot__bar {
+  height: 40px;
+  padding: 0 16px;
+  background: linear-gradient(180deg, #1b1e29, #161821);
+  border-bottom-color: var(--sl-line);
+}
+
+.spotlight .shot__dots i {
+  width: 11px;
+  height: 11px;
+  background: #2a2e3b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spotlight .shot__chip {
+  padding: 6px 14px;
+  margin-inline: auto;
+  transform: translateX(-23px); /* centre on the bar, not on the space after the dots */
+  border-radius: 8px;
+  border: 1px solid var(--sl-line);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  color: var(--sl-muted);
+}
+
+.spotlight .shot__caption {
+  max-width: 64ch;
+  margin: 28px auto 0;
+  text-align: center;
+  font-size: 15px;
+  color: var(--sl-muted);
+}
+
+@media (max-width: 560px) {
+  .spotlight .shot__bar {
+    height: 32px;
+    padding: 0 10px;
+  }
+
+  .spotlight .shot__dots i {
+    width: 8px;
+    height: 8px;
+  }
+
+  .spotlight .shot__chip {
+    transform: none;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .spotlight .shot__caption {
+    margin-top: 20px;
+    font-size: 14px;
+  }
 }
 </style>

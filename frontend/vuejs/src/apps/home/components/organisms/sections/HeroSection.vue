@@ -1,40 +1,36 @@
 <!--
-  Hero — prompt first.
+  Hero — prompt first, under the spotlight.
 
   The call to action is the product's own first step: a box to describe the
-  business. While the visitor hasn't touched it, the placeholder types out an
-  example. As soon as the visitor focuses or types, the demo stops and stays
-  out of the way.
+  business, lit from above like a command bar on a stage. While the visitor
+  hasn't touched it, the placeholder types out an example. As soon as the
+  visitor focuses or types, the demo stops and stays out of the way.
 
   No screenshot here on purpose: the real product shots sit lower on the page,
   next to the sections that explain them.
 -->
 <template>
-  <section class="hero relative pt-28 sm:pt-32 md:pt-36 pb-10 md:pb-14">
-    <div class="section-shell">
+  <section class="hero">
+    <div class="sl-spot" aria-hidden="true"></div>
+    <div class="sl-dots" aria-hidden="true"></div>
 
-      <!-- Header: the section pattern, one size up -->
-      <div class="md:flex md:items-end md:justify-between gap-12 lg:gap-16">
-        <div class="hero-item max-w-[38rem]" style="animation-delay: 0ms">
-          <p class="eyebrow">
-            <span class="eyebrow__rule" aria-hidden="true"></span>
-            <span>The all-in-one business platform</span>
-          </p>
+    <div class="sl-wrap hero-inner">
+      <p class="hero-item sl-eyebrow hero-eyebrow" style="animation-delay: 0ms">
+        <span class="hero-pip" aria-hidden="true"></span>
+        <span>The all-in-one business platform</span>
+      </p>
 
-          <h1 class="display mt-7 text-[2.9rem] sm:text-[4rem] md:text-[4.6rem] hero-title">
-            Build and <em class="hero-accent">run</em> your business
-          </h1>
-        </div>
+      <h1 class="hero-item sl-display hero-title" style="animation-delay: 60ms">
+        Build and <em class="hero-accent sl-grad-text">run</em> your business
+      </h1>
 
-        <p class="hero-item lede mt-7 md:mt-0 md:max-w-sm md:pb-4 text-lg" style="animation-delay: 90ms">
-          Describe the business you want. Imagi's agent writes the web app, shows it
-          running next to the conversation, and puts it online &mdash; then hands you the
-          tools to market, sell and run it.
-        </p>
-      </div>
+      <p class="hero-item sl-lede hero-lede" style="animation-delay: 120ms">
+        Describe the business you want. Imagi's agent writes the web app, shows it
+        running next to the conversation, and puts it online &mdash; then hands you the
+        tools to market, sell and run it.
+      </p>
 
-      <!-- The prompt -->
-      <div class="hero-item hero-prompt mt-10 md:mt-12" style="animation-delay: 180ms">
+      <div class="hero-item hero-prompt" style="animation-delay: 180ms">
         <IdeaPrompt
           input-id="hero-idea"
           :placeholder="placeholder"
@@ -42,18 +38,18 @@
           restore
           @engage="stopDemo"
         />
-
-        <div class="hero-meta">
-          <span>Start for free. Upgrade anytime.</span>
-          <button type="button" class="btn-quiet group" @click="scrollToWhy">
-            <span>See how it works</span>
-            <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          </button>
-        </div>
       </div>
 
+      <div class="hero-item hero-meta" style="animation-delay: 240ms">
+        <span>Start for free. Upgrade anytime.</span>
+        <span class="hero-meta__sep" aria-hidden="true"></span>
+        <button type="button" class="hero-meta__link" @click="scrollToWhy">
+          <span>See how it works</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </button>
+      </div>
     </div>
   </section>
 </template>
@@ -145,6 +141,23 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* The navbar is fixed; the light starts behind it, the content below it. */
+  padding-top: calc(3.5rem + clamp(56px, 8vw, 112px));
+  padding-bottom: clamp(72px, 10vw, 128px);
+}
+
+.hero-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+}
+
 /* Staggered entrance on load */
 .hero-item {
   animation: hero-rise 0.85s var(--app-ease) both;
@@ -161,46 +174,102 @@ export default defineComponent({
   }
 }
 
-.hero-title {
-  letter-spacing: -0.03em;
-  line-height: 1;
+.hero .hero-eyebrow {
+  margin: 0;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid var(--sl-line-strong);
+  border-radius: 999px;
+  background: rgba(20, 22, 31, 0.6);
+  backdrop-filter: blur(6px);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
 }
 
-/* The one word set in the display italic, in the accent — "run" is the half
-   of the promise most site builders leave out. */
+.hero-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sl-grad);
+  box-shadow: 0 0 10px var(--sl-coral);
+}
+
+.hero .hero-title {
+  max-width: 11ch;
+  margin-top: 6px;
+  font-size: clamp(48px, 9.2vw, 124px);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+
+/* "run" — the half of the promise most site builders leave out — is the one
+   word lit by the gradient. Bricolage has no italic; the light does the work. */
 .hero-accent {
-  font-style: italic;
-  font-weight: 500;
-  color: var(--accent);
-  font-variation-settings: 'SOFT' 100, 'WONK' 1;
+  font-style: normal;
+  padding-inline: 0.04em;
+  filter: drop-shadow(0 0 28px rgba(255, 120, 80, 0.35));
 }
 
-/* A low warm glow behind the prompt, so the one interactive thing on the
-   first screen sits slightly forward of the paper. */
 .hero-prompt {
-  position: relative;
-  max-width: 52rem;
-}
-
-.hero-prompt::before {
-  content: '';
-  position: absolute;
-  inset: -3rem -4rem -2rem -4rem;
-  z-index: -1;
-  background: radial-gradient(60% 70% at 40% 50%, var(--accent-soft), transparent 70%);
-  filter: blur(8px);
-  pointer-events: none;
+  width: 100%;
+  max-width: 760px;
+  margin-top: 18px;
+  text-align: left;
 }
 
 .hero-meta {
-  margin-top: 1.1rem;
-  padding-left: 0.4rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 1.75rem;
-  font-size: 0.875rem;
-  color: var(--ink-40);
+  justify-content: center;
+  gap: 10px 22px;
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--sl-muted);
+}
+
+.hero-meta__sep {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--sl-faint);
+}
+
+.hero-meta__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 1px solid var(--sl-line-strong);
+  background: none;
+  color: var(--sl-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.hero-meta__link:hover {
+  border-bottom-color: var(--sl-amber);
+}
+
+.hero-meta__link svg {
+  transition: transform 0.3s ease;
+}
+
+.hero-meta__link:hover svg {
+  transform: translateY(2px);
+}
+
+@media (max-width: 560px) {
+  .hero-meta {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-meta__sep {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

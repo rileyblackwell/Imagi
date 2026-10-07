@@ -14,7 +14,7 @@ describe('StatsSection (Why Imagi)', () => {
   })
 
   it('names the run-half workspaces', () => {
-    const run = wrapper().findAll('.rule-cols--2 .rule-col')[1].text()
+    const run = wrapper().find('.half--run').text()
     for (const name of ['Sell', 'Market', 'Operate']) expect(run).toContain(name)
   })
 

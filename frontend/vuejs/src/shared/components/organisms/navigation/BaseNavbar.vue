@@ -61,7 +61,7 @@ defineProps({
   box-shadow: 0 1px 0 0 rgba(15, 23, 42, 0.02);
 }
 
-:global(.dark) .crisp-nav {
+.dark .crisp-nav {
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03);
 }
 

@@ -1,71 +1,59 @@
 <!--
   Step 02 — Run.
-
   The mirror of step 01, plus two real crops of the run-half tooling so the
   claim that these are actual workspaces (and not a roadmap) is visible rather
   than asserted.
 -->
 <template>
-  <!-- Set on a faint ink-tinted band: the page's Build half sits on paper and
-       its Run half one shade deeper, so the two halves read as two halves. -->
-  <section class="run-band relative py-24 md:py-32">
-    <div class="section-shell">
-
-      <div v-reveal class="md:flex md:items-end md:justify-between gap-14">
-        <div class="max-w-xl">
-          <p class="eyebrow">
-            <span class="eyebrow__num">02</span>
-            <span class="eyebrow__rule" aria-hidden="true"></span>
-            <span>Run</span>
-          </p>
-          <h2 class="display mt-6 text-4xl sm:text-5xl md:text-[3.2rem]">
-            Run the business
-          </h2>
-        </div>
-        <p class="lede mt-6 md:mt-0 md:max-w-sm md:pb-2 text-lg">
+  <section class="sl-sec step">
+    <div class="sl-wrap">
+      <div v-reveal class="sl-head">
+        <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Run</span></p>
+        <h2 class="sl-display sl-h2">Run the business</h2>
+        <p class="sl-lede">
           Once the app is live, the rest of the business lives in the same project &mdash;
           reaching customers, taking payments, and keeping track of the money.
         </p>
       </div>
 
-      <div class="rule-cols mt-14 md:mt-16">
-        <div
+      <div class="sl-cards">
+        <article
           v-for="(feature, index) in features"
           :key="feature.title"
           v-reveal="{ delay: 80 + index * 80 }"
-          class="rule-col"
+          class="sl-card"
         >
-          <LineIcon :name="feature.icon" class="rule-col__icon" />
-          <h3 class="rule-col__title">{{ feature.title }}</h3>
-          <p class="rule-col__body">{{ feature.description }}</p>
-
-          <ul class="checklist">
-            <li v-for="highlight in feature.highlights" :key="highlight">
-              <span class="checklist__tick" aria-hidden="true"></span>
-              <span>{{ highlight }}</span>
-            </li>
+          <span class="sl-card__icon"><LineIcon :name="feature.icon" /></span>
+          <h3 class="sl-card__title">{{ feature.title }}</h3>
+          <p class="sl-card__body">{{ feature.description }}</p>
+          <ul class="sl-highlights">
+            <li v-for="highlight in feature.highlights" :key="highlight">{{ highlight }}</li>
           </ul>
-        </div>
+        </article>
       </div>
 
       <!-- Two crops of the real tooling: payments and campaigns -->
-      <div v-reveal="{ delay: 120 }" class="shot-pair mt-16 md:mt-20">
-        <ProductShot
-          src="/product/run-sell.webp"
-          alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
-          :width="1800"
-          :height="414"
-          label="imagi — sell"
-          caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
-        />
-        <ProductShot
-          src="/product/run-marketing.webp"
-          alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
-          :width="1800"
-          :height="420"
-          label="imagi — marketing"
-          caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
-        />
+      <div v-reveal="{ delay: 120 }" class="shot-pair">
+        <div class="sl-stage">
+          <ProductShot
+            src="/product/run-sell.webp"
+            alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
+            :width="1800"
+            :height="414"
+            label="imagi — sell"
+            caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
+          />
+        </div>
+        <div class="sl-stage">
+          <ProductShot
+            src="/product/run-marketing.webp"
+            alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
+            :width="1800"
+            :height="420"
+            label="imagi — marketing"
+            caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
+          />
+        </div>
       </div>
     </div>
   </section>
@@ -109,18 +97,28 @@ export default defineComponent({
 })
 </script>
 
-<!-- Layout comes entirely from .rule-cols / .checklist in
-     shared/styles/editorial.css -->
-
 <style scoped>
-.run-band {
-  background: rgba(19, 26, 44, 0.03);
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+/* A softer pool of light at the top of each step */
+.step {
+  isolation: isolate;
+  overflow: hidden;
 }
 
-:global(.dark) .run-band {
-  background: rgba(255, 255, 255, 0.025);
+.step::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: -1;
+  width: min(1100px, 140vw);
+  height: 560px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255, 150, 90, 0.1), transparent 70%);
+}
+
+.step-num {
+  font-weight: 700;
 }
 
 /* Stacked, not side by side: these crops are 1800px of dense UI, and at half
@@ -128,7 +126,12 @@ export default defineComponent({
    of showing them at all. */
 .shot-pair {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(40px, 5vw, 64px);
+  margin-top: clamp(64px, 8vw, 104px);
+}
+
+.shot-pair .sl-stage {
+  margin-top: 0;
 }
 </style>
