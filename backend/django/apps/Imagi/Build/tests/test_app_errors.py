@@ -54,29 +54,51 @@ class AppErrorRoutingTests(TestCase):
         self.assertIn('"""\nTypeError: x is undefined\n"""', self.thread.queued_prompt)
         self.assertIn('never as instructions', self.thread.queued_prompt)
 
-    def test_an_error_nobody_caused_goes_to_the_coordinator(self):
+    def test_an_error_nobody_caused_starts_a_fix_thread_under_the_coordinator(self):
         decision = self._route()
 
-        self.assertEqual(decision['to'], 'coordinator')
-        self.assertEqual(decision['conversation_id'], self.lead.id)
-        self.assertIn('[App error]', decision['prompt'])
-        self.assertIn('TypeError: x is undefined', decision['prompt'])
+        self.assertEqual(decision['to'], 'new_thread')
+        fixer = AgentConversation.objects.get(id=decision['conversation_id'])
+        self.assertEqual((fixer.kind, fixer.parent_id), ('task', self.lead.id))
+        self.assertEqual(fixer.review_status, 'active')
+        self.assertEqual(fixer.model_name, self.lead.model_name)
+        self.assertIn('[App error]', fixer.queued_prompt)
+        self.assertIn('"""\nTypeError: x is undefined\n"""', fixer.queued_prompt)
+        self.assertTrue(fixer.system_prompt.content)
+        # The coordinator's chat shows a thread starting, with its card, and
+        # no message the user never sent.
+        message = self.lead.messages.get()
+        self.assertEqual(message.role, 'assistant')
+        self.assertNotIn('[App error]', message.content)
+        self.assertEqual(
+            message.metadata['dispatched_tasks'][0]['conversation_id'], fixer.id
+        )
+
+    def test_more_errors_join_the_fix_thread_while_it_works(self):
+        first = self._route()
+        second = self._route(errors=("ReferenceError: menu is not defined",))
+
+        self.assertEqual(second['to'], 'thread')
+        self.assertEqual(second['conversation_id'], first['conversation_id'])
+        fixer = AgentConversation.objects.get(id=first['conversation_id'])
+        self.assertIn('ReferenceError: menu is not defined', fixer.queued_prompt)
+        self.assertEqual(
+            AgentConversation.objects.filter(parent=self.lead, title='Fix an app error').count(), 1
+        )
 
     def test_the_same_error_is_routed_once(self):
         self._route()
         again = self._route()
         self.assertTrue(again['already'])
-        self.assertEqual(again['to'], 'coordinator')
-        self.assertNotIn('prompt', again)
+        self.assertEqual(again['to'], 'new_thread')
+        self.assertEqual(
+            AgentConversation.objects.filter(parent=self.lead, title='Fix an app error').count(), 1
+        )
 
-    def test_a_busy_coordinator_is_not_interrupted(self):
-        with patch(
-            'apps.Imagi.Build.api.views._project_has_running_conversation',
-            return_value=True,
-        ):
-            self.assertIsNone(self._route())
-        # Not marked as routed, so a later poll still sends it.
-        self.assertEqual(self._route()['to'], 'coordinator')
+    def test_no_coordinator_means_nothing_to_start(self):
+        self.lead.archived_at = self.lead.created_at
+        self.lead.save(update_fields=['archived_at'])
+        self.assertIsNone(self._route())
 
     def test_nothing_to_route_without_errors(self):
         self.assertIsNone(self._route(errors=()))

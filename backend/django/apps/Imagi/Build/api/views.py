@@ -367,8 +367,8 @@ async def _run_preview_call(request, project_id, call, after=None):
 
 
 async def _route_app_errors(user, project, payload):
-    """New errors the app reported go to the thread or coordinator that can
-    fix them (app_errors); the frame says where, so the banner can too."""
+    """New errors the app reported go to a thread that can fix them
+    (app_errors); the frame says which, so the banner can too."""
     from apps.Imagi.Build.services import app_errors
 
     errors = list(payload.get('console_errors') or [])

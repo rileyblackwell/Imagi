@@ -352,4 +352,10 @@ describe('WorkspacePreview error banner', () => {
     expect(wrapper.find('[data-testid="error-routing-note"]').text()).toContain('the thread that just changed')
     expect(banner.text()).not.toContain('Fix it')
   })
+
+  it('says a new thread is fixing an error no thread owned', async () => {
+    await mountWith({ error_routing: { to: 'new_thread', conversation_id: 13 } })
+    expect(wrapper.find('[data-testid="error-routing-note"]').text()).toBe('A new thread is fixing it.')
+    expect(wrapper.find('.pv-alert').text()).not.toContain('Fix it')
+  })
 })

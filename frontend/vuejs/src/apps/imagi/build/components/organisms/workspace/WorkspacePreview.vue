@@ -460,14 +460,14 @@ function applyStatus(f: PreviewFrame, seq: number) {
 // ---------------------------------------------------------------------------
 
 const consoleErrors = ref<PreviewConsoleError[]>([])
-// Set once the server has sent the current errors to a thread or the
-// coordinator to fix; the banner then says so instead of offering "Fix it".
+// Set once the server has sent the current errors to a thread to fix (the
+// one that just changed that part of the app, or a new one); the banner then says so instead of offering "Fix it".
 const errorRouting = ref<PreviewFrame['error_routing']>(null)
 const errorRoutingNote = computed(() =>
   errorRouting.value?.to === 'thread'
     ? 'Sent to the thread that just changed this part of your app.'
-    : errorRouting.value?.to === 'coordinator'
-      ? 'Sent to your coordinator, who is getting it fixed.'
+    : errorRouting.value?.to === 'new_thread'
+      ? 'A new thread is fixing it.'
       : ''
 )
 // Key of the error the user dismissed; the banner stays hidden until a
