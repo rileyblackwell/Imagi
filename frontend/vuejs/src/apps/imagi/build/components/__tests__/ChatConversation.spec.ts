@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ChatConversation from '../organisms/chat/ChatConversation.vue'
@@ -466,5 +466,34 @@ describe('ChatConversation rail', () => {
     })
     expect(answered.find('.rail-entry--asking').exists()).toBe(false)
     expect(answered.find('.rail-tag').exists()).toBe(false)
+  })
+})
+
+describe('ChatConversation keeps the newest message in view', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('re-pins to the bottom when the viewport shrinks under it', async () => {
+    // The threads queue docking above the composer shrinks the transcript
+    // without any scroll event; the question at the bottom must stay visible.
+    let onResize: (() => void) | null = null
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(cb: () => void) { onResize = cb }
+      observe() {}
+      disconnect() {}
+    })
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1 })
+    const wrapper = mount(ChatConversation, {
+      props: { messages: [user('hi'), assistant('Which color?')] },
+      attachTo: document.body,
+    })
+    const el = wrapper.find('.iw-scroll').element as HTMLElement
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 900 })
+    el.scrollTop = 0
+
+    onResize!()
+
+    expect(el.scrollTop).toBe(900)
+    wrapper.unmount()
+    vi.unstubAllGlobals()
   })
 })

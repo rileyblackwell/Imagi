@@ -12,6 +12,7 @@ import os
 import re
 
 from django.conf import settings
+from apps.Imagi.Build.services.api_keys import read_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ def audio_extension(content_type):
 def _api_key():
     # Read per call rather than at import (unlike base_agent) so a key added
     # to the environment after start-up — or patched in by a test — is seen.
-    return os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
+    return read_api_key('OPENAI_KEY')
 
 
 def _usage_from(result):

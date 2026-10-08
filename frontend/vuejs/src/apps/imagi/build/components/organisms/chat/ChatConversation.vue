@@ -421,9 +421,21 @@ watch(() => {
   followConversation()
 })
 
+// The viewport itself shrinks when something docks under it (the threads
+// queue appearing above the composer, a taller draft). No scroll event fires,
+// so without this the newest message (often a question waiting on the user)
+// ends up hidden under whatever docked.
+let viewportObserver: ResizeObserver | null = null
+
 // Initial scroll when component is mounted
 onMounted(() => {
   messagesContainer.value?.addEventListener('scroll', handleScroll, { passive: true })
+  if (typeof ResizeObserver !== 'undefined' && messagesContainer.value) {
+    viewportObserver = new ResizeObserver(() => {
+      if (isPinnedToBottom.value) scheduleScrollToBottom('auto')
+    })
+    viewportObserver.observe(messagesContainer.value)
+  }
   nextTick(() => {
     // Initialize previous message count
     previousMessageCount.value = props.messages.length
@@ -433,6 +445,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   messagesContainer.value?.removeEventListener('scroll', handleScroll)
+  viewportObserver?.disconnect()
+  viewportObserver = null
   if (scrollFrame !== null) {
     cancelAnimationFrame(scrollFrame)
     scrollFrame = null
