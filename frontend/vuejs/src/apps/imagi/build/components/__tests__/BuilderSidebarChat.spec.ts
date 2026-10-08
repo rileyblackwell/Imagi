@@ -225,32 +225,34 @@ describe('BuilderSidebarChat dictation', () => {
     expect(tunePanel(wrapper).attributes('role')).toBe('group')
     expect(tunePanel(wrapper).attributes('aria-label')).toBe('Model and reasoning')
 
-    // The model list: three tiers, faster → smarter, each with its tag and
+    // The model list: four tiers, faster → smarter, each with its tag and
     // what it is for, the one in use checked and focused on open.
     const rows = modelRows(wrapper)
     expect(rows.map(r => r.find('.model-row__name').text())).toEqual([
-      'Luna Fast',
+      'Haiku 5.5 Fast',
+      'Sonnet 5.5 Quick',
       'Opus 5.5 Balanced',
-      'Astra Frontier',
+      'Fable 5.1 Frontier',
     ])
-    expect(rows[1]!.find('.model-row__blurb').text()).toBe(
+    expect(rows[2]!.find('.model-row__blurb').text()).toBe(
       'Thoughtful and dependable, with strong judgment on code and design. The default.'
     )
-    expect(checked(rows)).toBe(1)
-    expect(rows.map(r => r.attributes('tabindex'))).toEqual(['-1', '0', '-1'])
-    expect(document.activeElement).toBe(rows[1]!.element)
+    expect(checked(rows)).toBe(2)
+    expect(rows.map(r => r.attributes('tabindex'))).toEqual(['-1', '-1', '0', '-1'])
+    expect(document.activeElement).toBe(rows[2]!.element)
 
-    // Reasoning effort: four bars, Medium by default, filled up to the
+    // Reasoning effort: five bars, Medium by default, filled up to the
     // chosen rung, with the cost spelled out.
     const bars = effortBars(wrapper)
     expect(bars.map(b => b.attributes('aria-label'))).toEqual([
       'Low: Quick answers for small edits',
       'Medium: The balanced default for everyday building',
       'High: Deeper thinking for multi-step work',
-      'Extra High: The most thorough, for the hardest tasks',
+      'Extra High: Thorough work on the hardest tasks',
+      'Max: Everything the model has, whatever it takes',
     ])
     expect(checked(bars)).toBe(1)
-    expect(bars.map(b => b.classes('effort-bar--on'))).toEqual([true, true, false, false])
+    expect(bars.map(b => b.classes('effort-bar--on'))).toEqual([true, true, false, false, false])
     expect(readout(wrapper)).toBe('Medium')
     expect(effortGroup(wrapper).attributes('aria-describedby')).toBe('tune-effort-note')
     expect(wrapper.find('#tune-effort-note').text()).toBe(
@@ -258,18 +260,18 @@ describe('BuilderSidebarChat dictation', () => {
     )
 
     // Clicking hands the change to the workspace, and the menu follows it.
-    await rows[2]!.trigger('click')
-    expect(selects.model).toHaveBeenCalledWith('gpt-6-astra')
+    await rows[3]!.trigger('click')
+    expect(selects.model).toHaveBeenCalledWith('claude-fable-5-1')
     await nextTick()
-    expect(checked(modelRows(wrapper))).toBe(2)
+    expect(checked(modelRows(wrapper))).toBe(3)
     await effortBars(wrapper)[0]!.trigger('click')
     expect(selects.effort).toHaveBeenCalledWith('low')
     await nextTick()
     expect(checked(effortBars(wrapper))).toBe(0)
-    expect(chip.text()).toBe('Astra · Low')
+    expect(chip.text()).toBe('Fable 5.1 · Low')
 
     // Picking what is already chosen writes nothing.
-    await modelRows(wrapper)[2]!.trigger('click')
+    await modelRows(wrapper)[3]!.trigger('click')
     expect(selects.model).toHaveBeenCalledTimes(1)
 
     // The menu stays open while both are being tuned; the chip puts it away.
@@ -297,13 +299,13 @@ describe('BuilderSidebarChat dictation', () => {
     const list = tunePanel(wrapper).find('[aria-labelledby="tune-model-heading"]')
     // Down the list is smarter.
     await list.trigger('keydown', { key: 'ArrowDown' })
-    expect(selects.model).toHaveBeenLastCalledWith('gpt-6-astra')
+    expect(selects.model).toHaveBeenLastCalledWith('claude-fable-5-1')
     await nextTick()
-    expect(document.activeElement).toBe(modelRows(wrapper)[2]!.element)
+    expect(document.activeElement).toBe(modelRows(wrapper)[3]!.element)
     await list.trigger('keydown', { key: 'ArrowDown' })
     expect(selects.model).toHaveBeenCalledTimes(1)
     await list.trigger('keydown', { key: 'Home' })
-    expect(selects.model).toHaveBeenLastCalledWith('gpt-6-luna')
+    expect(selects.model).toHaveBeenLastCalledWith('claude-haiku-5-5')
 
     // The bars stand left to right, so Up is more.
     await effortGroup(wrapper).trigger('keydown', { key: 'ArrowUp' })
@@ -311,7 +313,7 @@ describe('BuilderSidebarChat dictation', () => {
     await nextTick()
     expect(document.activeElement).toBe(effortBars(wrapper)[2]!.element)
     await effortGroup(wrapper).trigger('keydown', { key: 'End' })
-    expect(selects.effort).toHaveBeenLastCalledWith('xhigh')
+    expect(selects.effort).toHaveBeenLastCalledWith('max')
     await nextTick()
     await effortGroup(wrapper).trigger('keydown', { key: 'ArrowRight' })
     expect(selects.effort).toHaveBeenCalledTimes(2)
@@ -320,7 +322,7 @@ describe('BuilderSidebarChat dictation', () => {
   it('a conversation on a model the menu does not offer sits on the default', async () => {
     wrapper = mountWith(instance({ selectedModelId: 'claude-sonnet-5' }))
     await openTune(wrapper)
-    expect(checked(modelRows(wrapper))).toBe(1)
+    expect(checked(modelRows(wrapper))).toBe(2)
     expect(tuneChip(wrapper).text()).toBe('Opus 5.5 · Medium')
   })
 

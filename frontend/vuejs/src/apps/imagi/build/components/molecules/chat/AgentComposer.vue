@@ -522,9 +522,10 @@ const modelOptions = computed<AIModel[]>(() => {
     return available
   }
   return [
-    { id: 'gpt-6-luna', name: 'GPT 6 Luna', provider: 'openai' } as AIModel,
+    { id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', provider: 'anthropic' } as AIModel,
+    { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', provider: 'anthropic' } as AIModel,
     { id: 'claude-opus-5-5', name: 'Claude Opus 5.5', provider: 'anthropic', default: true } as AIModel,
-    { id: 'gpt-6-astra', name: 'GPT 6 Astra', provider: 'openai' } as AIModel
+    { id: 'claude-fable-5-1', name: 'Claude Fable 5.1', provider: 'anthropic' } as AIModel
   ]
 })
 
@@ -536,9 +537,10 @@ const effortOptions = computed<ReasoningEffortOption[]>(() =>
 // in. Unknown ids sort last but still appear, so the menu degrades
 // gracefully if the lineup changes before this table does.
 const MODEL_RANK: Record<string, number> = {
-  'gpt-6-luna': 0,
-  'claude-opus-5-5': 1,
-  'gpt-6-astra': 2,
+  'claude-haiku-5-5': 0,
+  'claude-sonnet-5-5': 1,
+  'claude-opus-5-5': 2,
+  'claude-fable-5-1': 3,
 }
 const orderedModels = computed<AIModel[]>(() =>
   [...modelOptions.value].sort(
@@ -557,8 +559,7 @@ const modelIndex = computed(() => {
 const currentModel = computed<AIModel | null>(() => orderedModels.value[modelIndex.value] ?? null)
 
 /** The distinctive part of the model name for the chip
- *  ("Luna", "Opus 5.5", "Astra"), dropping the "GPT <version>" or "Claude"
- *  prefix. */
+ *  ("Haiku 5.5", "Opus 5.5", "Fable 5.1"), dropping the "Claude" prefix. */
 function modelShortName(id?: string | null): string {
   const model = orderedModels.value.find(m => m.id === id) ?? currentModel.value
   if (!model) return 'Model'
@@ -568,9 +569,10 @@ function modelShortName(id?: string | null): string {
 // What each tier is for, shown under its name in the menu. Static: the models endpoint
 // sends no copy, and the composer's fallback list has none either.
 const MODEL_BLURBS: Record<string, string> = {
-  'gpt-6-luna': 'Fast and inexpensive, yet capable at most tasks — turn up reasoning for harder ones.',
+  'claude-haiku-5-5': 'Fast and inexpensive, yet capable at most tasks. Turn up effort for harder ones.',
+  'claude-sonnet-5-5': 'Quick and capable, a strong everyday builder at a modest price.',
   'claude-opus-5-5': 'Thoughtful and dependable, with strong judgment on code and design. The default.',
-  'gpt-6-astra': 'Frontier intelligence for the hardest, most complex work.',
+  'claude-fable-5-1': 'Frontier intelligence for the hardest, most complex work.',
 }
 const modelBlurb = (id: string) =>
   MODEL_BLURBS[id] ?? orderedModels.value.find(m => m.id === id)?.description ?? ''
@@ -588,9 +590,10 @@ const effortIndex = computed(() => {
 
 // The tier tag beside each model's name in the menu.
 const MODEL_TIERS: Record<string, string> = {
-  'gpt-6-luna': 'Fast',
+  'claude-haiku-5-5': 'Fast',
+  'claude-sonnet-5-5': 'Quick',
   'claude-opus-5-5': 'Balanced',
-  'gpt-6-astra': 'Frontier',
+  'claude-fable-5-1': 'Frontier',
 }
 const modelTier = (id: string) => MODEL_TIERS[id] ?? ''
 

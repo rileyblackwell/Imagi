@@ -81,10 +81,7 @@ class _SlowStreamedRun:
     new_items = []
 
     async def stream_events(self):
-        yield SimpleNamespace(
-            type='raw_response_event',
-            data=SimpleNamespace(type='response.output_text.delta', delta='Working'),
-        )
+        yield SimpleNamespace(type='text_delta', delta='Working')
         await asyncio.sleep(30)
 
 
@@ -96,10 +93,7 @@ class _RaisingStreamedRun:
         self.error = error
 
     async def stream_events(self):
-        yield SimpleNamespace(
-            type='raw_response_event',
-            data=SimpleNamespace(type='response.output_text.delta', delta='Started'),
-        )
+        yield SimpleNamespace(type='text_delta', delta='Started')
         raise self.error
 
 
@@ -213,7 +207,7 @@ class CostCeilingTests(_TaskRunTestCase):
         )
 
     def test_continuation_rounds_share_one_ceiling(self):
-        from agents import MaxTurnsExceeded
+        from apps.Imagi.Build.services.agent_runtime import MaxTurnsExceeded
 
         budgets = []
         original = self.service._stream_once

@@ -525,7 +525,7 @@ class InitialBuildServiceTests(TransactionTestCase):
         from apps.Imagi.ProjectManager.services import initial_build_service
 
         with patch(
-            'apps.Imagi.Build.services.base_agent.OPENAI_API_KEY', None
+            'apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', None
         ):
             started = initial_build_service.start_initial_build(self.project, self.user)
         self.assertFalse(started)
@@ -536,7 +536,7 @@ class InitialBuildServiceTests(TransactionTestCase):
         from apps.Imagi.ProjectManager.services import initial_build_service
 
         with patch(
-            'apps.Imagi.Build.services.base_agent.OPENAI_API_KEY', 'test-key'
+            'apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', 'test-key'
         ), patch.object(initial_build_service.threading, 'Thread') as mock_thread:
             started = initial_build_service.start_initial_build(self.project, self.user)
         self.assertTrue(started)

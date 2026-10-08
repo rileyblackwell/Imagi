@@ -87,17 +87,17 @@ describe('WorkspaceSettings', () => {
   it('sets the coordinator and the thread model apart', async () => {
     const store = await openWith([agent('lead1', 'lead', 'claude-opus-5-5')])
     const [coordinator, threads] = groups()
-    option(coordinator!, 'Astra').click()
-    option(threads!, 'Luna').click()
+    option(coordinator!, 'Fable').click()
+    option(threads!, 'Haiku').click()
     await nextTick()
-    expect(store.leadInstance?.selectedModelId).toBe('gpt-6-astra')
-    expect(store.threadModelId).toBe('gpt-6-luna')
+    expect(store.leadInstance?.selectedModelId).toBe('claude-fable-5-1')
+    expect(store.threadModelId).toBe('claude-haiku-5-5')
   })
 
   it('switches the threads on another model, then says they all match', async () => {
     const store = await openWith([
       agent('lead1', 'lead', 'claude-opus-5-5'),
-      agent('t2', 'task', 'gpt-6-astra'),
+      agent('t2', 'task', 'claude-fable-5-1'),
       agent('t3', 'task', 'claude-opus-5-5'),
     ])
     const switchAll = document.body.querySelector<HTMLButtonElement>('.settings-switch')!

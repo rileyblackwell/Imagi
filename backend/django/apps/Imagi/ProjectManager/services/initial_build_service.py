@@ -289,11 +289,11 @@ def start_initial_build(project, user) -> bool:
     already correct when the create response returns) and runs the agent
     in a daemon thread. Returns False when no AI provider is configured.
     """
-    from apps.Imagi.Build.services.base_agent import OPENAI_API_KEY
+    from apps.Imagi.Build.services.base_agent import ANTHROPIC_API_KEY
 
-    if not OPENAI_API_KEY:
+    if not ANTHROPIC_API_KEY:
         logger.warning(
-            "OPENAI_KEY not configured - skipping initial AI build for project %s",
+            "ANTHROPIC_KEY not configured - skipping initial AI build for project %s",
             project.pk,
         )
         return False

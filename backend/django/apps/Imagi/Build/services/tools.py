@@ -11,7 +11,7 @@ The tool surface follows the design of modern coding-agent harnesses
 - Planning:   update_plan (Codex-style step list surfaced to the UI)
 
 Each tool is a thin wrapper around a plain implementation function so the
-behavior can be unit-tested without the Agents SDK runtime.
+behavior can be unit-tested without the agent runtime.
 """
 
 import fnmatch
@@ -24,7 +24,7 @@ from datetime import timedelta
 from typing import List, Optional
 from typing_extensions import TypedDict
 
-from agents import RunContextWrapper, function_tool
+from .agent_runtime import RunContextWrapper, function_tool
 from django.utils import timezone
 
 from apps.Imagi.ProjectManager.models import Project
@@ -939,7 +939,7 @@ def set_plan(context, steps: List[PlanStep]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Function tools (Agents SDK surface)
+# Function tools (the agent's tool surface)
 # ---------------------------------------------------------------------------
 
 @function_tool

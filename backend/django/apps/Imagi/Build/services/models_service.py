@@ -13,44 +13,69 @@ from django.conf import settings
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
-# Three tiers, one model each, chosen for what the tier needs rather than for
-# provider — the lineup is a blend of OpenAI and Anthropic, and gets revisited
-# as better fits ship:
-#   Luna     (OpenAI GPT 6 Luna)      - fast and inexpensive, yet capable at most tasks
-#   Opus 5.5 (Anthropic Claude)       - balanced all-rounder (default)
-#   Astra    (OpenAI GPT 6 Astra)     - frontier intelligence
+# The build workspace runs on Anthropic's Claude models only, four of them,
+# ordered faster → smarter:
+#   Haiku 5.5   - fast and inexpensive, capable at most everyday edits
+#   Sonnet 5.5  - quick and strong at everyday coding
+#   Opus 5.5    - thoughtful all-rounder (default)
+#   Fable 5.1   - Anthropic's most capable model, for the hardest work
 #
 # `backend_model` is the real provider model id a public id maps to at
-# runtime; for every current model the two coincide. `provider` picks the
-# client: OpenAI models run through the Responses API, Claude models through
-# services/anthropic_model.py.
+# runtime; for every current model the two coincide. Every model runs through
+# services/agent_runtime.py on the Anthropic Messages API.
 #
 # Prices are the provider's list price per million tokens, with no markup:
 # a run draws down a user's allowance by what it actually costs (see
 # Payments' plans.py). Cached input is billed at the provider's cached rate,
 # since an agent loop resends most of its prompt every turn and the provider
-# charges a small fraction for it. Not modelled: OpenAI's 2x rates on
-# requests over 272k input tokens, and Anthropic's 1.25x premium on writing
-# the cache (those tokens bill at the plain input rate).
+# charges a small fraction for it. Haiku 5.5 publishes no separate cache-read
+# rate, so its cached input is metered at the full input rate (never under).
+# A model with `long_context_*` prices bills a request whose prompt is over
+# `long_context_threshold_tokens` at those rates instead. Not modelled:
+# Anthropic's 1.25x premium on writing the cache (those tokens bill at the
+# plain input rate).
 #
-# Every model climbs the same four-rung reasoning ladder — see
+# Every model climbs the same five-rung effort ladder — see
 # REASONING_EFFORT_CHOICES below — so no entry spells out its own.
 MODELS = {
-    'gpt-6-luna': {
-        'id': 'gpt-6-luna',
-        'name': 'GPT 6 Luna',
-        'provider': 'openai',
-        'type': 'openai',
-        'backend_model': 'gpt-6-luna',
-        'description': 'OpenAI | GPT 6 Luna — fast and inexpensive, yet capable at most tasks',
+    'claude-haiku-5-5': {
+        'id': 'claude-haiku-5-5',
+        'name': 'Claude Haiku 5.5',
+        'provider': 'anthropic',
+        'type': 'anthropic',
+        'backend_model': 'claude-haiku-5-5',
+        'description': 'Anthropic | Claude Haiku 5.5 — fast and inexpensive, capable at most everyday edits',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 1000000,
         'input_price_per_m_tokens': 0.1,
-        'cached_input_price_per_m_tokens': 0.01,
+        'cached_input_price_per_m_tokens': 0.1,
         'output_price_per_m_tokens': 0.5,
-        'api_version': 'responses',  # Uses OpenAI Responses API
+        'long_context_threshold_tokens': 100_000,
+        'long_context_input_price_per_m_tokens': 0.5,
+        'long_context_cached_input_price_per_m_tokens': 0.5,
+        'long_context_output_price_per_m_tokens': 2.5,
+        'api_version': 'messages',
         'supports_temperature': False,
         'supports_reasoning': True,
+        # Haiku has no server-side refusal fallback.
+        'refusal_fallback': False,
+    },
+    'claude-sonnet-5-5': {
+        'id': 'claude-sonnet-5-5',
+        'name': 'Claude Sonnet 5.5',
+        'provider': 'anthropic',
+        'type': 'anthropic',
+        'backend_model': 'claude-sonnet-5-5',
+        'description': 'Anthropic | Claude Sonnet 5.5 — quick and strong at everyday coding',
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 1000000,
+        'input_price_per_m_tokens': 2,
+        'cached_input_price_per_m_tokens': 0.2,
+        'output_price_per_m_tokens': 10,
+        'api_version': 'messages',
+        'supports_temperature': False,
+        'supports_reasoning': True,
+        'refusal_fallback': True,
     },
     'claude-opus-5-5': {
         'id': 'claude-opus-5-5',
@@ -64,12 +89,48 @@ MODELS = {
         'input_price_per_m_tokens': 4,
         'cached_input_price_per_m_tokens': 0.2,
         'output_price_per_m_tokens': 20,
-        'api_version': 'messages',  # Uses the Anthropic Messages API
+        'api_version': 'messages',
         'supports_temperature': False,
         'supports_reasoning': True,
         # Safety classifiers can decline a request; re-run it server-side on
         # Anthropic's recommended fallback instead of failing the turn.
         'refusal_fallback': True,
+    },
+    'claude-fable-5-1': {
+        'id': 'claude-fable-5-1',
+        'name': 'Claude Fable 5.1',
+        'provider': 'anthropic',
+        'type': 'anthropic',
+        'backend_model': 'claude-fable-5-1',
+        'description': "Anthropic | Claude Fable 5.1 — Anthropic's most capable model, for the hardest work",
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 1000000,
+        'input_price_per_m_tokens': 10,
+        'cached_input_price_per_m_tokens': 0.25,
+        'output_price_per_m_tokens': 50,
+        'api_version': 'messages',
+        'supports_temperature': False,
+        'supports_reasoning': True,
+        'refusal_fallback': True,
+    },
+}
+
+# OpenAI's models, switched off while the workspace runs on Anthropic only.
+# Their definitions are kept so they can come back: list one in MODELS again
+# and give agent_runtime a Responses-API request builder and usage reader for
+# provider 'openai' (the loop, items and events stay as they are).
+OPENAI_MODELS = {
+    'gpt-6-luna': {
+        'id': 'gpt-6-luna',
+        'name': 'GPT 6 Luna',
+        'provider': 'openai',
+        'type': 'openai',
+        'backend_model': 'gpt-6-luna',
+        'input_price_per_m_tokens': 0.1,
+        'cached_input_price_per_m_tokens': 0.01,
+        'output_price_per_m_tokens': 0.5,
+        'api_version': 'responses',
+        'supports_reasoning': True,
     },
     'gpt-6-astra': {
         'id': 'gpt-6-astra',
@@ -77,42 +138,35 @@ MODELS = {
         'provider': 'openai',
         'type': 'openai',
         'backend_model': 'gpt-6-astra',
-        'description': 'OpenAI | GPT 6 Astra — frontier intelligence for the hardest work',
-        'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 1000000,
         'input_price_per_m_tokens': 10,
         'cached_input_price_per_m_tokens': 1,
         'output_price_per_m_tokens': 50,
         'api_version': 'responses',
-        'supports_temperature': False,
         'supports_reasoning': True,
     },
 }
 
 # Models the platform used to offer, re-seated onto the current model for
-# their tier. Conversations, dispatched subagents and open client tabs can
-# still carry these ids.
+# their tier. Conversations, dispatched threads and open client tabs can still
+# carry these ids. The OpenAI models map to the Claude model at the same price
+# point: Luna to Haiku, Astra to Fable.
 LEGACY_MODEL_ALIASES = {
-    'gpt-5.6-luna': 'gpt-6-luna',
+    'gpt-6-luna': 'claude-haiku-5-5',
+    'gpt-6-astra': 'claude-fable-5-1',
+    'gpt-5.6-luna': 'claude-haiku-5-5',
     'gpt-5.6-terra': 'claude-opus-5-5',
     'gpt-5.6-sol': 'claude-opus-5-5',
 }
 
-# The reasoning effort ladder, ordered faster → smarter. Applied to the OpenAI
-# Responses API `reasoning.effort` parameter for reasoning-capable models, and
-# the same for every model. Keep in step with the frontend's REASONING_EFFORTS.
-#
-# The OpenAI SDK's ReasoningEffort literal is none/minimal/low/medium/high/xhigh
-# and there is nothing above xhigh: 'max' was never a real value (it failed
-# Reasoning() validation and silently dropped reasoning entirely), and 'none'
-# and 'minimal' are left off the platform ladder — 'none' disables reasoning
-# rather than sitting on the speed/intelligence ladder, and 'minimal' is
-# omitted so every model offers the same four choices.
+# The effort ladder, ordered faster → smarter: Claude's output_config.effort
+# levels, the same for every model. Keep in step with the frontend's
+# REASONING_EFFORTS.
 REASONING_EFFORT_CHOICES = [
     ('low', 'Low'),
     ('medium', 'Medium'),
     ('high', 'High'),
     ('xhigh', 'Extra High'),
+    ('max', 'Max'),
 ]
 REASONING_EFFORT_IDS = [effort_id for effort_id, _ in REASONING_EFFORT_CHOICES]
 DEFAULT_REASONING_EFFORT = _BUILDER_SETTINGS.get('DEFAULT_REASONING_EFFORT', 'medium')
@@ -122,7 +176,7 @@ DEFAULT_REASONING_EFFORT = _BUILDER_SETTINGS.get('DEFAULT_REASONING_EFFORT', 'me
 # back to the default.
 LEGACY_REASONING_EFFORT_ALIASES = {
     'minimal': 'low',
-    'max': 'xhigh',
+    'none': 'low',
 }
 
 # Provider Choices
@@ -162,7 +216,7 @@ def get_default_provider() -> str:
     Returns:
         str: The default provider ID
     """
-    return 'openai'
+    return 'anthropic'
 
 def canonical_model_id(model_id: str) -> str:
     """The current id for a model: a retired id maps to its successor."""
@@ -183,11 +237,11 @@ def get_model_by_id(model_id: str) -> dict:
 
 def get_model_provider(model_id: str) -> str:
     """
-    The provider that serves a model ('openai' or 'anthropic'). Unknown ids
-    report 'openai', matching how the agent treats a raw model string.
+    The provider that serves a model. Unknown ids report 'anthropic', the
+    only provider the workspace runs on.
     """
     model = get_model_by_id(model_id)
-    return model.get('provider', 'openai') if model else 'openai'
+    return model.get('provider', 'anthropic') if model else 'anthropic'
 
 def get_model_display_name(model_id: str) -> str:
     """
@@ -211,7 +265,7 @@ def get_model_identity_instructions(model_id: str) -> str:
     older model like GPT-4o), which reads as if the wrong model is being used.
 
     Args:
-        model_id: The public model ID (e.g. 'gpt-6-luna', 'claude-opus-5-5')
+        model_id: The public model ID (e.g. 'claude-opus-5-5')
 
     Returns:
         str: An instruction block to append to the agent's system prompt
@@ -227,7 +281,7 @@ def get_model_identity_instructions(model_id: str) -> str:
 
 def get_backend_model_id(model_id: str) -> str:
     """
-    Resolve a public model id (e.g. 'gpt-6-luna', or a retired 'gpt-5.6-terra')
+    Resolve a public model id (e.g. 'claude-opus-5-5', or a retired 'gpt-6-luna')
     to the real underlying provider model id used for API calls.
 
     Falls back to the given id when the model is unknown or defines no explicit
@@ -237,28 +291,41 @@ def get_backend_model_id(model_id: str) -> str:
         model_id: The public model ID
 
     Returns:
-        str: The underlying OpenAI model id to send to the API
+        str: The underlying provider model id to send to the API
     """
     model = get_model_by_id(model_id)
     if model and model.get('backend_model'):
         return model['backend_model']
     return model_id
 
+def long_context_threshold(model_id: str):
+    """The prompt size above which a model bills at its long-context rates,
+    or None when it has no such tier."""
+    model = get_model_by_id(model_id)
+    return (model or {}).get('long_context_threshold_tokens')
+
+
 def compute_cost_usd(
     model_id: str,
     input_tokens: int,
     output_tokens: int,
     cached_input_tokens: int = 0,
+    long_context_input_tokens: int = 0,
+    long_context_cached_tokens: int = 0,
+    long_context_output_tokens: int = 0,
 ):
     """
     Compute the USD cost of a run at the model's list price.
 
     Args:
-        model_id: The public model ID (e.g. 'gpt-6-luna', 'claude-opus-5-5')
+        model_id: The public model ID (e.g. 'claude-opus-5-5')
         input_tokens: All input tokens the run consumed, cached ones included
         output_tokens: Output tokens produced by the run
         cached_input_tokens: How many of input_tokens were served from the
             provider's prompt cache; they bill at the cached-input rate
+        long_context_*: The share of each count that came from requests over
+            the model's long-context threshold (see agent_runtime._add_usage);
+            billed at the long-context rates when the model has them
 
     Returns:
         float or None: The cost in USD, or None when the model (or its
@@ -272,14 +339,35 @@ def compute_cost_usd(
     if input_price is None or output_price is None:
         return None
     cached_price = model.get('cached_input_price_per_m_tokens', input_price)
-    # A cached count can't exceed the input it is part of.
-    cached = min(max(cached_input_tokens or 0, 0), input_tokens or 0)
+
+    def clamp(value, ceiling):
+        return min(max(value or 0, 0), ceiling or 0)
+
+    # A part can't exceed the whole it is part of.
+    input_tokens = input_tokens or 0
+    output_tokens = output_tokens or 0
+    cached = clamp(cached_input_tokens, input_tokens)
+    long_in = long_cached = long_out = 0
+    if model.get('long_context_threshold_tokens'):
+        long_in = clamp(long_context_input_tokens, input_tokens)
+        long_cached = clamp(long_context_cached_tokens, min(long_in, cached))
+        long_out = clamp(long_context_output_tokens, output_tokens)
+
     cost = (
-        ((input_tokens or 0) - cached) * input_price
-        + cached * cached_price
-        + (output_tokens or 0) * output_price
-    ) / 1_000_000
-    return round(cost, 6)
+        ((input_tokens - long_in) - (cached - long_cached)) * input_price
+        + (cached - long_cached) * cached_price
+        + (output_tokens - long_out) * output_price
+    )
+    if long_in or long_out:
+        cost += (
+            (long_in - long_cached) * model['long_context_input_price_per_m_tokens']
+            + long_cached * model.get(
+                'long_context_cached_input_price_per_m_tokens',
+                model['long_context_input_price_per_m_tokens'],
+            )
+            + long_out * model['long_context_output_price_per_m_tokens']
+        )
+    return round(cost / 1_000_000, 6)
 
 def is_valid_reasoning_effort(effort: str) -> bool:
     """Whether the given reasoning effort level is on the platform ladder."""
@@ -301,7 +389,7 @@ def resolve_reasoning_effort(model_id: str, effort: str) -> str:
 
     Returns None when the model does not support reasoning (so callers can omit
     the parameter entirely). Otherwise returns the requested effort when it is
-    on the ladder; a legacy rung ('minimal', 'max') is re-seated onto its
+    on the ladder; a legacy rung ('minimal') is re-seated onto its
     nearest real level, and anything else — unset, empty, or unrecognized —
     falls back to the default. The result is always a value the SDK accepts,
     so reasoning is applied rather than dropped.

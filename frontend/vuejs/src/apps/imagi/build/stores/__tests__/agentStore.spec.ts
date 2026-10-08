@@ -381,7 +381,7 @@ describe('agent store startDispatchedTasks', () => {
     store.startDispatchedTasks([
       dispatched(9010, { model_name: 'gpt-5.6-terra' }),
       dispatched(9011, { model_name: 'gpt-5.6-luna' }),
-      dispatched(9012, { model_name: 'gpt-6-astra' }),
+      dispatched(9012, { model_name: 'claude-fable-5-1' }),
     ])
 
     const model = (id: number) => store.instances.find(i => i.conversationId === id)?.selectedModelId
@@ -1003,15 +1003,15 @@ describe('agentStore reasoning effort ladder', () => {
   it('leaves an effort on the ladder untouched when switching models', () => {
     // Every model shares the one ladder, so a switch never moves the rung.
     const store = useAgentStore()
-    for (const effort of ['low', 'medium', 'high', 'xhigh'] as const) {
+    for (const effort of ['low', 'medium', 'high', 'xhigh', 'max'] as const) {
       const instance = makeInstance({ selectedEffort: effort })
       store.instances = [instance]
 
-      store.setInstanceModel(instance.id, 'gpt-6-astra')
-      expect(instance.selectedModelId).toBe('gpt-6-astra')
+      store.setInstanceModel(instance.id, 'claude-fable-5-1')
+      expect(instance.selectedModelId).toBe('claude-fable-5-1')
       expect(instance.selectedEffort).toBe(effort)
 
-      store.setInstanceModel(instance.id, 'gpt-6-luna')
+      store.setInstanceModel(instance.id, 'claude-haiku-5-5')
       expect(instance.selectedEffort).toBe(effort)
     }
   })
@@ -1023,34 +1023,33 @@ describe('agentStore reasoning effort ladder', () => {
     const instance = makeInstance({ selectedEffort: 'minimal' as ReasoningEffort })
     store.instances = [instance]
 
-    store.setInstanceModel(instance.id, 'gpt-6-astra')
+    store.setInstanceModel(instance.id, 'claude-fable-5-1')
 
-    expect(instance.selectedModelId).toBe('gpt-6-astra')
+    expect(instance.selectedModelId).toBe('claude-fable-5-1')
     expect(instance.selectedEffort).toBe('low')
   })
 
-  it("re-seats a retired 'max' onto xhigh when switching models", () => {
-    // 'max' was never a rung the SDK accepted: sent through, the backend
-    // dropped reasoning altogether rather than reasoning harder.
+  it("re-seats a retired 'none' onto low when switching models", () => {
+    // An OpenAI-only rung a stored selection can still carry.
     const store = useAgentStore()
-    const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'max' as ReasoningEffort })
+    const instance = makeInstance({ selectedModelId: 'claude-fable-5-1', selectedEffort: 'none' as ReasoningEffort })
     store.instances = [instance]
 
     store.setInstanceModel(instance.id, 'claude-opus-5-5')
 
-    expect(instance.selectedEffort).toBe('xhigh')
+    expect(instance.selectedEffort).toBe('low')
   })
 
   it('re-seats a retired rung chosen directly', () => {
     const store = useAgentStore()
-    const instance = makeInstance({ selectedModelId: 'gpt-6-astra', selectedEffort: 'medium' })
+    const instance = makeInstance({ selectedModelId: 'claude-fable-5-1', selectedEffort: 'medium' })
     store.instances = [instance]
 
     store.setInstanceEffort(instance.id, 'minimal' as ReasoningEffort)
     expect(instance.selectedEffort).toBe('low')
 
-    store.setInstanceEffort(instance.id, 'max' as ReasoningEffort)
-    expect(instance.selectedEffort).toBe('xhigh')
+    store.setInstanceEffort(instance.id, 'none' as ReasoningEffort)
+    expect(instance.selectedEffort).toBe('low')
   })
 
   it('keeps an effort on the ladder when chosen directly', () => {
@@ -1058,9 +1057,9 @@ describe('agentStore reasoning effort ladder', () => {
     const instance = makeInstance({ selectedEffort: 'medium' })
     store.instances = [instance]
 
-    store.setInstanceEffort(instance.id, 'xhigh')
+    store.setInstanceEffort(instance.id, 'max')
 
-    expect(instance.selectedEffort).toBe('xhigh')
+    expect(instance.selectedEffort).toBe('max')
   })
 
   it('drops an unknown effort back to the default', () => {
@@ -1072,7 +1071,7 @@ describe('agentStore reasoning effort ladder', () => {
     expect(instance.selectedEffort).toBe('medium')
 
     instance.selectedEffort = undefined as unknown as ReasoningEffort
-    store.setInstanceModel(instance.id, 'gpt-6-astra')
+    store.setInstanceModel(instance.id, 'claude-fable-5-1')
     expect(instance.selectedEffort).toBe('medium')
   })
 })
@@ -1315,9 +1314,9 @@ describe('agent store thread model setting', () => {
   })
 
   it('remembers the pick, and ignores a model the lineup does not offer', () => {
-    useAgentStore().setThreadModel('gpt-6-luna')
+    useAgentStore().setThreadModel('claude-haiku-5-5')
     setActivePinia(createPinia())
-    expect(useAgentStore().threadModelId).toBe('gpt-6-luna')
+    expect(useAgentStore().threadModelId).toBe('claude-haiku-5-5')
 
     localStorage.setItem('imagi.threadModel', 'not-a-model')
     setActivePinia(createPinia())
@@ -1327,31 +1326,31 @@ describe('agent store thread model setting', () => {
   it('starts a new thread on the thread model, whatever the coordinator runs on', () => {
     const store = useAgentStore()
     store.setTaskRunner(vi.fn())
-    store.setThreadModel('gpt-6-luna')
+    store.setThreadModel('claude-haiku-5-5')
 
-    store.startDispatchedTasks([dispatch(9801, 'gpt-6-astra')])
+    store.startDispatchedTasks([dispatch(9801, 'claude-fable-5-1')])
 
     const thread = store.instances.find(i => i.conversationId === 9801)!
-    expect(thread.selectedModelId).toBe('gpt-6-luna')
-    expect(agentService.updateConversation).toHaveBeenCalledWith(9801, { model_name: 'gpt-6-luna' })
+    expect(thread.selectedModelId).toBe('claude-haiku-5-5')
+    expect(agentService.updateConversation).toHaveBeenCalledWith(9801, { model_name: 'claude-haiku-5-5' })
   })
 
   it('switches every thread that can still run, and leaves the rest', () => {
     const store = useAgentStore()
-    const open = makeInstance({ kind: 'task', reviewStatus: 'active', selectedModelId: 'gpt-6-astra' })
+    const open = makeInstance({ kind: 'task', reviewStatus: 'active', selectedModelId: 'claude-fable-5-1' })
     const done = makeInstance({ kind: 'task', reviewStatus: 'accepted', selectedModelId: 'claude-opus-5-5' })
-    const discarded = makeInstance({ kind: 'task', reviewStatus: 'dismissed', selectedModelId: 'gpt-6-astra' })
+    const discarded = makeInstance({ kind: 'task', reviewStatus: 'dismissed', selectedModelId: 'claude-fable-5-1' })
     const lead = makeInstance({ kind: 'lead', selectedModelId: 'claude-opus-5-5' })
     store.instances = [open, done, discarded, lead]
-    store.setThreadModel('gpt-6-luna')
+    store.setThreadModel('claude-haiku-5-5')
 
     expect(store.threadsOffThreadModel.map(i => i.id)).toEqual([open.id, done.id])
     expect(store.switchAllThreadsToThreadModel()).toBe(2)
 
     const model = (id: string) => store.instances.find(i => i.id === id)!.selectedModelId
-    expect(model(open.id)).toBe('gpt-6-luna')
-    expect(model(done.id)).toBe('gpt-6-luna')
-    expect(model(discarded.id)).toBe('gpt-6-astra')
+    expect(model(open.id)).toBe('claude-haiku-5-5')
+    expect(model(done.id)).toBe('claude-haiku-5-5')
+    expect(model(discarded.id)).toBe('claude-fable-5-1')
     expect(model(lead.id)).toBe('claude-opus-5-5')
     expect(store.threadsOffThreadModel).toHaveLength(0)
   })

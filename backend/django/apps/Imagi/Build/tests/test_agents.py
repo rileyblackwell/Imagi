@@ -16,7 +16,7 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 
-from agents import MaxTurnsExceeded
+from apps.Imagi.Build.services.agent_runtime import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -61,7 +61,6 @@ from apps.Imagi.Build.services.models_service import (
 from apps.Imagi.Build.services.coding_agent import (
     INITIAL_BUILD_INSTRUCTIONS,
     INITIAL_BUILD_REASONING_EFFORT,
-    INITIAL_BUILD_SERVICE_TIER,
     INITIAL_BUILD_TIME_BUDGET_S,
     LEAD_AGENT_INSTRUCTIONS,
     PROJECT_MEMORY_MAX_CHARS,
@@ -275,16 +274,12 @@ class ToolWrapperTests(TransactionTestCase):
         os.makedirs(os.path.join(self.root, 'backend', 'django'))
 
     def _invoke(self, tool, ctx=None, **args):
-        from agents.tool_context import ToolContext
+        from apps.Imagi.Build.services.agent_runtime import RunContextWrapper
 
         context = ctx or AgentContext(
             user_id=self.user.id, project_id=self.project.id, project_path=self.root
         )
-        tool_ctx = ToolContext(
-            context=context, tool_name=tool.name, tool_call_id='call_1',
-            tool_arguments=json.dumps(args),
-        )
-        raw = async_to_sync(tool.on_invoke_tool)(tool_ctx, json.dumps(args))
+        raw = async_to_sync(tool.on_invoke_tool)(RunContextWrapper(context), json.dumps(args))
         return json.loads(raw)
 
     def _mirror_paths(self):
@@ -510,10 +505,7 @@ class _FakeStreamedRun:
 
 
 def _delta_event(text):
-    return SimpleNamespace(
-        type='raw_response_event',
-        data=SimpleNamespace(type='response.output_text.delta', delta=text),
-    )
+    return SimpleNamespace(type='text_delta', delta=text)
 
 
 def _tool_call_event(name):
@@ -1251,81 +1243,102 @@ class ComputeCostTests(SimpleTestCase):
     def test_bills_at_list_price_with_no_markup(self):
         # Opus 5.5: $4/M input + $20/M output
         self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 1_000_000), 24.0)
-        # Luna: $0.10/M input + $0.50/M output
-        self.assertEqual(compute_cost_usd('gpt-6-luna', 500_000, 200_000), 0.15)
-        # Astra: $10/M input + $50/M output
-        self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 1_000_000), 60.0)
+        # Haiku 5.5: $0.10/M input + $0.50/M output
+        self.assertEqual(compute_cost_usd('claude-haiku-5-5', 500_000, 200_000), 0.15)
+        # Sonnet 5.5: $2/M input + $10/M output
+        self.assertEqual(compute_cost_usd('claude-sonnet-5-5', 1_000_000, 1_000_000), 12.0)
+        # Fable 5.1: $10/M input + $50/M output
+        self.assertEqual(compute_cost_usd('claude-fable-5-1', 1_000_000, 1_000_000), 60.0)
 
     def test_cached_input_bills_at_the_cached_rate(self):
         # An agent loop resends most of its prompt each turn; the provider
         # serves it from cache at a fraction of the input rate.
         # Opus 5.5: 900k cached at $0.20/M + 100k fresh at $4/M.
         self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, 900_000), 0.58)
-        # Luna: cached at $0.01/M; Astra: cached at $1/M.
-        self.assertEqual(compute_cost_usd('gpt-6-luna', 1_000_000, 0, 1_000_000), 0.01)
-        self.assertEqual(compute_cost_usd('gpt-6-astra', 1_000_000, 0, 500_000), 5.5)
+        # Fable 5.1: 500k cached at $0.25/M + 500k fresh at $10/M.
+        self.assertEqual(compute_cost_usd('claude-fable-5-1', 1_000_000, 0, 500_000), 5.125)
+        # Haiku 5.5 publishes no cached rate, so cached input bills in full.
+        self.assertEqual(compute_cost_usd('claude-haiku-5-5', 1_000_000, 0, 1_000_000), 0.1)
         # A cached count past the input it belongs to is capped, never negative.
-        self.assertEqual(compute_cost_usd('gpt-6-luna', 1_000_000, 0, 5_000_000), 0.01)
-        self.assertEqual(compute_cost_usd('gpt-6-luna', 1_000_000, 0, -5), 0.1)
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, 5_000_000), 0.2)
+        self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, -5), 4.0)
+
+    def test_haiku_bills_long_prompts_at_its_long_context_rate(self):
+        # Haiku 5.5 charges 5x for requests over 100K input tokens: 300k in
+        # and 10k out, all from long requests, is $0.15 + $0.025.
+        self.assertEqual(
+            compute_cost_usd(
+                'claude-haiku-5-5', 300_000, 10_000,
+                long_context_input_tokens=300_000,
+                long_context_output_tokens=10_000,
+            ),
+            0.175,
+        )
+        # Models without a long-context tier ignore the split.
+        self.assertEqual(
+            compute_cost_usd(
+                'claude-opus-5-5', 1_000_000, 0,
+                long_context_input_tokens=1_000_000,
+            ),
+            4.0,
+        )
 
     def test_unknown_model_returns_none(self):
         self.assertIsNone(compute_cost_usd('gpt-oops', 1000, 1000))
 
 
 class ModelRegistryTests(SimpleTestCase):
-    """Three tiers — Luna, Opus 5.5, Astra — each mapped to its real provider
-    id; retired 5.6 ids resolve to the current model for their tier."""
+    """Four Claude tiers, Haiku to Fable, each mapped to its real API id;
+    retired GPT ids resolve to the Claude model for their tier."""
 
-    def test_astra_is_selectable(self):
-        self.assertIn(
-            ('gpt-6-astra', 'GPT 6 Astra'), get_model_choices()
-        )
+    LINEUP = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1']
 
-    def test_the_lineup_is_one_model_per_tier(self):
+    def test_the_lineup_is_four_claude_models_faster_to_smarter(self):
         ids = [model_id for model_id, _ in get_model_choices()]
-        self.assertEqual(ids[:3], ['gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra'])
+        self.assertEqual(ids[:4], self.LINEUP)
+        self.assertIn(('claude-fable-5-1', 'Claude Fable 5.1'), get_model_choices())
 
-    def test_each_tier_resolves_to_its_provider_id(self):
-        for model in ('gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra'):
+    def test_each_tier_resolves_to_its_api_id(self):
+        for model in self.LINEUP:
             with self.subTest(model=model):
                 self.assertEqual(get_backend_model_id(model), model)
+                self.assertEqual(get_model_provider(model), 'anthropic')
 
-    def test_retired_5_6_ids_resolve_to_their_successors(self):
+    def test_retired_gpt_ids_resolve_to_their_successors(self):
         # Stored conversations and older tabs still carry these ids.
         self.assertEqual(get_backend_model_id('gpt-5.6-sol'), 'claude-opus-5-5')
         self.assertEqual(get_backend_model_id('gpt-5.6-terra'), 'claude-opus-5-5')
-        self.assertEqual(get_backend_model_id('gpt-5.6-luna'), 'gpt-6-luna')
-        self.assertEqual(canonical_model_id('gpt-5.6-terra'), 'claude-opus-5-5')
-        self.assertEqual(canonical_model_id('gpt-6-astra'), 'gpt-6-astra')
+        self.assertEqual(get_backend_model_id('gpt-5.6-luna'), 'claude-haiku-5-5')
+        self.assertEqual(get_backend_model_id('gpt-6-luna'), 'claude-haiku-5-5')
+        self.assertEqual(canonical_model_id('gpt-6-astra'), 'claude-fable-5-1')
         # Billed, named and served as the successor it now runs on.
         self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 4.0)
         self.assertIn('Claude Opus 5.5', get_model_identity_instructions('gpt-5.6-terra'))
-        self.assertEqual(get_model_provider('gpt-5.6-terra'), 'anthropic')
+        self.assertEqual(get_model_provider('gpt-6-astra'), 'anthropic')
         # Still valid stored values on the conversation's model_name field.
         ids = [model_id for model_id, _ in get_model_choices()]
-        self.assertIn('gpt-5.6-terra', ids)
+        self.assertIn('gpt-6-luna', ids)
 
     def test_the_request_path_upgrades_a_retired_id(self):
         from apps.Imagi.Build.api.views import resolve_model
-        self.assertEqual(resolve_model('gpt-5.6-luna'), 'gpt-6-luna')
+        self.assertEqual(resolve_model('gpt-6-luna'), 'claude-haiku-5-5')
         self.assertEqual(resolve_model('claude-opus-5-5'), 'claude-opus-5-5')
         self.assertEqual(resolve_model('gpt-oops'), 'claude-opus-5-5')
 
-    def test_identity_prompt_names_astra(self):
-        instructions = get_model_identity_instructions('gpt-6-astra')
-        self.assertIn('GPT 6 Astra', instructions)
-        # The old copy claimed every model belonged to the 5.6 suite.
-        self.assertNotIn('GPT 5.6 model suite', instructions)
+    def test_identity_prompt_names_fable(self):
+        instructions = get_model_identity_instructions('claude-fable-5-1')
+        self.assertIn('Claude Fable 5.1', instructions)
 
 
 class ReasoningEffortLadderTests(SimpleTestCase):
-    """One ladder for every model. The OpenAI SDK's ReasoningEffort literal
-    tops out at 'xhigh' — 'max' never existed, so the rung the previous
-    ladder gave Astra failed Reasoning() validation and dropped reasoning
-    entirely. Off-ladder requests are re-seated, never passed through."""
+    """One ladder for every model: Claude's five effort levels. Off-ladder
+    requests are re-seated, never passed through."""
 
-    LADDER = ['low', 'medium', 'high', 'xhigh']
-    REASONING_MODELS = ('gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra', 'gpt-5.6-terra')
+    LADDER = ['low', 'medium', 'high', 'xhigh', 'max']
+    REASONING_MODELS = (
+        'claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5',
+        'claude-fable-5-1', 'gpt-5.6-terra',
+    )
 
     def test_on_ladder_effort_passes_through_for_every_model(self):
         for model in self.REASONING_MODELS:
@@ -1338,7 +1351,7 @@ class ReasoningEffortLadderTests(SimpleTestCase):
         for model in self.REASONING_MODELS:
             with self.subTest(model=model):
                 self.assertEqual(resolve_reasoning_effort(model, 'minimal'), 'low')
-                self.assertEqual(resolve_reasoning_effort(model, 'max'), 'xhigh')
+                self.assertEqual(resolve_reasoning_effort(model, 'none'), 'low')
 
     def test_unset_or_invalid_falls_back_to_default(self):
         for model in self.REASONING_MODELS:
@@ -1349,14 +1362,11 @@ class ReasoningEffortLadderTests(SimpleTestCase):
     def test_unknown_model_has_no_effort(self):
         self.assertIsNone(resolve_reasoning_effort('gpt-oops', 'low'))
 
-    def test_max_on_astra_applies_reasoning_instead_of_dropping_it(self):
-        # The bug this ladder fixes: Reasoning(effort='max') raised in
-        # build_model_settings, which then built ModelSettings with no
-        # reasoning at all. Through the real code path the request now lands
-        # on 'xhigh' and reasoning is actually applied.
-        agent = create_coding_agent(model='gpt-6-astra', reasoning_effort='max')
-        self.assertIsNotNone(agent.model_settings.reasoning)
-        self.assertEqual(agent.model_settings.reasoning.effort, 'xhigh')
+    def test_max_reaches_the_request_as_max(self):
+        # Claude takes 'max' directly, so the top of the ladder is no longer
+        # folded down to 'xhigh'.
+        agent = create_coding_agent(model='claude-fable-5-1', reasoning_effort='max')
+        self.assertEqual(agent.model_settings.effort, 'max')
 
 
 class RunBoundsHookTests(SimpleTestCase):
@@ -1565,31 +1575,8 @@ class InitialBuildAgentTests(SimpleTestCase):
             kind='initial_build', reasoning_effort='xhigh'
         )
         self.assertEqual(
-            agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
+            agent.model_settings.effort, INITIAL_BUILD_REASONING_EFFORT
         )
-
-    def test_initial_build_requests_its_configured_service_tier(self):
-        # A page write is one long streamed tool call, so its wall clock is
-        # output throughput, and the tier is what buys more of it. The SDK has
-        # no field for it, so it travels in extra_args to every create() call.
-        agent = create_coding_agent(
-            settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'], kind='initial_build'
-        )
-        self.assertEqual(
-            agent.model_settings.extra_args,
-            {'service_tier': INITIAL_BUILD_SERVICE_TIER},
-        )
-        # GPT 6's name for the throughput tier, on GPT 6 Luna.
-        self.assertEqual(INITIAL_BUILD_SERVICE_TIER, 'fast')
-        self.assertEqual(agent.model, 'gpt-6-luna')
-
-    def test_only_the_initial_build_requests_a_service_tier(self):
-        # The founder watches a clock on the first build alone; every other
-        # run stays on the account's default tier, at its default price.
-        for kind in ('chat', 'task', 'lead'):
-            with self.subTest(kind=kind):
-                agent = create_coding_agent(kind=kind)
-                self.assertIsNone(agent.model_settings.extra_args)
 
     def test_prompt_sizes_the_page_for_the_clock_and_forbids_a_second_write(self):
         # The deadline can only stop a run between turns, so an oversized
@@ -1627,15 +1614,24 @@ class PromptSizeTests(SimpleTestCase):
 class BuildModelSettingsTests(SimpleTestCase):
     """Request-level settings that ride on every model call."""
 
-    def test_service_tier_rides_in_extra_args(self):
-        settings_ = build_model_settings('low', service_tier='priority')
-        self.assertEqual(settings_.extra_args, {'service_tier': 'priority'})
-        self.assertEqual(settings_.reasoning.effort, 'low')
+    def test_settings_carry_effort_parallelism_and_fallback(self):
+        settings_ = build_model_settings(
+            'low', parallel_tool_calls=False, refusal_fallback=True
+        )
+        self.assertEqual(settings_.effort, 'low')
+        self.assertFalse(settings_.parallel_tool_calls)
+        self.assertTrue(settings_.refusal_fallback)
 
-    def test_no_service_tier_means_no_extra_args(self):
-        # Absent, not {}: the SDK merges extra_args into every request, and
-        # an empty dict is a needless key on each one.
-        self.assertIsNone(build_model_settings('low').extra_args)
+    def test_every_model_but_haiku_falls_back_on_a_refusal(self):
+        for model, expected in (
+            ('claude-haiku-5-5', False),
+            ('claude-sonnet-5-5', True),
+            ('claude-opus-5-5', True),
+            ('claude-fable-5-1', True),
+        ):
+            with self.subTest(model=model):
+                agent = create_coding_agent(model=model)
+                self.assertEqual(agent.model_settings.refusal_fallback, expected)
 
 
 class UsagePayloadTests(SimpleTestCase):

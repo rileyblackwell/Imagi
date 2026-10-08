@@ -1,5 +1,5 @@
 <!--
-  ModelChoice.vue — Luna, Opus 5.5 or Astra, as one segmented choice.
+  ModelChoice.vue — Haiku, Sonnet, Opus or Fable, as one segmented choice.
 
   The workspace settings' model control: the lineup faster → smarter, each
   with its tier under its name, the chosen one lifted.
@@ -38,14 +38,20 @@ const emit = defineEmits<{ (e: 'update:modelValue', id: string): void }>()
 const store = useAgentStore()
 
 // Faster → smarter, the order the composer's model menu uses.
-const RANK: Record<string, number> = { 'gpt-6-luna': 0, 'claude-opus-5-5': 1, 'gpt-6-astra': 2 }
+const RANK: Record<string, number> = {
+  'claude-haiku-5-5': 0,
+  'claude-sonnet-5-5': 1,
+  'claude-opus-5-5': 2,
+  'claude-fable-5-1': 3,
+}
 const TIERS: Record<string, string> = {
-  'gpt-6-luna': 'Fast',
+  'claude-haiku-5-5': 'Fast',
+  'claude-sonnet-5-5': 'Quick',
   'claude-opus-5-5': 'Balanced',
-  'gpt-6-astra': 'Frontier',
+  'claude-fable-5-1': 'Frontier',
 }
 
-/** "Luna", "Opus 5.5", "Astra": the name without its family prefix. */
+/** "Haiku 5.5", "Opus 5.5", "Fable 5.1": the name without its family prefix. */
 function shortName(name: string): string {
   return name.replace(/^(?:GPT\s*\d+(?:\.\d+)?|Claude)\s*/i, '').trim() || name
 }
@@ -62,7 +68,7 @@ const models = computed(() => {
 <style scoped>
 .model-choice {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 0.875rem;

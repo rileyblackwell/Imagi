@@ -355,20 +355,8 @@ IMAGI_BUILDER = {
     # The first build's pages run on the quick tier: it is racing the clock,
     # and a page write's wall clock is output throughput. The project's main
     # thread still gets DEFAULT_MODEL — this only picks the page builders.
-    'INITIAL_BUILD_MODEL': 'gpt-6-luna',
+    'INITIAL_BUILD_MODEL': 'claude-haiku-5-5',
     'INITIAL_BUILD_TIME_BUDGET_S': 24,
-    # OpenAI service tier for the first build's requests. A page write is one
-    # long streamed tool call, so its wall clock is output throughput: on the
-    # default tier gpt-5-mini streamed ~75 tokens/s in Sep 2026 measurements
-    # (a 10 KB page ≈ 3.3K tokens ≈ 45s); on 'priority', 120–150 tokens/s
-    # (the same page ≈ 26s). GPT 6 renamed that tier 'fast' (it still serves
-    # 'priority' as 'fast', but 'fast' is the name it reports back):
-    # gpt-6-luna streamed ~235 tokens/s there in late-Sep 2026 measurements
-    # (gpt-6-sol 165–190, gpt-5-mini on priority ~195). Fast is billed at 2x
-    # the API list price per token — well under a cent a page on gpt-6-luna.
-    # The founder's allowance is metered at the standard list price either
-    # way (models_service). None uses the account's default tier.
-    'INITIAL_BUILD_SERVICE_TIER': 'fast',
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS
     # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).
@@ -378,16 +366,14 @@ IMAGI_BUILDER = {
     # First builds create UI from a description rather than reasoning about
     # existing code, so they run at low effort: it roughly halves per-turn
     # latency, which buys more pages inside the time budget than deeper
-    # reasoning does. Not 'minimal': it would save only the ~2–3s of reasoning
-    # 'low' spends, and in measurements gpt-5-mini at minimal skipped the file
-    # write outright in one run of three, answering in prose instead.
+    # reasoning does.
     'INITIAL_BUILD_REASONING_EFFORT': 'low',
     # Cost and turns are runaway backstops now, not the operative limit — the
     # time budget stops a normal build long before either binds. Both are PER
     # PAGE, so the ceiling for a whole build is this times the page count.
     # The cost figure is metered at list price (models_service), and at
-    # GPT 6 Luna's rates a page costs well under a cent — so this is far above
-    # real expected spend. Sized so it never cuts a build short on its own;
+    # Claude Haiku 5.5's rates a page costs well under a cent — so this is
+    # far above real expected spend. Sized so it never cuts a build short on its own;
     # time does that.
     'INITIAL_BUILD_COST_BUDGET_USD': 1.50,
     'INITIAL_BUILD_MAX_TURNS': 12,
@@ -406,9 +392,13 @@ IMAGI_BUILDER = {
     # than starting one that will be killed mid-edit (which tends to leave more
     # dangling references than it fixes).
     'INITIAL_BUILD_MIN_REPAIR_SECONDS': 8,
-    # Attach OpenAI's hosted web-search tool to the agent.
+    # Attach Claude's server-side web search to the agent.
     'ENABLE_WEB_SEARCH': True,
-    # OpenAI speech-to-text model behind the composer's dictation button
+    # Give the coordinator and threads Claude's browser use tools, driving
+    # the workspace's live preview (Build/services/preview_browser_tool.py).
+    'ENABLE_PREVIEW_BROWSER': True,
+    # OpenAI speech-to-text model behind the composer's dictation button —
+    # the one OpenAI call left, as Anthropic has no speech-to-text API
     # (Build/services/transcription_service.py). The full model over the
     # mini one: a dictated prompt is seconds long, so the latency gap is
     # nothing, and a misheard word in a build instruction costs a run.
