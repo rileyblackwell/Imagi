@@ -11,8 +11,8 @@ that rewrites those two files to match it. It runs after the home page
 rather than beside it because the home page is the design to match, and in
 the background because nothing waits on it: the founder is already in their
 app, and the sign-in pages work in the meantime, just in Imagi's neutral
-default look. It runs on the everyday thread model, not the first build's
-fast one, since no one is watching the clock.
+default look. It runs on the everyday thread model at normal speed, not in
+the first build's fast mode, since no one is watching the clock.
 
 The thread can only change those two files. The brief says so, and the file
 tools refuse every other auth path regardless (Build.services.protected_paths),
@@ -107,7 +107,7 @@ def _queue_auth_restyle(project_id, user_id):
     builder = getattr(settings, 'IMAGI_BUILDER', {})
     task = AgentConversation.objects.create(
         user=user,
-        # The everyday thread model, not the first build's fast one.
+        # The everyday thread model, at normal speed (fast_mode stays off).
         model_name=builder.get('DEFAULT_MODEL') or lead.model_name,
         project_id=project_id,
         mode='agent',

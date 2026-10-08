@@ -989,6 +989,36 @@ class InitialBuildServiceTests(TransactionTestCase):
         self.assertFalse(applied)
 
 
+def _wait_out_sqlite_table_locks(test):
+    """Make the test database wait for a table lock instead of failing.
+
+    The first build's page threads share the test database's in-memory
+    SQLite with the main thread, and shared-cache SQLite reports a held table
+    lock at once instead of waiting for it the way Postgres (or an on-disk
+    SQLite) does. Each statement is retried briefly until the lock clears.
+    """
+    import sqlite3
+    import time
+
+    from django.db.backends.sqlite3.base import SQLiteCursorWrapper
+
+    original = SQLiteCursorWrapper.execute
+
+    def execute(self, query, params=None):
+        for _ in range(200):
+            try:
+                return original(self, query, params)
+            except sqlite3.OperationalError as e:
+                if 'locked' not in str(e):
+                    raise
+                time.sleep(0.02)
+        return original(self, query, params)
+
+    waiting = patch.object(SQLiteCursorWrapper, 'execute', execute)
+    waiting.start()
+    test.addCleanup(waiting.stop)
+
+
 class ParallelInitialBuildTests(TransactionTestCase):
     """The first build fans out across pages instead of writing just one.
 
@@ -1000,6 +1030,7 @@ class ParallelInitialBuildTests(TransactionTestCase):
     """
 
     def setUp(self):
+        _wait_out_sqlite_table_locks(self)
         self.user = User.objects.create_user(username='owner', password='pw123456')
         self.project = Project.objects.create(
             user=self.user, name='Beanline', description=VALID_DESCRIPTION
