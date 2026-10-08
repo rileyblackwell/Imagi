@@ -107,6 +107,8 @@
           Since usage is metered by what each run actually costs, the two dials you control are the model and the reasoning
           effort. Reach for Fable 5.1 at high effort when a task genuinely needs it, and drop to Sonnet 5.5 or Haiku 5.5 at a lower
           effort for routine edits, copy tweaks, and questions—it costs a fraction as much and is usually faster too.
+          Fast mode on Opus 5.5 is the one setting that trades usage for speed: replies come quicker, but at twice the
+          price, so leave it off when you're not in a hurry.
         </p>
         <div class="callout">
           <h4 class="callout__title">

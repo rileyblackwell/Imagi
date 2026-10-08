@@ -47,7 +47,7 @@
           <p class="callout__body">
             Every new project ships with sign-in and register pages that Imagi maintains and tests, so your customers'
             accounts are secure from day one. They start as a simple centered card with your business name, and once
-            the home page is built they're restyled in the background to match it. The agents can change how these
+            the home page is built a "Restyle sign-in pages" thread restyles them in the background to match it. The agents can change how these
             pages look and what they say, but not the sign-in code itself—so asking for a different look or wording
             works, while the security underneath stays as Imagi built it.
           </p>
@@ -78,10 +78,13 @@
               Behind the scenes
             </h4>
             <p class="callout__body">
-              As soon as you create a project, Imagi runs an AI build in the background to generate a tailored first
-              version from your brief, including how you said the app should work. Its Home, About, and Contact pages are built at the same time, so it takes
-              about half a minute. While it runs, the Build card on your project hub reads "Imagi is writing your first
-              version"; it unlocks the moment the build finishes—click it to open the workspace.
+              As soon as you create a project, Imagi starts building a tailored first version from your brief, including
+              how you said the app should work. The home page comes first, built in fast mode so it's ready in about a
+              minute. While it's written, the Build card on your project hub reads "Imagi is writing your first version";
+              it unlocks as soon as the home page lands—click it to open the workspace. Meanwhile the AI works out which
+              other pages your business needs (usually five to twenty in all) and puts a thread on each. Those pages
+              show up in your app's navigation one by one as they finish, and you can follow each one's thread or keep
+              chatting while they build.
             </p>
           </div>
           <div class="section-rule my-6" aria-hidden="true"></div>
@@ -128,7 +131,8 @@
           </p>
           <p class="text-lg leading-relaxed">
             Before you send, you can choose which AI <strong class="ink-strong">model</strong>
-            and how much <strong class="ink-strong">reasoning effort</strong> to use from the chip in the message box.
+            and how much <strong class="ink-strong">reasoning effort</strong> to use from the chip in the message box—and,
+            on Opus 5.5, switch on <strong class="ink-strong">fast mode</strong> for quicker replies at twice the price.
             See <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>
             for how to pick.
           </p>
@@ -161,11 +165,17 @@
         <DocsStepCard :number="4" title="Preview It Live">
           <p class="text-lg leading-relaxed">
             Your app runs live in the preview pane on the right—a real, interactive browser you can click, type, and scroll
-            through, not a static mockup. It updates as the agents make changes. A small dock floats above it with back,
+            through, not a static mockup. It updates the moment an agent changes a file—you don't wait for a thread to
+            finish to see its work. The agents use the same browser too: they open pages, click, type, and read what's on
+            screen to check their own changes, and you watch them do it right there (the activity feed notes it as
+            "Looked at your app in the preview" or "Tried out your app in the preview"). A small dock floats above it with back,
             forward, refresh, and home buttons, plus the name of the page you're on: click it to see every page in your
-            app and jump to one. If something in your app ever throws an error, a "Something broke in your app" banner
-            appears with a <strong class="ink-strong">Fix it</strong> button that hands the details straight to the
-            coordinator. If the preview sits idle for a while it dozes off—choose "Wake it up" to bring it back.
+            app and jump to one. If something in your app throws an error, Imagi sends it to be fixed on its own: back to
+            the thread whose change caused it, or, if no thread did, to a new "Fix an app error" thread the coordinator
+            starts for you (more errors that turn up while it works join that same thread). The banner over the preview
+            then reads "Imagi is fixing something in your app". If an error can't be sent on, the banner reads
+            "Something broke in your app" with a <strong class="ink-strong">Fix it</strong> button that hands the details
+            to the agent. If the preview sits idle for a while it dozes off—choose "Wake it up" to bring it back.
           </p>
         </DocsStepCard>
       </section>
@@ -208,7 +218,9 @@
         <p class="lede lede--section">
           You direct the whole build from one conversation. The <strong class="ink-strong">coordinator</strong> works out
           what you're asking for and puts <strong class="ink-strong">threads</strong> to work on the building—each in its
-          own isolated copy of your app, so several can run at once without colliding.
+          own copy of your app, so several can run at once without colliding. Each file a thread writes still goes into
+          your live app straight away, unless someone else changed that file in the meantime; then its version goes in
+          when it finishes.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="The coordinator">
@@ -228,13 +240,14 @@
             notice and shows a count in the browser tab's title, so you notice even from another tab.
           </DocsCard>
           <DocsCard title="Applied automatically">
-            When a thread finishes, its work goes into your app on its own—you don't need to approve it. Each update
-            appears above the message box: "Got it" to clear it, or "See the work" to open its thread. If a thread
+            A thread's changes go into your app as it works, and the rest settles in when it finishes—you don't need to
+            approve anything. Each finished thread appears above the message box: "Got it" to clear it, or "See the work" to open its thread. If a thread
             stops before finishing, choose <strong class="ink-strong">Try again</strong> on its card or inside it.
           </DocsCard>
           <DocsCard title="Alternatives to compare">
             Ask for alternatives—"show me two versions of the homepage"—and up to three threads build independent takes on
-            the same request. Those wait for you: pick "Use this one" on the version you want, and "Discard" the rest.
+            the same request. Those don't touch your app until you choose: pick "Use this one" on the version you want, and "Discard" the
+            rest. Discarding any thread takes its changes back out of your app.
           </DocsCard>
           <DocsCard title="Workspace settings">
             The gear in the chat header (and in the Threads pane) opens workspace settings. Under Models, pick the model
