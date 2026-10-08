@@ -374,6 +374,15 @@ async def preview_frame(request, project_id):
 
 @csrf_exempt
 @never_cache
+async def preview_backdrop(request, project_id):
+    """The page around the current scroll, for the client to scroll through."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    return await _run_preview_call(request, project_id, lambda service: service.backdrop())
+
+
+@csrf_exempt
+@never_cache
 async def preview_input(request, project_id):
     """Forward a batch of mouse/keyboard/wheel events to the page."""
     if request.method != 'POST':

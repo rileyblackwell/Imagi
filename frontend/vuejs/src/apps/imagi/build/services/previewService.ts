@@ -50,6 +50,19 @@ export interface PreviewScroll {
   background: string
 }
 
+/** The page around its scroll position, captured ahead of time so a scroll
+ *  can show it before the next frame arrives. */
+export interface PreviewBackdrop {
+  path: string
+  viewport: [number, number]
+  /** Scroll metrics when it was captured (page height, offset). */
+  scroll: PreviewScroll
+  /** Viewport-sized JPEG slices at their document offsets (CSS px). */
+  slices: Array<{ y: number; frame: string }>
+  /** Fixed/stuck elements alone on transparency (PNG), or null if none. */
+  overlay: string | null
+}
+
 /** Snapshot of the remote page: navigation state plus (optionally) a frame. */
 export interface PreviewFrame {
   running?: boolean
@@ -141,6 +154,18 @@ export const PreviewService = {
     try {
       const response = await api.get(`/v1/builder/${projectId}/preview/frame/`, {
         params: etag ? { etag } : undefined,
+      })
+      return response.data
+    } catch (error) {
+      rethrow(error)
+    }
+  },
+
+  /** Capture the page around its current scroll (slow: once per page). */
+  async backdrop(projectId: string): Promise<PreviewBackdrop> {
+    try {
+      const response = await api.get(`/v1/builder/${projectId}/preview/backdrop/`, {
+        timeout: 30000,
       })
       return response.data
     } catch (error) {
