@@ -352,10 +352,11 @@ IMAGI_BUILDER = {
     # them rather than just one. Wall clock is the slowest page; what scales
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
-    # The first build's pages run on Opus 5.5 in fast mode (Riley,
-    # 2026-10-08): the best first impression, as quickly as it can be had.
-    # Fast mode bills at twice the list price ($8 / $40 per M tokens, metered
-    # as such in models_service). The project's main thread still gets
+    # The first build's pages run on Opus 5.5, and the home page alone runs
+    # in fast mode (Riley, 2026-10-08): the project opens when home lands, so
+    # that is the one page worth paying for speed. Fast mode bills at twice
+    # the list price ($8 / $40 per M tokens, metered as such in
+    # models_service); the other pages build behind it at standard speed. The project's main thread still gets
     # DEFAULT_MODEL — this only picks the page builders.
     'INITIAL_BUILD_MODEL': 'claude-opus-5-5',
     'INITIAL_BUILD_SPEED': 'fast',

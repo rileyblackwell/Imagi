@@ -1612,8 +1612,9 @@ class FastModeTests(SimpleTestCase):
         self.assertEqual(run_speed('task', 'claude-opus-5-5', True), 'fast')
         self.assertIsNone(run_speed('lead', 'claude-opus-5-5', False))
         self.assertIsNone(run_speed('lead', 'claude-haiku-5-5', True))
-        # The first build is fast on its own, with no switch.
-        self.assertEqual(run_speed('initial_build', 'claude-opus-5-5'), 'fast')
+        # The first build asks for it per page (home only), like the switch.
+        self.assertIsNone(run_speed('initial_build', 'claude-opus-5-5'))
+        self.assertEqual(run_speed('initial_build', 'claude-opus-5-5', True), 'fast')
 
     def test_a_fast_run_gets_a_fast_agent_and_fast_pricing(self):
         service = ImagiAgentService(model='claude-opus-5-5')

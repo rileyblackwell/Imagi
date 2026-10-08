@@ -80,19 +80,16 @@ INITIAL_BUILD_SERVICE_TIER = _BUILDER_SETTINGS.get('INITIAL_BUILD_SERVICE_TIER')
 # The Claude counterpart: fast mode (speed 'fast') for the first build, on a
 # model that has it (Opus 5.5). Faster output at twice the price per token —
 # worth it on the one run a founder is watching a clock on. None turns it off.
-INITIAL_BUILD_SPEED = _BUILDER_SETTINGS.get('INITIAL_BUILD_SPEED')
 
 
 def run_speed(kind: str, model: str, fast_mode: bool = False) -> Optional[str]:
-    """The speed a run's requests ask for on a model: 'fast' when the user
-    switched fast mode on, or for the first build, on a model that offers it;
-    otherwise None (standard)."""
-    if not supports_fast_mode(model):
-        return None
-    if fast_mode:
+    """The speed a run's requests ask for on a model: 'fast' when the run
+    asks for fast mode (the user's switch, or the first build's home page) on
+    a model that offers it; otherwise None (standard). ``kind`` is accepted so
+    a role-specific speed has one place to land."""
+    del kind
+    if fast_mode and supports_fast_mode(model):
         return 'fast'
-    if kind == 'initial_build' and INITIAL_BUILD_SPEED:
-        return INITIAL_BUILD_SPEED
     return None
 
 # Project memory files, in priority order (Codex reads AGENTS.md,

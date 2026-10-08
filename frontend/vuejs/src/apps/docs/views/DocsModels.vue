@@ -48,8 +48,8 @@
           <DocsCard title="Opus 5.5">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced · default</span></p>
             Thoughtful and dependable, with strong judgment on code and design—pages, features, fixes and questions
-            alike. It's the default: start here, and switch only when a task calls for it. New projects' first builds
-            run on Opus 5.5 in fast mode, and open as soon as the home page is ready.
+            alike. It's the default: start here, and switch only when a task calls for it. A new project's first build
+            runs on Opus 5.5, with the home page in fast mode, and opens as soon as that page is ready.
           </DocsCard>
           <DocsCard title="Fable 5.1">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Frontier</span></p>

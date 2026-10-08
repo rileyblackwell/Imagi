@@ -431,7 +431,12 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
 
         user = get_user_model().objects.get(pk=user_id)
         model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-        service = ImagiAgentService(model=model, agent_kind='initial_build')
+        # Only the home page races the clock: the project opens when it lands.
+        # The other pages build behind it at standard speed, which costs half.
+        fast = page.slug == 'home' and builder.get('INITIAL_BUILD_SPEED') == 'fast'
+        service = ImagiAgentService(
+            model=model, agent_kind='initial_build', fast_mode=fast
+        )
         return _build_and_apply(
             service, task, user, project_id, prompt, builder, deadline_at
         )

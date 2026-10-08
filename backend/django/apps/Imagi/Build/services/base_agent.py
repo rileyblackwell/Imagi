@@ -1335,12 +1335,20 @@ class ImagiAgentService:
         # The composer's fast-mode switch sticks to the conversation, so the
         # threads it dispatches next inherit it; a thread run passes none and
         # keeps its own.
-        if self.fast_mode is not None and conversation.fast_mode != self.fast_mode:
+        # A pinned role (the first build) sets its own speed per run and
+        # leaves the conversation's setting alone, so a later follow-up to
+        # that thread runs at the speed the user chose.
+        if (
+            self.fast_mode is not None and self.agent_kind is None
+            and conversation.fast_mode != self.fast_mode
+        ):
             conversation.fast_mode = self.fast_mode
             AgentConversation.objects.filter(pk=conversation.pk).update(
                 fast_mode=self.fast_mode
             )
-        self._run_fast = conversation.fast_mode
+        self._run_fast = (
+            self.fast_mode if self.fast_mode is not None else conversation.fast_mode
+        )
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.

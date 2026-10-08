@@ -1129,10 +1129,16 @@ class ParallelInitialBuildTests(TransactionTestCase):
         seen = {}
 
         def fake_process(_self, **kwargs):
-            title = AgentConversation.objects.get(id=kwargs['conversation_id']).title
-            slug = title.rsplit('—', 1)[-1].strip().split(' ')[0]
+            # The page is read from its brief, not the database: a waiting
+            # page must hold no database lock the home page's merge needs.
+            slug = next(
+                name for name, view in (
+                    ('home', 'HomeView.vue'), ('about', 'AboutView.vue'),
+                    ('contact', 'ContactView.vue'),
+                ) if view in kwargs['user_input']
+            )
             if slug != 'home':
-                seen[slug] = home_opened.wait(timeout=10)
+                seen[slug] = home_opened.wait(timeout=20)
             AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
                 review_status='accepted'
             )
@@ -1151,15 +1157,36 @@ class ParallelInitialBuildTests(TransactionTestCase):
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
 
-    def test_the_first_build_runs_on_opus_in_fast_mode(self):
-        from apps.Imagi.Build.services.coding_agent import create_coding_agent
+    def test_only_the_home_page_runs_in_fast_mode(self):
+        # The project opens when home lands, so home alone pays for speed;
+        # the other pages build behind it at standard speed.
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
+        from apps.Imagi.ProjectManager.services import initial_build_service
 
-        model = settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL']
-        self.assertEqual(model, 'claude-opus-5-5')
-        agent = create_coding_agent(model, kind='initial_build')
-        self.assertEqual(agent.model_settings.extra_args, {'speed': 'fast'})
-        # Every other role runs at standard speed.
-        self.assertIsNone(create_coding_agent(model, kind='task').model_settings.extra_args)
+        self.assertEqual(settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'], 'claude-opus-5-5')
+        fast_by_slug = {}
+
+        def fake_process(_self, **kwargs):
+            title = AgentConversation.objects.get(id=kwargs['conversation_id']).title
+            slug = title.rsplit('—', 1)[-1].strip().split(' ')[0]
+            fast_by_slug[slug] = _self.fast_mode
+            AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
+                review_status='accepted'
+            )
+            return {'success': True, 'files_changed': []}
+
+        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=[],
+        ):
+            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
+
+        self.assertEqual(fast_by_slug, {'home': True, 'about': False, 'contact': False})
+        # The page threads keep the standard speed for later follow-ups.
+        self.assertFalse(
+            AgentConversation.objects.filter(kind='task', fast_mode=True).exists()
+        )
 
     def test_the_build_fails_only_when_no_page_lands(self):
         self._run({'home': 'fail', 'about': 'fail', 'contact': 'fail'})
