@@ -55,7 +55,7 @@
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed"><strong class="ink-strong">Create a project</strong> — give your business a
-              name, describe what it does, and optionally describe the look you want.</span>
+              name, describe what it does, and optionally say how the app should work and the look you want.</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
