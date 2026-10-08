@@ -64,7 +64,7 @@ describe('Projects (Brief)', () => {
     const wrapper = mountPage()
     await flushPromises()
     const steps = wrapper.findAll('.step')
-    expect(steps).toHaveLength(3)
+    expect(steps).toHaveLength(4)
     expect(steps[0].classes()).toContain('is-current')
     expect(wrapper.findAll('.step.is-done')).toHaveLength(0)
     expect(wrapper.find('.meter__label').text()).toBe('At least 20 characters')
@@ -85,15 +85,18 @@ describe('Projects (Brief)', () => {
     await wrapper.find('#project-description').setValue(DESCRIPTION)
     expect(wrapper.find('.meter__label').text()).toBe('Enough to start')
     expect(wrapper.find('.brief__desc').text()).toBe(DESCRIPTION)
-    expect(wrapper.find('.brief__facts dd').text()).toBe('Imagi picks one')
+    const facts = wrapper.findAll('.brief__facts dd').map((d) => d.text())
+    expect(facts[0]).toBe('Imagi works it out from the description')
+    expect(facts[1]).toBe('Imagi picks one')
     expect(wrapper.find('.brief__submit').attributes('disabled')).toBeUndefined()
   })
 
-  it('sends the same three fields, trimmed, and opens the new project', async () => {
+  it('sends every answer, trimmed, and opens the new project', async () => {
     store.createProject.mockResolvedValue({ id: 9, name: 'Little Loaf' })
     const wrapper = mountPage()
     await wrapper.find('#project-name').setValue('  Little Loaf ')
     await wrapper.find('#project-description').setValue(DESCRIPTION)
+    await wrapper.find('#project-details').setValue(' People can order bread for Saturday. ')
     await wrapper.find('#project-design').setValue('Warm and minimal')
     // The button sits in the brief card, outside the form, and submits it by id.
     expect(wrapper.find('.brief__submit').attributes('form')).toBe('create-project')
@@ -102,9 +105,38 @@ describe('Projects (Brief)', () => {
     expect(store.createProject).toHaveBeenCalledWith({
       name: 'Little Loaf',
       description: DESCRIPTION,
+      app_details: 'People can order bread for Saturday.',
       design_preferences: 'Warm and minimal',
     })
     expect(push).toHaveBeenCalledWith({ name: 'project-hub', params: { projectName: 'little-loaf' } })
+  })
+
+  it('starts sentences about how the app works with one tap', async () => {
+    const wrapper = mountPage()
+    const starters = wrapper.findAll('.starters').at(0)!.findAll('button')
+    await starters[0].trigger('click')
+    expect((wrapper.find('#project-details').element as HTMLTextAreaElement).value).toBe('People can ')
+    await wrapper.find('#project-details').setValue('People can book a table')
+    await starters[1].trigger('click')
+    expect((wrapper.find('#project-details').element as HTMLTextAreaElement).value)
+      .toBe('People can book a table. It keeps track of ')
+    expect(wrapper.findAll('.step')[2].classes()).toContain('is-done')
+  })
+
+  it('toggles moods into the design direction and back out', async () => {
+    const wrapper = mountPage()
+    const design = () => (wrapper.find('#project-design').element as HTMLTextAreaElement).value
+    const mood = (name: string) =>
+      wrapper.findAll('.starters').at(1)!.findAll('button').find((b) => b.text() === name)!
+    await wrapper.find('#project-design').setValue('Earthy colours')
+    await mood('Fun').trigger('click')
+    expect(design()).toBe('Earthy colours, fun')
+    expect(mood('Fun').attributes('aria-pressed')).toBe('true')
+    await mood('Calm').trigger('click')
+    expect(design()).toBe('Earthy colours, fun, calm')
+    await mood('Fun').trigger('click')
+    expect(design()).toBe('Earthy colours, calm')
+    expect(mood('Fun').attributes('aria-pressed')).toBe('false')
   })
 
   it('numbers the projects, most recently updated first', async () => {
