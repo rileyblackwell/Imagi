@@ -1632,7 +1632,8 @@ class PromptSizeTests(SimpleTestCase):
 
         for name, prompt, ceiling in (
             ('chat', CODING_AGENT_INSTRUCTIONS, 3_000),
-            ('lead', LEAD_AGENT_INSTRUCTIONS, 5_500),
+            # Raised from 5,500 for app-error routing (2026-10-08).
+            ('lead', LEAD_AGENT_INSTRUCTIONS, 5_900),
             ('task role', TASK_AGENT_INSTRUCTIONS, 3_500),
             ('initial build', INITIAL_BUILD_INSTRUCTIONS, 5_000),
         ):

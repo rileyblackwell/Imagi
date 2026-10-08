@@ -920,6 +920,10 @@ class AgentContext:
     # instructions (tools.lead_task_roster). Built in _prepare_run because the
     # instructions callable runs on the event loop, where the ORM may not.
     task_roster: str = ''
+    # Task runs only: each file the thread writes is also copied into the
+    # project the preview serves, so the user and the thread see it at once
+    # (live_apply). Off for drafts and the first build's pages.
+    live_apply: bool = False
 
 
 class ImagiAgentService:
@@ -1318,6 +1322,11 @@ class ImagiAgentService:
             conversation_id=conversation.id,
             conversation_kind=conversation.kind,
             current_file=current_file,
+            live_apply=(
+                conversation.kind == 'task'
+                and not conversation.variant_group
+                and self.agent_kind != 'initial_build'
+            ),
         )
         if conversation.kind == 'lead':
             # Best-effort: a lead that cannot see its roster still works, it

@@ -240,10 +240,13 @@
               <i class="fas fa-exclamation"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="pv-alert-title">Something broke in your app</p>
+              <p class="pv-alert-title">
+                {{ errorRouting ? 'Imagi is fixing something in your app' : 'Something broke in your app' }}
+              </p>
               <p class="pv-alert-detail">{{ latestConsoleError.text }}</p>
+              <p v-if="errorRoutingNote" class="pv-alert-detail" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
             </div>
-            <button type="button" @click="onFixConsoleError" class="pv-btn pv-btn--ink shrink-0">
+            <button v-if="!errorRouting" type="button" @click="onFixConsoleError" class="pv-btn pv-btn--ink shrink-0">
               <i class="fas fa-wand-magic-sparkles"></i>
               Fix it
             </button>
@@ -437,7 +440,10 @@ function applyFrame(f: PreviewFrame, seq: number): boolean {
   if (f.viewport) viewport.value = f.viewport
   // A full replacement list on every payload (empty array clears); guarded so
   // a payload from an older backend without the field keeps the current list.
-  if (Array.isArray(f.console_errors)) consoleErrors.value = f.console_errors
+  if (Array.isArray(f.console_errors)) {
+    consoleErrors.value = f.console_errors
+    errorRouting.value = f.console_errors.length ? (f.error_routing ?? errorRouting.value) : null
+  }
   return true
 }
 
@@ -454,6 +460,16 @@ function applyStatus(f: PreviewFrame, seq: number) {
 // ---------------------------------------------------------------------------
 
 const consoleErrors = ref<PreviewConsoleError[]>([])
+// Set once the server has sent the current errors to a thread or the
+// coordinator to fix; the banner then says so instead of offering "Fix it".
+const errorRouting = ref<PreviewFrame['error_routing']>(null)
+const errorRoutingNote = computed(() =>
+  errorRouting.value?.to === 'thread'
+    ? 'Sent to the thread that just changed this part of your app.'
+    : errorRouting.value?.to === 'coordinator'
+      ? 'Sent to your coordinator, who is getting it fixed.'
+      : ''
+)
 // Key of the error the user dismissed; the banner stays hidden until a
 // different error shows up.
 const dismissedErrorKey = ref<string | null>(null)
@@ -1528,6 +1544,7 @@ watch(
       resyncScroll()
       dropBackdrop()
       consoleErrors.value = []
+      errorRouting.value = null
       dismissedErrorKey.value = null
       void refreshPages()
       void startPreview()

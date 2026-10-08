@@ -598,8 +598,9 @@ class _PreviewSession:
     def open(cls, context):
         """The preview for the run's project, started if it is not running.
 
-        Always the canonical project: a thread's worktree has no preview of
-        its own, so the preview shows the app as it is now.
+        Always the canonical project. A thread's worktree has no preview of
+        its own, but its edits are copied into the project as it writes them
+        (live_apply), so the preview shows them too.
         """
         from apps.Imagi.ProjectManager.models import Project
         from .browser_preview_service import BrowserPreviewService
