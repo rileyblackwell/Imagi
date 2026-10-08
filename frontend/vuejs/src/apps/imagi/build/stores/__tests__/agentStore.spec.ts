@@ -370,9 +370,11 @@ describe('agent store startDispatchedTasks', () => {
     expect(runs.mock.calls[0]![0]).toBe(adopted!.id)
   })
 
-  it('opens a conversation stored on a retired model on its tier\'s current model', () => {
-    // A thread started on GPT 5.6 Terra must not reopen on a model the picker
-    // no longer offers (the chip would name one model and the run use another).
+  it('starts a dispatched thread on the thread model, even from a retired one', () => {
+    // The coordinator's own model (a retired GPT 5.6 one here) is not what a
+    // new thread runs on: it starts on the user's thread model, so the chip
+    // and the run never name a model the picker no longer offers.
+    agentService.updateConversation.mockResolvedValue({})
     const store = useAgentStore()
     store.setTaskRunner(vi.fn())
 
@@ -384,8 +386,8 @@ describe('agent store startDispatchedTasks', () => {
 
     const model = (id: number) => store.instances.find(i => i.conversationId === id)?.selectedModelId
     expect(model(9010)).toBe('claude-opus-5-5')
-    expect(model(9011)).toBe('gpt-6-luna')
-    expect(model(9012)).toBe('gpt-6-astra')
+    expect(model(9011)).toBe('claude-opus-5-5')
+    expect(model(9012)).toBe('claude-opus-5-5')
   })
 
   it('carries the lead\'s goal and overview onto the card from the first frame', async () => {
@@ -1256,5 +1258,71 @@ describe('agent store check-in actions', () => {
 
     expect(runs).not.toHaveBeenCalled()
     expect(store.checkIns).toHaveLength(1)
+  })
+})
+
+describe('agent store thread model setting', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+    agentService.updateConversation.mockResolvedValue({})
+  })
+
+  const dispatch = (conversationId: number, model = 'claude-opus-5-5') => ({
+    conversation_id: conversationId,
+    title: 'Contact page',
+    brief: 'Add a contact page.',
+    goal: '',
+    overview: '',
+    variant_group: '',
+    parent: 1,
+    model_name: model,
+  })
+
+  it('starts on Opus 5.5', () => {
+    expect(useAgentStore().threadModelId).toBe('claude-opus-5-5')
+  })
+
+  it('remembers the pick, and ignores a model the lineup does not offer', () => {
+    useAgentStore().setThreadModel('gpt-6-luna')
+    setActivePinia(createPinia())
+    expect(useAgentStore().threadModelId).toBe('gpt-6-luna')
+
+    localStorage.setItem('imagi.threadModel', 'not-a-model')
+    setActivePinia(createPinia())
+    expect(useAgentStore().threadModelId).toBe('claude-opus-5-5')
+  })
+
+  it('starts a new thread on the thread model, whatever the coordinator runs on', () => {
+    const store = useAgentStore()
+    store.setTaskRunner(vi.fn())
+    store.setThreadModel('gpt-6-luna')
+
+    store.startDispatchedTasks([dispatch(9801, 'gpt-6-astra')])
+
+    const thread = store.instances.find(i => i.conversationId === 9801)!
+    expect(thread.selectedModelId).toBe('gpt-6-luna')
+    expect(agentService.updateConversation).toHaveBeenCalledWith(9801, { model_name: 'gpt-6-luna' })
+  })
+
+  it('switches every thread that can still run, and leaves the rest', () => {
+    const store = useAgentStore()
+    const open = makeInstance({ kind: 'task', reviewStatus: 'active', selectedModelId: 'gpt-6-astra' })
+    const done = makeInstance({ kind: 'task', reviewStatus: 'accepted', selectedModelId: 'claude-opus-5-5' })
+    const discarded = makeInstance({ kind: 'task', reviewStatus: 'dismissed', selectedModelId: 'gpt-6-astra' })
+    const lead = makeInstance({ kind: 'lead', selectedModelId: 'claude-opus-5-5' })
+    store.instances = [open, done, discarded, lead]
+    store.setThreadModel('gpt-6-luna')
+
+    expect(store.threadsOffThreadModel.map(i => i.id)).toEqual([open.id, done.id])
+    expect(store.switchAllThreadsToThreadModel()).toBe(2)
+
+    const model = (id: string) => store.instances.find(i => i.id === id)!.selectedModelId
+    expect(model(open.id)).toBe('gpt-6-luna')
+    expect(model(done.id)).toBe('gpt-6-luna')
+    expect(model(discarded.id)).toBe('gpt-6-astra')
+    expect(model(lead.id)).toBe('claude-opus-5-5')
+    expect(store.threadsOffThreadModel).toHaveLength(0)
   })
 })

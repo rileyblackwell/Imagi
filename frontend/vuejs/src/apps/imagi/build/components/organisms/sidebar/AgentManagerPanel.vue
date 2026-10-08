@@ -180,6 +180,10 @@
         </template>
       </template>
     </div>
+
+    <!-- Which model threads run on: the default for new ones, and the one
+         tap that moves them all. -->
+    <ThreadModelSetting />
     </div>
     </Transition>
   </div>
@@ -195,6 +199,7 @@ import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import FoldTransition from '../../molecules/common/FoldTransition.vue'
 import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
+import ThreadModelSetting from '../../molecules/sidebar/ThreadModelSetting.vue'
 import { ChatConversation } from '../../organisms/chat'
 import type { AgentInstance } from '../../../types/services'
 
