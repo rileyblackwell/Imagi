@@ -1,9 +1,9 @@
 <!--
   ProjectCard.vue — one project in the list.
 
-  A ruled row rather than a floating card: on the editorial surface the library
-  reads as a single list of businesses, and a stack of bordered slabs would sit
-  on the paper instead of in it.
+  A numbered ruled row rather than a floating card: the library reads as one
+  list of businesses, most recently worked on first, and a stack of bordered
+  slabs would sit on the page instead of in it.
 
   The row is a wrapper rather than one big link, because it holds two actions.
   The link stretches over the whole row with a pseudo-element, and the delete
@@ -12,6 +12,7 @@
 -->
 <template>
   <div v-if="project" class="row group">
+    <span v-if="index" class="row__num" aria-hidden="true">{{ String(index).padStart(2, '0') }}</span>
     <router-link
       :to="{ name: 'project-hub', params: { projectName: projectSlug(project) }}"
       class="row__link"
@@ -20,7 +21,7 @@
       <span class="row__name">{{ project.name }}</span>
       <span v-if="project.description" class="row__desc">{{ project.description }}</span>
     </router-link>
-
+    <span v-if="updated" class="row__when">{{ updated }}</span>
     <button
       type="button"
       class="row__delete"
@@ -34,7 +35,6 @@
         <path d="M10 11v6M14 11v6" />
       </svg>
     </button>
-
     <svg class="row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
@@ -42,16 +42,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Project } from '@/apps/imagi/build/types/components'
 import { projectSlug } from '@/apps/imagi/build/utils/slug'
+import { updatedLabel } from '../../../utils/updatedLabel'
 
 const props = defineProps<{
   project?: Project;
+  /** Position in the list, shown as 01, 02, … */
+  index?: number;
 }>();
 
 const emit = defineEmits<{
   (e: 'delete', project: Project): void;
 }>();
+
+const updated = computed(() => updatedLabel(props.project?.updated_at))
 
 function confirmDelete() {
   if (props.project) {
@@ -65,14 +71,27 @@ function confirmDelete() {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.05rem 0.25rem 1.05rem 0;
+  gap: 1rem;
+  padding: 1.25rem 0.25rem 1.25rem 0;
   border-bottom: 1px solid var(--rule);
   transition: border-color 0.18s ease;
 }
 
 .row:hover {
   border-bottom-color: var(--rule-strong);
+}
+
+.row__num {
+  flex: none;
+  width: 2.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  color: var(--ink-40);
+  transition: color 0.18s ease;
+}
+
+.row:hover .row__num {
+  color: var(--sl-coral);
 }
 
 .row__link {
@@ -101,24 +120,49 @@ function confirmDelete() {
 
 .row__name {
   display: block;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--sl-font-display);
+  font-size: 1.3rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* The name lights on hover, the same gradient as the page's accent words. */
+.row:hover .row__name {
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .row__desc {
   display: block;
   margin-top: 0.2rem;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--ink-40);
+  color: var(--ink-55);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.row__when {
+  flex: none;
+  min-width: 7rem;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--ink-40);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .row__num,
+  .row__when {
+    display: none;
+  }
 }
 
 /* Quiet until the row is pointed at or tabbed to — deleting a business should
@@ -132,10 +176,10 @@ function confirmDelete() {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   color: var(--ink-40);
   opacity: 0;
-  transition: opacity 0.18s ease, color 0.18s ease;
+  transition: opacity 0.18s ease, color 0.18s ease, background 0.18s ease;
 }
 
 .row:hover .row__delete,
@@ -145,6 +189,7 @@ function confirmDelete() {
 
 .row__delete:hover {
   color: var(--accent);
+  background: var(--sl-chip-bg-hover);
 }
 
 .row__delete:focus-visible {
@@ -161,7 +206,7 @@ function confirmDelete() {
 }
 
 .row:hover .row__arrow {
-  color: var(--accent);
+  color: var(--sl-amber);
   transform: translateX(3px);
 }
 

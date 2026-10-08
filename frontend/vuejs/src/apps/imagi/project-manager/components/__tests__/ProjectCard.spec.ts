@@ -52,6 +52,17 @@ describe('ProjectCard', () => {
     expect(wrapper.find('.row__delete').attributes('aria-label')).toBe('Delete Ticker Insights')
   })
 
+  it('numbers the row when given its place in the list', () => {
+    expect(mountWith({ index: 3 }).find('.row__num').text()).toBe('03')
+    expect(mountWith().find('.row__num').exists()).toBe(false)
+  })
+
+  it('says when the project was last worked on, and nothing when it cannot tell', () => {
+    const recent = new Date(Date.now() - 5 * 60_000).toISOString()
+    expect(mountWith({ project: { ...project, updated_at: recent } }).find('.row__when').text()).toBe('5 minutes ago')
+    expect(mountWith().find('.row__when').exists()).toBe(false)
+  })
+
   it('renders nothing at all without a project', () => {
     expect(mount(ProjectCard, { global: { stubs: { RouterLink: RouterLinkStub } } }).find('.row').exists()).toBe(false)
   })
