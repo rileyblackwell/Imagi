@@ -4,35 +4,33 @@ API views for the Operate app.
 Everything is scoped to a project owned by the authenticated user:
 /api/v1/operate/projects/<project_id>/...
 
-The dashboard endpoint is the "central hub" view: it aggregates the
-project's finances, invoices, and tasks, and pulls in a pulse from the
-other workspace modules (marketing today; sales later) so the business
-can be read at a glance from one place.
+The dashboard endpoint returns Operate's two halves: the app (uptime,
+response time, visitors) and the business (revenue, expenses, profit). The
+page-view beacon is the one public endpoint: /api/v1/operate/beacon/<key>/.
 """
 
-import datetime
+import json
 
-from django.db.models import Count, F, Q, Sum
-from django.db.models.functions import TruncMonth
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import NotFound
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
-from apps.Imagi.Marketing.models import Campaign, Contact, MarketingSettings, Message
 from apps.Imagi.ProjectManager.models import Project
-from apps.Imagi.Sell.models import Order, SellSettings
 
-from ..models import Invoice, OperationsTask, Transaction
+from ..models import AppMonitor, Invoice, OperationsTask, PageView, Transaction
+from ..services import monitoring
+from ..services.business import business_summary
 from .serializers import (
+    AppMonitorSerializer,
     InvoiceSerializer,
     OperationsTaskSerializer,
     TransactionSerializer,
 )
-
-CASHFLOW_MONTHS = 6
 
 
 def paginate(request, queryset, default_limit=50, max_limit=200):
@@ -73,166 +71,138 @@ class ProjectScopedView(APIView):
 # -- Dashboard -------------------------------------------------------------------
 
 
-def cashflow_series(project, months=CASHFLOW_MONTHS):
-    """Income/expense totals per calendar month for the last `months` months."""
-    today = timezone.localdate()
-    year, month = today.year, today.month
-    for _ in range(months - 1):
-        month -= 1
-        if month == 0:
-            year, month = year - 1, 12
-    start = datetime.date(year, month, 1)
-    rows = (
-        project.operate_transactions
-        .filter(occurred_on__gte=start)
-        .annotate(month=TruncMonth('occurred_on'))
-        .values('month', 'kind')
-        .annotate(total=Sum('amount'))
-    )
-    by_month = {}
-    for row in rows:
-        key = row['month'].strftime('%Y-%m')
-        bucket = by_month.setdefault(key, {'income': 0.0, 'expenses': 0.0})
-        if row['kind'] == Transaction.KIND_INCOME:
-            bucket['income'] = money(row['total'])
-        else:
-            bucket['expenses'] = money(row['total'])
-
-    series = []
-    cursor = start
-    while cursor <= today:
-        key = cursor.strftime('%Y-%m')
-        bucket = by_month.get(key, {'income': 0.0, 'expenses': 0.0})
-        series.append({
-            'month': key,
-            'label': cursor.strftime('%b'),
-            'income': bucket['income'],
-            'expenses': bucket['expenses'],
-            'net': round(bucket['income'] - bucket['expenses'], 2),
-        })
-        cursor = (cursor + datetime.timedelta(days=32)).replace(day=1)
-    return series
-
-
-def marketing_pulse(project) -> dict:
-    """Snapshot of the Market module for the cross-module section."""
-    settings_obj = MarketingSettings.objects.filter(project=project).first()
-    since = timezone.now() - datetime.timedelta(days=30)
-    messages = project.marketing_messages.all()
-    return {
-        'configured': bool(settings_obj and settings_obj.is_configured),
-        'contacts_total': project.marketing_contacts.count(),
-        'contacts_subscribed': project.marketing_contacts.filter(
-            consent=Contact.CONSENT_SUBSCRIBED
-        ).count(),
-        'campaigns_active': project.marketing_campaigns.filter(
-            status__in=[Campaign.STATUS_SCHEDULED, Campaign.STATUS_SENDING]
-        ).count(),
-        'messages_sent_30d': messages.filter(
-            direction=Message.DIRECTION_OUTBOUND, created_at__gte=since
-        ).count(),
-        'replies_30d': messages.filter(
-            direction=Message.DIRECTION_INBOUND, created_at__gte=since
-        ).count(),
-    }
-
-
-def sell_pulse(project) -> dict:
-    """Snapshot of the Sell module for the cross-module section."""
-    settings_obj = SellSettings.objects.filter(project=project).first()
-    since = timezone.now() - datetime.timedelta(days=30)
-    orders = project.sell_orders.all()
-    paid_30d = orders.filter(status__in=Order.PAID_STATUSES, paid_at__gte=since).aggregate(
-        revenue_cents=Sum('amount_total_cents'), count=Count('id')
-    )
-    return {
-        'configured': bool(settings_obj and settings_obj.is_configured),
-        'currency': settings_obj.currency if settings_obj else 'usd',
-        'products_active': project.sell_products.filter(is_active=True).count(),
-        'customers_total': project.sell_customers.count(),
-        'orders_pending': orders.filter(status=Order.STATUS_PENDING).count(),
-        'orders_paid_30d': paid_30d['count'] or 0,
-        'revenue_30d': round((paid_30d['revenue_cents'] or 0) / 100.0, 2),
-    }
-
-
 class DashboardView(ProjectScopedView):
-    """Aggregated stats for the Operate hub."""
+    """The two halves of Operate: the app and the business."""
 
     def get(self, request, project_id):
         project = self.get_project()
-        today = timezone.localdate()
-        since_30d = today - datetime.timedelta(days=30)
-        soon = today + datetime.timedelta(days=7)
-
-        transactions = project.operate_transactions.all()
-        window = transactions.filter(occurred_on__gte=since_30d)
-        totals = window.aggregate(
-            income=Sum('amount', filter=Q(kind=Transaction.KIND_INCOME)),
-            expenses=Sum('amount', filter=Q(kind=Transaction.KIND_EXPENSE)),
-        )
-        all_time = transactions.aggregate(
-            income=Sum('amount', filter=Q(kind=Transaction.KIND_INCOME)),
-            expenses=Sum('amount', filter=Q(kind=Transaction.KIND_EXPENSE)),
-        )
-
-        invoices = project.operate_invoices.all()
-        open_invoices = invoices.filter(status=Invoice.STATUS_SENT)
-        invoice_stats = open_invoices.aggregate(
-            outstanding=Sum('total'), count=Count('id')
-        )
-        overdue_count = open_invoices.filter(due_date__lt=today).count()
-        paid_30d = invoices.filter(
-            status=Invoice.STATUS_PAID, paid_at__date__gte=since_30d
-        ).aggregate(total=Sum('total'))
-
-        tasks = project.operate_tasks.all()
-        open_tasks = tasks.exclude(status=OperationsTask.STATUS_DONE)
-
-        income_30d = money(totals['income'])
-        expenses_30d = money(totals['expenses'])
         return Response({
-            'finance': {
-                'income_30d': income_30d,
-                'expenses_30d': expenses_30d,
-                'net_30d': round(income_30d - expenses_30d, 2),
-                'income_all_time': money(all_time['income']),
-                'expenses_all_time': money(all_time['expenses']),
-                'transactions_total': transactions.count(),
-            },
-            'cashflow': cashflow_series(project),
-            'invoices': {
-                'outstanding_total': money(invoice_stats['outstanding']),
-                'outstanding_count': invoice_stats['count'] or 0,
-                'overdue_count': overdue_count,
-                'draft_count': invoices.filter(status=Invoice.STATUS_DRAFT).count(),
-                'paid_30d': money(paid_30d['total']),
-            },
-            'tasks': {
-                'open_count': open_tasks.count(),
-                'in_progress_count': open_tasks.filter(
-                    status=OperationsTask.STATUS_IN_PROGRESS
-                ).count(),
-                'overdue_count': open_tasks.filter(due_date__lt=today).count(),
-                'due_soon_count': open_tasks.filter(
-                    due_date__gte=today, due_date__lte=soon
-                ).count(),
-            },
-            'marketing': marketing_pulse(project),
-            'sell': sell_pulse(project),
-            'recent_transactions': TransactionSerializer(
-                transactions.select_related('invoice')[:5], many=True
-            ).data,
-            'open_invoices': InvoiceSerializer(
-                open_invoices.order_by('due_date', '-created_at')[:5], many=True
-            ).data,
-            'upcoming_tasks': OperationsTaskSerializer(
-                open_tasks.order_by(
-                    F('due_date').asc(nulls_last=True), '-created_at'
-                )[:5],
-                many=True,
-            ).data,
+            'app': monitoring.app_summary(project),
+            'business': business_summary(project),
         })
+
+
+class AppMonitorView(ProjectScopedView):
+    """Read or set the app's live address (and get its page-view tag key)."""
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        monitor, _ = AppMonitor.objects.get_or_create(project=project)
+        return Response(AppMonitorSerializer(monitor).data)
+
+    def patch(self, request, project_id):
+        project = self.get_project()
+        monitor, _ = AppMonitor.objects.get_or_create(project=project)
+        live_url = monitoring.normalize_live_url(str(request.data.get('live_url', '')))
+        if live_url:
+            if len(live_url) > 500:
+                return Response({'live_url': ['That address is too long.']}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                monitoring.assert_public_url(live_url)
+            except monitoring.UnsafeURL as exc:
+                return Response({'live_url': [str(exc)]}, status=status.HTTP_400_BAD_REQUEST)
+        monitor.live_url = live_url
+        monitor.save(update_fields=['live_url', 'updated_at'])
+        if live_url:
+            monitoring.run_check(monitor)
+        return Response({
+            'monitor': AppMonitorSerializer(monitor).data,
+            'app': monitoring.app_summary(project),
+        })
+
+
+class UptimeCheckThrottle(UserRateThrottle):
+    """"Check now" makes an outbound request; keep it to a human pace."""
+
+    scope = 'operate_uptime_check'
+    rate = '12/min'
+
+
+class UptimeCheckView(ProjectScopedView):
+    """Check the live address now (or only if the last check is stale)."""
+
+    throttle_classes = [UptimeCheckThrottle]
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        monitor = AppMonitor.objects.filter(project=project).first()
+        if not monitor or not monitor.live_url:
+            return Response(
+                {'detail': 'Add your app’s live address first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        only_if_stale = str(request.data.get('only_if_stale', '')).lower() in ('1', 'true')
+        if not only_if_stale or monitoring.check_is_stale(monitor):
+            monitoring.run_check(monitor)
+        return Response({'app': monitoring.app_summary(project)})
+
+
+class PageViewBeaconThrottle(AnonRateThrottle):
+    """Per-IP cap on the public page-view endpoint."""
+
+    scope = 'operate_beacon'
+    rate = '120/min'
+
+
+# A runaway script on one site shouldn't be able to grow the table without
+# bound; past this many views in a day the rest are dropped.
+MAX_PAGE_VIEWS_PER_DAY = 50_000
+
+
+class PageViewBeaconView(APIView):
+    """Public endpoint the app's page-view tag posts to on every page load.
+
+    Posted with navigator.sendBeacon as text/plain (so browsers send it
+    without a CORS preflight). Always answers 204, so the tag never learns
+    whether a view was counted.
+    """
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [PageViewBeaconThrottle]
+
+    def post(self, request, site_key):
+        monitor = (
+            AppMonitor.objects.select_related('project')
+            .filter(site_key=site_key, project__is_active=True)
+            .first()
+        )
+        if monitor and monitor.live_url:
+            self.record(request, monitor)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def record(self, request, monitor):
+        source = request.headers.get('Origin') or request.headers.get('Referer') or ''
+        live_host = monitoring.host_of(monitor.live_url)
+        if not monitoring.same_site(monitoring.host_of(source), live_host):
+            return
+        try:
+            payload = json.loads(request.body[:2048] or b'{}')
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        path = str(payload.get('p') or '/')[:300]
+        if not path.startswith('/'):
+            path = '/'
+        referrer_host = monitoring.host_of(str(payload.get('r') or ''))
+        if monitoring.same_site(referrer_host, live_host):
+            referrer_host = ''
+
+        project = monitor.project
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        if project.operate_page_views.filter(created_at__gte=today_start).count() >= MAX_PAGE_VIEWS_PER_DAY:
+            return
+        forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        ip = forwarded.split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+        PageView.objects.create(
+            project=project,
+            path=path,
+            visitor=monitoring.visitor_hash(
+                monitor.site_key, ip, request.headers.get('User-Agent', '')
+            ),
+            referrer_host=referrer_host[:255],
+        )
 
 
 # -- Transactions -----------------------------------------------------------------

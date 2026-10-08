@@ -1,8 +1,8 @@
 /**
  * Pinia store for the Operate workspace.
  *
- * Holds the state shared across the Operate tabs (dashboard, finance,
- * invoices, tasks) for the currently open project. The workspace shell
+ * Holds the state shared across the Operate tabs (the dashboard and the
+ * ledger) for the currently open project. The workspace shell
  * calls `setProject()` once the project is resolved from the URL slug;
  * every view then reads `projectId` from here.
  */
@@ -10,14 +10,9 @@
 import { defineStore } from 'pinia'
 import OperateService from '../services/operateService'
 import type {
+  AppSummary,
   DashboardPayload,
-  Invoice,
-  InvoicePayload,
-  InvoiceStatus,
   LedgerSummary,
-  OperationsTask,
-  TaskCounts,
-  TaskPayload,
   Transaction,
   TransactionPayload,
 } from '../types'
@@ -29,11 +24,6 @@ interface OperateState {
   transactions: Transaction[]
   transactionsSummary: LedgerSummary | null
   transactionsLoading: boolean
-  invoices: Invoice[]
-  invoicesLoading: boolean
-  tasks: OperationsTask[]
-  taskCounts: TaskCounts | null
-  tasksLoading: boolean
 }
 
 export const useOperateStore = defineStore('operate', {
@@ -44,11 +34,6 @@ export const useOperateStore = defineStore('operate', {
     transactions: [],
     transactionsSummary: null,
     transactionsLoading: false,
-    invoices: [],
-    invoicesLoading: false,
-    tasks: [],
-    taskCounts: null,
-    tasksLoading: false,
   }),
 
   actions: {
@@ -77,6 +62,19 @@ export const useOperateStore = defineStore('operate', {
       } finally {
         this.dashboardLoading = false
       }
+    },
+
+    /** Save the app's live address; the server checks it straight away. */
+    async setLiveUrl(liveUrl: string): Promise<AppSummary> {
+      const { app } = await OperateService.setLiveUrl(this.requireProject(), liveUrl)
+      if (this.dashboard) this.dashboard.app = app
+      return app
+    },
+
+    async checkApp(onlyIfStale = false): Promise<AppSummary> {
+      const app = await OperateService.checkApp(this.requireProject(), onlyIfStale)
+      if (this.dashboard) this.dashboard.app = app
+      return app
     },
 
     // -- Transactions -----------------------------------------------------------
@@ -108,70 +106,6 @@ export const useOperateStore = defineStore('operate', {
     async deleteTransaction(transactionId: number): Promise<void> {
       await OperateService.deleteTransaction(this.requireProject(), transactionId)
       this.transactions = this.transactions.filter(t => t.id !== transactionId)
-    },
-
-    // -- Invoices ------------------------------------------------------------------
-    async fetchInvoices(params: { status?: string; search?: string; limit?: number; offset?: number } = {}) {
-      const projectId = this.requireProject()
-      this.invoicesLoading = true
-      try {
-        const { invoices } = await OperateService.listInvoices(projectId, params)
-        this.invoices = invoices
-      } finally {
-        this.invoicesLoading = false
-      }
-    },
-
-    async createInvoice(payload: InvoicePayload): Promise<Invoice> {
-      return OperateService.createInvoice(this.requireProject(), payload)
-    },
-
-    async updateInvoice(invoiceId: number, payload: InvoicePayload): Promise<Invoice> {
-      const invoice = await OperateService.updateInvoice(this.requireProject(), invoiceId, payload)
-      const index = this.invoices.findIndex(i => i.id === invoiceId)
-      if (index !== -1) this.invoices[index] = invoice
-      return invoice
-    },
-
-    async deleteInvoice(invoiceId: number): Promise<void> {
-      await OperateService.deleteInvoice(this.requireProject(), invoiceId)
-      this.invoices = this.invoices.filter(i => i.id !== invoiceId)
-    },
-
-    async setInvoiceStatus(invoiceId: number, status: InvoiceStatus): Promise<Invoice> {
-      const invoice = await OperateService.setInvoiceStatus(this.requireProject(), invoiceId, status)
-      const index = this.invoices.findIndex(i => i.id === invoiceId)
-      if (index !== -1) this.invoices[index] = invoice
-      return invoice
-    },
-
-    // -- Tasks ------------------------------------------------------------------------
-    async fetchTasks(params: { status?: string; limit?: number; offset?: number } = {}) {
-      const projectId = this.requireProject()
-      this.tasksLoading = true
-      try {
-        const { tasks, counts } = await OperateService.listTasks(projectId, params)
-        this.tasks = tasks
-        this.taskCounts = counts
-      } finally {
-        this.tasksLoading = false
-      }
-    },
-
-    async createTask(payload: TaskPayload): Promise<OperationsTask> {
-      return OperateService.createTask(this.requireProject(), payload)
-    },
-
-    async updateTask(taskId: number, payload: TaskPayload): Promise<OperationsTask> {
-      const task = await OperateService.updateTask(this.requireProject(), taskId, payload)
-      const index = this.tasks.findIndex(t => t.id === taskId)
-      if (index !== -1) this.tasks[index] = task
-      return task
-    },
-
-    async deleteTask(taskId: number): Promise<void> {
-      await OperateService.deleteTask(this.requireProject(), taskId)
-      this.tasks = this.tasks.filter(t => t.id !== taskId)
     },
   },
 })

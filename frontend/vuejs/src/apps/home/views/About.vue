@@ -166,7 +166,7 @@ export default defineComponent({
       },
       {
         title: 'Finance and operations',
-        description: 'Invoices out, income and expenses tracked, and the operational work that keeps the business running, all against the same project.',
+        description: 'Uptime, speed and visitors for the app on one side; revenue, expenses and profit on the other, all against the same project.',
         icon: 'finance'
       }
     ]

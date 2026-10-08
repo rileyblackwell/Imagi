@@ -1,18 +1,15 @@
 /**
  * Operate Service — communication with the Operate app API
- * (/api/v1/operate/projects/:projectId/...).
+ * (/api/v1/operate/projects/:projectId/...): the dashboard, the app's
+ * live address and uptime checks, and the ledger.
  */
 
 import api from '@/shared/services/api'
 import type {
+  AppMonitor,
+  AppSummary,
   DashboardPayload,
-  Invoice,
-  InvoicePayload,
-  InvoiceStatus,
   LedgerSummary,
-  OperationsTask,
-  TaskCounts,
-  TaskPayload,
   Transaction,
   TransactionPayload,
 } from '../types'
@@ -25,6 +22,18 @@ const OperateService = {
   async getDashboard(projectId: number): Promise<DashboardPayload> {
     const { data } = await api.get(`${base(projectId)}/dashboard/`)
     return data
+  },
+
+  // -- The app half -----------------------------------------------------------
+  async setLiveUrl(projectId: number, liveUrl: string): Promise<{ monitor: AppMonitor; app: AppSummary }> {
+    const { data } = await api.patch(`${base(projectId)}/app/`, { live_url: liveUrl })
+    return data
+  },
+
+  /** Check the live address now — or, with `onlyIfStale`, only if the last check is old. */
+  async checkApp(projectId: number, onlyIfStale = false): Promise<AppSummary> {
+    const { data } = await api.post(`${base(projectId)}/app/check/`, { only_if_stale: onlyIfStale })
+    return data.app
   },
 
   // -- Transactions -------------------------------------------------------------
@@ -48,57 +57,6 @@ const OperateService = {
 
   async deleteTransaction(projectId: number, transactionId: number): Promise<void> {
     await api.delete(`${base(projectId)}/transactions/${transactionId}/`)
-  },
-
-  // -- Invoices --------------------------------------------------------------------
-  async listInvoices(
-    projectId: number,
-    params: { status?: string; search?: string; limit?: number; offset?: number } = {}
-  ): Promise<{ invoices: Invoice[]; total: number }> {
-    const { data } = await api.get(`${base(projectId)}/invoices/`, { params })
-    return data
-  },
-
-  async createInvoice(projectId: number, payload: InvoicePayload): Promise<Invoice> {
-    const { data } = await api.post(`${base(projectId)}/invoices/`, payload)
-    return data.invoice
-  },
-
-  async updateInvoice(projectId: number, invoiceId: number, payload: InvoicePayload): Promise<Invoice> {
-    const { data } = await api.patch(`${base(projectId)}/invoices/${invoiceId}/`, payload)
-    return data.invoice
-  },
-
-  async deleteInvoice(projectId: number, invoiceId: number): Promise<void> {
-    await api.delete(`${base(projectId)}/invoices/${invoiceId}/`)
-  },
-
-  async setInvoiceStatus(projectId: number, invoiceId: number, status: InvoiceStatus): Promise<Invoice> {
-    const { data } = await api.post(`${base(projectId)}/invoices/${invoiceId}/status/`, { status })
-    return data.invoice
-  },
-
-  // -- Tasks -----------------------------------------------------------------------
-  async listTasks(
-    projectId: number,
-    params: { status?: string; limit?: number; offset?: number } = {}
-  ): Promise<{ tasks: OperationsTask[]; total: number; counts: TaskCounts }> {
-    const { data } = await api.get(`${base(projectId)}/tasks/`, { params })
-    return data
-  },
-
-  async createTask(projectId: number, payload: TaskPayload): Promise<OperationsTask> {
-    const { data } = await api.post(`${base(projectId)}/tasks/`, payload)
-    return data.task
-  },
-
-  async updateTask(projectId: number, taskId: number, payload: TaskPayload): Promise<OperationsTask> {
-    const { data } = await api.patch(`${base(projectId)}/tasks/${taskId}/`, payload)
-    return data.task
-  },
-
-  async deleteTask(projectId: number, taskId: number): Promise<void> {
-    await api.delete(`${base(projectId)}/tasks/${taskId}/`)
   },
 }
 

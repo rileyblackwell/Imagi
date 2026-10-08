@@ -1,13 +1,15 @@
 """
 Models for the Operate app — the central hub for running a business.
 
-Everything is scoped to a ProjectManager Project: each user project
-(business) gets its own financial ledger (income and expense transactions),
-invoices, and operational tasks. The Operate dashboard aggregates these
-together with activity from the other workspace modules (e.g. Marketing)
-into a single view of how the business is doing.
+Everything is scoped to a ProjectManager Project. Operate is a dashboard
+with two halves: the app (is it up, how fast, who visits) and the business
+(revenue, expenses, profit). The app half reads AppMonitor, UptimeCheck and
+PageView below; the business half reads Sell's orders plus this app's ledger
+of income and expense transactions. Invoices and tasks are older models
+whose data is kept, though the dashboard no longer shows them.
 """
 
+import secrets
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
@@ -247,3 +249,83 @@ class OperationsTask(models.Model):
             and self.due_date
             and self.due_date < timezone.localdate()
         )
+
+
+def new_site_key() -> str:
+    return secrets.token_urlsafe(18)
+
+
+class AppMonitor(models.Model):
+    """Where the project's app lives on the internet, and its visit counter key.
+
+    `live_url` is the address the user's customers visit. Imagi checks it for
+    uptime and response time, and only counts page views sent from it, so
+    visits to the build preview never show up as traffic. `site_key` is the
+    public, unguessable id the app's page-view tag posts to.
+    """
+
+    project = models.OneToOneField(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='operate_monitor',
+    )
+    live_url = models.URLField(max_length=500, blank=True, default='')
+    site_key = models.CharField(max_length=32, unique=True, default=new_site_key)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.project} → {self.live_url or '(no live address)'}"
+
+
+class UptimeCheck(models.Model):
+    """One request Imagi made to the app's live address, and how it went."""
+
+    project = models.ForeignKey(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='operate_uptime_checks',
+    )
+    url = models.URLField(max_length=500)
+    checked_at = models.DateTimeField(default=timezone.now)
+    is_up = models.BooleanField()
+    status_code = models.PositiveSmallIntegerField(null=True, blank=True)
+    response_ms = models.PositiveIntegerField(null=True, blank=True)
+    error = models.CharField(max_length=255, blank=True, default='')
+
+    class Meta:
+        ordering = ['-checked_at']
+        indexes = [
+            models.Index(fields=['project', 'checked_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.url} {'up' if self.is_up else 'down'} @ {self.checked_at:%Y-%m-%d %H:%M}"
+
+
+class PageView(models.Model):
+    """One page load on the live app, reported by its page-view tag.
+
+    No cookies and no stored IP: `visitor` is a hash of the IP, user agent,
+    day and site key, so the same person counts once a day and can't be
+    followed from one day to the next.
+    """
+
+    project = models.ForeignKey(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='operate_page_views',
+    )
+    path = models.CharField(max_length=300)
+    visitor = models.CharField(max_length=32)
+    referrer_host = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['project', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.path} @ {self.created_at:%Y-%m-%d %H:%M}"
