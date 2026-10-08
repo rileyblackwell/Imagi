@@ -50,11 +50,15 @@
 
         <DocsStepCard :number="1" title="Create a Project">
           <p class="text-lg leading-relaxed mb-6">
-            From your Projects page, brief the agent in three steps: <strong class="ink-strong">Name it</strong>,
-            <strong class="ink-strong">Describe it</strong>, and, optionally, <strong class="ink-strong">Set the
+            From your Projects page, brief the agent in four steps: <strong class="ink-strong">Name it</strong>,
+            <strong class="ink-strong">Describe the business</strong>, and, optionally,
+            <strong class="ink-strong">How should the app work?</strong> and <strong class="ink-strong">Set the
             look</strong>. The description matters most: Imagi's AI uses it to build the very first version of your app,
-            so say what the business sells, who its customers are, and how it reaches them (it needs at least 20
-            characters). Describe colours, mood, or references under Set the look, or skip it and Imagi picks a look that
+            so in a few sentences say what you offer, who it's for, and how people find you and pay (it needs at least
+            20 characters). Under How should the app work?, say in everyday words what people can do on it, what it
+            needs to keep track of, and anything that matters to you; starters like "People can…" and "It keeps track
+            of…" help you begin, and Imagi turns your answer into the plan for your app. Under Set the look, describe the
+            feel, colours, or fonts you want, or tap a mood such as Friendly or Calm; skip it and Imagi picks a look that
             fits. Then choose <strong class="ink-strong">Create project</strong>.
           </p>
           <div class="callout">
@@ -63,7 +67,7 @@
             </h4>
             <p class="callout__body">
               As soon as you create a project, Imagi runs an AI build in the background to generate a tailored first
-              version from your description. Its Home, About, and Contact pages are built at the same time, so it takes
+              version from your brief, including how you said the app should work. Its Home, About, and Contact pages are built at the same time, so it takes
               about half a minute. While it runs, the Build card on your project hub reads "Imagi is writing your first
               version"; it unlocks the moment the build finishes—click it to open the workspace.
             </p>
