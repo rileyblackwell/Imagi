@@ -60,8 +60,8 @@
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed"><strong class="ink-strong">Get a first build automatically</strong> — Imagi
-              turns your description into a starting app in about half a minute, with AI agents building its pages in
-              parallel on top of a working foundation.</span>
+              builds your home page first, in about a minute, then adds the other pages your business needs as AI agents
+              finish them, on top of a working foundation with sign-in built in.</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
