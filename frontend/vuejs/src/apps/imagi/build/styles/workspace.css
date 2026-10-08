@@ -259,3 +259,83 @@
   --iw-focus-base: #0b0c11;
   --iw-focus-tint: rgba(var(--iw-accent), 0.5);
 }
+
+/*
+  "Working", said once for the whole workspace. A steady dot in the Spotlight
+  working blue (--sl-work) with a halo breathing out from under it: the dot
+  holds still, because a marker that flickers reads as a rendering fault, and
+  the halo travels, so it reads as a signal. The chat's status row, a working
+  thread card's rail node, the pane masthead and the Threads switch all wear
+  this, so running work looks the same wherever it is reported.
+
+  .iw-live is the bare dot (sized by its parent, 8px by default).
+  .iw-live-node is the dot set in a 1.25rem rail node: a faint blue disc with
+  a blue ring, the same footprint as every other node on the chat rail.
+*/
+.iw-live {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--sl-work, #3a5fd0);
+  box-shadow: 0 0 10px -1px var(--sl-work, #3a5fd0);
+}
+
+.iw-live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: iw-live-halo 2.4s var(--iw-ease-ambient) infinite;
+}
+
+.iw-live-node {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: 1.5px solid color-mix(in srgb, var(--sl-work, #3a5fd0) 55%, transparent);
+  background: color-mix(in srgb, var(--sl-work, #3a5fd0) 10%, rgb(var(--app-canvas, 255 255 255)));
+}
+
+@keyframes iw-live-halo {
+  0% { opacity: 0.45; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(2.6); }
+}
+
+/* The status words beside it: muted ink with the working blue sweeping
+   through, the same blue as the dot. */
+.iw-live-text {
+  background-image: linear-gradient(
+    100deg,
+    var(--sl-muted, rgba(19, 26, 44, 0.55)) 20%,
+    var(--sl-work, #3a5fd0) 50%,
+    var(--sl-muted, rgba(19, 26, 44, 0.55)) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: iw-live-sweep 2.2s linear infinite;
+}
+
+@keyframes iw-live-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iw-live::after { animation: none; opacity: 0; }
+  .iw-live-text {
+    animation: none;
+    background-image: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: var(--sl-muted, rgba(19, 26, 44, 0.55));
+  }
+}

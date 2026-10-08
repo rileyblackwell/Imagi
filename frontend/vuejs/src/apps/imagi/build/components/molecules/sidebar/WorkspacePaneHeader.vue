@@ -625,7 +625,7 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 9999px;
-  background: theme('colors.blue.500');
+  background: var(--sl-work, theme('colors.blue.500'));
   box-shadow: 0 0 0 2px rgba(var(--iw-surface), 0.9);
   animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
 }
@@ -640,7 +640,7 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 }
 
 .dark .pane-switch-pulse {
-  background: theme('colors.blue.300');
+  background: var(--sl-work, theme('colors.blue.300'));
 }
 
 .pane-switch-chevron {

@@ -80,3 +80,25 @@ with the dev credentials above, drive the actual flow that changed, and read the
 browser console, the network requests, and the server logs for errors before
 calling it good. Verify it directly and show the result — a screenshot, a
 response body, a log line — rather than asking the user to check by hand.
+
+## Design system
+
+Imagi's design system lives in a Design System artifact:
+https://claude.ai/artifact/YQXZdAbFDZNJHnDjFwHBzw
+
+It holds the color tokens (light and dark), type styles, spacing, radii,
+shadows, component guidelines and the brand book. The code that defines them is
+`frontend/vuejs/src/shared/styles/` (`spotlight.css` first, then `tokens.css`,
+`editorial.css`, `ui.ts`, `forms.ts`) and `ImagiLogo.vue`.
+
+**Before any visual change** (a new page or component, restyling, colors, type,
+spacing, copy tone), read the artifact's `project/README.md` with the Artifact
+tool (`action: "read"`, `path: "project/README.md"`), plus `project/tokens.json`
+or a component's `project/components/<Name>/README.md` when the change touches
+them. Build with the existing tokens and classes rather than new literal values.
+
+**After a change that alters the design language itself** (a new or changed
+token, a new shared component, a new rule), update the artifact to match, as a
+revision of the same URL, following the instructions its type gives when read
+(send only the changed `project/` files). Code is the source of truth: if the
+artifact and the code disagree, fix the artifact.

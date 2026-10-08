@@ -108,8 +108,11 @@
                   :key="task.conversationId"
                   :title="task.title"
                   :instance="dispatchInstance(task.conversationId)"
+                  :question-options="threadQuestion(task.conversationId)?.options || []"
+                  :question-visual="threadQuestion(task.conversationId)?.visual || ''"
                   @open="emit('open-task', task.conversationId)"
                   @retry="agentStore.retryTask(task.conversationId)"
+                  @answer="answerThread(task.conversationId, $event)"
                 />
               </div>
               <!-- The hand-back. A subagent working is only half the news; the
@@ -156,12 +159,12 @@
                over to the text rather than vanishing out from under it. -->
           <Transition name="status">
             <div v-if="showActivityIndicator" class="msg-row rail-entry status-row">
-              <span class="rail-node rail-node--live" aria-hidden="true"><span class="status-orb"></span></span>
+              <span class="rail-node rail-node--live iw-live-node" aria-hidden="true"><span class="iw-live"></span></span>
               <div class="agent-status flex items-center gap-2.5">
                 <!-- Keyed on the reading so each new step cross-fades in
                      place, the same way the pane masthead's status does. -->
-                <Transition name="status-text" mode="out-in">
-                  <span :key="statusLabel" class="status-shimmer text-sm font-medium">{{ statusLabel }}</span>
+                <Transition name="status-text" mode="out-in" type="transition">
+                  <span :key="statusLabel" class="iw-live-text text-sm font-medium">{{ statusLabel }}</span>
                 </Transition>
               </div>
             </div>
@@ -289,6 +292,19 @@ const agentStore = useAgentStore()
  *  instance has not been adopted yet) — the card falls back to "Starting…". */
 function dispatchInstance(conversationId: number): AgentInstance | null {
   return agentStore.instances.find(i => i.conversationId === conversationId) ?? null
+}
+
+/** The question a thread is waiting on, as its check-in carries it — the
+ *  one-tap answers and sketch its card offers. */
+function threadQuestion(conversationId: number) {
+  return agentStore.checkIns.find(c => c.kind === 'question' && c.task.id === conversationId)
+}
+
+/** An answer typed or tapped on a thread's card goes straight back to that
+ *  thread as its next message; the user never has to leave the coordinator. */
+function answerThread(conversationId: number, text: string) {
+  const instance = dispatchInstance(conversationId)
+  if (instance) agentStore.steerThread(instance.id, text)
 }
 
 /**
@@ -626,8 +642,11 @@ const formatMessage = (message: AIMessage, index: number): string => {
   background: var(--sl-faint);
 }
 
-.rail-node--live .status-orb {
-  margin: 0;
+/* The live node: the workspace's working dot (styles/workspace.css). */
+.rail-node--live {
+  position: absolute;
+  background: color-mix(in srgb, var(--sl-work) 10%, rgb(var(--app-canvas)));
+  box-shadow: var(--node-ring);
 }
 
 /* The speaker, on the node's line. */
@@ -936,102 +955,10 @@ const formatMessage = (message: AIMessage, index: number): string => {
   transform: translateY(-3px);
 }
 
-/* Agent activity indicator: a lit orb radiating a halo, next to status text
-   with a shimmer sweeping across it. Same construction as the pane
-   masthead's live dot — the orb holds steady while the halo travels — so
-   "something is running" looks identical wherever it is reported. */
-.status-orb {
-  position: relative;
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #93c5fd, #3b82f6);
-  animation: orb-breathe 2.4s var(--iw-ease-ambient) infinite;
-}
-
-.status-orb::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: theme('colors.blue.500');
-  animation: orb-halo 2.4s var(--iw-ease-ambient) infinite;
-}
-
-.dark .status-orb {
-  background: radial-gradient(circle at 30% 30%, #bfdbfe, #60a5fa);
-}
-
-.dark .status-orb::after {
-  background: theme('colors.blue.300');
-}
-
-@keyframes orb-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-
-@keyframes orb-halo {
-  0% { opacity: 0.4; transform: scale(1); }
-  70%, 100% { opacity: 0; transform: scale(2.6); }
-}
-
-.status-shimmer {
-  background-image: linear-gradient(
-    100deg,
-    rgba(19, 26, 44, 0.4) 20%,
-    rgba(59, 130, 246, 0.95) 50%,
-    rgba(19, 26, 44, 0.4) 80%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer-sweep 2.2s linear infinite;
-}
-
-.dark .status-shimmer {
-  background-image: linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0.35) 20%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(255, 255, 255, 0.35) 80%
-  );
-  background-size: 200% 100%;
-}
-
-@keyframes shimmer-sweep {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .status-orb,
-  .status-orb::after,
-  .status-shimmer,
   .animate-message-in,
   .animate-fade-in {
     animation: none;
-  }
-
-  .status-orb::after {
-    opacity: 0;
-  }
-
-  .status-shimmer {
-    background-clip: unset;
-    -webkit-background-clip: unset;
-    background-image: none;
-    color: rgba(19, 26, 44, 0.55);
-  }
-
-  .dark .status-shimmer {
-    color: rgba(219, 234, 254, 0.65);
   }
 }
 
