@@ -1,8 +1,7 @@
 <template>
-  <div class="pv-root relative w-full h-full flex flex-col" :class="{ 'pv-root--phone': viewMode === 'phone' }">
+  <div class="pv-root relative w-full h-full flex flex-col">
     <!-- The dock: one frosted pill floating on the stage above the app —
-         navigation, where you are (also the page menu), and how big a screen
-         to look at it on. It sits in its own band rather than over the app,
+         navigation, and where you are (also the page menu). It sits in its own band rather than over the app,
          because anything laid over the frame would hide the app's own header. -->
     <div class="pv-dockbar">
       <div class="pv-dock">
@@ -117,31 +116,6 @@
           </div>
         </div>
 
-        <!-- Screen size: the app at the pane's full width, or at a phone's.
-             Desktop-only control — on a phone the preview already is one. -->
-        <div class="pv-size shrink-0" role="group" aria-label="Screen size">
-          <button
-            type="button"
-            @click="setViewMode('desktop')"
-            :aria-pressed="viewMode === 'desktop'"
-            title="Desktop view"
-            aria-label="Desktop view"
-            :class="['pv-size-btn', viewMode === 'desktop' && 'pv-size-btn--on']"
-          >
-            <i class="fas fa-desktop"></i>
-          </button>
-          <button
-            type="button"
-            @click="setViewMode('phone')"
-            :aria-pressed="viewMode === 'phone'"
-            title="Phone view"
-            aria-label="Phone view"
-            :class="['pv-size-btn', viewMode === 'phone' && 'pv-size-btn--on']"
-          >
-            <i class="fas fa-mobile-screen"></i>
-          </button>
-        </div>
-
         <!-- Back to the main agent: phones only, where the preview has
              replaced the chat (see canReturnToChat). -->
         <button
@@ -163,7 +137,7 @@
       </div>
     </div>
 
-    <!-- The frame: the app as a lit card on the stage, or inside a phone. -->
+    <!-- The frame: the app as a lit card on the stage. -->
     <div class="pv-stagewrap">
       <div class="pv-frame">
 
@@ -335,30 +309,6 @@ const viewport = ref<[number, number]>([1280, 800])
 // presentational: it drives the loading ribbon and the refresh icon's spin.
 const navigating = ref(false)
 const busy = computed(() => phase.value === 'starting' || navigating.value)
-
-// Screen size the app is shown at. Phone narrows the screen element itself, so
-// the ResizeObserver resizes the remote viewport like any other pane resize.
-type ViewMode = 'desktop' | 'phone'
-const VIEW_MODE_KEY = 'imagi.preview.viewMode'
-
-function readViewMode(): ViewMode {
-  try {
-    return localStorage.getItem(VIEW_MODE_KEY) === 'phone' ? 'phone' : 'desktop'
-  } catch {
-    return 'desktop'
-  }
-}
-
-const viewMode = ref<ViewMode>(readViewMode())
-
-function setViewMode(mode: ViewMode) {
-  viewMode.value = mode
-  try {
-    localStorage.setItem(VIEW_MODE_KEY, mode)
-  } catch {
-    // Storage unavailable (private mode): the choice lasts for this visit.
-  }
-}
 
 const menuOpen = ref(false)
 // The folders (apps) currently open in the page menu. Opening the menu opens
@@ -1234,7 +1184,7 @@ defineExpose({ reload })
 <style scoped>
 /* ---------------------------------------------------------------------------
    Glass Dock. The preview pane is a Spotlight stage: the user's app sits on it
-   as a lit card (or inside a phone), and the controls float above it in one
+   as a lit card, and the controls float above it in one
    frosted pill. The chrome stays quiet so the app is the brightest thing here.
    Colours come from the --sl-* tokens (shared/styles/spotlight.css), so the
    light and dark themes differ only there.
@@ -1313,7 +1263,6 @@ defineExpose({ reload })
 
 .pv-nav:focus-visible,
 .pv-plate:focus-visible,
-.pv-size-btn:focus-visible,
 .pv-switch:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--sl-focus, #d9730d);
@@ -1391,38 +1340,6 @@ defineExpose({ reload })
 }
 
 .pv-plate-chevron.rotate-180 { transform: translateY(-50%) rotate(180deg); }
-
-/* --- Screen size --------------------------------------------------------- */
-
-.pv-size {
-  display: flex;
-  padding: 0.125rem;
-  border-radius: 9999px;
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-}
-
-.pv-size-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.875rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  color: var(--sl-faint, #8a8fa0);
-  cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.pv-size-btn:hover { color: var(--sl-text, #14151c); }
-
-.pv-size-btn--on {
-  color: var(--sl-text, #14151c);
-  background: var(--sl-surface, #ffffff);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
-}
-
-.dark .pv-size-btn--on { background: var(--sl-surface-2, #1a1d28); }
 
 /* --- Back to the main agent (phones) ------------------------------------- */
 
@@ -1679,39 +1596,14 @@ defineExpose({ reload })
   box-shadow: var(--sl-win-shadow, 0 40px 90px -40px rgba(20, 21, 30, 0.45));
 }
 
-/* Phone view: the frame becomes a handset at a phone's width, centred on the
-   stage under its own pool of light; the dock stays above it, clear of the
-   app. 390px is a current iPhone's CSS width. */
-.pv-root--phone .pv-stagewrap {
-  background-image: radial-gradient(40% 60% at 50% 100%, var(--sl-spot-mid, rgba(255, 140, 90, 0.14)), transparent 70%);
-}
-
-.pv-root--phone .pv-frame {
-  flex: 0 1 auto;
-  align-self: center;
-  width: calc(390px + 1.5rem);
-  height: 100%;
-  max-height: 52rem;
-  padding: 0.75rem;
-  border-radius: 2.75rem;
-  border: 0;
-  background: linear-gradient(160deg, #2a2d38, #121319);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 40px 80px -30px rgba(0, 0, 0, 0.6),
-    0 50px 90px -50px var(--sl-glow, rgba(255, 120, 80, 0.3));
-}
-
-.pv-root--phone .pv-stage { border-radius: 2rem; }
-
 /* What shows through when the frame and remote viewport briefly disagree, or
    an optimistic scroll opens a gap: a quiet matte, not a glitch. */
 .pv-stage {
   background-color: var(--sl-bg-deep, #f0eee9);
 }
 
-/* Phones: the preview already fills a phone, so no stage margins, no card,
-   no handset and no size switch. */
+/* Phones: the preview already fills a phone, so no stage margins and no
+   card. */
 @media (max-width: 767px) {
   .pv-dockbar { padding: 0.5rem; }
 
@@ -1722,30 +1614,17 @@ defineExpose({ reload })
     height: 1.75rem;
   }
 
-  .pv-size { display: none; }
-
-  .pv-stagewrap,
-  .pv-root--phone .pv-stagewrap {
+  .pv-stagewrap {
     padding: 0;
     background-image: none;
   }
 
-  .pv-frame,
-  .pv-root--phone .pv-frame {
-    flex: 1;
-    align-self: stretch;
-    width: auto;
-    height: auto;
-    max-height: none;
-    padding: 0;
+  .pv-frame {
     border: 0;
     border-top: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
     border-radius: 0;
-    background: none;
     box-shadow: none;
   }
-
-  .pv-root--phone .pv-stage { border-radius: 0; }
 
   .pv-switch {
     height: 1.75rem;

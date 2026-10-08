@@ -91,12 +91,11 @@ describe('WorkspacePreview wheel scrolling', () => {
   })
 })
 
-describe('WorkspacePreview page menu and screen size', () => {
+describe('WorkspacePreview page menu', () => {
   let wrapper: VueWrapper
 
   beforeEach(async () => {
     HTMLImageElement.prototype.decode = () => Promise.resolve()
-    localStorage.clear()
     start.mockResolvedValue({ frame: 'AAAA', etag: 'a', path: '/about', viewport: [320, 320] })
     frame.mockResolvedValue({ frame: null, etag: 'a' })
     resize.mockResolvedValue({})
@@ -125,13 +124,5 @@ describe('WorkspacePreview page menu and screen size', () => {
     expect(files).toEqual(['Home', 'AboutViewing', 'Sign in'])
     expect(wrapper.find('.pv-menu').text()).not.toContain('/auth/signin')
     expect(wrapper.find('.pv-menu-count').text()).toBe('3')
-  })
-
-  it('switches to the phone view and remembers it', async () => {
-    const phone = wrapper.findAll('.pv-size-btn')[1]
-    await phone.trigger('click')
-
-    expect(wrapper.find('.pv-root').classes()).toContain('pv-root--phone')
-    expect(localStorage.getItem('imagi.preview.viewMode')).toBe('phone')
   })
 })
