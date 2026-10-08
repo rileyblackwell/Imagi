@@ -1,54 +1,60 @@
+<!--
+  Pricing — on the Spotlight stage.
+
+  A lit opener, then the three plans as cards standing in the light (the
+  recommended one edged with the same glowing gradient as the home page's
+  prompt bar), then how usage is measured. Light and dark come from
+  shared/styles/spotlight.css; the editorial wrapper keeps the shared button
+  and checklist markup, re-lit by its bridge.
+-->
 <template>
   <PaymentLayout>
-    <div class="editorial relative min-h-screen font-body">
-      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+    <div class="editorial pricing-page relative min-h-screen">
 
-      <div class="relative z-10 section-shell pt-32 sm:pt-40 md:pt-44 pb-20 md:pb-28">
-
-        <!-- Header -->
-        <div class="md:flex md:items-end md:justify-between gap-12 lg:gap-16">
-          <div class="max-w-[36rem]">
-            <p class="eyebrow">
-              <span class="eyebrow__rule" aria-hidden="true"></span>
-              <span>Pricing</span>
-            </p>
-            <h1 class="display mt-7 text-[2.75rem] sm:text-6xl md:text-[3.9rem]">
-              Choose your plan
-            </h1>
-          </div>
-          <p class="lede mt-7 md:mt-0 md:max-w-sm md:pb-3 text-lg">
+      <!-- Opener -->
+      <section class="sl-opener pricing-opener">
+        <div class="sl-spot" aria-hidden="true"></div>
+        <div class="sl-dots" aria-hidden="true"></div>
+        <div class="sl-wrap sl-opener__inner">
+          <p class="sl-eyebrow sl-pill pricing-rise">
+            <span class="sl-pip" aria-hidden="true"></span>
+            <span>Pricing</span>
+          </p>
+          <h1 class="sl-display sl-h1 pricing-title pricing-rise">Choose your plan</h1>
+          <p class="sl-lede pricing-rise">
             Start free, then upgrade as you grow. Every plan gives you an amount of AI usage
             per week, on a rolling window — no session limits, nothing to top up.
           </p>
+
+          <!-- Subscribers manage billing (card, invoices, cancelling) in Stripe's portal -->
+          <p v-if="currentPlanKey" class="pricing-current pricing-rise">
+            You're on the {{ currentPlanName }} plan.
+            <button type="button" class="link-inline" :disabled="portalLoading" @click="openPortal">
+              {{ portalLoading ? 'Opening…' : 'Manage billing' }}
+            </button>
+          </p>
         </div>
+      </section>
 
-        <!-- Subscribers manage billing (card, invoices, cancelling) in Stripe's portal -->
-        <p v-if="currentPlanKey" class="mt-10 text-sm" style="color: var(--ink-55)">
-          You're on the {{ currentPlanName }} plan.
-          <button type="button" class="link-inline" :disabled="portalLoading" @click="openPortal">
-            {{ portalLoading ? 'Opening…' : 'Manage billing' }}
-          </button>
-        </p>
-
+      <div class="sl-wrap pricing-body">
         <!-- Confirm a plan switch: it charges or credits the card on file -->
         <div
           v-if="pendingSwitch"
-          class="mt-10 pl-4"
-          style="border-left: 2px solid var(--accent)"
+          class="pricing-note pricing-note--confirm"
           role="alertdialog"
           aria-labelledby="switch-title"
         >
-          <p id="switch-title" class="text-base font-medium" style="color: var(--ink)">
+          <p id="switch-title" class="pricing-note__title">
             Switch to {{ pendingSwitch.label }} for ${{ pendingSwitch.price }}/month?
           </p>
-          <p class="mt-1 text-sm" style="color: var(--ink-70)">
+          <p class="pricing-note__body">
             The change is prorated on your current subscription:
             {{ pendingSwitch.upgrade
               ? 'the difference for the rest of this billing period is charged to your card now'
               : 'the unused part of your current plan is credited toward your next invoices' }},
             and your new weekly allowance applies right away.
           </p>
-          <div class="mt-4 flex gap-3">
+          <div class="mt-5 flex flex-wrap gap-3">
             <button type="button" class="btn-primary" :disabled="!!loadingTier" @click="confirmSwitch">
               {{ loadingTier ? 'Switching…' : 'Confirm switch' }}
             </button>
@@ -59,17 +65,17 @@
         </div>
 
         <!-- Success -->
-        <p v-if="notice" class="mt-10 pl-4 text-sm" role="status" style="border-left: 2px solid var(--accent); color: var(--ink-70)">
+        <p v-if="notice" class="pricing-note pricing-note--ok" role="status">
           {{ notice }}
         </p>
 
         <!-- Error -->
-        <p v-if="error" class="mt-10 pl-4 text-sm" style="border-left: 2px solid var(--accent); color: var(--ink-70)">
+        <p v-if="error" class="pricing-note pricing-note--error" role="alert">
           {{ error }}
         </p>
 
         <!-- Plans -->
-        <div class="tiers mt-14 md:mt-16">
+        <div class="tiers">
           <SubscriptionTierCard
             v-for="tier in tiers"
             :key="tier.name"
@@ -86,27 +92,28 @@
             @subscribe="(lookupKey) => handleSubscribe(tier, lookupKey)"
           />
         </div>
+        <p class="pricing-stripe">
+          <i class="fas fa-lock" aria-hidden="true"></i>
+          Payments are processed by Stripe. Secure and encrypted.
+        </p>
+      </div>
 
-        <!-- How usage is metered -->
-        <div class="mt-20 md:mt-24">
-          <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
-          <div class="md:flex md:items-start md:justify-between gap-12 lg:gap-16">
-            <h2 class="display max-w-md text-3xl sm:text-4xl">
-              How usage is measured
-            </h2>
-            <p class="lede mt-5 md:mt-0 md:max-w-md">
-              Your allowance is spent as you build, priced by the model you pick and how hard
-              you ask it to think. Lighter models and lower reasoning effort go further; the
-              flagship model at high effort goes fastest. The Usage panel in the builder shows
-              how much of the week's allowance you've used at any time.
-            </p>
+      <!-- How usage is metered -->
+      <section class="sl-sec pricing-usage">
+        <div class="sl-divider" aria-hidden="true"></div>
+        <div class="sl-wrap pricing-usage__inner">
+          <div class="pricing-usage__head">
+            <p class="sl-eyebrow"><span class="sl-grad-text">01</span><span>Usage</span></p>
+            <h2 class="sl-display pricing-usage__title">How usage is measured</h2>
           </div>
-
-          <p class="mt-12 pt-5 text-sm" style="border-top: 1px solid var(--rule); color: var(--ink-40)">
-            Payments are processed by Stripe. Secure and encrypted.
+          <p class="sl-lede pricing-usage__lede">
+            Your allowance is spent as you build, priced by the model you pick and how hard
+            you ask it to think. Lighter models and lower reasoning effort go further; the
+            flagship model at high effort goes fastest. The Usage panel in the builder shows
+            how much of the week's allowance you've used at any time.
           </p>
         </div>
-      </div>
+      </section>
     </div>
   </PaymentLayout>
 </template>
@@ -354,11 +361,30 @@ const handleSubscribe = async (tier: Tier, lookupKey: string | null) => {
 </script>
 
 <style scoped>
+.sl-opener.pricing-opener {
+  padding-bottom: clamp(36px, 5vw, 56px);
+}
+
+.sl-opener .pricing-title {
+  font-size: clamp(44px, 7.4vw, 96px);
+}
+
+.pricing-current {
+  margin: 4px 0 0;
+  padding: 7px 14px;
+  border: 1px solid var(--sl-line);
+  border-radius: 999px;
+  background: var(--sl-pill-bg);
+  color: var(--sl-muted);
+  font-size: 14px;
+}
+
 .link-inline {
   margin-left: 0.25rem;
-  color: var(--accent);
-  font-weight: 500;
+  color: var(--sl-text);
+  font-weight: 600;
   text-decoration: underline;
+  text-decoration-color: var(--sl-coral);
   text-underline-offset: 3px;
 }
 
@@ -366,17 +392,122 @@ const handleSubscribe = async (tier: Tier, lookupKey: string | null) => {
   opacity: 0.6;
 }
 
-.tiers {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.5rem;
+.pricing-body {
+  padding-bottom: clamp(72px, 9vw, 120px);
 }
 
-@media (min-width: 768px) {
+/* Notices above the plans: a quiet card with a lit left edge */
+.pricing-note {
+  max-width: 44rem;
+  margin: 0 auto 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--sl-line);
+  border-left: 3px solid var(--sl-coral);
+  border-radius: 14px;
+  background: var(--sl-card-bg);
+  box-shadow: var(--sl-card-shadow);
+  color: var(--sl-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.pricing-note--ok {
+  border-left-color: var(--sl-ok);
+}
+
+.pricing-note--error {
+  border-left-color: var(--sl-bad);
+}
+
+.pricing-note__title {
+  margin: 0;
+  color: var(--sl-text);
+  font-family: var(--sl-font-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.pricing-note__body {
+  margin: 0.4rem 0 0;
+}
+
+.tiers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  margin-top: clamp(16px, 3vw, 32px);
+}
+
+@media (min-width: 900px) {
   .tiers {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
   }
+}
+
+.pricing-stripe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 28px 0 0;
+  color: var(--sl-faint);
+  font-size: 13.5px;
+}
+
+.pricing-stripe i {
+  font-size: 11px;
+}
+
+.sl-sec.pricing-usage {
+  padding-top: 0;
+}
+
+.pricing-usage__inner {
+  display: grid;
+  gap: 20px;
+  padding-top: clamp(64px, 8vw, 110px);
+}
+
+@media (min-width: 900px) {
+  .pricing-usage__inner {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 64px;
+    align-items: start;
+  }
+}
+
+.pricing-usage__head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pricing-usage__title {
+  font-size: clamp(34px, 4.4vw, 54px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.pricing-usage__lede {
+  padding-top: 6px;
+}
+
+.pricing-rise {
+  animation: pricing-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pricing-rise:nth-child(2) { animation-delay: 60ms; }
+.pricing-rise:nth-child(3) { animation-delay: 120ms; }
+.pricing-rise:nth-child(4) { animation-delay: 180ms; }
+
+@keyframes pricing-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-rise { animation: none; }
 }
 </style>

@@ -7,11 +7,8 @@
     </div>
 
     <!-- Price -->
-    <p class="tier__price display">
-      {{ active.price === 0 ? 'Free' : `$${active.price}` }}<span
-        v-if="active.price !== 0"
-        class="tier__period"
-      >/month</span>
+    <p class="tier__price">
+      ${{ active.price }}<span class="tier__period">/month</span>
     </p>
 
     <!-- Usage option selector (Max-style tiers pick between 5× and 10×) -->
@@ -130,133 +127,179 @@ const ctaLabel = computed(() => {
 </script>
 
 <style scoped>
-/* A ruled column rather than a floating card — the plans read as one table of
-   options, which is what they are. The featured plan is marked by a heavier
-   top rule and a small label, not by a coloured border and a shadow. */
+/* A plan card on the Spotlight stage (shared/styles/spotlight.css). The plans
+   are quiet cards; the recommended one stands in the light, edged with the
+   glowing gradient of the home page's prompt bar. Every colour is a --sl-*
+   token, so both themes come from spotlight.css. */
 .tier {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 2rem 0 0;
-  border-top: 1px solid var(--rule);
+  min-width: 0;
+  padding: 30px 28px 28px;
+  border: 1px solid var(--sl-line);
+  border-radius: 22px;
+  background: var(--sl-card-bg);
+  box-shadow: var(--sl-card-shadow);
+  transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
-.tier--featured {
-  border-top-color: var(--accent);
+.tier:hover {
+  border-color: var(--sl-line-strong);
+  transform: translateY(-2px);
 }
 
-@media (min-width: 768px) {
-  .tier {
-    padding: 2rem 2rem 0 0;
-  }
-
-  .tier + .tier {
-    padding-left: 2rem;
-    border-left: 1px solid var(--rule);
-  }
+.tier--featured,
+.tier--featured:hover {
+  border-color: transparent;
+  background:
+    var(--sl-prompt-bg) padding-box,
+    var(--sl-prompt-edge) border-box;
+  box-shadow: var(--sl-prompt-shadow);
 }
 
 .tier__head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 1.5rem;
+  min-height: 1.75rem;
 }
 
 .tier__name {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ink-55);
+  margin: 0;
+  font-family: var(--sl-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--sl-text);
 }
 
 .tier__flag {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  padding: 4px 10px;
+  border: 1px solid var(--sl-warm-line);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
   white-space: nowrap;
+  background: var(--sl-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .tier__price {
-  margin-top: 1rem;
-  font-size: 2.75rem;
+  margin: 18px 0 0;
+  font-family: var(--sl-font-display);
+  font-size: clamp(44px, 4.6vw, 56px);
+  font-weight: 800;
+  font-variation-settings: 'opsz' 96;
+  letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  color: var(--sl-text);
+}
+
+.tier--featured .tier__price {
+  filter: drop-shadow(0 0 26px var(--sl-text-glow));
 }
 
 .tier__period {
-  font-family: 'Instrument Sans', system-ui, sans-serif;
-  font-size: 0.9rem;
-  font-weight: 400;
-  color: var(--ink-40);
-  margin-left: 0.35rem;
+  margin-left: 0.4rem;
+  font-family: var(--sl-font-body);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--sl-faint);
 }
 
 .tier__options {
   display: flex;
-  gap: 0.4rem;
-  margin-top: 1.5rem;
+  gap: 4px;
+  margin-top: 22px;
+  padding: 4px;
+  border: 1px solid var(--sl-line);
+  border-radius: 999px;
+  background: var(--sl-chip-bg);
 }
 
 .tier__option {
   flex: 1;
   padding: 0.45rem 0.5rem;
   border-radius: 999px;
-  border: 1px solid var(--rule-strong);
-  font-size: 0.75rem;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ink-55);
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  color: var(--sl-muted);
+  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .tier__option:hover {
-  color: var(--ink);
+  color: var(--sl-text);
 }
 
 .tier__option.is-selected {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+  background: var(--sl-surface);
+  color: var(--sl-text);
+  box-shadow: 0 0 0 1px var(--sl-line-strong), 0 4px 14px -6px var(--sl-glow);
 }
 
 .tier__option:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--sl-focus);
   outline-offset: 2px;
 }
 
 .tier__limits {
-  margin-top: 1.75rem;
-  display: grid;
-  gap: 0.85rem;
+  margin: 22px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--sl-line);
+  border-radius: 14px;
+  background: var(--sl-chip-bg);
 }
 
 .tier__limits dt {
-  font-size: 0.65rem;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-40);
+  color: var(--sl-faint);
 }
 
 .tier__limits dd {
-  margin: 0.2rem 0 0;
-  font-size: 0.875rem;
-  color: var(--ink-70);
+  margin: 0.25rem 0 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--sl-text);
 }
 
 /* Two-selector form so this beats `.editorial .checklist`'s `margin-top: auto`
    — the CTA below owns the auto margin, so the buttons line up across plans
    regardless of how many features each one lists. */
 .tier .tier__features {
-  margin-top: 2rem;
-  margin-bottom: 2rem;
+  margin-top: 24px;
+  margin-bottom: 28px;
+  color: var(--sl-muted);
 }
 
 .tier__cta {
   width: 100%;
   margin-top: auto;
+  justify-content: center;
+}
+
+@media (max-width: 560px) {
+  .tier {
+    padding: 24px 22px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tier {
+    transition: none;
+  }
+  .tier:hover {
+    transform: none;
+  }
 }
 </style>
