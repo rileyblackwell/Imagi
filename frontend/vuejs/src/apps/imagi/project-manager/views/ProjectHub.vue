@@ -64,7 +64,7 @@
                   {{ project.name }}
                 </h1>
                 <p class="rise-item sl-lede hub-lede" style="animation-delay: 120ms">
-                  {{ project.description || 'Build the product and run the business behind it — all in one project. Pick a module to get started.' }}
+                  {{ project.description || 'Build your app, and when you want it to become a business, run it from the same project. Pick a module to get started.' }}
                 </p>
               </div>
 
@@ -73,7 +73,7 @@
               <div class="rise-item hub-halves" style="animation-delay: 180ms">
                 <section v-if="buildTool" class="hub-half" aria-labelledby="hub-half-build">
                   <h2 id="hub-half-build" class="hub-half__label">
-                    <b>Build</b><span>the product</span>
+                    <b>Build</b><span>the app</span>
                   </h2>
                   <ToolCategoryCard
                     :tool="buildTool"
@@ -84,7 +84,7 @@
                 </section>
                 <section class="hub-half" aria-labelledby="hub-half-run">
                   <h2 id="hub-half-run" class="hub-half__label">
-                    <b>Run</b><span>the business</span>
+                    <b>Run</b><span>it as a business</span>
                   </h2>
                   <div class="hub-run">
                     <ToolCategoryCard

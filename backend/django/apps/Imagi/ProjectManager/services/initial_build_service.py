@@ -191,13 +191,13 @@ def build_founder_brief(
     design_preferences: str = "",
     app_details: str = "",
 ) -> str:
-    """The main thread's opening message: the business, as the founder gave it.
+    """The main thread's opening message: the app, as the founder gave it.
 
     The founder reads this as their own first message, so it carries what they
     typed at project creation and none of the page briefs' engineering
     instructions, which go to the page threads alone.
     """
-    brief = f"Build the first version of my business's web app.\n\nBusiness name: {name}\n\nWhat it does:\n{description}"
+    brief = f"Build the first version of my app.\n\nApp name: {name}\n\nWhat it does:\n{description}"
     details = (app_details or "").strip()
     if details:
         brief += f"\n\nHow the app should work:\n{details}"

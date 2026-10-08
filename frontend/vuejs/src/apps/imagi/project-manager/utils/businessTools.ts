@@ -72,9 +72,9 @@ export const businessTools: BusinessTool[] = [
     id: 'build',
     slug: null,
     name: 'Build',
-    tagline: 'Create your product with AI',
+    tagline: 'Create your app with AI',
     description:
-      'Design and build your web application with AI agents. Describe what you want in plain language and Imagi generates the pages, styling, and logic for your product.',
+      'Design and build your web application with AI agents. Describe what you want in plain language and Imagi generates the pages, styling, and logic for your app.',
     icon: 'fa-wand-magic-sparkles',
     lineIcon: 'design',
     accent: 'blue',
@@ -83,7 +83,7 @@ export const businessTools: BusinessTool[] = [
     features: [
       { icon: 'fa-comments', name: 'AI agents', description: 'Chat with agents that build and edit your app.' },
       { icon: 'fa-code', name: 'Live workspace', description: 'Generate and refine pages in real time.' },
-      { icon: 'fa-eye', name: 'Instant preview', description: 'See your product update as you build.' },
+      { icon: 'fa-eye', name: 'Instant preview', description: 'See your app update as you build.' },
     ],
   },
   {

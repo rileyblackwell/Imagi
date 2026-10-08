@@ -10,11 +10,15 @@
   It should NOT be responsible for:
   - Project file editing (handled by the build workspace)
 
-  Design: "Brief" on the Spotlight stage. Starting a business is four numbered
-  steps on a lit rail (name it, describe the business, how the app should
-  work, set the look), written for founders who are not technical, with a card beside
-  them showing the brief the agent will receive and the button that sends it.
-  The businesses you already have follow as a numbered list. The editorial
+  Design: "Brief" on the Spotlight stage. Starting an app is four numbered
+  steps on a lit rail (name it, what the app is, what it does, set the look),
+  written for people who are not technical. Picking a kind of app in step 2
+  tailors what step 3 asks, and step 4 is a starter design system (see
+  utils/projectBrief.ts and components/molecules/brief/StarterDesign.vue), with a card beside them
+  showing the brief the agent will receive and the button that sends it. The
+  copy is app-first: the business tools are mentioned as what the same project
+  offers once someone wants to turn the app into a business. The projects you
+  already have follow as a numbered list. The editorial
   markup is re-lit by the bridge in shared/styles/spotlight.css.
 -->
 <template>
@@ -44,16 +48,17 @@
                 Projects
               </h1>
               <h1 v-else class="rise-item sl-display projects-title" style="animation-delay: 60ms">
-                Brief the agent on a <span class="sl-grad-text">new business</span>
+                Brief the agent on a <span class="sl-grad-text">new app</span>
               </h1>
               <p class="rise-item sl-lede" style="animation-delay: 120ms">
                 <template v-if="showAuthError">
-                  Every business you run on Imagi lives in a project &mdash; its app and the tools
-                  behind it.
+                  Every app you build on Imagi lives in a project, along with the tools to turn it
+                  into a business when you want to.
                 </template>
                 <template v-else>
                   Answer a few questions in your own words and Imagi builds the first version of
-                  its app. The businesses you already have are further down.
+                  your app. If you want it to become a business, the same project has the tools to
+                  sell, market and run it. Your projects are further down.
                 </template>
               </p>
             </div>
@@ -96,7 +101,7 @@
                       <template v-else>01</template>
                     </span>
                     <label class="step__title" for="project-name">Name it</label>
-                    <p class="step__hint">The name of your business or app. You can change it later.</p>
+                    <p class="step__hint">The name of your app. You can change it later.</p>
                     <input
                       id="project-name"
                       ref="projectNameInput"
@@ -110,23 +115,38 @@
                     >
                   </div>
 
-                  <!-- 02 — The business -->
+                  <!-- 02 — What the app is. Picking a kind is the form's one
+                       branch: it changes what step 3 asks. -->
                   <div class="step" :class="stepClass(2)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                       <template v-else>02</template>
                     </span>
-                    <label class="step__title" for="project-description">Describe the business</label>
+                    <label class="step__title" for="project-description">What is your app?</label>
                     <p id="project-description-hint" class="step__hint">
-                      A few sentences: what you offer, who it&rsquo;s for, and how people find you and pay.
+                      A sentence or two: what it is and who it&rsquo;s for. Pick the closest kind if one fits.
                     </p>
+                    <div class="starters" role="group" aria-label="Kind of app">
+                      <button
+                        v-for="kind in APP_KINDS"
+                        :key="kind.id"
+                        type="button"
+                        class="starter"
+                        :class="{ 'is-on': appKind === kind.id }"
+                        :aria-pressed="appKind === kind.id"
+                        :disabled="isCreating"
+                        @click="toggleKind(kind.id)"
+                      >
+                        {{ kind.label }}
+                      </button>
+                    </div>
                     <div class="lit-field">
                       <textarea
                         id="project-description"
                         v-model="newProjectDescription"
-                        rows="4"
+                        rows="3"
                         class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="A stock tracker for retail investors — portfolio snapshots with AI-written summaries, sold as a monthly subscription."
+                        placeholder="A stock tracker for retail investors. Later I'd like to sell it as a monthly subscription."
                         aria-describedby="project-description-hint project-description-meter"
                         :disabled="isCreating"
                         @focus="focusedStep = 2"
@@ -144,25 +164,21 @@
                     </div>
                   </div>
 
-                  <!-- 03 — How the app works. Plain words; the build turns it
-                       into the app's plan (what it keeps track of, what people
-                       can do, what it must be like). -->
+                  <!-- 03 — What the app does. Required: it is the spec the
+                       first build plans every page from. Its questions follow
+                       the kind picked in step 2. -->
                   <div class="step" :class="stepClass(3)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="detailsDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                       <template v-else>03</template>
                     </span>
-                    <label class="step__title" for="project-details">
-                      How should the app work?
-                      <span class="step__optional">Optional</span>
-                    </label>
-                    <p class="step__hint">
-                      In everyday words: what people can do on it, what it needs to keep track of,
-                      and anything that matters to you. Imagi turns this into the plan for your app.
+                    <label class="step__title" for="project-details">What does it do?</label>
+                    <p id="project-details-hint" class="step__hint">
+                      {{ activeKind.hint }} Imagi turns this into the plan for your app.
                     </p>
                     <div class="starters" role="group" aria-label="Sentence starters">
                       <button
-                        v-for="starter in DETAIL_STARTERS"
+                        v-for="starter in activeKind.starters"
                         :key="starter"
                         type="button"
                         class="starter"
@@ -172,56 +188,52 @@
                         <span aria-hidden="true">+</span> {{ starter }}&hellip;
                       </button>
                     </div>
-                    <textarea
-                      id="project-details"
-                      ref="projectDetailsInput"
-                      v-model="newProjectDetails"
-                      rows="4"
-                      class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="Customers can book a class and pay online. It keeps track of classes, members and bookings. It should work well on phones."
-                      :disabled="isCreating"
-                      @focus="focusedStep = 3"
-                      @blur="focusedStep = null"
-                    ></textarea>
+                    <div class="lit-field">
+                      <textarea
+                        id="project-details"
+                        ref="projectDetailsInput"
+                        v-model="newProjectDetails"
+                        rows="4"
+                        class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        :placeholder="activeKind.example"
+                        aria-describedby="project-details-hint project-details-meter"
+                        :disabled="isCreating"
+                        @focus="focusedStep = 3"
+                        @blur="focusedStep = null"
+                      ></textarea>
+                    </div>
+                    <div class="meter" :class="{ 'meter--done': detailsDone }">
+                      <span class="meter__track" aria-hidden="true">
+                        <span class="meter__fill" :style="{ transform: `scaleX(${detailsProgress})` }"></span>
+                      </span>
+                      <span id="project-details-meter" class="meter__label" aria-live="polite">
+                        <svg v-if="detailsDone" class="meter__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                        {{ detailsMeterLabel }}
+                      </span>
+                    </div>
                   </div>
 
-                  <!-- 04 — Set the look -->
+                  <!-- 04 — The starter design: the app's first design system -->
                   <div class="step step--last" :class="stepClass(4)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="designDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                       <template v-else>04</template>
                     </span>
-                    <label class="step__title" for="project-design">
+                    <p class="step__title">
                       Set the look
                       <span class="step__optional">Optional</span>
-                    </label>
-                    <p class="step__hint">
-                      The feel, colours or fonts you want. Skip it and Imagi picks a look that fits.
                     </p>
-                    <div class="starters" role="group" aria-label="Moods">
-                      <button
-                        v-for="mood in MOODS"
-                        :key="mood"
-                        type="button"
-                        class="starter"
-                        :class="{ 'is-on': hasMood(mood) }"
-                        :aria-pressed="hasMood(mood)"
-                        :disabled="isCreating"
-                        @click="toggleMood(mood)"
-                      >
-                        {{ mood }}
-                      </button>
-                    </div>
-                    <textarea
-                      id="project-design"
+                    <p class="step__hint">
+                      Your app&rsquo;s starter design. Tap what fits, add your own words, or skip it and
+                      Imagi picks a look.
+                    </p>
+                    <StarterDesign
                       v-model="newProjectDesign"
-                      rows="2"
-                      class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="Warm and minimal, earthy colours, lots of space."
+                      :app-name="newProjectName.trim()"
                       :disabled="isCreating"
                       @focus="focusedStep = 4"
                       @blur="focusedStep = null"
-                    ></textarea>
+                    />
                   </div>
                 </form>
 
@@ -234,18 +246,24 @@
                     </p>
                     <div class="brief__body">
                       <p class="brief__name" :class="{ 'is-empty': !nameDone }">
-                        {{ newProjectName.trim() || 'Your business' }}
+                        {{ newProjectName.trim() || 'Your app' }}
                       </p>
                       <p class="brief__desc" :class="{ 'is-empty': !newProjectDescription.trim() }">
-                        {{ newProjectDescription.trim() || 'What the business does shows up here as you describe it.' }}
+                        {{ newProjectDescription.trim() || 'What your app does shows up here as you describe it.' }}
                       </p>
                       <dl class="brief__facts">
-                        <dt>How it works</dt>
-                        <dd class="brief__clamp">{{ newProjectDetails.trim() || 'Imagi works it out from the description' }}</dd>
+                        <template v-if="appKind && appKind !== GENERIC_KIND.id">
+                          <dt>Kind</dt>
+                          <dd>{{ activeKind.label }}</dd>
+                        </template>
+                        <dt>What it does</dt>
+                        <dd class="brief__clamp" :class="{ 'is-empty': !newProjectDetails.trim() }">{{ newProjectDetails.trim() || 'Shows up here as you describe it' }}</dd>
                         <dt>Look</dt>
-                        <dd>{{ newProjectDesign.trim() || 'Imagi picks one' }}</dd>
+                        <dd>{{ designSummary || 'Imagi picks one' }}</dd>
                         <dt>First build</dt>
                         <dd>A web app you can preview</dd>
+                        <dt>Business tools</dt>
+                        <dd>Sell, Market and Operate, ready when you want them</dd>
                       </dl>
                     </div>
                     <div class="brief__foot">
@@ -365,8 +383,8 @@
                 -->
                 <div v-else-if="!displayedProjects.length" class="state state--block">
                   <p class="state__message">
-                    No projects yet. Brief the agent above and Imagi builds the first version of
-                    its app.
+                    No projects yet. Describe an app above and Imagi builds the first version of
+                    it.
                   </p>
                 </div>
 
@@ -401,6 +419,18 @@ import { normalizeProject } from '@/apps/imagi/build/types/components'
 import { projectSlug } from '@/apps/imagi/build/utils/slug'
 import { ConfirmModal } from '@/apps/imagi/build/components/organisms/modals'
 import { takePendingIdea } from '@/apps/home/utils/pendingIdea'
+import StarterDesign from '../components/molecules/brief/StarterDesign.vue'
+import {
+  APP_KINDS,
+  GENERIC_KIND,
+  kindById,
+  emptyDesign,
+  designIsSet,
+  summarizeDesign,
+  composeAppDetails,
+  composeDesignPreferences,
+  type StarterDesign as StarterDesignValue,
+} from '../utils/projectBrief'
 
 
 const router = useRouter()
@@ -413,33 +443,42 @@ const { confirm } = confirmModal
 // State
 const newProjectName = ref('')
 const newProjectDescription = ref('')
-// Optional: extra design/style direction for the initial AI build. Empty is
-// fine — the build carries strong default design direction on its own.
-const newProjectDesign = ref('')
-// Optional: how the app should work, in plain words. The initial build reads
-// it as the app's functional brief.
+// Optional: the starter design (style, colours, fonts, theme, notes). Nothing
+// chosen is fine — the build carries strong default design direction.
+const newProjectDesign = ref<StarterDesignValue>(emptyDesign())
+const designSummary = computed(() => summarizeDesign(newProjectDesign.value))
+// Optional: the kind of app. It tailors step 3's questions and leads the
+// app_details the build reads.
+const appKind = ref<string | null>(null)
+const activeKind = computed(() => kindById(appKind.value) ?? GENERIC_KIND)
+const toggleKind = (id: string) => { appKind.value = appKind.value === id ? null : id }
+// Required: what the app does, in plain words. The initial build reads it as
+// the app's functional brief.
 const newProjectDetails = ref('')
 const projectDetailsInput = ref<HTMLTextAreaElement | null>(null)
 const isCreating = ref(false)
 const projectNameInput = ref<HTMLInputElement | null>(null)
 
-// The description seeds the initial AI build, so require enough signal to
-// work with. Keep in sync with MIN_DESCRIPTION_LENGTH on the backend
-// (ProjectManager/api/serializers.py).
+// The description and what the app does seed the initial AI build, so
+// require enough signal to work with. Keep MIN_DESCRIPTION_LENGTH in sync with
+// the backend (ProjectManager/api/serializers.py).
 const MIN_DESCRIPTION_LENGTH = 20
+const MIN_DETAILS_LENGTH = 20
 const canCreate = computed(() =>
   Boolean(newProjectName.value.trim()) &&
-  newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH
+  newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH &&
+  newProjectDetails.value.trim().length >= MIN_DETAILS_LENGTH
 )
 
-// The brief's three steps. A step is done once its answer is enough to build
+// The brief's four steps. A step is done once its answer is enough to build
 // from; the current one is the field being typed in, or else the first that
 // still needs an answer.
 const nameDone = computed(() => Boolean(newProjectName.value.trim()))
 const descriptionLength = computed(() => newProjectDescription.value.trim().length)
 const descriptionDone = computed(() => descriptionLength.value >= MIN_DESCRIPTION_LENGTH)
-const detailsDone = computed(() => Boolean(newProjectDetails.value.trim()))
-const designDone = computed(() => Boolean(newProjectDesign.value.trim()))
+const detailsLength = computed(() => newProjectDetails.value.trim().length)
+const detailsDone = computed(() => detailsLength.value >= MIN_DETAILS_LENGTH)
+const designDone = computed(() => designIsSet(newProjectDesign.value))
 type Step = 1 | 2 | 3 | 4
 const focusedStep = ref<Step | null>(null)
 const currentStep = computed(() =>
@@ -453,16 +492,19 @@ const stepClass = (step: Step) => ({
 const descriptionProgress = computed(() =>
   Math.min(1, descriptionLength.value / MIN_DESCRIPTION_LENGTH)
 )
-const descriptionMeterLabel = computed(() => {
-  if (descriptionDone.value) return 'Enough to start'
-  if (!descriptionLength.value) return `At least ${MIN_DESCRIPTION_LENGTH} characters`
-  const left = MIN_DESCRIPTION_LENGTH - descriptionLength.value
+const meterLabel = (length: number, min: number) => {
+  if (length >= min) return 'Enough to start'
+  if (!length) return `At least ${min} characters`
+  const left = min - length
   return `${left} more character${left === 1 ? '' : 's'}`
-})
+}
+const descriptionMeterLabel = computed(() => meterLabel(descriptionLength.value, MIN_DESCRIPTION_LENGTH))
+const detailsProgress = computed(() => Math.min(1, detailsLength.value / MIN_DETAILS_LENGTH))
+const detailsMeterLabel = computed(() => meterLabel(detailsLength.value, MIN_DETAILS_LENGTH))
 
-// Sentence starters for "How should the app work?". Most founders have never
-// written a spec; a first few words gets them past the empty box.
-const DETAIL_STARTERS = ['People can', 'It keeps track of', 'It should'] as const
+// Sentence starters for "What does it do?" (they follow the kind of app).
+// Most founders have never written a spec; a first few words gets them past
+// the empty box.
 const addStarter = (starter: string) => {
   const text = newProjectDetails.value.replace(/\s+$/, '')
   const sep = !text ? '' : /[.!?]$/.test(text) ? ' ' : '. '
@@ -473,24 +515,6 @@ const addStarter = (starter: string) => {
     el.focus()
     el.setSelectionRange(el.value.length, el.value.length)
   })
-}
-
-// One-tap moods for "Set the look", kept in the same text field so a founder
-// can still write their own direction around them.
-const MOODS = ['Businesslike', 'Friendly', 'Fun', 'Energetic', 'Calm', 'Luxurious'] as const
-const moodPattern = (mood: string) => new RegExp(`(^|[\\s,.;])${mood}(?=$|[\\s,.;])`, 'i')
-const hasMood = (mood: string) => moodPattern(mood).test(newProjectDesign.value)
-const toggleMood = (mood: string) => {
-  const text = newProjectDesign.value
-  if (hasMood(mood)) {
-    newProjectDesign.value = text
-      .replace(moodPattern(mood), '$1')
-      .replace(/\s*,\s*,/g, ',')
-      .replace(/^[\s,]+|[\s,]+$/g, '')
-  } else {
-    const trimmed = text.replace(/[\s,]+$/, '')
-    newProjectDesign.value = trimmed ? `${trimmed}, ${mood.toLowerCase()}` : mood
-  }
 }
 
 const isInitializing = ref(true)
@@ -567,19 +591,28 @@ async function createProject() {
     return
   }
 
-  // Validate business name
+  // Validate app name
   if (!newProjectName.value.trim()) {
     showNotification({
-      message: 'Business name cannot be empty',
+      message: 'App name cannot be empty',
       type: 'error'
     })
     return
   }
 
-  // Validate business description — it seeds the initial AI build
+  // Validate app description — it seeds the initial AI build
   if (newProjectDescription.value.trim().length < MIN_DESCRIPTION_LENGTH) {
     showNotification({
-      message: 'Please describe your business — what it does, who its customers are, and how it will sell. Imagi uses this to build the first version of your app.',
+      message: 'Please say what your app is and who it\'s for. Imagi uses this to build the first version.',
+      type: 'error'
+    })
+    return
+  }
+
+  // Validate what the app does — the first build plans its pages from it
+  if (newProjectDetails.value.trim().length < MIN_DETAILS_LENGTH) {
+    showNotification({
+      message: 'Please say what your app does — what people can do on it and what it keeps track of.',
       type: 'error'
     })
     return
@@ -592,8 +625,8 @@ async function createProject() {
     const projectData = {
       name: newProjectName.value.trim(),
       description: newProjectDescription.value.trim(), // Use the description value
-      app_details: newProjectDetails.value.trim(), // Optional: how the app should work
-      design_preferences: newProjectDesign.value.trim() // Optional design direction
+      app_details: composeAppDetails(appKind.value, newProjectDetails.value),
+      design_preferences: composeDesignPreferences(newProjectDesign.value), // Optional
     }
 
     const newProject = await projectStore.createProject(projectData)
@@ -602,7 +635,8 @@ async function createProject() {
     newProjectName.value = ''
     newProjectDescription.value = ''
     newProjectDetails.value = ''
-    newProjectDesign.value = ''
+    newProjectDesign.value = emptyDesign()
+    appKind.value = null
 
     // Log project information to debug any ID issues
     console.debug('Created project details:', {
@@ -733,7 +767,7 @@ const confirmDelete = async (project: Project) => {
 onMounted(async () => {
   console.debug('Projects mounted')
 
-  // An idea typed into the home page's prompt arrives here as the business
+  // An idea typed into the home page's prompt arrives here as the app
   // description; the visitor only has to name it. Signed-out visitors keep it
   // until they come back signed in, since the form only renders for them.
   if (authStore.isAuthenticated) {
@@ -1002,7 +1036,8 @@ input[type='search']::-webkit-search-cancel-button {
   outline-offset: 2px;
 }
 
-.starter.is-on {
+.starter.is-on,
+.starter.is-on:hover:not(:disabled) {
   border-color: transparent;
   background: var(--sl-grad);
   color: var(--sl-on-accent);
