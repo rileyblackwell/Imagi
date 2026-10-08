@@ -541,6 +541,7 @@ function updateLocalScroll() {
 
 function resetLocalScroll() {
   localScrollGen++
+  wheelEdgeDir = 0
   unsentLocalY = 0
   inflightLocalY = 0
   localScrollY.value = 0
@@ -618,6 +619,7 @@ async function flushInput() {
   // overlaps the next batch's flight.
   const carried = unsentLocalY
   const gen = localScrollGen
+  const wheelDy = batch.reduce((sum, ev) => sum + (ev.kind === 'wheel' ? ev.deltaY || 0 : 0), 0)
   inflightLocalY += carried
   unsentLocalY = 0
   const settleCarried = () => {
@@ -630,6 +632,7 @@ async function flushInput() {
     // The response reflects the whole batch (even as frame:null when pixels
     // didn't change, e.g. scrolled at the page edge): retire this batch's
     // share of the transform in the paint where the bitmap takes over.
+    if (wheelDy !== 0 && gen === localScrollGen) wheelEdgeDir = f.frame ? 0 : Math.sign(wheelDy)
     applyFrame(f, settleCarried)
   } catch (e) {
     // Batch never applied server-side; its optimistic scroll must not persist.
@@ -820,16 +823,40 @@ function onPointerCancel(e: PointerEvent) {
   }
 }
 
+// CDP's mouseWheel takes pixels; some browsers (Firefox with a mouse wheel)
+// report lines or pages instead, which would scroll a few pixels per notch.
+// Chromium's own line height for wheel scrolling is 40px.
+const WHEEL_LINE_PX = 40
+
+// Direction (1 down, -1 up) the page last refused to scroll in: a wheel batch
+// whose response came back with unchanged pixels hit the page's edge (or a
+// spot with nothing to scroll). Further wheel in that direction skips the
+// optimistic shift, so a mouse wheel spun at the bottom of a page doesn't
+// bounce the frame on every notch. Any batch that does move clears it.
+let wheelEdgeDir = 0
+
 function onWheel(e: WheelEvent) {
   if (phase.value !== 'ready') return
   const { x, y } = pageCoords(e)
-  enqueue({
-    kind: 'wheel',
-    x, y,
-    deltaX: e.deltaX,
-    deltaY: e.deltaY,
-    modifiers: modifiersFrom(e),
-  })
+  // Read the deltas before deltaMode: Firefox only reports line deltas to
+  // pages that check deltaMode first.
+  let deltaX = e.deltaX
+  let deltaY = e.deltaY
+  if (e.deltaMode === 1) {
+    deltaX *= WHEEL_LINE_PX
+    deltaY *= WHEEL_LINE_PX
+  } else if (e.deltaMode === 2) {
+    deltaX *= viewport.value[0]
+    deltaY *= viewport.value[1]
+  }
+  enqueue({ kind: 'wheel', x, y, deltaX, deltaY, modifiers: modifiersFrom(e) })
+  // Optimistic feedback, as for a touch drag: the frame moves now instead of
+  // a round trip later. Ctrl+wheel is a zoom gesture, not a scroll.
+  if (!e.ctrlKey && deltaY !== 0 && Math.sign(deltaY) !== wheelEdgeDir) {
+    stopInertia()
+    unsentLocalY -= deltaY * pageToClientScaleY()
+    updateLocalScroll()
+  }
 }
 
 function keyEvent(e: KeyboardEvent, type: 'keyDown' | 'keyUp'): PreviewInputEvent {

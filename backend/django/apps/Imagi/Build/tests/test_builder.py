@@ -458,6 +458,10 @@ class FakeCdpConnection:
                 'currentIndex': 0,
                 'entries': [{'id': 1, 'url': 'http://127.0.0.1:5174/', 'title': 'App'}],
             }
+        if method == 'Page.getLayoutMetrics':
+            return {'cssVisualViewport': {'pageX': 0, 'pageY': 640}}
+        if method == 'Page.captureScreenshot':
+            return {'data': 'ZnJhbWU='}
         if method == 'Runtime.evaluate':
             if isinstance(self._evaluate_result, Exception):
                 raise self._evaluate_result
@@ -536,6 +540,44 @@ class PreviewConsoleWatchTests(TestCase):
         ):
             conn = FakeCdpConnection(evaluate_result=bad)
             self.assertEqual(self.service._collect_console_errors(conn), [])
+
+
+class PreviewMotionFrameTests(TestCase):
+    """Mid-gesture frames on a HiDPI session are captured at 1x CSS pixels."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='motionframe', password='pw123456')
+        projects_root = tempfile.mkdtemp(prefix='preview_root_')
+        self.addCleanup(lambda: shutil.rmtree(projects_root, ignore_errors=True))
+        overrides = override_settings(PROJECTS_ROOT=projects_root)
+        overrides.enable()
+        self.addCleanup(overrides.disable)
+        project_path = tempfile.mkdtemp(prefix='preview_proj_')
+        self.addCleanup(lambda: shutil.rmtree(project_path, ignore_errors=True))
+        self.project = PMProject.objects.create(
+            user=self.user, name='Motion Project', project_path=project_path
+        )
+        self.service = BrowserPreviewService(self.project)
+
+    def _shot_params(self, conn):
+        return [p for m, p in conn.calls if m == 'Page.captureScreenshot'][-1]
+
+    def test_motion_frame_at_2x_is_clipped_to_the_scrolled_viewport_at_1x(self):
+        conn = FakeCdpConnection()
+        state = {'viewport': [1000, 800], 'device_scale_factor': 2}
+        self.service._attach_frame(conn, {}, None, quality=55, motion_state=state)
+        clip = self._shot_params(conn)['clip']
+        self.assertEqual(clip, {'x': 0.0, 'y': 640.0, 'width': 1000, 'height': 800, 'scale': 0.5})
+
+    def test_idle_frame_and_1x_sessions_capture_full_frames(self):
+        conn = FakeCdpConnection()
+        self.service._attach_frame(conn, {}, None)
+        self.assertNotIn('clip', self._shot_params(conn))
+        conn = FakeCdpConnection()
+        state = {'viewport': [1000, 800], 'device_scale_factor': 1}
+        self.service._attach_frame(conn, {}, None, quality=55, motion_state=state)
+        self.assertNotIn('clip', self._shot_params(conn))
+        self.assertNotIn('Page.getLayoutMetrics', [m for m, _ in conn.calls])
 
 
 class PreviewEndpointTests(APITestCase):
