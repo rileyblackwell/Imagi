@@ -11,12 +11,31 @@ import type {
   DispatchedTaskDto,
   ReasoningEffort
 } from '../types/services'
-import { DEFAULT_REASONING_EFFORT, canonicalModelId, clampEffortToModel } from '../types/services'
+import { AI_MODELS, DEFAULT_REASONING_EFFORT, canonicalModelId, clampEffortToModel } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { ProjectFile } from '../types/components'
 import { AgentService } from '../services/agentService'
 
 const DEFAULT_MODEL_ID = 'claude-opus-5-5'
+
+// The user's pick of model for new threads. Kept per browser, like the rest
+// of the workspace's view settings; unset or unreadable falls back to Opus 5.5.
+const THREAD_MODEL_KEY = 'imagi.threadModel'
+
+/** A model id the lineup offers, re-seating a retired one; anything else is
+ *  the default. */
+function threadModelOrDefault(modelId: string | null | undefined): string {
+  const id = canonicalModelId(modelId)
+  return id && AI_MODELS.some(m => m.id === id) ? id : DEFAULT_MODEL_ID
+}
+
+function readThreadModelId(): string {
+  try {
+    return threadModelOrDefault(localStorage.getItem(THREAD_MODEL_KEY))
+  } catch {
+    return DEFAULT_MODEL_ID
+  }
+}
 
 // The catalog's `default: true` entry wins over list order, so the effective
 // default stays Opus 5.5 even if the served ordering changes.
@@ -163,12 +182,23 @@ export const useAgentStore = defineStore('agent', {
     instancesLoading: false,
     checkIns: [],
     checkInsLoaded: false,
+    threadModelId: readThreadModelId(),
   }),
 
   getters: {
     activeInstance(state): AgentInstance | null {
       if (!state.activeInstanceId) return null
       return state.instances.find(i => i.id === state.activeInstanceId) || null
+    },
+
+    /** Threads still able to run (not archived, not discarded) on a model
+     *  other than the one new threads start on — what "switch all threads"
+     *  would change. */
+    threadsOffThreadModel(state): AgentInstance[] {
+      return state.instances.filter(
+        i => i.kind === 'task' && !i.archivedAt && i.reviewStatus !== 'dismissed' &&
+          i.selectedModelId !== state.threadModelId
+      )
     },
 
     /** The project's one pinned lead thread (ensured by loadInstances). */
@@ -565,6 +595,11 @@ export const useAgentStore = defineStore('agent', {
           // Nothing has been said in it yet, so there is nothing to fetch.
           instance.messagesLoaded = true
           this.instances.unshift(instance)
+          // A new thread starts on the user's thread model, whatever the
+          // coordinator that dispatched it runs on.
+          if (instance.selectedModelId !== this.threadModelId) {
+            this.setInstanceModel(instance.id, this.threadModelId)
+          }
         }
         // The lead re-dispatched work this subagent already has: the server
         // handed back the running task rather than staging a new one, so it is
@@ -1104,6 +1139,25 @@ export const useAgentStore = defineStore('agent', {
       if (next === 'accepted' && previous !== 'accepted') {
         this._announceTaskApplied(instance.conversationId)
       }
+    },
+
+    /** The model new threads start on. */
+    setThreadModel(modelId: string) {
+      const id = threadModelOrDefault(modelId)
+      this.threadModelId = id
+      try {
+        localStorage.setItem(THREAD_MODEL_KEY, id)
+      } catch {
+        // Private mode or storage blocked: the pick holds for this session.
+      }
+    },
+
+    /** Move every thread that can still run onto the thread model. A live
+     *  run finishes on the model it started with; its next turn uses this. */
+    switchAllThreadsToThreadModel(): number {
+      const threads = this.threadsOffThreadModel
+      for (const thread of threads) this.setInstanceModel(thread.id, this.threadModelId)
+      return threads.length
     },
 
     setInstanceModel(instanceId: string, modelId: string) {

@@ -17,6 +17,8 @@
       @confirm="confirmModal.handleConfirm"
       @cancel="confirmModal.handleCancel"
     />
+    <!-- Opened from the gear in either pane's header -->
+    <WorkspaceSettings />
     <DashboardLayout
       storage-key="builderWorkspaceSidebarCollapsed"
       aside-width-class="w-[22rem] max-md:w-full"
@@ -120,6 +122,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { useSidebarPane } from '../composables/useSidebarPane'
 import { useAgentRun } from '../composables/useAgentRun'
 import { useThreadNotifications } from '../composables/useThreadNotifications'
+import { useWorkspaceSettings } from '../composables/useWorkspaceSettings'
 // The pane-swap transition below is timed with the workspace's shared
 // motion tokens, so this view loads them too.
 import '../styles/workspace.css'
@@ -131,6 +134,7 @@ import { DashboardLayout } from '@/shared/layouts'
 import {
   WorkspaceError,
   WorkspacePreview,
+  WorkspaceSettings,
 } from '../components/organisms/workspace'
 import BuilderSidebarChat from '../components/organisms/sidebar/BuilderSidebarChat.vue'
 import AgentManagerPanel from '../components/organisms/sidebar/AgentManagerPanel.vue'
@@ -145,6 +149,7 @@ import type { CheckInDto } from '../types/services'
 const route = useRoute()
 const router = useRouter()
 const store = useAgentStore()
+const { closeSettings } = useWorkspaceSettings()
 const projectStore = useProjectStore()
 const projectId = ref<string>('')
 // Hosts the one ConfirmModal instance the whole workspace shares.
@@ -692,6 +697,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  // The panel's open flag outlives the view; leaving the workspace shuts it.
+  closeSettings()
   // These close over this view's handlePrompt; they must not outlive it.
   store.setQueuedPromptSender(null)
   store.setTaskRunner(null)
