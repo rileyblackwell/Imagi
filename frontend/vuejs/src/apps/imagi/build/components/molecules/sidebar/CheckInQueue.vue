@@ -288,10 +288,9 @@ const kindLabel = computed(() => {
 })
 
 /**
- * The rail's reading, on the Subagents pane's terms. A card that wants
- * something takes the navy-ink "this one is on you" rail; a finished subagent
- * takes the affirmative green its card in the thread just turned, so the two
- * report the same landing the same way; a failed run is the one warm note.
+ * The rail's reading, in the chat rail's colours: a card that wants something
+ * is amber, a finished thread takes the green its card in the chat just
+ * turned, and a failed run is red.
  */
 const tone = computed(() => {
   switch (current.value?.kind) {
@@ -428,16 +427,21 @@ function sendAnswer() {
 
 /* ── The card ───────────────────────────────────────────────────────────── */
 
+/* Every colour comes from --st, the same state colours the chat rail and its
+   dispatch cards use: amber waiting on you, green finished, red stopped. */
 .check-in {
-  --rail: theme('colors.blue.950');
-  --status: rgba(19, 26, 44, 0.75);
+  --st: var(--sl-wait);
+  --rail: var(--st);
+  --status: var(--st);
 
   position: relative;
   z-index: 2;
   display: flex;
-  border-radius: var(--iw-r-md);
-  border: 1px solid rgba(19, 26, 44, 0.1);
-  background: rgba(239, 246, 255, 0.75);
+  border-radius: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--st) 24%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--st) 7%, transparent), color-mix(in srgb, var(--st) 7%, transparent)),
+    rgb(var(--app-canvas, 255 255 255));
   box-shadow: var(--iw-shadow-1);
   overflow: hidden;
   animation: check-in-arrive var(--iw-dur-4) var(--iw-ease-spring) both;
@@ -446,43 +450,12 @@ function sendAnswer() {
     background-color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-.dark .check-in {
-  --rail: #f3ede2;
-  --status: rgba(243, 237, 226, 0.85);
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-/* A run that stopped early: the one warm note in a pane that is otherwise
-   all navy and cream. */
 .check-in--error {
-  --rail: theme('colors.amber.500');
-  --status: theme('colors.amber.700');
-  border-color: rgba(251, 191, 36, 0.45);
-  background: rgba(255, 251, 235, 0.8);
+  --st: var(--sl-bad);
 }
 
-.dark .check-in--error {
-  --rail: theme('colors.amber.400');
-  --status: theme('colors.amber.300');
-  border-color: rgba(251, 191, 36, 0.22);
-  background: rgba(245, 158, 11, 0.07);
-}
-
-/* Finished and applied: the same green the dispatch card settles into when
-   the work lands, so the two surfaces report one event in one colour. */
 .check-in--done {
-  --rail: theme('colors.green.600');
-  --status: theme('colors.green.700');
-  border-color: rgba(22, 163, 74, 0.28);
-  background: rgba(240, 253, 244, 0.85);
-}
-
-.dark .check-in--done {
-  --rail: theme('colors.green.400');
-  --status: theme('colors.green.300');
-  border-color: rgba(74, 222, 128, 0.28);
-  background: rgba(74, 222, 128, 0.07);
+  --st: var(--sl-ok);
 }
 
 .check-in__rail {
@@ -578,6 +551,9 @@ function sendAnswer() {
   align-items: baseline;
   gap: 0.3125rem;
   margin-top: 0.1875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   font-size: 0.625rem;
   line-height: 1.35;
   color: var(--status);
@@ -676,21 +652,13 @@ function sendAnswer() {
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* An error card sits on a warm wash, so the ghost outline warms with it */
+/* An error card sits on a red wash, so the ghost outline takes its colour */
 .check-in--error .btn-ghost {
-  border-color: rgba(251, 191, 36, 0.5);
+  border-color: color-mix(in srgb, var(--st) 40%, transparent);
 }
 
 .check-in--error .btn-ghost:hover:not(:disabled) {
-  background: rgba(254, 243, 199, 0.6);
-}
-
-.dark .check-in--error .btn-ghost {
-  border-color: rgba(251, 191, 36, 0.28);
-}
-
-.dark .check-in--error .btn-ghost:hover:not(:disabled) {
-  background: rgba(245, 158, 11, 0.12);
+  background: color-mix(in srgb, var(--st) 12%, transparent);
 }
 
 /* Focus is a ring rather than a border swap: the field's edge stays where it

@@ -426,3 +426,45 @@ describe('ChatConversation reply footer', () => {
     expect(wrapper.text()).not.toMatch(/tokens/i)
   })
 })
+
+describe('ChatConversation rail', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it("hangs the coordinator's replies on the rail under its name", () => {
+    const wrapper = mount(ChatConversation, { props: { messages: [user('hi'), assistant('Hello.')] } })
+    const reply = wrapper.find('.assistant-response')
+    expect(reply.classes()).toContain('rail-entry')
+    expect(reply.find('.rail-node--coordinator').exists()).toBe(true)
+    expect(reply.find('.rail-name').text()).toBe('Coordinator')
+    expect(wrapper.find('.user-bubble').text()).toBe('hi')
+  })
+
+  it("opens a thread on the coordinator's brief, then names the thread on its replies", () => {
+    const wrapper = mount(ChatConversation, {
+      props: {
+        messages: [user('Build a booking page.'), assistant('On it.'), { ...user('Tue to Sat'), id: 'u2' }],
+        agentKind: 'thread',
+        agentName: 'Building a booking page',
+      },
+    })
+    expect(wrapper.find('.brief-row .brief-text').text()).toBe('Build a booking page.')
+    expect(wrapper.find('.brief-row .rail-name').text()).toBe('From the coordinator')
+    // Only the opening message is the brief; later ones are the user steering
+    expect(wrapper.findAll('.user-bubble').map(b => b.text())).toEqual(['Tue to Sat'])
+    expect(wrapper.find('.assistant-response .rail-node--thread').exists()).toBe(true)
+    expect(wrapper.find('.assistant-response .rail-name').text()).toBe('Building a booking page')
+  })
+
+  it('lights an unanswered question amber, and lets it settle once answered', () => {
+    const question = { ...assistant('Pickup or delivery?'), question: { options: ['Pickup only'] } }
+    const waiting = mount(ChatConversation, { props: { messages: [user('Add ordering'), question] } })
+    expect(waiting.find('.rail-entry--asking .rail-node--wait').exists()).toBe(true)
+    expect(waiting.find('.rail-tag').text()).toBe('Needs your answer')
+
+    const answered = mount(ChatConversation, {
+      props: { messages: [user('Add ordering'), question, { ...user('Pickup only'), id: 'u2' }] },
+    })
+    expect(answered.find('.rail-entry--asking').exists()).toBe(false)
+    expect(answered.find('.rail-tag').exists()).toBe(false)
+  })
+})

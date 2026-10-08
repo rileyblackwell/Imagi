@@ -46,6 +46,14 @@
   --sl-warm-line: rgba(236, 120, 50, 0.26);
   --sl-on-accent: #1a0e08;
 
+  /* How a piece of work went, for the workspace chat's rail and cards:
+     finished, stopped, waiting on the user, still working. Kept apart from
+     the coral accent so a stopped thread never reads as a button. */
+  --sl-ok: #139a55;
+  --sl-bad: #d7334a;
+  --sl-wait: #c46f00;
+  --sl-work: #3a5fd0;
+
   /* Light sources */
   --sl-spot-core: rgba(255, 170, 110, 0.38);
   --sl-spot-mid: rgba(255, 140, 90, 0.14);
@@ -120,6 +128,11 @@
   --sl-cool: #a9c4ff;
   --sl-cool-line: rgba(140, 180, 255, 0.16);
   --sl-warm-line: rgba(255, 150, 100, 0.18);
+
+  --sl-ok: #4fd18b;
+  --sl-bad: #ff6b80;
+  --sl-wait: #ffb547;
+  --sl-work: #a9c4ff;
 
   --sl-spot-core: rgba(255, 170, 110, 0.3);
   --sl-spot-mid: rgba(255, 120, 80, 0.12);

@@ -45,11 +45,11 @@
   is a loop, and a card that never gets to say "stopped" — so the card says
   so, and puts "Try again" under it for the person reading to decide.
 
-  It borrows the crew ledger's state vocabulary (AgentInstanceCard): a rail
-  down the left edge, ink travelling while live, so a card here and a card
-  there report the same state the same way. The one place it departs is
-  "done" — settled work recedes to a hairline in the ledger, but in the
-  transcript a finished subagent is news, so it lands in an affirmative green.
+  It hangs on the chat's rail (see ChatConversation): the state chip is the
+  card's node on the rail, and the card is tinted in the state's colour — blue
+  while it works, green when it lands, amber when it needs the user, red when
+  it stopped — with the state named in a small mono label, so a thread of
+  these can be scanned by colour alone.
 -->
 <template>
   <article :class="['dispatch-card', `dispatch-card--${state.tone}`]">
@@ -330,13 +330,10 @@ const revealLabel = computed(
 <style scoped>
 /* ── The card ───────────────────────────────────────────────────────────── */
 
-/* Every colour on the card comes from these four, so a state change is one
-   block of overrides rather than a rule per element. */
+/* Every colour on the card comes from --st, the state's colour, so a state
+   change is one line rather than a rule per element. */
 .dispatch-card {
-  --rail: rgba(19, 26, 44, 0.14);
-  --status: rgba(19, 26, 44, 0.5);
-  --chip-bg: rgba(19, 26, 44, 0.08);
-  --chip-fg: rgba(19, 26, 44, 0.8);
+  --st: var(--sl-faint, rgba(19, 26, 44, 0.5));
 
   position: relative;
   /* Stacked, not two columns: the job is the card, and giving it the full
@@ -346,12 +343,11 @@ const revealLabel = computed(
   flex-direction: column;
   gap: 0.3125rem;
   width: 100%;
-  padding: 0.5rem 0.625rem 0.5625rem 0.875rem;
-  border-radius: var(--iw-r-lg);
-  border: 1px solid rgba(19, 26, 44, 0.08);
-  background: rgba(239, 246, 255, 0.5);
+  padding: 0.5625rem 0.75rem 0.625rem;
+  border-radius: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--st) 22%, transparent);
+  background: color-mix(in srgb, var(--st) 6%, transparent);
   text-align: left;
-  overflow: hidden;
   transition:
     background-color var(--iw-dur-3) var(--iw-ease-out),
     border-color var(--iw-dur-3) var(--iw-ease-out),
@@ -359,23 +355,22 @@ const revealLabel = computed(
     transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.dark .dispatch-card {
-  --rail: rgba(255, 255, 255, 0.16);
-  --status: rgba(219, 234, 254, 0.55);
-  --chip-bg: rgba(243, 237, 226, 0.12);
-  --chip-fg: rgba(243, 237, 226, 0.9);
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .dispatch-card:hover {
-  border-color: rgba(19, 26, 44, 0.14);
-  box-shadow: var(--iw-shadow-2);
+  border-color: color-mix(in srgb, var(--st) 40%, transparent);
   transform: translateY(-1px);
 }
 
-.dark .dispatch-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+/* A short branch from the rail to the card, so the card reads as a step
+   hanging off the line like everything else in the log. */
+.dispatch-card::before {
+  content: '';
+  position: absolute;
+  left: -0.75rem;
+  top: 1.1875rem;
+  width: 0.75rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--st) 45%, transparent);
+  pointer-events: none;
 }
 
 /* The disclosure: the state line and the job, as one target. Stripped of the
@@ -384,7 +379,7 @@ const revealLabel = computed(
 .dispatch-card__toggle {
   display: flex;
   flex-direction: column;
-  gap: 0.3125rem;
+  gap: 0.25rem;
   width: 100%;
   padding: 0;
   border: none;
@@ -396,7 +391,7 @@ const revealLabel = computed(
   border-radius: var(--iw-r-sm);
 }
 
-/* Nothing to open — a discarded card, or a subagent that has not said
+/* Nothing to open — a discarded card, or a thread that has not said
    anything yet. It still holds the state and the job; it just does not
    pretend there is more behind it. */
 .dispatch-card__toggle:disabled {
@@ -415,155 +410,32 @@ const revealLabel = computed(
 
 /* ── States ─────────────────────────────────────────────────────────────── */
 
-/* Dispatched, run not yet fired: the rail is drawn but not filled. */
+/* Dispatched, run not yet fired: drawn but not filled. */
 .dispatch-card--starting {
-  --rail: repeating-linear-gradient(
-    180deg,
-    rgba(19, 26, 44, 0.3) 0 3px,
-    transparent 3px 7px
-  );
+  border-style: dashed;
+  background: var(--sl-chip-bg, rgba(19, 26, 44, 0.035));
 }
 
-.dark .dispatch-card--starting {
-  --rail: repeating-linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.3) 0 3px,
-    transparent 3px 7px
-  );
-}
-
-/* Live: ink travels down the rail and the left edge breathes — the same
-   treatment a working agent gets in the crew ledger. */
 .dispatch-card--working {
-  --rail: rgba(37, 99, 235, 0.32);
-  --status: theme('colors.blue.600');
-  --chip-bg: rgba(59, 130, 246, 0.13);
-  --chip-fg: theme('colors.blue.600');
+  --st: var(--sl-work);
 }
 
-.dark .dispatch-card--working {
-  --rail: rgba(147, 197, 253, 0.3);
-  --status: theme('colors.blue.300');
-  --chip-bg: rgba(147, 197, 253, 0.16);
-  --chip-fg: theme('colors.blue.300');
-}
-
-.dispatch-card--working::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.09) 0%, rgba(59, 130, 246, 0) 100%);
-  animation: rail-breathe 3.2s var(--iw-ease-ambient) infinite;
-}
-
-.dark .dispatch-card--working::before {
-  background: linear-gradient(90deg, rgba(147, 197, 253, 0.1) 0%, rgba(147, 197, 253, 0) 100%);
-}
-
-.dispatch-card--working .dispatch-card__rail::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    theme('colors.blue.500') 40%,
-    theme('colors.blue.400') 60%,
-    transparent 100%
-  );
-  animation: rail-travel 2.6s var(--iw-ease-ambient) infinite;
-}
-
-.dark .dispatch-card--working .dispatch-card__rail::after {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    theme('colors.blue.300') 40%,
-    theme('colors.blue.200') 60%,
-    transparent 100%
-  );
-}
-
-/* Wants the user — a question to answer or a draft to pick. Solid navy ink,
-   the workspace's "this one is on you" mark. */
 .dispatch-card--asking {
-  --rail: theme('colors.blue.950');
-  --status: rgba(19, 26, 44, 0.78);
-  --chip-bg: rgba(19, 26, 44, 0.1);
-  --chip-fg: theme('colors.blue.950');
-  border-color: rgba(19, 26, 44, 0.16);
+  --st: var(--sl-wait);
 }
 
-.dark .dispatch-card--asking {
-  --rail: #f3ede2;
-  --status: rgba(243, 237, 226, 0.85);
-  --chip-bg: rgba(243, 237, 226, 0.16);
-  --chip-fg: #f3ede2;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Done. The ledger lets settled work recede, but here the flip from "working"
-   to "complete, and here is what it did" is the single moment this card exists
-   to report, so it arrives in green and says so — and plays a one-shot settle
-   rather than simply being repainted. */
+/* Done. The flip from "working" to "complete, and here is what it did" is the
+   single moment this card exists to report, so it arrives in green and plays
+   a one-shot settle rather than simply being repainted. */
 .dispatch-card--done {
-  --rail: theme('colors.green.600');
-  --status: theme('colors.green.700');
-  --chip-bg: theme('colors.green.100');
-  --chip-fg: theme('colors.green.700');
-  border-color: rgba(22, 163, 74, 0.28);
-  background: rgba(240, 253, 244, 0.85);
+  --st: var(--sl-ok);
   animation: done-settle var(--iw-dur-4) var(--iw-ease-spring) both;
 }
 
-.dark .dispatch-card--done {
-  --rail: theme('colors.green.400');
-  --status: theme('colors.green.300');
-  --chip-bg: rgba(74, 222, 128, 0.16);
-  --chip-fg: theme('colors.green.300');
-  border-color: rgba(74, 222, 128, 0.28);
-  background: rgba(74, 222, 128, 0.07);
-}
-
-.dispatch-card--done:hover {
-  border-color: rgba(22, 163, 74, 0.45);
-}
-
-.dark .dispatch-card--done:hover {
-  border-color: rgba(74, 222, 128, 0.45);
-}
-
-/* A run that died. Warm rather than alarming: nothing was lost from the app
-   (the work never touched it), so this is news to act on, not a fault to
-   panic about. Same reading as the queue card's error rail. */
+/* A run that died: red, the workspace's colour for "this didn't work", with
+   the way back right under it. */
 .dispatch-card--stopped {
-  --rail: theme('colors.amber.500');
-  --status: theme('colors.amber.700');
-  --chip-bg: rgba(245, 158, 11, 0.14);
-  --chip-fg: theme('colors.amber.600');
-  border-color: rgba(245, 158, 11, 0.28);
-  background: rgba(255, 251, 235, 0.75);
-}
-
-.dark .dispatch-card--stopped {
-  --rail: theme('colors.amber.300');
-  --status: theme('colors.amber.200');
-  --chip-bg: rgba(252, 211, 77, 0.16);
-  --chip-fg: theme('colors.amber.200');
-  border-color: rgba(252, 211, 77, 0.26);
-  background: rgba(252, 211, 77, 0.06);
-}
-
-.dispatch-card--stopped:hover {
-  border-color: rgba(245, 158, 11, 0.45);
-}
-
-.dark .dispatch-card--stopped:hover {
-  border-color: rgba(252, 211, 77, 0.42);
+  --st: var(--sl-bad);
 }
 
 /* Discarded work recedes — it is a record, not news. */
@@ -577,135 +449,90 @@ const revealLabel = computed(
 
 /* ── Parts ──────────────────────────────────────────────────────────────── */
 
+/* The ledger's left-edge rail gave way to the chat's own rail. */
 .dispatch-card__rail {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 0.1875rem;
-  background: var(--rail);
-  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
+  display: none;
 }
 
-/* The state line: chip, where it stands, and the affordance that says there
-   is more through here. One row, above the working state's edge glow, which
-   would otherwise wash over it. */
 .dispatch-card__head {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.4375rem;
+  min-height: 1.25rem;
   transition: transform var(--iw-dur-2) var(--iw-ease-out);
 }
 
+/* The chip is the card's node on the chat rail: a filled circle in the
+   state's colour, punched out of the line by a ring of the floor. Placed
+   back across the rail's gutter (the 2rem every rail entry is indented). */
 .dispatch-card__chip {
+  position: absolute;
+  left: -2rem;
+  top: 0.5625rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: var(--iw-r-sm);
-  background: var(--chip-bg);
-  color: var(--chip-fg);
+  border-radius: 50%;
+  background: var(--st);
+  color: rgb(var(--app-canvas, 255 255 255));
   font-size: 0.5625rem;
+  box-shadow:
+    0 0 0 4px rgb(var(--app-canvas, 255 255 255)),
+    0 0 16px -2px var(--st);
   transition:
     background-color var(--iw-dur-3) var(--iw-ease-out),
     color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* Where it stands, in the state's own ink. Small caps: this is the label on
-   the card, and the job below it is the reading matter. */
+.dispatch-card--starting .dispatch-card__chip,
+.dispatch-card--settled .dispatch-card__chip {
+  background: rgb(var(--app-canvas, 255 255 255));
+  border: 1.5px dashed var(--sl-line-strong, rgba(19, 26, 44, 0.15));
+  color: var(--sl-faint);
+  box-shadow: 0 0 0 4px rgb(var(--app-canvas, 255 255 255));
+}
+
+/* Where it stands, as the rail's small mono label in the state's colour. */
 .dispatch-card__status {
   flex: 1;
   min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.625rem;
-  font-weight: 650;
+  font-weight: 500;
   line-height: 1.3;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--status);
+  color: var(--st);
   transition: color var(--iw-dur-3) var(--iw-ease-out);
 }
 
-/* The job. Set in the brand serif like the crew ledger's byline, so what is
-   being done to the app reads as the subject of the card. It wraps: no clamp,
-   no ellipsis — the whole thing, at any width. */
+/* The job, in the display face, so what is being done to the app reads as
+   the subject of the card. It wraps: no clamp, no ellipsis. */
 .dispatch-card__job {
-  position: relative;
-  z-index: 1;
   font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
-  font-size: 0.8125rem;
-  font-weight: 550;
-  line-height: 1.4;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
   letter-spacing: -0.006em;
-  color: rgba(19, 26, 44, 0.88);
+  color: var(--sl-text);
   overflow-wrap: anywhere;
-}
-
-.dark .dispatch-card__job {
-  color: rgba(255, 255, 255, 0.86);
 }
 
 /* The paragraph under the job — what it is doing, then what came back. Set
-   apart from the job by a hairline rather than a label: a rule reads as "and
-   here is the substance" without spending a line on saying so. Also wraps in
-   full.
-
-   Sized as prose, not as a caption: an overview is three to five sentences
-   and a sign-off four to six, and it is the part of the card the owner
-   actually reads, so it gets a readable size and open leading. It still sits
-   a step below the job line, which stays the card's heading. */
+   apart by a hairline in the state's colour, and sized as prose: it is the
+   part of the card the owner actually reads. */
 .dispatch-card__result {
-  position: relative;
-  z-index: 1;
-  margin-top: 0.0625rem;
-  padding-top: 0.375rem;
-  border-top: 1px solid rgba(19, 26, 44, 0.08);
-  font-size: 0.75rem;
+  margin-top: 0.125rem;
+  padding-top: 0.4375rem;
+  border-top: 1px solid color-mix(in srgb, var(--st) 18%, transparent);
+  font-size: 0.8125rem;
   line-height: 1.55;
-  color: rgba(19, 26, 44, 0.72);
+  color: var(--sl-muted);
   overflow-wrap: anywhere;
 }
 
-.dark .dispatch-card__result {
-  border-top-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.62);
-}
-
-/* On a finished card the result is the news, so it takes the state's ink
-   rather than the muted grey a pending question sits in. */
-.dispatch-card--stopped .dispatch-card__result {
-  border-top-color: rgba(245, 158, 11, 0.22);
-  color: rgba(180, 83, 9, 0.9);
-}
-
-.dark .dispatch-card--stopped .dispatch-card__result {
-  border-top-color: rgba(252, 211, 77, 0.22);
-  color: rgba(253, 230, 138, 0.8);
-}
-
-/* The green stays in the rail, the chip and the status line, which is where
-   the card announces itself. The sign-off underneath is a paragraph now, and
-   several lines of saturated green read as a highlight to skim rather than
-   text to read — so it takes a near-neutral ink, warmed just enough to belong
-   to the green card it sits on. */
-.dispatch-card--done .dispatch-card__result {
-  border-top-color: rgba(22, 163, 74, 0.18);
-  color: rgba(20, 65, 45, 0.82);
-}
-
-.dark .dispatch-card--done .dispatch-card__result {
-  border-top-color: rgba(74, 222, 128, 0.2);
-  color: rgba(219, 245, 230, 0.78);
-}
-
-/* The disclosure mark. Points down at a closed card and turns over as it
-   opens, so the card says which way it is going without a word of label. */
-/* Takes its ink from the label it sits beside — the two are one control, and
-   the caret's only job here is to say which way this is about to go. */
 .dispatch-card__caret {
   flex-shrink: 0;
   font-size: 0.5rem;
@@ -716,57 +543,38 @@ const revealLabel = computed(
   transform: rotate(180deg);
 }
 
-/* The fold, named. Small and quiet — it is an offer, not the news — but it
-   is words, because a caret alone never says what it is hiding. */
+/* The fold, named. Small and quiet — it is an offer, not the news. */
 .dispatch-card__reveal {
-  position: relative;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 0.3125rem;
   margin-top: 0.0625rem;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 550;
-  letter-spacing: 0.005em;
-  color: rgba(19, 26, 44, 0.5);
+  color: var(--sl-faint);
   transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.dark .dispatch-card__reveal {
-  color: rgba(255, 255, 255, 0.45);
-}
-
 .dispatch-card:hover .dispatch-card__reveal {
-  color: rgba(19, 26, 44, 0.8);
+  color: var(--sl-text);
 }
 
-.dark .dispatch-card:hover .dispatch-card__reveal {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* The trip to the subagent's own thread, at the end of what it had to say —
-   where someone who has just read the summary and wants the working is
-   already looking. */
+/* The trip to the thread's own transcript, at the end of what it had to
+   say. */
 .dispatch-card__more {
-  position: relative;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   margin-top: 0.5rem;
-  padding: 0.1875rem 0.5rem 0.1875rem 0.5rem;
-  margin-left: -0.5rem;
-  border-radius: var(--iw-r-sm);
-  font-size: 0.625rem;
-  font-weight: 550;
-  color: rgba(19, 26, 44, 0.55);
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid var(--sl-line-strong, rgba(19, 26, 44, 0.15));
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--sl-text);
   transition:
     background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dark .dispatch-card__more {
-  color: rgba(255, 255, 255, 0.5);
+    border-color var(--iw-dur-2) var(--iw-ease-out);
 }
 
 .dispatch-card__more i {
@@ -775,13 +583,7 @@ const revealLabel = computed(
 }
 
 .dispatch-card__more:hover {
-  background: rgba(19, 26, 44, 0.06);
-  color: rgba(19, 26, 44, 0.85);
-}
-
-.dark .dispatch-card__more:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--sl-chip-bg-hover, rgba(19, 26, 44, 0.065));
 }
 
 .dispatch-card__more:hover i {
@@ -793,36 +595,30 @@ const revealLabel = computed(
   box-shadow: var(--iw-focus-ring);
 }
 
-/* The retry, on a stopped card. A hairline pill in the card's own amber, the
-   workspace's compact-control shape: outlined rather than filled, because it
-   is an offer on a notice, not the notice itself — but the one control on the
-   card that is a control, so it gets a real border and a real press. */
+/* The retry, on a stopped card: the workspace's lit pill, because it is the
+   one thing on the card the reader most needs to reach. */
 .dispatch-card__actions {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.125rem;
+  margin-top: 0.25rem;
 }
 
 .dispatch-card__retry {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.3125rem 0.75rem;
+  padding: 0.3125rem 0.8125rem;
   border-radius: 9999px;
-  border: 1px solid rgba(217, 119, 6, 0.4);
-  background: rgba(255, 255, 255, 0.55);
-  font-size: 0.6875rem;
+  border: none;
+  background: var(--sl-grad);
+  box-shadow: var(--sl-btn-shadow);
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.005em;
-  color: theme('colors.amber.800');
+  color: var(--sl-on-accent, #1a0e08);
   cursor: pointer;
   transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
+    box-shadow var(--iw-dur-2) var(--iw-ease-out),
     transform var(--iw-dur-1) var(--iw-ease-out);
 }
 
@@ -832,9 +628,7 @@ const revealLabel = computed(
 }
 
 .dispatch-card__retry:hover {
-  background: rgba(245, 158, 11, 0.16);
-  border-color: rgba(217, 119, 6, 0.6);
-  color: theme('colors.amber.900');
+  box-shadow: var(--sl-btn-shadow-hover);
 }
 
 .dispatch-card__retry:hover i {
@@ -850,29 +644,7 @@ const revealLabel = computed(
   box-shadow: var(--iw-focus-ring);
 }
 
-.dark .dispatch-card__retry {
-  border-color: rgba(252, 211, 77, 0.35);
-  background: rgba(252, 211, 77, 0.06);
-  color: theme('colors.amber.200');
-}
-
-.dark .dispatch-card__retry:hover {
-  background: rgba(252, 211, 77, 0.16);
-  border-color: rgba(252, 211, 77, 0.55);
-  color: theme('colors.amber.100');
-}
-
 /* ── Motion ─────────────────────────────────────────────────────────────── */
-
-@keyframes rail-travel {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
-@keyframes rail-breathe {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
 
 /* The arrival. Work landing in the app should register even out of the corner
    of the eye, so the card takes a beat of extra height and settles back. */
@@ -882,9 +654,7 @@ const revealLabel = computed(
   100% { transform: none; }
 }
 
-/* Opening the card. The paragraph arrives rather than appearing: the layout
-   settles at once (a card growing in slow motion under the pointer is worse
-   than one that simply grew) and the text fades up into the space. */
+/* Opening the card: the layout settles at once and the text fades up. */
 .dispatch-reveal-enter-active,
 .dispatch-reveal-leave-active {
   transition:
@@ -899,16 +669,6 @@ const revealLabel = computed(
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dispatch-card--working::before {
-    animation: none;
-    opacity: 0.8;
-  }
-
-  .dispatch-card--working .dispatch-card__rail::after {
-    animation: none;
-    background: theme('colors.blue.500');
-  }
-
   .dispatch-card--done {
     animation: none;
   }

@@ -36,6 +36,8 @@
           :is-processing="!!opened.isProcessing"
           :status-text="opened.statusText || ''"
           :can-restore="false"
+          agent-kind="thread"
+          :agent-name="opened.title || 'Thread'"
           @open-task="openByConversation"
           @answer="store.steerThread(opened.id, $event)"
           class="flex-1"

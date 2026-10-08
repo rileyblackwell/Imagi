@@ -46,17 +46,18 @@
          it stopped. Typing instead also works, and says how to carry on. -->
     <div
       v-if="instance.reviewStatus === 'failed' && !instance.isProcessing"
-      class="retry-row flex items-center gap-2 rounded-xl border border-amber-200/80 dark:border-amber-300/20 bg-amber-50/70 dark:bg-amber-300/[0.06] px-2.5 py-1.5 mb-1.5"
+      class="retry-row flex items-center gap-2 rounded-xl px-2.5 py-1.5 mb-1.5"
     >
-      <i class="fas fa-triangle-exclamation text-[10px] text-amber-600 dark:text-amber-300 shrink-0"></i>
+      <span class="retry-row__mark shrink-0" aria-hidden="true"><i class="fas fa-xmark"></i></span>
       <p class="flex-1 min-w-0 text-[11px] font-medium text-ink/75 dark:text-white/70">
         This thread stopped before finishing.
       </p>
       <button
         type="button"
-        class="thread-btn iw-press shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-paper dark:text-ink"
+        class="retry-btn thread-btn iw-press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold"
         @click="retry"
       >
+        <i class="fas fa-rotate-right text-[9px]" aria-hidden="true"></i>
         Try again
       </button>
     </div>
@@ -134,5 +135,37 @@ function send(text: string) {
 
 .dark .thread-btn:hover {
   background: #ffffff;
+}
+
+/* A stopped thread: the chat rail's red, with the workspace's lit pill as
+   the way back. */
+.retry-row {
+  border: 1px solid color-mix(in srgb, var(--sl-bad) 24%, transparent);
+  background: color-mix(in srgb, var(--sl-bad) 7%, transparent);
+}
+
+.retry-row__mark {
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--sl-bad);
+  color: rgb(var(--app-canvas, 255 255 255));
+  font-size: 0.5rem;
+  box-shadow: 0 0 12px -2px var(--sl-bad);
+}
+
+.retry-btn,
+.dark .retry-btn {
+  background: var(--sl-grad);
+  color: var(--sl-on-accent, #1a0e08);
+  box-shadow: var(--sl-btn-shadow);
+}
+
+.retry-btn:hover,
+.dark .retry-btn:hover {
+  background: var(--sl-grad);
+  box-shadow: var(--sl-btn-shadow-hover);
 }
 </style>
