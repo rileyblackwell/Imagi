@@ -181,4 +181,16 @@ describe('WorkspacePaneHeader', () => {
     expect(buttons[0].classes()).not.toContain('pane-switch--mobile')
     expect(buttons[1].classes()).toContain('pane-switch--mobile')
   })
+
+  it('draws a control as its icon alone, named by its label', async () => {
+    const wrapper = mountWith({
+      switches: [{ id: 'settings', icon: 'fas fa-gear', label: 'Workspace settings', iconOnly: true }],
+    })
+    const button = wrapper.find('button.pane-switch')
+    expect(button.attributes('aria-label')).toBe('Workspace settings')
+    expect(button.find('.pane-switch-label').exists()).toBe(false)
+    expect(button.find('.pane-switch-chevron').exists()).toBe(false)
+    await button.trigger('click')
+    expect(wrapper.emitted('switch')).toEqual([['settings']])
+  })
 })

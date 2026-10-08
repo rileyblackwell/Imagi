@@ -66,15 +66,15 @@
           <span
             v-for="s in switches"
             :key="s.id"
-            :class="['pane-switch', s.mobileOnly && 'pane-switch--mobile']"
+            :class="['pane-switch', s.mobileOnly && 'pane-switch--mobile', s.iconOnly && 'pane-switch--icon']"
           >
-            <i v-if="s.direction === 'back'" class="fas fa-chevron-left pane-switch-chevron"></i>
+            <i v-if="s.direction === 'back' && !s.iconOnly" class="fas fa-chevron-left pane-switch-chevron"></i>
             <span class="pane-switch-icon-wrap">
               <i :class="[s.icon, 'pane-switch-icon']"></i>
             </span>
-            <span class="pane-switch-label">{{ s.label }}</span>
+            <span v-if="!s.iconOnly" class="pane-switch-label">{{ s.label }}</span>
             <span v-if="s.count" class="pane-switch-count">{{ s.count }}</span>
-            <i v-if="s.direction !== 'back'" class="fas fa-chevron-right pane-switch-chevron"></i>
+            <i v-if="s.direction !== 'back' && !s.iconOnly" class="fas fa-chevron-right pane-switch-chevron"></i>
           </span>
         </div>
       </div>
@@ -113,12 +113,13 @@
           v-for="s in switches"
           :key="s.id"
           type="button"
-          :class="['pane-switch', 'iw-press', 'group', s.mobileOnly && 'pane-switch--mobile']"
-          :aria-label="`Switch to ${s.label}`"
+          :class="['pane-switch', 'iw-press', 'group', s.mobileOnly && 'pane-switch--mobile', s.iconOnly && 'pane-switch--icon']"
+          :aria-label="s.iconOnly ? s.label : `Switch to ${s.label}`"
+          :title="s.iconOnly ? s.label : undefined"
           @click="emit('switch', s.id)"
         >
           <i
-            v-if="s.direction === 'back'"
+            v-if="s.direction === 'back' && !s.iconOnly"
             class="fas fa-chevron-left pane-switch-chevron"
           ></i>
           <!-- The destination has a live run (a subagent working over there): the
@@ -131,7 +132,7 @@
           <!-- The word is the first thing to go when the pane runs out of room
                (see the narrow rungs in the styles), which is what the icon and
                the aria-label are there for. -->
-          <span class="pane-switch-label">{{ s.label }}</span>
+          <span v-if="!s.iconOnly" class="pane-switch-label">{{ s.label }}</span>
           <!-- Ambient count of what is waiting on the other side. Keyed on the
                number so it springs when the fleet grows instead of silently
                becoming a different digit. -->
@@ -139,7 +140,7 @@
             <span v-if="s.count" :key="s.count" class="pane-switch-count">{{ s.count }}</span>
           </Transition>
           <i
-            v-if="s.direction !== 'back'"
+            v-if="s.direction !== 'back' && !s.iconOnly"
             class="fas fa-chevron-right pane-switch-chevron"
           ></i>
         </button>
@@ -183,6 +184,9 @@ withDefaults(
        * there, so a button to "go to" it would be a button to go nowhere.
        */
       mobileOnly?: boolean
+      /** A control rather than a destination (workspace settings): the icon
+       *  alone, with `label` as its accessible name and tooltip. */
+      iconOnly?: boolean
     }>
   }>(),
   { state: 'idle', switches: () => [] }
@@ -482,6 +486,13 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
     box-shadow var(--iw-dur-2) var(--iw-ease-out);
 }
 
+/* A control rather than a destination: a round button around its icon. */
+.pane-switch.pane-switch--icon {
+  justify-content: center;
+  width: 1.75rem;
+  padding: 0;
+}
+
 /* A destination that is already on screen on desktop (the preview, which sits
    beside the panes there) — offered only where it actually replaces this pane.
    Stated here rather than with a `md:hidden` utility: the scoped
@@ -531,6 +542,10 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
     height: 1.625rem;
     gap: 0.25rem;
     padding: 0 0.5rem;
+  }
+
+  .pane-switch.pane-switch--icon {
+    width: 1.625rem;
   }
 }
 
