@@ -633,6 +633,9 @@ class InitialBuildServiceTests(TransactionTestCase):
         # every dispatched task has.
         self.assertEqual(task.parent_id, lead.id)
         self.assertEqual(task.title, 'Initial build — home page')
+        # The card names the job from the goal; without one it would show the
+        # whole engineering brief.
+        self.assertEqual(task.goal, 'Build the landing page — the first thing anyone sees.')
         self.assertEqual(task.system_prompt.content, INITIAL_BUILD_INSTRUCTIONS)
         self.assertEqual(calls[0]['conversation_id'], task.id)
 
@@ -641,6 +644,9 @@ class InitialBuildServiceTests(TransactionTestCase):
         messages = list(lead.messages.order_by('created_at'))
         self.assertEqual([m.role for m in messages], ['user', 'assistant'])
         self.assertIn('Beanline', messages[0].content)
+        # The founder reads it as their own message, so no page brief rides in it.
+        self.assertNotIn('HomeView.vue', messages[0].content)
+        self.assertNotIn('subagent', messages[1].content)
         self.assertEqual(
             messages[1].metadata['dispatched_tasks'],
             [{'conversation_id': task.id, 'title': 'Initial build — home page'}],

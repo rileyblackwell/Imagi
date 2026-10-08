@@ -35,6 +35,7 @@ except ImportError:  # pragma: no cover - defensive fallback
     Reasoning = None
 
 from django.conf import settings
+from apps.Imagi.Build.services.api_keys import read_api_key
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -48,7 +49,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Get API key
-OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
+OPENAI_API_KEY = read_api_key('OPENAI_KEY')
 
 # Platform defaults for every user's project (see IMAGI_BUILDER in
 # imagi/settings.py); fallbacks keep tests and scripts working without it.

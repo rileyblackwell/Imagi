@@ -306,3 +306,22 @@ class ClaudeRunnerTests(SimpleTestCase):
         self.assertEqual(result.final_output, 'Found it.')
         self.assertEqual(client.requests[1]['messages'][-1]['role'], 'assistant')
         self.assertEqual(client.requests[1]['messages'][-1]['content'][0]['type'], 'server_tool_use')
+
+
+class ApiKeyLoadingTests(SimpleTestCase):
+    """A key pasted into Railway with a trailing newline made every Claude run
+    in production fail with 'Illegal header value' (and logged the key)."""
+
+    def test_key_is_stripped(self):
+        import os
+        from unittest import mock
+        from apps.Imagi.Build.services.api_keys import read_api_key
+        with mock.patch.dict(os.environ, {'ANTHROPIC_KEY': ' sk-ant-test\n'}):
+            self.assertEqual(read_api_key('ANTHROPIC_KEY'), 'sk-ant-test')
+
+    def test_blank_key_reads_as_unset(self):
+        import os
+        from unittest import mock
+        from apps.Imagi.Build.services.api_keys import read_api_key
+        with mock.patch.dict(os.environ, {'OPENAI_KEY': '\n'}):
+            self.assertIsNone(read_api_key('OPENAI_KEY'))

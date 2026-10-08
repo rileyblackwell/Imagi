@@ -29,6 +29,7 @@ import time
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 from django.conf import settings
+from apps.Imagi.Build.services.api_keys import read_api_key
 
 from agents.items import ModelResponse
 from agents.models.fake_id import FAKE_RESPONSES_ID
@@ -59,7 +60,7 @@ except ImportError:  # pragma: no cover - defensive fallback
 
 logger = logging.getLogger(__name__)
 
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_KEY') or getattr(settings, 'ANTHROPIC_KEY', None)
+ANTHROPIC_API_KEY = read_api_key('ANTHROPIC_KEY')
 
 # Output ceiling per model response. Every request streams, so a generous cap
 # costs nothing unless it is used; a whole page written in one tool call needs

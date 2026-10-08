@@ -94,6 +94,15 @@ class PageBrief:
     def task_title(self):
         return f'{TASK_TITLE} — {self.slug} page'
 
+    @property
+    def goal(self):
+        """What the thread's card says it is doing, in the owner's words.
+
+        Without one the card falls back to the opening message, which for a
+        first build is the whole engineering brief.
+        """
+        return f'Build {self.summary}.'
+
 
 # The three pages of a first build, each dispatched to its own subagent. Their
 # routes and placeholder views are scaffolded at project creation
@@ -139,16 +148,30 @@ def _lead_ack(pages) -> str:
     names = ', '.join(p.slug for p in pages)
     if len(pages) == 1:
         return (
-            "On it — I've kicked off a subagent to build the first version of "
-            "your app. You can watch it work in its thread; I'll let you know "
-            "when it's done."
+            "On it — I've started a thread to build the first version of "
+            "your app. You can watch it work there; I'll let you know when "
+            "it's done."
         )
     return (
-        f"On it — I've kicked off {len(pages)} subagents to build the first "
+        f"On it — I've started {len(pages)} threads to build the first "
         f"version of your app, one per page ({names}), all working at the same "
-        "time. You can watch them in their threads; I'll let you know when "
+        "time. You can watch them work there; I'll let you know when "
         "they're done."
     )
+
+
+def build_founder_brief(name: str, description: str, design_preferences: str = "") -> str:
+    """The main thread's opening message: the business, as the founder gave it.
+
+    The founder reads this as their own first message, so it carries what they
+    typed at project creation and none of the page briefs' engineering
+    instructions, which go to the page threads alone.
+    """
+    brief = f"Build the first version of my business's web app.\n\nBusiness name: {name}\n\nWhat it does:\n{description}"
+    design = (design_preferences or "").strip()
+    if design:
+        brief += f"\n\nDesign & style:\n{design}"
+    return brief
 
 
 def build_initial_prompt(
@@ -353,6 +376,7 @@ def _create_build_task(user, lead, project_id, model, prompt, page):
         project_id=project_id,
         mode='agent',
         title=page.task_title,
+        goal=page.goal,
         kind='task',
         parent=lead,
         review_status='active',
@@ -444,10 +468,12 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             )
             for page in pages
         ]
-        # The home page's brief opens the main thread: it is the page the
-        # founder is really waiting on, and the whole business description is
-        # in it.
-        _open_lead_thread(service, lead, prompts[pages[0].slug], tasks)
+        founder_brief = build_founder_brief(
+            project.name,
+            project.description,
+            getattr(project, 'design_preferences', ''),
+        )
+        _open_lead_thread(service, lead, founder_brief, tasks)
 
         # One deadline for everything, started before the first agent does.
         time_budget = builder.get('INITIAL_BUILD_TIME_BUDGET_S', 60)
