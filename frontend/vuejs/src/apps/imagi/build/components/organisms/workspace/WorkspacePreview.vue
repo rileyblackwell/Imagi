@@ -166,14 +166,44 @@
                background reads better than stretched text. The translate3d carries
                the optimistic local scroll (compositor-only, always present so the
                img keeps its own layer); gaps it opens show the container bg. -->
+          <!-- The rest of the page, captured ahead of time (see Backdrop). It
+               sits behind the frame and scrolls with the page, so a scroll
+               shows real content straight away instead of an empty strip. -->
+          <div
+            v-if="backdropUsable && backdrop"
+            class="pv-backdrop"
+            :style="backdropStyle"
+            aria-hidden="true"
+          >
+            <img
+              v-for="slice in backdrop.slices"
+              :key="slice.y"
+              :src="slice.src"
+              alt=""
+              draggable="false"
+              class="pv-backdrop-slice"
+              :style="sliceStyle(slice.y)"
+            />
+          </div>
           <img
             v-if="frameSrc"
             :src="frameSrc"
             alt=""
             draggable="false"
             decoding="async"
-            class="w-full h-full select-none pointer-events-none"
+            class="pv-live w-full h-full select-none pointer-events-none"
+            :class="{ 'is-covered': backdropCarries }"
             :style="frameStyle"
+          />
+          <!-- While the backdrop carries a scroll, the page's fixed header (and
+               anything else pinned to the view) stays put on top of it. -->
+          <img
+            v-if="backdropCarries && backdrop?.overlay"
+            :src="backdrop.overlay"
+            alt=""
+            draggable="false"
+            class="pv-backdrop-overlay"
+            aria-hidden="true"
           />
 
           <!-- The page's scrollbar, drawn here so it moves with the page the
@@ -277,7 +307,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, shallowRef, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import {
   PreviewService,
   PreviewNotRunningError,
@@ -528,6 +558,7 @@ async function pollFrame() {
     const seq = ++requestSeq
     const f = await PreviewService.frame(props.projectId, etag.value)
     applyStatus(f, seq)
+    void maybeRefreshBackdrop()
   } catch (e) {
     if (e instanceof PreviewNotRunningError) {
       markSessionStopped()
@@ -627,12 +658,11 @@ function pageToClientScaleY(): number {
 }
 
 const frameStyle = computed(() => {
-  const dpr = window.devicePixelRatio || 1
   // Beyond a screenful the frame has fully left the pane, so cap there.
   const limit = viewport.value[1]
   const raw = (shownScrollY.value - targetScrollY.value) * pageToClientScaleY()
   // Whole device pixels, so text in the frame stays crisp while it is shifted.
-  const shift = Math.round(Math.max(-limit, Math.min(raw, limit)) * dpr) / dpr
+  const shift = toDevicePx(Math.max(-limit, Math.min(raw, limit)))
   return {
     objectFit: 'contain' as const,
     transform: `translate3d(0, ${shift}px, 0)`,
@@ -648,6 +678,139 @@ const stageStyle = computed(() => {
   const transparent = /^rgba\(.*,\s*0(\.0+)?\)$/.test(bg)
   return { backgroundColor: transparent ? '#fff' : bg }
 })
+
+// ---------------------------------------------------------------------------
+// Backdrop
+//
+// A frame shows only the viewport, so even a perfectly placed scroll has
+// nothing to show for the part of the page coming into view until the next
+// frame arrives. The backdrop is the page around the current scroll (up to
+// ~10,000px of it), captured once per page in slices, with the page's fixed
+// elements (a fixed or sticky header) captured separately on transparency.
+// While a scroll is ahead of the frames, the backdrop is what's on screen,
+// scrolled locally, with the fixed layer pinned on top: the page simply
+// scrolls. When the frame for where the page landed arrives, it takes over.
+//
+// Fetched only while the user isn't interacting (it scrolls the remote page
+// through, under a lock that holds input back), and again when the page,
+// its height or the pane width changes, when a scroll settles near the edge
+// of what it covers, or when the page has changed and it's a while old.
+// ---------------------------------------------------------------------------
+
+interface Backdrop {
+  path: string
+  width: number
+  height: number
+  top: number
+  bottom: number
+  slices: Array<{ y: number; src: string }>
+  overlay: string | null
+  capturedAt: number
+  etag?: string
+}
+
+const backdrop = shallowRef<Backdrop | null>(null)
+let backdropLoading = false
+let backdropGen = 0
+let backdropRetryAt = 0
+// Content can change under a backdrop (the agent edits the app, data loads);
+// past this age, a changed frame triggers a fresh one.
+const BACKDROP_STALE_MS = 15000
+const BACKDROP_IDLE_MS = 400
+
+function dropBackdrop() {
+  backdropGen++
+  backdrop.value = null
+}
+
+const backdropUsable = computed(() => {
+  const b = backdrop.value
+  return !!b && b.path === currentPath.value && Math.abs(b.width - viewport.value[0]) <= 2
+})
+
+// The backdrop, not the frame, is on screen: the scroll is ahead of the
+// frames and the backdrop covers the whole view where the page is headed.
+const backdropCarries = computed(() => {
+  const b = backdrop.value
+  if (!backdropUsable.value || !b) return false
+  if (Math.abs(shownScrollY.value - targetScrollY.value) < 0.5) return false
+  const y = targetScrollY.value
+  return y >= b.top - 0.5 && y + viewport.value[1] <= b.bottom + 0.5
+})
+
+function toDevicePx(px: number): number {
+  const dpr = window.devicePixelRatio || 1
+  return Math.round(px * dpr) / dpr
+}
+
+const backdropStyle = computed(() => {
+  const b = backdrop.value
+  if (!b) return undefined
+  const shift = toDevicePx((b.top - targetScrollY.value) * pageToClientScaleY())
+  return { transform: `translate3d(0, ${shift}px, 0)` }
+})
+
+function sliceStyle(y: number) {
+  const b = backdrop.value
+  const scale = pageToClientScaleY()
+  return {
+    top: `${toDevicePx((y - (b?.top ?? 0)) * scale)}px`,
+    height: `${toDevicePx(viewport.value[1] * scale)}px`,
+  }
+}
+
+function backdropWanted(): boolean {
+  const s = scrollInfo.value
+  if (!s || maxScrollY.value <= 0) return false // nothing to scroll to
+  const b = backdrop.value
+  if (!b || !backdropUsable.value) return true
+  if (Math.abs(b.height - s.height) > 2) return true
+  const y = targetScrollY.value
+  const vh = s.viewport_height
+  if ((b.top > 0 && y < b.top + vh) || (b.bottom < s.height - 1 && y + 2 * vh > b.bottom)) return true
+  return etag.value !== b.etag && Date.now() - b.capturedAt > BACKDROP_STALE_MS
+}
+
+function decodeImage(src: string): Promise<void> {
+  const img = new Image()
+  img.src = src
+  return img.decode().catch(() => undefined)
+}
+
+async function maybeRefreshBackdrop() {
+  if (backdropLoading || disposed || phase.value !== 'ready' || props.paused) return
+  // Never mid-gesture: the capture holds input back while it runs.
+  if (inputInFlight > 0 || inputQueue.length > 0 || Date.now() - lastActivityAt < BACKDROP_IDLE_MS) return
+  if (Date.now() < backdropRetryAt || !backdropWanted()) return
+  backdropLoading = true
+  const gen = backdropGen
+  try {
+    const b = await PreviewService.backdrop(props.projectId)
+    if (disposed || gen !== backdropGen || !b?.slices?.length || !b.scroll) return
+    const slices = b.slices.map(sl => ({ y: sl.y, src: `data:image/jpeg;base64,${sl.frame}` }))
+    const overlay = b.overlay ? `data:image/png;base64,${b.overlay}` : null
+    // Decoded before use, so the first scroll over it doesn't stall a paint.
+    await Promise.all([...slices.map(sl => decodeImage(sl.src)), overlay ? decodeImage(overlay) : null])
+    if (disposed || gen !== backdropGen) return
+    const vh = b.viewport[1]
+    backdrop.value = {
+      path: b.path,
+      width: b.viewport[0],
+      height: b.scroll.height,
+      top: Math.min(...slices.map(sl => sl.y)),
+      bottom: Math.max(...slices.map(sl => sl.y)) + vh,
+      slices,
+      overlay,
+      capturedAt: Date.now(),
+      etag: etag.value,
+    }
+  } catch (e) {
+    backdropRetryAt = Date.now() + 10000
+    if (e instanceof PreviewNotRunningError) markSessionStopped()
+  } finally {
+    backdropLoading = false
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Scrollbar
@@ -1120,6 +1283,7 @@ async function doNavigate(action: 'goto' | 'back' | 'forward' | 'reload', path?:
   // Any scroll offset (optimistic or gliding) belongs to the page being left.
   stopInertia()
   resyncScroll()
+  dropBackdrop()
   // Hard navigation clears the page's error buffer, so the same error text
   // on the fresh document should notify again.
   dismissedErrorKey.value = null
@@ -1362,6 +1526,7 @@ watch(
       apps.value = []
       stopInertia()
       resyncScroll()
+      dropBackdrop()
       consoleErrors.value = []
       dismissedErrorKey.value = null
       void refreshPages()
@@ -1829,6 +1994,43 @@ defineExpose({ reload })
    an optimistic scroll opens a gap: a quiet matte, not a glitch. */
 .pv-stage {
   background-color: var(--sl-bg-deep, #f0eee9);
+}
+
+/* The backdrop: slices stacked at their page offsets in one layer that the
+   scroll moves (compositor-only). The frame on top hides while the backdrop
+   carries a scroll, and the fixed-elements overlay pins over both. */
+.pv-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.pv-backdrop-slice {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  max-width: none;
+  user-select: none;
+}
+
+.pv-live {
+  position: relative;
+}
+
+.pv-live.is-covered {
+  visibility: hidden;
+}
+
+.pv-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* The page's scrollbar (see the template): a slim ink pill that shows while

@@ -11,6 +11,7 @@ now a Vue SPA talking to the DRF API exercised below.
 """
 
 import os
+import re
 import shutil
 import tempfile
 import threading
@@ -591,6 +592,114 @@ class PreviewMotionFrameTests(TestCase):
         self.assertNotIn('Page.getLayoutMetrics', [m for m, _ in conn.calls])
 
 
+class FakeScrollingPage(FakeCdpConnection):
+    """A 4000px page in an 800px viewport that really scrolls."""
+
+    def __init__(self, fixed_elements=1):
+        super().__init__()
+        self.y = 640.0
+        self.fixed_elements = fixed_elements
+        self.warmed = False
+
+    def call(self, method, params=None):
+        expr = (params or {}).get('expression', '')
+        if method == 'Runtime.evaluate':
+            if 'scrollingElement' in expr:
+                self.scroll_metrics = dict(self.scroll_metrics, y=self.y)
+            elif 'window.scrollTo' in expr and 'imagi' not in expr:
+                self.calls.append((method, params or {}))
+                top = float(re.search(r'top: ([\d.]+)', expr).group(1))
+                self.y = max(0.0, min(top, 4000.0 - 800.0))
+                return {'result': {'type': 'object', 'value': [0, self.y]}}
+            elif '__imagiBackdropWarm' in expr:
+                self.calls.append((method, params or {}))
+                first, self.warmed = not self.warmed, True
+                return {'result': {'type': 'boolean', 'value': first}}
+            elif "querySelectorAll('body *')" in expr:
+                self.calls.append((method, params or {}))
+                return {'result': {'type': 'number', 'value': self.fixed_elements}}
+            elif '__imagi_backdrop' in expr or 'requestAnimationFrame(f)' in expr:
+                self.calls.append((method, params or {}))
+                return {'result': {'type': 'boolean', 'value': True}}
+        return super().call(method, params)
+
+
+class PreviewBackdropTests(TestCase):
+    """The page captured ahead of time, for the client to scroll through."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='backdrop', password='pw123456')
+        projects_root = tempfile.mkdtemp(prefix='preview_root_')
+        self.addCleanup(lambda: shutil.rmtree(projects_root, ignore_errors=True))
+        overrides = override_settings(PROJECTS_ROOT=projects_root)
+        overrides.enable()
+        self.addCleanup(overrides.disable)
+        project_path = tempfile.mkdtemp(prefix='preview_proj_')
+        self.addCleanup(lambda: shutil.rmtree(project_path, ignore_errors=True))
+        self.project = PMProject.objects.create(
+            user=self.user, name='Backdrop Project', project_path=project_path
+        )
+        self.service = BrowserPreviewService(self.project)
+        os.makedirs(self.service.pid_dir, exist_ok=True)
+        self.state = {
+            'app_url': 'http://127.0.0.1:5174', 'viewport': [1000, 800],
+            'device_scale_factor': 2, 'cdp_port': 9999,
+        }
+
+    def _run(self, conn):
+        entry = {'conn': conn, 'page': {}, 'lock': threading.Lock()}
+        with mock.patch.object(self.service, '_require_state', return_value=self.state), \
+                mock.patch('apps.Imagi.Build.services.browser_preview_service._pool_checkout',
+                           return_value=entry), \
+                mock.patch('apps.Imagi.Build.services.browser_preview_service.time.sleep'):
+            return self.service.backdrop()
+
+    def test_slices_cover_the_page_and_the_scroll_is_put_back(self):
+        conn = FakeScrollingPage()
+        result = self._run(conn)
+        # 4000px at 800px a slice; the last one clamps at the bottom (3200).
+        self.assertEqual([s['y'] for s in result['slices']], [0.0, 800.0, 1600.0, 2400.0, 3200.0])
+        self.assertTrue(all(s['frame'] for s in result['slices']))
+        self.assertEqual(result['scroll']['y'], 640.0)
+        self.assertEqual(conn.y, 640.0)  # restored
+        # Slices are 1x even on a 2x session, clipped where each one landed.
+        clips = [p['clip'] for m, p in conn.calls if m == 'Page.captureScreenshot' and p.get('format') == 'jpeg']
+        self.assertEqual([c['y'] for c in clips], [0.0, 800.0, 1600.0, 2400.0, 3200.0])
+        self.assertTrue(all(c['scale'] == 0.5 for c in clips))
+        # The restyle is always removed again.
+        styles = [p['expression'] for m, p in conn.calls if '__imagi_backdrop' in p.get('expression', '')]
+        self.assertTrue(styles[-1].rstrip().endswith('(null)'))
+
+    def test_fixed_elements_come_back_as_a_transparent_overlay(self):
+        conn = FakeScrollingPage(fixed_elements=2)
+        result = self._run(conn)
+        self.assertEqual(result['overlay'], 'ZnJhbWU=')
+        overrides = [p for m, p in conn.calls if m == 'Emulation.setDefaultBackgroundColorOverride']
+        self.assertEqual(overrides, [{'color': {'r': 0, 'g': 0, 'b': 0, 'a': 0}}, {}])
+        png = [p for m, p in conn.calls if m == 'Page.captureScreenshot' and p.get('format') == 'png']
+        self.assertEqual(png[0]['clip']['y'], 640.0)
+
+    def test_no_fixed_elements_means_no_overlay(self):
+        self.assertIsNone(self._run(FakeScrollingPage(fixed_elements=0))['overlay'])
+
+    def test_first_backdrop_of_a_page_scrolls_through_it_first(self):
+        conn = FakeScrollingPage()
+        self._run(conn)
+        frames_waited = [p for m, p in conn.calls if 'requestAnimationFrame(f)' in p.get('expression', '')]
+        self.assertEqual(len(frames_waited), 5)
+        conn.calls.clear()
+        self._run(conn)  # same page again: no warm-up pass
+        self.assertFalse([p for m, p in conn.calls if 'requestAnimationFrame(f)' in p.get('expression', '')])
+
+    def test_offsets_stay_near_the_scroll_on_a_very_long_page(self):
+        offsets = BrowserPreviewService._backdrop_offsets(
+            {'y': 30000, 'height': 60000, 'viewport_height': 1000}
+        )
+        self.assertLessEqual(offsets[0], 30000)
+        self.assertGreaterEqual(offsets[-1] + 1000, 31000)
+        self.assertLessEqual(len(offsets), 10)
+
+
 class PreviewScrollMetricsTests(TestCase):
     """Frames report the scroll offset they show, read after wheel input lands."""
 
@@ -708,6 +817,11 @@ class PreviewEndpointTests(APITestCase):
         body = resp.json()
         self.assertFalse(body['running'])
         self.assertIn('error', body)
+
+    def test_backdrop_reports_browser_not_running_as_409(self):
+        resp = self.client.get(reverse('api-preview-backdrop', args=[self.project.id]))
+        self.assertEqual(resp.status_code, 409)
+        self.assertFalse(resp.json()['running'])
 
     def test_input_reports_browser_not_running_as_409(self):
         resp = self.client.post(
