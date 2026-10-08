@@ -47,10 +47,7 @@
         class="feed-step flex items-start gap-2 min-w-0 leading-relaxed"
       >
         <span class="flex w-3.5 shrink-0 items-center justify-center mt-[3px]">
-          <i
-            v-if="index === steps.length - 1"
-            class="fas fa-circle-notch fa-spin text-[9px] text-blue-600 dark:text-blue-300"
-          ></i>
+          <span v-if="index === steps.length - 1" class="iw-live feed-live"></span>
           <i v-else class="fas fa-check text-[9px] step-done"></i>
         </span>
         <span class="min-w-0 text-ink/70 dark:text-white/65">{{ step.label }}</span>
@@ -101,6 +98,13 @@ const foldLabel = computed(() => {
 </script>
 
 <style scoped>
+/* The step in progress wears the workspace's live dot (styles/workspace.css),
+   sized to the check marks beside it. */
+.feed-live {
+  width: 0.375rem;
+  height: 0.375rem;
+}
+
 .feed-list {
   display: flex;
   flex-direction: column;

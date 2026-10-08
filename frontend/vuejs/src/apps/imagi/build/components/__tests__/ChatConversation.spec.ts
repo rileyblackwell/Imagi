@@ -254,21 +254,46 @@ describe('ChatConversation dispatch card', () => {
     expect(card.find('.dispatch-card__result').text()).toBe('Built two takes on the pricing table.')
   })
 
-  it('surfaces a subagent that is blocked on a question', async () => {
-    // The question is answered in the check-in queue above the composer, but
-    // it has to be readable from the card too — a status line alone cannot be
-    // acted on.
-    const wrapper = await openCard(withSubagent({
+  it('asks a blocked thread\'s question right on its card', () => {
+    // The question is answered where it is shown, not in the thread: the card
+    // carries it whole, with the thread's one-tap answers from its check-in.
+    const store = useAgentStore()
+    store.checkIns = [{
+      id: 1, kind: 'question', body: 'Should the form email you or open a ticket?',
+      options: ['Email me', 'Open a ticket'], visual: '', status: 'pending',
+      created_at: '', resolved_at: null, project_id: null, lead_id: null,
+      task: {
+        id: 7, title: 'Contact page', goal: JOB, kind: 'task', review_status: 'input',
+        variant_group: '', has_worktree: false, is_running: false,
+      },
+    }] as typeof store.checkIns
+    const wrapper = withSubagent({
       reviewStatus: 'input',
       brief: JOB,
       lastMessagePreview: 'Should the form email you or open a ticket?',
-    }))
+    })
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--asking')
     expect(card.text()).toContain('Needs an answer from you')
-    expect(card.find('.dispatch-card__result').text())
+    expect(card.find('.dispatch-card__question').text())
       .toBe('Should the form email you or open a ticket?')
+    expect(card.findAll('.question-option').map(o => o.text())).toEqual(['Email me', 'Open a ticket'])
+  })
+
+  it('sends an answer given on the card back to that thread', async () => {
+    const wrapper = withSubagent({
+      reviewStatus: 'input',
+      brief: JOB,
+      lastMessagePreview: 'Should the form email you or open a ticket?',
+    })
+    const store = useAgentStore()
+    const steer = vi.spyOn(store, 'steerThread').mockReturnValue(true)
+
+    await wrapper.find('.dispatch-card textarea').setValue('Email me, please')
+    await wrapper.find('.dispatch-card form').trigger('submit')
+
+    expect(steer).toHaveBeenCalledWith('inst-1', 'Email me, please')
   })
 
   it('falls back to starting when the store has no instance yet', () => {

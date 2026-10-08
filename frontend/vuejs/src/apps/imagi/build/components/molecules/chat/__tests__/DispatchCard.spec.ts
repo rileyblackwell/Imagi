@@ -44,7 +44,8 @@ const statusOf = (wrapper: ReturnType<typeof mountCard>) =>
 /** Open the card. Closed is the resting state, so anything that reads the
  *  summary has to ask for it the way a user would. */
 const opened = async (wrapper: ReturnType<typeof mountCard>) => {
-  await wrapper.find('.dispatch-card__toggle').trigger('click')
+  const toggle = wrapper.find('.dispatch-card__toggle')
+  if (toggle.exists()) await toggle.trigger('click')
   return wrapper
 }
 
@@ -272,35 +273,25 @@ describe('DispatchCard disclosure', () => {
     expect(wrapper.find(`#${toggle.attributes('aria-controls')}`).exists()).toBe(true)
   })
 
-  it('says in words what the fold is holding', async () => {
-    // A bare caret is a puzzle: it marks that something is hidden without
-    // saying what, so the only way to find out is to press it.
+  it('says in words which way the fold goes', async () => {
     const wrapper = mountCard(makeTask({ isProcessing: true, overview: OVERVIEW }))
-    const reveal = wrapper.find('.dispatch-card__reveal')
+    const toggle = wrapper.find('.dispatch-card__toggle')
 
-    expect(reveal.text()).toBe("See what it's doing")
-    await wrapper.find('.dispatch-card__toggle').trigger('click')
-    expect(wrapper.find('.dispatch-card__reveal').text()).toBe("Hide what it's doing")
+    expect(toggle.text()).toBe('Details')
+    await toggle.trigger('click')
+    expect(wrapper.find('.dispatch-card__toggle').text()).toBe('Hide details')
   })
 
-  it('names the fold after whatever is actually inside it', () => {
-    // "See summary" over a question the subagent is waiting on would be a
-    // small lie, and the one card the user most needs to act on.
-    const named = (instance: AgentInstance) =>
-      mountCard(instance).find('.dispatch-card__reveal').text()
-
-    expect(named(makeTask({
-      reviewStatus: 'accepted',
-      lastAssistantSummary: 'Your contact page is live.',
-    }))).toBe('See summary')
-    expect(named(makeTask({
-      reviewStatus: 'input',
-      lastAssistantSummary: 'Should the form email you?',
-    }))).toBe('See the question')
-    expect(named(makeTask({
+  it('shows a stopped run what happened without a fold', () => {
+    // Try again takes the fold's place on a stopped card, and the reader
+    // needs both the way back and what did and did not land.
+    const wrapper = mountCard(makeTask({
       reviewStatus: 'failed',
       lastAssistantSummary: 'I got partway and stopped.',
-    }))).toBe('See what happened')
+    }))
+
+    expect(wrapper.find('.dispatch-card__toggle').exists()).toBe(false)
+    expect(wrapper.find('.dispatch-card__result').text()).toBe('I got partway and stopped.')
   })
 
   it('stays open through the flip to complete', async () => {
@@ -324,41 +315,31 @@ describe('DispatchCard disclosure', () => {
 
   it('offers nothing to open when the run has said nothing', () => {
     // A discarded card, or a dispatch that carried no overview: the state and
-    // the job are the whole of it, and a caret promising more would be a lie.
+    // the job are the whole of it, and a fold promising more would be a lie.
     for (const instance of [
       makeTask({ reviewStatus: 'dismissed' }),
       makeTask({ isProcessing: true, overview: '' }),
     ]) {
-      const wrapper = mountCard(instance)
-      expect(wrapper.find('.dispatch-card__caret').exists()).toBe(false)
-      expect(wrapper.find('.dispatch-card__toggle').attributes('disabled'))
-        .toBeDefined()
+      expect(mountCard(instance).find('.dispatch-card__toggle').exists()).toBe(false)
     }
   })
 
-  it('offers the step-by-step at the end of what it had to say', async () => {
-    // The way into the subagent's own thread, named rather than drawn — an
-    // unlabelled corner icon was a trip nobody could see the point of. It
-    // waits inside the fold, where a reader who has finished the summary and
-    // wants the working is already looking.
-    const wrapper = mountCard(makeTask({ isProcessing: true, overview: OVERVIEW }))
-    expect(wrapper.find('.dispatch-card__more').exists()).toBe(false)
-
-    await wrapper.find('.dispatch-card__toggle').trigger('click')
-    const more = wrapper.find('.dispatch-card__more')
-    expect(more.text()).toContain('See step by step')
-
-    await more.trigger('click')
-    expect(wrapper.emitted('open')).toHaveLength(1)
-  })
-
-  it('keeps no unlabelled icon on the card at rest', () => {
-    // The card at rest is two lines and an invitation. Anything else on it
-    // has to earn its place by saying what it does.
-    const wrapper = mountCard(makeTask({ isProcessing: true, overview: OVERVIEW }))
-
-    expect(wrapper.find('.dispatch-card__open').exists()).toBe(false)
-    expect(wrapper.find('.fa-arrow-up-right-from-square').exists()).toBe(false)
+  it('goes to the thread from every card that reports on one', async () => {
+    // Working, finished or stopped, the way in is the same button in the
+    // same place, at rest — not hidden inside the fold.
+    for (const instance of [
+      makeTask({ isProcessing: true, overview: OVERVIEW }),
+      makeTask({ reviewStatus: 'accepted', lastAssistantSummary: 'Done.' }),
+      makeTask({ reviewStatus: 'failed' }),
+      null,
+    ]) {
+      const wrapper = mountCard(instance)
+      const go = wrapper.find('.dispatch-card__go')
+      expect(go.text()).toBe('Go to thread')
+      await go.trigger('click')
+      expect(wrapper.emitted('open')).toHaveLength(1)
+    }
+    expect(mountCard(makeTask({ isProcessing: true })).text()).not.toContain('step by step')
   })
 
   it('does not wander off to the thread when the card is opened', async () => {
@@ -367,5 +348,56 @@ describe('DispatchCard disclosure', () => {
     await wrapper.find('.dispatch-card__toggle').trigger('click')
 
     expect(wrapper.emitted('open')).toBeUndefined()
+  })
+})
+
+describe('DispatchCard question', () => {
+  const QUESTION = 'Should the reviews come from your Google listing, or would you rather type them in?'
+  const asking = () => makeTask({ reviewStatus: 'input', lastAssistantSummary: QUESTION })
+
+  it('shows the question whole, at rest, with nowhere else to go', () => {
+    // The card asks rather than reports: the question is the point, and
+    // nothing in the thread is needed to answer it.
+    const wrapper = mountCard(asking())
+
+    expect(statusOf(wrapper)).toBe('Needs an answer from you')
+    expect(wrapper.find('.dispatch-card__question').text()).toBe(QUESTION)
+    expect(wrapper.find('.dispatch-card__go').exists()).toBe(false)
+    expect(wrapper.find('.dispatch-card__toggle').exists()).toBe(false)
+  })
+
+  it('sends a typed answer back from the card', async () => {
+    const wrapper = mountCard(asking())
+    const send = wrapper.find('.dispatch-card__send')
+
+    expect(send.attributes('disabled')).toBeDefined()
+    await wrapper.find('textarea').setValue('  Type them in myself  ')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('answer')).toEqual([['Type them in myself']])
+    expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('')
+  })
+
+  it('offers the thread\'s one-tap answers and sends the one picked', async () => {
+    const wrapper = mount(DispatchCard, {
+      props: {
+        title: 'Add reviews',
+        instance: asking(),
+        questionOptions: ['From Google', 'I will type them'],
+      },
+    })
+
+    const options = wrapper.findAll('.question-option')
+    expect(options.map(o => o.text())).toEqual(['From Google', 'I will type them'])
+    await options[0]!.trigger('click')
+    expect(wrapper.emitted('answer')).toEqual([['From Google']])
+  })
+
+  it('goes back to reporting once the thread picks the job up again', async () => {
+    const wrapper = mountCard(asking())
+    await wrapper.setProps({ instance: makeTask({ reviewStatus: 'active', isProcessing: true }) })
+
+    expect(wrapper.find('.dispatch-card__question').exists()).toBe(false)
+    expect(wrapper.find('.dispatch-card__go').exists()).toBe(true)
   })
 })
