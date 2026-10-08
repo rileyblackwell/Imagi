@@ -26,6 +26,13 @@ class Project(models.Model):
         blank=True,
         help_text="Optional project description"
     )
+    app_details = models.TextField(
+        blank=True,
+        default="",
+        help_text="Optional founder-provided account of how the app should work "
+                  "(what people can do, what it keeps track of, what it must be "
+                  "like); the initial AI build turns it into a light system design"
+    )
     design_preferences = models.TextField(
         blank=True,
         default="",
