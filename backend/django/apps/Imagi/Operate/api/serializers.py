@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from rest_framework import serializers
 
-from ..models import Invoice, OperationsTask, Transaction
+from ..models import AppMonitor, Invoice, OperationsTask, Transaction
 
 LINE_ITEMS_MAX = 50
 
@@ -135,3 +135,10 @@ class OperationsTaskSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['project'] = self.context['project']
         return super().create(validated_data)
+
+
+class AppMonitorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppMonitor
+        fields = ['live_url', 'site_key', 'updated_at']
+        read_only_fields = fields

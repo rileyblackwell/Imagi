@@ -20,8 +20,8 @@
           </p>
           <p>
             Sell and Market connect to your own third-party accounts—Stripe for payments, Twilio for messaging—so money and
-            messages flow through accounts you control. Operate needs no connection; it ties everything together with
-            finances, invoicing, and tasks.
+            messages flow through accounts you control. Operate needs no connection; it is one dashboard for your live app
+            and your business's money.
           </p>
         </div>
       </section>
@@ -128,28 +128,19 @@
           Run the business
         </p>
         <p class="lede lede--section">
-          Operate is your command center. It brings together a financial ledger, invoicing, and a task list, and its
-          dashboard even pulls in a pulse from Sell and Market—so you can see how the whole business is doing at a glance.
-          No third-party connection required.
+          Operate is a dashboard with two halves. One side watches your app: is it up, is it fast, and who is visiting.
+          The other watches your business: revenue, expenses, and profit. No third-party connection required.
         </p>
         <div class="rule-cols rule-cols--2">
-          <DocsCard title="Business dashboard">
-            Income, expenses, and net over the last 30 days, plus a cash-flow chart, what's awaiting payment, and what's up
-            next. An "Across your business" view surfaces sales and messaging activity from Sell and Market.
+          <DocsCard title="Your app">
+            Add the address your app lives at and Imagi checks it for uptime and response time, whenever you open
+            Operate or press "Check now". To count visitors, paste the page-view tag Operate gives you into your app (or
+            ask Build to add it). The tag sets no cookies and only counts visits to your live address, never the preview.
           </DocsCard>
-          <DocsCard title="Finance">
-            Record income and expenses in a simple ledger, each with a category, amount, and date. Marking an invoice paid
-            records the income for you automatically. Stripe sales from Sell aren't added to the ledger—they show up in the
-            dashboard's "Across your business" view instead.
-          </DocsCard>
-          <DocsCard title="Invoices">
-            Create invoices with line items, issue and due dates, and notes, and track each from draft to sent to paid—or
-            void it to cancel. Imagi doesn't email invoices; send them to your customer yourself, then mark them sent.
-            Overdue invoices are flagged so nothing slips.
-          </DocsCard>
-          <DocsCard title="Tasks">
-            Keep the day-to-day organized with a task list—priorities, due dates, and simple to do / in progress / done
-            states so the work stays on track.
+          <DocsCard title="Your business">
+            Revenue, expenses, and profit for the last 30 days, plus a month-by-month chart. Revenue counts payments
+            taken through Sell plus any income you record; expenses come from the ledger. Record either from the Ledger
+            tab, each with a category, amount, and date.
           </DocsCard>
         </div>
       </section>

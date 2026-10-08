@@ -7,9 +7,17 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Central hub dashboard
+    # The dashboard: the app half and the business half
     path('projects/<int:project_id>/dashboard/',
          views.DashboardView.as_view(), name='api-operate-dashboard'),
+    path('projects/<int:project_id>/app/',
+         views.AppMonitorView.as_view(), name='api-operate-app'),
+    path('projects/<int:project_id>/app/check/',
+         views.UptimeCheckView.as_view(), name='api-operate-app-check'),
+
+    # Public: the live app's page-view tag posts here
+    path('beacon/<str:site_key>/',
+         views.PageViewBeaconView.as_view(), name='api-operate-beacon'),
 
     # Financial ledger
     path('projects/<int:project_id>/transactions/',

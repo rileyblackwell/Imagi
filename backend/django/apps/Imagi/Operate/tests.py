@@ -1,11 +1,12 @@
 """
 Tests for the Operate app: ledger transactions, the invoice lifecycle
 (including the paid -> ledger entry hook), operational tasks, and the
-central-hub dashboard.
+dashboard's two halves (app monitoring, page views, business numbers).
 """
 
 import datetime
 from decimal import Decimal
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -338,73 +339,164 @@ class TaskTests(OperateAPITestCase):
 
 class DashboardTests(OperateAPITestCase):
 
-    def test_dashboard_aggregates(self):
-        self.add_transaction(kind='income', category='sales', amount='500.00', days_ago=5)
-        self.add_transaction(kind='expense', category='supplies', amount='200.00', days_ago=10)
-        # Outside the 30-day window; still counts toward all-time.
-        self.add_transaction(kind='income', category='services', amount='999.00', days_ago=45)
-
-        self.add_invoice(
-            status=Invoice.STATUS_SENT,
-            total_price='300.00',
-            due_date=timezone.localdate() - datetime.timedelta(days=2),
-        )
-        OperationsTask.objects.create(
-            project=self.project,
-            title='Overdue task',
-            due_date=timezone.localdate() - datetime.timedelta(days=1),
-        )
-
-        response = self.client.get(f'{self.base}/dashboard/')
-        self.assertEqual(response.status_code, 200)
-
-        finance = response.data['finance']
-        self.assertEqual(finance['income_30d'], 500.0)
-        self.assertEqual(finance['expenses_30d'], 200.0)
-        self.assertEqual(finance['net_30d'], 300.0)
-        self.assertEqual(finance['income_all_time'], 1499.0)
-
-        invoices = response.data['invoices']
-        self.assertEqual(invoices['outstanding_total'], 300.0)
-        self.assertEqual(invoices['outstanding_count'], 1)
-        self.assertEqual(invoices['overdue_count'], 1)
-
-        tasks = response.data['tasks']
-        self.assertEqual(tasks['open_count'], 1)
-        self.assertEqual(tasks['overdue_count'], 1)
-
-        # Cross-module pulse and hub lists are present.
-        self.assertIn('marketing', response.data)
-        self.assertFalse(response.data['marketing']['configured'])
-        self.assertIn('sell', response.data)
-        self.assertFalse(response.data['sell']['configured'])
-        self.assertEqual(response.data['sell']['revenue_30d'], 0.0)
-        self.assertEqual(len(response.data['recent_transactions']), 3)
-        self.assertEqual(len(response.data['open_invoices']), 1)
-        self.assertEqual(len(response.data['upcoming_tasks']), 1)
-
-    def test_sell_pulse_counts_paid_orders(self):
+    def test_business_half_adds_sell_and_recorded_income(self):
         from apps.Imagi.Sell.models import Order
 
+        self.add_transaction(kind='income', category='services', amount='500.00', days_ago=5)
+        self.add_transaction(kind='expense', category='supplies', amount='200.00', days_ago=10)
+        # Outside the 30-day window.
+        self.add_transaction(kind='income', category='services', amount='999.00', days_ago=45)
         Order.objects.create(
             project=self.project,
             status=Order.STATUS_PAID,
             amount_total_cents=12550,
             paid_at=timezone.now() - datetime.timedelta(days=3),
         )
-        Order.objects.create(project=self.project, status=Order.STATUS_PENDING)
-        response = self.client.get(f'{self.base}/dashboard/')
-        sell = response.data['sell']
-        self.assertEqual(sell['orders_paid_30d'], 1)
-        self.assertEqual(sell['orders_pending'], 1)
-        self.assertEqual(sell['revenue_30d'], 125.5)
+        Order.objects.create(project=self.project, status=Order.STATUS_PENDING, amount_total_cents=9900)
 
-    def test_cashflow_series_shape(self):
+        response = self.client.get(f'{self.base}/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        business = response.data['business']
+        self.assertEqual(business['revenue_sell_30d'], 125.5)
+        self.assertEqual(business['revenue_recorded_30d'], 500.0)
+        self.assertEqual(business['revenue_30d'], 625.5)
+        self.assertEqual(business['expenses_30d'], 200.0)
+        self.assertEqual(business['profit_30d'], 425.5)
+        self.assertFalse(business['sell_connected'])
+        self.assertTrue(business['has_ledger'])
+
+    def test_monthly_series_shape(self):
         self.add_transaction(kind='income', category='sales', amount='100.00')
         response = self.client.get(f'{self.base}/dashboard/')
-        series = response.data['cashflow']
+        series = response.data['business']['monthly']
         self.assertEqual(len(series), 6)
         current = series[-1]
         self.assertEqual(current['month'], timezone.localdate().strftime('%Y-%m'))
         self.assertEqual(current['income'], 100.0)
         self.assertEqual(current['net'], 100.0)
+
+    def test_app_half_is_empty_without_a_live_address(self):
+        response = self.client.get(f'{self.base}/dashboard/')
+        app = response.data['app']
+        self.assertEqual(app['live_url'], '')
+        self.assertIsNone(app['status'])
+        self.assertIsNone(app['uptime']['percent'])
+        self.assertEqual(app['traffic']['visitors'], 0)
+        self.assertEqual(len(app['traffic']['daily']), 14)
+        self.assertFalse(app['check_stale'])
+
+
+PUBLIC_ADDRINFO = [(2, 1, 6, '', ('93.184.216.34', 443))]
+PRIVATE_ADDRINFO = [(2, 1, 6, '', ('10.0.0.5', 443))]
+
+
+def fake_response(status_code=200, location=None):
+    response = mock.Mock()
+    response.status_code = status_code
+    response.headers = {'Location': location} if location else {}
+    response.is_redirect = location is not None
+    return response
+
+
+class AppMonitorTests(OperateAPITestCase):
+
+    @mock.patch('apps.Imagi.Operate.services.monitoring.requests.get')
+    @mock.patch('apps.Imagi.Operate.services.monitoring.socket.getaddrinfo', return_value=PUBLIC_ADDRINFO)
+    def test_setting_live_address_checks_it(self, _dns, get):
+        get.return_value = fake_response(200)
+        response = self.client.patch(f'{self.base}/app/', {'live_url': 'Bloom.coffee'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['monitor']['live_url'], 'https://bloom.coffee/')
+        app = response.data['app']
+        self.assertTrue(app['status']['is_up'])
+        self.assertEqual(app['uptime']['percent'], 100.0)
+        self.assertEqual(app['uptime']['checks'], 1)
+        self.assertTrue(app['site_key'])
+
+    @mock.patch('apps.Imagi.Operate.services.monitoring.socket.getaddrinfo', return_value=PRIVATE_ADDRINFO)
+    def test_private_addresses_are_refused(self, _dns):
+        response = self.client.patch(f'{self.base}/app/', {'live_url': 'http://internal.example'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('live_url', response.data)
+
+    def test_non_http_and_loopback_are_refused(self):
+        for url in ('ftp://bloom.coffee', 'http://127.0.0.1:8000', 'http://169.254.169.254/latest'):
+            response = self.client.patch(f'{self.base}/app/', {'live_url': url}, format='json')
+            self.assertEqual(response.status_code, 400, url)
+
+    @mock.patch('apps.Imagi.Operate.services.monitoring.requests.get')
+    @mock.patch('apps.Imagi.Operate.services.monitoring.socket.getaddrinfo')
+    def test_redirect_into_private_network_counts_as_down(self, dns, get):
+        from .models import AppMonitor
+        monitor = AppMonitor.objects.create(project=self.project, live_url='https://bloom.coffee/')
+        dns.side_effect = lambda host, *a, **k: PUBLIC_ADDRINFO if host == 'bloom.coffee' else PRIVATE_ADDRINFO
+        get.return_value = fake_response(302, location='http://metadata.internal/')
+        response = self.client.post(f'{self.base}/app/check/', {}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['app']['status']['is_up'])
+        self.assertEqual(get.call_count, 1)
+        self.assertEqual(monitor.project.operate_uptime_checks.count(), 1)
+
+    @mock.patch('apps.Imagi.Operate.services.monitoring.requests.get')
+    @mock.patch('apps.Imagi.Operate.services.monitoring.socket.getaddrinfo', return_value=PUBLIC_ADDRINFO)
+    def test_only_if_stale_skips_a_fresh_check(self, _dns, get):
+        from .models import AppMonitor, UptimeCheck
+        AppMonitor.objects.create(project=self.project, live_url='https://bloom.coffee/')
+        UptimeCheck.objects.create(project=self.project, url='https://bloom.coffee/', is_up=True,
+                                   status_code=200, response_ms=120)
+        response = self.client.post(f'{self.base}/app/check/', {'only_if_stale': True}, format='json')
+        self.assertEqual(response.status_code, 200)
+        get.assert_not_called()
+        self.assertEqual(response.data['app']['response_ms']['latest'], 120)
+
+    def test_check_needs_a_live_address(self):
+        response = self.client.post(f'{self.base}/app/check/', {}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_other_users_cannot_read_the_site_key(self):
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(f'{self.base}/app/')
+        self.assertEqual(response.status_code, 404)
+
+
+class PageViewBeaconTests(OperateAPITestCase):
+
+    def setUp(self):
+        super().setUp()
+        from .models import AppMonitor
+        self.monitor = AppMonitor.objects.create(project=self.project, live_url='https://bloom.coffee/')
+        self.anon = APIClient()
+        self.url = f'/api/v1/operate/beacon/{self.monitor.site_key}/'
+
+    def beacon(self, origin='https://bloom.coffee', path='/menu', referrer='', ua='Firefox'):
+        import json
+        return self.anon.post(
+            self.url,
+            data=json.dumps({'p': path, 'r': referrer}),
+            content_type='text/plain',
+            HTTP_ORIGIN=origin,
+            HTTP_USER_AGENT=ua,
+        )
+
+    def test_counts_views_from_the_live_site(self):
+        self.assertEqual(self.beacon(referrer='https://news.ycombinator.com/').status_code, 204)
+        self.beacon(origin='https://www.bloom.coffee', path='/')
+        self.beacon(ua='Safari')
+        app = self.client.get(f'{self.base}/dashboard/').data['app']
+        self.assertEqual(app['traffic']['page_views'], 3)
+        self.assertEqual(app['traffic']['visitors'], 2)
+        self.assertEqual(app['traffic']['daily'][-1]['visitors'], 2)
+        view = self.project.operate_page_views.filter(path='/menu').order_by('created_at').first()
+        self.assertEqual(view.referrer_host, 'news.ycombinator.com')
+
+    def test_ignores_other_origins_and_unknown_keys(self):
+        self.assertEqual(self.beacon(origin='http://localhost:5173').status_code, 204)
+        self.anon.post('/api/v1/operate/beacon/not-a-key/', data='{}', content_type='text/plain',
+                       HTTP_ORIGIN='https://bloom.coffee')
+        self.assertEqual(self.project.operate_page_views.count(), 0)
+
+    def test_tolerates_junk_bodies(self):
+        response = self.anon.post(self.url, data='not json', content_type='text/plain',
+                                  HTTP_ORIGIN='https://bloom.coffee')
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(self.project.operate_page_views.get().path, '/')

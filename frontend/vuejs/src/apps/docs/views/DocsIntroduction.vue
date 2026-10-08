@@ -99,8 +99,8 @@
             conversations in an inbox, and keep an eye on your Google and Meta ad campaigns in one place.
           </DocsCard>
           <DocsCard title="Operate">
-            Run the day-to-day from a single command center—record income and expenses, track invoices from draft
-            to paid, and manage your tasks, with dashboards that show the health of your business at a glance.
+            One dashboard for running the business: whether your app is up and fast, who is visiting, and your
+            revenue, expenses, and profit.
           </DocsCard>
         </div>
       </section>

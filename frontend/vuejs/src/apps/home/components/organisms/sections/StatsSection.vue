@@ -103,7 +103,7 @@ export default defineComponent({
           name: 'Run',
           title: 'Tools to run the business',
           body: 'Once the app is live, the same project carries everything around it: taking payments, finding and talking to customers, and keeping the money and the work in order.',
-          tools: ['Sell: products, checkout, orders', 'Market: campaigns, contacts, inbox', 'Operate: invoices, books, tasks']
+          tools: ['Sell: products, checkout, orders', 'Market: campaigns, contacts, inbox', 'Operate: uptime, visitors, profit']
         }
       ]
     },

@@ -65,7 +65,7 @@ export interface BusinessTool {
  * The four pillars of the Imagi workspace, all live today: "Build" (the AI
  * app builder), "Sell" (Stripe-powered products, checkout, orders, and
  * customers), "Market" (Twilio-powered campaigns, inbox, and audience), and
- * "Operate" (the central hub for finances, invoices, and tasks).
+ * "Operate" (a dashboard for the live app and the business's money).
  */
 export const businessTools: BusinessTool[] = [
   {
@@ -128,16 +128,15 @@ export const businessTools: BusinessTool[] = [
     name: 'Operate',
     tagline: 'Run the business',
     description:
-      'Manage the day-to-day of your business — finance, invoicing, and operations — with dashboards that give you a clear view of how things are going.',
+      'One dashboard for running the business: whether your app is up and fast, who is visiting, and your revenue, expenses and profit.',
     icon: 'fa-briefcase',
     lineIcon: 'finance',
     accent: 'amber',
     status: 'available',
     routeName: 'operate-dashboard',
     features: [
-      { icon: 'fa-gauge-high', name: 'Business dashboard', description: 'Cash flow, invoices, and activity across every module.' },
-      { icon: 'fa-file-invoice-dollar', name: 'Finance & invoicing', description: 'Track income and expenses, bill customers, and get paid.' },
-      { icon: 'fa-list-check', name: 'Operational tasks', description: 'Keep the day-to-day work organized and on time.' },
+      { icon: 'fa-signal', name: 'Your app', description: 'Uptime, response time, and visitors to your live app.' },
+      { icon: 'fa-sack-dollar', name: 'Your business', description: 'Revenue, expenses, and profit, month by month.' },
     ],
   },
 ]

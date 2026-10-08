@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Invoice, OperationsTask, Transaction
+from .models import AppMonitor, Invoice, OperationsTask, PageView, Transaction, UptimeCheck
 
 
 @admin.register(Transaction)
@@ -23,3 +23,23 @@ class OperationsTaskAdmin(admin.ModelAdmin):
     list_display = ('title', 'project', 'status', 'priority', 'due_date', 'created_at')
     list_filter = ('status', 'priority')
     search_fields = ('title', 'project__name')
+
+
+@admin.register(AppMonitor)
+class AppMonitorAdmin(admin.ModelAdmin):
+    list_display = ('project', 'live_url', 'updated_at')
+    search_fields = ('project__name', 'live_url')
+    readonly_fields = ('site_key', 'created_at', 'updated_at')
+
+
+@admin.register(UptimeCheck)
+class UptimeCheckAdmin(admin.ModelAdmin):
+    list_display = ('url', 'project', 'is_up', 'status_code', 'response_ms', 'checked_at')
+    list_filter = ('is_up',)
+    search_fields = ('url', 'project__name')
+
+
+@admin.register(PageView)
+class PageViewAdmin(admin.ModelAdmin):
+    list_display = ('path', 'project', 'referrer_host', 'created_at')
+    search_fields = ('path', 'project__name')

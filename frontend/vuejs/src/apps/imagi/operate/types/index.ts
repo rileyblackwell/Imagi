@@ -71,71 +71,6 @@ export interface LedgerSummary {
   net: number
 }
 
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void'
-
-export interface InvoiceLineItem {
-  description: string
-  quantity: string
-  unit_price: string
-}
-
-export interface Invoice {
-  id: number
-  number: string
-  customer_name: string
-  customer_email: string
-  status: InvoiceStatus
-  issue_date: string
-  due_date: string | null
-  line_items: InvoiceLineItem[]
-  total: string
-  notes: string
-  is_overdue: boolean
-  sent_at: string | null
-  paid_at: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface InvoicePayload {
-  customer_name?: string
-  customer_email?: string
-  issue_date?: string
-  due_date?: string | null
-  line_items?: { description: string; quantity: string | number; unit_price: string | number }[]
-  notes?: string
-}
-
-export type TaskStatus = 'todo' | 'in_progress' | 'done'
-export type TaskPriority = 'low' | 'medium' | 'high'
-
-export interface OperationsTask {
-  id: number
-  title: string
-  status: TaskStatus
-  priority: TaskPriority
-  due_date: string | null
-  notes: string
-  is_overdue: boolean
-  completed_at: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface TaskPayload {
-  title?: string
-  status?: TaskStatus
-  priority?: TaskPriority
-  due_date?: string | null
-  notes?: string
-}
-
-export interface TaskCounts {
-  todo: number
-  in_progress: number
-  done: number
-}
-
 export interface CashflowPoint {
   month: string
   label: string
@@ -144,48 +79,49 @@ export interface CashflowPoint {
   net: number
 }
 
+/** The app half: is it up, how fast, who visits. */
+export interface AppSummary {
+  live_url: string
+  site_key: string
+  /** The last check is old enough that opening the dashboard should re-check. */
+  check_stale: boolean
+  status: {
+    is_up: boolean
+    checked_at: string
+    status_code: number | null
+    response_ms: number | null
+    error: string
+  } | null
+  uptime: { percent: number | null; checks: number }
+  response_ms: { latest: number | null; median: number | null }
+  traffic: {
+    visitors: number
+    page_views: number
+    daily: { date: string; label: string; visitors: number }[]
+  }
+}
+
+/** The business half: revenue, expenses, profit. */
+export interface BusinessSummary {
+  currency: string
+  sell_connected: boolean
+  has_ledger: boolean
+  revenue_30d: number
+  revenue_sell_30d: number
+  revenue_recorded_30d: number
+  expenses_30d: number
+  profit_30d: number
+  /** Month by month; `income` is revenue (Sell plus recorded income). */
+  monthly: CashflowPoint[]
+}
+
 export interface DashboardPayload {
-  finance: {
-    income_30d: number
-    expenses_30d: number
-    net_30d: number
-    income_all_time: number
-    expenses_all_time: number
-    transactions_total: number
-  }
-  cashflow: CashflowPoint[]
-  invoices: {
-    outstanding_total: number
-    outstanding_count: number
-    overdue_count: number
-    draft_count: number
-    paid_30d: number
-  }
-  tasks: {
-    open_count: number
-    in_progress_count: number
-    overdue_count: number
-    due_soon_count: number
-  }
-  marketing: {
-    configured: boolean
-    contacts_total: number
-    contacts_subscribed: number
-    campaigns_active: number
-    messages_sent_30d: number
-    replies_30d: number
-  }
-  sell: {
-    configured: boolean
-    /** Lowercase ISO currency code from the Sell settings, e.g. "usd". */
-    currency: string
-    products_active: number
-    customers_total: number
-    orders_pending: number
-    orders_paid_30d: number
-    revenue_30d: number
-  }
-  recent_transactions: Transaction[]
-  open_invoices: Invoice[]
-  upcoming_tasks: OperationsTask[]
+  app: AppSummary
+  business: BusinessSummary
+}
+
+export interface AppMonitor {
+  live_url: string
+  site_key: string
+  updated_at: string
 }

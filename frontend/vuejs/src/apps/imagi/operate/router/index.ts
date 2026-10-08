@@ -2,8 +2,6 @@ import type { RouteRecordRaw } from 'vue-router'
 import OperateWorkspace from '../views/OperateWorkspace.vue'
 import OperateDashboard from '../views/OperateDashboard.vue'
 import OperateFinance from '../views/OperateFinance.vue'
-import OperateInvoices from '../views/OperateInvoices.vue'
-import OperateTasks from '../views/OperateTasks.vue'
 
 /**
  * Operate workspace routes, nested under a project. The static `operations`
@@ -25,26 +23,18 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'operate-dashboard',
         component: OperateDashboard,
-        meta: { requiresAuth: true, title: 'Operate Dashboard' }
+        meta: { requiresAuth: true, title: 'Operate' }
       },
       {
         path: 'finance',
         name: 'operate-finance',
         component: OperateFinance,
-        meta: { requiresAuth: true, title: 'Finance' }
+        meta: { requiresAuth: true, title: 'Ledger' }
       },
-      {
-        path: 'invoices',
-        name: 'operate-invoices',
-        component: OperateInvoices,
-        meta: { requiresAuth: true, title: 'Invoices' }
-      },
-      {
-        path: 'tasks',
-        name: 'operate-tasks',
-        component: OperateTasks,
-        meta: { requiresAuth: true, title: 'Tasks' }
-      }
+      // Invoices and tasks were folded out when Operate became a dashboard;
+      // old links land on it instead of a dead page.
+      { path: 'invoices', redirect: { name: 'operate-dashboard' } },
+      { path: 'tasks', redirect: { name: 'operate-dashboard' } },
     ]
   }
 ]

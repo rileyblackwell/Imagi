@@ -87,9 +87,9 @@ export default defineComponent({
         },
         {
           title: 'Operate',
-          description: 'Stay on top of the numbers — invoices out, income and expenses tracked, and the work that keeps it running.',
+          description: 'One dashboard for running it: whether your app is up and fast, who is visiting, and what the business is making.',
           icon: 'finance',
-          highlights: ['Invoicing and billing', 'Income and expenses', 'Operational tasks']
+          highlights: ['Uptime and response time', 'Visitors to your app', 'Revenue, expenses and profit']
         }
       ]
     }

@@ -1,10 +1,11 @@
 <!--
-  OperateWorkspace.vue - Shell for the per-project Operate workspace, the
-  central hub for running the business.
+  OperateWorkspace.vue - Shell for the per-project Operate workspace: a
+  dashboard for running the business, with the app on one side and the
+  money on the other.
 
   Resolves the project from the URL slug (like ProjectHub), points the
   operate store at it, and renders the tab navigation with a child
-  router-view for Dashboard / Finance / Invoices / Tasks.
+  router-view for the Dashboard and the Ledger it reads expenses from.
 
   Route: /imagi/project/:projectName/operations
 -->
@@ -14,7 +15,7 @@
     :project="project"
     :is-loading="isLoading"
     title="Operate"
-    description="The central hub for running your business — money in and out, invoices, and the day-to-day work, all in one place."
+    description="How your app and your business are doing. Is the app up and fast, who is visiting, and what is coming in and going out."
     loading-label="Loading operate workspace…"
     :tabs="tabs"
   >
@@ -36,9 +37,7 @@ const operateStore = useOperateStore()
 
 const tabs: ToolTab[] = [
   { name: 'operate-dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
-  { name: 'operate-finance', label: 'Finance', icon: 'fa-file-invoice-dollar' },
-  { name: 'operate-invoices', label: 'Invoices', icon: 'fa-receipt' },
-  { name: 'operate-tasks', label: 'Tasks', icon: 'fa-list-check' },
+  { name: 'operate-finance', label: 'Ledger', icon: 'fa-file-invoice-dollar' },
 ]
 
 // Point the operate store at the resolved project so tab views can load data.

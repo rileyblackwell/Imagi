@@ -1,5 +1,7 @@
 <!--
-  CashflowChart.vue - Monthly income vs expenses grouped bar chart.
+  CashflowChart.vue - Monthly money in vs money out, as grouped bars.
+  `incomeLabel` names the first series ("Revenue" on the dashboard, where it
+  counts Sell payments as well as recorded income).
 
   Series colors (#059669 emerald / #f43f5e rose) were validated for lightness,
   chroma, CVD separation, and surface contrast in both light and dark modes —
@@ -17,7 +19,7 @@
     </div>
 
     <div v-if="!hasData" class="flex items-center justify-center h-40 rounded-xl border border-dashed border-ink/10 dark:border-white/[0.12]">
-      <p class="text-sm text-ink/50 dark:text-bone/50">No transactions yet — the chart fills in as you record income and expenses.</p>
+      <p class="text-sm text-ink/50 dark:text-bone/50 px-6 text-center">{{ emptyText }}</p>
     </div>
 
     <div v-else class="relative">
@@ -28,9 +30,9 @@
         :style="{ left: `${(hoveredIndex + 0.5) / points.length * 100}%` }"
       >
         <p class="font-semibold mb-1">{{ hovered.label }}</p>
-        <p class="tabular-nums"><span class="inline-block w-2 h-2 rounded-[2px] mr-1.5" :style="{ backgroundColor: INCOME_COLOR }"></span>Income: {{ formatMoney(hovered.income) }}</p>
-        <p class="tabular-nums"><span class="inline-block w-2 h-2 rounded-[2px] mr-1.5" :style="{ backgroundColor: EXPENSE_COLOR }"></span>Expenses: {{ formatMoney(hovered.expenses) }}</p>
-        <p class="tabular-nums mt-1 pt-1 border-t border-white/20">Net: {{ formatMoney(hovered.net) }}</p>
+        <p class="tabular-nums"><span class="inline-block w-2 h-2 rounded-[2px] mr-1.5" :style="{ backgroundColor: INCOME_COLOR }"></span>{{ incomeLabel }}: {{ formatMoney(hovered.income, currency) }}</p>
+        <p class="tabular-nums"><span class="inline-block w-2 h-2 rounded-[2px] mr-1.5" :style="{ backgroundColor: EXPENSE_COLOR }"></span>Expenses: {{ formatMoney(hovered.expenses, currency) }}</p>
+        <p class="tabular-nums mt-1 pt-1 border-t border-white/20">{{ netLabel }}: {{ formatMoney(hovered.net, currency) }}</p>
       </div>
 
       <!-- Bars -->
@@ -40,7 +42,7 @@
           :key="point.month"
           type="button"
           class="flex-1 flex flex-col justify-end items-center group rounded-lg focus-ring"
-          :aria-label="`${point.label}: income ${formatMoney(point.income)}, expenses ${formatMoney(point.expenses)}`"
+          :aria-label="`${point.label}: ${incomeLabel.toLowerCase()} ${formatMoney(point.income, currency)}, expenses ${formatMoney(point.expenses, currency)}`"
           @mouseenter="hoveredIndex = index"
           @mouseleave="hoveredIndex = -1"
           @focus="hoveredIndex = index"
@@ -84,14 +86,23 @@ import { formatMoney } from '../utils/ui'
 const INCOME_COLOR = '#059669'
 const EXPENSE_COLOR = '#f43f5e'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   points: CashflowPoint[]
-}>()
+  incomeLabel?: string
+  netLabel?: string
+  currency?: string
+  emptyText?: string
+}>(), {
+  incomeLabel: 'Income',
+  netLabel: 'Net',
+  currency: 'usd',
+  emptyText: 'No transactions yet. The chart fills in as you record income and expenses.',
+})
 
-const legend = [
-  { label: 'Income', color: INCOME_COLOR },
+const legend = computed(() => [
+  { label: props.incomeLabel, color: INCOME_COLOR },
   { label: 'Expenses', color: EXPENSE_COLOR },
-]
+])
 
 const hoveredIndex = ref(-1)
 const hovered = computed(() => props.points[hoveredIndex.value] ?? null)
