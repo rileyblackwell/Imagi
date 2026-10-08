@@ -59,10 +59,11 @@ EXPOSE 8000
 # workers cannot hold open (one run would occupy a whole worker, and gunicorn
 # would kill it at --timeout since sync workers do not heartbeat mid-request).
 #
-# The same image runs as two Railway services (see settings.IMAGI_ROLE). Only
-# the 'web' tier applies migrations on boot; the 'workspace' tier skips them so
-# the two services never race the same migration against the shared Postgres.
-CMD if [ "${IMAGI_ROLE:-web}" = "web" ]; then python manage.py migrate --noinput; fi && \
+# The same image runs as two Railway services (see settings.IMAGI_ROLE) that
+# redeploy from one push in no fixed order. Both apply migrations on boot, so
+# neither tier ever serves new code against the old schema; migrate_locked
+# holds a Postgres advisory lock so the two never race the same migration.
+CMD python manage.py migrate_locked && \
     gunicorn imagi.asgi:application \
         --worker-class uvicorn.workers.UvicornWorker \
         --bind "[::]:${PORT:-8000}" \
