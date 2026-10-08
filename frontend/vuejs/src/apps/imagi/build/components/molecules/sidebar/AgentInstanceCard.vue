@@ -54,17 +54,9 @@
         <span class="truncate">{{ status.label }}</span>
       </div>
 
-      <!-- Ledger line: when it last moved, and what it has spent -->
+      <!-- Ledger line: when it last moved -->
       <div class="agent-card__meta">
         <span>{{ relativeTime(instance.updatedAt) }}</span>
-        <!-- Conversation-wide token total; null means never captured, so
-             nothing renders (unknown, not "0 tokens") -->
-        <template v-if="typeof instance.totalTokens === 'number' && instance.totalTokens> 0">
-          <span class="agent-card__dot" aria-hidden="true"></span>
-          <span :title="`${instance.totalTokens.toLocaleString()} tokens used`">
-            {{ formatTokens(instance.totalTokens) }} tokens
-          </span>
-        </template>
       </div>
     </div>
 
@@ -136,19 +128,6 @@ const status = computed(() => {
 })
 
 const emit = defineEmits<{ (e: 'select'): void }>()
-
-/** Compact token count for the meta row: 850, 12.3k, 2M. */
-function formatTokens(total: number): string {
-  if (total >= 1_000_000) {
-    const millions = total / 1_000_000
-    return `${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M`
-  }
-  if (total >= 1_000) {
-    const thousands = total / 1_000
-    return `${thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k`
-  }
-  return String(total)
-}
 
 function relativeTime(iso: string): string {
   if (!iso) return ''
@@ -504,14 +483,6 @@ function relativeTime(iso: string): string {
 
 .dark .agent-card__meta {
   color: rgba(219, 234, 254, 0.35);
-}
-
-.agent-card__dot {
-  width: 0.125rem;
-  height: 0.125rem;
-  border-radius: 9999px;
-  background: currentColor;
-  opacity: 0.7;
 }
 
 /* Quiet until hover — the row is clickable, but it does not advertise it */
