@@ -58,7 +58,7 @@
                 @restore-checkpoint="onRestoreCheckpoint"
                 @check-in-accept="handleCheckInAccept"
                 @check-in-dismiss="handleCheckInDismiss"
-                @open-task="openSubagent"
+                @open-task="openThread"
               />
             </KeepAlive>
           </Transition>
@@ -121,6 +121,7 @@ import { useIsMobile } from '../composables/useWindowSize'
 import { useConfirm } from '../composables/useConfirm'
 import { useSidebarPane } from '../composables/useSidebarPane'
 import { useAgentRun } from '../composables/useAgentRun'
+import { useThreadNotifications } from '../composables/useThreadNotifications'
 // The pane-swap transition below is timed with the workspace's shared
 // motion tokens, so this view loads them too.
 import '../styles/workspace.css'
@@ -170,9 +171,9 @@ const {
   showPane,
 } = useSidebarPane()
 
-/** A thread the user can talk in was clicked in the manager — open its
- *  conversation in the chat pane. Subagents don't come through here: they
- *  open inside the Subagents pane itself.
+/** A conversation the user can talk in was clicked in the manager — open it
+ *  in the chat pane. Threads don't come through here: they open inside the
+ *  Threads pane itself.
  *  The 'select' emit is the ONLY path that flips the pane to chat: the
  *  active instance also changes programmatically (archive/delete falling
  *  back to the lead, loadInstances regenerating local ids), and those must
@@ -181,14 +182,14 @@ function handleManagerSelect() {
   setSidebarView('chat')
 }
 
-/** Look in on a subagent from the main thread (a dispatch card, a check-in's
- *  open arrow). It reads in the Subagents pane, so the main thread stays
+/** Open a thread from the coordinator chat (a dispatch card, a check-in's
+ *  open arrow). It opens in the Threads pane, so the coordinator chat stays
  *  exactly where the user left it — draft and all. */
-async function openSubagent(conversationId: number) {
+async function openThread(conversationId: number) {
   const instance = store.instances.find(i => i.conversationId === conversationId)
   if (!instance) return
   setSidebarView('manager')
-  await store.openSubagent(instance.id)
+  await store.openThread(instance.id)
 }
 
 /** An accepted task's worktree just merged into the canonical tree —
@@ -256,7 +257,7 @@ async function handleCheckInDismiss(checkIn: CheckInDto) {
   if (checkIn.kind !== 'error') {
     const confirmed = await confirmModal.confirm({
       title: 'Discard This Work',
-      message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in your Subagents list.`,
+      message: `Discard what "${instance.title || 'this task'}" built? Its changes never touch your app. The conversation stays in your Threads list.`,
       confirmText: 'Discard',
       cancelText: 'Cancel',
       type: 'warning'
@@ -327,6 +328,9 @@ async function onRestoreCheckpoint(message: AIMessage) {
 
 // The send path: one agent run per prompt (see useAgentRun).
 const { handlePrompt } = useAgentRun(projectId)
+
+// A thread that starts waiting on the user says so wherever they are.
+useThreadNotifications()
 
 function handleStop() {
   const instance = store.activeInstance

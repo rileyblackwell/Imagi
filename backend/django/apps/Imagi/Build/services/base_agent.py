@@ -85,13 +85,13 @@ TASK_CONTINUE_PROMPT = (
 LEAD_DISPATCH_RETRY_PROMPT = (
     "[Automated check] Your last reply tells the user that background work was "
     "started, but you did not make a successful dispatch_task call this turn — "
-    "no subagent exists and nothing is being built. If the user's request is a "
+    "no thread exists and nothing is being built. If the user's request is a "
     "job, call dispatch_task NOW with the full brief, goal and overview, then "
-    "reply with ONE short sentence telling the user you are putting a subagent "
-    "on it and end your turn. If it is a follow-up for a subagent you already "
-    "have, call message_task for that subagent instead. "
+    "reply with ONE short sentence telling the user you are starting a thread "
+    "on it and end your turn. If it is a follow-up for a thread you already "
+    "have, call message_task for that thread instead. "
     "If you were not actually claiming to have started new "
-    "work (for example, a subagent from an earlier turn is already on it), "
+    "work (for example, a thread from an earlier turn is already on it), "
     "answer the user plainly instead. Never tell the user work was kicked off "
     "unless dispatch_task succeeded in the same turn."
 )
@@ -650,10 +650,11 @@ def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[L
 
 
 # A lead reply narrating a kickoff: delegation verbs ("kicked off",
-# "dispatched", "spun up", "putting a subagent on it", "passed it to the
-# subagent"). Verbs, not the bare nouns: the lead answers status questions
-# from its roster ("the subagent on your menu is still working"), and a reply
-# that merely mentions a subagent claims nothing. A match only ever costs one
+# "dispatched", "spun up", "starting a thread on it", "passed it to the
+# thread"). Verbs, not the bare nouns: the lead answers status questions
+# from its roster ("the thread on your menu is still working"), and a reply
+# that merely mentions a thread claims nothing. "Subagent" was the old name
+# for a thread and is still matched. A match only ever costs one
 # corrective turn, whose prompt lets the model answer plainly if no dispatch
 # was intended.
 _LEAD_DISPATCH_CLAIM_RE = re.compile(
@@ -661,9 +662,9 @@ _LEAD_DISPATCH_CLAIM_RE = re.compile(
     r'|\bdispatch(?:ed|ing)\b'
     r'|\bsp(?:un|inning)\s+up\b'
     r'|\bhand(?:ed|ing)\s+(?:\w+\s+){0,2}?(?:off|over|to)\b'
-    r'|\bput(?:ting)?\s+(?:a\s+|another\s+)?(?:sub-?agent|background\s+\w+)\b'
-    r'|\b(?:pass(?:ed|ing)?|sent|sending)\s+(?:\w+\s+){0,3}?(?:on\s+)?to\s+(?:the\s+|your\s+|a\s+)?sub-?agent\b'
-    r'|\bstart(?:ed|ing)\s+(?:a\s+)?(?:sub-?agent|background\s+(?:task|agent|job|worker))\b',
+    r'|\bput(?:ting)?\s+(?:a\s+|another\s+)?(?:sub-?agent|thread|background\s+\w+)\b'
+    r'|\b(?:pass(?:ed|ing)?|sent|sending)\s+(?:\w+\s+){0,3}?(?:on\s+)?to\s+(?:the\s+|your\s+|a\s+)?(?:sub-?agent|thread)\b'
+    r'|\bstart(?:ed|ing)\s+(?:a\s+|another\s+|a\s+new\s+)?(?:sub-?agent|thread|background\s+(?:task|agent|job|worker))\b',
     re.IGNORECASE,
 )
 
@@ -691,6 +692,7 @@ def build_message_metadata(
     plan: Optional[List[Dict[str, str]]] = None,
     usage: Optional[Dict[str, Any]] = None,
     dispatched_tasks: Optional[List[Dict[str, Any]]] = None,
+    question: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Assemble AgentMessage.metadata from a run's artifacts.
 
@@ -709,7 +711,22 @@ def build_message_metadata(
         metadata["usage"] = usage
     if dispatched_tasks:
         metadata["dispatched_tasks"] = dispatched_tasks
+    if question:
+        metadata["question"] = question
     return metadata or None
+
+
+def question_details(context) -> Optional[Dict[str, Any]]:
+    """The choices and sketch an ask_user call attached to the run's question.
+
+    None when the run did not end on a question, or the question came bare.
+    Stored on the reply (metadata.question) so the transcript can offer the
+    choices as buttons, and on a thread's question check-in.
+    """
+    if not context or not (getattr(context, 'pending_question', None) or '').strip():
+        return None
+    details = getattr(context, 'pending_question_details', None) or {}
+    return dict(details) or None
 
 
 # How a stored subagent report reads back to the lead model. The stored text
@@ -728,7 +745,7 @@ _TASK_REPORT_LABELS = {
 # closed tab, a network blip) before it could sign off. Written for the owner:
 # what happened to their app (nothing), and what to do (try it again).
 TASK_INTERRUPTED_NOTE = (
-    "This subagent was cut off before it finished — the connection to its run "
+    "This thread was cut off before it finished — the connection to its run "
     "dropped, so it never got to sign off. Nothing it started has been added "
     "to the app. Try it again to pick the job back up."
 )
@@ -746,7 +763,7 @@ def _label_task_report(message) -> str:
         return message.content
     job = (report.get('goal') or report.get('title') or '').strip()
     state = _TASK_REPORT_LABELS.get(report.get('kind'), 'reported back')
-    header = f"[Subagent report] The subagent you dispatched {state}"
+    header = f"[Thread report] The thread you dispatched {state}"
     if job:
         header += f'. Its job: "{job}"'
     return f"{header}. In its own words:\n{message.content}"
@@ -775,6 +792,8 @@ class AgentContext:
     # Set by a task run's ask_user tool: the question that ended the run,
     # routed into the lead thread's check-in queue instead of marking ready.
     pending_question: Optional[str] = None
+    # ask_user's extras for that question: {options?: [str], visual?: str}.
+    pending_question_details: Dict[str, Any] = field(default_factory=dict)
     # Tasks staged by the lead's dispatch_task tool during this run
     # ([{conversation_id, title, brief, variant_group, ...}]).
     dispatched_tasks: List[Dict[str, Any]] = field(default_factory=list)
@@ -1276,7 +1295,7 @@ class ImagiAgentService:
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not resolve pending check-ins: {e}")
 
-    def _file_check_in(self, conversation, kind: str, body: str) -> None:
+    def _file_check_in(self, conversation, kind: str, body: str, details=None) -> None:
         """Route one outcome back to the main thread: a queue card and a memory.
 
         The card is what the user sees — a question to answer, or simply the
@@ -1303,6 +1322,7 @@ class ImagiAgentService:
                 lead=conversation.parent,
                 kind=kind,
                 body=(body or '').strip()[:TASK_REPORT_MAX_CHARS],
+                details=details or {},
             )
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not file {kind} check-in: {e}")
@@ -1481,7 +1501,10 @@ class ImagiAgentService:
         question = (getattr(context, 'pending_question', None) or '').strip() if context else ''
         if question:
             self._park_task(conversation, 'input')
-            self._file_check_in(conversation, 'question', question)
+            self._file_check_in(
+                conversation, 'question', question,
+                details=question_details(context) or {},
+            )
             return
 
         # Variants are alternatives the user asked to compare, so they wait to
@@ -1992,6 +2015,7 @@ class ImagiAgentService:
                     plan=list(context.plan),
                     usage=usage,
                     dispatched_tasks=dispatch_task_refs(context.dispatched_tasks),
+                    question=question_details(context),
                 ),
             )
             persisted = True
@@ -2032,6 +2056,9 @@ class ImagiAgentService:
             }
             if usage:
                 done_event["usage"] = usage
+            question = question_details(context)
+            if question:
+                done_event["question"] = question
             if context.dispatched_tasks:
                 # Backstop for the per-tool task_dispatch events above: a
                 # client that missed them mid-stream can still fire the
@@ -2244,6 +2271,7 @@ class ImagiAgentService:
                     plan=list(context.plan),
                     usage=usage,
                     dispatched_tasks=dispatch_task_refs(context.dispatched_tasks),
+                    question=question_details(context),
                 ),
             )
             self._finalize_task_run(conversation, context, response_content)

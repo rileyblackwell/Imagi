@@ -30,7 +30,7 @@
     <div class="agent-card__body">
       <!-- Name + the two markers that can sit beside it -->
       <div class="flex items-start gap-1.5">
-        <h3 class="agent-card__title">{{ instance.title || 'Untitled agent' }}</h3>
+        <h3 class="agent-card__title">{{ instance.title || 'Untitled thread' }}</h3>
 
         <!-- One of several parallel takes on the same brief -->
         <span
@@ -118,13 +118,13 @@ const status = computed(() => {
     case 'ready':
       // One of several takes the user asked to compare — the only state left
       // where finished work waits on them. A solo subagent applies its own.
-      return { state: 'waiting' as const, label: 'Subagent complete — one of your options', icon: 'fas fa-check' }
+      return { state: 'waiting' as const, label: 'Thread complete — one of your options', icon: 'fas fa-check' }
     case 'failed':
       // Its run died. It wants a decision (dismiss, or ask again), so it
       // reads as waiting rather than settled.
       return { state: 'stopped' as const, label: 'Stopped before finishing', icon: 'fas fa-triangle-exclamation' }
     case 'accepted':
-      return { state: 'settled' as const, label: 'Subagent complete', icon: 'fas fa-check-double' }
+      return { state: 'settled' as const, label: 'Thread complete', icon: 'fas fa-check-double' }
     case 'dismissed':
       return { state: 'settled' as const, label: 'Discarded', icon: 'fas fa-xmark' }
     case 'active':

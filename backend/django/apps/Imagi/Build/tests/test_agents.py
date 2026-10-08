@@ -1756,7 +1756,7 @@ class LeadAgentConfigurationTests(SimpleTestCase):
 
     def test_the_lead_is_told_one_job_is_one_subagent(self):
         self.assertIn(
-            'ONE job, ONE dispatch_task call, ONE subagent', LEAD_AGENT_INSTRUCTIONS
+            'ONE job, ONE dispatch_task call, ONE thread', LEAD_AGENT_INSTRUCTIONS
         )
 
     def test_the_lead_answers_an_ordinary_question_in_the_thread(self):
@@ -1816,6 +1816,10 @@ class LeadDispatchClaimTests(SimpleTestCase):
             "I'm putting a subagent on your home page now.",
             "I passed that on to the subagent already working on your menu.",
             "Sent it to the subagent on your booking page.",
+            # Subagents are called threads now; the same claims in the new
+            # words are just as unbacked.
+            "I'm starting a thread on your home page now.",
+            "I passed that on to the thread already working on your menu.",
         ):
             self.assertTrue(
                 lead_claims_unmade_dispatch(self.lead, self.context, text), text
@@ -1829,6 +1833,8 @@ class LeadDispatchClaimTests(SimpleTestCase):
             "The subagent on your menu is still working on it.",
             "Your booking page subagent is waiting on you: which days are you open?",
             "Two background tasks are finished and one is still going.",
+            "The thread on your menu is still working on it.",
+            "You can open that thread and reply to it there.",
         ):
             self.assertFalse(
                 lead_claims_unmade_dispatch(self.lead, self.context, text), text
@@ -2801,3 +2807,46 @@ class StoppedAndStrandedTaskTests(TestCase):
         self.assertEqual(running.review_status, 'active')
         self.assertEqual(staged.review_status, 'active')
         self.assertEqual(AgentCheckIn.objects.count(), 0)
+
+
+class AskUserChoicesTests(TestCase):
+    """ask_user can offer one-tap answers and a small sketch, for threads and
+    the coordinator alike."""
+
+    def _ask(self, **kwargs):
+        """Call the real tool and return what it left on the run context."""
+        from apps.Imagi.Build.services.tools import ask_user
+        context = AgentContext(user_id=1, project_id=1, conversation_kind='task')
+        args = {'question': 'Pickup or delivery?', **kwargs}
+        output = async_to_sync(ask_user.on_invoke_tool)(
+            SimpleNamespace(context=context, tool_name='ask_user', tool_call_id='t1'),
+            json.dumps(args),
+        )
+        self.assertEqual(output, 'Pickup or delivery?')
+        self.assertEqual(context.pending_question, 'Pickup or delivery?')
+        return context.pending_question_details
+
+    def test_keeps_two_to_four_short_distinct_options(self):
+        details = self._ask(options=['Pickup only', '  Pickup  and delivery ', 'Pickup only', 'A', 'B', 'C'])
+        self.assertEqual(details['options'], ['Pickup only', 'Pickup and delivery', 'A', 'B'])
+
+    def test_drops_a_single_option(self):
+        self.assertNotIn('options', self._ask(options=['Only one']))
+
+    def test_keeps_an_svg_sketch_and_drops_anything_else(self):
+        self.assertIn('visual', self._ask(visual='<svg viewBox="0 0 4 4"><rect/></svg>'))
+        self.assertNotIn('visual', self._ask(visual='<img src=x onerror=alert(1)>'))
+        self.assertNotIn('visual', self._ask(visual='<svg>' + 'x' * 20000 + '</svg>'))
+
+    def test_the_question_and_its_choices_land_on_the_reply(self):
+        from apps.Imagi.Build.services.base_agent import build_message_metadata, question_details
+        context = AgentContext(user_id=1, project_id=1, conversation_kind='lead')
+        self.assertIsNone(question_details(context))
+        context.pending_question = 'Which page?'
+        context.pending_question_details = {'options': ['Home', 'About']}
+        metadata = build_message_metadata(question=question_details(context))
+        self.assertEqual(metadata['question']['options'], ['Home', 'About'])
+
+    def test_the_coordinator_can_ask_too(self):
+        agent = create_coding_agent(kind='lead')
+        self.assertIn('ask_user', [t.name for t in agent.tools])

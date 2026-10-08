@@ -249,7 +249,11 @@ export function useAgentRun(projectId: Ref<string>) {
         } else if (messageStarted) {
           // Attach end-of-run telemetry to the reply itself so it survives in
           // the transcript (mirrors what the backend persists as metadata).
-          const meta: { filesChanged?: string[]; usage?: AIMessage['usage'] } = {}
+          const meta: {
+            filesChanged?: string[]
+            usage?: AIMessage['usage']
+            question?: AIMessage['question']
+          } = {}
           if (response.files_changed && response.files_changed.length > 0) {
             meta.filesChanged = response.files_changed
           }
@@ -263,7 +267,11 @@ export function useAgentRun(projectId: Ref<string>) {
             if (typeof usage.output_tokens === 'number') mapped.outputTokens = usage.output_tokens
             if (Object.keys(mapped).length > 0) meta.usage = mapped
           }
-          if (meta.filesChanged || meta.usage) {
+          // A question with one-tap answers or a sketch (ask_user)
+          if (response.question && (response.question.options?.length || response.question.visual)) {
+            meta.question = response.question
+          }
+          if (meta.filesChanged || meta.usage || meta.question) {
             store.setMessageMeta(instanceId, streamingMessageId, meta)
           }
         }
@@ -303,10 +311,10 @@ export function useAgentRun(projectId: Ref<string>) {
             store.removeMessage(instanceId, userMessageId)
           }
           const reason = abortController.signal.aborted
-            ? 'This subagent was stopped before it finished.'
+            ? 'This thread was stopped before it finished.'
             : runStarted
-              ? 'The connection to this subagent dropped before it finished.'
-              : 'The request to start this subagent did not get through' +
+              ? 'The connection to this thread dropped before it finished.'
+              : 'The request to start this thread did not get through' +
                 (agentError instanceof Error && agentError.message ? ` (${agentError.message}).` : '.')
           await store.failTaskRun(
             instanceId,

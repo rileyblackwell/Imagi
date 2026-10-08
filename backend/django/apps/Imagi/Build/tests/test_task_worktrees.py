@@ -859,7 +859,7 @@ class TaskReportsToLeadTests(GitRepoTestMixin, TestCase):
         history = self.service.build_conversation_history(self.lead)
 
         report_line = history[-1]['content']
-        self.assertIn('[Subagent report]', report_line)
+        self.assertIn('[Thread report]', report_line)
         self.assertIn('Making your home page clearer.', report_line)
         self.assertIn('Built the page.', report_line)
 
@@ -1251,6 +1251,22 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         check_in = AgentCheckIn.objects.get(conversation=task)
         self.assertEqual(check_in.kind, 'question')
         self.assertEqual(check_in.body, 'Stripe or PayPal?')
+
+    def test_a_question_with_choices_carries_them_to_the_queue(self):
+        # ask_user's one-tap answers and sketch ride on the check-in, so the
+        # coordinator's queue card can offer them as buttons.
+        task = self._task()
+        context = self._context(pending_question='Pickup or delivery?')
+        context.pending_question_details = {
+            'options': ['Pickup only', 'Pickup and delivery'],
+            'visual': '<svg viewBox="0 0 10 10"></svg>',
+        }
+
+        self.service._finalize_task_run(task, context, 'Pickup or delivery?')
+
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.details['options'], ['Pickup only', 'Pickup and delivery'])
+        self.assertTrue(check_in.details['visual'].startswith('<svg'))
 
     def test_a_task_holds_one_queue_slot(self):
         """A second check-in supersedes the first — the queue never shows one
@@ -1986,20 +2002,20 @@ class LeadFollowUpTests(GitRepoTestMixin, TestCase):
 
         roster = lead_task_roster(self.lead)
 
-        self.assertIn(f'Subagent {working.id}: "Adding customer reviews" — working on it now', roster)
+        self.assertIn(f'Thread {working.id}: "Adding customer reviews" — working on it now', roster)
         self.assertIn(
-            f'Subagent {waiting.id}: "Building a booking page" — waiting on an answer '
+            f'Thread {waiting.id}: "Building a booking page" — waiting on an answer '
             'from the user. Its question: "Which days are you open?"',
             roster,
         )
-        self.assertIn(f'Subagent {done.id}: "Fixing the menu on phones" — finished', roster)
-        self.assertIn(f'Subagent {queued.id}: "Adding a pricing page" — about to start', roster)
+        self.assertIn(f'Thread {done.id}: "Fixing the menu on phones" — finished', roster)
+        self.assertIn(f'Thread {queued.id}: "Adding a pricing page" — about to start', roster)
         self.assertNotIn('Discarded idea', roster)
         self.assertNotIn('Archived idea', roster)
 
     def test_a_running_subagent_with_a_follow_up_waiting_still_reads_as_working(self):
         task = self._task(run_started_at=timezone.now(), queued_prompt='Make it blue.')
-        self.assertIn(f'Subagent {task.id}: "Fixing the menu on phones" — working on it now',
+        self.assertIn(f'Thread {task.id}: "Fixing the menu on phones" — working on it now',
                       lead_task_roster(self.lead))
 
     def test_no_subagents_means_no_roster(self):
@@ -2017,7 +2033,7 @@ class LeadFollowUpTests(GitRepoTestMixin, TestCase):
             conversation_id=self.lead.id,
         )
 
-        self.assertIn(f'Subagent {task.id}', context.task_roster)
+        self.assertIn(f'Thread {task.id}', context.task_roster)
         instructions = get_dynamic_coding_instructions(RunContextWrapper(context), None)
         self.assertIn(context.task_roster, instructions)
 

@@ -74,6 +74,10 @@ const DISPATCH_RETRY_MS = 6000
 // re-trigger its side effects on every poll.
 const adoptedCheckIns = new Set<number>()
 
+// Threads whose conversation this tab is fetching to add to the list, so two
+// check-ins from the same unknown thread do not add it twice.
+const adoptingThreads = new Set<number>()
+
 // Registered by the workspace: how a background task's run is driven (the
 // same handlePrompt path, targeted at the task's instance).
 let taskRunner: ((instanceId: string, prompt: string) => void) | null = null
@@ -153,11 +157,12 @@ export const useAgentStore = defineStore('agent', {
     availableModels: [],
     instances: [],
     activeInstanceId: null,
-    openedSubagentId: null,
+    openedThreadId: null,
     files: [],
     error: null,
     instancesLoading: false,
     checkIns: [],
+    checkInsLoaded: false,
   }),
 
   getters: {
@@ -173,9 +178,9 @@ export const useAgentStore = defineStore('agent', {
 
     /** The subagent the Subagents pane is reading, or null when it is showing
      *  the list. */
-    openedSubagent(state): AgentInstance | null {
-      if (!state.openedSubagentId) return null
-      return state.instances.find(i => i.id === state.openedSubagentId) || null
+    openedThread(state): AgentInstance | null {
+      if (!state.openedThreadId) return null
+      return state.instances.find(i => i.id === state.openedThreadId) || null
     },
 
     /** Every subagent whose work is not finished yet, newest first: running,
@@ -230,12 +235,44 @@ export const useAgentStore = defineStore('agent', {
       return state.instances.filter(i => i.kind === 'task' && i.isProcessing).length
     },
 
-    /** Subagents whose work is done with — accepted, discarded, or archived —
-     *  plus legacy plain chats and any duplicate live lead (a backend race can
-     *  leave two): it matches no other section, so History is where it stays
-     *  reachable for archiving/deleting instead of becoming an invisible
-     *  orphan. The live lead is the main agent's own thread and never
-     *  appears here; the manager is only ever about the subagents. */
+    /** Threads that are working right now: a live run, or dispatched and
+     *  about to start one. Newest first. */
+    workingThreads(): AgentInstance[] {
+      return this.activeAgentInstances.filter(
+        i => i.isProcessing || i.reviewStatus === 'active'
+      )
+    },
+
+    /** Threads waiting on the user: one asked a question, one of several
+     *  takes to pick from, or a run that stopped before finishing. A thread
+     *  with a live run is working, whatever it last asked. Newest first. */
+    waitingThreads(): AgentInstance[] {
+      return this.activeAgentInstances.filter(
+        i => !i.isProcessing && i.reviewStatus !== 'active'
+      )
+    },
+
+    /** Threads whose work is done — in the app, or discarded — and not
+     *  archived. Newest first. */
+    finishedThreads(state): AgentInstance[] {
+      return state.instances
+        .filter(
+          i => i.kind === 'task' && !i.archivedAt && !i.isProcessing &&
+            (i.reviewStatus === 'accepted' || i.reviewStatus === 'dismissed')
+        )
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    },
+
+    /** Check-ins that ask the user for something. A 'done' card is news to
+     *  read, not a request, so it never counts as waiting. */
+    waitingCheckIns(state): CheckInDto[] {
+      return state.checkIns.filter(c => c.kind !== 'done')
+    },
+
+    /** Archived threads, legacy plain chats and any duplicate live lead (a
+     *  backend race can leave two): it matches no other section, so History
+     *  is where it stays reachable instead of becoming an invisible orphan.
+     *  The live lead is the coordinator's own chat and never appears here. */
     historyInstances(state): AgentInstance[] {
       const primaryLead =
         state.instances.find(i => i.kind === 'lead' && !i.archivedAt) || null
@@ -243,8 +280,6 @@ export const useAgentStore = defineStore('agent', {
         i =>
           !!i.archivedAt ||
           i.kind === 'chat' ||
-          i.reviewStatus === 'accepted' ||
-          i.reviewStatus === 'dismissed' ||
           (i.kind === 'lead' && !i.archivedAt && i !== primaryLead)
       )
     },
@@ -258,6 +293,7 @@ export const useAgentStore = defineStore('agent', {
 
   actions: {
     setProjectId(id: string | null) {
+      if (id !== this.projectId) this.checkInsLoaded = false
       this.projectId = id
     },
 
@@ -281,7 +317,7 @@ export const useAgentStore = defineStore('agent', {
         this.instances = dtos.map(d => dtoToInstance(d, fallback))
         // Local ids are regenerated above, so any drilled-into subagent id is
         // now stale — the pane falls back to its list.
-        this.openedSubagentId = null
+        this.openedThreadId = null
 
         // Every project pins exactly one lead thread; the backend dedupes
         // lead creation, so racing tabs converge on the same conversation.
@@ -342,6 +378,7 @@ export const useAgentStore = defineStore('agent', {
       if (!this.projectId) return
       try {
         this.checkIns = await AgentService.listCheckIns(this.projectId)
+        this.checkInsLoaded = true
       } catch (e) {
         console.error('Failed to load check-ins', e)
         return
@@ -370,6 +407,13 @@ export const useAgentStore = defineStore('agent', {
         if (adoptedCheckIns.has(checkIn.id)) continue
         adoptedCheckIns.add(checkIn.id)
         const instance = this.instances.find(i => i.conversationId === checkIn.task.id)
+        // A thread this tab never saw dispatched (another tab, or one that
+        // opened before it existed): bring it in so the Threads pane lists it.
+        if (!instance) {
+          void this.adoptThread(checkIn.task.id)
+          if (lead && lead.id !== this.activeInstanceId) lead.hasUnread = true
+          continue
+        }
         // Mid-run means this tab is driving it and already has the truth;
         // matching review states mean the card is already current.
         if (
@@ -381,6 +425,21 @@ export const useAgentStore = defineStore('agent', {
         // A subagent arriving is worth a dot when the user is reading
         // something else.
         if (lead && lead.id !== this.activeInstanceId) lead.hasUnread = true
+      }
+    },
+
+    /** Add one thread the server knows about and this tab does not. */
+    async adoptThread(conversationId: number) {
+      if (adoptingThreads.has(conversationId)) return
+      adoptingThreads.add(conversationId)
+      try {
+        const dto = await AgentService.getConversation(conversationId)
+        if (this.instances.some(i => i.conversationId === dto.id)) return
+        this.instances.unshift(dtoToInstance(dto, pickDefaultModelId(this.availableModels)))
+      } catch (e) {
+        console.error('Failed to load thread', conversationId, e)
+      } finally {
+        adoptingThreads.delete(conversationId)
       }
     },
 
@@ -433,6 +492,26 @@ export const useAgentStore = defineStore('agent', {
       if (!instance || !taskRunner) return
       this.removeCheckIn(checkIn.id)
       taskRunner(instance.id, text)
+    },
+
+    /**
+     * The user steering a thread directly, from inside it. The message is
+     * the thread's next turn, exactly as a follow-up the coordinator forwards
+     * would be: queued behind a live run, otherwise started as soon as there
+     * is a free slot. Starting a run re-opens the thread server-side and
+     * supersedes whatever it last asked, so its waiting card goes now.
+     *
+     * Returns false when the thread cannot take a message: its work was
+     * discarded (it no longer has a copy of the project to work in), or it
+     * is archived.
+     */
+    steerThread(instanceId: string, text: string): boolean {
+      const message = text.trim()
+      const instance = this._findInstance(instanceId)
+      if (!message || !instance || instance.kind !== 'task') return false
+      if (instance.archivedAt || instance.reviewStatus === 'dismissed') return false
+      this._sendToThread(instance, message)
+      return true
     },
 
     // --- Task dispatch (the lead agent's delegation tool) ---
@@ -513,19 +592,27 @@ export const useAgentStore = defineStore('agent', {
     deliverFollowUp(task: DispatchedTaskDto) {
       const instance = this.instances.find(i => i.conversationId === task.conversation_id)
       if (!instance || instance.kind !== 'task' || !task.brief) return
+      this._sendToThread(instance, task.brief)
+    },
+
+    /** One message into a thread, from the coordinator or from the user
+     *  steering it: its next turn, after the live run if there is one. */
+    _sendToThread(instance: AgentInstance, message: string) {
+      const conversationId = instance.conversationId
+      if (conversationId == null) return
       const join = (waiting?: string | null) =>
-        waiting ? `${waiting}\n\n${task.brief}` : task.brief
+        waiting ? `${waiting}\n\n${message}` : message
       if (instance.isProcessing) {
         this.queuePrompt(instance.id, join(instance.queuedPrompt))
         return
       }
       // The run's start re-opens it server-side and supersedes whatever it
       // last asked; mirror both now so its card reads "working" at once.
-      this.removeCheckInsForTask(task.conversation_id)
+      this.removeCheckInsForTask(conversationId)
       instance.reviewStatus = 'active'
       instance.hasUnread = false
-      firedDispatches.delete(task.conversation_id)
-      dispatchRetryAt.delete(task.conversation_id)
+      firedDispatches.delete(conversationId)
+      dispatchRetryAt.delete(conversationId)
       instance.pendingBrief = join(instance.pendingBrief)
       this.firePendingDispatches()
     },
@@ -793,6 +880,7 @@ export const useAgentStore = defineStore('agent', {
           activity: m.activity,
           filesChanged: m.filesChanged,
           dispatchedTasks: m.dispatchedTasks,
+          question: m.question,
           usage: m.usage,
           dbId: m.id,
           checkpoint: m.checkpoint,
@@ -853,8 +941,8 @@ export const useAgentStore = defineStore('agent', {
      * talk in, so opening it must leave the main thread — and the composer's
      * draft — exactly where they were. Pass null to go back to the list.
      */
-    async openSubagent(instanceId: string | null) {
-      this.openedSubagentId = instanceId
+    async openThread(instanceId: string | null) {
+      this.openedThreadId = instanceId
       if (!instanceId) return
       const instance = this._findInstance(instanceId)
       if (!instance) return
@@ -1063,7 +1151,9 @@ export const useAgentStore = defineStore('agent', {
         // The run is over — its stream controller (if any) is dead weight.
         abortControllers.delete(instanceId)
         // Completion signal: runs that finish off-screen get a dot.
-        if (instanceId !== this.activeInstanceId) instance.hasUnread = true
+        if (instanceId !== this.activeInstanceId && instanceId !== this.openedThreadId) {
+          instance.hasUnread = true
+        }
         // A queued prompt fires now — unless the user just stopped the run,
         // in which case it stays queued for them to send or cancel.
         const queued = instance.queuedPrompt
@@ -1167,7 +1257,7 @@ export const useAgentStore = defineStore('agent', {
     setMessageMeta(
       instanceId: string,
       messageId: string,
-      meta: { filesChanged?: string[]; usage?: AIMessage['usage'] }
+      meta: { filesChanged?: string[]; usage?: AIMessage['usage']; question?: AIMessage['question'] }
     ) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
@@ -1175,6 +1265,7 @@ export const useAgentStore = defineStore('agent', {
       if (!message) return
       if (meta.filesChanged !== undefined) message.filesChanged = [...meta.filesChanged]
       if (meta.usage !== undefined) message.usage = { ...meta.usage }
+      if (meta.question !== undefined) message.question = { ...meta.question }
     },
 
     /** Drop a message (e.g. an assistant bubble whose run produced nothing). */

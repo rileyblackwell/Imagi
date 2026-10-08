@@ -1714,6 +1714,9 @@ def _serialize_check_in(check_in):
         'id': check_in.id,
         'kind': check_in.kind,
         'body': check_in.body,
+        # A question's one-tap choices and sketch, when it came with them.
+        'options': list((check_in.details or {}).get('options') or []),
+        'visual': (check_in.details or {}).get('visual') or '',
         'status': check_in.status,
         'created_at': check_in.created_at.isoformat(),
         'resolved_at': check_in.resolved_at.isoformat() if check_in.resolved_at else None,

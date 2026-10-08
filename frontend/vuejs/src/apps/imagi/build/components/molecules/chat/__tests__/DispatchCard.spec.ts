@@ -86,7 +86,7 @@ describe('DispatchCard', () => {
       lastMessagePreview: 'Your contact page now has a form people can',
     })
 
-    expect(statusOf(mountCard(task))).toBe('Subagent complete')
+    expect(statusOf(mountCard(task))).toBe('Thread complete')
     expect(await summaryOf(task)).toBe(signOff)
   })
 
@@ -104,7 +104,7 @@ describe('DispatchCard', () => {
   })
 
   it('never leaves a complete card with nothing under it', async () => {
-    // "Subagent complete" over an empty space says nothing about the app. A
+    // "Thread complete" over an empty space says nothing about the app. A
     // run that signed off with no words at all still owes the owner a line.
     for (const reviewStatus of ['accepted', 'ready'] as const) {
       expect(await summaryOf(makeTask({ reviewStatus })))
@@ -151,7 +151,7 @@ describe('DispatchCard', () => {
 
   it('shows a live run as working whatever its stored status', () => {
     const wrapper = mountCard(makeTask({ reviewStatus: 'failed', isProcessing: true }))
-    expect(statusOf(wrapper)).toBe('Subagent working')
+    expect(statusOf(wrapper)).toBe('Thread working')
   })
 
   it('tells the owner what a working subagent is doing', async () => {
@@ -166,7 +166,7 @@ describe('DispatchCard', () => {
     const task = makeTask({ isProcessing: true, overview })
     const wrapper = await opened(mountCard(task))
 
-    expect(statusOf(wrapper)).toBe('Subagent working')
+    expect(statusOf(wrapper)).toBe('Thread working')
     expect(wrapper.find('.dispatch-card__result').text()).toBe(overview)
     // The job line stays above it: the overview describes the job, it does
     // not replace its name.
@@ -182,7 +182,7 @@ describe('DispatchCard', () => {
       overview: "I'm adding a contact page with a form people can fill in.",
     })
 
-    expect(statusOf(mountCard(task))).toBe('Subagent starting')
+    expect(statusOf(mountCard(task))).toBe('Thread starting')
     expect(await summaryOf(task))
       .toBe("I'm adding a contact page with a form people can fill in.")
   })
@@ -203,8 +203,8 @@ describe('DispatchCard', () => {
 
   it('keeps a starting reading for a dispatch whose run has not fired', () => {
     expect(statusOf(mountCard(makeTask({ reviewStatus: 'active' }))))
-      .toBe('Subagent starting')
-    expect(statusOf(mountCard(null))).toBe('Subagent starting')
+      .toBe('Thread starting')
+    expect(statusOf(mountCard(null))).toBe('Thread starting')
   })
 
   it('says a finished subagent already put its work in the app', () => {
@@ -216,7 +216,7 @@ describe('DispatchCard', () => {
       lastAssistantSummary: 'Your contact page is live.',
     }))
 
-    expect(statusOf(wrapper)).toBe('Subagent complete')
+    expect(statusOf(wrapper)).toBe('Thread complete')
     expect(wrapper.classes()).toContain('dispatch-card--done')
     expect(wrapper.text()).not.toContain('waiting on you')
   })
@@ -225,7 +225,7 @@ describe('DispatchCard', () => {
     // 'ready' is the one state left where finished work waits on the user,
     // and only because they asked to compare versions.
     expect(statusOf(mountCard(makeTask({ reviewStatus: 'ready' }))))
-      .toBe('Subagent complete — one of your options')
+      .toBe('Thread complete — one of your options')
   })
 })
 
@@ -243,7 +243,7 @@ describe('DispatchCard disclosure', () => {
     expect(wrapper.find('.dispatch-card__result').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('a form people can fill in')
     // What is left is still the whole answer to the question being asked.
-    expect(statusOf(wrapper)).toBe('Subagent working')
+    expect(statusOf(wrapper)).toBe('Thread working')
     expect(wrapper.find('.dispatch-card__job').text())
       .toBe('Adding a contact page so customers can reach you.')
     // And it says there is more behind it.
@@ -318,7 +318,7 @@ describe('DispatchCard disclosure', () => {
       }),
     })
 
-    expect(statusOf(wrapper)).toBe('Subagent complete')
+    expect(statusOf(wrapper)).toBe('Thread complete')
     expect(wrapper.find('.dispatch-card__result').text()).toBe('Your contact page is live.')
   })
 

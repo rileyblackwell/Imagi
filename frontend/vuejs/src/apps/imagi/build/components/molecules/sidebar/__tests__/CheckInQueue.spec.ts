@@ -97,7 +97,7 @@ describe('CheckInQueue completion card', () => {
     // already been made.
     const wrapper = mount(CheckInQueue, { props: { queue: [finished()] } })
 
-    expect(wrapper.text()).toContain('Subagent complete')
+    expect(wrapper.text()).toContain('Thread complete')
     // The label is the fact and nothing more — the rail and the "Got it"
     // button already say the work is in.
     expect(wrapper.text()).not.toContain('added to your app')
@@ -141,8 +141,23 @@ describe('CheckInQueue completion card', () => {
     })
     const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
 
-    expect(wrapper.text()).toContain('Subagent complete — one of your options')
+    expect(wrapper.text()).toContain('Thread complete — one of your options')
     await buttonLabelled(wrapper, 'Use this one').trigger('click')
     expect(wrapper.emitted('accept')?.[0]).toEqual([checkIn])
+  })
+})
+
+describe('CheckInQueue question with choices', () => {
+  it('answers with one tap', async () => {
+    const checkIn = makeCheckIn({
+      kind: 'question',
+      body: 'Pickup or delivery?',
+      options: ['Pickup only', 'Pickup and delivery'],
+    })
+    const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
+
+    await buttonLabelled(wrapper, 'Pickup only').trigger('click')
+
+    expect(wrapper.emitted('answer')).toEqual([[checkIn, 'Pickup only']])
   })
 })

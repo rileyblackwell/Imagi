@@ -23,7 +23,7 @@
   <div v-if="queue.length> 0" class="mb-1.5">
     <!-- Queue depth: only worth showing once something is waiting behind -->
     <div v-if="queue.length> 1" class="queue-head">
-      <span class="queue-head__label">From your subagents</span>
+      <span class="queue-head__label">From your threads</span>
       <span class="queue-head__count">{{ queue.length }}</span>
       <span class="queue-head__rule"></span>
     </div>
@@ -79,11 +79,19 @@
           <!-- A question is answered in place: the answer restarts the subagent
                in the background, so the user never leaves this thread. -->
           <div v-if="current.kind === 'question'" class="mt-2">
+            <!-- One-tap answers and a sketch, when the thread offered them -->
+            <QuestionChoices
+              v-if="current.options?.length || current.visual"
+              :options="current.options || []"
+              :visual="current.visual || ''"
+              class="mb-2"
+              @pick="emit('answer', current, $event)"
+            />
             <textarea
               ref="answerInput"
               v-model="answer"
               rows="2"
-              placeholder="Answer to send back…"
+              :placeholder="current.options?.length ? 'Or type your own answer…' : 'Answer to send back…'"
               class="answer-textarea w-full rounded-lg bg-white/70 dark:bg-white/[0.04] border border-ink/[0.1] dark:border-white/[0.12] text-ink dark:text-white/90 placeholder-ink/35 dark:placeholder-white/30 text-[11px] px-2 py-1.5 resize-none leading-relaxed"
               @keydown.enter.exact.prevent="sendAnswer"
             ></textarea>
@@ -201,6 +209,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import QuestionChoices from '../chat/QuestionChoices.vue'
 import type { CheckInDto } from '../../../types/services'
 
 const props = defineProps<{
@@ -254,7 +263,7 @@ const siblingIndex = computed(
  *  — the same subagent, so the same words. Falls back to the workspace title
  *  for a task dispatched before goals were carried on the queue. */
 const jobName = computed(
-  () => current.value?.task.goal || current.value?.task.title || 'Background subagent'
+  () => current.value?.task.goal || current.value?.task.title || 'Thread'
 )
 
 const kindIcon = computed(() => {
@@ -273,8 +282,8 @@ const kindLabel = computed(() => {
     // changes are already live in the project, and the green rail and the
     // "Got it" button below already say so — the label needs no clause on
     // the end of it.
-    case 'ready': return 'Subagent complete — one of your options'
-    default: return 'Subagent complete'
+    case 'ready': return 'Thread complete — one of your options'
+    default: return 'Thread complete'
   }
 })
 

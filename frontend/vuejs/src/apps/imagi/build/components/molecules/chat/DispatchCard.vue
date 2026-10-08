@@ -162,7 +162,7 @@ function saidBy(instance: AgentInstance): string {
 }
 
 /** What a finished card says when the run signed off with nothing at all.
- *  "Subagent complete" over an empty space tells the owner nothing about
+ *  "Thread complete" over an empty space tells the owner nothing about
  *  their own app, so the card always says something and points at the one
  *  place the answer is. */
 const NO_SIGN_OFF = 'It finished without saying what it changed — open it to see the work.'
@@ -197,7 +197,7 @@ const status = computed(() => {
     return {
       tone: 'starting',
       icon: 'fas fa-hourglass-start',
-      label: 'Subagent starting',
+      label: 'Thread starting',
       result: '',
       reveal: WHAT_ITS_DOING,
     }
@@ -206,7 +206,7 @@ const status = computed(() => {
     return {
       tone: 'working',
       icon: 'fas fa-circle-notch fa-spin',
-      label: 'Subagent working',
+      label: 'Thread working',
       // What it is doing: the lead's overview of the job, three to five plain
       // sentences written for the owner at dispatch. Not the agent's live
       // status ("Editing project files…") — that says how it is working,
@@ -234,7 +234,7 @@ const status = computed(() => {
       return {
         tone: 'asking',
         icon: 'fas fa-check',
-        label: 'Subagent complete — one of your options',
+        label: 'Thread complete — one of your options',
         result: saidBy(instance) || NO_SIGN_OFF,
         reveal: THE_SUMMARY,
       }
@@ -259,7 +259,7 @@ const status = computed(() => {
         icon: 'fas fa-check',
         // Applied, not offered: the changes are in the app already, which is
         // the whole point of handing the job over.
-        label: 'Subagent complete',
+        label: 'Thread complete',
         // What it did, in its own words: the run is over, so the last message
         // is its sign-off — four to six plain sentences about the changes,
         // written for exactly this spot (see TASK_AGENT_INSTRUCTIONS). This
@@ -282,7 +282,7 @@ const status = computed(() => {
       return {
         tone: 'starting',
         icon: 'fas fa-hourglass-start',
-        label: 'Subagent starting',
+        label: 'Thread starting',
         result: instance.overview,
         reveal: WHAT_ITS_DOING,
       }
@@ -293,7 +293,7 @@ const bodyId = `dispatch-card-body-${nextBodyId++}`
 
 /**
  * Whether the card is open. Closed to begin with in every state, the
- * finished one included: "Subagent complete" over the job's name is the
+ * finished one included: "Thread complete" over the job's name is the
  * whole of what most people need from a card they have scrolled back to,
  * and the account of what changed is there for the asking.
  *
@@ -308,7 +308,7 @@ const state = computed(() => ({
   // What this subagent is for, named the way the user would name it. The
   // title is the standby for the moment before the instance loads — shorter,
   // but never nothing.
-  job: props.instance?.brief || props.title || 'Background subagent',
+  job: props.instance?.brief || props.title || 'Thread',
 }))
 
 /** Nothing to open when the run has said nothing yet: a discarded card, or

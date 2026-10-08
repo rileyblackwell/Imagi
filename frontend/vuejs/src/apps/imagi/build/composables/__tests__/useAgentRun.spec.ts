@@ -405,7 +405,7 @@ describe('useAgentRun', () => {
       await handlePrompt('Build the pricing page')
 
       expect(fail).toHaveBeenCalledWith(
-        live().id, expect.stringContaining('connection to this subagent dropped'), null
+        live().id, expect.stringContaining('connection to this thread dropped'), null
       )
       expect(contents(live())[0]).toBe('user: Build the pricing page')
     })

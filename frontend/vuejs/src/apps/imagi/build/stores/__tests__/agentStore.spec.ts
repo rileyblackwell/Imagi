@@ -84,19 +84,156 @@ describe('agent store manager taxonomy', () => {
     expect(store.historyInstances.map(i => i.id)).toEqual([duplicate.id])
   })
 
-  it('keeps archived leads, legacy chats and resolved tasks in history', () => {
+  it('keeps archived threads and legacy chats in history, finished threads out', () => {
+    // Finished threads have their own group now; history is what is left
+    // over (archived, legacy chats) so it stays reachable.
     const store = useAgentStore()
     const archivedLead = makeInstance({ kind: 'lead', archivedAt: new Date().toISOString() })
+    const archivedTask = makeInstance({ kind: 'task', reviewStatus: 'accepted', archivedAt: new Date().toISOString() })
     const chat = makeInstance({ kind: 'chat' })
     const accepted = makeInstance({ kind: 'task', reviewStatus: 'accepted' })
     const active = makeInstance({ kind: 'task', reviewStatus: 'active' })
-    store.instances = [archivedLead, chat, accepted, active]
+    store.instances = [archivedLead, archivedTask, chat, accepted, active]
 
     const ids = store.historyInstances.map(i => i.id)
     expect(ids).toContain(archivedLead.id)
+    expect(ids).toContain(archivedTask.id)
     expect(ids).toContain(chat.id)
-    expect(ids).toContain(accepted.id)
+    expect(ids).not.toContain(accepted.id)
     expect(ids).not.toContain(active.id)
+  })
+})
+
+describe('agent store thread groups', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('splits threads into working, waiting on you, and finished', () => {
+    const store = useAgentStore()
+    const running = makeInstance({ kind: 'task', reviewStatus: 'active', isProcessing: true })
+    const starting = makeInstance({ kind: 'task', reviewStatus: 'active' })
+    const asking = makeInstance({ kind: 'task', reviewStatus: 'input' })
+    const takes = makeInstance({ kind: 'task', reviewStatus: 'ready' })
+    const stopped = makeInstance({ kind: 'task', reviewStatus: 'failed' })
+    // Answered and running again: it is working, whatever it last asked.
+    const resumed = makeInstance({ kind: 'task', reviewStatus: 'input', isProcessing: true })
+    const done = makeInstance({ kind: 'task', reviewStatus: 'accepted' })
+    const discarded = makeInstance({ kind: 'task', reviewStatus: 'dismissed' })
+    const archived = makeInstance({ kind: 'task', reviewStatus: 'accepted', archivedAt: new Date().toISOString() })
+    const lead = makeInstance({ kind: 'lead', isProcessing: true })
+    store.instances = [running, starting, asking, takes, stopped, resumed, done, discarded, archived, lead]
+
+    const ids = (list: { id: string }[]) => list.map(i => i.id).sort()
+    expect(ids(store.workingThreads)).toEqual(ids([running, starting, resumed]))
+    expect(ids(store.waitingThreads)).toEqual(ids([asking, takes, stopped]))
+    expect(ids(store.finishedThreads)).toEqual(ids([done, discarded]))
+  })
+
+  it('counts only the check-ins that ask for something as waiting', () => {
+    const store = useAgentStore()
+    const card = (id: number, kind: string) => ({ id, kind, task: { id } }) as any
+    store.checkIns = [card(1, 'done'), card(2, 'question'), card(3, 'ready'), card(4, 'error')]
+
+    expect(store.waitingCheckIns.map(c => c.id)).toEqual([2, 3, 4])
+  })
+})
+
+describe('agent store adopting threads from the queue', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('adds a thread it never saw dispatched when that thread checks in', async () => {
+    // Dispatched from another tab: the first this tab hears of it is its
+    // question in the queue, and the Threads pane must list it too.
+    const store = useAgentStore()
+    store.projectId = '1'
+    store.instances = [makeInstance({ kind: 'lead' })]
+    agentService.listCheckIns.mockResolvedValue([{ id: 31, kind: 'question', task: { id: 777, review_status: 'input' } }])
+    agentService.getConversation.mockResolvedValue({
+      id: 777, title: 'Gallery photos', kind: 'task', review_status: 'input', model_name: 'claude-opus-5-5',
+      archived_at: null, updated_at: new Date().toISOString(), parent: null,
+    })
+
+    await store.loadCheckIns()
+    await vi.waitFor(() => expect(store.waitingThreads.map(i => i.conversationId)).toEqual([777]))
+    expect(agentService.getConversation).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('agent store steering a thread', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    Object.values(agentService).forEach((fn) => fn.mockReset())
+  })
+
+  it('starts an idle thread again with the message and clears its waiting card', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({ kind: 'task', reviewStatus: 'input', conversationId: 501 })
+    store.instances = [task]
+    store.checkIns = [{ id: 7, kind: 'question', task: { id: 501 } } as any]
+
+    expect(store.steerThread(task.id, '  Open on weekends too  ')).toBe(true)
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledWith(task.id, 'Open on weekends too')
+    expect(task.reviewStatus).toBe('active')
+    expect(store.checkIns).toHaveLength(0)
+    expect(store.workingThreads.map(i => i.id)).toEqual([task.id])
+  })
+
+  it('reopens a finished thread for a change to its work', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({ kind: 'task', reviewStatus: 'accepted', conversationId: 502 })
+    store.instances = [task]
+
+    expect(store.steerThread(task.id, 'Make the button blue too')).toBe(true)
+    await Promise.resolve()
+
+    expect(runs).toHaveBeenCalledWith(task.id, 'Make the button blue too')
+  })
+
+  it('queues behind a live run instead of starting a second one', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const task = makeInstance({ kind: 'task', reviewStatus: 'active', isProcessing: true, conversationId: 503 })
+    store.instances = [task]
+
+    store.steerThread(task.id, 'Use the green from the logo')
+    store.steerThread(task.id, 'And make it bold')
+    await Promise.resolve()
+
+    expect(runs).not.toHaveBeenCalled()
+    expect(task.queuedPrompt).toBe('Use the green from the logo\n\nAnd make it bold')
+  })
+
+  it('refuses a discarded or archived thread, and an empty message', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    const discarded = makeInstance({ kind: 'task', reviewStatus: 'dismissed' })
+    const archived = makeInstance({ kind: 'task', reviewStatus: 'accepted', archivedAt: new Date().toISOString() })
+    const live = makeInstance({ kind: 'task', reviewStatus: 'accepted' })
+    const lead = makeInstance({ kind: 'lead' })
+    store.instances = [discarded, archived, live, lead]
+
+    expect(store.steerThread(discarded.id, 'hello')).toBe(false)
+    expect(store.steerThread(archived.id, 'hello')).toBe(false)
+    expect(store.steerThread(live.id, '   ')).toBe(false)
+    expect(store.steerThread(lead.id, 'hello')).toBe(false)
+    await Promise.resolve()
+    expect(runs).not.toHaveBeenCalled()
   })
 })
 
@@ -160,7 +297,7 @@ describe('agent store workingAgentCount', () => {
   })
 })
 
-describe('agent store openSubagent', () => {
+describe('agent store openThread', () => {
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
@@ -174,9 +311,9 @@ describe('agent store openSubagent', () => {
     store.instances = [lead, task]
     store.activeInstanceId = lead.id
 
-    await store.openSubagent(task.id)
+    await store.openThread(task.id)
 
-    expect(store.openedSubagent?.id).toBe(task.id)
+    expect(store.openedThread?.id).toBe(task.id)
     // The composer (and its draft) stay with the lead thread.
     expect(store.activeInstanceId).toBe(lead.id)
     expect(task.hasUnread).toBe(false)
@@ -187,10 +324,10 @@ describe('agent store openSubagent', () => {
     const task = makeInstance({ kind: 'task' })
     store.instances = [task]
 
-    await store.openSubagent(task.id)
-    await store.openSubagent(null)
+    await store.openThread(task.id)
+    await store.openThread(null)
 
-    expect(store.openedSubagent).toBeNull()
+    expect(store.openedThread).toBeNull()
   })
 })
 
