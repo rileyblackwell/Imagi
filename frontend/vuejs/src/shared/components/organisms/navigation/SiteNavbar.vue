@@ -17,14 +17,14 @@
           <template #menu>
             <router-link
               :to="{ name: 'builder' }"
-              class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 hover:bg-ink/[0.04] dark:hover:bg-blue-400/10"
+              class="nav-menu-item group"
               @click="isProductsMenuOpen = false"
             >
-              <span class="min-w-0">
-                <span class="block text-sm font-semibold tracking-tight text-ink dark:text-white">Imagi</span>
-                <span class="block text-xs text-ink/60 dark:text-bone/60">Build and run your business</span>
+              <span class="min-w-0 flex-1">
+                <span class="nav-menu-item__title">Imagi</span>
+                <span class="nav-menu-item__desc">Build and <em class="sl-run">run</em> your business</span>
               </span>
-              <i class="fas fa-arrow-right text-xs text-ink/40 dark:text-bone/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-300"></i>
+              <i class="fas fa-arrow-right nav-menu-item__arrow" aria-hidden="true"></i>
             </router-link>
           </template>
         </SiteNavbarDropdown>
@@ -149,5 +149,53 @@ export default defineComponent({
 
 .site-nav-link:hover {
   opacity: 0.7;
+}
+
+/* Product menu rows. They render inside the dropdown's .spotlight panel, so
+   every colour is a --sl-* token and both themes come from spotlight.css. */
+.nav-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  text-align: left;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-menu-item:hover,
+.nav-menu-item:focus-visible {
+  background: var(--sl-chip-bg-hover);
+  border-color: var(--sl-line);
+}
+
+.nav-menu-item__title {
+  display: block;
+  font-family: var(--sl-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--sl-text);
+}
+
+.nav-menu-item__desc {
+  display: block;
+  margin-top: 1px;
+  font-size: 13px;
+  color: var(--sl-muted);
+}
+
+.nav-menu-item__arrow {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--sl-faint);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.nav-menu-item:hover .nav-menu-item__arrow,
+.nav-menu-item:focus-visible .nav-menu-item__arrow {
+  transform: translateX(3px);
+  color: var(--sl-coral);
 }
 </style>

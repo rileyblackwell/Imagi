@@ -9,10 +9,17 @@
 -->
 <template>
   <div class="relative" @mouseenter="openDropdown" @mouseleave="startCloseTimer">
-    <button type="button" class="site-nav-link group relative" @click="toggleDropdown">
+    <button
+      type="button"
+      class="site-nav-link group relative"
+      aria-haspopup="true"
+      :aria-expanded="isOpen ? 'true' : 'false'"
+      @click="toggleDropdown"
+    >
       <slot name="trigger">
-        <span class="flex items-center gap-2 relative z-10">
+        <span class="flex items-center gap-1.5 relative z-10">
           <slot></slot>
+          <i class="fas fa-chevron-down nav-menu-chevron" :class="{ 'is-open': isOpen }" aria-hidden="true"></i>
         </span>
       </slot>
     </button>
@@ -26,9 +33,12 @@
       leave-to-class="opacity-0 scale-95 -translate-y-2"
     >
       <div v-show="isOpen" class="absolute left-1/2 -translate-x-1/2 pt-3 w-max origin-top z-50">
-        <!-- crisp-card is the shared shadow ladder from tokens.css; this panel
-             had its own copy of it under a different class name. -->
-        <div class="crisp-card rounded-2xl bg-paper-raised/95 border border-ink/10 dark:border-blue-400/[0.14] backdrop-blur-xl overflow-hidden p-1.5 transition-colors duration-300">
+        <!-- The panel is its own small Spotlight stage: `.spotlight` brings the
+             --sl-* tokens for both themes (the navbar sits outside every
+             page's .spotlight root), and .nav-menu lights it — a warm
+             gradient hairline and a pool of light falling from the top edge,
+             the same treatment as the homepage's prompt bar and screenshots. -->
+        <div class="spotlight nav-menu">
           <slot name="menu"></slot>
         </div>
       </div>
@@ -87,8 +97,41 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Add transition for dropdown chevron */
-.fa-chevron-down {
-  transition: transform 0.2s ease-in-out;
+.nav-menu-chevron {
+  font-size: 9px;
+  opacity: 0.55;
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease;
+}
+
+.nav-menu-chevron.is-open {
+  transform: rotate(180deg);
+  opacity: 0.9;
+}
+
+/* Doubled class so it outranks `.spotlight`'s own page background. */
+.spotlight.nav-menu {
+  position: relative;
+  min-width: 300px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  /* Gradient hairline: the surface on the padding box, the warm edge on the
+     border box showing through the transparent border. */
+  background:
+    linear-gradient(var(--sl-surface), var(--sl-surface)) padding-box,
+    var(--sl-win-edge) border-box;
+  box-shadow: var(--sl-win-shadow);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* The light from above, kept faint so the item reads first. */
+.spotlight.nav-menu::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 90% at 50% -30%, var(--sl-spot-mid) 0%, transparent 70%);
 }
 </style>
