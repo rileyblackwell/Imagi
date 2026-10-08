@@ -183,8 +183,8 @@ export const ProjectService = {
    * Used by dashboard for project creation
    */
   async createProject(
-    { name, description, design_preferences = '' }:
-    { name: string; description: string; design_preferences?: string }
+    { name, description, app_details = '', design_preferences = '' }:
+    { name: string; description: string; app_details?: string; design_preferences?: string }
   ): Promise<Project> {
     console.debug('Project API - creating project:', { name, description })
 
@@ -193,6 +193,7 @@ export const ProjectService = {
       const response = await api.post('/v1/project-manager/projects/create/', {
         name,
         description,
+        app_details,
         design_preferences
       })
       

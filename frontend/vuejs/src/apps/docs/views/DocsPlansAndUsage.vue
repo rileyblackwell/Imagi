@@ -36,7 +36,7 @@
             Because the window rolls, allowance frees up gradually as older activity ages out—rather than resetting all at once.
           </p>
         </div>
-        <div class="rule-cols rule-cols--2">
+        <div class="rule-cols">
           <DocsCard title="The Usage panel">
             In the Build workspace, the Usage button in the chat toolbar opens a panel showing how much of the week's
             allowance you've used, as a percentage with a meter, and when usage next frees up. It refreshes after each agent
@@ -47,6 +47,11 @@
             free up as the window rolls, switch to a lighter model or lower reasoning effort, or upgrade your plan. The check
             happens before each run starts, so a run already underway always finishes—which can take you slightly past the
             allowance.
+          </DocsCard>
+          <DocsCard title="A ceiling on every run">
+            However big your allowance, no single run spends more than $10 without checking in. A run that reaches it
+            stops with its progress saved and tells you so—send a message to keep going. Agents keep working on Imagi's
+            servers after you close the workspace, and the ceiling applies there too.
           </DocsCard>
         </div>
       </section>
@@ -64,6 +69,7 @@
           <DocsCard title="Free — $0">
             <ul class="space-y-2 mt-1">
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$3 of AI usage per week</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Access to the core AI builder</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>1 active project</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Community support</span></li>
             </ul>

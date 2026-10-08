@@ -10,8 +10,9 @@
   It should NOT be responsible for:
   - Project file editing (handled by the build workspace)
 
-  Design: "Brief" on the Spotlight stage. Starting a business is three numbered
-  steps on a lit rail (name it, describe it, set the look), with a card beside
+  Design: "Brief" on the Spotlight stage. Starting a business is four numbered
+  steps on a lit rail (name it, describe the business, how the app should
+  work, set the look), written for founders who are not technical, with a card beside
   them showing the brief the agent will receive and the button that sends it.
   The businesses you already have follow as a numbered list. The editorial
   markup is re-lit by the bridge in shared/styles/spotlight.css.
@@ -51,8 +52,8 @@
                   behind it.
                 </template>
                 <template v-else>
-                  Three short answers become the first version of its web app. The businesses
-                  you already have are further down.
+                  Answer a few questions in your own words and Imagi builds the first version of
+                  its app. The businesses you already have are further down.
                 </template>
               </p>
             </div>
@@ -95,7 +96,7 @@
                       <template v-else>01</template>
                     </span>
                     <label class="step__title" for="project-name">Name it</label>
-                    <p class="step__hint">What customers will call the business.</p>
+                    <p class="step__hint">The name of your business or app. You can change it later.</p>
                     <input
                       id="project-name"
                       ref="projectNameInput"
@@ -109,15 +110,15 @@
                     >
                   </div>
 
-                  <!-- 02 — Describe it -->
+                  <!-- 02 — The business -->
                   <div class="step" :class="stepClass(2)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                       <template v-else>02</template>
                     </span>
-                    <label class="step__title" for="project-description">Describe it</label>
+                    <label class="step__title" for="project-description">Describe the business</label>
                     <p id="project-description-hint" class="step__hint">
-                      What it sells, who its customers are, and how it reaches them.
+                      A few sentences: what you offer, who it&rsquo;s for, and how people find you and pay.
                     </p>
                     <div class="lit-field">
                       <textarea
@@ -143,27 +144,82 @@
                     </div>
                   </div>
 
-                  <!-- 03 — Set the look -->
-                  <div class="step step--last" :class="stepClass(3)">
+                  <!-- 03 — How the app works. Plain words; the build turns it
+                       into the app's plan (what it keeps track of, what people
+                       can do, what it must be like). -->
+                  <div class="step" :class="stepClass(3)">
+                    <span class="step__node" aria-hidden="true">
+                      <svg v-if="detailsDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                      <template v-else>03</template>
+                    </span>
+                    <label class="step__title" for="project-details">
+                      How should the app work?
+                      <span class="step__optional">Optional</span>
+                    </label>
+                    <p class="step__hint">
+                      In everyday words: what people can do on it, what it needs to keep track of,
+                      and anything that matters to you. Imagi turns this into the plan for your app.
+                    </p>
+                    <div class="starters" role="group" aria-label="Sentence starters">
+                      <button
+                        v-for="starter in DETAIL_STARTERS"
+                        :key="starter"
+                        type="button"
+                        class="starter"
+                        :disabled="isCreating"
+                        @click="addStarter(starter)"
+                      >
+                        <span aria-hidden="true">+</span> {{ starter }}&hellip;
+                      </button>
+                    </div>
+                    <textarea
+                      id="project-details"
+                      ref="projectDetailsInput"
+                      v-model="newProjectDetails"
+                      rows="4"
+                      class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Customers can book a class and pay online. It keeps track of classes, members and bookings. It should work well on phones."
+                      :disabled="isCreating"
+                      @focus="focusedStep = 3"
+                      @blur="focusedStep = null"
+                    ></textarea>
+                  </div>
+
+                  <!-- 04 — Set the look -->
+                  <div class="step step--last" :class="stepClass(4)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="designDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                      <template v-else>03</template>
+                      <template v-else>04</template>
                     </span>
                     <label class="step__title" for="project-design">
                       Set the look
                       <span class="step__optional">Optional</span>
                     </label>
                     <p class="step__hint">
-                      Colours, mood, references. Skip it and Imagi picks a look that fits.
+                      The feel, colours or fonts you want. Skip it and Imagi picks a look that fits.
                     </p>
+                    <div class="starters" role="group" aria-label="Moods">
+                      <button
+                        v-for="mood in MOODS"
+                        :key="mood"
+                        type="button"
+                        class="starter"
+                        :class="{ 'is-on': hasMood(mood) }"
+                        :aria-pressed="hasMood(mood)"
+                        :disabled="isCreating"
+                        @click="toggleMood(mood)"
+                      >
+                        {{ mood }}
+                      </button>
+                    </div>
                     <textarea
                       id="project-design"
                       v-model="newProjectDesign"
                       rows="2"
                       class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="Warm and minimal, earthy palette, lots of whitespace."
+                      placeholder="Warm and minimal, earthy colours, lots of space."
                       :disabled="isCreating"
-                      @focus="focusedStep = 3"
+                      @focus="focusedStep = 4"
                       @blur="focusedStep = null"
                     ></textarea>
                   </div>
@@ -184,6 +240,8 @@
                         {{ newProjectDescription.trim() || 'What the business does shows up here as you describe it.' }}
                       </p>
                       <dl class="brief__facts">
+                        <dt>How it works</dt>
+                        <dd class="brief__clamp">{{ newProjectDetails.trim() || 'Imagi works it out from the description' }}</dd>
                         <dt>Look</dt>
                         <dd>{{ newProjectDesign.trim() || 'Imagi picks one' }}</dd>
                         <dt>First build</dt>
@@ -358,6 +416,10 @@ const newProjectDescription = ref('')
 // Optional: extra design/style direction for the initial AI build. Empty is
 // fine — the build carries strong default design direction on its own.
 const newProjectDesign = ref('')
+// Optional: how the app should work, in plain words. The initial build reads
+// it as the app's functional brief.
+const newProjectDetails = ref('')
+const projectDetailsInput = ref<HTMLTextAreaElement | null>(null)
 const isCreating = ref(false)
 const projectNameInput = ref<HTMLInputElement | null>(null)
 
@@ -376,13 +438,15 @@ const canCreate = computed(() =>
 const nameDone = computed(() => Boolean(newProjectName.value.trim()))
 const descriptionLength = computed(() => newProjectDescription.value.trim().length)
 const descriptionDone = computed(() => descriptionLength.value >= MIN_DESCRIPTION_LENGTH)
+const detailsDone = computed(() => Boolean(newProjectDetails.value.trim()))
 const designDone = computed(() => Boolean(newProjectDesign.value.trim()))
-const focusedStep = ref<1 | 2 | 3 | null>(null)
+type Step = 1 | 2 | 3 | 4
+const focusedStep = ref<Step | null>(null)
 const currentStep = computed(() =>
-  focusedStep.value ?? (!nameDone.value ? 1 : !descriptionDone.value ? 2 : 3)
+  focusedStep.value ?? (!nameDone.value ? 1 : !descriptionDone.value ? 2 : !detailsDone.value ? 3 : 4)
 )
-const stepDone = { 1: nameDone, 2: descriptionDone, 3: designDone } as const
-const stepClass = (step: 1 | 2 | 3) => ({
+const stepDone = { 1: nameDone, 2: descriptionDone, 3: detailsDone, 4: designDone } as const
+const stepClass = (step: Step) => ({
   'is-done': stepDone[step].value,
   'is-current': currentStep.value === step,
 })
@@ -395,6 +459,39 @@ const descriptionMeterLabel = computed(() => {
   const left = MIN_DESCRIPTION_LENGTH - descriptionLength.value
   return `${left} more character${left === 1 ? '' : 's'}`
 })
+
+// Sentence starters for "How should the app work?". Most founders have never
+// written a spec; a first few words gets them past the empty box.
+const DETAIL_STARTERS = ['People can', 'It keeps track of', 'It should'] as const
+const addStarter = (starter: string) => {
+  const text = newProjectDetails.value.replace(/\s+$/, '')
+  const sep = !text ? '' : /[.!?]$/.test(text) ? ' ' : '. '
+  newProjectDetails.value = `${text}${sep}${starter} `
+  requestAnimationFrame(() => {
+    const el = projectDetailsInput.value
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  })
+}
+
+// One-tap moods for "Set the look", kept in the same text field so a founder
+// can still write their own direction around them.
+const MOODS = ['Businesslike', 'Friendly', 'Fun', 'Energetic', 'Calm', 'Luxurious'] as const
+const moodPattern = (mood: string) => new RegExp(`(^|[\\s,.;])${mood}(?=$|[\\s,.;])`, 'i')
+const hasMood = (mood: string) => moodPattern(mood).test(newProjectDesign.value)
+const toggleMood = (mood: string) => {
+  const text = newProjectDesign.value
+  if (hasMood(mood)) {
+    newProjectDesign.value = text
+      .replace(moodPattern(mood), '$1')
+      .replace(/\s*,\s*,/g, ',')
+      .replace(/^[\s,]+|[\s,]+$/g, '')
+  } else {
+    const trimmed = text.replace(/[\s,]+$/, '')
+    newProjectDesign.value = trimmed ? `${trimmed}, ${mood.toLowerCase()}` : mood
+  }
+}
 
 const isInitializing = ref(true)
 
@@ -495,6 +592,7 @@ async function createProject() {
     const projectData = {
       name: newProjectName.value.trim(),
       description: newProjectDescription.value.trim(), // Use the description value
+      app_details: newProjectDetails.value.trim(), // Optional: how the app should work
       design_preferences: newProjectDesign.value.trim() // Optional design direction
     }
 
@@ -503,6 +601,7 @@ async function createProject() {
     // Clear the create form after successful creation
     newProjectName.value = ''
     newProjectDescription.value = ''
+    newProjectDetails.value = ''
     newProjectDesign.value = ''
 
     // Log project information to debug any ID issues
@@ -865,6 +964,56 @@ input[type='search']::-webkit-search-cancel-button {
   border-bottom-color: var(--sl-amber);
 }
 
+/* Sentence starters and moods: small pills that write into the field below,
+   so a blank box never has to be faced cold. */
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.starter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--sl-line);
+  border-radius: 999px;
+  background: var(--sl-chip-bg);
+  font-size: 0.8125rem;
+  color: var(--sl-muted);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.starter span {
+  color: var(--sl-amber);
+  font-weight: 600;
+}
+
+.starter:hover:not(:disabled) {
+  background: var(--sl-chip-bg-hover);
+  border-color: var(--sl-line-strong);
+  color: var(--sl-text);
+}
+
+.starter:focus-visible {
+  outline: 2px solid var(--sl-focus);
+  outline-offset: 2px;
+}
+
+.starter.is-on {
+  border-color: transparent;
+  background: var(--sl-grad);
+  color: var(--sl-on-accent);
+  font-weight: 600;
+}
+
+.starter:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* The description gets the home page's glowing prompt sheet: it is the answer
    the first build leans on most. */
 .lit-field {
@@ -1032,6 +1181,13 @@ input[type='search']::-webkit-search-cancel-button {
   margin: 0;
   color: var(--sl-text);
   overflow-wrap: anywhere;
+}
+
+.brief__facts .brief__clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .brief__foot {

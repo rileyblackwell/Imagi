@@ -160,7 +160,12 @@ def _lead_ack(pages) -> str:
     )
 
 
-def build_founder_brief(name: str, description: str, design_preferences: str = "") -> str:
+def build_founder_brief(
+    name: str,
+    description: str,
+    design_preferences: str = "",
+    app_details: str = "",
+) -> str:
     """The main thread's opening message: the business, as the founder gave it.
 
     The founder reads this as their own first message, so it carries what they
@@ -168,6 +173,9 @@ def build_founder_brief(name: str, description: str, design_preferences: str = "
     instructions, which go to the page threads alone.
     """
     brief = f"Build the first version of my business's web app.\n\nBusiness name: {name}\n\nWhat it does:\n{description}"
+    details = (app_details or "").strip()
+    if details:
+        brief += f"\n\nHow the app should work:\n{details}"
     design = (design_preferences or "").strip()
     if design:
         brief += f"\n\nDesign & style:\n{design}"
@@ -179,6 +187,7 @@ def build_initial_prompt(
     description: str,
     design_preferences: str = "",
     page: PageBrief = None,
+    app_details: str = "",
 ) -> str:
     """Compose one page subagent's brief from the founder's inputs.
 
@@ -200,6 +209,18 @@ Business name: {name}
 
 Business description (written by the founder):
 {description}"""
+
+    details = (app_details or "").strip()
+    if details:
+        # The founder is not technical, so this is plain language. Every page
+        # thread gets the same text and the same instruction, so the sibling
+        # pages, built in parallel, settle on the same things to keep track of.
+        prompt += f"""
+
+How the app should work (from the founder, in their own words):
+{details}
+
+Read this as the app's functional brief. Before writing code, work out from it the main things the app keeps track of (for example customers, bookings, products), what visitors can do with them, and anything it must be (fast, private, easy on a phone). Build your page to fit that picture, and use the same names for those things as the founder does, so your page matches the pages your siblings are building."""
 
     design = (design_preferences or "").strip()
     if design:
@@ -457,6 +478,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 project.description,
                 getattr(project, 'design_preferences', ''),
                 page,
+                app_details=getattr(project, 'app_details', ''),
             )
             for page in pages
         }
@@ -476,6 +498,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             project.name,
             project.description,
             getattr(project, 'design_preferences', ''),
+            app_details=getattr(project, 'app_details', ''),
         )
         _open_lead_thread(service, lead, founder_brief, tasks)
 

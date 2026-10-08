@@ -17,7 +17,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -170,6 +170,30 @@ class ProjectCreateSerializerTests(APITestCase):
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn('description', serializer.errors)
+
+    def test_app_details_are_optional_and_saved_trimmed(self):
+        from apps.Imagi.ProjectManager.api.serializers import (
+            ProjectCreateSerializer,
+        )
+
+        request = type('R', (), {'user': self.user})()
+        without = ProjectCreateSerializer(
+            data={'name': 'No Details', 'description': VALID_DESCRIPTION},
+            context={'request': request},
+        )
+        self.assertTrue(without.is_valid(), without.errors)
+        self.assertEqual(without.save().app_details, '')
+
+        with_details = ProjectCreateSerializer(
+            data={
+                'name': 'With Details',
+                'description': VALID_DESCRIPTION,
+                'app_details': '  Customers book a slot and pay online.  ',
+            },
+            context={'request': request},
+        )
+        self.assertTrue(with_details.is_valid(), with_details.errors)
+        self.assertEqual(with_details.save().app_details, 'Customers book a slot and pay online.')
 
     def test_short_description_rejected(self):
         from apps.Imagi.ProjectManager.api.serializers import (
@@ -713,6 +737,21 @@ class InitialBuildServiceTests(TransactionTestCase):
         calls = self._run_build(['accept'])
 
         self.assertIn('Warm, earthy palette', calls[0]['user_input'])
+
+    def test_app_details_flow_into_prompt_as_the_functional_brief(self):
+        self.project.app_details = 'People book a class and pay online. It keeps track of classes and members.'
+        self.project.save(update_fields=['app_details'])
+
+        calls = self._run_build(['accept'])
+
+        prompt = calls[0]['user_input']
+        self.assertIn('How the app should work', prompt)
+        self.assertIn('People book a class and pay online', prompt)
+
+    def test_prompt_leaves_out_the_how_it_works_section_when_blank(self):
+        calls = self._run_build(['accept'])
+
+        self.assertNotIn('How the app should work', calls[0]['user_input'])
 
     def test_dangling_imports_trigger_a_repair_run_before_applying(self):
         # A build cut short by its cost cap can leave a page importing a
@@ -1459,3 +1498,25 @@ class ProjectLimitTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Project.objects.filter(user=self.user, is_active=True).count(), 2)
+
+
+class FounderBriefTests(SimpleTestCase):
+    """The lead thread's opening message reads as the founder's own words."""
+
+    def test_carries_how_the_app_should_work_between_description_and_design(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief
+
+        brief = build_founder_brief(
+            'Harbor Yoga',
+            'A boutique yoga studio.',
+            'Calm, lots of whitespace',
+            app_details='Members book classes and pay monthly.',
+        )
+        self.assertIn('How the app should work:\nMembers book classes and pay monthly.', brief)
+        self.assertLess(brief.index('What it does'), brief.index('How the app should work'))
+        self.assertLess(brief.index('How the app should work'), brief.index('Design & style'))
+
+    def test_leaves_the_section_out_when_blank(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief
+
+        self.assertNotIn('How the app should work', build_founder_brief('Harbor Yoga', 'A boutique yoga studio.'))

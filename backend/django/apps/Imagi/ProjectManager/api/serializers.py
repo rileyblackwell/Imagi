@@ -33,7 +33,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Project
-        fields = ['id', 'name', 'slug', 'description', 'design_preferences', 'created_at', 'updated_at', 'is_active']
+        fields = ['id', 'name', 'slug', 'description', 'app_details', 'design_preferences', 'created_at', 'updated_at', 'is_active']
         # is_active is read-only: flipping it off here would hide a project
         # without the delete endpoint's cleanup, and free a plan slot (the
         # project limit counts active rows) while its files stay on disk.
@@ -61,10 +61,14 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     # initial AI build. Empty is fine — the build prompt carries strong default
     # UI direction on its own.
     design_preferences = serializers.CharField(required=False, allow_blank=True, default="")
+    # Optional: how the app should work, in the founder's own words — what
+    # people can do with it, what it keeps track of, what it must be like. The
+    # initial build reads it as the app's functional brief.
+    app_details = serializers.CharField(required=False, allow_blank=True, default="")
 
     class Meta:
         model = Project
-        fields = ['name', 'description', 'design_preferences']
+        fields = ['name', 'description', 'app_details', 'design_preferences']
 
     def validate_name(self, value):
         """Validate project name is safe and unique for user."""
@@ -92,6 +96,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             user=user,
             name=validated_data['name'],
             description=validated_data['description'],
+            app_details=validated_data.get('app_details', '').strip(),
             design_preferences=validated_data.get('design_preferences', ''),
         )
         return project

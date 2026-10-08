@@ -15,7 +15,8 @@
             running the business: <strong class="ink-strong">Sell</strong>,
             <strong class="ink-strong">Market</strong>, and
             <strong class="ink-strong">Operate</strong>. You open them from your project hub,
-            right alongside Build. The hub also shows the status of your app's first build while it's running.
+            where they sit under "Run the business", next to Build under "Build the product". The Build card also
+            shows when your app's first build is still being written.
           </p>
           <p>
             Sell and Market connect to your own third-party accounts—Stripe for payments, Twilio for messaging—so money and
