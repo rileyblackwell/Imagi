@@ -60,7 +60,7 @@
             <tr
               v-for="contact in store.contacts"
               :key="contact.id"
-              class="border-b border-ink/[0.06] dark:border-white/[0.05] last:border-b-0 hover:bg-ink/[0.03] dark:hover:bg-blue-400/[0.05] transition-colors duration-150"
+              class="border-b border-ink/[0.06] dark:border-white/[0.05] last:border-b-0 hover:bg-ink/[0.03] dark:hover:bg-white/[0.03] transition-colors duration-150"
             >
               <td class="px-5 py-3.5">
                 <p class="font-medium text-ink dark:text-white">{{ contact.display_name }}</p>
@@ -72,7 +72,7 @@
                   <span
                     v-for="tag in contact.tags"
                     :key="tag"
-                    class="px-2 py-0.5 rounded-full border border-ink/10 dark:border-blue-400/25 bg-ink/[0.03] dark:bg-blue-400/10 text-[11px] font-medium text-blue-700 dark:text-blue-300"
+                    class="px-2 py-0.5 rounded-full border border-[color:var(--sl-line)] bg-[color:var(--sl-chip-bg)] text-[11px] font-medium text-ink/70 dark:text-bone/70"
                   >
                     {{ tag }}
                   </span>
@@ -86,7 +86,7 @@
                   <router-link
                     v-if="contact.consent === 'subscribed'"
                     :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName }, query: { contact: contact.id } }"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-ink/50 dark:text-bone/50 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-ink/[0.04] dark:hover:bg-blue-400/10 transition-colors duration-150 focus-ring"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-ink/50 dark:text-bone/50 hover:text-ink dark:hover:text-bone hover:bg-ink/[0.04] dark:hover:bg-white/[0.08] transition-colors duration-150 focus-ring"
                     title="Send a message"
                   >
                     <i class="fas fa-paper-plane text-xs"></i>
@@ -182,7 +182,7 @@
         </div>
         <div v-if="editingContact">
           <label class="flex items-center gap-2.5 text-sm text-ink dark:text-white cursor-pointer">
-            <input v-model="form.subscribed" type="checkbox" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
+            <input v-model="form.subscribed" type="checkbox" class="accent-[var(--sl-coral)] focus-ring" />
             Subscribed to messages
           </label>
         </div>

@@ -24,7 +24,7 @@
  */
 
 import { fieldShell } from './forms'
-import { accentClasses, type ToolAccent } from './accents'
+import type { ToolAccent } from './accents'
 
 /**
  * The one focus ring — keyboard-only, offset from whatever surface the element
@@ -45,10 +45,10 @@ const pill = 'inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-
 
 export const ui = {
   /**
-   * A panel. White paper lifted off the page, an ink hairline, and the shared
-   * `crisp-card` shadow ladder from tokens.css.
+   * A panel: the Spotlight surface lifted off the stage on a hairline, with
+   * the shared `crisp-card` shadow (re-lit under .spotlight).
    */
-  card: 'crisp-card rounded-2xl bg-white dark:bg-white/[0.035] border border-ink/[0.08] dark:border-white/[0.08] transition-colors duration-300',
+  card: 'crisp-card rounded-2xl bg-[color:var(--sl-surface)] border border-[color:var(--sl-line)] transition-colors duration-300',
 
   /** Field label: small, tracked, uppercase — quiet enough to stay out of the way. */
   label: 'block text-xs font-semibold uppercase tracking-[0.14em] text-ink/55 dark:text-bone/55 mb-1.5 transition-colors duration-300',
@@ -57,10 +57,10 @@ export const ui = {
   input: `w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.06] text-ink dark:text-bone text-sm placeholder-ink/40 dark:placeholder-bone/30 ${fieldShell}`,
 
   /**
-   * The page's one strong action: flat ink in light, bone in dark — the home
-   * page's btn-primary, without a drop shadow.
+   * The page's one strong action: the lit coral → amber pill the home page's
+   * Start building button wears (`sl-btn-lit`, in spotlight.css).
    */
-  primaryBtn: `${pill} border border-ink bg-ink text-paper hover:bg-ink/90 dark:border-bone dark:bg-bone dark:text-ink dark:hover:bg-white ${focusRing} ${disabledState}`,
+  primaryBtn: `${pill} sl-btn-lit ${focusRing} ${disabledState}`,
 
   /** Everything else: a hairline outline that warms on hover. */
   secondaryBtn: `${pill} border border-ink/[0.14] text-ink/80 hover:text-ink hover:border-ink/30 hover:bg-ink/[0.03] dark:border-white/[0.16] dark:text-bone/80 dark:hover:text-bone dark:hover:border-white/30 dark:hover:bg-white/[0.06] ${focusRing} ${disabledState}`,
@@ -77,6 +77,21 @@ export const ui = {
 
   /** The destructive twin: the same button, reddening on hover. */
   dangerIconBtn: `inline-flex items-center justify-center rounded-lg text-ink/50 dark:text-bone/50 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 ${focusRing}`,
+
+  /**
+   * Links. `textLink` is a standalone action at the edge of a panel ("View
+   * all"); `inlineLink` sits inside a sentence. Both are ink with an
+   * underline, never a stock blue: the one colour on the page is the light.
+   */
+  textLink: 'rounded-sm text-sm font-medium text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white underline underline-offset-4 decoration-ink/25 dark:decoration-bone/30 hover:decoration-ink/60 dark:hover:decoration-bone/70 transition-colors duration-200 focus-ring',
+  inlineLink: 'rounded-sm text-ink dark:text-bone underline underline-offset-4 decoration-ink/25 dark:decoration-bone/30 hover:decoration-ink/60 dark:hover:decoration-bone/70 transition-colors duration-200 focus-ring',
+
+  /** The small glyph beside a stat label: the accent, at icon size. */
+  statIcon: 'text-[color:var(--sl-coral)]',
+
+  /** A filter pill, on and off. The on state warms its edge rather than filling blue. */
+  chipOn: 'border-[color:var(--sl-warm-line)] bg-[color:var(--sl-chip-bg-hover)] text-ink dark:text-bone',
+  chipOff: 'border-[color:var(--sl-line)] bg-[color:var(--sl-chip-bg)] text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white',
 
   /** Inline feedback boxes. */
   errorBox: 'p-3.5 rounded-xl border border-red-200/80 dark:border-red-400/25 bg-red-50/80 dark:bg-red-500/10 text-sm text-red-700 dark:text-red-300',
@@ -109,14 +124,17 @@ export interface AccentUi {
 /**
  * The accent-tinted half of a workspace's vocabulary.
  *
- * Composed from whole literal strings in accents.ts rather than assembled from
- * colour fragments, so the JIT compiler still sees every class name.
+ * Under Spotlight every tool shares the one accent — the coral → amber light —
+ * so a tile and a section pill read the same in Sell, Market and Operate, as
+ * the four module cards on the project page do. The `accent` argument stays so
+ * callers keep naming their tool; accents.ts still carries each tool's colour
+ * for the places that want it (the "coming soon" tool page).
  */
-export function accentUi(accent: ToolAccent): AccentUi {
-  const a = accentClasses[accent]
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function accentUi(_accent: ToolAccent): AccentUi {
   return {
-    iconTile: `rounded-xl flex items-center justify-center border ${a.iconWrap} ${a.iconText} transition-colors duration-300`,
-    sectionBadge: `inline-flex items-center px-3.5 py-1.5 rounded-full border ${a.badge} text-xs font-semibold uppercase tracking-[0.18em] transition-colors duration-300`,
+    iconTile: 'rounded-xl flex items-center justify-center border border-[color:var(--sl-line)] bg-[color:var(--sl-chip-bg)] text-[color:var(--sl-coral)] transition-colors duration-300',
+    sectionBadge: 'inline-flex items-center px-3.5 py-1.5 rounded-full border border-[color:var(--sl-line-strong)] bg-[color:var(--sl-chip-bg)] text-ink/70 dark:text-bone/70 text-xs font-semibold uppercase tracking-[0.18em] transition-colors duration-300',
   }
 }
 

@@ -14,8 +14,8 @@
           type="button"
           class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-ring"
           :class="statusFilter === option.value
-            ? 'border-ink/20 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
-            : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white'"
+            ? ui.chipOn
+            : ui.chipOff"
           @click="setStatusFilter(option.value)"
         >
           {{ option.label }}
@@ -44,7 +44,7 @@
             <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']"></i>
           </div>
           <div class="min-w-0">
-            <p :class="ui.panelHeading" class="truncate group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200">
+            <p :class="ui.panelHeading" class="truncate group-hover:text-[color:var(--sl-coral)] transition-colors duration-200">
               {{ campaign.name }}
             </p>
             <p :class="ui.bodyText" class="truncate">{{ campaign.body }}</p>

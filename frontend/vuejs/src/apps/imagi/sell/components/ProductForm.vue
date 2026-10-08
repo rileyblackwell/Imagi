@@ -82,7 +82,7 @@
     </div>
 
     <label class="flex items-center gap-2.5 text-sm text-ink/80 dark:text-bone/80 cursor-pointer">
-      <input v-model="form.is_active" type="checkbox" class="rounded border-ink/30 dark:border-white/30 text-ink dark:text-blue-400 focus-ring" />
+      <input v-model="form.is_active" type="checkbox" class="rounded border-ink/30 dark:border-white/30 text-[color:var(--sl-coral)] focus-ring" />
       Available for purchase
     </label>
 

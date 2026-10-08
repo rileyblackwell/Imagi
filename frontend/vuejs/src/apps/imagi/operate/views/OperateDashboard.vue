@@ -13,7 +13,7 @@
       <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
-            <i :class="['fas', stat.icon]" class="text-xs text-orange-600 dark:text-orange-300"></i>
+            <i :class="['fas', stat.icon, ui.statIcon]" class="text-xs"></i>
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold tabular-nums" :class="stat.tone ?? 'text-ink dark:text-white'">{{ stat.value }}</p>
@@ -217,8 +217,8 @@ const statCards = computed(() => {
   ]
 })
 
-const SELL_ICON = 'text-emerald-600 dark:text-emerald-300'
-const MARKET_ICON = 'text-violet-600 dark:text-violet-300'
+const SELL_ICON = ui.statIcon
+const MARKET_ICON = ui.statIcon
 
 const pulseCards = computed(() => {
   const data = dashboard.value

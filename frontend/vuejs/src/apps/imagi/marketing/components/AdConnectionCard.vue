@@ -20,7 +20,7 @@
     </div>
     <p :class="ui.bodyText" class="mb-5">
       {{ description }}
-      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Setup guide</a>.
+      <a :href="docsUrl" target="_blank" rel="noopener noreferrer" :class="ui.inlineLink">Setup guide</a>.
     </p>
 
     <p :class="ui.hintText" v-if="connection?.account_name" class="mb-4 -mt-2">

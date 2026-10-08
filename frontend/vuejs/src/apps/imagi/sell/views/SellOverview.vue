@@ -12,7 +12,7 @@
       <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
-            <i :class="['fas', stat.icon]" class="text-xs text-emerald-600 dark:text-emerald-300"></i>
+            <i :class="['fas', stat.icon, ui.statIcon]" class="text-xs"></i>
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>

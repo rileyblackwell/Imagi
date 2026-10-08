@@ -590,8 +590,11 @@
   color: var(--sl-coral);
 }
 
-/* Buttons: the primary is the lit gradient pill the home page uses */
-.spotlight .btn-primary {
+/* Buttons: the primary is the lit gradient pill the home page uses.
+   .sl-btn-lit is the same pill for the tool pages' Tailwind vocabulary
+   (ui.primaryBtn in shared/styles/ui.ts). */
+.spotlight .btn-primary,
+.spotlight .sl-btn-lit {
   border: 0;
   background: var(--sl-grad);
   color: var(--sl-on-accent);
@@ -600,7 +603,8 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
-.spotlight .btn-primary:hover {
+.spotlight .btn-primary:hover,
+.spotlight .sl-btn-lit:hover:not(:disabled) {
   background: var(--sl-grad);
   color: var(--sl-on-accent);
   box-shadow: var(--sl-btn-shadow-hover);
@@ -619,13 +623,15 @@
 }
 
 .spotlight .btn-primary:focus-visible,
+.spotlight .sl-btn-lit:focus-visible,
 .spotlight .btn-outline:focus-visible,
 .spotlight .btn-quiet:focus-visible {
   outline-color: var(--sl-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spotlight .btn-primary:hover {
+  .spotlight .btn-primary:hover,
+  .spotlight .sl-btn-lit:hover {
     transform: none;
   }
 }

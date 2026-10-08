@@ -13,7 +13,7 @@
           type="button"
           class="px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors duration-200 focus-ring"
           :class="statusFilter === option.value
-            ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
+            ? ui.chipOn
             : 'border-transparent text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white'"
           @click="setFilter(option.value)"
         >
