@@ -37,6 +37,7 @@ from ..models import (
     TREE_WRITING_KINDS,
 )
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
+from ..services.detached_runs import start_detached_run
 from ..services.usage_limits import check_usage_allowed, record_usage
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
@@ -947,7 +948,11 @@ async def agent_stream(request):
     agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
     async def event_stream():
-        run = agent_service.process_stream(
+        # The run is started here, as the response begins, but it does not
+        # belong to the response: if the connection drops it keeps going and
+        # finishes on its own (see detached_runs). The response only relays
+        # its events, plus keepalives while it is quiet.
+        run = start_detached_run(lambda: agent_service.process_stream(
             user_input=message,
             user=user,
             model=model,
@@ -955,19 +960,9 @@ async def agent_stream(request):
             current_file=payload.get('current_file'),
             conversation_id=conversation_id,
             reasoning_effort=reasoning_effort,
-        )
-        try:
-            async for event in run:
-                yield _sse(event)
-        except Exception as e:  # pragma: no cover - defensive
-            logger.error(f"Error in agent stream: {e}")
-            logger.error(traceback.format_exc())
-            yield _sse({"type": "error", "error": str(e)})
-        finally:
-            # The client went away (or the response simply ended): close the
-            # run with it, so a task interrupted mid-run is parked as failed
-            # now rather than whenever the garbage collector notices.
-            await run.aclose()
+        ))
+        async for frame in run.frames(_sse):
+            yield frame
 
     response = StreamingHttpResponse(
         event_stream(),
@@ -1023,13 +1018,13 @@ STRANDED_TASK_GRACE = timedelta(minutes=2)
 # What the queue says about a task the sweep below had to give up on. The
 # worker that ran it died without a word, so this is all anyone knows.
 TASK_STRANDED_NOTE = (
-    "This subagent stopped responding before it finished, and nothing it "
+    "This thread stopped responding before it finished, and nothing it "
     "started has been added to the app. Try it again to pick the job back up."
 )
 
 # What the queue says about a task the user stopped from the workspace.
 TASK_STOPPED_NOTE = (
-    "This subagent was stopped before it finished. Nothing it started has "
+    "This thread was stopped before it finished. Nothing it started has "
     "been added to the app. Try it again to pick the job back up."
 )
 
@@ -1450,11 +1445,12 @@ def conversation_detail(request, conversation_id):
 def conversation_cancel(request, conversation_id):
     """Release a conversation's running-run marker.
 
-    Used by the Stop button when this tab has no live stream to abort
-    (restored after a reload, opened elsewhere, or a crashed worker). There
-    is no server-side task handle for a run driven by another tab's stream,
-    so this cannot halt the agent itself — it clears run_started_at so
-    is_running flips false and the project's agent_busy guard lifts.
+    The Stop button. A run is not tied to the connection that started it, so
+    aborting the stream alone stops nothing: this sets cancel_requested_at,
+    which the run's watcher (detached_runs) turns into a cancel in whichever
+    server process the run lives. It also clears run_started_at at once, so
+    is_running flips false and the project's agent_busy guard lifts without
+    waiting for the run to wind down.
     """
     conversation = get_object_or_404(
         AgentConversation, id=conversation_id, user=request.user
@@ -1473,9 +1469,12 @@ def conversation_cancel(request, conversation_id):
         ImagiAgentService()._park_failed_task(
             conversation, reason or TASK_STOPPED_NOTE
         )
-    if conversation.run_started_at is not None:
-        conversation.run_started_at = None
-        conversation.save(update_fields=['run_started_at'])
+    # Always flagged, even with no marker set: a task between two of its
+    # continuation rounds has none for a moment, and the next round must
+    # still see the Stop. Starting a run clears the flag.
+    conversation.run_started_at = None
+    conversation.cancel_requested_at = timezone.now()
+    conversation.save(update_fields=['run_started_at', 'cancel_requested_at'])
     return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
 
 

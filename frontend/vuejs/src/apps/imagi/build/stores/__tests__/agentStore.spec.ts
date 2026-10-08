@@ -1181,6 +1181,36 @@ describe('agent store workspace bootstrap', () => {
     }
   })
 
+  it('picks up a run whose stream dropped once the server finishes it', async () => {
+    vi.useFakeTimers()
+    try {
+      const store = useAgentStore()
+      agentService.listConversations.mockResolvedValue([dto({ id: 9507 })])
+      await load(store)
+      store.stopCheckInPolling()
+      const lead = store.instances.find(i => i.conversationId === 9507)!
+      // A live run in this tab whose connection closed mid-way.
+      store.setInstanceProcessing(lead.id, true)
+      store.registerAbortController(lead.id, new AbortController())
+
+      store.followRunOnServer(lead.id)
+      expect(lead.isProcessing).toBe(true)
+      expect(lead.statusText).toBe('Working…')
+
+      agentService.getConversationMessages.mockClear()
+      agentService.getConversation.mockResolvedValue(
+        dto({ id: 9507, is_running: false, last_message_preview: 'Finished' })
+      )
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(lead.isProcessing).toBe(false)
+      expect(lead.lastMessagePreview).toBe('Finished')
+      expect(agentService.getConversationMessages).toHaveBeenCalledWith(9507)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('keeps polling while the server run is still going', async () => {
     vi.useFakeTimers()
     try {

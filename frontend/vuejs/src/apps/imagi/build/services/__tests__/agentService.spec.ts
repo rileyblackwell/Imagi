@@ -135,12 +135,48 @@ describe('AgentService.streamAgent', () => {
     })
   })
 
-  it('keeps partial text when the stream ends without a done event', async () => {
+  it('reports a stream that closed before the run ended as dropped, not failed', async () => {
+    // The run outlives its connection, so a stream that just stops is not a
+    // result: the caller follows the run on the server instead.
     vi.mocked(fetch).mockResolvedValue(
-      streamingResponse([sse({ type: 'delta', text: 'partial' })]) as any,
+      streamingResponse([
+        sse({ type: 'start', conversation_id: 4 }),
+        ': keepalive\n\n',
+        sse({ type: 'delta', text: 'partial' }),
+      ]) as any,
     )
-    const result = await call()
-    expect(result.response).toBe('partial')
+    const onDelta = vi.fn()
+    await expect(call({ onDelta })).rejects.toMatchObject({
+      code: 'stream_dropped',
+      body: { conversation_id: 4 },
+    })
+    expect(onDelta).toHaveBeenCalledWith('partial')
+  })
+
+  it('reports a network failure mid-stream as dropped', async () => {
+    const encoder = new TextEncoder()
+    let calls = 0
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (calls++ === 0) {
+              return { value: encoder.encode(sse({ type: 'start', conversation_id: 9 })), done: false }
+            }
+            throw new TypeError('Load failed')
+          },
+        }),
+      },
+    } as any)
+    await expect(call()).rejects.toMatchObject({ code: 'stream_dropped' })
+  })
+
+  it('marks errors the run reported itself', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      streamingResponse([sse({ type: 'error', error: 'Out of credit', code: 'out_of_credit' })]) as any,
+    )
+    await expect(call()).rejects.toMatchObject({ code: 'out_of_credit', reported: true })
   })
 
   it('surfaces a pre-stream error body with its HTTP status', async () => {

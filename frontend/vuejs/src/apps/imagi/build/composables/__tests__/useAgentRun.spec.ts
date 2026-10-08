@@ -76,7 +76,10 @@ function makeInstance(overrides: Partial<AgentInstance> = {}): AgentInstance {
 }
 
 /** An AgentStreamError-shaped rejection. */
-function streamError(message: string, extra: { status?: number; code?: string; body?: object }) {
+function streamError(
+  message: string,
+  extra: { status?: number; code?: string; body?: object; reported?: boolean },
+) {
   return Object.assign(new Error(message), extra)
 }
 
@@ -102,6 +105,7 @@ describe('useAgentRun', () => {
     versionControl.commitAfterFileOperation.mockReset()
     fetchUsage.mockReset()
     agentService.listCheckIns.mockResolvedValue([])
+    agentService.cancelConversationRun.mockResolvedValue({ review_status: 'failed' })
     agentService.getConversation.mockResolvedValue({ id: 0, review_status: 'ready' })
     agentService.streamAgent.mockImplementation(
       (_project: string, _data: unknown, handlers: AgentStreamHandlers, signal?: AbortSignal) =>
@@ -393,7 +397,43 @@ describe('useAgentRun', () => {
       expect(live().conversation).toEqual([])
     })
 
-    it('fails a subagent whose connection dropped mid-run, keeping its transcript', async () => {
+    it('keeps following a thread whose connection dropped mid-run', async () => {
+      // The run is not tied to the connection: it keeps working on the
+      // server, so the thread stays "working" and is picked up from there.
+      const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
+      const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
+      const follow = vi.spyOn(store, 'followRunOnServer')
+      script = async (h) => {
+        h.onStart?.(live().conversationId!, {})
+        h.onDelta?.('Working on it')
+        throw streamError('The connection to the run dropped.', { code: 'stream_dropped' })
+      }
+
+      await handlePrompt('Build the pricing page')
+
+      expect(fail).not.toHaveBeenCalled()
+      expect(follow).toHaveBeenCalledWith(live().id)
+      expect(live().isProcessing).toBe(true)
+      expect(live().reviewStatus).toBe('active')
+      expect(agentService.cancelConversationRun).not.toHaveBeenCalled()
+      expect(contents(live())).toEqual(['user: Build the pricing page', 'assistant: Working on it'])
+    })
+
+    it('keeps the main thread working when its connection drops', async () => {
+      const { handlePrompt, live } = setup()
+      script = async (h) => {
+        h.onStart?.(live().conversationId!, {})
+        throw streamError('The connection to the run dropped.', { code: 'stream_dropped' })
+      }
+
+      await handlePrompt('Add a pricing page')
+
+      expect(live().isProcessing).toBe(true)
+      expect(live().statusText).toBe('Working…')
+      expect(contents(live())).toEqual(['user: Add a pricing page'])
+    })
+
+    it('fails a subagent whose stream broke for another reason, keeping its transcript', async () => {
       const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
       const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
       script = async (h) => {
@@ -408,6 +448,56 @@ describe('useAgentRun', () => {
         live().id, expect.stringContaining('connection to this thread dropped'), null
       )
       expect(contents(live())[0]).toBe('user: Build the pricing page')
+    })
+
+    it('shows the reason a thread gave for stopping instead of blaming the connection', async () => {
+      const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
+      const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
+      const note = 'This stopped because the Anthropic account Imagi uses has run out of credit.'
+      script = async (h) => {
+        h.onStart?.(1, {})
+        throw streamError(note, { code: 'out_of_credit', reported: true })
+      }
+
+      await handlePrompt('Build the pricing page')
+
+      expect(fail).not.toHaveBeenCalled()
+      expect(live().conversation.at(-1)?.content).toBe(note)
+      expect(live().isProcessing).toBe(false)
+    })
+
+    it('explains a run that stopped at its spending ceiling', async () => {
+      const { handlePrompt, live } = setup()
+      const note = 'This run stopped after spending $10.00, the most one run may spend before checking in.'
+      script = async (h) => {
+        h.onStart?.(live().conversationId!, {})
+        h.onToolCall?.('edit_file', {})
+        throw streamError(note, { code: 'run_limit', reported: true })
+      }
+
+      await handlePrompt('Build everything')
+
+      expect(live().conversation.at(-1)?.content).toBe(note)
+      expect(versionControl.commitAfterFileOperation).toHaveBeenCalledWith(
+        '42', '/', 'Build everything (stopped early)'
+      )
+    })
+
+    it('tells the server to stop when the user stops the main thread', async () => {
+      const { handlePrompt, live, store } = setup()
+      script = (h, signal) => new Promise((_, reject) => {
+        h.onStart?.(live().conversationId!, {})
+        h.onDelta?.('Halfway')
+        signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      })
+
+      const run = handlePrompt('Redo the homepage')
+      await vi.waitFor(() => expect(live().conversation).toHaveLength(2))
+      store.abortInstanceRun(live().id)
+      await run
+
+      expect(agentService.cancelConversationRun).toHaveBeenCalledWith(live().conversationId)
+      expect(live().isProcessing).toBe(false)
     })
   })
 })

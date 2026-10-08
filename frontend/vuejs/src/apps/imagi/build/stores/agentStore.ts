@@ -791,6 +791,14 @@ export const useAgentStore = defineStore('agent', {
         abortControllers.delete(instanceId)
         userAbortedRuns.add(instanceId)
         controller.abort()
+        // Closing the stream no longer stops the run (it outlives its
+        // connection), so the Stop has to reach the server too. A thread's
+        // stop is reported by failTaskRun, which carries the reason.
+        const instance = this._findInstance(instanceId)
+        if (instance && instance.kind !== 'task' && instance.conversationId != null) {
+          AgentService.cancelConversationRun(instance.conversationId)
+            .catch(e => console.error('Failed to stop the server-side run', e))
+        }
         return
       }
       const instance = this._findInstance(instanceId)
@@ -804,6 +812,22 @@ export const useAgentStore = defineStore('agent', {
           .catch(e => console.error('Failed to release server-side run', e))
       }
       this.setInstanceProcessing(instanceId, false)
+    },
+
+    /**
+     * Keep following a run whose stream closed before it ended.
+     *
+     * The run is not tied to the connection — it keeps going on the server
+     * and finishes on its own — so the instance stays "working", without a
+     * stream, and the resync poll picks up the finished transcript (and a
+     * thread's outcome) when the server reports the run is over.
+     */
+    followRunOnServer(instanceId: string) {
+      abortControllers.delete(instanceId)
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.statusText = 'Working…'
+      this.resyncRunningInstances()
     },
 
     /** Abort every live stream (e.g. before rebuilding the instance list,

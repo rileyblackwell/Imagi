@@ -51,18 +51,30 @@ export class AgentStreamError extends Error {
   /** Parsed JSON body of a pre-stream rejection (e.g. the 429
    *  usage_limit_exceeded payload carries window + resets_at). */
   body?: Record<string, unknown>
+  /** The run itself reported this ending (an 'error' event): the server has
+   *  already recorded it, so the client only has to show it. */
+  reported?: boolean
 
   constructor(
     message: string,
-    opts: { status?: number; code?: string; body?: Record<string, unknown> } = {}
+    opts: { status?: number; code?: string; body?: Record<string, unknown>; reported?: boolean } = {}
   ) {
     super(message)
     this.name = 'AgentStreamError'
     this.status = opts.status
     this.code = opts.code
     this.body = opts.body
+    this.reported = opts.reported
   }
 }
+
+/**
+ * The code of the error streamAgent throws when the connection to a run
+ * closed before the run said how it ended. The run is not tied to the
+ * connection — it keeps going on the server — so this is "stopped
+ * watching", not "stopped working": the caller follows the run another way.
+ */
+export const STREAM_DROPPED = 'stream_dropped'
 
 /**
  * Which page of the app a file belongs to, said the way its owner would say
@@ -321,7 +333,20 @@ export const AgentService = {
     }
 
     while (true) {
-      const { value, done: finished } = await reader.read()
+      let chunk: ReadableStreamReadResult<Uint8Array>
+      try {
+        chunk = await reader.read()
+      } catch (readError) {
+        // A user's Stop aborts the read too; that one is theirs to report.
+        if (signal?.aborted) throw readError
+        // The network went away under the stream (a mobile browser
+        // backgrounding the tab, a proxy closing a long request).
+        throw new AgentStreamError('The connection to the run dropped.', {
+          code: STREAM_DROPPED,
+          body: conversationId != null ? { conversation_id: conversationId } : undefined,
+        })
+      }
+      const { value, done: finished } = chunk
       if (finished) break
       buffer += decoder.decode(value, { stream: true })
 
@@ -339,19 +364,18 @@ export const AgentService = {
       }
     }
 
-    if (streamError) throw new AgentStreamError(streamError, { code: streamErrorCode })
+    if (streamError) {
+      throw new AgentStreamError(streamError, { code: streamErrorCode, reported: true })
+    }
     if (done) return done
 
-    // Stream ended without a terminal event (server died, connection dropped).
-    // Keep whatever text arrived rather than discarding a partial reply.
-    return {
-      response: text.join(''),
-      conversation_id: conversationId as any,
-      files_changed: [],
-      tool_calls: toolCalls,
-      plan,
-      single_message: true,
-    }
+    // Stream ended without a terminal event: the connection closed (a proxy
+    // ends any request after 15 minutes) or the server went away. Either way
+    // the run's outcome is on the server, not in this stream.
+    throw new AgentStreamError('The connection to the run dropped.', {
+      code: STREAM_DROPPED,
+      body: conversationId != null ? { conversation_id: conversationId } : undefined,
+    })
   },
 
   formatError(error: any): string {

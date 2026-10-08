@@ -192,6 +192,11 @@ class AgentConversation(models.Model):
     # old timestamps as "not running" (staleness guard) because a crashed
     # worker never gets to clear this.
     run_started_at = models.DateTimeField(null=True, blank=True)
+    # Set by the Stop button (the cancel endpoint), cleared when a run starts.
+    # A run is no longer tied to the browser connection that started it, so
+    # this is how a Stop reaches it: the run's watcher sees the flag and
+    # cancels it, whichever server process it is running in.
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'Agents_agentconversation'
