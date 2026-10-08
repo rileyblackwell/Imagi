@@ -192,6 +192,11 @@ class AgentConversation(models.Model):
     # old timestamps as "not running" (staleness guard) because a crashed
     # worker never gets to clear this.
     run_started_at = models.DateTimeField(null=True, blank=True)
+    # Set by the Stop button (the cancel endpoint), cleared when a run starts.
+    # A run is no longer tied to the browser connection that started it, so
+    # this is how a Stop reaches it: the run's watcher sees the flag and
+    # cancels it, whichever server process it is running in.
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'Agents_agentconversation'
@@ -316,3 +321,33 @@ class AgentMessage(models.Model):
 
     def __str__(self):
         return f"{self.role.capitalize()} message in Conversation {self.conversation.id}"
+
+
+class AgentRunEvent(models.Model):
+    """A batch of one run's stream events, in order.
+
+    Runs execute on the server, not in the browser that asked for them, so
+    the browser watches a run rather than owning it. The events are written
+    here as the run goes, which lets any tab — on any server process, after
+    a reload, or after its connection dropped — follow a run live from where
+    it got to. A conversation holds only its latest run's events: they are
+    cleared when the next run starts.
+
+    events is a list of the run's event dicts, each carrying its own "seq";
+    seq_end is the last of them, so a watcher resuming after seq N reads the
+    rows with seq_end > N.
+    """
+    conversation = models.ForeignKey(
+        AgentConversation, on_delete=models.CASCADE, related_name="run_events"
+    )
+    seq_end = models.PositiveIntegerField()
+    events = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'Agents_agentrunevent'
+        ordering = ['id']
+        indexes = [models.Index(fields=['conversation', 'seq_end'])]
+
+    def __str__(self):
+        return f"Run events up to {self.seq_end} for conversation {self.conversation_id}"

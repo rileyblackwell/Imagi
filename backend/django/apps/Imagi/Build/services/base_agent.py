@@ -58,16 +58,22 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 # Default model for agents
 DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'claude-opus-5-5')
 
-# Upper bound on agent-loop iterations for a single request: room for
-# plan → search → read → edit → verify cycles without letting a confused
-# run spin forever.
-MAX_AGENT_TURNS = _BUILDER_SETTINGS.get('MAX_AGENT_TURNS', 30)
+# Upper bound on agent-loop iterations for a single request. Roomy on
+# purpose: a run should finish the job it was given. What stops a confused
+# run from spinning is RUN_COST_CEILING_USD, which measures what actually
+# matters — the money a run spends.
+MAX_AGENT_TURNS = _BUILDER_SETTINGS.get('MAX_AGENT_TURNS', 100)
 
 # Dispatched background tasks run unattended and are whole-feature sized, so
 # they get their own (larger) loop, and continue themselves when they still
 # reach it — see _stream_once's turn-cap handling.
-TASK_MAX_TURNS = _BUILDER_SETTINGS.get('TASK_MAX_TURNS', 60)
+TASK_MAX_TURNS = _BUILDER_SETTINGS.get('TASK_MAX_TURNS', 150)
 TASK_AUTO_CONTINUE_ROUNDS = _BUILDER_SETTINGS.get('TASK_AUTO_CONTINUE_ROUNDS', 2)
+
+# The most one streamed run may spend at model list prices, across all of its
+# continuation rounds, before it stops and asks the user whether to keep
+# going. A safety net for a run that loops, not a budget for normal work.
+RUN_COST_CEILING_USD = _BUILDER_SETTINGS.get('RUN_COST_CEILING_USD', 10.0)
 
 # The prompt a task hands itself to resume after a turn cap. Written as the
 # user would write it, because that is what it is: the next message in the
@@ -222,6 +228,61 @@ class RunDeadlineExceeded(Exception):
         super().__init__(
             f"Run took {elapsed_s:.1f}s, reaching its {limit_s:.0f}s time limit"
         )
+
+
+# What a provider says when the account behind Imagi's API key has no money
+# left. Matched loosely on purpose: the wording moves between API versions,
+# and a false positive only costs a clearer error message.
+_OUT_OF_CREDIT_CODES = ('insufficient_quota', 'billing_hard_limit_reached', 'billing_error')
+_OUT_OF_CREDIT_PHRASES = (
+    'credit balance is too low',
+    'exceeded your current quota',
+    'insufficient_quota',
+    'billing',
+)
+
+
+def provider_out_of_credit(exc: BaseException) -> Optional[str]:
+    """The provider ('Anthropic' / 'OpenAI') whose balance ran out, if that is
+    what this error is — otherwise None.
+
+    Walks the exception chain: the Agents SDK can re-raise a model error from
+    inside its own.
+    """
+    seen = set()
+    current: Optional[BaseException] = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        module = type(current).__module__ or ''
+        provider = (
+            'Anthropic' if module.startswith('anthropic')
+            else 'OpenAI' if module.startswith('openai')
+            else None
+        )
+        if provider:
+            status = getattr(current, 'status_code', None)
+            body = getattr(current, 'body', None)
+            error = body.get('error') if isinstance(body, dict) else None
+            fields = [getattr(current, 'code', None), getattr(current, 'type', None)]
+            if isinstance(error, dict):
+                fields += [error.get('code'), error.get('type')]
+            if any(f in _OUT_OF_CREDIT_CODES for f in fields if isinstance(f, str)):
+                return provider
+            message = str(current).lower()
+            if status in (400, 402, 403, 429) and any(p in message for p in _OUT_OF_CREDIT_PHRASES):
+                return provider
+        current = current.__cause__ or current.__context__
+    return None
+
+
+def out_of_credit_message(provider: str) -> str:
+    """What the user reads when a provider balance is empty."""
+    return (
+        f"This stopped because the {provider} account Imagi uses has run out "
+        f"of credit, so no more work can be done on {provider} models until "
+        "it is topped up. Nothing more was spent. Add credit, then try again "
+        "— or switch to a model from the other provider."
+    )
 
 
 def response_has_tool_calls(response) -> bool:
@@ -1218,9 +1279,15 @@ class ImagiAgentService:
         # A staged dispatch brief is consumed by the run now firing, so it is
         # cleared in the same commit (the client echoes the brief as the
         # run's user_input).
-        run_fields = ["run_started_at"]
+        # A Stop aimed at an earlier run must not stop this one.
+        run_fields = ["run_started_at", "cancel_requested_at"]
+        conversation.cancel_requested_at = None
         if conversation.queued_prompt:
-            conversation.queued_prompt = ''
+            # Only what this run delivers is consumed: a message staged for
+            # the thread after its run was claimed waits for the next run.
+            queued = conversation.queued_prompt
+            rest = queued[len(user_input):].strip() if queued.startswith(user_input) else ''
+            conversation.queued_prompt = rest
             run_fields.append("queued_prompt")
         if reopen_task:
             conversation.review_status = 'active'
@@ -1445,6 +1512,35 @@ class ImagiAgentService:
         except Exception as e:  # pragma: no cover - defensive
             logger.warning(f"Could not check usage before continuing a task: {e}")
             return False
+
+    def _stop_requested(self, conversation_id: int) -> bool:
+        """Whether the user pressed Stop on this conversation's run."""
+        try:
+            return AgentConversation.objects.filter(
+                id=conversation_id, cancel_requested_at__isnull=False
+            ).exists()
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not read the stop flag: {e}")
+            return False
+
+    def _park_interrupted_task(self, conversation) -> None:
+        """Fail a task whose run ended without reporting how.
+
+        Skipped when the task has already been parked by someone who knows
+        more — the Stop button parks it as stopped, and that is the note the
+        user should read, not "cut off".
+        """
+        if getattr(conversation, 'kind', 'chat') != 'task':
+            return
+        try:
+            current = AgentConversation.objects.filter(id=conversation.id).values_list(
+                'review_status', flat=True
+            ).first()
+        except Exception:  # pragma: no cover - defensive
+            current = None
+        if current is not None and current != 'active':
+            return
+        self._park_failed_task(conversation, TASK_INTERRUPTED_NOTE)
 
     def _park_capped_task(self, conversation_id: int) -> None:
         """Hand a task that ran out of continuations back to the user.
@@ -1768,9 +1864,16 @@ class ImagiAgentService:
         target_id = conversation_id
         rounds_left = TASK_AUTO_CONTINUE_ROUNDS
         round_index = 0
+        # One cost ceiling for the whole stream: continuation rounds draw on
+        # what the earlier rounds left, so continuing can never multiply it.
+        spent_usd = 0.0
 
         while True:
             cap_state: Dict[str, Any] = {}
+            budget = (
+                max(RUN_COST_CEILING_USD - spent_usd, 0.01)
+                if RUN_COST_CEILING_USD else None
+            )
             run = self._stream_once(
                 user_input=prompt,
                 user=user,
@@ -1780,6 +1883,7 @@ class ImagiAgentService:
                 conversation_id=target_id,
                 reasoning_effort=reasoning_effort,
                 cap_state=cap_state,
+                cost_budget_usd=budget,
             )
             try:
                 async for event in run:
@@ -1797,11 +1901,17 @@ class ImagiAgentService:
                 # reported failure, and it has to happen now, while the
                 # conversation is still being watched for exactly that.
                 await run.aclose()
+            spent_usd += cap_state.get("cost_usd") or 0.0
 
             # Only a capped *task* run lands here with anything to resume;
             # every other ending has already reported itself.
             resume_id = cap_state.get("task_conversation_id")
             if not resume_id:
+                return
+
+            if await sync_to_async(self._stop_requested)(resume_id):
+                # Stopped between rounds: the cancel endpoint has already
+                # parked the task and told the user.
                 return
 
             if rounds_left > 0 and await sync_to_async(self._continuation_allowed)(user):
@@ -1889,6 +1999,7 @@ class ImagiAgentService:
         conversation_id: Optional[int] = None,
         reasoning_effort: Optional[str] = None,
         cap_state: Optional[Dict[str, Any]] = None,
+        cost_budget_usd: Optional[float] = None,
     ):
         """One agent run, surfaced incrementally.
 
@@ -1904,7 +2015,11 @@ class ImagiAgentService:
         cap_state is how a capped task run reports back to process_stream,
         which owns the decision to continue or to ask the user. Setting it
         (rather than filing a check-in here) keeps that policy in one place --
-        this method never gives up on a task by itself.
+        this method never gives up on a task by itself. It also carries the
+        round's spend ("cost_usd") so the stream's cost ceiling spans rounds.
+
+        cost_budget_usd stops the run once it has spent that much; unlike a
+        turn cap that is not continued automatically — the user decides.
         """
         conversation = None
         context = None
@@ -1952,6 +2067,11 @@ class ImagiAgentService:
                 start_event["checkpoint"] = run_state["checkpoint"]
             yield start_event
 
+            run_kwargs: Dict[str, Any] = {}
+            bounds_hook = make_run_bounds_hook(model or self.model, cost_budget_usd)
+            if bounds_hook is not None:
+                run_kwargs["hooks"] = bounds_hook
+
             # run_streamed returns immediately; the run advances as events are
             # consumed. Sync function tools are dispatched to worker threads by
             # the SDK, so their ORM writes stay off this event loop.
@@ -1961,6 +2081,7 @@ class ImagiAgentService:
                 context=context,
                 max_turns=self._max_turns_for(conversation),
                 run_config=self._run_config(user),
+                **run_kwargs,
             )
 
             async for event in self._pump_stream_events(result, conversation, context, text_parts):
@@ -1993,6 +2114,7 @@ class ImagiAgentService:
                     context=context,
                     max_turns=self._max_turns_for(conversation),
                     run_config=self._run_config(user),
+                    **run_kwargs,
                 )
                 async for event in self._pump_stream_events(result, conversation, context, retry_parts):
                     yield event
@@ -2092,11 +2214,52 @@ class ImagiAgentService:
                 ),
                 "conversation_id": conversation.id if conversation else None,
             }
+        except RunBudgetExceeded as cap:
+            # The safety ceiling, not a failure: everything written so far is
+            # kept (the finally block saves the partial reply), and the user
+            # decides whether the work is worth more.
+            settled = True
+            logger.warning(
+                "Agent run for conversation %s stopped at its cost ceiling: %s",
+                conversation.id if conversation else None, cap,
+            )
+            if conversation is not None and getattr(conversation, 'kind', 'chat') == 'task':
+                await sync_to_async(self._park_capped_task)(conversation.id)
+            yield {
+                "type": "error",
+                "code": "run_limit",
+                "error": (
+                    f"This run stopped after spending ${cap.budget_usd:.2f}, the "
+                    "most one run may spend before checking in. Progress so far "
+                    "is saved — send a message to keep going."
+                ),
+                "conversation_id": conversation.id if conversation else None,
+            }
         except Exception as e:
+            provider = provider_out_of_credit(e)
+            settled = True
+            if provider:
+                # Not a bug and not worth retrying: every further call fails
+                # the same way until the balance is topped up, so stop now and
+                # say exactly why.
+                logger.error(
+                    "%s account is out of credit; stopped conversation %s: %s",
+                    provider, conversation.id if conversation else None, e,
+                )
+                note = out_of_credit_message(provider)
+                if conversation is not None:
+                    await sync_to_async(self._park_failed_task)(conversation, note)
+                yield {
+                    "type": "error",
+                    "code": "out_of_credit",
+                    "provider": provider,
+                    "error": note,
+                    "conversation_id": conversation.id if conversation else None,
+                }
+                return
             logger.error(f"Error in imagi_agent stream: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            settled = True
             if conversation is not None:
                 # Same routing for failures: a silent dead task would leave
                 # the user waiting on a check-in that never comes, and a task
@@ -2154,13 +2317,18 @@ class ImagiAgentService:
                     await sync_to_async(self._record_usage_event)(
                         user, model, interrupted_usage, conversation
                     )
+            # The round's spend, for the stream-wide cost ceiling.
+            if cap_state is not None and result is not None:
+                try:
+                    round_usage = extract_usage(result, model or self.model) or {}
+                    cap_state["cost_usd"] = float(round_usage.get("cost_usd") or 0.0)
+                except Exception:  # pragma: no cover - defensive
+                    pass
             # An interrupted task fails, and says so. It is parked before the
             # run marker clears (below) so it never passes through the
             # 'active, no run' shape the stranded-task sweep looks for.
             if conversation is not None and not settled:
-                await sync_to_async(self._park_failed_task)(
-                    conversation, TASK_INTERRUPTED_NOTE
-                )
+                await sync_to_async(self._park_interrupted_task)(conversation)
             if conversation is not None:
                 await sync_to_async(self._clear_run_started)(conversation)
 

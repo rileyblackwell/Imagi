@@ -15,6 +15,7 @@ const agentService = vi.hoisted(() => ({
   restoreCheckpoint: vi.fn(),
   listCheckIns: vi.fn(),
   resolveCheckIn: vi.fn(),
+  sendToThread: vi.fn(),
 }))
 vi.mock('../../services/agentService', () => ({ AgentService: agentService }))
 
@@ -24,6 +25,10 @@ const fileService = vi.hoisted(() => ({
 vi.mock('../../services/fileService', () => ({ FileService: fileService }))
 
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
+
+// Lets a message reach the server (an awaited request) and the run that
+// follows be shown (a microtask) before a test looks.
+const settle = () => new Promise(resolve => setTimeout(resolve, 0))
 
 let nextId = 1
 
@@ -182,8 +187,10 @@ describe('agent store steering a thread', () => {
     store.checkIns = [{ id: 7, kind: 'question', task: { id: 501 } } as any]
 
     expect(store.steerThread(task.id, '  Open on weekends too  ')).toBe(true)
-    await Promise.resolve()
+    await settle()
 
+    // The server gets it first and starts the thread; this tab watches.
+    expect(agentService.sendToThread).toHaveBeenCalledWith(501, 'Open on weekends too')
     expect(runs).toHaveBeenCalledWith(task.id, 'Open on weekends too')
     expect(task.reviewStatus).toBe('active')
     expect(store.checkIns).toHaveLength(0)
@@ -198,7 +205,7 @@ describe('agent store steering a thread', () => {
     store.instances = [task]
 
     expect(store.steerThread(task.id, 'Make the button blue too')).toBe(true)
-    await Promise.resolve()
+    await settle()
 
     expect(runs).toHaveBeenCalledWith(task.id, 'Make the button blue too')
   })
@@ -211,9 +218,12 @@ describe('agent store steering a thread', () => {
     store.instances = [task]
 
     store.steerThread(task.id, 'Use the green from the logo')
+    await settle()
     store.steerThread(task.id, 'And make it bold')
-    await Promise.resolve()
+    await settle()
 
+    // Both are staged on the server, which runs them after the current run.
+    expect(agentService.sendToThread).toHaveBeenCalledTimes(2)
     expect(runs).not.toHaveBeenCalled()
     expect(task.queuedPrompt).toBe('Use the green from the logo\n\nAnd make it bold')
   })
@@ -232,8 +242,24 @@ describe('agent store steering a thread', () => {
     expect(store.steerThread(archived.id, 'hello')).toBe(false)
     expect(store.steerThread(live.id, '   ')).toBe(false)
     expect(store.steerThread(lead.id, 'hello')).toBe(false)
-    await Promise.resolve()
+    await settle()
     expect(runs).not.toHaveBeenCalled()
+    expect(agentService.sendToThread).not.toHaveBeenCalled()
+  })
+
+  it('says so when a message does not reach the thread', async () => {
+    const store = useAgentStore()
+    const runs = vi.fn()
+    store.setTaskRunner(runs)
+    agentService.sendToThread.mockRejectedValue(new Error('offline'))
+    const task = makeInstance({ kind: 'task', reviewStatus: 'ready', conversationId: 504 })
+    store.instances = [task]
+
+    store.steerThread(task.id, 'Make it pop')
+    await settle()
+
+    expect(runs).not.toHaveBeenCalled()
+    expect(task.conversation.at(-1)?.content).toMatch(/didn't reach this thread/)
   })
 })
 
@@ -751,8 +777,10 @@ describe('agent store failed subagents', () => {
     store.instances = [task]
 
     store.retryTask(9405)
-    await Promise.resolve()
+    await settle()
 
+    // The server already holds the brief and does not stage it twice.
+    expect(agentService.sendToThread).toHaveBeenCalledWith(9405, 'Do job 9405.')
     expect(runs).toHaveBeenCalledWith(task.id, 'Do job 9405.')
     expect(task.reviewStatus).toBe('active')
     expect(task.pendingBrief).toBeNull()
@@ -768,6 +796,7 @@ describe('agent store failed subagents', () => {
     store.instances = [task]
 
     store.retryTask(9406)
+    await settle()
 
     expect(runs).toHaveBeenCalledTimes(1)
     expect(runs.mock.calls[0]![0]).toBe(task.id)
@@ -775,7 +804,7 @@ describe('agent store failed subagents', () => {
     expect(task.reviewStatus).toBe('active')
   })
 
-  it('drops the error from the queue as the retry goes', () => {
+  it('drops the error from the queue as the retry goes', async () => {
     const store = useAgentStore()
     store.setTaskRunner(vi.fn())
     const task = makeInstance({ kind: 'task', conversationId: 9407, reviewStatus: 'failed' })
@@ -792,6 +821,7 @@ describe('agent store failed subagents', () => {
     ]
 
     store.retryTask(9407)
+    await settle()
 
     expect(store.checkIns).toHaveLength(0)
   })
@@ -1181,6 +1211,36 @@ describe('agent store workspace bootstrap', () => {
     }
   })
 
+  it('picks up a run whose stream dropped once the server finishes it', async () => {
+    vi.useFakeTimers()
+    try {
+      const store = useAgentStore()
+      agentService.listConversations.mockResolvedValue([dto({ id: 9507 })])
+      await load(store)
+      store.stopCheckInPolling()
+      const lead = store.instances.find(i => i.conversationId === 9507)!
+      // A live run in this tab whose connection closed mid-way.
+      store.setInstanceProcessing(lead.id, true)
+      store.registerAbortController(lead.id, new AbortController())
+
+      store.followRunOnServer(lead.id)
+      expect(lead.isProcessing).toBe(true)
+      expect(lead.statusText).toBe('Working…')
+
+      agentService.getConversationMessages.mockClear()
+      agentService.getConversation.mockResolvedValue(
+        dto({ id: 9507, is_running: false, last_message_preview: 'Finished' })
+      )
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(lead.isProcessing).toBe(false)
+      expect(lead.lastMessagePreview).toBe('Finished')
+      expect(agentService.getConversationMessages).toHaveBeenCalledWith(9507)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('keeps polling while the server run is still going', async () => {
     vi.useFakeTimers()
     try {
@@ -1233,7 +1293,7 @@ describe('agent store check-in actions', () => {
     await vi.waitFor(() => expect(store.checkIns.map(c => c.id)).toEqual([9601]))
   })
 
-  it('answers a question by restarting that subagent with the reply', () => {
+  it('answers a question by restarting that subagent with the reply', async () => {
     const store = useAgentStore()
     const runs = vi.fn()
     store.setTaskRunner(runs)
@@ -1242,7 +1302,9 @@ describe('agent store check-in actions', () => {
     store.checkIns = [queued(9602, 9702)]
 
     store.answerCheckIn(queued(9602, 9702), '  Blue  ')
+    await settle()
 
+    expect(agentService.sendToThread).toHaveBeenCalledWith(9702, 'Blue')
     expect(runs).toHaveBeenCalledWith(task.id, 'Blue')
     expect(store.checkIns).toEqual([])
   })

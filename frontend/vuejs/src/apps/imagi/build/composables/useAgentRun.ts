@@ -1,12 +1,13 @@
 import type { Ref } from 'vue'
 import { useAgentStore } from '../stores/agentStore'
-import { AgentService, toolCallToActivityStep } from '../services/agentService'
+import { AgentService, STREAM_DROPPED, toolCallToActivityStep } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import type { AIMessage } from '../types/index'
-import type { DispatchedTaskRef } from '../types/services'
+import type { AgentResponse, DispatchedTaskRef } from '../types/services'
+import type { AgentStreamHandlers } from '../services/agentService'
 
 // Tools that mutate project files. Also drives the interrupted-run cleanup:
 // a stopped/turn-capped run that called any of these still changed the disk.
@@ -27,6 +28,37 @@ export function describeAgentTool(name: string): string {
     return 'Editing project files…'
   }
   return 'Working…'
+}
+
+// How many times a tab re-attaches to a thread's run after its watch drops,
+// and how long it waits before each try. Past that it falls back to polling.
+export const WATCH_RETRY_DELAYS_MS = [1000, 2000, 4000]
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+/**
+ * Watch a thread's run through to its end, re-attaching where the last
+ * watch left off when the connection drops. The run itself is on the
+ * server and never depends on this.
+ */
+async function watchThreadRun(
+  conversationId: number,
+  handlers: AgentStreamHandlers,
+  signal: AbortSignal,
+): Promise<AgentResponse> {
+  let after: number | undefined
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await AgentService.watchRun(conversationId, handlers, signal, after)
+    } catch (watchError) {
+      const dropped = (watchError as any)?.code === STREAM_DROPPED
+      if (!dropped || signal.aborted || attempt >= WATCH_RETRY_DELAYS_MS.length) throw watchError
+      const lastSeq = ((watchError as any)?.body as any)?.last_seq
+      if (typeof lastSeq === 'number') after = lastSeq
+      await wait(WATCH_RETRY_DELAYS_MS[attempt]!)
+      if (signal.aborted) throw watchError
+    }
+  }
 }
 
 /**
@@ -76,6 +108,14 @@ export function useAgentRun(projectId: Ref<string>) {
     // history) applies to them. Committing canonical here would snapshot a
     // parallel lead run's half-finished edits under this task's prompt.
     const isTaskRun = instance.kind === 'task'
+    // A thread's work runs on the server, which starts it from what is staged
+    // there (a dispatch, a forwarded follow-up, or a message the store already
+    // sent). This tab only watches; closing it leaves the thread working.
+    const watchOnly = isTaskRun && conversationIdBefore != null
+    // Set when the connection closed under a run that is still going on the
+    // server: the run is followed from there (the store's resync poll), so
+    // this handler must not mark it finished on its way out.
+    let followedOnServer = false
 
     try {
       const timestamp = new Date().toISOString()
@@ -161,76 +201,79 @@ export function useAgentRun(projectId: Ref<string>) {
 
       try {
         store.setInstanceStatus(instanceId, 'Thinking…')
-        const response = await AgentService.streamAgent(
-          projectId.value,
-          {
-            prompt: promptText,
-            model: instance.selectedModelId,
-            reasoningEffort: instance.selectedEffort,
-            file: instance.selectedFile,
-            conversationId: conversationIdBefore ?? undefined
-          },
-          {
-            onStart: (conversationId, info) => {
-              runStarted = true
-              if (conversationId && !instance.conversationId) {
-                store.updateInstanceConversationId(instanceId, conversationId)
-              }
-              // Tie the optimistic bubble to its persisted row so the inline
-              // restore-checkpoint control works without a reload.
-              if (info?.userMessageId || info?.checkpoint) {
-                store.setMessageCheckpoint(
-                  instanceId, userMessageId, info.userMessageId, info.checkpoint
-                )
-              }
-            },
-            onDelta: (text) => {
-              ensureAssistantMessage()
-              // The reply is streaming; the status line would just sit under it.
-              store.setInstanceStatus(instanceId, '')
-              streamedText += text
-              store.setMessageContent(instanceId, streamingMessageId, streamedText)
-            },
-            onToolCall: (name, args) => {
-              ensureAssistantMessage()
-              sawActivity = true
-              if (FILE_EDIT_TOOLS.has(name)) sawFileEdit = true
-              store.appendMessageActivity(
-                instanceId,
-                streamingMessageId,
-                toolCallToActivityStep(name, args)
+        const handlers: AgentStreamHandlers = {
+          onStart: (conversationId, info) => {
+            runStarted = true
+            if (conversationId && !instance.conversationId) {
+              store.updateInstanceConversationId(instanceId, conversationId)
+            }
+            // Tie the optimistic bubble to its persisted row so the inline
+            // restore-checkpoint control works without a reload.
+            if (info?.userMessageId || info?.checkpoint) {
+              store.setMessageCheckpoint(
+                instanceId, userMessageId, info.userMessageId, info.checkpoint
               )
-              store.setInstanceStatus(instanceId, describeAgentTool(name))
-            },
-            onPlan: (plan) => {
-              ensureAssistantMessage()
-              sawPlan = sawPlan || plan.length > 0
-              store.setMessagePlan(instanceId, streamingMessageId, plan)
-            },
-            onTitle: (conversationId, title) => {
-              // The backend auto-named the thread from its opening exchange;
-              // reflect it in the sidebar without a reload.
-              store.applyInstanceTitle(conversationId, title)
-            },
-            onTaskDispatch: (tasks) => {
-              // The lead agent delegated work: start those background runs now,
-              // in parallel, while this run keeps streaming. They edit their own
-              // worktrees, so they neither block nor are blocked by this one.
-              store.startDispatchedTasks(tasks)
-              // Link the subagents into the reply itself, so the work is one
-              // click away and the main thread stays a clean summary.
-              ensureAssistantMessage()
-              dispatchedRefs = [
-                ...dispatchedRefs,
-                ...tasks.map(t => ({ conversationId: t.conversation_id, title: t.title || '' }))
-              ]
-              store.patchMessage(instanceId, streamingMessageId, {
-                dispatchedTasks: dispatchedRefs
-              })
-            },
+            }
           },
-          abortController.signal
-        )
+          onDelta: (text) => {
+            ensureAssistantMessage()
+            // The reply is streaming; the status line would just sit under it.
+            store.setInstanceStatus(instanceId, '')
+            streamedText += text
+            store.setMessageContent(instanceId, streamingMessageId, streamedText)
+          },
+          onToolCall: (name, args) => {
+            ensureAssistantMessage()
+            sawActivity = true
+            if (FILE_EDIT_TOOLS.has(name)) sawFileEdit = true
+            store.appendMessageActivity(
+              instanceId,
+              streamingMessageId,
+              toolCallToActivityStep(name, args)
+            )
+            store.setInstanceStatus(instanceId, describeAgentTool(name))
+          },
+          onPlan: (plan) => {
+            ensureAssistantMessage()
+            sawPlan = sawPlan || plan.length > 0
+            store.setMessagePlan(instanceId, streamingMessageId, plan)
+          },
+          onTitle: (conversationId, title) => {
+            // The backend auto-named the thread from its opening exchange;
+            // reflect it in the sidebar without a reload.
+            store.applyInstanceTitle(conversationId, title)
+          },
+          onTaskDispatch: (tasks) => {
+            // The lead agent delegated work: start those background runs now,
+            // in parallel, while this run keeps streaming. They edit their own
+            // worktrees, so they neither block nor are blocked by this one.
+            store.startDispatchedTasks(tasks)
+            // Link the subagents into the reply itself, so the work is one
+            // click away and the main thread stays a clean summary.
+            ensureAssistantMessage()
+            dispatchedRefs = [
+              ...dispatchedRefs,
+              ...tasks.map(t => ({ conversationId: t.conversation_id, title: t.title || '' }))
+            ]
+            store.patchMessage(instanceId, streamingMessageId, {
+              dispatchedTasks: dispatchedRefs
+            })
+          },
+        }
+        const response = watchOnly
+          ? await watchThreadRun(conversationIdBefore!, handlers, abortController.signal)
+          : await AgentService.streamAgent(
+            projectId.value,
+            {
+              prompt: promptText,
+              model: instance.selectedModelId,
+              reasoningEffort: instance.selectedEffort,
+              file: instance.selectedFile,
+              conversationId: conversationIdBefore ?? undefined
+            },
+            handlers,
+            abortController.signal
+          )
 
         if ((response as any).conversation_id && !instance.conversationId) {
           store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
@@ -293,6 +336,20 @@ export function useAgentRun(projectId: Ref<string>) {
           createCommitFromPrompt(response.files_changed[0] ?? '/', promptText)
         }
       } catch (agentError) {
+        const errorCode = (agentError as any)?.code
+        // The run reported its own ending (a cost ceiling, an empty provider
+        // balance, a model error): the server has already recorded it.
+        const reported = (agentError as any)?.reported === true
+        const followable = watchOnly ? !reported : errorCode === STREAM_DROPPED && runStarted
+        if (followable && !abortController.signal.aborted) {
+          // Only the connection ended (or, for a thread, this tab could not
+          // keep watching it). The run is not tied to it and keeps working on
+          // the server, so keep showing it as working and pick the result up
+          // from there when it finishes.
+          followedOnServer = true
+          store.followRunOnServer(instanceId)
+          return
+        }
         // A subagent run that ends without finishing is a failed subagent, and
         // is reported as one — in its card and in the main thread's queue,
         // with a retry — rather than left reading "starting" with no run behind
@@ -303,7 +360,8 @@ export function useAgentRun(projectId: Ref<string>) {
         const taskRunDied = isTaskRun
           && status !== 409
           && status !== 429
-          && (agentError as any)?.code !== 'max_turns'
+          && errorCode !== 'max_turns'
+          && !reported
         if (taskRunDied) {
           if (!runStarted) {
             // Never reached the run: the optimistic bubble would show a message
@@ -321,6 +379,16 @@ export function useAgentRun(projectId: Ref<string>) {
             `${reason} Nothing it started has been added to the app. Try it again to pick the job back up.`,
             runStarted ? null : promptText
           )
+        } else if (isTaskRun && reported && errorCode !== 'max_turns') {
+          // The thread stopped and said why; the server parked it and queued
+          // that note for the main thread. Show it here too.
+          store.addMessageToInstance(instanceId, {
+            role: 'assistant',
+            content: agentError instanceof Error ? agentError.message : 'This thread stopped before it finished.',
+            timestamp: new Date().toISOString(),
+            id: `system-error-${Date.now()}`
+          })
+          void store.loadCheckIns()
         } else if (abortController.signal.aborted) {
           // User pressed stop: the partial reply already streamed into the
           // conversation stays; an error bubble would misread the intent.
@@ -385,6 +453,16 @@ export function useAgentRun(projectId: Ref<string>) {
             id: `system-error-${Date.now()}`
           })
           await finalizeInterruptedEdits('(turn limit)')
+        } else if (errorCode === 'run_limit' || errorCode === 'out_of_credit') {
+          // Deliberate stops with their own plain-language explanation — the
+          // spend ceiling, or a provider account with no credit left.
+          store.addMessageToInstance(instanceId, {
+            role: 'assistant',
+            content: agentError instanceof Error ? agentError.message : 'This run stopped early.',
+            timestamp: new Date().toISOString(),
+            id: `system-error-${Date.now()}`
+          })
+          await finalizeInterruptedEdits('(stopped early)')
         } else {
           console.error('Error processing agent request:', agentError)
           store.addMessageToInstance(instanceId, {
@@ -412,14 +490,16 @@ export function useAgentRun(projectId: Ref<string>) {
         id: `system-error-${Date.now()}`
       })
     } finally {
-      store.setInstanceProcessing(instanceId, false)
-      // A task's run end applies its work (or parks it) server-side and grows
-      // its token total — sync this instance's DTO fields now so its card in the
-      // main thread flips to "complete" with its summary, and its check-in
-      // reaches the queue, without waiting a poll tick. A subagent finishing is
-      // news, and a beat of nothing happening reads as nothing having happened.
-      const finished = store.instances.find(i => i.id === instanceId)
-      if (finished?.kind === 'task') void store.refreshInstanceFromServer(instanceId)
+      if (!followedOnServer) {
+        store.setInstanceProcessing(instanceId, false)
+        // A task's run end applies its work (or parks it) server-side and grows
+        // its token total — sync this instance's DTO fields now so its card in the
+        // main thread flips to "complete" with its summary, and its check-in
+        // reaches the queue, without waiting a poll tick. A subagent finishing is
+        // news, and a beat of nothing happening reads as nothing having happened.
+        const finished = store.instances.find(i => i.id === instanceId)
+        if (finished?.kind === 'task') void store.refreshInstanceFromServer(instanceId)
+      }
     }
   }
 

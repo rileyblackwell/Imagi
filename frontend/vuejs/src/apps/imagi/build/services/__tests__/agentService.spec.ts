@@ -135,12 +135,48 @@ describe('AgentService.streamAgent', () => {
     })
   })
 
-  it('keeps partial text when the stream ends without a done event', async () => {
+  it('reports a stream that closed before the run ended as dropped, not failed', async () => {
+    // The run outlives its connection, so a stream that just stops is not a
+    // result: the caller follows the run on the server instead.
     vi.mocked(fetch).mockResolvedValue(
-      streamingResponse([sse({ type: 'delta', text: 'partial' })]) as any,
+      streamingResponse([
+        sse({ type: 'start', conversation_id: 4 }),
+        ': keepalive\n\n',
+        sse({ type: 'delta', text: 'partial' }),
+      ]) as any,
     )
-    const result = await call()
-    expect(result.response).toBe('partial')
+    const onDelta = vi.fn()
+    await expect(call({ onDelta })).rejects.toMatchObject({
+      code: 'stream_dropped',
+      body: { conversation_id: 4 },
+    })
+    expect(onDelta).toHaveBeenCalledWith('partial')
+  })
+
+  it('reports a network failure mid-stream as dropped', async () => {
+    const encoder = new TextEncoder()
+    let calls = 0
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (calls++ === 0) {
+              return { value: encoder.encode(sse({ type: 'start', conversation_id: 9 })), done: false }
+            }
+            throw new TypeError('Load failed')
+          },
+        }),
+      },
+    } as any)
+    await expect(call()).rejects.toMatchObject({ code: 'stream_dropped' })
+  })
+
+  it('marks errors the run reported itself', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      streamingResponse([sse({ type: 'error', error: 'Out of credit', code: 'out_of_credit' })]) as any,
+    )
+    await expect(call()).rejects.toMatchObject({ code: 'out_of_credit', reported: true })
   })
 
   it('surfaces a pre-stream error body with its HTTP status', async () => {
@@ -184,6 +220,71 @@ describe('AgentService.streamAgent', () => {
         resets_at: '2026-07-22T18:00:00Z',
       },
     })
+  })
+})
+
+describe('AgentService.watchRun', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('follows a thread\'s run from its event log to the end', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      streamingResponse([
+        sse({ type: 'start', conversation_id: 7, seq: 1 }),
+        sse({ type: 'delta', text: 'Built it', seq: 2 }),
+        sse({ type: 'done', response: 'Built it', conversation_id: 7, seq: 3 }),
+      ]) as any,
+    )
+    const onDelta = vi.fn()
+
+    const result = await AgentService.watchRun(7, { onDelta })
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/v1/agents/conversations/7/events/',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Token test-token' }) }),
+    )
+    expect(onDelta).toHaveBeenCalledWith('Built it')
+    expect(result.response).toBe('Built it')
+  })
+
+  it('resumes after the last event it saw, and says where a drop left off', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      streamingResponse([sse({ type: 'delta', text: 'more', seq: 5 })]) as any,
+    )
+
+    await expect(AgentService.watchRun(7, {}, undefined, 4)).rejects.toMatchObject({
+      code: 'stream_dropped',
+      body: { last_seq: 5 },
+    })
+    expect(fetch).toHaveBeenCalledWith('/api/v1/agents/conversations/7/events/?after=4', expect.any(Object))
+  })
+
+  it('treats a watch that cannot connect as dropped, not as a failed run', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
+
+    await expect(AgentService.watchRun(7, {}, undefined, 2)).rejects.toMatchObject({
+      code: 'stream_dropped',
+      body: { conversation_id: 7, last_seq: 2 },
+    })
+  })
+})
+
+describe('AgentService.sendToThread', () => {
+  beforeEach(() => {
+    apiPost.mockReset()
+  })
+
+  it('hands the message to the server, which starts the thread', async () => {
+    apiPost.mockResolvedValue({ data: { id: 7, blocked: null } })
+
+    const result = await AgentService.sendToThread(7, 'Make it blue')
+
+    expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/7/send/', { message: 'Make it blue' })
+    expect(result).toEqual({ id: 7, blocked: null })
   })
 })
 

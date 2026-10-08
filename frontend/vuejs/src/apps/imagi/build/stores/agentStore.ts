@@ -60,10 +60,10 @@ let queuedPromptSender: ((instanceId: string, prompt: string) => void) | null = 
 let resyncTimer: ReturnType<typeof setInterval> | null = null
 const RESYNC_INTERVAL_MS = 5000
 
-// Background tasks are dispatched by the lead agent but their runs are driven
-// from here (the client owns the streaming connections), so a check-in poller
-// runs whenever the workspace is open — the queue must fill even when the
-// user is idle and no run is streaming.
+// Threads run on the server, which starts them itself; this tab only watches
+// the ones it has room to show. A check-in poller runs whenever the workspace
+// is open — the queue must fill even when the user is idle and no run is
+// being watched.
 let checkInTimer: ReturnType<typeof setInterval> | null = null
 const CHECK_IN_INTERVAL_MS = 6000
 
@@ -97,8 +97,9 @@ const adoptedCheckIns = new Set<number>()
 // check-ins from the same unknown thread do not add it twice.
 const adoptingThreads = new Set<number>()
 
-// Registered by the workspace: how a background task's run is driven (the
-// same handlePrompt path, targeted at the task's instance).
+// Registered by the workspace: how a background task's run is shown (the
+// same handlePrompt path, targeted at the task's instance, which watches the
+// run the server started rather than starting one).
 let taskRunner: ((instanceId: string, prompt: string) => void) | null = null
 
 // What a subagent is told when the user asks it to try again after a run
@@ -519,9 +520,9 @@ export const useAgentStore = defineStore('agent', {
       const text = answer.trim()
       if (!text) return
       const instance = this.instances.find(i => i.conversationId === checkIn.task.id)
-      if (!instance || !taskRunner) return
+      if (!instance) return
       this.removeCheckIn(checkIn.id)
-      taskRunner(instance.id, text)
+      void this._sendFromUser(instance, text)
     },
 
     /**
@@ -540,8 +541,32 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!message || !instance || instance.kind !== 'task') return false
       if (instance.archivedAt || instance.reviewStatus === 'dismissed') return false
-      this._sendToThread(instance, message)
+      void this._sendFromUser(instance, message)
       return true
+    },
+
+    /**
+     * A message the user wrote for a thread goes to the server first: the
+     * server stages it and starts the thread itself (now, or after its
+     * current run), so it is acted on even if this tab closes a moment
+     * later. Then this tab shows it and watches the run, as it would a
+     * follow-up the coordinator forwarded.
+     */
+    async _sendFromUser(instance: AgentInstance, message: string) {
+      if (instance.conversationId == null) return
+      try {
+        await AgentService.sendToThread(instance.conversationId, message)
+      } catch (e) {
+        console.error('Failed to send to thread', e)
+        this.addMessageToInstance(instance.id, {
+          role: 'assistant',
+          content: "That message didn't reach this thread. Send it again.",
+          timestamp: new Date().toISOString(),
+          id: `system-error-${Date.now()}`
+        })
+        return
+      }
+      this._sendToThread(instance, message)
     },
 
     // --- Task dispatch (the lead agent's delegation tool) ---
@@ -761,17 +786,12 @@ export const useAgentStore = defineStore('agent', {
     retryTask(conversationId: number) {
       const instance = this.instances.find(i => i.conversationId === conversationId)
       if (!instance || instance.kind !== 'task' || instance.isProcessing) return
-      if (instance.reviewStatus !== 'failed' || !taskRunner) return
-      this.removeCheckInsForTask(conversationId)
-      instance.reviewStatus = 'active'
-      instance.hasUnread = false
-      firedDispatches.delete(conversationId)
-      dispatchRetryAt.delete(conversationId)
-      if (instance.pendingBrief) {
-        this.firePendingDispatches()
-        return
-      }
-      taskRunner(instance.id, TASK_RETRY_PROMPT)
+      if (instance.reviewStatus !== 'failed') return
+      // The brief it never started on is still staged on the server, which
+      // does not stage a resend twice; the server starts the retry itself.
+      const message = instance.pendingBrief || TASK_RETRY_PROMPT
+      instance.pendingBrief = null
+      void this._sendFromUser(instance, message)
     },
 
     // --- Run control (stop button / server-tracked runs) ---
@@ -791,6 +811,14 @@ export const useAgentStore = defineStore('agent', {
         abortControllers.delete(instanceId)
         userAbortedRuns.add(instanceId)
         controller.abort()
+        // Closing the stream no longer stops the run (it outlives its
+        // connection), so the Stop has to reach the server too. A thread's
+        // stop is reported by failTaskRun, which carries the reason.
+        const instance = this._findInstance(instanceId)
+        if (instance && instance.kind !== 'task' && instance.conversationId != null) {
+          AgentService.cancelConversationRun(instance.conversationId)
+            .catch(e => console.error('Failed to stop the server-side run', e))
+        }
         return
       }
       const instance = this._findInstance(instanceId)
@@ -804,6 +832,22 @@ export const useAgentStore = defineStore('agent', {
           .catch(e => console.error('Failed to release server-side run', e))
       }
       this.setInstanceProcessing(instanceId, false)
+    },
+
+    /**
+     * Keep following a run whose stream closed before it ended.
+     *
+     * The run is not tied to the connection — it keeps going on the server
+     * and finishes on its own — so the instance stays "working", without a
+     * stream, and the resync poll picks up the finished transcript (and a
+     * thread's outcome) when the server reports the run is over.
+     */
+    followRunOnServer(instanceId: string) {
+      abortControllers.delete(instanceId)
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.statusText = 'Working…'
+      this.resyncRunningInstances()
     },
 
     /** Abort every live stream (e.g. before rebuilding the instance list,

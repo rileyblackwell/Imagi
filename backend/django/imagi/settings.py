@@ -293,14 +293,16 @@ IMAGI_BUILDER = {
     'DEFAULT_MODEL': 'claude-opus-5-5',
     # Reasoning effort used when a request doesn't specify one.
     'DEFAULT_REASONING_EFFORT': 'medium',
-    # Upper bound on agent-loop iterations for a single request.
-    'MAX_AGENT_TURNS': 30,
+    # Upper bound on agent-loop iterations for a single request. Roomy: a run
+    # should finish what it was asked to do. RUN_COST_CEILING_USD below is
+    # what stops one that loops.
+    'MAX_AGENT_TURNS': 100,
     # Background tasks dispatched from the main thread get a bigger loop than
     # a conversational turn. Nobody is watching them, and the work they are
     # given is whole-feature sized — "add a contact page" spans a backend
     # model, a view, a route, a frontend page and a check that it all still
     # builds, which routinely outruns a chat reply's budget.
-    'TASK_MAX_TURNS': 60,
+    'TASK_MAX_TURNS': 150,
     # A task that still hits that cap continues itself rather than stopping:
     # it re-runs from where it left off, in the same worktree and the same
     # thread, this many times. Only a task still unfinished after all of them
@@ -309,6 +311,11 @@ IMAGI_BUILDER = {
     # what a run costs, so this is the direct lever on what a stuck task can
     # spend before it asks for help.
     'TASK_AUTO_CONTINUE_ROUNDS': 2,
+    # The most one streamed run (a thread's job, continuation rounds
+    # included) may spend at model list prices before it stops and asks the
+    # user whether to keep going. A safety net against a run that loops, set
+    # well above what a normal feature costs.
+    'RUN_COST_CEILING_USD': 10.0,
     # How many background subagents one user may have running at once, across
     # every project. Working in parallel is the point of dispatching them —
     # each builds in its own git worktree and merges itself when it finishes —
