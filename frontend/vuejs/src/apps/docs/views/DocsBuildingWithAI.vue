@@ -20,18 +20,21 @@
           </p>
           <p>
             The workspace has two halves. On the left is your <strong class="ink-strong">conversation</strong>
-            with the coordinator (and the Threads pane, which shows the threads it has put to work). On the right is a
-            <strong class="ink-strong">live, interactive preview</strong> of your actual
-            running app that updates as the agents work. On a phone, the two share the screen—use the Preview switch in the
-            chat header to flip to your app.
+            with the coordinator; the <strong class="ink-strong">Threads</strong> switch in its header swaps it for the
+            Threads pane, which lists the work the coordinator has handed out. On the right is a
+            <strong class="ink-strong">live, interactive preview</strong> of your actual running app that updates as the
+            agents work. On a phone you see one half at a time: tap <strong class="ink-strong">Preview</strong> in the
+            chat header to see your app, and <strong class="ink-strong">Coordinator</strong> in the preview's dock to
+            come back.
           </p>
         </div>
         <div class="rule-cols">
           <DocsCard title="AI agents">
             Chat with agents that read and edit your project's files directly—not just suggestions, but real changes built into your app.
           </DocsCard>
-          <DocsCard title="Live workspace">
-            Generate and refine pages in real time. Every change the agent makes shows up in your project immediately.
+          <DocsCard title="Works without you">
+            Agents run on Imagi's servers, not in your browser. Close the tab and the work carries on; open the
+            workspace again and you pick up right where it is.
           </DocsCard>
           <DocsCard title="Instant preview">
             See your product as a running app you can click through—no build step, no server setup, no waiting.
@@ -47,11 +50,12 @@
 
         <DocsStepCard :number="1" title="Create a Project">
           <p class="text-lg leading-relaxed mb-6">
-            From your Projects page, give your project a <strong class="ink-strong">Business name</strong>
-            and fill in <strong class="ink-strong">What the business does</strong>. The description matters:
-            Imagi's AI uses it to build the very first version of your app, so describe what your business does, who its
-            customers are, and how you'll sell. An optional <strong class="ink-strong">Design direction</strong> field lets
-            you describe the look you want.
+            From your Projects page, brief the agent in three steps: <strong class="ink-strong">Name it</strong>,
+            <strong class="ink-strong">Describe it</strong>, and, optionally, <strong class="ink-strong">Set the
+            look</strong>. The description matters most: Imagi's AI uses it to build the very first version of your app,
+            so say what the business sells, who its customers are, and how it reaches them (it needs at least 20
+            characters). Describe colours, mood, or references under Set the look, or skip it and Imagi picks a look that
+            fits. Then choose <strong class="ink-strong">Create project</strong>.
           </p>
           <div class="callout">
             <h4 class="callout__title">
@@ -59,9 +63,9 @@
             </h4>
             <p class="callout__body">
               As soon as you create a project, Imagi runs an AI build in the background to generate a tailored first
-              version from your description—several agents build its pages at the same time, so it takes about half a
-              minute. Your project hub shows the build's progress, and the Build card unlocks as soon as it's ready: click
-              it to open the workspace.
+              version from your description. Its Home, About, and Contact pages are built at the same time, so it takes
+              about half a minute. While it runs, the Build card on your project hub reads "Imagi is writing your first
+              version"; it unlocks the moment the build finishes—click it to open the workspace.
             </p>
           </div>
           <div class="section-rule my-6" aria-hidden="true"></div>
@@ -103,40 +107,49 @@
             Press <strong class="ink-strong">Enter</strong> to send and
             <strong class="ink-strong">Shift+Enter</strong> for a new line. Rather talk? Hold the microphone button (or hold
             <strong class="ink-strong">⌘D</strong>, Ctrl+D on Windows) and speak—your words are transcribed into the message
-            box so you can read them over before sending. Right-click the button to pick which microphone to use.
+            box so you can read them over before sending. Right-click the button to pick which microphone to use. Once
+            there's text in the box, the same button sends it.
           </p>
           <p class="text-lg leading-relaxed">
             Before you send, you can choose which AI <strong class="ink-strong">model</strong>
-            and how much <strong class="ink-strong">reasoning effort</strong> to use for the
-            task. See <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>
+            and how much <strong class="ink-strong">reasoning effort</strong> to use from the chip in the message box.
+            See <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>
             for how to pick.
           </p>
         </DocsStepCard>
 
-        <DocsStepCard :number="3" title="Watch the Agent Work">
+        <DocsStepCard :number="3" title="Watch the Agents Work">
           <p class="text-lg leading-relaxed mb-6">
             The coordinator answers questions itself, and hands every change you ask for to a
-            <strong class="ink-strong">thread</strong>—a card appears in your chat naming the job, and you can open it to
-            follow along. The thread doesn't just reply—it builds. As it works you'll see a live status line
-            (<em class="font-display italic">"Planning…," "Reading project files…," "Editing project files…"</em>)
-            and an <strong class="ink-strong">activity feed</strong> that checks off each
-            step it takes in plain language. For bigger requests it posts a <strong class="ink-strong">plan
-            checklist</strong> and ticks items off as it goes. When it finishes, a small chip shows how many files were updated.
+            <strong class="ink-strong">thread</strong>. A card appears in your chat naming the job, with its state on
+            top—"Thread starting", "Thread working", "Needs an answer from you", "Thread complete", or "Stopped before
+            finishing"—and a <strong class="ink-strong">Go to thread</strong> button to follow along. You don't have to
+            wait: while threads work in the background, go ahead and send your next message.
+          </p>
+          <p class="text-lg leading-relaxed mb-6">
+            Inside a thread you'll see a live status line (<em class="font-display italic">"Planning…," "Reading project
+            files…," "Editing project files…"</em>) and an <strong class="ink-strong">activity feed</strong> that checks
+            off each step it takes in plain language. For bigger requests it posts a <strong class="ink-strong">plan
+            checklist</strong> and ticks items off as it goes. When it finishes, a small chip shows how many files were
+            updated.
           </p>
           <p class="text-lg leading-relaxed">
-            You stay in control the whole time: you can <strong class="ink-strong">stop</strong>
-            a run at any point and keep what was already done, or queue a follow-up message that sends automatically when the
-            current run finishes. You can queue one message at a time—sending another replaces it.
+            You stay in control the whole time. While the coordinator is working, the send button becomes
+            <strong class="ink-strong">Stop</strong>: stop a run at any point and keep what was already done. Or press
+            Enter to queue a follow-up that sends automatically when the current run finishes—you can queue one message
+            at a time, and sending another replaces it. Messages you type into a busy thread wait for it instead, and the
+            thread reads them all when its current step finishes.
           </p>
         </DocsStepCard>
 
         <DocsStepCard :number="4" title="Preview It Live">
           <p class="text-lg leading-relaxed">
             Your app runs live in the preview pane on the right—a real, interactive browser you can click, type, and scroll
-            through, not a static mockup. It updates as the agents make changes. The preview's toolbar has back, forward,
-            refresh, and home buttons, plus a page selector that lets you jump to any page in your app. If something in your
-            app ever throws an error, a <strong class="ink-strong">"Fix it"</strong> button
-            hands the details straight to the agent to investigate.
+            through, not a static mockup. It updates as the agents make changes. A small dock floats above it with back,
+            forward, refresh, and home buttons, plus the name of the page you're on: click it to see every page in your
+            app and jump to one. If something in your app ever throws an error, a "Something broke in your app" banner
+            appears with a <strong class="ink-strong">Fix it</strong> button that hands the details straight to the
+            coordinator. If the preview sits idle for a while it dozes off—choose "Wake it up" to bring it back.
           </p>
         </DocsStepCard>
       </section>
@@ -144,16 +157,16 @@
       <!-- How the agent works -->
       <section class="mb-16">
         <h2 class="display display--section">
-          How the AI Agent Works
+          How the AI Agents Work
         </h2>
         <p class="lede lede--section">
-          Behind a simple chat box, the agent works like a capable teammate—reading your project to understand it, making
+          Behind a simple chat box, each agent works like a capable teammate—reading your project to understand it, making
           a plan, editing files, and checking the result. You see all of it in plain language, without needing to read code.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Activity feed">
-            A running checklist of what the agent actually did—read a file, created a page, searched the project or the web—each
-            step marked in progress or complete, then collapsed to a one-line summary when the run ends.
+            A running checklist of what a thread actually did—read a file, created a page, searched the project or the
+            web—each step marked in progress or complete, then folded to a one-line summary when the run ends.
           </DocsCard>
           <DocsCard title="Plan checklist">
             For larger tasks, the agent lays out a to-do list up front and ticks each item off as it works, so you can follow
@@ -163,9 +176,10 @@
             After each run, a chip such as "3 files updated" shows exactly what changed—hover to see the list of files.
           </DocsCard>
           <DocsCard title="Graceful limits">
-            If a task is too big for one run, the agent stops cleanly and suggests sending "Continue" to pick up where it left
-            off. If you've used up your weekly allowance, it tells you when usage frees up and suggests a lighter model, less
-            reasoning, or upgrading your plan.
+            Threads keep going on big jobs by themselves. If one still isn't done after several long rounds, it saves its
+            work and asks you on its card—say "keep going" and it picks up where it left off. The coordinator stops
+            cleanly after a long run and suggests sending "Continue". Any single run that spends $10 stops and checks in
+            with you first, with its progress saved.
           </DocsCard>
         </div>
       </section>
@@ -182,24 +196,33 @@
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="The coordinator">
-            Your primary conversation—tell it what you want, one thing after another. It hands each separate request to
-            its own thread; ask for several things and they're built in parallel.
+            Your primary conversation—tell it what you want, one thing after another. It answers simple questions itself
+            and hands each separate request to its own thread; ask for several things and they're built in parallel (up
+            to five at a time—the rest wait their turn as "Thread starting").
           </DocsCard>
           <DocsCard title="Threads">
-            Each job appears as a card in your chat that turns into "Thread complete" when it's done, with a summary of
-            what changed. The <strong class="ink-strong">Threads</strong> switch in the chat header lists them as
-            waiting on you, working, and finished. Open any thread to read it, and type into it to steer it
-            directly—a change, an answer, or "keep going".
+            The <strong class="ink-strong">Threads</strong> switch in the chat header opens a pane that lists every
+            thread under Waiting on you, Working, and Finished. Open any thread to read it, and type into it to steer it
+            directly—a change, an answer, or "keep going". Each card's dot tells you its state at a glance: blue while
+            it's working, amber when it needs you, green when it's done, red if it stopped.
+          </DocsCard>
+          <DocsCard title="Questions">
+            When a thread or the coordinator needs a decision, it asks right in your chat, often with a few one-tap
+            answers—tap one, or type your own. You can also answer inside the thread. A thread waiting on you pops up a
+            notice and shows a count in the browser tab's title, so you notice even from another tab.
           </DocsCard>
           <DocsCard title="Applied automatically">
-            When a thread finishes, its work goes into your app on its own—you don't need to approve it. Updates collect
-            under "From your threads" above the message box: "Got it" to clear one, or "See the work" to open its thread.
-            If a thread needs a decision from you, it asks there and waits for your answer—reply there, or inside the
-            thread itself.
+            When a thread finishes, its work goes into your app on its own—you don't need to approve it. Each update
+            appears above the message box: "Got it" to clear it, or "See the work" to open its thread. If a thread
+            stops before finishing, choose <strong class="ink-strong">Try again</strong> on its card or inside it.
           </DocsCard>
           <DocsCard title="Alternatives to compare">
             Ask for alternatives—"show me two versions of the homepage"—and up to three threads build independent takes on
             the same request. Those wait for you: pick "Use this one" on the version you want, and "Discard" the rest.
+          </DocsCard>
+          <DocsCard title="Workspace settings">
+            The gear in the chat header (and in the Threads pane) opens workspace settings. Under Models, pick the model
+            the coordinator uses and the one new threads start on, and switch every existing thread to it in one click.
           </DocsCard>
         </div>
       </section>
@@ -210,19 +233,19 @@
           Never Lose Your Work
         </h2>
         <p class="lede lede--section">
-          Imagi saves your app's state before the agent starts working on a message, so you never have to think about
-          saving—and you can always go back.
+          Imagi saves your app's state before the coordinator starts working on a message, so you never have to think
+          about saving—and you can always go back.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Checkpoints in the chat">
-            Your restore points live right in your main conversation: messages you sent mark the moment before the agent
-            acted on them, so the chat itself is your app's history.
+            Your restore points live right in your conversation with the coordinator: messages you sent mark the moment
+            before the agents acted on them, so the chat itself is your app's history.
           </DocsCard>
           <DocsCard title="Restore a checkpoint">
             Hover an earlier message and choose "Restore checkpoint" to roll both your app and the conversation back to the
             moment before that message. After you confirm, the messages that came after it are removed and your original
             message is put back in the message box, ready to edit and resend—handy for trying a different direction.
-            Restoring isn't available while the agent is working.
+            Restoring isn't available while the coordinator is working.
           </DocsCard>
         </div>
       </section>
@@ -236,7 +259,7 @@
           <DocsNavigationCard
             to="/docs/running-your-business"
             title="Running Your Business"
-            description="Once your app is built, sell, market, and operate your business from the same workspace."
+            description="Once your app is built, sell, market, and operate your business from the same project."
           />
           <DocsNavigationCard
             to="/docs/models"
