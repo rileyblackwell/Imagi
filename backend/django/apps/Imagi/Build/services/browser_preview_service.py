@@ -17,6 +17,7 @@ per browser purely as a transport optimization — losing it costs nothing but
 a reconnect.
 """
 
+import contextlib
 import glob
 import hashlib
 import json
@@ -28,6 +29,11 @@ import subprocess
 import sys
 import threading
 import time
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows dev machines
+    fcntl = None
 
 import psutil
 import requests
@@ -144,14 +150,22 @@ _CONSOLE_COLLECT_JS = (
 # scroll offset it shows (instead of guessing from the deltas it sent), draw a
 # scrollbar that tracks the page, and fill the strip that an optimistic scroll
 # uncovers with the page's own background instead of a dark gap.
-_SCROLL_METRICS_JS = """
+_SCROLL_METRICS_JS = r"""
 (function () {
   var el = document.scrollingElement || document.documentElement;
+  // The colour actually showing at the bottom of the view: the nearest
+  // painted background behind the element there. A gradient counts by its
+  // first colour; the body's own colour is often hidden under an app shell
+  // painted another one (a dark body under a light page read as black).
   var bg = '';
   try {
-    bg = document.body ? getComputedStyle(document.body).backgroundColor : '';
-    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
-      bg = getComputedStyle(document.documentElement).backgroundColor;
+    var node = document.elementFromPoint(window.innerWidth / 2, window.innerHeight - 2);
+    for (; node && node.nodeType === 1; node = node.parentElement) {
+      var cs = getComputedStyle(node);
+      if (cs.backgroundColor && cs.backgroundColor !== 'transparent' &&
+          cs.backgroundColor !== 'rgba(0, 0, 0, 0)') { bg = cs.backgroundColor; break; }
+      var m = /gradient\(.*?(rgba?\([^)]*\))/.exec(cs.backgroundImage || '');
+      if (m) { bg = m[1]; break; }
     }
   } catch (e) {}
   return {
@@ -176,6 +190,95 @@ new Promise(function (resolve) {
   setTimeout(read, 120);
 })
 """ % _SCROLL_METRICS_JS.strip()
+
+# ---------------------------------------------------------------------------
+# Backdrop: the whole page, captured ahead of time
+# ---------------------------------------------------------------------------
+# Frames show only the viewport, so a scroll otherwise reveals nothing until
+# the next frame comes back. The backdrop is the rest of the page, captured
+# once per page in viewport-sized slices (Chromium only rasterizes what is in
+# view: a clip beyond the viewport comes back blank, and captureBeyondViewport
+# resizes the viewport, which fires resize events and moves the scroll). The
+# client scrolls through the backdrop locally until the real frame arrives.
+#
+# Fixed elements would repeat in every slice, so they are hidden from the
+# backdrop and captured once, on a transparent background, as an overlay the
+# client keeps in place. Sticky elements are laid out as plain relative boxes
+# for the slices (same space in the flow, so nothing reflows); one that is
+# currently stuck goes in the overlay too.
+
+BACKDROP_MAX_PX = 10000     # CSS px of page per backdrop, around the scroll
+BACKDROP_JPEG_QUALITY = 55
+# After a document's first pass scrolls it through once (firing lazy-loading
+# and scroll-reveal observers), give the images and transitions it started a
+# moment before capturing.
+BACKDROP_WARM_SETTLE_S = 0.6
+PAGE_LOCK_TIMEOUT_S = 5
+
+_BACKDROP_MARK_JS = """
+(function () {
+  var marked = 0;
+  var els = document.querySelectorAll('body *');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    var cs = getComputedStyle(el);
+    if (cs.position === 'fixed') {
+      el.setAttribute('data-imagi-bd', 'fixed');
+      marked++;
+    } else if (cs.position === 'sticky') {
+      var top = parseFloat(cs.top);
+      // At or above its stick line: it stays put while the page scrolls
+      // under it (true of a sticky header at the very top of the page too).
+      var stuck = !isNaN(top) && el.getBoundingClientRect().top <= top + 1;
+      el.setAttribute('data-imagi-bd', stuck ? 'stuck' : 'sticky');
+      if (stuck) marked++;
+    }
+  }
+  return marked;
+})()
+"""
+
+_BACKDROP_CSS = {
+    'slices': (
+        'html{scroll-behavior:auto!important}'
+        '[data-imagi-bd=fixed]{visibility:hidden!important}'
+        '[data-imagi-bd=sticky],[data-imagi-bd=stuck]'
+        '{position:relative!important;top:auto!important;bottom:auto!important}'
+    ),
+    'overlay': (
+        'html,body{background:transparent!important}'
+        'html{visibility:hidden!important}'
+        '[data-imagi-bd=fixed],[data-imagi-bd=stuck]{visibility:visible!important}'
+    ),
+}
+
+_BACKDROP_STYLE_JS = """
+(function (css) {
+  var el = document.getElementById('__imagi_backdrop');
+  if (!css) {
+    if (el) el.remove();
+    var marks = document.querySelectorAll('[data-imagi-bd]');
+    for (var i = 0; i < marks.length; i++) marks[i].removeAttribute('data-imagi-bd');
+    return true;
+  }
+  if (!el) {
+    el = document.createElement('style');
+    el.id = '__imagi_backdrop';
+    document.documentElement.appendChild(el);
+  }
+  el.textContent = css;
+  return true;
+})(%s)
+"""
+
+# Scroll instantly (whatever the page's scroll-behavior) and say where it
+# landed: the last slice clamps at the bottom of the page.
+_SCROLL_TO_JS = "(function () { window.scrollTo({left: %f, top: %f, behavior: 'instant'}); return [window.scrollX, window.scrollY]; })()"
+
+_NEXT_FRAME_JS = (
+    "new Promise(function (r) { var d = false; function f() { if (!d) { d = true; r(true); } }"
+    " requestAnimationFrame(f); setTimeout(f, 120); })"
+)
 
 _CSS_COLOR_RE = re.compile(r'^rgba?\([0-9.,%/ ]{1,60}\)$')
 
@@ -530,6 +633,120 @@ class BrowserPreviewService:
     # Chromium process management
     # ------------------------------------------------------------------
 
+    def backdrop(self):
+        """Capture the page around the current scroll as slices + an overlay.
+
+        Runs under the project's exclusive page lock (see _page_lock): the
+        page is scrolled through and restyled while this works, and no frame
+        or input request may see it that way. The scroll is restored before
+        the lock is released.
+        """
+        state = self._require_state(touch=True)
+        width, height = state.get('viewport', DEFAULT_VIEWPORT)
+        dsf = float(state.get('device_scale_factor', 1))
+
+        def warm(conn, _page):
+            # First backdrop for this page: scroll through it once so
+            # lazy images start loading and scroll-reveal content reveals.
+            self._apply_viewport(conn, state)
+            # Keyed by URL: an in-app route change keeps the document.
+            first = self._evaluate(
+                conn,
+                'window.__imagiBackdropWarm !== location.href && !!(window.__imagiBackdropWarm = location.href)',
+            )
+            if not first:
+                return False
+            start = self._scroll_metrics(conn)
+            if not start:
+                return False
+            try:
+                for y in self._backdrop_offsets(start):
+                    self._evaluate(conn, _SCROLL_TO_JS % (start['x'], y))
+                    self._evaluate(conn, _NEXT_FRAME_JS, await_promise=True)
+            finally:
+                self._evaluate(conn, _SCROLL_TO_JS % (start['x'], start['y']))
+            return True
+
+        if self._with_page(state, warm, exclusive=True):
+            time.sleep(BACKDROP_WARM_SETTLE_S)
+
+        def capture(conn, _page):
+            self._apply_viewport(conn, state)
+            payload = self._status_payload(conn, state)
+            start = payload.get('scroll')
+            if not start:
+                raise BrowserPreviewError('The page did not report its size.')
+            scale = 1 / dsf if dsf > 1 else 1
+            slices = []
+            overlay = None
+            try:
+                marked = self._evaluate(conn, _BACKDROP_MARK_JS) or 0
+                if marked:
+                    overlay = self._capture_overlay(conn, start, width, height, scale)
+                self._evaluate(conn, _BACKDROP_STYLE_JS % json.dumps(_BACKDROP_CSS['slices']))
+                seen = set()
+                for y in self._backdrop_offsets(start):
+                    landed = self._evaluate(conn, _SCROLL_TO_JS % (start['x'], y)) or [start['x'], y]
+                    lx, ly = float(landed[0]), float(landed[1])
+                    if ly in seen:
+                        continue
+                    seen.add(ly)
+                    shot = self._capture_screenshot(conn, BACKDROP_JPEG_QUALITY, {
+                        'x': lx, 'y': ly, 'width': int(width), 'height': int(height), 'scale': scale,
+                    })
+                    slices.append({'y': ly, 'frame': shot.get('data', '')})
+            finally:
+                self._evaluate(conn, _BACKDROP_STYLE_JS % 'null')
+                self._evaluate(conn, _SCROLL_TO_JS % (start['x'], start['y']))
+            return {
+                'path': payload.get('path'),
+                'viewport': [int(width), int(height)],
+                'scroll': start,
+                'slices': slices,
+                'overlay': overlay,
+            }
+
+        return self._with_page(state, capture, exclusive=True)
+
+    @staticmethod
+    def _backdrop_offsets(metrics):
+        """Slice offsets: up to BACKDROP_MAX_PX of page, mostly below the scroll."""
+        vh = max(1.0, metrics['viewport_height'])
+        page = max(metrics['height'], vh)
+        span = min(page, BACKDROP_MAX_PX)
+        top = max(0.0, min(metrics['y'] - span / 3, page - span))
+        offsets = []
+        y = top
+        while y < top + span:
+            offsets.append(y)
+            y += vh
+        return offsets
+
+    def _capture_overlay(self, conn, scroll, width, height, scale):
+        """The fixed (and stuck) elements alone, on a transparent background."""
+        self._evaluate(conn, _BACKDROP_STYLE_JS % json.dumps(_BACKDROP_CSS['overlay']))
+        try:
+            conn.call('Emulation.setDefaultBackgroundColorOverride', {'color': {'r': 0, 'g': 0, 'b': 0, 'a': 0}})
+        except CdpError:
+            return None
+        try:
+            shot = conn.call('Page.captureScreenshot', {
+                'format': 'png',
+                'clip': {'x': scroll['x'], 'y': scroll['y'], 'width': int(width), 'height': int(height), 'scale': scale},
+            })
+            return shot.get('data') or None
+        finally:
+            conn.call('Emulation.setDefaultBackgroundColorOverride', {})
+
+    def _evaluate(self, conn, expression, await_promise=False):
+        params = {'expression': expression, 'returnByValue': True}
+        if await_promise:
+            params['awaitPromise'] = True
+        result = conn.call('Runtime.evaluate', params)
+        if result.get('exceptionDetails'):
+            return None
+        return result.get('result', {}).get('value')
+
     def _launch_chromium(self, width, height, dsf, initial_url='about:blank'):
         executable = find_chromium()
         if not executable:
@@ -676,7 +893,50 @@ class BrowserPreviewService:
     # CDP helpers
     # ------------------------------------------------------------------
 
-    def _with_page(self, state, body, idempotent=True):
+    @contextlib.contextmanager
+    def _page_lock(self, exclusive):
+        """Cross-process lock on this project's page.
+
+        Frame, input and navigation requests share it; a backdrop capture
+        takes it exclusively, because it scrolls and restyles the page and
+        each worker process has its own CDP connection, so the per-process
+        pool lock alone wouldn't keep another worker's frame from catching
+        the page mid-capture. Best effort: a lock not acquired in
+        PAGE_LOCK_TIMEOUT_S is skipped rather than failing the request.
+        """
+        if fcntl is None:
+            yield
+            return
+        fh = None
+        try:
+            fh = open(os.path.join(self.pid_dir, f"{sidecar_stem(self.project)}_page.lock"), 'a')
+        except OSError:
+            yield
+            return
+        mode = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+        locked = False
+        deadline = time.time() + PAGE_LOCK_TIMEOUT_S
+        try:
+            while True:
+                try:
+                    fcntl.flock(fh, mode | fcntl.LOCK_NB)
+                    locked = True
+                    break
+                except OSError:
+                    if time.time() >= deadline:
+                        break
+                    time.sleep(0.01)
+            yield
+        finally:
+            if locked:
+                fcntl.flock(fh, fcntl.LOCK_UN)
+            fh.close()
+
+    def _with_page(self, state, body, idempotent=True, exclusive=False):
+        with self._page_lock(exclusive):
+            return self._with_page_unlocked(state, body, idempotent)
+
+    def _with_page_unlocked(self, state, body, idempotent=True):
         """Run ``body(conn, page)`` on the pooled CDP connection for this browser.
 
         The pooled connection is shared across requests and never closed by a

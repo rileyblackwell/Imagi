@@ -16,6 +16,7 @@ from .views import (
     FileContentView,
     PreviewSessionView,
     ProjectPagesView,
+    preview_backdrop,
     preview_frame,
     preview_input,
     preview_navigate,
@@ -47,6 +48,7 @@ builder_patterns = [
     # The frame/input/navigate/resize endpoints are async views: preview
     # traffic runs on the thread pool instead of ASGI's single sync thread.
     path('<int:project_id>/preview/frame/', preview_frame, name='api-preview-frame'),
+    path('<int:project_id>/preview/backdrop/', preview_backdrop, name='api-preview-backdrop'),
     path('<int:project_id>/preview/input/', preview_input, name='api-preview-input'),
     path('<int:project_id>/preview/navigate/', preview_navigate, name='api-preview-navigate'),
     path('<int:project_id>/preview/resize/', preview_resize, name='api-preview-resize'),
