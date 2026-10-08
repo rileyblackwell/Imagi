@@ -17,9 +17,7 @@
         <div class="flex items-center z-10">
           <!-- Leading slot sits before the wordmark (e.g. the sidebar toggle) -->
           <slot name="left-leading"></slot>
-          <ImagiLogo size="md">
-            <slot name="logo">Imagi</slot>
-          </ImagiLogo>
+          <ImagiLogo size="md" />
           <slot name="left"></slot>
         </div>
 
