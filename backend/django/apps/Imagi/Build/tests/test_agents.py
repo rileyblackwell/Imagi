@@ -377,6 +377,15 @@ class GrepGlobTests(ToolTestBase):
         result = grep_impl(self.project, r'print', path='backend')
         self.assertEqual(result['match_count'], 1)
 
+    def test_grep_scoped_to_single_file(self):
+        result = grep_impl(self.project, r'createRouter', path='frontend/vuejs/src/apps/home/router/index.ts')
+        self.assertEqual(result['match_count'], 1)
+        self.assertEqual(result['matches'][0]['file'], os.path.join('frontend', 'vuejs', 'src', 'apps', 'home', 'router', 'index.ts'))
+
+    def test_grep_missing_path_raises(self):
+        with self.assertRaisesRegex(ValueError, 'does not exist'):
+            grep_impl(self.project, r'x', path='frontend/nope')
+
     def test_grep_skips_node_modules(self):
         self._write('frontend/vuejs/node_modules/pkg/index.js', 'createRouter\n')
         result = grep_impl(self.project, r'createRouter')
