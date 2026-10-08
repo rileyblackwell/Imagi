@@ -49,8 +49,8 @@
         <ProductShot
           src="/product/project-hub.webp"
           alt="The project hub for Ticker Insights, showing its four workspaces: Build, Sell, Market and Operate."
-          :width="2400"
-          :height="1752"
+          :width="2560"
+          :height="1702"
           label="imagi — project hub"
           caption="The hub for Ticker Insights. Build makes the product; Sell, Market and Operate run the business around it."
         />
