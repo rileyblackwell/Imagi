@@ -44,6 +44,15 @@ NAVIGATION_SETTLE_S = 3.0
 
 TAB_ID = 'preview'
 
+# Longest a screenshot waits for the page's entrance animations to finish.
+ANIMATION_SETTLE_MS = 1500
+ANIMATION_SETTLE_JS = f"""Promise.race([
+  Promise.all(document.getAnimations()
+    .filter(a => a.playState === 'running' && isFinite(a.effect?.getComputedTiming().endTime))
+    .map(a => a.finished.catch(() => null))),
+  new Promise(r => setTimeout(r, {ANIMATION_SETTLE_MS})),
+]).then(() => true)"""
+
 # Members this harness implements. Tab management is off (the preview has one
 # page), as are the members that need more trust than an agent editing a
 # business's site should have: arbitrary JavaScript, file uploads, and a raw
@@ -755,10 +764,11 @@ class _PreviewSession:
             else:
                 conn.call('Page.navigate', {'url': self.app_url + self._app_path(url, BrowserPreviewService)})
             self._wait_for_load(conn)
+            self._settle_animations(conn)
             return self._location(conn)
 
         location = self.run(body)
-        verb = {'back': 'Went back', 'forward': 'Went forward', 'reload': 'Reloaded'}.get(lowered, 'Opened')
+        verb = {'back': 'Went back to', 'forward': 'Went forward to', 'reload': 'Reloaded'}.get(lowered, 'Opened')
         return [*_text(f'{verb} {location[0] or url}.'), self._browser_state(*location)]
 
     def _app_path(self, url, service_cls):
@@ -786,8 +796,15 @@ class _PreviewSession:
             path += '#' + parts.fragment
         return path
 
+    def _settle_animations(self, conn):
+        # A page that just loaded is often mid fade-in, and a shot of it reads
+        # as washed out. Wait for finite animations to end, briefly; endless
+        # ones (spinners) are left running.
+        self._evaluate(conn, ANIMATION_SETTLE_JS)
+
     def screenshot(self):
         def body(conn):
+            self._settle_animations(conn)
             x, y = self._evaluate(conn, '[window.scrollX, window.scrollY]') or (0, 0)
             return self.service._capture_screenshot(conn, SCREENSHOT_JPEG_QUALITY, {
                 'x': float(x), 'y': float(y),
@@ -811,6 +828,7 @@ class _PreviewSession:
         fit = min(self.width * self.scale / width, self.height * self.scale / height, 4.0)
 
         def body(conn):
+            self._settle_animations(conn)
             sx, sy = self._evaluate(conn, '[window.scrollX, window.scrollY]') or (0, 0)
             return self.service._capture_screenshot(conn, SCREENSHOT_JPEG_QUALITY, {
                 'x': float(sx) + cx0, 'y': float(sy) + cy0,
