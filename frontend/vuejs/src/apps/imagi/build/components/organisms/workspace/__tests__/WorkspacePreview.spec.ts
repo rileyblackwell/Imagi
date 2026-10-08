@@ -90,3 +90,48 @@ describe('WorkspacePreview wheel scrolling', () => {
     expect(translateY(wrapper)).toBe(100)
   })
 })
+
+describe('WorkspacePreview page menu and screen size', () => {
+  let wrapper: VueWrapper
+
+  beforeEach(async () => {
+    HTMLImageElement.prototype.decode = () => Promise.resolve()
+    localStorage.clear()
+    start.mockResolvedValue({ frame: 'AAAA', etag: 'a', path: '/about', viewport: [320, 320] })
+    frame.mockResolvedValue({ frame: null, etag: 'a' })
+    resize.mockResolvedValue({})
+    pages.mockResolvedValue([
+      { name: 'home', pages: [{ path: '/', title: 'Home' }, { path: '/about', title: 'About' }] },
+      { name: 'auth', pages: [{ path: '/auth/signin', title: 'Sign in' }] },
+    ])
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' }, attachTo: document.body })
+    await settle()
+  })
+
+  afterEach(() => {
+    wrapper.unmount()
+    start.mockReset(); frame.mockReset(); pages.mockReset()
+  })
+
+  it('names the current page by its section and title', () => {
+    expect(wrapper.find('.pv-plate').text()).toBe('home/About')
+  })
+
+  it('opens with every section expanded and lists pages by name, not path', async () => {
+    await wrapper.find('.pv-plate').trigger('click')
+    await flushPromises()
+
+    const files = wrapper.findAll('.pv-file').map(f => f.text())
+    expect(files).toEqual(['Home', 'AboutViewing', 'Sign in'])
+    expect(wrapper.find('.pv-menu').text()).not.toContain('/auth/signin')
+    expect(wrapper.find('.pv-menu-count').text()).toBe('3')
+  })
+
+  it('switches to the phone view and remembers it', async () => {
+    const phone = wrapper.findAll('.pv-size-btn')[1]
+    await phone.trigger('click')
+
+    expect(wrapper.find('.pv-root').classes()).toContain('pv-root--phone')
+    expect(localStorage.getItem('imagi.preview.viewMode')).toBe('phone')
+  })
+})
