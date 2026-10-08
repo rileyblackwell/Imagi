@@ -68,8 +68,13 @@
         label: 'Coordinator',
         count: store.waitingCheckIns.length,
         direction: 'back',
+      }, {
+        id: 'settings',
+        icon: 'fas fa-gear',
+        label: 'Workspace settings',
+        iconOnly: true,
       }]"
-      @switch="emit('collapse')"
+      @switch="id => id === 'settings' ? openSettings() : emit('collapse')"
     />
 
     <!-- Fleet meter: the same numbers as the status line, drawn. Segments are
@@ -197,6 +202,7 @@ import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import FoldTransition from '../../molecules/common/FoldTransition.vue'
 import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
+import { useWorkspaceSettings } from '../../../composables/useWorkspaceSettings'
 import { ChatConversation } from '../../organisms/chat'
 import type { AgentInstance } from '../../../types/services'
 
@@ -209,6 +215,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useAgentStore()
+const { openSettings } = useWorkspaceSettings()
 const showHistory = ref(false)
 const opened = computed(() => store.openedThread)
 

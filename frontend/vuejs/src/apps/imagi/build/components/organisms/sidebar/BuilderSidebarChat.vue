@@ -92,6 +92,7 @@ import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
 import AgentComposer from '../../molecules/chat/AgentComposer.vue'
+import { useWorkspaceSettings } from '../../../composables/useWorkspaceSettings'
 import type { AIMessage } from '../../../types/index'
 import type { CheckInDto } from '../../../types/services'
 
@@ -159,11 +160,21 @@ const paneSwitches = computed(() => [
     direction: 'forward' as const,
     mobileOnly: true,
   },
+  // Not a destination but the workspace's settings, so the icon alone.
+  {
+    id: 'settings',
+    icon: 'fas fa-gear',
+    label: 'Workspace settings',
+    iconOnly: true,
+  },
 ])
+
+const { openSettings } = useWorkspaceSettings()
 
 function onPaneSwitch(id: string) {
   if (id === 'manager') emit('toggleManager')
   else if (id === 'preview') emit('open-preview')
+  else if (id === 'settings') openSettings()
 }
 
 /** The header's second line: where this thread stands while nothing is

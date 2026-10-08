@@ -23,4 +23,7 @@ export interface AgentState {
   /** The check-in queue has been read from the server at least once, so
    *  anything that appears in it from now on is news. */
   checkInsLoaded: boolean;
+  /** The model new threads start on — the user's setting, kept in this
+   *  browser. Opus 5.5 unless they pick another. */
+  threadModelId: string;
 }
