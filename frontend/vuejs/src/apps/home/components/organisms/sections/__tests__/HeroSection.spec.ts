@@ -26,6 +26,13 @@ describe('HeroSection', () => {
     expect(wrapper.find('.hero-accent').text()).toBe('run')
   })
 
+  it('opens with the marquee label, its lit rule hidden from screen readers', () => {
+    mockReducedMotion(true)
+    const label = mount(HeroSection, { global: { stubs } }).find('.sl-pill')
+    expect(label.text()).toBe('The all-in-one business platform')
+    expect(label.find('.sl-pip').attributes('aria-hidden')).toBe('true')
+  })
+
   it('has nothing below the prompt but its own meta line', () => {
     mockReducedMotion(true)
     expect(mount(HeroSection, { global: { stubs } }).find('.outputs').exists()).toBe(false)
