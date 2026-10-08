@@ -319,6 +319,10 @@ class ProjectCreationService:
         # Ensure apps directory exists for backend Django apps
         apps_dir = os.path.join(backend_path, 'apps')
         os.makedirs(apps_dir, exist_ok=True)
+        # A regular package, so `manage.py test` discovers each app's tests
+        # (the prebuilt auth ships a full suite); unittest discovery skips
+        # namespace packages.
+        open(os.path.join(apps_dir, '__init__.py'), 'a').close()
         
         # Create Pipfile for Django dependencies
         with open(os.path.join(backend_path, 'Pipfile'), 'w') as f:

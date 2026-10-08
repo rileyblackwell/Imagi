@@ -1315,12 +1315,14 @@ class ScaffoldWiringTests(TestCase):
         # The end-to-end check that the template is not just text that looks
         # right: the generated project boots, and the auth app's own suite
         # (signin, register, logout, CSRF, lockout, rate limits) passes in it.
-        result = self._manage('test', 'apps.auth', '--noinput')
+        # No label: run exactly what the founder's own `manage.py test` runs.
+        result = self._manage('test', '--noinput')
         self.assertEqual(
             result.returncode, 0,
             f"generated project's auth tests failed:\n{result.stdout}\n{result.stderr}",
         )
         self.assertIn('OK', result.stderr)
+        self.assertNotIn('Ran 0 tests', result.stderr)
 
     def test_a_freshly_scaffolded_project_passes_the_merge_gates(self):
         # Every first-build merge runs these on the whole tree, so an import
