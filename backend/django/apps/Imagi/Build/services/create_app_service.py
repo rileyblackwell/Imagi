@@ -76,7 +76,9 @@ class CreateAppService:
 
             # If this is a default app, use prebuilt codegen (includes backend + frontend)
             if app_name in DEFAULT_APPS:
-                files_to_create = generate_prebuilt_app_files(app_name, app_description)
+                files_to_create = generate_prebuilt_app_files(
+                    app_name, app_description, self._project_name(project_id)
+                )
                 # Fallback to generic if codegen returns nothing for some reason
                 if not files_to_create:
                     files_to_create = self._generate_app_files(app_name, cap, app_welcome)
@@ -116,6 +118,13 @@ class CreateAppService:
                 'message': f'Failed to create app: {str(e)}'
             }
     
+    def _project_name(self, project_id=None):
+        """The project's display name, or None when it cannot be resolved."""
+        project = self.project
+        if project is None and project_id:
+            project = Project.objects.filter(id=project_id).only('name').first()
+        return getattr(project, 'name', None)
+
     def ensure_default_apps(self, project_id: str = None) -> Dict[str, Any]:
         """
         Ensure default apps (home, auth) exist in the project.
@@ -187,7 +196,9 @@ class CreateAppService:
             for app_name in missing_backend_only:
                 try:
                     # Generate all files and filter to backend paths only
-                    all_files = generate_prebuilt_app_files(app_name, f"Default {app_name} application")
+                    all_files = generate_prebuilt_app_files(
+                        app_name, f"Default {app_name} application", self._project_name(project_id)
+                    )
                     backend_files = [f for f in all_files if str(f.get('name', '')).startswith('backend/')]
                     created = 0
                     for file_data in backend_files:

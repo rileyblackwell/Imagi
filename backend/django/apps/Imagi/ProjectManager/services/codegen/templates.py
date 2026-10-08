@@ -95,7 +95,11 @@ def vite_config() -> str:
         "      // Imagi backend on 8000).\n"
         "      '/api': {\n"
         "        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',\n"
-        "        changeOrigin: true,\n"
+        "        // Keep the browser's Host header: Django checks a POST's Origin\n"
+        "        // against it, and the prebuilt sign-in and register endpoints\n"
+        "        // enforce CSRF. Rewriting it to the backend's host:port makes\n"
+        "        // every sign-in fail with 'Origin checking failed'.\n"
+        "        changeOrigin: false,\n"
         "        secure: false,\n"
         "        configure: (proxy, _options) => {\n"
         "          const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8080';\n\n"
@@ -207,6 +211,12 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    # Per-IP caps on the prebuilt sign-in and register endpoints
+    # (apps/auth/api/throttles.py). Only those endpoints are throttled.
+    'DEFAULT_THROTTLE_RATES': {
+        'auth_signin': '10/min',
+        'auth_register': '20/hour',
+    },
 }
 """
     )

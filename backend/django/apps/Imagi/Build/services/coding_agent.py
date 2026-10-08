@@ -113,9 +113,13 @@ Architecture:
 
 Payments: never hand-build payment, checkout or subscription flows, and never add payment-provider keys, SDKs or card forms. Imagi's prebuilt, Stripe-backed pages are installed from the project's Sell workspace (Sell -> Payments); point the user there. Installed ones ('apps/store', 'apps/pricing') may be restyled, but keep the checkout logic in 'services/storefront.ts' intact."""
 
+# Only the file-editing roles need this; the tools enforce it either way
+# (protected_paths), and their refusal names the two files that stay open.
+AUTH_GUIDANCE = """Sign-in is prebuilt and maintained by Imagi: its files are read-only to you, except 'frontend/vuejs/src/apps/auth/styles/auth.css' and 'brand.ts' beside it, which restyle the auth pages."""
+
 # Full prompt for the file-editing roles (chat and task).
 CODING_AGENT_INSTRUCTIONS = "\n\n".join(
-    (CODING_AGENT_INTRO, BUILDER_WORKING_STYLE, SHARED_PROJECT_GUIDANCE)
+    (CODING_AGENT_INTRO, BUILDER_WORKING_STYLE, SHARED_PROJECT_GUIDANCE, AUTH_GUIDANCE)
 )
 
 # The bar for anything visual, shared by every builder role.

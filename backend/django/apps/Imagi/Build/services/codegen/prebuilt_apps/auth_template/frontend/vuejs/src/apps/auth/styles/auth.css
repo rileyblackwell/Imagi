@@ -1,0 +1,377 @@
+/*
+ * Sign-in and register theme.
+ *
+ * This file decides everything about how the auth pages look. Imagi rewrites
+ * it for each business so the pages match the rest of the site; the markup it
+ * styles (layouts/, views/, components/) and the sign-in flow behind it stay
+ * as Imagi ships them.
+ *
+ * Start with the tokens on .auth-theme: most redesigns only need those.
+ * Every class the pages use is listed below, so nothing else needs to change.
+ */
+
+.auth-theme {
+  --auth-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --auth-display-font: var(--auth-font);
+
+  --auth-bg: #f8fafc;
+  --auth-bg-accent: #dbeafe;
+  --auth-surface: #ffffff;
+  --auth-text: #0f172a;
+  --auth-muted: #475569;
+  --auth-faint: #94a3b8;
+  --auth-border: #e2e8f0;
+  --auth-border-strong: #cbd5e1;
+  --auth-field-bg: #ffffff;
+
+  --auth-accent: #111827;
+  --auth-accent-hover: #374151;
+  --auth-accent-text: #ffffff;
+  --auth-focus: #2563eb;
+
+  --auth-danger: #b91c1c;
+  --auth-danger-bg: #fef2f2;
+  --auth-danger-border: #fecaca;
+  --auth-success: #15803d;
+
+  --auth-radius: 20px;
+  --auth-field-radius: 12px;
+  --auth-button-radius: 12px;
+  --auth-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px -12px rgba(15, 23, 42, 0.18);
+}
+
+/* Page */
+
+.auth-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--auth-bg);
+  color: var(--auth-text);
+  font-family: var(--auth-font);
+}
+
+.auth-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, var(--auth-bg-accent), transparent 70%);
+  pointer-events: none;
+}
+
+.auth-header {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.auth-brand {
+  font-family: var(--auth-display-font);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--auth-text);
+  text-decoration: none;
+}
+
+.auth-shell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem 4rem;
+}
+
+/* Card */
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  background: var(--auth-surface);
+  box-shadow: var(--auth-shadow);
+}
+
+@media (min-width: 640px) {
+  .auth-card {
+    padding: 2.5rem 2.25rem;
+  }
+}
+
+.auth-heading {
+  margin-bottom: 1.75rem;
+  text-align: center;
+}
+
+.auth-title {
+  margin: 0;
+  font-family: var(--auth-display-font);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.auth-subtitle {
+  margin: 0.5rem 0 0;
+  color: var(--auth-muted);
+  font-size: 0.975rem;
+}
+
+/* Form */
+
+.auth-view {
+  display: block;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.auth-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-text);
+}
+
+.auth-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-field-icon {
+  position: absolute;
+  left: 0.875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--auth-faint);
+  pointer-events: none;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 0.75rem 0.875rem 0.75rem 2.6rem;
+  border: 1px solid var(--auth-border-strong);
+  border-radius: var(--auth-field-radius);
+  background: var(--auth-field-bg);
+  color: var(--auth-text);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input::placeholder {
+  color: var(--auth-faint);
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: var(--auth-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--auth-focus) 20%, transparent);
+}
+
+.auth-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-input--password {
+  padding-right: 2.75rem;
+}
+
+.auth-field--error .auth-input {
+  border-color: var(--auth-danger);
+  background: var(--auth-danger-bg);
+}
+
+.auth-field-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--auth-danger);
+}
+
+.auth-reveal {
+  position: absolute;
+  right: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--auth-faint);
+  cursor: pointer;
+}
+
+.auth-reveal svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.auth-reveal:hover {
+  color: var(--auth-text);
+}
+
+.auth-reveal:focus-visible {
+  outline: 2px solid var(--auth-focus);
+  outline-offset: 1px;
+}
+
+/* Password checklist */
+
+.auth-checklist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem 1rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--auth-faint);
+}
+
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-check-mark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--auth-border-strong);
+  transition: background-color 0.15s ease;
+}
+
+.auth-check--met {
+  color: var(--auth-muted);
+}
+
+.auth-check--met .auth-check-mark {
+  background: var(--auth-success);
+}
+
+/* Server error */
+
+.auth-alert {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--auth-danger-border);
+  border-radius: var(--auth-field-radius);
+  background: var(--auth-danger-bg);
+  color: var(--auth-danger);
+  font-size: 0.875rem;
+  white-space: pre-line;
+}
+
+/* Submit */
+
+.auth-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.8rem 1.25rem;
+  border: 0;
+  border-radius: var(--auth-button-radius);
+  background: var(--auth-accent);
+  color: var(--auth-accent-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: var(--auth-accent-hover);
+}
+
+.auth-submit:focus-visible {
+  outline: 2px solid var(--auth-focus);
+  outline-offset: 2px;
+}
+
+.auth-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.auth-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Switch between sign in and register */
+
+.auth-switch {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--auth-muted);
+}
+
+.auth-switch a {
+  margin-left: 0.25rem;
+  font-weight: 600;
+  color: var(--auth-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-switch a:hover {
+  color: var(--auth-focus);
+}
+
+/* Switching between the two pages */
+
+.auth-fade-enter-active,
+.auth-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.auth-fade-enter-from,
+.auth-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-fade-enter-active,
+  .auth-fade-leave-active,
+  .auth-input,
+  .auth-submit {
+    transition: none;
+  }
+
+  .auth-spinner {
+    animation-duration: 2s;
+  }
+}

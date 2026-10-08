@@ -32,6 +32,11 @@ from apps.Imagi.Build.services.view_file_service import ViewFileService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
 from apps.Imagi.Build.services.delete_file_service import DeleteFileService
 from apps.Imagi.Build.services.directory_service import DirectoryService
+from apps.Imagi.Build.services.protected_paths import (
+    is_protected_directory,
+    is_protected_path,
+    refusal as protected_refusal,
+)
 from apps.Imagi.Build.services.safe_paths import resolve_within
 
 logger = logging.getLogger(__name__)
@@ -210,6 +215,18 @@ def _error_result(message: str) -> str:
     })
 
 
+def _refuse_protected(file_path: str, directory: bool = False) -> None:
+    """Raise when an agent tries to change Imagi's prebuilt auth.
+
+    Every file-writing tool calls this after normalizing the path, so the
+    prebuilt sign-in and registration cannot be rewritten by any role or
+    brief (see protected_paths).
+    """
+    check = is_protected_directory if directory else is_protected_path
+    if check(file_path):
+        raise PermissionError(protected_refusal(file_path))
+
+
 def _sync_db_mirror(project, file_path: str, should_exist: bool) -> None:
     """Keep the database copy of a file in step with the disk operation
     that just ran.
@@ -334,6 +351,7 @@ def edit_file_impl(
         raise ValueError("old_string must not be empty (use create_file for new files)")
 
     file_path = normalize_file_path(project, file_path)
+    _refuse_protected(file_path)
     full_path = resolve_safe_path(project, file_path)
     if not os.path.isfile(full_path):
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -1071,6 +1089,7 @@ def update_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
     try:
         project = _get_project(ctx.context)
         file_path = normalize_file_path(project, file_path)
+        _refuse_protected(file_path)
         full_path = resolve_safe_path(project, file_path)
         service = ViewFileService(project=project)
         result = service.update_file(file_path, content)
@@ -1096,6 +1115,7 @@ def create_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
     try:
         project = _get_project(ctx.context)
         file_path = normalize_file_path(project, file_path)
+        _refuse_protected(file_path)
         resolve_safe_path(project, file_path)
         file_type = infer_file_type(file_path)
         service = CreateFileService(project=project)
@@ -1123,6 +1143,7 @@ def delete_file(ctx: RunContextWrapper, file_path: str) -> str:
     try:
         project = _get_project(ctx.context)
         file_path = normalize_file_path(project, file_path)
+        _refuse_protected(file_path)
         full_path = resolve_safe_path(project, file_path)
         service = DeleteFileService(project=project)
         service.delete_file(file_path)
@@ -1166,6 +1187,7 @@ def delete_directory(ctx: RunContextWrapper, dir_path: str) -> str:
     try:
         project = _get_project(ctx.context)
         dir_path = normalize_file_path(project, dir_path)
+        _refuse_protected(dir_path, directory=True)
         resolve_safe_path(project, dir_path)
         service = DirectoryService(project=project)
         result = service.delete_directory(dir_path, recursive=True)
