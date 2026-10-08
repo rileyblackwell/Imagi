@@ -238,3 +238,26 @@ export interface AdsSyncResult {
   campaigns: AdCampaign[]
   summary: AdsSummary
 }
+
+// -- Ad drafts (Google search ads planned in Imagi) ---------------------------
+
+export type AdGoal = 'website' | 'calls'
+
+/** A Google search ad saved in Imagi. It is never sent to Google from here yet. */
+export interface AdDraft {
+  id: number
+  provider: AdProvider
+  name: string
+  goal: AdGoal
+  final_url: string
+  phone_number: string
+  headlines: string[]
+  descriptions: string[]
+  keywords: string[]
+  location: string
+  daily_budget: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AdDraftPayload = Partial<Omit<AdDraft, 'id' | 'provider' | 'created_at' | 'updated_at'>>

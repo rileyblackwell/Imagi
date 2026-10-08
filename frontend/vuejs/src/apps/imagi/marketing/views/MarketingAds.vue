@@ -4,10 +4,18 @@
   sync action that refreshes everything from the platforms.
 
   Campaigns are created in the platforms' own managers (deep-linked from each
-  row); Imagi mirrors them for one place to watch spend and results.
+  row); Imagi mirrors them for one place to watch spend and results. Reached
+  from the Campaigns home (synced ad rows and the Google channel card).
 -->
 <template>
   <div>
+    <router-link
+      :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
+      class="inline-flex items-center gap-2 text-sm font-medium text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-ring"
+    >
+      <i class="fas fa-arrow-left text-xs"></i>
+      <span>All campaigns</span>
+    </router-link>
     <!-- Loading -->
     <LoadingSpinner v-if="initialLoading" />
 

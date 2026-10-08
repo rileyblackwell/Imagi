@@ -58,6 +58,10 @@ urlpatterns = [
          views.AdCampaignListView.as_view(), name='api-marketing-ad-campaigns'),
     path('projects/<int:project_id>/ads/campaigns/<int:pk>/status/',
          views.AdCampaignStatusView.as_view(), name='api-marketing-ad-campaign-status'),
+    path('projects/<int:project_id>/ads/drafts/',
+         views.AdDraftListCreateView.as_view(), name='api-marketing-ad-drafts'),
+    path('projects/<int:project_id>/ads/drafts/<int:pk>/',
+         views.AdDraftDetailView.as_view(), name='api-marketing-ad-draft-detail'),
     path('projects/<int:project_id>/ads/sync/',
          views.AdsSyncView.as_view(), name='api-marketing-ads-sync'),
 

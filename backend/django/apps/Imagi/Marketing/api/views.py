@@ -28,6 +28,7 @@ from apps.Imagi.ProjectManager.models import Project
 from ..models import (
     AdCampaign,
     AdConnection,
+    AdDraft,
     Campaign,
     Contact,
     MarketingSettings,
@@ -44,6 +45,7 @@ from ..services.twilio_client import validate_webhook_signature
 from .serializers import (
     AdCampaignSerializer,
     AdConnectionSerializer,
+    AdDraftSerializer,
     CampaignSerializer,
     ContactSerializer,
     ConversationSerializer,
@@ -679,6 +681,45 @@ class AdCampaignListView(ProjectScopedView):
             'total': total,
             'summary': ads_summary(project),
         })
+
+
+class AdDraftListCreateView(ProjectScopedView):
+    """Google search ads planned in Imagi (saved only here, never launched)."""
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        page, total = paginate(request, project.ad_drafts.all(), default_limit=100)
+        return Response({'drafts': AdDraftSerializer(page, many=True).data, 'total': total})
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        serializer = AdDraftSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        draft = serializer.save(project=project, provider=AdConnection.PROVIDER_GOOGLE)
+        return Response({'draft': AdDraftSerializer(draft).data}, status=status.HTTP_201_CREATED)
+
+
+class AdDraftDetailView(ProjectScopedView):
+    def get_draft(self, project, pk) -> AdDraft:
+        try:
+            return project.ad_drafts.get(pk=pk)
+        except AdDraft.DoesNotExist:
+            raise NotFound('Ad draft not found')
+
+    def get(self, request, project_id, pk):
+        draft = self.get_draft(self.get_project(), pk)
+        return Response({'draft': AdDraftSerializer(draft).data})
+
+    def patch(self, request, project_id, pk):
+        draft = self.get_draft(self.get_project(), pk)
+        serializer = AdDraftSerializer(draft, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'draft': serializer.data})
+
+    def delete(self, request, project_id, pk):
+        self.get_draft(self.get_project(), pk).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AdsSyncView(ProjectScopedView):

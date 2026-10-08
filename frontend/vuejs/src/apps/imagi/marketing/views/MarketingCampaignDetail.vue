@@ -8,7 +8,7 @@
 <template>
   <div>
     <router-link
-      :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
+      :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
       class="inline-flex items-center gap-2 text-sm font-medium text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-ring"
     >
       <i class="fas fa-arrow-left text-xs"></i>

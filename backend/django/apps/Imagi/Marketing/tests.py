@@ -522,3 +522,78 @@ class OverviewAPITests(MarketingAPITestCase):
         self.assertEqual(stats['replies_30d'], 1)
         self.assertEqual(len(response.json()['recent_campaigns']), 1)
         self.assertEqual(len(response.json()['recent_inbound']), 1)
+
+
+class AdDraftAPITests(MarketingAPITestCase):
+    """Google search ads planned in Imagi: saved locally, never sent anywhere."""
+
+    def draft_payload(self, **overrides):
+        payload = {
+            'name': 'Fall espresso promo',
+            'goal': 'website',
+            'final_url': 'https://bloom.example.com/menu',
+            'headlines': ['Fresh espresso downtown', '  ', 'Open at 6am'],
+            'descriptions': ['Small-batch beans roasted every week. Order ahead and skip the line.'],
+            'keywords': ['espresso near me', 'Espresso Near Me', 'coffee shop'],
+            'location': 'Portland, OR',
+            'daily_budget': '15.00',
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_create_cleans_lists_and_stays_google(self):
+        response = self.client.post(
+            f'{self.base}/ads/drafts/', self.draft_payload(provider='meta'), format='json'
+        )
+        self.assertEqual(response.status_code, 201)
+        draft = response.json()['draft']
+        self.assertEqual(draft['provider'], 'google')
+        self.assertEqual(draft['headlines'], ['Fresh espresso downtown', 'Open at 6am'])
+        self.assertEqual(draft['keywords'], ['espresso near me', 'coffee shop'])
+        self.assertEqual(draft['daily_budget'], '15.00')
+
+    def test_rejects_headline_over_google_limit(self):
+        response = self.client.post(
+            f'{self.base}/ads/drafts/',
+            self.draft_payload(headlines=['x' * 31]),
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('headlines', response.json())
+
+    def test_rejects_non_positive_budget_and_blank_name(self):
+        response = self.client.post(
+            f'{self.base}/ads/drafts/',
+            self.draft_payload(name='  ', daily_budget='0'),
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('name', response.json())
+        self.assertIn('daily_budget', response.json())
+
+    def test_list_update_and_delete(self):
+        created = self.client.post(
+            f'{self.base}/ads/drafts/', self.draft_payload(), format='json'
+        ).json()['draft']
+        url = f"{self.base}/ads/drafts/{created['id']}/"
+
+        listing = self.client.get(f'{self.base}/ads/drafts/').json()
+        self.assertEqual(listing['total'], 1)
+
+        updated = self.client.patch(url, {'daily_budget': '25'}, format='json')
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()['draft']['daily_budget'], '25.00')
+
+        self.assertEqual(self.client.delete(url).status_code, 204)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_other_users_cannot_reach_drafts(self):
+        created = self.client.post(
+            f'{self.base}/ads/drafts/', self.draft_payload(), format='json'
+        ).json()['draft']
+        intruder = APIClient()
+        intruder.force_authenticate(user=self.other_user)
+        self.assertEqual(intruder.get(f'{self.base}/ads/drafts/').status_code, 404)
+        self.assertEqual(
+            intruder.delete(f"{self.base}/ads/drafts/{created['id']}/").status_code, 404
+        )

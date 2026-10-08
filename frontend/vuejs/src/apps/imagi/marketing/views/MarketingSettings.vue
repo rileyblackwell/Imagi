@@ -1,7 +1,7 @@
 <!--
-  MarketingSettings.vue - Connect the project's marketing accounts: the Twilio
-  account for messaging (credentials, sender number, webhooks, connection test)
-  and the Google Ads / Meta Ads accounts for the ads dashboard.
+  MarketingSettings.vue - The Channels tab: connect the accounts campaigns run
+  on. Twilio carries text messages (credentials, sender number, webhooks,
+  connection test); Google Ads (and Meta Ads) carry ads.
 -->
 <template>
   <div>
@@ -9,7 +9,7 @@
     <!-- Credentials form -->
     <section class="lg:col-span-2 p-6" :class="ui.card">
       <div class="flex items-center gap-3 mb-1.5">
-        <h2 :class="ui.panelHeading">Twilio account</h2>
+        <h2 :class="ui.panelHeading">Text messages <span class="font-normal text-ink/50 dark:text-bone/50">· Twilio</span></h2>
         <span
           v-if="settings?.is_configured"
           class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300"
@@ -221,11 +221,11 @@
 
   <!-- Ad platforms -->
   <div class="mt-10">
-    <h2 :class="ui.headingText" class="mb-1.5 transition-colors duration-300">Ad platforms</h2>
+    <h2 :class="ui.headingText" class="mb-1.5 transition-colors duration-300">Ads</h2>
     <p :class="ui.bodyText" class="mb-5">
-      Connect your ad accounts to watch campaign performance and pause or resume campaigns from the
-      <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" :class="ui.inlineLink">Ads tab</router-link>.
-      Credentials are stored encrypted, and Imagi never creates or edits ads without you.
+      Connect your ad accounts to see their campaigns, spend and clicks on
+      <router-link :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }" :class="ui.inlineLink">Campaigns</router-link>,
+      and pause or resume them from Imagi. Credentials are stored encrypted, and Imagi never creates, launches or edits ads without you.
     </p>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <AdConnectionCard provider="google" />
