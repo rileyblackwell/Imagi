@@ -65,4 +65,39 @@ describe('ToolCategoryCard', () => {
     expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(true)
     expect(wrapper.classes()).not.toContain('module--building')
   })
+
+  describe('as the Build half of the hub', () => {
+    it('shows the workspace sketch, the capabilities and the one lit button', () => {
+      const wrapper = mountWith({ tool: tool('build'), layout: 'feature' })
+
+      expect(wrapper.classes()).toContain('module--feature')
+      expect(wrapper.find('.module__window').exists()).toBe(true)
+      expect(wrapper.findAll('.module__chips li').map(li => li.text())).toEqual([
+        'AI agents',
+        'Live workspace',
+        'Instant preview',
+      ])
+      expect(wrapper.find('.module__open').text()).toBe('Open workspace')
+      expect(wrapper.findComponent(RouterLinkStub).props('to')).toEqual({
+        name: 'builder-workspace',
+        params: { projectName: 'ticker-insights' },
+      })
+    })
+
+    it('swaps the button for the building state while the first build runs', () => {
+      const wrapper = mountWith({ tool: tool('build'), layout: 'feature', buildStatus: 'generating' })
+
+      expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(false)
+      expect(wrapper.attributes('aria-disabled')).toBe('true')
+      expect(wrapper.find('.module__open').exists()).toBe(false)
+      expect(wrapper.find('.module__track').exists()).toBe(true)
+      expect(wrapper.find('.module__cta--waiting').text()).toBe('Building')
+    })
+  })
+
+  it('draws a Run tool as a row by default', () => {
+    const wrapper = mountWith({ tool: tool('sell') })
+    expect(wrapper.classes()).toContain('module--row')
+    expect(wrapper.find('.module__window').exists()).toBe(false)
+  })
 })

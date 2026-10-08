@@ -9,8 +9,9 @@
   does not implement any of the tools themselves.
 
   Design: the Spotlight stage, same as the projects list it is reached from —
-  the project's name lit in an opener, then four cards mirroring how the home
-  page introduces the same four modules.
+  the project's name in an opener, then the modules in the product's two
+  halves: Build as one lit panel, and Sell / Market / Operate stacked beside it
+  as the tools that run the business.
 -->
 <template>
   <div class="spotlight hub-root">
@@ -62,20 +63,39 @@
                 <h1 class="rise-item sl-display sl-h1 hub-title" style="animation-delay: 60ms">
                   {{ project.name }}
                 </h1>
-                <p class="rise-item sl-lede" style="animation-delay: 120ms">
+                <p class="rise-item sl-lede hub-lede" style="animation-delay: 120ms">
                   {{ project.description || 'Build the product and run the business behind it — all in one project. Pick a module to get started.' }}
                 </p>
               </div>
 
-              <!-- Modules -->
-              <div class="rise-item sl-cards hub-modules" style="animation-delay: 180ms">
-                <ToolCategoryCard
-                  v-for="tool in businessTools"
-                  :key="tool.id"
-                  :tool="tool"
-                  :project-slug="projectSlug"
-                  :build-status="buildStatus"
-                />
+              <!-- Modules, in the product's two halves: Build the product on
+                   the left, the tools that run the business on the right. -->
+              <div class="rise-item hub-halves" style="animation-delay: 180ms">
+                <section v-if="buildTool" class="hub-half" aria-labelledby="hub-half-build">
+                  <h2 id="hub-half-build" class="hub-half__label">
+                    <b>Build</b><span>the product</span>
+                  </h2>
+                  <ToolCategoryCard
+                    :tool="buildTool"
+                    :project-slug="projectSlug"
+                    :build-status="buildStatus"
+                    layout="feature"
+                  />
+                </section>
+                <section class="hub-half" aria-labelledby="hub-half-run">
+                  <h2 id="hub-half-run" class="hub-half__label">
+                    <b>Run</b><span>the business</span>
+                  </h2>
+                  <div class="hub-run">
+                    <ToolCategoryCard
+                      v-for="tool in runTools"
+                      :key="tool.id"
+                      :tool="tool"
+                      :project-slug="projectSlug"
+                      :build-status="buildStatus"
+                    />
+                  </div>
+                </section>
               </div>
             </template>
           </div>
@@ -101,6 +121,10 @@ const props = defineProps<{
 }>()
 
 const projectSlug = computed(() => props.projectName)
+
+// Build is the half that makes the product; every other module runs the business.
+const buildTool = businessTools.find(tool => tool.id === 'build')
+const runTools = businessTools.filter(tool => tool.id !== 'build')
 const { project, isLoading } = useProjectFromSlug(projectSlug, 'the project hub')
 
 // --- Initial AI build status ---
@@ -164,14 +188,22 @@ onBeforeUnmount(stopBuildStatusPolling)
   padding-bottom: clamp(72px, 9vw, 120px);
 }
 
-.hub-head {
+.spotlight .hub-head {
   margin-top: clamp(28px, 4vw, 48px);
+  text-align: left;
+  align-items: flex-start;
 }
 
 .sl-opener .hub-title {
-  max-width: 14ch;
-  font-size: clamp(44px, 7.6vw, 104px);
+  max-width: 16ch;
+  font-size: clamp(44px, 6.4vw, 84px);
   overflow-wrap: anywhere;
+}
+
+.spotlight .hub-lede {
+  max-width: 620px;
+  margin-left: 0;
+  font-size: 18px;
 }
 
 .hub-missing {
@@ -180,19 +212,58 @@ onBeforeUnmount(stopBuildStatusPolling)
   letter-spacing: -0.03em;
 }
 
-.spotlight .hub-modules {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.hub-halves {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  gap: 22px;
+  margin-top: clamp(40px, 5vw, 64px);
+  text-align: left;
 }
 
-@media (max-width: 1100px) {
-  .spotlight .hub-modules {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.hub-half {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-@media (max-width: 640px) {
-  .spotlight .hub-modules {
+/* "Build — the product", "Run — the business": the homepage's two halves,
+   named on a hairline above each column. */
+.hub-half__label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px 4px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--sl-faint);
+}
+
+.hub-half__label b {
+  font-family: var(--sl-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--sl-text);
+}
+
+.hub-half__label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sl-line);
+}
+
+.hub-run {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .hub-halves {
     grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
   }
 }
 
