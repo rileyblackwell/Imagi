@@ -382,3 +382,37 @@ describe('ChatConversation hand-back note', () => {
     expect(wrapper.find('.handback').exists()).toBe(false)
   })
 })
+
+describe('ChatConversation questions with choices', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  const question = (): AIMessage => ({
+    ...assistant('Pickup or delivery?'),
+    question: { options: ['Pickup only', 'Pickup and delivery'] },
+  })
+
+  it('lets the newest question be answered with one tap', async () => {
+    const wrapper = mount(ChatConversation, { props: { messages: [user('Add ordering'), question()] } })
+    const option = wrapper.findAll('.question-option').find(b => b.text() === 'Pickup only')!
+
+    await option.trigger('click')
+    expect(wrapper.emitted('answer')).toEqual([['Pickup only']])
+  })
+
+  it('shows an answered question as settled, with the pick marked', () => {
+    const answered = { ...user('Pickup and delivery'), id: 'u2' }
+    const wrapper = mount(ChatConversation, {
+      props: { messages: [user('Add ordering'), question(), answered] },
+    })
+    const options = wrapper.findAll('.question-option')
+    expect(options.every(b => b.attributes('disabled') !== undefined)).toBe(true)
+    expect(wrapper.find('.question-option--picked').text()).toBe('Pickup and delivery')
+  })
+
+  it('cannot be answered while the agent is working', () => {
+    const wrapper = mount(ChatConversation, {
+      props: { messages: [user('Add ordering'), question()], isProcessing: true },
+    })
+    expect(wrapper.findAll('.question-option').every(b => b.attributes('disabled') !== undefined)).toBe(true)
+  })
+})

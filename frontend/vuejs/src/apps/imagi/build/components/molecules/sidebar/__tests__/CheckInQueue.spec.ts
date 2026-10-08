@@ -146,3 +146,18 @@ describe('CheckInQueue completion card', () => {
     expect(wrapper.emitted('accept')?.[0]).toEqual([checkIn])
   })
 })
+
+describe('CheckInQueue question with choices', () => {
+  it('answers with one tap', async () => {
+    const checkIn = makeCheckIn({
+      kind: 'question',
+      body: 'Pickup or delivery?',
+      options: ['Pickup only', 'Pickup and delivery'],
+    })
+    const wrapper = mount(CheckInQueue, { props: { queue: [checkIn] } })
+
+    await buttonLabelled(wrapper, 'Pickup only').trigger('click')
+
+    expect(wrapper.emitted('answer')).toEqual([[checkIn, 'Pickup only']])
+  })
+})

@@ -94,4 +94,14 @@ describe('ThreadComposer', () => {
     await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('back')).toHaveLength(1)
   })
+
+  it('offers Try again on a thread that stopped, which retries it', async () => {
+    const { store, wrapper } = mountFor(makeThread({ reviewStatus: 'failed' }))
+    const retry = vi.spyOn(store, 'retryTask').mockImplementation(() => {})
+
+    const button = wrapper.findAll('button').find(b => b.text() === 'Try again')!
+    await button.trigger('click')
+
+    expect(retry).toHaveBeenCalledWith(42)
+  })
 })

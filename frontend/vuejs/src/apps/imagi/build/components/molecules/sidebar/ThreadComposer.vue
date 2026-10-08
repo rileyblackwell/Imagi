@@ -32,6 +32,25 @@
     </div>
 
     <template v-else>
+      <!-- A run that died: the one-tap way to pick the job back up, from where
+           it stopped. Typing instead also works, and says how to carry on. -->
+      <div
+        v-if="instance.reviewStatus === 'failed' && !instance.isProcessing"
+        class="retry-row flex items-center gap-2 rounded-xl border border-amber-200/80 dark:border-amber-300/20 bg-amber-50/70 dark:bg-amber-300/[0.06] px-2.5 py-1.5 mb-1.5"
+      >
+        <i class="fas fa-triangle-exclamation text-[10px] text-amber-600 dark:text-amber-300 shrink-0"></i>
+        <p class="flex-1 min-w-0 text-[11px] font-medium text-ink/75 dark:text-white/70">
+          This thread stopped before finishing.
+        </p>
+        <button
+          type="button"
+          class="thread-btn iw-press shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-paper dark:text-ink"
+          @click="retry"
+        >
+          Try again
+        </button>
+      </div>
+
       <Transition name="queued">
         <div
           v-if="instance.queuedPrompt"
@@ -140,6 +159,10 @@ function autoResize() {
   if (!el) return
   el.style.height = 'auto'
   el.style.height = `${Math.min(el.scrollHeight, 180)}px`
+}
+
+function retry() {
+  if (props.instance.conversationId != null) store.retryTask(props.instance.conversationId)
 }
 
 function send() {

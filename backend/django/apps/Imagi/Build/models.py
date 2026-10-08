@@ -275,6 +275,9 @@ class AgentCheckIn(models.Model):
     kind = models.CharField(max_length=10, choices=CHECK_IN_KIND_CHOICES)
     # Question text, completion summary, or error message (display-sized).
     body = models.TextField(blank=True, default='')
+    # A question's extras, from ask_user: {options?: [str], visual?: '<svg…>'}
+    # — choices the user can answer with in one tap, and a small sketch.
+    details = models.JSONField(blank=True, default=dict)
     status = models.CharField(
         max_length=10, choices=CHECK_IN_STATUS_CHOICES, default='pending'
     )

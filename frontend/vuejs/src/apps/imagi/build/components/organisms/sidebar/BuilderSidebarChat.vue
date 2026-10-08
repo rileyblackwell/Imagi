@@ -39,6 +39,7 @@
         :show-activity="!isLeadThread"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         @open-task="onOpenTask"
+        @answer="onAnswerQuestion"
         class="flex-1"
       />
     </div>
@@ -570,6 +571,18 @@ async function goToLead() {
 /** The answer restarts the subagent in the background — the user stays here. */
 function onAnswerCheckIn(checkIn: CheckInDto, answer: string) {
   store.answerCheckIn(checkIn, answer)
+}
+
+/** A one-tap answer to the question the agent ended on. On a thread it is
+ *  the thread's next turn; on the coordinator it is simply the next message. */
+function onAnswerQuestion(option: string) {
+  const instance = activeInstance.value
+  if (!instance || instance.isProcessing) return
+  if (isTaskThread.value) {
+    store.steerThread(instance.id, option)
+    return
+  }
+  void props.onPromptSubmit(option)
 }
 
 /** Clear an entry the user has dealt with (or wants out of the way). */

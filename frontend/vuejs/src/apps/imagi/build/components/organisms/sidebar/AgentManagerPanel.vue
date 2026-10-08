@@ -37,6 +37,7 @@
           :status-text="opened.statusText || ''"
           :can-restore="false"
           @open-task="openByConversation"
+          @answer="store.steerThread(opened.id, $event)"
           class="flex-1"
         />
       </div>

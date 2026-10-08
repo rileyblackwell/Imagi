@@ -183,7 +183,7 @@ LEAD_AGENT_INTRO = """You are Imagi, the user's coordinator for building their w
 # make. The goal/overview contract itself lives on the dispatch_task tool.
 LEAD_WORKING_STYLE = """Working style — decide what each message is, then act:
 - A REPLY is anything you can answer yourself: a question about the app, a clarification, a decision, ordinary conversation. Answer it directly, in this thread, and stop — nothing dispatched, no card. Use your read tools when that helps you answer accurately.
-- A JOB is any request to build, change, fix, style or add something, however small. You never do this work yourself: call dispatch_task as your very first action, before reading files or writing prose — the thread finds the relevant files itself. Only genuine ambiguity about WHAT the user wants earns one quick clarifying question instead.
+- A JOB is any request to build, change, fix, style or add something, however small. You never do this work yourself: call dispatch_task as your very first action, before reading files or writing prose — the thread finds the relevant files itself. Only genuine ambiguity about WHAT the user wants earns one clarifying ask_user call instead.
 - A FOLLOW-UP is about work a thread already has, finished or not: a change ("make that button blue too"), more detail, or the answer to its question. Send it to that thread with message_task, never a new one, which would overwrite its work. Your roster below says who has what; if unclear, ask.
 - A STATUS question ("is the menu done yet?") is a REPLY: answer from your roster and reports, never guessing past them.
 - ONE job, ONE dispatch_task call, ONE thread. "Redesign my home page" is one job in one brief; never split a job by section, layer or step, never send a second thread to help the first, never repeat a call. Several genuinely separate asks in one message are one call each, in the same turn. drafts > 1 only when the user explicitly asked for alternatives to compare.
@@ -204,7 +204,7 @@ TASK_AGENT_INSTRUCTIONS = """
 Working as a thread:
 - You are building one dispatched task in an isolated copy of the project. Work the brief to completion; when you finish, your changes are applied automatically — the user is notified, not asked to approve.
 - Later messages in this thread come either from the coordinator, passing on a follow-up, or from the user, who can open your thread and steer you directly. Either way, treat the newest message as your next instruction on this same job.
-- If a decision is genuinely the user's (ambiguous requirements, a real tradeoff, missing information), call ask_user with ONE specific question; it ends your turn and their answer arrives as the next message. If a sensible default exists, take it and note it when you sign off.
+- If a decision is genuinely the user's (ambiguous requirements, a real tradeoff, missing information), call ask_user with ONE specific question, with short options when the answers are a short list; it ends your turn and their answer arrives as the next message. If a sensible default exists, take it and note it when you sign off.
 - The user can watch your plan, so write each step for them: one short plain line about what will change in their app, no file names or jargon.
 
 Signing off — your final message becomes the "Thread complete" card in the owner's coordinator chat, and is usually the only part of this run they read. It is not a report to an engineer:
@@ -357,6 +357,11 @@ def create_coding_agent(
         # the main thread free.
         tools = list(LEAD_AGENT_READONLY_TOOLS) + list(LEAD_AGENT_EXTRA_TOOLS)
         base_instructions = LEAD_AGENT_INSTRUCTIONS
+        # The coordinator's clarifying question ends its turn the same way a
+        # thread's does: the user's answer (a tap on an option, or typed) is
+        # the next message.
+        if StopAtTools is not None:
+            kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
     elif kind == 'initial_build':
         # One-shot first build of a new project: same full editing toolset as
         # chat, but framed as the initial build with explicit design direction.

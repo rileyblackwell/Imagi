@@ -232,6 +232,10 @@ export interface CheckInDto {
   kind: CheckInKind;
   /** Question text, completion summary, or error message */
   body: string;
+  /** A question's one-tap answers, when it came with them */
+  options?: string[];
+  /** A question's SVG sketch, when it came with one */
+  visual?: string;
   status: 'pending' | 'resolved';
   created_at: string;
   resolved_at: string | null;
@@ -273,6 +277,13 @@ export interface DispatchedTaskDto {
    *  `brief` is that message, delivered as the subagent's next turn (after its
    *  current run, if it is mid-run) instead of a fresh dispatch. */
   follow_up?: boolean;
+}
+
+/** What an ask_user question came with: short answers the user can pick with
+ *  one tap, and a small SVG sketch (sanitized before it is drawn). */
+export interface AgentQuestion {
+  options?: string[];
+  visual?: string;
 }
 
 /** A transcript's link to a subagent the lead kicked off during that reply —
@@ -386,6 +397,8 @@ export interface AIMessage {
   /** Subagents the lead kicked off during this reply — rendered as links
    *  into their threads so the work is one click away from the main thread */
   dispatchedTasks?: DispatchedTaskRef[];
+  /** The reply is a question (ask_user) with one-tap answers and/or a sketch */
+  question?: AgentQuestion;
   /** Run usage, when the backend reported it (absent means unknown, never free) */
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number };
   /** Backend AgentMessage id, once known (hydration or the start event) */
@@ -421,6 +434,8 @@ export interface AgentResponse {
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number };
   /** Background tasks the lead agent staged during this run (dispatch_task) */
   dispatched_tasks?: DispatchedTaskDto[];
+  /** The run ended on ask_user: the question's one-tap answers and sketch */
+  question?: AgentQuestion;
   single_message?: boolean;
 }
 

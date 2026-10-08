@@ -880,6 +880,7 @@ export const useAgentStore = defineStore('agent', {
           activity: m.activity,
           filesChanged: m.filesChanged,
           dispatchedTasks: m.dispatchedTasks,
+          question: m.question,
           usage: m.usage,
           dbId: m.id,
           checkpoint: m.checkpoint,
@@ -1256,7 +1257,7 @@ export const useAgentStore = defineStore('agent', {
     setMessageMeta(
       instanceId: string,
       messageId: string,
-      meta: { filesChanged?: string[]; usage?: AIMessage['usage'] }
+      meta: { filesChanged?: string[]; usage?: AIMessage['usage']; question?: AIMessage['question'] }
     ) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
@@ -1264,6 +1265,7 @@ export const useAgentStore = defineStore('agent', {
       if (!message) return
       if (meta.filesChanged !== undefined) message.filesChanged = [...meta.filesChanged]
       if (meta.usage !== undefined) message.usage = { ...meta.usage }
+      if (meta.question !== undefined) message.question = { ...meta.question }
     },
 
     /** Drop a message (e.g. an assistant bubble whose run produced nothing). */

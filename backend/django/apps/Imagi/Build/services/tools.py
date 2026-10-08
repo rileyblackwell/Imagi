@@ -490,6 +490,11 @@ DISPATCH_GOAL_MAX_CHARS = 80
 # that pastes the brief in, not a display length.
 DISPATCH_OVERVIEW_MAX_CHARS = 1200
 ASK_USER_MAX_CHARS = 2000
+# ask_user's one-tap answers and sketch: a short list of short labels, and an
+# inline SVG small enough to sit in a card.
+ASK_USER_MAX_OPTIONS = 4
+ASK_USER_OPTION_MAX_CHARS = 60
+ASK_USER_VISUAL_MAX_CHARS = 10000
 
 # How alike two briefs have to be before the second one is treated as a repeat
 # of the first rather than a second job. Measured on content words (below), so
@@ -1284,26 +1289,59 @@ def message_task(ctx: RunContextWrapper, task_id: int, message: str) -> str:
 
 
 @function_tool
-def ask_user(ctx: RunContextWrapper, question: str) -> str:
+def ask_user(
+    ctx: RunContextWrapper,
+    question: str,
+    options: Optional[List[str]] = None,
+    visual: str = "",
+) -> str:
     """Ask the user a question and END YOUR TURN — their answer arrives as the next message in this conversation.
 
     Only for decisions you cannot make yourself: ambiguous requirements, a
     choice between approaches with real tradeoffs, or missing information.
-    Ask ONE clear, specific question. If a sensible default exists, do not
-    ask — pick the default and note it in your summary instead.
+    Ask ONE clear, specific question in everyday words. If a sensible default
+    exists, do not ask — pick the default and note it instead.
 
     Args:
         question: The single question the user must answer before you can continue.
+        options: Two to four short answers the user can pick with one tap (a
+            few words each, e.g. ["Pickup only", "Pickup and delivery"]). Give
+            them whenever the likely answers are a short list; they can still
+            type something else. Leave empty for open questions.
+        visual: Optional small inline SVG sketch (starting with <svg, under
+            10,000 characters, no scripts, links or images) when a picture
+            makes the choice clearer — say two layouts side by side, labeled
+            with the options. Simple shapes and short labels only.
     """
     text = (question or '').strip()[:ASK_USER_MAX_CHARS]
     if not text:
         return _error_result("question must not be empty")
-    # The harness reads this off the context after the run stops to route the
-    # question into the lead thread's check-in queue.
+    # The harness reads this off the context after the run stops: a thread's
+    # question goes into the coordinator's check-in queue, and either role's
+    # question is stored on the reply with its choices.
     ctx.context.pending_question = text
+    ctx.context.pending_question_details = _question_details(options, visual)
     # This is the run's final output (StopAtTools), so return the question
     # itself — the transcript then ends with the question, readable as chat.
     return text
+
+
+def _question_details(options, visual) -> dict:
+    """Clean ask_user's extras: at most four short, distinct choices, and a
+    sketch only when it is a reasonably sized SVG. Anything else is dropped
+    rather than failing the question — the question is what matters."""
+    details = {}
+    cleaned = []
+    for option in options or []:
+        label = ' '.join(str(option or '').split())[:ASK_USER_OPTION_MAX_CHARS]
+        if label and label not in cleaned:
+            cleaned.append(label)
+    if len(cleaned) >= 2:
+        details['options'] = cleaned[:ASK_USER_MAX_OPTIONS]
+    sketch = (visual or '').strip()
+    if sketch.lower().startswith('<svg') and len(sketch) <= ASK_USER_VISUAL_MAX_CHARS:
+        details['visual'] = sketch
+    return details
 
 
 # All tools exposed to the coding agent, in the order they appear in its prompt.
@@ -1338,5 +1376,5 @@ LEAD_AGENT_READONLY_TOOLS = [
 # lead builds on LEAD_AGENT_READONLY_TOOLS (above). The lead can delegate new
 # work or follow up with a subagent it already has, and a task subagent can
 # hand a question back to the user.
-LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task]
+LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task, ask_user]
 TASK_AGENT_EXTRA_TOOLS = [ask_user]

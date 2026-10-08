@@ -1252,6 +1252,22 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         self.assertEqual(check_in.kind, 'question')
         self.assertEqual(check_in.body, 'Stripe or PayPal?')
 
+    def test_a_question_with_choices_carries_them_to_the_queue(self):
+        # ask_user's one-tap answers and sketch ride on the check-in, so the
+        # coordinator's queue card can offer them as buttons.
+        task = self._task()
+        context = self._context(pending_question='Pickup or delivery?')
+        context.pending_question_details = {
+            'options': ['Pickup only', 'Pickup and delivery'],
+            'visual': '<svg viewBox="0 0 10 10"></svg>',
+        }
+
+        self.service._finalize_task_run(task, context, 'Pickup or delivery?')
+
+        check_in = AgentCheckIn.objects.get(conversation=task)
+        self.assertEqual(check_in.details['options'], ['Pickup only', 'Pickup and delivery'])
+        self.assertTrue(check_in.details['visual'].startswith('<svg'))
+
     def test_a_task_holds_one_queue_slot(self):
         """A second check-in supersedes the first — the queue never shows one
         task twice."""

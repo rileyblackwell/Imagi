@@ -4,6 +4,7 @@ import type {
   AgentActivityStep,
   AgentResponse,
   AgentPlanStep,
+  AgentQuestion,
   CheckInDto,
   ConversationKind,
   DispatchedTaskDto,
@@ -141,6 +142,8 @@ interface PersistedMessageMetadata {
   usage?: { input_tokens?: number; output_tokens?: number; cost_usd?: number }
   /** Subagents the lead dispatched during this reply (id + title refs) */
   dispatched_tasks?: Array<{ conversation_id?: number; title?: string }>
+  /** The reply ended on ask_user: its one-tap answers and sketch */
+  question?: AgentQuestion
   /** Pre-run project snapshot, stamped on user messages only */
   checkpoint?: string
 }
@@ -155,6 +158,7 @@ export interface ConversationMessageDto {
   activity?: AgentActivityStep[]
   filesChanged?: string[]
   dispatchedTasks?: DispatchedTaskRef[]
+  question?: AgentQuestion
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
   checkpoint?: string
 }
@@ -294,6 +298,7 @@ export const AgentService = {
             // means "unknown", never "free".
             usage: event.usage,
             dispatched_tasks: event.dispatched_tasks,
+            question: event.question,
             single_message: event.single_message ?? true,
           }
           // Backstop: the terminal payload repeats every dispatch, so a
@@ -546,6 +551,9 @@ export const AgentService = {
           .filter(t => typeof t?.conversation_id === 'number')
           .map(t => ({ conversationId: t.conversation_id!, title: t.title || '' }))
         if (refs.length > 0) dto.dispatchedTasks = refs
+      }
+      if (meta.question && (meta.question.options?.length || meta.question.visual)) {
+        dto.question = meta.question
       }
       // Hydrate whatever usage fields were captured — tokens can exist
       // without cost and vice versa. No fields at all means unknown, so the

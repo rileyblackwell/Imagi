@@ -59,6 +59,16 @@
                 v-if="message.content && message.content.trim().length> 0"
                 v-html="formatMessage(message, index)"
               />
+              <!-- A question with one-tap answers or a sketch. Only the newest
+                   one can still be answered; older ones show what was picked. -->
+              <QuestionChoices
+                v-if="message.question"
+                :options="message.question.options || []"
+                :visual="message.question.visual || ''"
+                :disabled="!isAnswerable(index)"
+                :picked="pickedAnswer(index)"
+                @pick="emit('answer', $event)"
+              />
               <!-- Subagents this reply kicked off, one card each. A card is
                    the whole of what the main thread says about a subagent,
                    from kickoff to sign-off: it names the job, reports where
@@ -158,6 +168,7 @@ import type { AgentInstance, AIMessage } from '@/apps/imagi/build/types/services
 import AgentActivityFeed from '@/apps/imagi/build/components/molecules/chat/AgentActivityFeed.vue'
 import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/AgentPlanChecklist.vue'
 import DispatchCard from '@/apps/imagi/build/components/molecules/chat/DispatchCard.vue'
+import QuestionChoices from '@/apps/imagi/build/components/molecules/chat/QuestionChoices.vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
 
 marked.setOptions({
@@ -222,7 +233,24 @@ const emit = defineEmits<{
   (e: 'restore-checkpoint', message: AIMessage): void
   /** A dispatch card was clicked — open that subagent's thread */
   (e: 'open-task', conversationId: number): void
+  /** One of a question's one-tap answers was picked */
+  (e: 'answer', option: string): void
 }>()
+
+/** A question can be answered while it is the last word in the transcript
+ *  and nothing is running. */
+function isAnswerable(index: number): boolean {
+  return !props.isProcessing && index === processedMessages.value.length - 1
+}
+
+/** The answer the user gave to the question at `index`, when it was one of
+ *  its choices — so an answered question shows what was picked. */
+function pickedAnswer(index: number): string {
+  const options = processedMessages.value[index]?.question?.options || []
+  const reply = processedMessages.value.slice(index + 1).find(m => m.role === 'user')
+  const text = (reply?.content || '').trim()
+  return options.includes(text) ? text : ''
+}
 
 // Dispatch cards show the subagent's live state, so the store is read
 // directly — the card in an old reply keeps telling the truth as the task
