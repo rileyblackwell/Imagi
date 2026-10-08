@@ -48,9 +48,9 @@
       <div v-reveal="{ delay: 90 }" class="sl-stage">
         <ProductShot
           src="/product/project-hub.webp"
-          alt="The project hub for Ticker Insights, showing its four workspaces: Build, Sell, Market and Operate."
+          alt="The project hub for Ticker Insights, with Build the product on one side and Run the business (Sell, Market and Operate) on the other."
           :width="2560"
-          :height="1702"
+          :height="1780"
           label="imagi — project hub"
           caption="The hub for Ticker Insights. Build makes the product; Sell, Market and Operate run the business around it."
         />

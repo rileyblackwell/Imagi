@@ -39,7 +39,7 @@
             src="/product/run-sell.webp"
             alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
             :width="2288"
-            :height="694"
+            :height="710"
             label="imagi — sell"
             caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
           />
@@ -49,7 +49,7 @@
             src="/product/run-marketing.webp"
             alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
             :width="2288"
-            :height="680"
+            :height="696"
             label="imagi — marketing"
             caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
           />
