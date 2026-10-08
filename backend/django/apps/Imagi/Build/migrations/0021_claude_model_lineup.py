@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("Build", "0019_agentconversation_cancel_requested_at"),
+        ("Build", "0020_agentrunevent"),
     ]
 
     operations = [
