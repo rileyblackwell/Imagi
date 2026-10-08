@@ -7,8 +7,8 @@ import re
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers
 
-from ..models import Customer, Order, OrderItem, Product, SellSettings
-from ..services.sell_service import MIN_PRICE_CENTS, stripe_webhook_url
+from ..models import Customer, Order, OrderItem, Product, SellSettings, Subscription
+from ..services.sell_service import MIN_PRICE_CENTS, connect_webhook_url, stripe_webhook_url
 
 SECRET_KEY_PATTERN = re.compile(r'^(sk|rk)_[A-Za-z0-9_]+$')
 PUBLISHABLE_KEY_PATTERN = re.compile(r'^pk_[A-Za-z0-9_]+$')
@@ -27,7 +27,16 @@ class SellSettingsSerializer(serializers.ModelSerializer):
     stripe_secret_key_set = serializers.SerializerMethodField()
     stripe_webhook_secret_set = serializers.SerializerMethodField()
     is_configured = serializers.BooleanField(read_only=True)
+    is_test_mode = serializers.BooleanField(read_only=True)
+    connection_type = serializers.CharField(read_only=True)
     stripe_webhook_url = serializers.SerializerMethodField()
+    connect_webhook_url = serializers.SerializerMethodField()
+    server_key_set = serializers.SerializerMethodField()
+    payment_models = serializers.ListField(
+        child=serializers.ChoiceField(choices=SellSettings.PAYMENT_MODELS),
+        required=False,
+        allow_empty=True,
+    )
 
     class Meta:
         model = SellSettings
@@ -42,13 +51,38 @@ class SellSettingsSerializer(serializers.ModelSerializer):
             'account_email',
             'last_verified_at',
             'is_configured',
+            'is_test_mode',
+            'connection_type',
+            'connect_account_id',
+            'connect_charges_enabled',
+            'connect_payouts_enabled',
+            'connect_details_submitted',
+            'payment_models',
+            'app_url',
+            'server_key_set',
             'stripe_webhook_url',
+            'connect_webhook_url',
         ]
-        read_only_fields = ['account_name', 'account_email', 'last_verified_at']
+        read_only_fields = [
+            'account_name', 'account_email', 'last_verified_at',
+            'connect_account_id', 'connect_charges_enabled',
+            'connect_payouts_enabled', 'connect_details_submitted',
+        ]
         extra_kwargs = {
             'stripe_publishable_key': {'required': False, 'allow_blank': True},
             'currency': {'required': False},
+            'app_url': {'required': False, 'allow_blank': True},
         }
+
+    def validate_payment_models(self, value):
+        # Keep the console's order, without repeats.
+        return [m for m in SellSettings.PAYMENT_MODELS if m in set(value)]
+
+    def get_connect_webhook_url(self, obj) -> str:
+        return connect_webhook_url()
+
+    def get_server_key_set(self, obj) -> bool:
+        return bool(obj.server_key_encrypted)
 
     def get_stripe_secret_key_set(self, obj) -> bool:
         return bool(obj.stripe_secret_key_encrypted)
@@ -117,20 +151,47 @@ class SellSettingsSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    pricing_model = serializers.CharField(read_only=True)
+
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'description', 'price_cents', 'image_url',
-            'billing_interval', 'is_active', 'created_at', 'updated_at',
+            'billing_interval', 'pricing_model', 'usage_unit_label',
+            'usage_unit_count', 'is_active', 'created_at', 'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']
+        extra_kwargs = {
+            'usage_unit_label': {'required': False, 'allow_blank': True},
+            'usage_unit_count': {'required': False, 'min_value': 1, 'max_value': 1_000_000},
+        }
 
-    def validate_price_cents(self, value):
-        if value < MIN_PRICE_CENTS:
-            raise serializers.ValidationError(
-                f'Price must be at least {MIN_PRICE_CENTS} cents — Stripe\'s minimum charge.'
+    def validate(self, attrs):
+        interval = attrs.get(
+            'billing_interval', self.instance.billing_interval if self.instance else 'one_time'
+        )
+        price = attrs.get('price_cents', self.instance.price_cents if self.instance else None)
+        if price is not None:
+            if interval == Product.BILLING_USAGE:
+                # Billed on the month's total, so a single unit can cost a cent.
+                if price < 1:
+                    raise serializers.ValidationError(
+                        {'price_cents': 'Price must be at least 1 cent.'}
+                    )
+            elif price < MIN_PRICE_CENTS:
+                raise serializers.ValidationError({
+                    'price_cents': f'Price must be at least {MIN_PRICE_CENTS} cents — '
+                                   'Stripe\'s minimum charge.'
+                })
+        if interval == Product.BILLING_USAGE:
+            label = attrs.get(
+                'usage_unit_label', self.instance.usage_unit_label if self.instance else ''
             )
-        return value
+            if not (label or '').strip():
+                raise serializers.ValidationError(
+                    {'usage_unit_label': 'Say what you charge for, e.g. "message" or "API call".'}
+                )
+        return attrs
 
     def create(self, validated_data):
         validated_data['project'] = self.context['project']
@@ -142,7 +203,10 @@ class PublicProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price_cents', 'image_url', 'billing_interval']
+        fields = [
+            'id', 'name', 'description', 'price_cents', 'image_url', 'billing_interval',
+            'usage_unit_label', 'usage_unit_count',
+        ]
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -165,6 +229,24 @@ class OrderSerializer(serializers.ModelSerializer):
             'stripe_checkout_session_id', 'stripe_payment_intent_id',
             'paid_at', 'fulfilled_at', 'created_at', 'updated_at', 'items',
         ]
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    product_id = serializers.IntegerField(read_only=True)
+    customer_id = serializers.IntegerField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+    pricing_model = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Subscription
+        fields = [
+            'id', 'product_id', 'product_name', 'customer_id', 'customer_email',
+            'status', 'is_active', 'cancel_at_period_end', 'current_period_end',
+            'pricing_model', 'stripe_subscription_id', 'created_at', 'updated_at',
+        ]
+
+    def get_pricing_model(self, obj) -> str:
+        return obj.product.pricing_model if obj.product else 'subscription'
 
 
 class CustomerSerializer(serializers.ModelSerializer):

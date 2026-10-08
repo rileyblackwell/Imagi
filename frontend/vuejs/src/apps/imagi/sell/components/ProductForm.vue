@@ -1,6 +1,7 @@
 <!--
-  ProductForm.vue - Create/edit a catalog product. Prices are entered in
-  dollars (or the project currency's main unit) and stored as cents.
+  ProductForm.vue - Create/edit a price: a one-time product, a monthly or
+  yearly plan, or a pay-as-you-go plan billed per unit of usage. Amounts are
+  entered in dollars (or the project currency's main unit) and stored as cents.
 -->
 <template>
   <form class="space-y-5" @submit.prevent="submit">
@@ -12,7 +13,7 @@
         type="text"
         required
         maxlength="255"
-        placeholder="e.g. House Blend — 12oz bag"
+        :placeholder="namePlaceholder"
         :class="ui.input"
       />
     </div>
@@ -30,7 +31,7 @@
 
     <div>
       <label :class="ui.label">How customers pay</label>
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           v-for="option in billingOptions"
           :key="option.value"
@@ -44,15 +45,54 @@
           {{ option.label }}
         </button>
       </div>
-      <p :class="ui.hintText" class="mt-1.5">
-        {{ form.billing_interval === 'one_time'
-          ? 'Charged once at checkout.'
-          : 'Stripe bills the customer automatically each ' + (form.billing_interval === 'month' ? 'month' : 'year') + '.' }}
+      <p :class="ui.hintText" class="mt-1.5">{{ billingHint }}</p>
+    </div>
+
+    <div v-if="isUsage" class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div>
+        <label :class="ui.label" for="product-price">Price ({{ currency.toUpperCase() }})</label>
+        <input
+          id="product-price"
+          v-model="priceInput"
+          type="number"
+          min="0.01"
+          step="0.01"
+          required
+          placeholder="1.00"
+          :class="ui.input"
+        />
+      </div>
+      <div>
+        <label :class="ui.label" for="usage-count">Per</label>
+        <input
+          id="usage-count"
+          v-model.number="form.usage_unit_count"
+          type="number"
+          min="1"
+          step="1"
+          required
+          :class="ui.input"
+        />
+      </div>
+      <div>
+        <label :class="ui.label" for="usage-unit">Unit</label>
+        <input
+          id="usage-unit"
+          v-model="form.usage_unit_label"
+          type="text"
+          required
+          maxlength="60"
+          placeholder="message"
+          :class="ui.input"
+        />
+      </div>
+      <p :class="ui.hintText" class="sm:col-span-3 -mt-3">
+        Customers see “{{ usageSummary }}”. Your app reports usage, and Stripe bills the month's total.
       </p>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-      <div>
+      <div v-if="!isUsage">
         <label :class="ui.label" for="product-price">
           Price ({{ currency.toUpperCase() }}){{ form.billing_interval === 'month' ? ' per month' : form.billing_interval === 'year' ? ' per year' : '' }}
         </label>
@@ -66,7 +106,7 @@
           placeholder="12.00"
           :class="ui.input"
         />
-        <p :class="ui.hintText" class="mt-1.5">At least 0.50 — Stripe's minimum charge.</p>
+        <p :class="ui.hintText" class="mt-1.5">At least 0.50, Stripe's minimum charge.</p>
       </div>
       <div>
         <label :class="ui.label" for="product-image">Image URL <span class="normal-case tracking-normal font-normal">(optional)</span></label>
@@ -92,22 +132,24 @@
       <button type="button" :class="ui.secondaryBtn" @click="$emit('close')">Cancel</button>
       <button type="submit" :class="ui.primaryBtn" :disabled="saving">
         <i v-if="saving" class="fas fa-circle-notch animate-spin"></i>
-        {{ product ? 'Save product' : 'Add product' }}
+        {{ product ? 'Save price' : 'Add price' }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
 import type { BillingInterval, Product } from '../types'
-import { ui } from '../utils/ui'
+import { describePrice, ui } from '../utils/ui'
 
 const props = defineProps<{
   product?: Product | null
   currency: string
+  /** Preselected way to charge for a new price. */
+  initialInterval?: BillingInterval
 }>()
 
 const emit = defineEmits<{
@@ -121,15 +163,41 @@ const billingOptions: Array<{ value: BillingInterval; label: string }> = [
   { value: 'one_time', label: 'One-time' },
   { value: 'month', label: 'Monthly' },
   { value: 'year', label: 'Yearly' },
+  { value: 'usage', label: 'Pay as you go' },
 ]
 
 const form = reactive({
   name: props.product?.name ?? '',
   description: props.product?.description ?? '',
   image_url: props.product?.image_url ?? '',
-  billing_interval: (props.product?.billing_interval ?? 'one_time') as BillingInterval,
+  billing_interval: (props.product?.billing_interval ?? props.initialInterval ?? 'one_time') as BillingInterval,
+  usage_unit_label: props.product?.usage_unit_label ?? '',
+  usage_unit_count: props.product?.usage_unit_count ?? 1,
   is_active: props.product?.is_active ?? true,
 })
+
+const isUsage = computed(() => form.billing_interval === 'usage')
+
+const namePlaceholder = computed(() => ({
+  one_time: 'e.g. House Blend, 12oz bag',
+  month: 'e.g. Pro plan',
+  year: 'e.g. Pro plan, yearly',
+  usage: 'e.g. Messages',
+}[form.billing_interval]))
+
+const billingHint = computed(() => ({
+  one_time: 'Charged once at checkout.',
+  month: 'Stripe bills the customer automatically each month.',
+  year: 'Stripe bills the customer automatically each year.',
+  usage: 'A monthly plan billed on what the customer uses.',
+}[form.billing_interval]))
+
+const usageSummary = computed(() => describePrice({
+  price_cents: Math.round(parseFloat(priceInput.value || '0') * 100),
+  billing_interval: 'usage',
+  usage_unit_count: form.usage_unit_count || 1,
+  usage_unit_label: form.usage_unit_label || 'unit',
+}, props.currency))
 
 const priceInput = ref(
   props.product ? (props.product.price_cents / 100).toFixed(2) : ''
@@ -147,6 +215,8 @@ async function submit() {
       description: form.description.trim(),
       image_url: form.image_url.trim(),
       billing_interval: form.billing_interval,
+      usage_unit_label: isUsage.value ? form.usage_unit_label.trim() : '',
+      usage_unit_count: isUsage.value ? Math.max(1, Math.round(form.usage_unit_count || 1)) : 1,
       is_active: form.is_active,
       price_cents: Math.round(parseFloat(priceInput.value || '0') * 100),
     }

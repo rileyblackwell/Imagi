@@ -14,9 +14,26 @@ export interface SellSettings {
   account_email: string
   last_verified_at: string | null
   is_configured: boolean
+  /** Checkouts run against Stripe's test mode (no real money moves). */
+  is_test_mode: boolean
+  /** How Stripe is linked: Stripe Connect, pasted API keys, or not at all. */
+  connection_type: 'connect' | 'keys' | ''
+  connect_account_id: string
+  connect_charges_enabled: boolean
+  connect_payouts_enabled: boolean
+  connect_details_submitted: boolean
+  /** The ways to charge chosen in the console. */
+  payment_models: PaymentModel[]
+  /** Where the business's published app lives (allowed checkout return origin). */
+  app_url: string
+  server_key_set: boolean
   /** Stripe webhook URL to register in the Stripe dashboard; empty when the backend has no public base URL configured. */
   stripe_webhook_url: string
+  /** Imagi's platform webhook for connected accounts (informational). */
+  connect_webhook_url: string
 }
+
+export type PaymentModel = 'one_time' | 'subscription' | 'usage'
 
 export interface SellSettingsPayload {
   stripe_publishable_key?: string
@@ -25,6 +42,8 @@ export interface SellSettingsPayload {
   /** Write-only; omit or send '' to keep the stored secret. */
   stripe_webhook_secret?: string
   currency?: string
+  payment_models?: PaymentModel[]
+  app_url?: string
 }
 
 export interface VerifyResult {
@@ -35,7 +54,7 @@ export interface VerifyResult {
   settings: SellSettings
 }
 
-export type BillingInterval = 'one_time' | 'month' | 'year'
+export type BillingInterval = 'one_time' | 'month' | 'year' | 'usage'
 
 export interface Product {
   id: number
@@ -44,6 +63,10 @@ export interface Product {
   price_cents: number
   image_url: string
   billing_interval: BillingInterval
+  pricing_model: PaymentModel
+  /** Pay as you go: what one unit is, and how many units price_cents buys. */
+  usage_unit_label: string
+  usage_unit_count: number
   is_active: boolean
   created_at: string
   updated_at: string
@@ -55,33 +78,54 @@ export interface ProductPayload {
   price_cents?: number
   image_url?: string
   billing_interval?: BillingInterval
+  usage_unit_label?: string
+  usage_unit_count?: number
   is_active?: boolean
 }
 
-/** A prebuilt payment page users can drop into their generated project. */
-export interface PaymentTemplate {
-  key: string
-  name: string
-  tagline: string
-  description: string
-  /** Font Awesome icon name, e.g. 'fa-cart-shopping'. */
-  icon: string
-  /** Route the page gets in the user's app, e.g. '/store'. */
+/** One prebuilt payment page Imagi adds to the user's app. */
+export interface AppPaymentPage {
+  key: 'pricing' | 'store'
   route: string
-  /** Where the files land inside the project. */
-  app_dir: string
-  features: string[]
+  name: string
+  description: string
+  /** The chosen ways to charge call for this page. */
+  enabled: boolean
+  /** The app has it now. */
   installed: boolean
 }
 
-export interface TemplateInstallResult {
+export interface AppPaymentsState {
   installed: boolean
-  key: string
-  name: string
-  route: string
-  app_dir: string
-  files_created: string[]
-  templates: PaymentTemplate[]
+  pages: AppPaymentPage[]
+  /** Installed, but the chosen ways to charge have changed since. */
+  out_of_date: boolean
+  frontend_dir: string
+  backend_dir: string
+}
+
+export interface AppPaymentsInstallResult extends AppPaymentsState {
+  routes: string[]
+  restyle_started: boolean
+  files_written: string[]
+}
+
+export interface Subscription {
+  id: number
+  product_id: number | null
+  product_name: string
+  customer_id: number | null
+  customer_email: string
+  /** Stripe's status: active, trialing, past_due, canceled, unpaid, … */
+  status: string
+  is_active: boolean
+  cancel_at_period_end: boolean
+  current_period_end: string | null
+  pricing_model: PaymentModel
+  stripe_subscription_id: string
+  usage_units_30d: number
+  created_at: string
+  updated_at: string
 }
 
 export type OrderStatus = 'pending' | 'paid' | 'fulfilled' | 'canceled' | 'refunded'
@@ -147,6 +191,10 @@ export interface OverviewStats {
   orders_pending: number
   orders_paid_30d: number
   revenue_cents_30d: number
+  prices_by_model: Record<PaymentModel, number>
+  subscriptions_active: number
+  mrr_cents: number
+  usage_units_30d: number
 }
 
 export interface OverviewPayload {
@@ -158,4 +206,5 @@ export interface CheckoutSessionStatus {
   status: OrderStatus
   amount_total_cents: number
   currency: string
+  mode?: 'payment' | 'subscription'
 }

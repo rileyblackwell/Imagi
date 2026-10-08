@@ -14,10 +14,11 @@ import datetime
 import logging
 
 import stripe
+from django.conf import settings as django_settings
 from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotAuthenticated, NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -25,8 +26,9 @@ from rest_framework.views import APIView
 from apps.Imagi.ProjectManager.models import Project
 from imagi.redirect_urls import UnsafeRedirectError, resolve_redirect_url
 
-from ..models import Customer, Order, Product, SellSettings
-from ..services.payment_templates import install_template, list_templates
+from ..models import Customer, Order, Product, SellSettings, Subscription
+from ..services.connect_service import ConnectService
+from ..services.payment_templates import app_payments_state, install_payments
 from ..services.sell_service import (
     SellService,
     SellServiceError,
@@ -34,13 +36,14 @@ from ..services.sell_service import (
     default_success_url,
 )
 from ..services.stripe_client import construct_webhook_event
-from .throttles import StorefrontCheckoutThrottle
+from .throttles import StorefrontCheckoutThrottle, StorefrontServerThrottle
 from .serializers import (
     CustomerSerializer,
     OrderSerializer,
     ProductSerializer,
     PublicProductSerializer,
     SellSettingsSerializer,
+    SubscriptionSerializer,
     customers_with_stats,
 )
 
@@ -119,11 +122,81 @@ class VerifyConnectionView(ProjectScopedView):
         })
 
 
+# -- Stripe Connect --------------------------------------------------------------
+
+
+class ConnectStartView(ProjectScopedView):
+    """Start (or resume) Stripe's hosted sign-up for the project's account."""
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        return_path = str(request.data.get('return_path', '') or '')
+        try:
+            url = ConnectService(project).start_onboarding(return_path)
+        except SellServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'url': url})
+
+
+class ConnectRefreshView(ProjectScopedView):
+    """Re-read the connected account's status (after returning from Stripe)."""
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        try:
+            ConnectService(project).refresh()
+        except SellServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        settings_obj = SellSettings.objects.get(project=project)
+        return Response({'settings': SellSettingsSerializer(settings_obj).data})
+
+
+class ConnectDisconnectView(ProjectScopedView):
+    """Unlink the Stripe account from this project (the account itself stays)."""
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        ConnectService(project).disconnect()
+        settings_obj = SellSettings.objects.get(project=project)
+        return Response({'settings': SellSettingsSerializer(settings_obj).data})
+
+
+class ServerKeyView(ProjectScopedView):
+    """
+    The key the business's own backend uses for usage reports and plan
+    checks. GET reveals it to the owner; POST issues a new one.
+    """
+
+    def get(self, request, project_id):
+        settings_obj = self.get_settings(self.get_project())
+        return Response({'server_key': settings_obj.server_key})
+
+    def post(self, request, project_id):
+        settings_obj = self.get_settings(self.get_project())
+        key = settings_obj.rotate_server_key()
+        settings_obj.save(update_fields=['server_key_encrypted', 'updated_at'])
+        return Response({
+            'server_key': key,
+            'settings': SellSettingsSerializer(settings_obj).data,
+        }, status=status.HTTP_201_CREATED)
+
+
 # -- Overview --------------------------------------------------------------------
 
 
+def monthly_cents(product) -> int:
+    """A fixed plan's price per month (pay-as-you-go has no fixed amount)."""
+    if not product:
+        return 0
+    if product.billing_interval == Product.BILLING_MONTH:
+        return product.price_cents
+    if product.billing_interval == Product.BILLING_YEAR:
+        return round(product.price_cents / 12)
+    return 0
+
+
 class OverviewView(ProjectScopedView):
-    """Dashboard stats for the sell workspace."""
+    """Dashboard stats for the Sell console."""
 
     def get(self, request, project_id):
         project = self.get_project()
@@ -133,8 +206,14 @@ class OverviewView(ProjectScopedView):
         since = timezone.now() - datetime.timedelta(days=30)
         paid = orders.filter(status__in=list(Order.PAID_STATUSES))
         paid_30d = paid.filter(paid_at__gte=since)
+        active_subs = project.sell_subscriptions.filter(
+            status__in=list(Subscription.ACTIVE_STATUSES)
+        ).select_related('product')
 
         recent_orders = orders.prefetch_related('items')[:RECENT_ORDERS_LIMIT]
+        prices_by_model = {'one_time': 0, 'subscription': 0, 'usage': 0}
+        for product in products.filter(is_active=True):
+            prices_by_model[product.pricing_model] += 1
 
         return Response({
             'stats': {
@@ -142,6 +221,7 @@ class OverviewView(ProjectScopedView):
                 'currency': settings_obj.currency if settings_obj else 'usd',
                 'products_total': products.count(),
                 'products_active': products.filter(is_active=True).count(),
+                'prices_by_model': prices_by_model,
                 'customers_total': project.sell_customers.count(),
                 'orders_total': orders.count(),
                 'orders_pending': orders.filter(status=Order.STATUS_PENDING).count(),
@@ -149,44 +229,69 @@ class OverviewView(ProjectScopedView):
                 'revenue_cents_30d': paid_30d.aggregate(
                     total=Sum('amount_total_cents', default=0)
                 )['total'],
+                'subscriptions_active': active_subs.count(),
+                'mrr_cents': sum(monthly_cents(sub.product) for sub in active_subs),
+                'usage_units_30d': project.sell_usage_events.filter(
+                    created_at__gte=since
+                ).aggregate(total=Sum('quantity', default=0))['total'],
             },
             'recent_orders': OrderSerializer(recent_orders, many=True).data,
         })
 
 
-# -- Payment templates (prebuilt pages dropped into the user's project) ------------
+# -- Payments in the user's app (prebuilt pages) -----------------------------------
 
 
-class PaymentTemplateListView(ProjectScopedView):
-    """The gallery of prebuilt payment pages, with installed state."""
+class AppPaymentsView(ProjectScopedView):
+    """Whether the app has its payment pages, and which."""
 
     def get(self, request, project_id):
-        project = self.get_project()
-        return Response({'templates': list_templates(project)})
+        return Response(app_payments_state(self.get_project()))
 
 
-class PaymentTemplateInstallView(ProjectScopedView):
-    """Write a prebuilt payment page into the user's generated project."""
+class AppPaymentsInstallView(ProjectScopedView):
+    """Add (or refresh) the prebuilt payment pages in the user's app."""
 
-    def post(self, request, project_id, key):
+    def post(self, request, project_id):
         project = self.get_project()
         try:
-            result = install_template(project, key)
+            result = install_payments(project)
         except SellServiceError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
-            logger.exception(
-                f'Failed to install payment template {key!r} into project {project.id}'
-            )
+            logger.exception(f'Failed to add payments to project {project.id}')
             return Response(
-                {'error': 'Could not add the template to your project. Try again.'},
+                {'error': 'Could not add payments to your app. Try again.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        return Response({
-            'installed': True,
-            **result,
-            'templates': list_templates(project),
-        }, status=status.HTTP_201_CREATED)
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
+# -- Subscriptions -----------------------------------------------------------------
+
+
+class SubscriptionListView(ProjectScopedView):
+    """Customers' plans, newest first; ?status=active narrows to live ones."""
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        subscriptions = project.sell_subscriptions.select_related('product')
+        status_filter = request.query_params.get('status', '').strip()
+        if status_filter == 'active':
+            subscriptions = subscriptions.filter(status__in=list(Subscription.ACTIVE_STATUSES))
+        elif status_filter:
+            subscriptions = subscriptions.filter(status=status_filter)
+        page, total = paginate(request, subscriptions)
+        usage = dict(
+            project.sell_usage_events.filter(
+                subscription__in=[s.id for s in page],
+                created_at__gte=timezone.now() - datetime.timedelta(days=30),
+            ).values_list('subscription').annotate(total=Sum('quantity'))
+        )
+        data = SubscriptionSerializer(page, many=True).data
+        for row in data:
+            row['usage_units_30d'] = usage.get(row['id'], 0)
+        return Response({'subscriptions': data, 'total': total})
 
 
 # -- Products ---------------------------------------------------------------------
@@ -452,15 +557,21 @@ class PublicCheckoutView(PublicView):
         # Stripe account. A free-form redirect target would let them choose
         # where the paying customer lands — the merchant's real branded Stripe
         # page handing the customer to an attacker's "receipt" form. Only this
-        # app's own origin, or a path inside it, is accepted.
+        # app's own origin, a path inside it, the business's published app
+        # (its app URL), or, in test mode, a loopback preview is accepted.
+        extra_origins = SellService(project).redirect_origins(
+            request.data.get('success_url'), request.data.get('cancel_url'),
+        )
         try:
             success_url = resolve_redirect_url(
                 request.data.get('success_url'),
                 default_success_url(project.id),
+                extra_origins,
             )
             cancel_url = resolve_redirect_url(
                 request.data.get('cancel_url'),
                 default_cancel_url(project.id),
+                extra_origins,
             )
         except UnsafeRedirectError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -501,11 +612,80 @@ class PublicSessionStatusView(PublicView):
                 logger.warning(
                     f'Could not sync checkout session {session_id} for project {project_id}'
                 )
+        recurring = order.items.filter(
+            product__billing_interval__in=[
+                Product.BILLING_MONTH, Product.BILLING_YEAR, Product.BILLING_USAGE,
+            ]
+        ).exists()
         return Response({
             'status': order.status,
             'amount_total_cents': order.amount_total_cents,
             'currency': order.currency,
+            'mode': 'subscription' if recurring else 'payment',
         })
+
+
+# -- Server API (the business's own backend, authenticated by server key) -----------
+
+
+class ServerAPIView(PublicView):
+    """
+    Called by the business's backend (apps.payments in the generated app),
+    never by a browser. Authenticated with the project's server key.
+    """
+
+    throttle_classes = [StorefrontServerThrottle]
+
+    def authorize(self, request, project_id) -> Project:
+        project = self.get_public_project(project_id)
+        header = request.headers.get('Authorization', '')
+        candidate = header[7:].strip() if header.lower().startswith('bearer ') else ''
+        config = SellSettings.objects.filter(project=project).first()
+        if not config or not config.check_server_key(candidate):
+            raise NotAuthenticated('A valid server key is required.')
+        return project
+
+
+class UsageReportView(ServerAPIView):
+    """Report pay-as-you-go usage for a customer."""
+
+    def post(self, request, project_id):
+        project = self.authorize(request, project_id)
+        try:
+            event = SellService(project).report_usage(
+                request.data.get('customer_email'),
+                request.data.get('quantity'),
+                idempotency_key=str(request.data.get('idempotency_key', '') or ''),
+                product_id=request.data.get('product_id'),
+            )
+        except SellServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'recorded': True,
+            'id': event.id,
+            'quantity': event.quantity,
+            'product_id': event.product_id,
+        }, status=status.HTTP_201_CREATED)
+
+
+class CustomerPlansView(ServerAPIView):
+    """A customer's active plans, so the app can unlock what they paid for."""
+
+    def get(self, request, project_id):
+        project = self.authorize(request, project_id)
+        email = request.query_params.get('email', '')
+        plans = SellService(project).active_subscriptions(email)
+        return Response({'subscriptions': [
+            {
+                'product_id': sub.product_id,
+                'name': sub.product_name,
+                'type': sub.product.pricing_model if sub.product else 'subscription',
+                'status': sub.status,
+                'current_period_end': sub.current_period_end,
+                'cancel_at_period_end': sub.cancel_at_period_end,
+            }
+            for sub in plans
+        ]})
 
 
 # -- Stripe webhook -----------------------------------------------------------------
@@ -535,4 +715,43 @@ class StripeWebhookView(PublicView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         SellService(project).handle_webhook_event(event)
+        return Response(status=status.HTTP_200_OK)
+
+
+class ConnectWebhookView(PublicView):
+    """
+    The single endpoint for events from every connected account, registered
+    once on Imagi's platform account ("Events on Connected accounts").
+    Authenticated by STRIPE_CONNECT_WEBHOOK_SECRET; `event.account` says
+    which project it's for.
+    """
+
+    def post(self, request):
+        secret = getattr(django_settings, 'STRIPE_CONNECT_WEBHOOK_SECRET', '')
+        if not secret:
+            logger.warning('Rejected Connect webhook: STRIPE_CONNECT_WEBHOOK_SECRET is not set')
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        signature = request.headers.get('Stripe-Signature', '')
+        try:
+            event = construct_webhook_event(request.body, signature, secret)
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.SignatureVerificationError:
+            logger.warning('Rejected unsigned Connect webhook')
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        account_id = event.get('account') or ''
+        if not account_id:
+            return Response(status=status.HTTP_200_OK)
+        config = SellSettings.objects.filter(
+            connect_account_id=account_id
+        ).select_related('project').first()
+        if not config or not config.project.is_active:
+            return Response(status=status.HTTP_200_OK)
+
+        if event.get('type') == 'account.updated':
+            obj = (event.get('data') or {}).get('object') or {}
+            ConnectService(config.project).apply_account(obj)
+        else:
+            SellService(config.project).handle_webhook_event(event)
         return Response(status=status.HTTP_200_OK)

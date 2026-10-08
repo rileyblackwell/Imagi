@@ -1,5 +1,5 @@
 """
-Files the build agents may not change: the prebuilt auth.
+Files the build agents may not change: the prebuilt auth and payments.
 
 Sign-in, registration and the auth API come from Imagi's maintained template
 (codegen/prebuilt_apps/auth.py) so they are correct in every project. A model
@@ -10,6 +10,10 @@ every file-writing tool refuses these paths, whatever the brief says.
 Two auth files stay open, and they are the whole of the auth pages' look:
 the stylesheet and the copy. That is enough to restyle the pages to any
 design, which is all a business needs to change about them.
+
+The prebuilt payments (Sell.services.payment_templates) follow the same
+rule: the checkout flow and the server-side usage client are Imagi's, and
+only their stylesheet and copy are open.
 
 This binds the agents only. A founder editing their own code by hand is
 editing their own code.
@@ -27,8 +31,21 @@ AUTH_RESTYLE_PATHS = (
     f'{AUTH_FRONTEND_DIR}/brand.ts',
 )
 
-# Everything under these is the maintained auth, apart from the paths above.
-PROTECTED_DIRS = (AUTH_FRONTEND_DIR, AUTH_BACKEND_DIR)
+PAYMENTS_FRONTEND_DIR = 'frontend/vuejs/src/apps/payments'
+PAYMENTS_BACKEND_DIR = 'backend/django/apps/payments'
+
+# The payment files an agent may rewrite: how the pages look and what they say.
+PAYMENTS_RESTYLE_PATHS = (
+    f'{PAYMENTS_FRONTEND_DIR}/styles/payments.css',
+    f'{PAYMENTS_FRONTEND_DIR}/brand.ts',
+)
+
+# Everything under these is maintained by Imagi, apart from the paths above.
+PROTECTED_DIRS = (
+    AUTH_FRONTEND_DIR, AUTH_BACKEND_DIR,
+    PAYMENTS_FRONTEND_DIR, PAYMENTS_BACKEND_DIR,
+)
+OPEN_PATHS = AUTH_RESTYLE_PATHS + PAYMENTS_RESTYLE_PATHS
 
 # The scaffold's shared auth plumbing: token storage and the API client that
 # attaches the token and the CSRF header to every request.
@@ -44,6 +61,17 @@ REFUSAL = (
     f"'{AUTH_RESTYLE_PATHS[0]}' (every visual style) or '{AUTH_RESTYLE_PATHS[1]}' "
     "(the business name and page copy). Anything else about sign-in is not "
     "available yet: tell the user plainly instead of working around it."
+)
+
+PAYMENTS_REFUSAL = (
+    "'{path}' is part of the project's prebuilt payments, which Imagi maintains "
+    "so they stay secure; agents cannot change it. To change how the payment "
+    f"pages look, edit '{PAYMENTS_RESTYLE_PATHS[0]}' (every visual style) or "
+    f"'{PAYMENTS_RESTYLE_PATHS[1]}' (the page copy). To charge for something, "
+    "use the plans in 'frontend/vuejs/src/apps/payments/' as they are: link to "
+    "'/pricing' or '/store', and from the backend call report_usage() or "
+    "has_active_plan() from 'apps.payments'. Prices are set in the Sell console; "
+    "anything else, tell the user plainly instead of working around it."
 )
 
 
@@ -67,7 +95,7 @@ def is_protected_path(path: str) -> bool:
     p = _normalize(path).lower()
     if not p:
         return False
-    if p in (allowed.lower() for allowed in AUTH_RESTYLE_PATHS):
+    if p in (allowed.lower() for allowed in OPEN_PATHS):
         return False
     if p in (f.lower() for f in PROTECTED_FILES):
         return True
@@ -89,4 +117,7 @@ def is_protected_directory(path: str) -> bool:
 
 
 def refusal(path: str) -> str:
-    return REFUSAL.format(path=_normalize(path))
+    p = _normalize(path)
+    if any(_under(p.lower(), d.lower()) for d in (PAYMENTS_FRONTEND_DIR, PAYMENTS_BACKEND_DIR)):
+        return PAYMENTS_REFUSAL.format(path=p)
+    return REFUSAL.format(path=p)

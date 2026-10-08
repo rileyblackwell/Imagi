@@ -1,6 +1,7 @@
 <!--
-  SellProducts.vue - The project's catalog: create/edit products and copy
-  shareable Stripe Checkout links for them.
+  SellProducts.vue - The project's prices: one-time products, subscription
+  plans and pay-as-you-go plans. Create and edit them, and copy shareable
+  Stripe Checkout links.
 -->
 <template>
   <div>
@@ -11,16 +12,16 @@
         <input
           v-model="search"
           type="search"
-          placeholder="Search products…"
+          placeholder="Search prices…"
           class="pl-9"
           :class="ui.input"
           @input="debouncedFetch"
         />
       </div>
       <div class="flex-1"></div>
-      <button type="button" :class="ui.primaryBtn" @click="openCreate">
+      <button type="button" :class="ui.primaryBtn" @click="openCreate()">
         <i class="fas fa-plus text-xs"></i>
-        Add product
+        Add price
       </button>
     </div>
 
@@ -42,16 +43,16 @@
             <div class="min-w-0">
               <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ product.name }}</p>
               <p :class="ui.bodyText" class="tabular-nums">
-                {{ formatMoney(product.price_cents, store.currency) }}<span v-if="product.billing_interval === 'month'"> / month</span><span v-else-if="product.billing_interval === 'year'"> / year</span>
+                {{ describePrice(product, store.currency) }}
               </p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <span
-                v-if="product.billing_interval !== 'one_time'"
+                v-if="product.pricing_model !== 'one_time'"
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-ink/10 dark:border-blue-400/25 bg-ink/[0.03] dark:bg-blue-400/10 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap text-blue-700 dark:text-blue-300"
               >
-                <i class="fas fa-arrows-rotate text-[9px]"></i>
-                Subscription
+                <i :class="['fas', product.pricing_model === 'usage' ? 'fa-gauge' : 'fa-arrows-rotate']" class="text-[9px]"></i>
+                {{ product.pricing_model === 'usage' ? 'Pay as you go' : 'Subscription' }}
               </span>
               <span
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap"
@@ -100,14 +101,14 @@
     <EmptyState
       v-else
       icon="fas fa-box-open"
-      title="No products yet"
-      description="Add what your business sells. Each product gets a shareable Stripe Checkout link, and your app can list them through the storefront API."
+      title="No prices yet"
+      description="Add what your business charges for: a product, a monthly or yearly plan, or a pay-as-you-go plan. Your app's payment pages list them, and each gets a shareable Stripe Checkout link."
       :accent="accent"
     >
       <template #action>
-        <button type="button" :class="ui.primaryBtn" @click="openCreate">
+        <button type="button" :class="ui.primaryBtn" @click="openCreate()">
           <i class="fas fa-plus text-xs"></i>
-          Add your first product
+          Add your first price
         </button>
       </template>
     </EmptyState>
@@ -115,19 +116,20 @@
     <!-- Create/edit modal -->
     <BaseModal
       v-if="showForm"
-      :title="editingProduct ? 'Edit product' : 'Add product'"
+      :title="editingProduct ? 'Edit price' : 'Add price'"
       @close="closeForm"
     >
       <ProductForm
         :product="editingProduct"
         :currency="store.currency"
+        :initial-interval="initialInterval"
         @close="closeForm"
         @saved="onSaved"
       />
     </BaseModal>
 
     <!-- Delete confirmation -->
-    <BaseModal v-if="deletingProduct" title="Delete product" @close="deletingProduct = null">
+    <BaseModal v-if="deletingProduct" title="Delete price" @close="deletingProduct = null">
       <p class="text-sm text-ink/70 dark:text-bone/70 mb-6">
         Delete “{{ deletingProduct.name }}”? Existing orders keep their history, but the
         product can no longer be bought. To stop selling it temporarily, edit it and
@@ -137,7 +139,7 @@
         <button type="button" :class="ui.secondaryBtn" @click="deletingProduct = null">Cancel</button>
         <button type="button" :class="ui.dangerBtn" :disabled="deleting" @click="doDelete">
           <i v-if="deleting" class="fas fa-circle-notch animate-spin"></i>
-          Delete product
+          Delete price
         </button>
       </div>
     </BaseModal>
@@ -151,8 +153,8 @@ import { useRoute } from 'vue-router'
 import ProductForm from '../components/ProductForm.vue'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
-import type { Product } from '../types'
-import { accent, formatMoney, ui } from '../utils/ui'
+import type { BillingInterval, Product } from '../types'
+import { accent, describePrice, ui } from '../utils/ui'
 
 const route = useRoute()
 const store = useSellStore()
@@ -161,6 +163,7 @@ const search = ref('')
 const showForm = ref(false)
 const editingProduct = ref<Product | null>(null)
 const deletingProduct = ref<Product | null>(null)
+const initialInterval = ref<BillingInterval | undefined>(undefined)
 const deleting = ref(false)
 const linkLoadingId = ref<number | null>(null)
 const linkNotice = ref('')
@@ -182,8 +185,9 @@ async function fetchProducts() {
   }
 }
 
-function openCreate() {
+function openCreate(interval?: BillingInterval) {
   editingProduct.value = null
+  initialInterval.value = interval
   showForm.value = true
 }
 
@@ -242,6 +246,9 @@ async function copyPaymentLink(productId: number) {
 
 onMounted(async () => {
   await fetchProducts()
-  if (route.query.new === '1') openCreate()
+  if (route.query.new === '1') {
+    const interval = String(route.query.interval || '')
+    openCreate(['one_time', 'month', 'year', 'usage'].includes(interval) ? interval as BillingInterval : undefined)
+  }
 })
 </script>

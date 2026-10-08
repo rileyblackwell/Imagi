@@ -235,6 +235,7 @@ REST_FRAMEWORK = {
         'auth_signin': '10/min',
         'auth_register': '20/hour',
         'storefront_checkout': '30/hour',
+        'storefront_server': '600/minute',
     },
 }
 
@@ -276,6 +277,9 @@ STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 # view and StripeService.verify_webhook_event both refuse to run without it,
 # and apps.Payments.apps.stripe_webhook_secret_check reports it at deploy time.
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+# Signing secret of the platform webhook endpoint that receives events from
+# Sell's connected accounts (/api/v1/sell/webhooks/connect/).
+STRIPE_CONNECT_WEBHOOK_SECRET = os.environ.get('STRIPE_CONNECT_WEBHOOK_SECRET', '')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 

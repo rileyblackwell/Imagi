@@ -1,0 +1,299 @@
+/*
+ * Payment pages theme (pricing, store, checkout return).
+ *
+ * This file decides everything about how the payment pages look. Imagi
+ * rewrites it for each business so the pages match the rest of the site; the
+ * markup it styles and the payment flow behind it stay as Imagi ships them.
+ *
+ * Start with the tokens on .pay-theme: most redesigns only need those.
+ * Every class the pages use is listed below.
+ */
+
+.pay-theme {
+  --pay-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --pay-display-font: var(--pay-font);
+
+  --pay-bg: #f8fafc;
+  --pay-bg-accent: #dbeafe;
+  --pay-surface: #ffffff;
+  --pay-text: #0f172a;
+  --pay-muted: #475569;
+  --pay-border: #e2e8f0;
+  --pay-border-strong: #cbd5e1;
+
+  --pay-accent: #111827;
+  --pay-accent-hover: #374151;
+  --pay-accent-text: #ffffff;
+  --pay-focus: #2563eb;
+  --pay-danger: #b91c1c;
+  --pay-danger-bg: #fef2f2;
+  --pay-success: #15803d;
+
+  --pay-radius: 20px;
+  --pay-button-radius: 999px;
+  --pay-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px -12px rgba(15, 23, 42, 0.18);
+}
+
+/* Page */
+
+.pay-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background: var(--pay-bg);
+  color: var(--pay-text);
+  font-family: var(--pay-font);
+}
+
+.pay-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse 70% 40% at 50% 0%, var(--pay-bg-accent), transparent 70%);
+}
+
+.pay-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 96px 20px 72px;
+}
+
+.pay-shell-narrow {
+  max-width: 480px;
+}
+
+.pay-head {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.pay-eyebrow {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pay-muted);
+}
+
+.pay-title {
+  margin: 0 0 14px;
+  font-family: var(--pay-display-font);
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.pay-subtitle {
+  margin: 0 auto;
+  max-width: 36rem;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--pay-muted);
+}
+
+/* Cards */
+
+.pay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.pay-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid var(--pay-border);
+  border-radius: var(--pay-radius);
+  background: var(--pay-surface);
+  box-shadow: var(--pay-shadow);
+  transition: border-color 200ms ease;
+}
+
+.pay-card:hover {
+  border-color: var(--pay-border-strong);
+}
+
+.pay-card-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: calc(var(--pay-radius) - 8px);
+}
+
+.pay-card-title {
+  margin: 0;
+  font-family: var(--pay-display-font);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pay-card-body {
+  margin: 0;
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--pay-muted);
+  white-space: pre-line;
+}
+
+.pay-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.pay-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.pay-amount {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-per {
+  font-size: 14px;
+  color: var(--pay-muted);
+}
+
+/* Buttons */
+
+.pay-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: var(--pay-button-radius);
+  background: var(--pay-accent);
+  color: var(--pay-accent-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+
+.pay-card-foot .pay-button {
+  margin-top: 0;
+}
+
+.pay-button:hover {
+  background: var(--pay-accent-hover);
+}
+
+.pay-button:focus-visible {
+  outline: 2px solid var(--pay-focus);
+  outline-offset: 3px;
+}
+
+.pay-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pay-button-quiet {
+  background: transparent;
+  color: var(--pay-text);
+  border: 1px solid var(--pay-border-strong);
+}
+
+.pay-button-quiet:hover {
+  background: var(--pay-bg);
+}
+
+/* States */
+
+.pay-status,
+.pay-empty {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+  color: var(--pay-muted);
+}
+
+.pay-error {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--pay-danger-bg);
+  color: var(--pay-danger);
+  text-align: center;
+}
+
+.pay-note,
+.pay-secure {
+  margin: 32px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--pay-muted);
+}
+
+.pay-note + .pay-secure {
+  margin-top: 8px;
+}
+
+.pay-result {
+  align-items: center;
+  text-align: center;
+}
+
+.pay-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--pay-border);
+  border-top-color: var(--pay-text);
+  border-radius: 50%;
+  animation: pay-spin 0.8s linear infinite;
+}
+
+.pay-check {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--pay-success);
+
+  position: relative;
+}
+
+.pay-check::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 10px;
+  width: 10px;
+  height: 18px;
+  border: solid #fff;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.pay-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@keyframes pay-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pay-spinner { animation: none; }
+}

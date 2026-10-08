@@ -5,18 +5,19 @@
 
 import api from '@/shared/services/api'
 import type {
+  AppPaymentsInstallResult,
+  AppPaymentsState,
   CheckoutSessionStatus,
   Customer,
   CustomerPayload,
   Order,
   OverviewPayload,
   PaymentLinkResult,
-  PaymentTemplate,
   Product,
   ProductPayload,
   SellSettings,
   SellSettingsPayload,
-  TemplateInstallResult,
+  Subscription,
   VerifyResult,
 } from '../types'
 
@@ -40,20 +41,56 @@ const SellService = {
     return data
   },
 
+  // -- Stripe Connect -------------------------------------------------------
+  /** A Stripe-hosted sign-up link; Stripe sends the owner back to returnPath. */
+  async startConnect(projectId: number, returnPath: string): Promise<string> {
+    const { data } = await api.post(`${base(projectId)}/connect/start/`, { return_path: returnPath })
+    return data.url
+  },
+
+  async refreshConnect(projectId: number): Promise<SellSettings> {
+    const { data } = await api.post(`${base(projectId)}/connect/refresh/`)
+    return data.settings
+  },
+
+  async disconnect(projectId: number): Promise<SellSettings> {
+    const { data } = await api.post(`${base(projectId)}/connect/disconnect/`)
+    return data.settings
+  },
+
+  async getServerKey(projectId: number): Promise<string> {
+    const { data } = await api.get(`${base(projectId)}/server-key/`)
+    return data.server_key
+  },
+
+  async rotateServerKey(projectId: number): Promise<{ server_key: string; settings: SellSettings }> {
+    const { data } = await api.post(`${base(projectId)}/server-key/`)
+    return data
+  },
+
   // -- Overview -------------------------------------------------------------
   async getOverview(projectId: number): Promise<OverviewPayload> {
     const { data } = await api.get(`${base(projectId)}/overview/`)
     return data
   },
 
-  // -- Payment templates (prebuilt pages for the user's app) ------------------
-  async listTemplates(projectId: number): Promise<PaymentTemplate[]> {
-    const { data } = await api.get(`${base(projectId)}/templates/`)
-    return data.templates
+  // -- Payments in the user's app (prebuilt pages) --------------------------
+  async getAppPayments(projectId: number): Promise<AppPaymentsState> {
+    const { data } = await api.get(`${base(projectId)}/app-payments/`)
+    return data
   },
 
-  async installTemplate(projectId: number, key: string): Promise<TemplateInstallResult> {
-    const { data } = await api.post(`${base(projectId)}/templates/${key}/install/`)
+  async installAppPayments(projectId: number): Promise<AppPaymentsInstallResult> {
+    const { data } = await api.post(`${base(projectId)}/app-payments/install/`)
+    return data
+  },
+
+  // -- Subscriptions ----------------------------------------------------------
+  async listSubscriptions(
+    projectId: number,
+    params: { status?: string; limit?: number; offset?: number } = {}
+  ): Promise<{ subscriptions: Subscription[]; total: number }> {
+    const { data } = await api.get(`${base(projectId)}/subscriptions/`, { params })
     return data
   },
 

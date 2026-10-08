@@ -30,6 +30,49 @@ export function formatMoney(cents: number | null | undefined, currency = 'usd'):
   }
 }
 
+/** "$12.00 / month", "$1.00 per 1,000 messages", "$30.00". */
+export function describePrice(
+  price: { price_cents: number; billing_interval: string; usage_unit_count?: number; usage_unit_label?: string },
+  currency = 'usd',
+): string {
+  const amount = formatMoney(price.price_cents, currency)
+  switch (price.billing_interval) {
+    case 'month': return `${amount} / month`
+    case 'year': return `${amount} / year`
+    case 'usage': {
+      const count = price.usage_unit_count ?? 1
+      const unit = price.usage_unit_label || 'unit'
+      return count > 1 ? `${amount} per ${count.toLocaleString()} ${unit}s` : `${amount} per ${unit}`
+    }
+    default: return amount
+  }
+}
+
+/** The console's three ways to charge, in its order. */
+export const paymentModels = [
+  {
+    key: 'one_time',
+    title: 'One-time payments',
+    body: 'Customers pay once for a product or service.',
+    examples: 'courses, merch and bookings',
+    page: '/store',
+  },
+  {
+    key: 'subscription',
+    title: 'Subscriptions',
+    body: 'Customers pay every month or year until they cancel.',
+    examples: 'memberships and SaaS plans',
+    page: '/pricing',
+  },
+  {
+    key: 'usage',
+    title: 'Pay as you go',
+    body: 'Customers pay each month for what they used.',
+    examples: 'API calls, messages and credits',
+    page: '/pricing',
+  },
+] as const
+
 // Shared display formatters, re-exported so this module stays the single
 // import for everything a view in this tool needs.
 export { formatDateTime } from '@/shared/utils'
