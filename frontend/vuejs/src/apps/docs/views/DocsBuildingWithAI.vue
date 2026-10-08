@@ -40,6 +40,18 @@
             See your product as a running app you can click through—no build step, no server setup, no waiting.
           </DocsCard>
         </div>
+        <div class="callout mt-8">
+          <h4 class="callout__title">
+            Sign-in comes built in
+          </h4>
+          <p class="callout__body">
+            Every new project ships with sign-in and register pages that Imagi maintains and tests, so your customers'
+            accounts are secure from day one. They start as a simple centered card with your business name, and once
+            the home page is built they're restyled in the background to match it. The agents can change how these
+            pages look and what they say, but not the sign-in code itself—so asking for a different look or wording
+            works, while the security underneath stays as Imagi built it.
+          </p>
+        </div>
       </section>
 
       <!-- Getting started steps -->
