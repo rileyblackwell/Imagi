@@ -91,7 +91,7 @@
                 </div>
                 <h3 class="text-lg font-semibold tracking-tight text-ink dark:text-white mb-2 transition-colors duration-300">We're building this workspace</h3>
                 <p class="text-sm text-ink/65 dark:text-bone/65 max-w-md mx-auto mb-6 transition-colors duration-300">
-                  {{ tool.name }} tools aren't available yet. In the meantime, you can start building your product with the app builder.
+                  {{ tool.name }} tools aren't available yet. In the meantime, you can keep building your app with the app builder.
                 </p>
                 <router-link
                   :to="{ name: 'builder-workspace', params: { projectName } }"

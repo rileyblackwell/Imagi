@@ -79,12 +79,12 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_description(self, value):
-        """Require a business description substantial enough to seed the initial AI build."""
+        """Require an app description substantial enough to seed the initial AI build."""
         value = value.strip()
         if len(value) < MIN_DESCRIPTION_LENGTH:
             raise serializers.ValidationError(
-                "Please describe your business — what it does, who its customers are, "
-                "and how it will sell. Imagi uses this to build the first version of your app."
+                "Please describe your app — what it does and who it's for. "
+                "Imagi uses this to build the first version."
             )
         return value
 

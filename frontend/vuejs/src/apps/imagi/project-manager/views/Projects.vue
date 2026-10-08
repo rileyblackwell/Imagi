@@ -10,11 +10,13 @@
   It should NOT be responsible for:
   - Project file editing (handled by the build workspace)
 
-  Design: "Brief" on the Spotlight stage. Starting a business is four numbered
-  steps on a lit rail (name it, describe the business, how the app should
-  work, set the look), written for founders who are not technical, with a card beside
-  them showing the brief the agent will receive and the button that sends it.
-  The businesses you already have follow as a numbered list. The editorial
+  Design: "Brief" on the Spotlight stage. Starting an app is four numbered
+  steps on a lit rail (name it, describe the app, how it should work, set the
+  look), written for people who are not technical, with a card beside them
+  showing the brief the agent will receive and the button that sends it. The
+  copy is app-first: the business tools are mentioned as what the same project
+  offers once someone wants to turn the app into a business. The projects you
+  already have follow as a numbered list. The editorial
   markup is re-lit by the bridge in shared/styles/spotlight.css.
 -->
 <template>
@@ -44,16 +46,17 @@
                 Projects
               </h1>
               <h1 v-else class="rise-item sl-display projects-title" style="animation-delay: 60ms">
-                Brief the agent on a <span class="sl-grad-text">new business</span>
+                Brief the agent on a <span class="sl-grad-text">new app</span>
               </h1>
               <p class="rise-item sl-lede" style="animation-delay: 120ms">
                 <template v-if="showAuthError">
-                  Every business you run on Imagi lives in a project &mdash; its app and the tools
-                  behind it.
+                  Every app you build on Imagi lives in a project, along with the tools to turn it
+                  into a business when you want to.
                 </template>
                 <template v-else>
                   Answer a few questions in your own words and Imagi builds the first version of
-                  its app. The businesses you already have are further down.
+                  your app. If you want it to become a business, the same project has the tools to
+                  sell, market and run it. Your projects are further down.
                 </template>
               </p>
             </div>
@@ -96,7 +99,7 @@
                       <template v-else>01</template>
                     </span>
                     <label class="step__title" for="project-name">Name it</label>
-                    <p class="step__hint">The name of your business or app. You can change it later.</p>
+                    <p class="step__hint">The name of your app. You can change it later.</p>
                     <input
                       id="project-name"
                       ref="projectNameInput"
@@ -110,15 +113,15 @@
                     >
                   </div>
 
-                  <!-- 02 — The business -->
+                  <!-- 02 — The app -->
                   <div class="step" :class="stepClass(2)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                       <template v-else>02</template>
                     </span>
-                    <label class="step__title" for="project-description">Describe the business</label>
+                    <label class="step__title" for="project-description">Describe your app</label>
                     <p id="project-description-hint" class="step__hint">
-                      A few sentences: what you offer, who it&rsquo;s for, and how people find you and pay.
+                      A few sentences: what it does, who it&rsquo;s for, and, if you plan to charge for it, how people pay.
                     </p>
                     <div class="lit-field">
                       <textarea
@@ -126,7 +129,7 @@
                         v-model="newProjectDescription"
                         rows="4"
                         class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="A stock tracker for retail investors — portfolio snapshots with AI-written summaries, sold as a monthly subscription."
+                        placeholder="A stock tracker for retail investors with portfolio snapshots and AI-written summaries. Later I'd like to sell it as a monthly subscription."
                         aria-describedby="project-description-hint project-description-meter"
                         :disabled="isCreating"
                         @focus="focusedStep = 2"
@@ -234,10 +237,10 @@
                     </p>
                     <div class="brief__body">
                       <p class="brief__name" :class="{ 'is-empty': !nameDone }">
-                        {{ newProjectName.trim() || 'Your business' }}
+                        {{ newProjectName.trim() || 'Your app' }}
                       </p>
                       <p class="brief__desc" :class="{ 'is-empty': !newProjectDescription.trim() }">
-                        {{ newProjectDescription.trim() || 'What the business does shows up here as you describe it.' }}
+                        {{ newProjectDescription.trim() || 'What your app does shows up here as you describe it.' }}
                       </p>
                       <dl class="brief__facts">
                         <dt>How it works</dt>
@@ -246,6 +249,8 @@
                         <dd>{{ newProjectDesign.trim() || 'Imagi picks one' }}</dd>
                         <dt>First build</dt>
                         <dd>A web app you can preview</dd>
+                        <dt>Business tools</dt>
+                        <dd>Sell, Market and Operate, ready when you want them</dd>
                       </dl>
                     </div>
                     <div class="brief__foot">
@@ -365,8 +370,8 @@
                 -->
                 <div v-else-if="!displayedProjects.length" class="state state--block">
                   <p class="state__message">
-                    No projects yet. Brief the agent above and Imagi builds the first version of
-                    its app.
+                    No projects yet. Describe an app above and Imagi builds the first version of
+                    it.
                   </p>
                 </div>
 
@@ -567,19 +572,19 @@ async function createProject() {
     return
   }
 
-  // Validate business name
+  // Validate app name
   if (!newProjectName.value.trim()) {
     showNotification({
-      message: 'Business name cannot be empty',
+      message: 'App name cannot be empty',
       type: 'error'
     })
     return
   }
 
-  // Validate business description — it seeds the initial AI build
+  // Validate app description — it seeds the initial AI build
   if (newProjectDescription.value.trim().length < MIN_DESCRIPTION_LENGTH) {
     showNotification({
-      message: 'Please describe your business — what it does, who its customers are, and how it will sell. Imagi uses this to build the first version of your app.',
+      message: 'Please describe your app — what it does and who it\'s for. Imagi uses this to build the first version.',
       type: 'error'
     })
     return
@@ -733,7 +738,7 @@ const confirmDelete = async (project: Project) => {
 onMounted(async () => {
   console.debug('Projects mounted')
 
-  // An idea typed into the home page's prompt arrives here as the business
+  // An idea typed into the home page's prompt arrives here as the app
   // description; the visitor only has to name it. Signed-out visitors keep it
   // until they come back signed in, since the form only renders for them.
   if (authStore.isAuthenticated) {

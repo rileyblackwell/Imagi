@@ -1679,6 +1679,12 @@ class FounderBriefTests(SimpleTestCase):
         self.assertLess(brief.index('What it does'), brief.index('How the app should work'))
         self.assertLess(brief.index('How the app should work'), brief.index('Design & style'))
 
+    def test_opens_with_the_app_rather_than_a_business(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief
+
+        brief = build_founder_brief('Harbor Yoga', 'A boutique yoga studio.')
+        self.assertTrue(brief.startswith('Build the first version of my app.\n\nApp name: Harbor Yoga'))
+
     def test_leaves_the_section_out_when_blank(self):
         from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief
 

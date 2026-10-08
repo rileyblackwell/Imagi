@@ -71,6 +71,15 @@ describe('Projects (Brief)', () => {
     expect(wrapper.find('.brief__submit').attributes('disabled')).toBeDefined()
   })
 
+  it('asks about the app, and mentions the business tools as what comes after', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    expect(wrapper.find('h1').text()).toBe('Brief the agent on a new app')
+    expect(wrapper.find('label[for="project-description"]').text()).toBe('Describe your app')
+    expect(wrapper.find('.brief__name').text()).toBe('Your app')
+    expect(wrapper.find('.brief__facts').text()).toContain('Sell, Market and Operate')
+  })
+
   it('moves along the rail and fills the brief card as the answers come in', async () => {
     const wrapper = mountPage()
     await wrapper.find('#project-name').setValue('Little Loaf')
