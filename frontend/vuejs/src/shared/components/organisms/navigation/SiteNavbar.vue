@@ -20,9 +20,6 @@
               class="nav-menu-item group"
               @click="isProductsMenuOpen = false"
             >
-              <!-- The brand's "i" in Fraunces, like the wordmark, on the one
-                   accent the Spotlight pages spend: the coral → amber light. -->
-              <span class="nav-menu-item__mark" aria-hidden="true">i</span>
               <span class="min-w-0 flex-1">
                 <span class="nav-menu-item__title">Imagi</span>
                 <span class="nav-menu-item__desc">Build and <em class="sl-run">run</em> your business</span>
@@ -160,7 +157,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 14px 10px 10px;
+  padding: 10px 14px;
   border: 1px solid transparent;
   border-radius: 13px;
   text-align: left;
@@ -171,22 +168,6 @@ export default defineComponent({
 .nav-menu-item:focus-visible {
   background: var(--sl-chip-bg-hover);
   border-color: var(--sl-line);
-}
-
-.nav-menu-item__mark {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent);
-  font-family: 'Fraunces', ui-serif, Georgia, serif;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1;
-  box-shadow: 0 6px 18px -8px var(--sl-coral), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .nav-menu-item__title {
