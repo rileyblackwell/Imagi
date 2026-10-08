@@ -10,10 +10,11 @@
   It should NOT be responsible for:
   - Project file editing (handled by the build workspace)
 
-  Design: the Spotlight stage the rest of the site wears — a lit opener, then
-  two ruled columns: starting a business on the left, the ones you already
-  have on the right. The create form is the home page's glowing prompt card.
-  The editorial markup is re-lit by the bridge in shared/styles/spotlight.css.
+  Design: "Brief" on the Spotlight stage. Starting a business is three numbered
+  steps on a lit rail (name it, describe it, set the look), with a card beside
+  them showing the brief the agent will receive and the button that sends it.
+  The businesses you already have follow as a numbered list. The editorial
+  markup is re-lit by the bridge in shared/styles/spotlight.css.
 -->
 <template>
   <div class="spotlight projects-root">
@@ -31,26 +32,35 @@
 
           <!-- Opening statement -->
           <section class="sl-opener projects-opener">
-            <div class="sl-spot" aria-hidden="true"></div>
+            <div class="sl-spot projects-spot" aria-hidden="true"></div>
             <div class="sl-dots" aria-hidden="true"></div>
-            <div class="sl-wrap sl-opener__inner">
+            <div class="sl-wrap projects-opener__inner">
               <p class="rise-item sl-eyebrow sl-pill">
                 <span class="sl-pip" aria-hidden="true"></span>
                 <span>Your workspace</span>
               </p>
-              <h1 class="rise-item sl-display sl-h1 projects-title" style="animation-delay: 60ms">
+              <h1 v-if="showAuthError" class="rise-item sl-display projects-title" style="animation-delay: 60ms">
                 Projects
               </h1>
+              <h1 v-else class="rise-item sl-display projects-title" style="animation-delay: 60ms">
+                Brief the agent on a <span class="sl-grad-text">new business</span>
+              </h1>
               <p class="rise-item sl-lede" style="animation-delay: 120ms">
-                Every business you run on Imagi lives in a project &mdash; its app and the tools
-                behind it. Start a new one, or pick up where you left off.
+                <template v-if="showAuthError">
+                  Every business you run on Imagi lives in a project &mdash; its app and the tools
+                  behind it.
+                </template>
+                <template v-else>
+                  Three short answers become the first version of its web app. The businesses
+                  you already have are further down.
+                </template>
               </p>
             </div>
           </section>
 
           <!-- Signed out -->
-          <section v-if="showAuthError" class="relative py-20 md:py-28">
-            <div class="section-shell">
+          <section v-if="showAuthError" class="relative pb-20 md:pb-28">
+            <div class="sl-wrap">
               <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
               <div class="rise-item max-w-xl" style="animation-delay: 90ms">
                 <p class="eyebrow">
@@ -72,80 +82,119 @@
             </div>
           </section>
 
-          <!-- Start one / continue one -->
-          <section v-else class="relative pt-4 md:pt-6 pb-20 md:pb-28">
-            <div class="section-shell">
-              <div class="section-rule mb-14 md:mb-16" aria-hidden="true"></div>
+          <template v-else>
+            <!-- The brief: three steps on a rail, and what the agent will get -->
+            <section class="relative brief-section">
+              <div class="sl-wrap brief-cols">
 
-              <div class="rule-cols rule-cols--2">
+                <form id="create-project" class="steps rise-item" style="animation-delay: 90ms" @submit.prevent="createProject">
+                  <!-- 01 — Name it -->
+                  <div class="step" :class="stepClass(1)">
+                    <span class="step__node" aria-hidden="true">
+                      <svg v-if="nameDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                      <template v-else>01</template>
+                    </span>
+                    <label class="step__title" for="project-name">Name it</label>
+                    <p class="step__hint">What customers will call the business.</p>
+                    <input
+                      id="project-name"
+                      ref="projectNameInput"
+                      v-model="newProjectName"
+                      type="text"
+                      class="field__input step__name disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Ticker Insights"
+                      :disabled="isCreating"
+                      @focus="focusedStep = 1"
+                      @blur="focusedStep = null"
+                    >
+                  </div>
 
-                <!-- 01 — Create -->
-                <div class="rule-col rise-item" style="animation-delay: 90ms">
-                  <p class="eyebrow">
-                    <span class="eyebrow__num">01</span>
-                    <span class="eyebrow__rule" aria-hidden="true"></span>
-                    <span>New business</span>
-                  </p>
-                  <h2 class="display mt-6 text-3xl sm:text-4xl">Start a project</h2>
-                  <p class="lede mt-5">
-                    Describe the business. Imagi's agent writes the first version of its web app
-                    from what you say here, so the more it knows the closer the first draft lands.
-                  </p>
-
-                  <!-- The homepage's prompt card: a raised sheet with a warm glow
-                       behind it, so starting a business here looks like the
-                       box a visitor typed their idea into on the way in. -->
-                  <form class="compose mt-10" @submit.prevent="createProject">
-                    <div class="field">
-                      <label class="field__label" for="project-name">Business name</label>
-                      <input
-                        id="project-name"
-                        ref="projectNameInput"
-                        v-model="newProjectName"
-                        type="text"
-                        class="field__input disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="Ticker Insights"
-                        :disabled="isCreating"
-                      >
-                    </div>
-
-                    <div class="field">
-                      <label class="field__label" for="project-description">What the business does</label>
-                      <p class="field__hint">
-                        What it sells, who its customers are, and how it reaches them.
-                      </p>
+                  <!-- 02 — Describe it -->
+                  <div class="step" :class="stepClass(2)">
+                    <span class="step__node" aria-hidden="true">
+                      <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                      <template v-else>02</template>
+                    </span>
+                    <label class="step__title" for="project-description">Describe it</label>
+                    <p id="project-description-hint" class="step__hint">
+                      What it sells, who its customers are, and how it reaches them.
+                    </p>
+                    <div class="lit-field">
                       <textarea
                         id="project-description"
                         v-model="newProjectDescription"
-                        rows="5"
-                        class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        rows="4"
+                        class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="A stock tracker for retail investors — portfolio snapshots with AI-written summaries, sold as a monthly subscription."
+                        aria-describedby="project-description-hint project-description-meter"
                         :disabled="isCreating"
+                        @focus="focusedStep = 2"
+                        @blur="focusedStep = null"
                       ></textarea>
                     </div>
+                    <div class="meter" :class="{ 'meter--done': descriptionDone }">
+                      <span class="meter__track" aria-hidden="true">
+                        <span class="meter__fill" :style="{ transform: `scaleX(${descriptionProgress})` }"></span>
+                      </span>
+                      <span id="project-description-meter" class="meter__label" aria-live="polite">
+                        <svg v-if="descriptionDone" class="meter__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                        {{ descriptionMeterLabel }}
+                      </span>
+                    </div>
+                  </div>
 
-                    <div class="field">
-                      <label class="field__label" for="project-design">
-                        Design direction
-                        <span class="field__optional">Optional</span>
-                      </label>
-                      <p class="field__hint">
-                        Colours, mood, references. Leave it blank and Imagi picks a look that fits.
+                  <!-- 03 — Set the look -->
+                  <div class="step step--last" :class="stepClass(3)">
+                    <span class="step__node" aria-hidden="true">
+                      <svg v-if="designDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                      <template v-else>03</template>
+                    </span>
+                    <label class="step__title" for="project-design">
+                      Set the look
+                      <span class="step__optional">Optional</span>
+                    </label>
+                    <p class="step__hint">
+                      Colours, mood, references. Skip it and Imagi picks a look that fits.
+                    </p>
+                    <textarea
+                      id="project-design"
+                      v-model="newProjectDesign"
+                      rows="2"
+                      class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Warm and minimal, earthy palette, lots of whitespace."
+                      :disabled="isCreating"
+                      @focus="focusedStep = 3"
+                      @blur="focusedStep = null"
+                    ></textarea>
+                  </div>
+                </form>
+
+                <!-- What the agent receives, and the button that sends it -->
+                <aside class="brief rise-item" style="animation-delay: 160ms" aria-label="Project brief">
+                  <div class="brief__card">
+                    <p class="brief__head">
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5c.5 4.6 2.4 6.9 7 7.5-4.6.6-6.5 2.9-7 7.5-.5-4.6-2.4-6.9-7-7.5 4.6-.6 6.5-2.9 7-7.5Z" /></svg>
+                      <span>What the agent receives</span>
+                    </p>
+                    <div class="brief__body">
+                      <p class="brief__name" :class="{ 'is-empty': !nameDone }">
+                        {{ newProjectName.trim() || 'Your business' }}
                       </p>
-                      <textarea
-                        id="project-design"
-                        v-model="newProjectDesign"
-                        rows="2"
-                        class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="Warm and minimal, earthy palette, lots of whitespace."
-                        :disabled="isCreating"
-                      ></textarea>
+                      <p class="brief__desc" :class="{ 'is-empty': !newProjectDescription.trim() }">
+                        {{ newProjectDescription.trim() || 'What the business does shows up here as you describe it.' }}
+                      </p>
+                      <dl class="brief__facts">
+                        <dt>Look</dt>
+                        <dd>{{ newProjectDesign.trim() || 'Imagi picks one' }}</dd>
+                        <dt>First build</dt>
+                        <dd>A web app you can preview</dd>
+                      </dl>
                     </div>
-
-                    <div class="compose__foot">
+                    <div class="brief__foot">
                       <button
                         type="submit"
-                        class="btn-primary group compose__submit"
+                        form="create-project"
+                        class="btn-primary group brief__submit"
                         :disabled="!canCreate || isCreating"
                       >
                         <template v-if="isCreating">
@@ -159,33 +208,31 @@
                           </svg>
                         </template>
                       </button>
+                      <p class="brief__note">You can change everything later in the workspace.</p>
                     </div>
-                  </form>
-                </div>
-
-                <!-- 02 — Library -->
-                <div class="rule-col rise-item" style="animation-delay: 180ms">
-                  <div class="flex items-center justify-between gap-4">
-                    <p class="eyebrow">
-                      <span class="eyebrow__num">02</span>
-                      <span class="eyebrow__rule" aria-hidden="true"></span>
-                      <span>Your projects</span>
-                    </p>
-                    <span v-if="!isLoading && !error && displayedProjects.length > 0" class="count">
-                      {{ searchQuery ? `${displayedProjects.length} found` : `${projects?.length || 0} total` }}
-                    </span>
                   </div>
+                </aside>
 
-                  <h2 class="display mt-6 text-3xl sm:text-4xl">Pick up where you left off</h2>
-                  <p class="lede mt-5">
-                    Open a project to keep building its app &mdash; or to market, sell and run
-                    the business around it.
-                  </p>
+              </div>
+            </section>
+
+            <!-- Your projects -->
+            <section class="relative library-section">
+              <div class="sl-wrap">
+                <div class="library-head rise-item" style="animation-delay: 200ms">
+                  <div>
+                    <p class="count">
+                      Your projects<template v-if="!isLoading && !error && displayedProjects.length > 0">
+                        &middot; {{ searchQuery ? `${displayedProjects.length} found` : `${projects?.length || 0}` }}
+                      </template>
+                    </p>
+                    <h2 class="display library-title">Pick up where you left off</h2>
+                  </div>
 
                   <!-- Search. Nothing to search until there is something in the
                        list, and an empty field over an empty list is just a
-                       second hairline saying nothing. -->
-                  <div v-if="projects?.length" class="search mt-10">
+                       second line saying nothing. -->
+                  <div v-if="projects?.length" class="search">
                     <svg class="search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <circle cx="11" cy="11" r="7" />
                       <path d="m20 20-3.5-3.5" />
@@ -195,86 +242,85 @@
                       id="project-search"
                       v-model="searchQuery"
                       type="search"
-                      class="field__input search__input"
+                      class="search__input"
                       placeholder="Search projects"
                     >
                   </div>
-
-                  <!--
-                    Deletion result, anchored in the library rather than a
-                    bottom-right toast, so the confirmation reads as part of the
-                    list the project was removed from.
-                  -->
-                  <Transition
-                    enter-active-class="transition-all duration-300 ease-out"
-                    enter-from-class="opacity-0 -translate-y-1"
-                    enter-to-class="opacity-100 translate-y-0"
-                    leave-active-class="transition-all duration-200 ease-in"
-                    leave-from-class="opacity-100 translate-y-0"
-                    leave-to-class="opacity-0 -translate-y-1"
-                  >
-                    <div
-                      v-if="deleteBanner"
-                      :key="deleteBanner.id"
-                      role="status"
-                      aria-live="polite"
-                      class="notice"
-                      :class="{ 'notice--alert': deleteBanner.type === 'error' }"
-                    >
-                      <span class="flex-1">{{ deleteBanner.message }}</span>
-                      <button
-                        type="button"
-                        class="notice__dismiss"
-                        aria-label="Dismiss notification"
-                        @click="dismissDeleteBanner"
-                      >
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
-                          <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </Transition>
-
-                  <!-- Loading -->
-                  <p v-if="isLoading" class="state">
-                    <span class="spinner spinner--ink" aria-hidden="true"></span>
-                    <span>Loading your projects&hellip;</span>
-                  </p>
-
-                  <!-- Error -->
-                  <div v-else-if="error" class="state state--block">
-                    <p class="state__message">{{ error }}</p>
-                    <button type="button" class="btn-outline mt-6" @click="retryFetch">Try again</button>
-                  </div>
-
-                  <!-- No search results -->
-                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="state state--block">
-                    <p class="state__message">No project matches &ldquo;{{ searchQuery }}&rdquo;.</p>
-                  </div>
-
-                  <!--
-                    Empty state, keyed off what's actually shown rather than the
-                    raw store list, so deleting the last project surfaces this
-                    immediately instead of leaving a blank column.
-                  -->
-                  <div v-else-if="!displayedProjects.length" class="state state--block">
-                    <p class="state__message">
-                      No projects yet. Describe a business on the left and Imagi builds the first
-                      version of its app.
-                    </p>
-                  </div>
-
-                  <!-- The list -->
-                  <ul v-else class="project-list">
-                    <li v-for="project in displayedProjects" :key="project.id">
-                      <ProjectCard :project="project" @delete="confirmDelete" />
-                    </li>
-                  </ul>
                 </div>
 
+                <!--
+                  Deletion result, anchored in the library rather than a
+                  bottom-right toast, so the confirmation reads as part of the
+                  list the project was removed from.
+                -->
+                <Transition
+                  enter-active-class="transition-all duration-300 ease-out"
+                  enter-from-class="opacity-0 -translate-y-1"
+                  enter-to-class="opacity-100 translate-y-0"
+                  leave-active-class="transition-all duration-200 ease-in"
+                  leave-from-class="opacity-100 translate-y-0"
+                  leave-to-class="opacity-0 -translate-y-1"
+                >
+                  <div
+                    v-if="deleteBanner"
+                    :key="deleteBanner.id"
+                    role="status"
+                    aria-live="polite"
+                    class="notice"
+                    :class="{ 'notice--alert': deleteBanner.type === 'error' }"
+                  >
+                    <span class="flex-1">{{ deleteBanner.message }}</span>
+                    <button
+                      type="button"
+                      class="notice__dismiss"
+                      aria-label="Dismiss notification"
+                      @click="dismissDeleteBanner"
+                    >
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </Transition>
+
+                <!-- Loading -->
+                <p v-if="isLoading" class="state">
+                  <span class="spinner spinner--ink" aria-hidden="true"></span>
+                  <span>Loading your projects&hellip;</span>
+                </p>
+
+                <!-- Error -->
+                <div v-else-if="error" class="state state--block">
+                  <p class="state__message">{{ error }}</p>
+                  <button type="button" class="btn-outline mt-6" @click="retryFetch">Try again</button>
+                </div>
+
+                <!-- No search results -->
+                <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="state state--block">
+                  <p class="state__message">No project matches &ldquo;{{ searchQuery }}&rdquo;.</p>
+                </div>
+
+                <!--
+                  Empty state, keyed off what's actually shown rather than the
+                  raw store list, so deleting the last project surfaces this
+                  immediately instead of leaving an empty section.
+                -->
+                <div v-else-if="!displayedProjects.length" class="state state--block">
+                  <p class="state__message">
+                    No projects yet. Brief the agent above and Imagi builds the first version of
+                    its app.
+                  </p>
+                </div>
+
+                <!-- The list -->
+                <ol v-else class="project-list">
+                  <li v-for="(project, i) in displayedProjects" :key="project.id">
+                    <ProjectCard :project="project" :index="i + 1" @delete="confirmDelete" />
+                  </li>
+                </ol>
               </div>
-            </div>
-          </section>
+            </section>
+          </template>
         </main>
       </div>
     </DefaultLayout>
@@ -323,6 +369,33 @@ const canCreate = computed(() =>
   Boolean(newProjectName.value.trim()) &&
   newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH
 )
+
+// The brief's three steps. A step is done once its answer is enough to build
+// from; the current one is the field being typed in, or else the first that
+// still needs an answer.
+const nameDone = computed(() => Boolean(newProjectName.value.trim()))
+const descriptionLength = computed(() => newProjectDescription.value.trim().length)
+const descriptionDone = computed(() => descriptionLength.value >= MIN_DESCRIPTION_LENGTH)
+const designDone = computed(() => Boolean(newProjectDesign.value.trim()))
+const focusedStep = ref<1 | 2 | 3 | null>(null)
+const currentStep = computed(() =>
+  focusedStep.value ?? (!nameDone.value ? 1 : !descriptionDone.value ? 2 : 3)
+)
+const stepDone = { 1: nameDone, 2: descriptionDone, 3: designDone } as const
+const stepClass = (step: 1 | 2 | 3) => ({
+  'is-done': stepDone[step].value,
+  'is-current': currentStep.value === step,
+})
+const descriptionProgress = computed(() =>
+  Math.min(1, descriptionLength.value / MIN_DESCRIPTION_LENGTH)
+)
+const descriptionMeterLabel = computed(() => {
+  if (descriptionDone.value) return 'Enough to start'
+  if (!descriptionLength.value) return `At least ${MIN_DESCRIPTION_LENGTH} characters`
+  const left = MIN_DESCRIPTION_LENGTH - descriptionLength.value
+  return `${left} more character${left === 1 ? '' : 's'}`
+})
+
 const isInitializing = ref(true)
 
 // Deletion outcomes surface as an inline notice anchored in the project list
@@ -630,25 +703,173 @@ input[type='search']::-webkit-search-cancel-button {
   appearance: none;
 }
 
-/* Grid items default to `min-width: auto`, so the truncated project names —
-   which never wrap — would set the library column's minimum width and squeeze
-   the form beside it down to a third of the measure. */
-.rule-col {
+/* --- Opener ---------------------------------------------------------------
+   Left-aligned, so the title reads as the first line of the brief below it. */
+
+.sl-opener.projects-opener {
+  padding-bottom: clamp(36px, 5vw, 56px);
+}
+
+.projects-spot {
+  left: 30%;
+}
+
+.projects-opener__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.projects-title {
+  font-size: clamp(40px, 6vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  max-width: 18ch;
+}
+
+@media (min-width: 1024px) {
+  .projects-title {
+    max-width: none;
+  }
+}
+
+/* --- Brief ----------------------------------------------------------------
+   The steps on the left, the card that sums them up on the right. */
+
+.brief-section {
+  padding-bottom: clamp(72px, 9vw, 112px);
+}
+
+.brief-cols {
+  display: grid;
+  gap: 48px;
+}
+
+@media (min-width: 1024px) {
+  .brief-cols {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+/* The rail: a line down the left that each step's node sits on. The segment
+   below a node lights once that step has its answer. */
+.steps {
+  display: grid;
   min-width: 0;
 }
 
-/* --- Compose --------------------------------------------------------------
-   The create form, in the same raised sheet as the homepage's idea prompt
-   (IdeaPrompt.vue): paper lifted off the page, a stronger hairline, a long
-   soft shadow, and the accent halo while any field inside has focus. */
-
-.compose {
+.step {
   position: relative;
+  padding: 0 0 2.25rem 3.5rem;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 2.75rem;
+  bottom: 0.25rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--sl-line-strong);
+  transition: background 0.3s ease;
+}
+
+.step.is-done::before {
+  background: linear-gradient(180deg, var(--sl-coral), var(--sl-amber));
+}
+
+.step--last {
+  padding-bottom: 0;
+}
+
+.step--last::before {
+  display: none;
+}
+
+.step__node {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: grid;
-  gap: 1.9rem;
-  padding: 1.6rem 1.5rem 1.25rem;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1.5px solid var(--sl-line-strong);
+  background: var(--sl-bg);
+  color: var(--sl-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.step__node svg {
+  width: 17px;
+  height: 17px;
+}
+
+.step.is-current .step__node {
+  border-color: var(--sl-amber);
+  color: var(--sl-amber);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--sl-amber) 14%, transparent), 0 0 24px var(--sl-glow);
+}
+
+.step.is-done .step__node {
+  border-color: transparent;
+  background: var(--sl-grad);
+  color: var(--sl-on-accent);
+}
+
+.step__title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-top: 0.35rem;
+  font-family: var(--sl-font-display);
+  font-size: 1.375rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--sl-text);
+}
+
+.step__optional {
+  font-family: var(--sl-font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sl-faint);
+}
+
+.step__hint {
+  margin: 0.25rem 0 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--sl-muted);
+}
+
+/* Two selectors so these beat `.editorial .field__input`. */
+.step .step__name {
+  font-family: var(--sl-font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.step .field__input:focus {
+  border-bottom-color: var(--sl-amber);
+}
+
+/* The description gets the home page's glowing prompt sheet: it is the answer
+   the first build leans on most. */
+.lit-field {
   border: 1px solid transparent;
-  border-radius: 1.4rem;
+  border-radius: 1rem;
   background:
     var(--sl-prompt-bg) padding-box,
     var(--sl-prompt-edge) border-box;
@@ -656,82 +877,251 @@ input[type='search']::-webkit-search-cancel-button {
   transition: box-shadow 0.25s ease;
 }
 
-@media (min-width: 640px) {
-  .compose {
-    padding: 1.9rem 1.85rem 1.4rem;
-  }
-}
-
-.compose:focus-within {
+.lit-field:focus-within {
   box-shadow: var(--sl-prompt-shadow-focus);
 }
 
-/* The warm light the home page sets behind its prompt. */
-.compose::before {
-  content: '';
-  position: absolute;
-  inset: -2.5rem -3rem -2rem -3rem;
-  z-index: -1;
-  background: radial-gradient(60% 70% at 40% 50%, var(--sl-glow-soft), transparent 70%);
-  filter: blur(10px);
-  pointer-events: none;
+.lit-field__input {
+  display: block;
+  width: 100%;
+  min-height: 8rem;
+  padding: 1rem 1.15rem;
+  border: 0;
+  border-radius: 1rem;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--sl-text);
 }
 
-.sl-opener.projects-opener {
-  padding-bottom: clamp(48px, 7vw, 88px);
+.lit-field__input::placeholder {
+  color: var(--sl-placeholder);
 }
 
-.sl-opener .projects-title {
-  font-size: clamp(52px, 8.4vw, 112px);
+.lit-field__input:focus {
+  outline: none;
 }
 
-.compose__foot {
+/* How close the description is to enough to build from. */
+.meter {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
 }
 
-/* Two selectors so this beats `.editorial .btn-primary`'s padding. */
-.compose .compose__submit {
-  padding: 0.75rem 1.35rem;
-  font-size: 0.95rem;
+.meter__track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--sl-line-strong);
+  overflow: hidden;
 }
 
-@media (max-width: 480px) {
-  .compose .compose__submit {
-    width: 100%;
+.meter__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--sl-grad);
+  transform-origin: left center;
+  transition: transform 0.3s ease;
+}
+
+.meter__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--sl-muted);
+  white-space: nowrap;
+}
+
+.meter--done .meter__label {
+  color: var(--sl-ok);
+  font-weight: 600;
+}
+
+.meter__check {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* The brief card. It stays in view while the steps are filled in. */
+.brief {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .brief {
+    position: sticky;
+    top: 5.5rem;
   }
 }
 
-/* The project count, sitting opposite the eyebrow it annotates. */
+.brief__card {
+  border: 1px solid var(--sl-line);
+  border-radius: 1.25rem;
+  background: var(--sl-card-bg);
+  box-shadow: var(--sl-card-shadow);
+  overflow: hidden;
+}
+
+.brief__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--sl-line);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sl-faint);
+}
+
+.brief__head svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--sl-amber);
+}
+
+.brief__body {
+  padding: 1.25rem 1.4rem 1.35rem;
+}
+
+.brief__name {
+  font-family: var(--sl-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--sl-text);
+  overflow-wrap: anywhere;
+}
+
+.brief__desc {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--sl-muted);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.brief__name.is-empty,
+.brief__desc.is-empty {
+  color: var(--sl-faint);
+}
+
+.brief__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin-top: 1.1rem;
+  font-size: 0.8rem;
+}
+
+.brief__facts dt {
+  color: var(--sl-faint);
+}
+
+.brief__facts dd {
+  margin: 0;
+  color: var(--sl-text);
+  overflow-wrap: anywhere;
+}
+
+.brief__foot {
+  padding: 1rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--sl-line);
+}
+
+/* Two selectors so this beats `.editorial .btn-primary`'s padding. */
+.brief .brief__submit {
+  width: 100%;
+  justify-content: center;
+  padding: 0.8rem 1.35rem;
+  font-size: 0.95rem;
+}
+
+.brief__note {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--sl-faint);
+}
+
+/* --- Library -------------------------------------------------------------- */
+
+.library-section {
+  padding-bottom: clamp(80px, 10vw, 128px);
+}
+
+.library-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--sl-line-strong);
+}
+
+.library-title {
+  margin-top: 0.5rem;
+  font-size: clamp(1.75rem, 3.2vw, 2.25rem);
+}
+
 .count {
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-40);
+  color: var(--sl-faint);
   white-space: nowrap;
 }
 
-/* --- Search ---------------------------------------------------------------
-   The editorial field, with room made for a mark in the underline. */
+/* --- Search --------------------------------------------------------------- */
 
 .search {
   position: relative;
+  width: 100%;
+  max-width: 17rem;
 }
 
 .search__icon {
   position: absolute;
-  left: 0;
-  top: 0.85rem;
+  left: 0.95rem;
+  top: 50%;
   width: 1rem;
   height: 1rem;
-  color: var(--ink-40);
+  transform: translateY(-50%);
+  color: var(--sl-faint);
   pointer-events: none;
 }
 
-/* Two selectors so this beats `.editorial .field__input`'s padding. */
-.search .search__input {
-  padding-left: 1.6rem;
+.search__input {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.4rem;
+  border: 1px solid var(--sl-line);
+  border-radius: 999px;
+  background: var(--sl-chip-bg);
+  font-size: 0.9rem;
+  color: var(--sl-text);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.search__input::placeholder {
+  color: var(--sl-placeholder);
+}
+
+.search__input:focus {
+  outline: none;
+  border-color: var(--sl-amber);
+  background: var(--sl-chip-bg-hover);
 }
 
 /* --- Notice ---------------------------------------------------------------
@@ -777,12 +1167,9 @@ input[type='search']::-webkit-search-cancel-button {
   color: var(--ink-55);
 }
 
-/* The column has to hold its shape whether it is showing eight projects or a
-   sentence explaining why it is showing none. */
 .state--block {
   display: block;
-  padding-top: 2.5rem;
-  border-top: 1px solid var(--rule);
+  padding-top: 0.5rem;
 }
 
 .state__message {
@@ -818,19 +1205,20 @@ input[type='search']::-webkit-search-cancel-button {
   .spinner {
     animation: none;
   }
+
+  .meter__fill,
+  .step::before,
+  .step__node {
+    transition: none;
+  }
 }
 
 /* --- The list -------------------------------------------------------------
-   Ruled rows, not floating cards: the library reads as one list of businesses,
-   which is what it is. */
+   Numbered ruled rows (ProjectCard), most recently updated first. */
 
 .project-list {
-  /* No rule of its own at the top: the search field's underline sits right
-     above it and is already the line that opens the list. */
-  margin-top: 1.75rem;
   list-style: none;
   padding-left: 0;
-  max-height: 30rem;
-  overflow-y: auto;
+  margin: 0;
 }
 </style>
