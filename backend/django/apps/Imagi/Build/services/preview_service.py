@@ -53,6 +53,31 @@ def child_env(**overrides):
     return env
 
 
+def project_payments_env(project) -> dict:
+    """
+    What a project's backend needs for Imagi's prebuilt payments
+    (backend/django/apps/payments): which project it is, where Imagi's API
+    is, and the project's own Sell server key. The key is the project's, not
+    Imagi's, which is why it is handed over explicitly while the rest of
+    Imagi's environment is not. Empty when payments aren't set up.
+    """
+    try:
+        from apps.Imagi.Sell.models import SellSettings
+        from apps.Imagi.Sell.services.payment_templates import storefront_api_base
+        config = SellSettings.objects.filter(project=project).first()
+        key = config.server_key if config else ''
+    except Exception:
+        logger.exception("Could not read the Sell server key for project %s", project.pk)
+        return {}
+    if not key:
+        return {}
+    return {
+        'IMAGI_SELL_SERVER_KEY': key,
+        'IMAGI_PROJECT_ID': str(project.pk),
+        'IMAGI_API_BASE': storefront_api_base(),
+    }
+
+
 @contextlib.contextmanager
 def npm_install_lock(frontend_path, timeout=NPM_INSTALL_TIMEOUT):
     """Serialize npm installs for one frontend across processes and threads.
@@ -395,7 +420,10 @@ class PreviewService:
             logger.info(f"Using Django project: {project_name}")
 
             # Set up environment
-            env = child_env(DJANGO_SETTINGS_MODULE=f"{project_name}.settings")
+            env = child_env(
+                DJANGO_SETTINGS_MODULE=f"{project_name}.settings",
+                **project_payments_env(self.project),
+            )
 
             # Find available port for backend (avoiding conflict with main project on 8000)
             self.backend_port = self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
@@ -628,6 +656,7 @@ class PreviewService:
         env = child_env(
             PYTHONPATH=self.project.project_path,
             DJANGO_SETTINGS_MODULE=f"{project_name}.settings",
+            **project_payments_env(self.project),
         )
 
         # Start the development server

@@ -127,7 +127,7 @@ Architecture:
 - The Django backend is a JSON API only: DRF serializers and views in the app's api/ directory, routed under '/api/'.
 - The frontend talks to it through the shared Axios client (`import api from '@/shared/services/api'`), which already handles the base URL, auth token and CSRF — no hand-rolled fetch() or extra axios instances.
 
-Payments: never hand-build payment, checkout or subscription flows, and never add payment-provider keys, SDKs or card forms. Imagi's prebuilt, Stripe-backed pages are installed from the project's Sell workspace (Sell -> Payments); point the user there. Installed ones ('apps/store', 'apps/pricing') may be restyled, but keep the checkout logic in 'services/storefront.ts' intact."""
+Payments: never hand-build payment, checkout or subscription flows, or add payment keys, SDKs or card forms. Founders add Imagi's prebuilt Stripe payments in the Sell console; point the user there. Once added, link to '/pricing' and/or '/store', and gate or meter features server-side with 'from apps.payments import has_active_plan, report_usage'. The payments files are read-only except 'payments.css' and 'brand.ts'."""
 
 # Only the file-editing roles need this; the tools enforce it either way
 # (protected_paths), and their refusal names the two files that stay open.

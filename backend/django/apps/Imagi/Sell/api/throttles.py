@@ -18,3 +18,15 @@ class StorefrontCheckoutThrottle(SimpleRateThrottle):
             'scope': self.scope,
             'ident': self.get_ident(request),
         }
+
+
+class StorefrontServerThrottle(SimpleRateThrottle):
+    """Per-project cap on server-key calls (usage reports, plan checks)."""
+
+    scope = 'storefront_server'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {
+            'scope': self.scope,
+            'ident': view.kwargs.get('project_id', self.get_ident(request)),
+        }

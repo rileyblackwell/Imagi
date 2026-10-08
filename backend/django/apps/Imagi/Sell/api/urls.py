@@ -13,15 +13,29 @@ urlpatterns = [
     path('projects/<int:project_id>/settings/verify/',
          views.VerifyConnectionView.as_view(), name='api-sell-verify'),
 
+    # Stripe Connect
+    path('projects/<int:project_id>/connect/start/',
+         views.ConnectStartView.as_view(), name='api-sell-connect-start'),
+    path('projects/<int:project_id>/connect/refresh/',
+         views.ConnectRefreshView.as_view(), name='api-sell-connect-refresh'),
+    path('projects/<int:project_id>/connect/disconnect/',
+         views.ConnectDisconnectView.as_view(), name='api-sell-connect-disconnect'),
+    path('projects/<int:project_id>/server-key/',
+         views.ServerKeyView.as_view(), name='api-sell-server-key'),
+
     # Dashboard
     path('projects/<int:project_id>/overview/',
          views.OverviewView.as_view(), name='api-sell-overview'),
 
     # Prebuilt payment pages (dropped into the user's generated project)
-    path('projects/<int:project_id>/templates/',
-         views.PaymentTemplateListView.as_view(), name='api-sell-templates'),
-    path('projects/<int:project_id>/templates/<str:key>/install/',
-         views.PaymentTemplateInstallView.as_view(), name='api-sell-template-install'),
+    path('projects/<int:project_id>/app-payments/',
+         views.AppPaymentsView.as_view(), name='api-sell-app-payments'),
+    path('projects/<int:project_id>/app-payments/install/',
+         views.AppPaymentsInstallView.as_view(), name='api-sell-app-payments-install'),
+
+    # Subscriptions
+    path('projects/<int:project_id>/subscriptions/',
+         views.SubscriptionListView.as_view(), name='api-sell-subscriptions'),
 
     # Catalog
     path('projects/<int:project_id>/products/',
@@ -55,7 +69,15 @@ urlpatterns = [
     path('storefront/<int:project_id>/sessions/<str:session_id>/',
          views.PublicSessionStatusView.as_view(), name='api-sell-storefront-session'),
 
+    # Server API (the business's own backend, server-key authenticated)
+    path('storefront/<int:project_id>/usage/',
+         views.UsageReportView.as_view(), name='api-sell-storefront-usage'),
+    path('storefront/<int:project_id>/subscriptions/',
+         views.CustomerPlansView.as_view(), name='api-sell-storefront-subscriptions'),
+
     # Stripe callbacks (signature-authenticated, no user session)
+    path('webhooks/connect/',
+         views.ConnectWebhookView.as_view(), name='api-sell-webhook-connect'),
     path('webhooks/<int:project_id>/stripe/',
          views.StripeWebhookView.as_view(), name='api-sell-webhook-stripe'),
 ]

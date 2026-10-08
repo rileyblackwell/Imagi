@@ -755,8 +755,8 @@ class OverviewAPITests(SellAPITestCase):
         self.assertEqual(len(response.json()['recent_orders']), 2)
 
 
-class PaymentTemplateTests(APITestCase):
-    """The prebuilt payment pages the Sell workspace installs into projects."""
+class AppPaymentsTests(APITestCase):
+    """The prebuilt payments the Sell console installs into projects."""
 
     def setUp(self):
         self.projects_root = tempfile.mkdtemp(prefix='imagi-test-projects-')
@@ -772,67 +772,447 @@ class PaymentTemplateTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         self.base = f'/api/v1/sell/projects/{self.project.id}'
 
-    def test_list_templates(self):
-        response = self.client.get(f'{self.base}/templates/')
-        self.assertEqual(response.status_code, 200)
-        templates = response.json()['templates']
-        keys = {t['key'] for t in templates}
-        self.assertEqual(keys, {'checkout', 'subscriptions'})
-        for template in templates:
-            self.assertFalse(template['installed'])
-            self.assertTrue(template['route'].startswith('/'))
+    def choose(self, *models):
+        response = self.client.put(f'{self.base}/settings/', {'payment_models': list(models)},
+                                   format='json')
+        self.assertEqual(response.status_code, 200, response.content)
 
-    def test_install_checkout_template_writes_project_files(self):
+    def read(self, path):
         from apps.Imagi.Build.models import ProjectFile
+        return ProjectFile.objects.get(project=self.project, path=path).content
 
-        response = self.client.post(f'{self.base}/templates/checkout/install/')
+    def test_state_before_install(self):
+        response = self.client.get(f'{self.base}/app-payments/')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()['installed'])
+
+    def test_install_requires_a_payment_model(self):
+        response = self.client.post(f'{self.base}/app-payments/install/')
+        self.assertEqual(response.status_code, 400)
+
+    @patch('apps.Imagi.Sell.services.payments_restyle_service.queue_payments_restyle')
+    def test_install_writes_stamped_files_for_chosen_models(self, queue):
+        self.choose('subscription', 'usage')
+        response = self.client.post(f'{self.base}/app-payments/install/')
         self.assertEqual(response.status_code, 201, response.content)
         payload = response.json()
+        self.assertEqual(payload['routes'], ['/pricing'])
         self.assertTrue(payload['installed'])
-        self.assertEqual(payload['route'], '/store')
 
-        # Files exist on disk (the working copy the preview server runs)...
-        store_view = os.path.join(
-            self.project.project_path,
-            'frontend', 'vuejs', 'src', 'apps', 'store', 'views', 'StoreView.vue',
+        config = self.read('frontend/vuejs/src/apps/payments/config.ts')
+        self.assertIn(f'projectId: {self.project.id}', config)
+        self.assertIn('"pricing": true', config)
+        self.assertIn('"store": false', config)
+        self.assertNotIn('__IMAGI', config)
+        # The client holds no secrets, and Stripe's placeholder survives.
+        client_ts = self.read('frontend/vuejs/src/apps/payments/services/payments.ts')
+        self.assertNotIn('sk_', client_ts)
+        self.assertIn('session_id={CHECKOUT_SESSION_ID}', client_ts)
+        backend_config = self.read('backend/django/apps/payments/config.py')
+        self.assertIn(f'IMAGI_PROJECT_ID = {self.project.id}', backend_config)
+        # Written to the working copy the preview runs, too.
+        self.assertTrue(os.path.exists(os.path.join(
+            self.project.project_path, 'frontend', 'vuejs', 'src', 'apps', 'payments',
+            'views', 'PricingView.vue',
+        )))
+        queue.assert_called_once_with(self.project.id, self.user.id, ['/pricing'])
+
+    @patch('apps.Imagi.Sell.services.payments_restyle_service.queue_payments_restyle')
+    def test_reinstall_keeps_the_projects_look_and_flags_changes(self, queue):
+        from apps.Imagi.Build.services.create_file_service import CreateFileService
+        self.choose('one_time')
+        self.client.post(f'{self.base}/app-payments/install/')
+        css = 'frontend/vuejs/src/apps/payments/styles/payments.css'
+        CreateFileService(project=self.project).create_file(
+            {'name': css, 'type': 'css', 'content': '.pay-theme { --pay-bg: hotpink; }'}
         )
-        self.assertTrue(os.path.exists(store_view))
 
-        # ...and in the database copy the platform serves projects from.
-        service_row = ProjectFile.objects.get(
-            project=self.project,
-            path='frontend/vuejs/src/apps/store/services/storefront.ts',
-        )
-        # The generated client is keyed to this project and holds no secrets.
-        self.assertIn(f'IMAGI_PROJECT_ID = {self.project.id}', service_row.content)
-        self.assertNotIn('sk_', service_row.content)
-        # Stripe's redirect placeholder must survive code generation intact.
-        self.assertIn('session_id={CHECKOUT_SESSION_ID}', service_row.content)
+        self.choose('one_time', 'subscription')
+        state = self.client.get(f'{self.base}/app-payments/').json()
+        self.assertTrue(state['out_of_date'])
 
-        # The gallery now reports it as installed.
-        self.assertTrue(
-            next(t for t in payload['templates'] if t['key'] == 'checkout')['installed']
-        )
-
-    def test_install_subscriptions_template(self):
-        response = self.client.post(f'{self.base}/templates/subscriptions/install/')
-        self.assertEqual(response.status_code, 201, response.content)
-        self.assertEqual(response.json()['route'], '/pricing')
-        pricing_router = os.path.join(
-            self.project.project_path,
-            'frontend', 'vuejs', 'src', 'apps', 'pricing', 'router', 'index.ts',
-        )
-        self.assertTrue(os.path.exists(pricing_router))
-
-    def test_install_unknown_template_is_rejected(self):
-        response = self.client.post(f'{self.base}/templates/nope/install/')
-        self.assertEqual(response.status_code, 400)
+        response = self.client.post(f'{self.base}/app-payments/install/')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(self.read(css), '.pay-theme { --pay-bg: hotpink; }')
+        self.assertFalse(response.json()['out_of_date'])
+        # Only the newly added page is announced to the restyle.
+        self.assertEqual(queue.call_args_list[-1].args[2], ['/pricing'])
 
     def test_install_requires_project_ownership(self):
         intruder = User.objects.create_user(username='intruder', password='pass12345')
         self.client.force_authenticate(user=intruder)
-        response = self.client.post(f'{self.base}/templates/checkout/install/')
+        response = self.client.post(f'{self.base}/app-payments/install/')
         self.assertEqual(response.status_code, 404)
+
+    def test_agents_cannot_edit_the_payment_flow(self):
+        from apps.Imagi.Build.services.protected_paths import (
+            PAYMENTS_RESTYLE_PATHS,
+            is_protected_path,
+            refusal,
+        )
+        self.assertTrue(is_protected_path('frontend/vuejs/src/apps/payments/services/payments.ts'))
+        self.assertTrue(is_protected_path('backend/django/apps/payments/client.py'))
+        for path in PAYMENTS_RESTYLE_PATHS:
+            self.assertFalse(is_protected_path(path))
+        self.assertIn('prebuilt payments', refusal('frontend/vuejs/src/apps/payments/config.ts'))
+
+
+class ConnectTests(SellAPITestCase):
+    """Linking a project to the owner's Stripe account through Connect."""
+
+    def setUp(self):
+        super().setUp()
+        self.user.email = 'owner@example.com'
+        self.user.save()
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_platform', FRONTEND_URL='http://localhost:5173')
+    @patch('apps.Imagi.Sell.services.stripe_client.stripe')
+    def test_start_creates_account_once_and_returns_onboarding_link(self, MockStripe):
+        MockStripe.error = stripe_sdk.error
+        MockStripe.Account.create.return_value = {'id': 'acct_123'}
+        MockStripe.AccountLink.create.return_value = {'url': 'https://connect.stripe.com/setup/x'}
+
+        response = self.client.post(f'{self.base}/connect/start/',
+                                    {'return_path': '/imagi/project/bloom-coffee/sales'})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['url'], 'https://connect.stripe.com/setup/x')
+        kwargs = MockStripe.Account.create.call_args.kwargs
+        self.assertEqual(kwargs['api_key'], 'sk_test_platform')
+        self.assertEqual(kwargs['controller']['stripe_dashboard'], {'type': 'full'})
+        self.assertEqual(kwargs['email'], 'owner@example.com')
+        link = MockStripe.AccountLink.create.call_args.kwargs
+        self.assertEqual(link['account'], 'acct_123')
+        self.assertEqual(
+            link['return_url'], 'http://localhost:5173/imagi/project/bloom-coffee/sales?stripe=return'
+        )
+
+        # A second start reuses the account.
+        self.client.post(f'{self.base}/connect/start/')
+        self.assertEqual(MockStripe.Account.create.call_count, 1)
+        self.assertEqual(SellSettings.objects.get(project=self.project).connect_account_id, 'acct_123')
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_platform')
+    @patch('apps.Imagi.Sell.services.stripe_client.stripe')
+    def test_return_path_cannot_leave_imagi(self, MockStripe):
+        MockStripe.error = stripe_sdk.error
+        MockStripe.Account.create.return_value = {'id': 'acct_123'}
+        MockStripe.AccountLink.create.return_value = {'url': 'https://connect.stripe.com/x'}
+        self.client.post(f'{self.base}/connect/start/', {'return_path': 'https://evil.example/'})
+        link = MockStripe.AccountLink.create.call_args.kwargs
+        self.assertNotIn('evil.example', link['return_url'])
+
+    @override_settings(STRIPE_SECRET_KEY='')
+    def test_start_without_platform_key_explains(self):
+        response = self.client.post(f'{self.base}/connect/start/')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('not available', response.json()['error'])
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_platform')
+    @patch('apps.Imagi.Sell.services.stripe_client.stripe')
+    def test_refresh_caches_account_state_and_enables_checkout(self, MockStripe):
+        MockStripe.error = stripe_sdk.error
+        SellSettings.objects.create(project=self.project, connect_account_id='acct_123')
+        MockStripe.Account.retrieve.return_value = {
+            'id': 'acct_123', 'charges_enabled': True, 'payouts_enabled': False,
+            'details_submitted': True, 'email': 'shop@example.com',
+            'business_profile': {'name': 'Bloom Coffee LLC'},
+        }
+        response = self.client.post(f'{self.base}/connect/refresh/')
+        self.assertEqual(response.status_code, 200, response.content)
+        settings_data = response.json()['settings']
+        self.assertTrue(settings_data['is_configured'])
+        self.assertEqual(settings_data['connection_type'], 'connect')
+        self.assertTrue(settings_data['is_test_mode'])
+        self.assertEqual(settings_data['account_name'], 'Bloom Coffee LLC')
+        self.assertEqual(MockStripe.Account.retrieve.call_args.args, ('acct_123',))
+
+    def test_connected_but_unfinished_account_cannot_take_payments(self):
+        SellSettings.objects.create(project=self.project, connect_account_id='acct_123')
+        with override_settings(STRIPE_SECRET_KEY='sk_test_platform'):
+            with self.assertRaises(SellServiceError):
+                SellService(self.project)._client()
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_platform')
+    @patch('apps.Imagi.Sell.services.stripe_client.stripe')
+    def test_connected_checkout_runs_on_the_connected_account(self, MockStripe):
+        MockStripe.error = stripe_sdk.error
+        MockStripe.checkout.Session.create.return_value = {'id': 'cs_1', 'url': 'https://x'}
+        SellSettings.objects.create(
+            project=self.project, connect_account_id='acct_123', connect_charges_enabled=True,
+        )
+        product = self.add_product()
+        response = APIClient().post(
+            f'/api/v1/sell/storefront/{self.project.id}/checkout/',
+            {'items': [{'product_id': product.id}]}, format='json',
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        kwargs = MockStripe.checkout.Session.create.call_args.kwargs
+        self.assertEqual(kwargs['api_key'], 'sk_test_platform')
+        self.assertEqual(kwargs['stripe_account'], 'acct_123')
+
+    def test_disconnect_forgets_the_account(self):
+        SellSettings.objects.create(
+            project=self.project, connect_account_id='acct_123', connect_charges_enabled=True,
+        )
+        response = self.client.post(f'{self.base}/connect/disconnect/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['settings']['connection_type'], '')
+
+
+class PaymentModelSettingsTests(SellAPITestCase):
+    def test_payment_models_are_validated_and_ordered(self):
+        response = self.client.put(f'{self.base}/settings/',
+                                   {'payment_models': ['usage', 'one_time', 'usage']},
+                                   format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['settings']['payment_models'], ['one_time', 'usage'])
+        response = self.client.put(f'{self.base}/settings/', {'payment_models': ['barter']},
+                                   format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_server_key_rotation_and_reveal(self):
+        response = self.client.post(f'{self.base}/server-key/')
+        self.assertEqual(response.status_code, 201)
+        key = response.json()['server_key']
+        self.assertTrue(key.startswith('imagi_sk_'))
+        self.assertTrue(response.json()['settings']['server_key_set'])
+        settings_obj = SellSettings.objects.get(project=self.project)
+        self.assertNotIn(key, settings_obj.server_key_encrypted)
+        self.assertEqual(self.client.get(f'{self.base}/server-key/').json()['server_key'], key)
+
+    def test_usage_product_validation(self):
+        response = self.client.post(f'{self.base}/products/', {
+            'name': 'Messages', 'price_cents': 1, 'billing_interval': 'usage',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('usage_unit_label', response.json())
+        response = self.client.post(f'{self.base}/products/', {
+            'name': 'Messages', 'price_cents': 100, 'billing_interval': 'usage',
+            'usage_unit_label': 'message', 'usage_unit_count': 1000,
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.json()['product']['pricing_model'], 'usage')
+
+
+@patch('apps.Imagi.Sell.services.stripe_client.stripe')
+class UsageBillingTests(SellAPITestCase):
+    """Pay as you go: metered checkout, subscriptions, usage reports."""
+
+    def setUp(self):
+        super().setUp()
+        self.config = self.configure_stripe()
+        self.server_key = self.config.rotate_server_key()
+        self.config.save()
+        self.plan = Product.objects.create(
+            project=self.project, name='Messages', price_cents=100,
+            billing_interval='usage', usage_unit_label='message', usage_unit_count=1000,
+        )
+        self.public = APIClient()
+        self.storefront = f'/api/v1/sell/storefront/{self.project.id}'
+
+    def mock_stripe(self, MockStripe):
+        MockStripe.error = stripe_sdk.error
+        MockStripe.billing.Meter.create.return_value = {'id': 'mtr_1'}
+        MockStripe.Price.create.return_value = {'id': 'price_1'}
+        MockStripe.checkout.Session.create.return_value = {'id': 'cs_u', 'url': 'https://x'}
+        MockStripe.Subscription.retrieve.return_value = {
+            'id': 'sub_1', 'customer': 'cus_1', 'status': 'active',
+            'metadata': {'imagi_product_id': str(self.plan.id)},
+            'items': {'data': [{'current_period_end': 1893456000}]},
+        }
+
+    def subscribe(self, MockStripe):
+        self.mock_stripe(MockStripe)
+        response = self.public.post(f'{self.storefront}/checkout/', {
+            'items': [{'product_id': self.plan.id}], 'customer_email': 'Ada@Example.com',
+            'success_url': 'http://localhost:5174/pricing/success?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url': 'http://localhost:5174/pricing/cancel',
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.content)
+        order = Order.objects.get(stripe_checkout_session_id='cs_u')
+        SellService(self.project).apply_session(order, {
+            'id': 'cs_u', 'status': 'complete', 'payment_status': 'no_payment_required',
+            'customer': 'cus_1', 'subscription': 'sub_1', 'amount_total': 0,
+            'customer_details': {'email': 'ada@example.com', 'name': 'Ada'},
+        })
+        return order
+
+    def test_metered_checkout_creates_meter_and_price_once(self, MockStripe):
+        order = self.subscribe(MockStripe)
+        session = MockStripe.checkout.Session.create.call_args.kwargs
+        self.assertEqual(session['mode'], 'subscription')
+        self.assertEqual(session['line_items'], [{'price': 'price_1'}])
+        self.assertEqual(session['subscription_data']['metadata']['imagi_product_id'],
+                         str(self.plan.id))
+        price = MockStripe.Price.create.call_args.kwargs
+        self.assertEqual(price['unit_amount_decimal'], '0.1')
+        self.assertEqual(price['recurring']['meter'], 'mtr_1')
+        self.assertEqual(order.amount_total_cents, 0)
+
+        # The next checkout reuses them; a price change makes a new price.
+        self.public.post(f'{self.storefront}/checkout/',
+                         {'items': [{'product_id': self.plan.id}]}, format='json')
+        self.assertEqual(MockStripe.Price.create.call_count, 1)
+        self.plan.refresh_from_db()
+        self.plan.price_cents = 200
+        self.plan.save()
+        self.public.post(f'{self.storefront}/checkout/',
+                         {'items': [{'product_id': self.plan.id}]}, format='json')
+        self.assertEqual(MockStripe.Price.create.call_count, 2)
+        self.assertEqual(MockStripe.billing.Meter.create.call_count, 1)
+
+    def test_loopback_redirects_only_in_test_mode(self, MockStripe):
+        self.mock_stripe(MockStripe)
+        self.config.stripe_secret_key = 'sk_live_' + 'a' * 24
+        self.config.save()
+        response = self.public.post(f'{self.storefront}/checkout/', {
+            'items': [{'product_id': self.plan.id}],
+            'success_url': 'http://localhost:5174/pricing/success',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_completed_checkout_records_subscription(self, MockStripe):
+        order = self.subscribe(MockStripe)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_PAID)
+        subscription = self.project.sell_subscriptions.get()
+        self.assertEqual(subscription.stripe_subscription_id, 'sub_1')
+        self.assertEqual(subscription.customer_email, 'ada@example.com')
+        self.assertEqual(subscription.product, self.plan)
+        self.assertTrue(subscription.is_active)
+        self.assertEqual(Customer.objects.get(project=self.project).stripe_customer_id, 'cus_1')
+
+        response = self.client.get(f'{self.base}/subscriptions/?status=active')
+        self.assertEqual(response.json()['total'], 1)
+        self.assertEqual(response.json()['subscriptions'][0]['pricing_model'], 'usage')
+
+    def test_usage_report_sends_meter_event_once_per_key(self, MockStripe):
+        self.subscribe(MockStripe)
+        MockStripe.billing.MeterEvent.create.return_value = {'identifier': 'x'}
+        headers = {'Authorization': f'Bearer {self.server_key}'}
+        body = {'customer_email': 'ada@example.com', 'quantity': 42, 'idempotency_key': 'job-7'}
+        first = self.public.post(f'{self.storefront}/usage/', body, format='json', headers=headers)
+        self.assertEqual(first.status_code, 201, first.content)
+        again = self.public.post(f'{self.storefront}/usage/', body, format='json', headers=headers)
+        self.assertEqual(again.json()['id'], first.json()['id'])
+        self.assertEqual(MockStripe.billing.MeterEvent.create.call_count, 1)
+        event = MockStripe.billing.MeterEvent.create.call_args.kwargs
+        self.assertEqual(event['payload'], {'stripe_customer_id': 'cus_1', 'value': '42'})
+        self.assertEqual(event['event_name'], f'imagi_p{self.project.id}_product_{self.plan.id}')
+
+    def test_usage_requires_server_key_and_an_active_plan(self, MockStripe):
+        self.mock_stripe(MockStripe)
+        body = {'customer_email': 'ada@example.com', 'quantity': 1}
+        response = self.public.post(f'{self.storefront}/usage/', body, format='json')
+        self.assertEqual(response.status_code, 403)
+        response = self.public.post(f'{self.storefront}/usage/', body, format='json',
+                                    headers={'Authorization': 'Bearer imagi_sk_wrong'})
+        self.assertEqual(response.status_code, 403)
+        response = self.public.post(f'{self.storefront}/usage/', body, format='json',
+                                    headers={'Authorization': f'Bearer {self.server_key}'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('no active pay-as-you-go plan', response.json()['error'])
+
+    def test_failed_meter_event_is_not_counted(self, MockStripe):
+        self.subscribe(MockStripe)
+        MockStripe.billing.MeterEvent.create.side_effect = stripe_sdk.error.APIError('down')
+        response = self.public.post(
+            f'{self.storefront}/usage/',
+            {'customer_email': 'ada@example.com', 'quantity': 1, 'idempotency_key': 'k'},
+            format='json', headers={'Authorization': f'Bearer {self.server_key}'},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.project.sell_usage_events.exists())
+
+    def test_plan_check_for_the_apps_backend(self, MockStripe):
+        self.subscribe(MockStripe)
+        headers = {'Authorization': f'Bearer {self.server_key}'}
+        response = self.public.get(f'{self.storefront}/subscriptions/?email=ADA@example.com',
+                                   headers=headers)
+        self.assertEqual(response.status_code, 200)
+        plans = response.json()['subscriptions']
+        self.assertEqual([p['product_id'] for p in plans], [self.plan.id])
+        self.assertEqual(plans[0]['type'], 'usage')
+        response = self.public.get(f'{self.storefront}/subscriptions/?email=bob@example.com',
+                                   headers=headers)
+        self.assertEqual(response.json()['subscriptions'], [])
+
+    def test_session_status_reports_subscription_mode(self, MockStripe):
+        order = self.subscribe(MockStripe)
+        response = self.public.get(f'{self.storefront}/sessions/{order.stripe_checkout_session_id}/')
+        self.assertEqual(response.json()['mode'], 'subscription')
+
+
+class SubscriptionWebhookTests(SellAPITestCase):
+    def test_subscription_events_update_the_mirror(self):
+        plan = self.add_product('Pro', 2500, billing_interval='month')
+        service = SellService(self.project)
+        service.handle_webhook_event({'type': 'customer.subscription.created', 'data': {'object': {
+            'id': 'sub_9', 'customer': 'cus_9', 'status': 'active',
+            'metadata': {'imagi_product_id': str(plan.id)}, 'current_period_end': 1893456000,
+        }}})
+        service.handle_webhook_event({'type': 'customer.subscription.deleted', 'data': {'object': {
+            'id': 'sub_9', 'customer': 'cus_9', 'status': 'canceled', 'metadata': {},
+        }}})
+        subscription = self.project.sell_subscriptions.get()
+        self.assertEqual(subscription.status, 'canceled')
+        self.assertEqual(subscription.product, plan)
+        self.assertFalse(subscription.is_active)
+
+    def test_overview_reports_subscribers_and_mrr(self):
+        monthly = self.add_product('Pro', 2500, billing_interval='month')
+        yearly = self.add_product('Team', 12000, billing_interval='year')
+        from .models import Subscription
+        Subscription.objects.create(project=self.project, product=monthly,
+                                    stripe_subscription_id='s1', status='active')
+        Subscription.objects.create(project=self.project, product=yearly,
+                                    stripe_subscription_id='s2', status='trialing')
+        Subscription.objects.create(project=self.project, product=monthly,
+                                    stripe_subscription_id='s3', status='canceled')
+        stats = self.client.get(f'{self.base}/overview/').json()['stats']
+        self.assertEqual(stats['subscriptions_active'], 2)
+        self.assertEqual(stats['mrr_cents'], 3500)
+        self.assertEqual(stats['prices_by_model']['subscription'], 2)
+
+
+class ConnectWebhookTests(SellAPITestCase):
+    path = '/api/v1/sell/webhooks/connect/'
+
+    def post(self, event, secret=TEST_WEBHOOK_SECRET):
+        payload = json.dumps(event).encode()
+        return APIClient().post(self.path, payload, content_type='application/json',
+                                headers={'Stripe-Signature': stripe_signature(secret, payload)})
+
+    @override_settings(STRIPE_CONNECT_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET)
+    def test_routes_events_by_connected_account(self):
+        SellSettings.objects.create(project=self.project, connect_account_id='acct_123')
+        order = Order.objects.create(project=self.project, amount_total_cents=500,
+                                     stripe_checkout_session_id='cs_c')
+        response = self.post({
+            'id': 'evt_1', 'object': 'event', 'type': 'checkout.session.completed',
+            'account': 'acct_123',
+            'data': {'object': self.make_session_payload(order, id='cs_c')},
+        })
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_PAID)
+
+        response = self.post({
+            'id': 'evt_2', 'object': 'event', 'type': 'account.updated', 'account': 'acct_123',
+            'data': {'object': {'id': 'acct_123', 'charges_enabled': True,
+                                'payouts_enabled': True, 'details_submitted': True}},
+        })
+        self.assertTrue(SellSettings.objects.get(project=self.project).connect_charges_enabled)
+
+    @override_settings(STRIPE_CONNECT_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET)
+    def test_rejects_bad_signature(self):
+        response = self.post({'id': 'evt', 'type': 'x', 'account': 'acct_1'}, secret='whsec_other')
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(STRIPE_CONNECT_WEBHOOK_SECRET='')
+    def test_rejects_when_unconfigured(self):
+        response = self.post({'id': 'evt', 'type': 'x'})
+        self.assertEqual(response.status_code, 403)
 
 
 class StorefrontCorsTests(SellAPITestCase):

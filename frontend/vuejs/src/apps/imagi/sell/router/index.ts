@@ -1,9 +1,9 @@
 import type { RouteRecordRaw } from 'vue-router'
 import SellWorkspace from '../views/SellWorkspace.vue'
 import SellOverview from '../views/SellOverview.vue'
-import SellPayments from '../views/SellPayments.vue'
 import SellProducts from '../views/SellProducts.vue'
 import SellOrders from '../views/SellOrders.vue'
+import SellSubscriptions from '../views/SellSubscriptions.vue'
 import SellCustomers from '../views/SellCustomers.vue'
 import SellSettings from '../views/SellSettings.vue'
 import CheckoutReturn from '../views/CheckoutReturn.vue'
@@ -32,25 +32,30 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'sell-overview',
         component: SellOverview,
-        meta: { requiresAuth: true, title: 'Sell Overview' }
+        meta: { requiresAuth: true, title: 'Sell Console' }
       },
       {
+        // The old "Add payments to your app" tab is now step 4 of the console.
         path: 'payments',
-        name: 'sell-payments',
-        component: SellPayments,
-        meta: { requiresAuth: true, title: 'Payment pages' }
+        redirect: to => ({ name: 'sell-overview', params: to.params })
       },
       {
         path: 'products',
         name: 'sell-products',
         component: SellProducts,
-        meta: { requiresAuth: true, title: 'Products' }
+        meta: { requiresAuth: true, title: 'Prices' }
       },
       {
         path: 'orders',
         name: 'sell-orders',
         component: SellOrders,
         meta: { requiresAuth: true, title: 'Orders' }
+      },
+      {
+        path: 'subscriptions',
+        name: 'sell-subscriptions',
+        component: SellSubscriptions,
+        meta: { requiresAuth: true, title: 'Subscriptions' }
       },
       {
         path: 'customers',

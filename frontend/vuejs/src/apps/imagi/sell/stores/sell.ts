@@ -10,17 +10,18 @@
 import { defineStore } from 'pinia'
 import SellService from '../services/sellService'
 import type {
+  AppPaymentsInstallResult,
+  AppPaymentsState,
   Customer,
   CustomerPayload,
   Order,
   OverviewPayload,
   PaymentLinkResult,
-  PaymentTemplate,
   Product,
   ProductPayload,
   SellSettings,
   SellSettingsPayload,
-  TemplateInstallResult,
+  Subscription,
   VerifyResult,
 } from '../types'
 
@@ -30,8 +31,10 @@ interface SellState {
   settingsLoading: boolean
   overview: OverviewPayload | null
   overviewLoading: boolean
-  templates: PaymentTemplate[]
-  templatesLoading: boolean
+  appPayments: AppPaymentsState | null
+  subscriptions: Subscription[]
+  subscriptionsTotal: number
+  subscriptionsLoading: boolean
   products: Product[]
   productsLoading: boolean
   orders: Order[]
@@ -49,8 +52,10 @@ export const useSellStore = defineStore('sell', {
     settingsLoading: false,
     overview: null,
     overviewLoading: false,
-    templates: [],
-    templatesLoading: false,
+    appPayments: null,
+    subscriptions: [],
+    subscriptionsTotal: 0,
+    subscriptionsLoading: false,
     products: [],
     productsLoading: false,
     orders: [],
@@ -63,6 +68,9 @@ export const useSellStore = defineStore('sell', {
 
   getters: {
     isConfigured: (state) => Boolean(state.settings?.is_configured),
+    /** Linked to Stripe, whether or not it can take payments yet. */
+    isConnected: (state) => Boolean(state.settings?.connection_type),
+    paymentModels: (state) => state.settings?.payment_models ?? [],
     currency: (state) => state.settings?.currency || 'usd',
   },
 
@@ -107,6 +115,31 @@ export const useSellStore = defineStore('sell', {
       return result
     },
 
+    // -- Stripe Connect -----------------------------------------------------
+    async startConnect(returnPath: string): Promise<string> {
+      return SellService.startConnect(this.requireProject(), returnPath)
+    },
+
+    async refreshConnect(): Promise<SellSettings> {
+      this.settings = await SellService.refreshConnect(this.requireProject())
+      return this.settings
+    },
+
+    async disconnect(): Promise<SellSettings> {
+      this.settings = await SellService.disconnect(this.requireProject())
+      return this.settings
+    },
+
+    async getServerKey(): Promise<string> {
+      return SellService.getServerKey(this.requireProject())
+    },
+
+    async rotateServerKey(): Promise<string> {
+      const { server_key, settings } = await SellService.rotateServerKey(this.requireProject())
+      this.settings = settings
+      return server_key
+    },
+
     // -- Overview -----------------------------------------------------------
     async fetchOverview(): Promise<OverviewPayload> {
       const projectId = this.requireProject()
@@ -119,23 +152,29 @@ export const useSellStore = defineStore('sell', {
       }
     },
 
-    // -- Payment templates ----------------------------------------------------
-    async fetchTemplates(): Promise<PaymentTemplate[]> {
-      const projectId = this.requireProject()
-      this.templatesLoading = true
-      try {
-        this.templates = await SellService.listTemplates(projectId)
-        return this.templates
-      } finally {
-        this.templatesLoading = false
-      }
+    // -- Payments in the user's app ------------------------------------------
+    async fetchAppPayments(): Promise<AppPaymentsState> {
+      this.appPayments = await SellService.getAppPayments(this.requireProject())
+      return this.appPayments
     },
 
-    async installTemplate(key: string): Promise<TemplateInstallResult> {
-      const projectId = this.requireProject()
-      const result = await SellService.installTemplate(projectId, key)
-      this.templates = result.templates
+    async installAppPayments(): Promise<AppPaymentsInstallResult> {
+      const result = await SellService.installAppPayments(this.requireProject())
+      this.appPayments = result
       return result
+    },
+
+    // -- Subscriptions --------------------------------------------------------
+    async fetchSubscriptions(params: { status?: string; limit?: number; offset?: number } = {}) {
+      const projectId = this.requireProject()
+      this.subscriptionsLoading = true
+      try {
+        const { subscriptions, total } = await SellService.listSubscriptions(projectId, params)
+        this.subscriptions = subscriptions
+        this.subscriptionsTotal = total
+      } finally {
+        this.subscriptionsLoading = false
+      }
     },
 
     // -- Products -----------------------------------------------------------
