@@ -13,6 +13,8 @@ now a Vue SPA talking to the DRF API exercised below.
 import os
 import shutil
 import tempfile
+import threading
+from unittest import mock
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -24,6 +26,7 @@ from rest_framework.test import APITestCase
 
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from apps.Imagi.Build.services.browser_preview_service import (
+    BrowserPreviewError,
     BrowserPreviewService,
     CdpError,
 )
@@ -450,6 +453,12 @@ class FakeCdpConnection:
         if evaluate_result is None:
             evaluate_result = {'result': {'type': 'object', 'value': console_buffer or []}}
         self._evaluate_result = evaluate_result
+        # What the page reports for the scroll-metrics probe.
+        self.scroll_metrics = {
+            'x': 0, 'y': 640, 'width': 1000, 'height': 4000,
+            'viewport_width': 1000, 'viewport_height': 800,
+            'background': 'rgb(255, 255, 255)',
+        }
 
     def call(self, method, params=None):
         self.calls.append((method, params or {}))
@@ -463,6 +472,8 @@ class FakeCdpConnection:
         if method == 'Page.captureScreenshot':
             return {'data': 'ZnJhbWU='}
         if method == 'Runtime.evaluate':
+            if 'scrollingElement' in (params or {}).get('expression', ''):
+                return {'result': {'type': 'object', 'value': self.scroll_metrics}}
             if isinstance(self._evaluate_result, Exception):
                 raise self._evaluate_result
             return self._evaluate_result
@@ -578,6 +589,82 @@ class PreviewMotionFrameTests(TestCase):
         self.service._attach_frame(conn, {}, None, quality=55, motion_state=state)
         self.assertNotIn('clip', self._shot_params(conn))
         self.assertNotIn('Page.getLayoutMetrics', [m for m, _ in conn.calls])
+
+
+class PreviewScrollMetricsTests(TestCase):
+    """Frames report the scroll offset they show, read after wheel input lands."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='scrollmetrics', password='pw123456')
+        projects_root = tempfile.mkdtemp(prefix='preview_root_')
+        self.addCleanup(lambda: shutil.rmtree(projects_root, ignore_errors=True))
+        overrides = override_settings(PROJECTS_ROOT=projects_root)
+        overrides.enable()
+        self.addCleanup(overrides.disable)
+        project_path = tempfile.mkdtemp(prefix='preview_proj_')
+        self.addCleanup(lambda: shutil.rmtree(project_path, ignore_errors=True))
+        self.project = PMProject.objects.create(
+            user=self.user, name='Scroll Project', project_path=project_path
+        )
+        self.service = BrowserPreviewService(self.project)
+        self.state = {
+            'app_url': 'http://127.0.0.1:5174', 'viewport': [1000, 800],
+            'device_scale_factor': 2, 'cdp_port': 9999,
+        }
+
+    def _scroll_evaluations(self, conn):
+        return [p for m, p in conn.calls
+                if m == 'Runtime.evaluate' and 'scrollingElement' in p.get('expression', '')]
+
+    def test_status_payload_carries_validated_scroll_metrics(self):
+        conn = FakeCdpConnection()
+        payload = self.service._status_payload(conn, self.state)
+        self.assertEqual(payload['scroll'], {
+            'x': 0.0, 'y': 640.0, 'width': 1000.0, 'height': 4000.0,
+            'viewport_width': 1000.0, 'viewport_height': 800.0,
+            'background': 'rgb(255, 255, 255)',
+        })
+        # A plain poll reads the offset straight away.
+        self.assertNotIn('awaitPromise', self._scroll_evaluations(conn)[0])
+
+    def test_page_supplied_garbage_is_dropped(self):
+        conn = FakeCdpConnection()
+        conn.scroll_metrics = {'x': 0, 'y': 'lots', 'height': 10}
+        self.assertIsNone(self.service._status_payload(conn, self.state)['scroll'])
+        conn = FakeCdpConnection()
+        conn.scroll_metrics['background'] = 'red; background-image: url(x)'
+        self.assertEqual(self.service._status_payload(conn, self.state)['scroll']['background'], '')
+
+    def test_wheel_input_waits_for_the_scroll_to_land_and_clips_there(self):
+        conn = FakeCdpConnection()
+        entry = {'conn': conn, 'page': {}, 'lock': threading.Lock()}
+        with mock.patch.object(self.service, '_require_state', return_value=self.state), \
+                mock.patch('apps.Imagi.Build.services.browser_preview_service._pool_checkout',
+                           return_value=entry):
+            payload = self.service.dispatch_input(
+                [{'kind': 'wheel', 'x': 10, 'y': 10, 'deltaY': 300}]
+            )
+        probe = self._scroll_evaluations(conn)[0]
+        self.assertTrue(probe.get('awaitPromise'))
+        self.assertIn('requestAnimationFrame', probe['expression'])
+        self.assertEqual(payload['scroll']['y'], 640.0)
+        # The 1x motion clip uses that settled offset, not a second probe.
+        shot = [p for m, p in conn.calls if m == 'Page.captureScreenshot'][-1]
+        self.assertEqual(shot['clip']['y'], 640.0)
+        self.assertNotIn('Page.getLayoutMetrics', [m for m, _ in conn.calls])
+
+    def test_scroll_event_scrolls_the_document_to_an_offset(self):
+        method, params = self.service._translate_event({'kind': 'scroll', 'y': 1234.5}, 1000, 800)
+        self.assertEqual(method, 'Runtime.evaluate')
+        self.assertEqual(params['expression'], "window.scrollTo({top: 1234.50, behavior: 'instant'})")
+        with self.assertRaises(BrowserPreviewError):
+            self.service._translate_event({'kind': 'scroll', 'y': 'down'}, 1000, 800)
+
+    def test_viewport_hides_native_scrollbars_before_the_metrics_override(self):
+        conn = FakeCdpConnection()
+        self.service._apply_viewport(conn, self.state)
+        methods = [m for m, _ in conn.calls]
+        self.assertEqual(methods, ['Emulation.setScrollbarsHidden', 'Emulation.setDeviceMetricsOverride'])
 
 
 class PreviewEndpointTests(APITestCase):

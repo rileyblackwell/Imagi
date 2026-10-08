@@ -22,6 +22,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -137,6 +138,46 @@ _CONSOLE_WATCH_JS = """
 _CONSOLE_COLLECT_JS = (
     '(function () { %s; return window.__imagiErrors || []; })()' % _CONSOLE_WATCH_JS
 )
+
+# Where the page is scrolled to, how far it can scroll, and the colour behind
+# it. Every frame carries this so the client can place the bitmap at the exact
+# scroll offset it shows (instead of guessing from the deltas it sent), draw a
+# scrollbar that tracks the page, and fill the strip that an optimistic scroll
+# uncovers with the page's own background instead of a dark gap.
+_SCROLL_METRICS_JS = """
+(function () {
+  var el = document.scrollingElement || document.documentElement;
+  var bg = '';
+  try {
+    bg = document.body ? getComputedStyle(document.body).backgroundColor : '';
+    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
+      bg = getComputedStyle(document.documentElement).backgroundColor;
+    }
+  } catch (e) {}
+  return {
+    x: window.scrollX, y: window.scrollY,
+    width: el ? el.scrollWidth : 0, height: el ? el.scrollHeight : 0,
+    viewport_width: window.innerWidth, viewport_height: window.innerHeight,
+    background: bg
+  };
+})()
+"""
+
+# Same metrics, read once the page has drawn its next frame. Chromium applies
+# a dispatched wheel scroll on its next frame, not by the time the CDP call
+# returns: read straight away, scrollY still holds the pre-scroll offset (the
+# screenshot itself does wait for the frame). The timeout keeps a page that
+# isn't producing frames from stalling the request.
+_SETTLED_SCROLL_METRICS_JS = """
+new Promise(function (resolve) {
+  var done = false;
+  function read() { if (!done) { done = true; resolve(%s); } }
+  requestAnimationFrame(read);
+  setTimeout(read, 120);
+})
+""" % _SCROLL_METRICS_JS.strip()
+
+_CSS_COLOR_RE = re.compile(r'^rgba?\([0-9.,%/ ]{1,60}\)$')
 
 _MOUSE_EVENT_TYPES = {'mousePressed', 'mouseReleased', 'mouseMoved'}
 _MOUSE_BUTTONS = {'none', 'left', 'middle', 'right', 'back', 'forward'}
@@ -354,6 +395,10 @@ class BrowserPreviewService:
             state = self._launch_chromium(width, height, dsf, app_url + '/')
         else:
             state['viewport'] = [width, height]
+            # A reused browser (typically one the warm-up launched at 1x
+            # before any client said otherwise) adopts the client's density,
+            # or a Retina screen gets soft frames until the pane is resized.
+            state['device_scale_factor'] = dsf
 
         state['app_url'] = app_url
         state['last_active'] = time.time()
@@ -418,14 +463,15 @@ class BrowserPreviewService:
             isinstance(e, dict) and (e.get('kind') == 'wheel' or e.get('type') == 'mouseMoved')
             for e in events
         )
+        scrolls = any(isinstance(e, dict) and e.get('kind') in ('wheel', 'scroll') for e in events)
 
         def body(conn, _page):
             self._apply_viewport(conn, state)
             for event in events:
                 method, params = self._translate_event(event, width, height)
                 conn.call(method, params)
-            payload = self._status_payload(conn, state)
-            if motion:
+            payload = self._status_payload(conn, state, settle_scroll=scrolls)
+            if motion or scrolls:
                 self._attach_frame(
                     conn, payload, etag,
                     quality=MOTION_JPEG_QUALITY, motion_state=state,
@@ -671,6 +717,15 @@ class BrowserPreviewService:
         # None, forcing one apply.
         if conn.applied_viewport == requested:
             return
+        # The page's own scrollbar is drawn into the frame, where it slid
+        # with the optimistic scroll and then snapped back. The client draws
+        # its own scrollbar from the scroll metrics instead. Hiding it only
+        # takes effect at the next layout, which the override below forces,
+        # so it has to come first.
+        try:
+            conn.call('Emulation.setScrollbarsHidden', {'hidden': True})
+        except CdpError:
+            pass  # older Chromium: keep the native scrollbar
         conn.call('Emulation.setDeviceMetricsOverride', {
             'width': requested[0],
             'height': requested[1],
@@ -694,7 +749,7 @@ class BrowserPreviewService:
                 BrowserPreviewService._fast_screenshots = False
         return conn.call('Page.captureScreenshot', params)
 
-    def _motion_clip(self, conn, state):
+    def _motion_clip(self, conn, state, scroll=None):
         """Clip that captures the visible viewport at 1 CSS px per image px.
 
         On a HiDPI client the browser renders at deviceScaleFactor 2, so a
@@ -708,10 +763,16 @@ class BrowserPreviewService:
         dsf = float(state.get('device_scale_factor', 1))
         if dsf <= 1:
             return None
-        try:
-            metrics = conn.call('Page.getLayoutMetrics').get('cssVisualViewport') or {}
-        except CdpError:
-            return None
+        if scroll:
+            # The settled offset the payload already read (see _scroll_metrics):
+            # an offset read before the scroll lands would clip the region the
+            # page just scrolled away from.
+            metrics = {'pageX': scroll['x'], 'pageY': scroll['y']}
+        else:
+            try:
+                metrics = conn.call('Page.getLayoutMetrics').get('cssVisualViewport') or {}
+            except CdpError:
+                return None
         width, height = state.get('viewport', DEFAULT_VIEWPORT)
         # Clip coordinates are document coordinates, so offset by the scroll
         # position or the capture shows the top of the page.
@@ -724,7 +785,10 @@ class BrowserPreviewService:
         }
 
     def _attach_frame(self, conn, payload, etag, quality=FRAME_JPEG_QUALITY, motion_state=None):
-        clip = self._motion_clip(conn, motion_state) if motion_state else None
+        clip = (
+            self._motion_clip(conn, motion_state, payload.get('scroll'))
+            if motion_state else None
+        )
         shot = self._capture_screenshot(conn, quality, clip)
         data = shot.get('data', '')
         # The etag only has to change when the frame does, so hash the base64
@@ -736,7 +800,7 @@ class BrowserPreviewService:
         else:
             payload['frame'] = data
 
-    def _status_payload(self, conn, state):
+    def _status_payload(self, conn, state, settle_scroll=False):
         self._ensure_console_watch(conn)
         history = conn.call('Page.getNavigationHistory')
         entries = history.get('entries', [])
@@ -751,7 +815,44 @@ class BrowserPreviewService:
             'viewport': state.get('viewport', list(DEFAULT_VIEWPORT)),
             'device_scale_factor': state.get('device_scale_factor', 1),
             'console_errors': self._collect_console_errors(conn),
+            'scroll': self._scroll_metrics(conn, settle=settle_scroll),
         }
+
+    def _scroll_metrics(self, conn, settle=False):
+        """The page's scroll position/extent and background, or None.
+
+        ``settle`` waits for the page's next frame first; pass it after
+        dispatching wheel input so the offset matches the screenshot taken
+        next. Like console errors, this is page-supplied data that never fails
+        a frame, so it is re-validated and any failure reports None.
+        """
+        params = {
+            'expression': _SETTLED_SCROLL_METRICS_JS if settle else _SCROLL_METRICS_JS,
+            'returnByValue': True,
+        }
+        if settle:
+            params['awaitPromise'] = True
+        try:
+            result = conn.call('Runtime.evaluate', params)
+        except CdpError:
+            return None
+        raw = result.get('result', {}).get('value')
+        if result.get('exceptionDetails') or not isinstance(raw, dict):
+            return None
+        metrics = {}
+        for key in ('x', 'y', 'width', 'height', 'viewport_width', 'viewport_height'):
+            try:
+                value = float(raw.get(key) or 0)
+            except (TypeError, ValueError):
+                return None
+            if value != value or value in (float('inf'), float('-inf')):
+                return None
+            metrics[key] = round(max(0.0, min(value, 1e7)), 2)
+        background = raw.get('background')
+        metrics['background'] = (
+            background if isinstance(background, str) and _CSS_COLOR_RE.match(background) else ''
+        )
+        return metrics
 
     def _ensure_console_watch(self, conn):
         """Arm the console collector for documents the page navigates to next.
@@ -839,6 +940,18 @@ class BrowserPreviewService:
                 'deltaX': float(event.get('deltaX') or 0),
                 'deltaY': float(event.get('deltaY') or 0),
                 'modifiers': modifiers,
+            }
+
+        if kind == 'scroll':
+            # Absolute scroll to a document offset: the client's scrollbar
+            # thumb. Unlike a wheel event it doesn't depend on what sits under
+            # the pointer, so dragging the thumb always moves the page itself.
+            try:
+                top = max(0.0, min(float(event.get('y') or 0), 1e7))
+            except (TypeError, ValueError):
+                raise BrowserPreviewError('Malformed scroll event.')
+            return 'Runtime.evaluate', {
+                'expression': f"window.scrollTo({{top: {top:.2f}, behavior: 'instant'}})",
             }
 
         if kind == 'key':

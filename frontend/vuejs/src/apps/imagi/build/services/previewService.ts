@@ -11,7 +11,8 @@ import api from '@/shared/services/api'
 
 /** One user-input event forwarded to the remote browser page. */
 export interface PreviewInputEvent {
-  kind: 'mouse' | 'wheel' | 'key'
+  /** 'scroll' jumps the page to document offset `y` (the scrollbar thumb). */
+  kind: 'mouse' | 'wheel' | 'scroll' | 'key'
   type?: 'mousePressed' | 'mouseReleased' | 'mouseMoved' | 'keyDown' | 'keyUp'
   x?: number
   y?: number
@@ -35,6 +36,20 @@ export interface PreviewConsoleError {
   ts: number
 }
 
+/** Where the previewed page is scrolled, in its CSS px, as of the frame it
+ *  travels with. */
+export interface PreviewScroll {
+  x: number
+  y: number
+  /** Full scrollable size of the document. */
+  width: number
+  height: number
+  viewport_width: number
+  viewport_height: number
+  /** The page's background colour (CSS rgb/rgba), or '' when unknown. */
+  background: string
+}
+
 /** Snapshot of the remote page: navigation state plus (optionally) a frame. */
 export interface PreviewFrame {
   running?: boolean
@@ -52,6 +67,8 @@ export interface PreviewFrame {
    *  last ~5, deduped by text, a full replacement list on every payload
    *  (empty array means none), cleared on hard navigation. */
   console_errors?: PreviewConsoleError[]
+  /** Scroll position the frame shows; null when the page couldn't report it. */
+  scroll?: PreviewScroll | null
 }
 
 /** One navigable page of the previewed app, read from its actual router. */
