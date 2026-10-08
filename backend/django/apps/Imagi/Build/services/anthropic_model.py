@@ -19,6 +19,13 @@ exactly as they came. Each assistant turn therefore also emits a `reasoning`
 item whose encrypted_content carries the turn's full Anthropic content; on the
 way back in, that item is replayed verbatim and the Responses items the same
 turn produced (its text and function calls) are skipped as duplicates.
+
+Claude's client toolsets (the preview browser, browser_toolset_20260801) have
+no Responses equivalent. A toolset rides through the Runner as one function
+tool named after it (toolset_function_tool): every member call of a turn
+becomes a single call to it, which runs them in order and stops at the first
+failure as the toolset requires, and its output carries one result per member
+back to Claude.
 """
 
 import asyncio
@@ -35,7 +42,7 @@ from agents.items import ModelResponse
 from agents.models.fake_id import FAKE_RESPONSES_ID
 from agents.models.interface import Model
 from agents.tool import FunctionTool
-from agents.usage import Usage
+from agents.usage import RequestUsage, Usage
 from openai.types.responses import (
     Response,
     ResponseCompletedEvent,
@@ -76,6 +83,11 @@ CLAUDE_EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max')
 # refusal category instead of returning the refusal.
 REFUSAL_FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 
+# Fast mode: the same model with faster output, at a higher price (see
+# models_service). Asked for per request with speed 'fast', which the agent's
+# ModelSettings carry in extra_args (base_agent.build_model_settings).
+FAST_MODE_BETA = 'fast-mode-2026-02-01'
+
 # Claude's server-side web search. Runs on Anthropic's side inside a single
 # response, so the harness never executes it. The current version filters
 # results by running code (programmatic tool calling), which the API refuses
@@ -91,6 +103,14 @@ MAX_PAUSE_CONTINUATIONS = 5
 
 # The marker on a reasoning item that carries a Claude turn's raw content.
 REPLAY_KEY = 'anthropic_content'
+
+# Marks a toolset call's output so it is sent back as per-member results.
+TOOLSET_RESULTS_KEY = 'anthropic_toolset_results'
+
+TRUNCATED_CALL_TEXT = (
+    "This call was cut off by the output limit before its input was complete, "
+    "so it was not run. Send it again with less in one call."
+)
 
 REFUSAL_TEXT = (
     "I can't help with that request. Try rephrasing it, or pick a different "
@@ -141,6 +161,81 @@ def _replay_content(item: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
     if isinstance(payload, dict) and isinstance(payload.get(REPLAY_KEY), list):
         return payload[REPLAY_KEY]
     return None
+
+
+def _toolset_calls(arguments: Any) -> Optional[List[Dict[str, Any]]]:
+    """The member calls a toolset function call carries, or None if it isn't one."""
+    if isinstance(arguments, dict) and isinstance(arguments.get('calls'), list) \
+            and arguments.get(TOOLSET_RESULTS_KEY + '_call'):
+        return arguments['calls']
+    return None
+
+
+def _toolset_results(output: Any) -> Optional[List[Dict[str, Any]]]:
+    """tool_result blocks from a toolset call's output, or None if it isn't one."""
+    if not isinstance(output, str) or TOOLSET_RESULTS_KEY not in output:
+        return None
+    try:
+        payload = json.loads(output)
+    except ValueError:
+        return None
+    if not isinstance(payload, dict) or not isinstance(payload.get(TOOLSET_RESULTS_KEY), list):
+        return None
+    return payload[TOOLSET_RESULTS_KEY]
+
+
+def toolset_function_tool(toolset: Any) -> FunctionTool:
+    """
+    A Claude client toolset as one Agents SDK function tool.
+
+    toolset provides toolset_name, halt_text, to_param() (its tools[] entry)
+    and run_member(ctx, name, input) -> (content, is_error), which runs one
+    member call synchronously. The tool's arguments are the turn's member
+    calls in order (see to_output_items); they run one after another off the
+    event loop, and once one fails the rest are answered with halt_text.
+    """
+    name = toolset.toolset_name
+
+    def run_calls(ctx: Any, calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        results = []
+        failed = False
+        for call in calls:
+            result = {'type': 'tool_result', 'tool_use_id': call.get('id'), 'toolset_name': name}
+            if failed:
+                result.update(is_error=True, content=toolset.halt_text)
+            elif call.get('truncated'):
+                result.update(is_error=True, content=TRUNCATED_CALL_TEXT)
+                failed = True
+            else:
+                try:
+                    content, is_error = toolset.run_member(ctx, call.get('name') or '', call.get('input') or {})
+                except Exception as e:  # a failed action is the model's to see
+                    logger.info("%s.%s failed: %s", name, call.get('name'), e)
+                    content, is_error = f"Error: {e}", True
+                result['content'] = content
+                if is_error:
+                    result['is_error'] = True
+                    failed = True
+            results.append(result)
+        return results
+
+    async def invoke(ctx: Any, arguments: str) -> str:
+        try:
+            calls = _toolset_calls(json.loads(arguments or '{}')) or []
+        except ValueError:
+            calls = []
+        results = await asyncio.to_thread(run_calls, ctx, calls)
+        return json.dumps({TOOLSET_RESULTS_KEY: results})
+
+    tool = FunctionTool(
+        name=name,
+        description=f"Claude's {name} toolset.",
+        params_json_schema={'type': 'object', 'properties': {}, 'additionalProperties': True},
+        on_invoke_tool=invoke,
+        strict_json_schema=False,
+    )
+    tool.anthropic_toolset = toolset
+    return tool
 
 
 def _is_assistant_side(item: Dict[str, Any]) -> bool:
@@ -200,6 +295,17 @@ def to_anthropic_messages(
                 arguments = json.loads(item.get('arguments') or '{}')
             except ValueError:
                 arguments = {}
+            members = _toolset_calls(arguments)
+            if members is not None:
+                # A toolset call without its replayed turn: re-expand it.
+                add('assistant', [{
+                    'type': 'tool_use',
+                    'id': call.get('id'),
+                    'name': call.get('name'),
+                    'input': call.get('input') or {},
+                    'toolset_name': item.get('name'),
+                } for call in members])
+                continue
             add('assistant', [{
                 'type': 'tool_use',
                 'id': item.get('call_id'),
@@ -209,6 +315,10 @@ def to_anthropic_messages(
             continue
 
         if item_type == 'function_call_output':
+            toolset_results = _toolset_results(item.get('output'))
+            if toolset_results is not None:
+                add('user', toolset_results)
+                continue
             add('user', [{
                 'type': 'tool_result',
                 'tool_use_id': item.get('call_id'),
@@ -240,7 +350,10 @@ def to_anthropic_tools(tools: List[Any], sequential: bool = False) -> List[Dict[
     """
     converted = []
     for tool in tools or []:
-        if isinstance(tool, FunctionTool):
+        toolset = getattr(tool, 'anthropic_toolset', None)
+        if toolset is not None:
+            converted.append(toolset.to_param())
+        elif isinstance(tool, FunctionTool):
             converted.append({
                 'name': tool.name,
                 'description': tool.description or '',
@@ -267,6 +380,10 @@ def to_output_items(content: List[Dict[str, Any]], stop_reason: Optional[str]) -
         )
     ]
     tool_uses = [b for b in content if b.get('type') == 'tool_use']
+    truncated = tool_uses[-1] if stop_reason == 'max_tokens' and tool_uses else None
+    # A turn's toolset member calls, grouped per toolset into one function
+    # call placed where the first of them was.
+    toolset_calls: Dict[str, Dict[str, Any]] = {}
     # Adjacent text blocks are one message: a cited answer arrives split at
     # every citation, and the Runner takes only the last message as the
     # final reply.
@@ -294,10 +411,31 @@ def to_output_items(content: List[Dict[str, Any]], stop_reason: Optional[str]) -
         if block_type in ('thinking', 'redacted_thinking'):
             continue  # invisible; does not split the reply
         flush_text()
+        if block_type == 'tool_use' and block.get('toolset_name'):
+            toolset = block['toolset_name']
+            call = {'id': block['id'], 'name': block.get('name'), 'input': block.get('input') or {}}
+            # Answered with an error rather than dropped: the replayed turn
+            # holds the tool_use, so it needs a result.
+            if block is truncated:
+                call['truncated'] = True
+            if toolset not in toolset_calls:
+                toolset_calls[toolset] = {
+                    'calls': [], TOOLSET_RESULTS_KEY + '_call': True,
+                }
+                items.append(ResponseFunctionToolCall(
+                    id=FAKE_RESPONSES_ID,
+                    call_id=block['id'],
+                    name=toolset,
+                    arguments='',  # filled in below, once every member is known
+                    type='function_call',
+                    status='completed',
+                ))
+            toolset_calls[toolset]['calls'].append(call)
+            continue
         if block_type == 'tool_use':
             # A tool call cut off by the output cap has truncated arguments;
             # running it would act on half an instruction.
-            if stop_reason == 'max_tokens' and block is tool_uses[-1]:
+            if block is truncated:
                 logger.warning("Claude hit max_tokens mid tool call %s; dropping it", block.get('name'))
                 continue
             items.append(ResponseFunctionToolCall(
@@ -309,6 +447,13 @@ def to_output_items(content: List[Dict[str, Any]], stop_reason: Optional[str]) -
                 status='completed',
             ))
     flush_text()
+
+    for item in items:
+        if isinstance(item, ResponseFunctionToolCall) and item.name in toolset_calls and not item.arguments:
+            payload = toolset_calls[item.name]
+            # 'actions' names what was done, for the workspace activity feed.
+            payload['actions'] = ', '.join(c.get('name') or '' for c in payload['calls'])
+            item.arguments = json.dumps(payload)
 
     if stop_reason == 'refusal' and not any(isinstance(i, ResponseOutputMessage) for i in items):
         items.append(ResponseOutputMessage(
@@ -331,6 +476,9 @@ class _TurnUsage:
         self.input_tokens = 0
         self.cached_tokens = 0
         self.output_tokens = 0
+        # Per request, so a price that depends on a single request's prompt
+        # size (Haiku's long-context rate) can be applied downstream.
+        self.entries: List[RequestUsage] = []
 
     def add(self, usage: Any):
         self.requests += 1
@@ -338,9 +486,18 @@ class _TurnUsage:
         cache_write = getattr(usage, 'cache_creation_input_tokens', 0) or 0
         # Anthropic reports cached tokens separately from input_tokens; the
         # platform meters every token the model read, cached or not.
-        self.input_tokens += (getattr(usage, 'input_tokens', 0) or 0) + cache_read + cache_write
+        prompt = (getattr(usage, 'input_tokens', 0) or 0) + cache_read + cache_write
+        output = getattr(usage, 'output_tokens', 0) or 0
+        self.input_tokens += prompt
         self.cached_tokens += cache_read
-        self.output_tokens += getattr(usage, 'output_tokens', 0) or 0
+        self.output_tokens += output
+        self.entries.append(RequestUsage(
+            input_tokens=prompt,
+            output_tokens=output,
+            total_tokens=prompt + output,
+            input_tokens_details=InputTokensDetails(cached_tokens=cache_read),
+            output_tokens_details=OutputTokensDetails(reasoning_tokens=0),
+        ))
 
     def as_agents_usage(self) -> Usage:
         return Usage(
@@ -350,6 +507,7 @@ class _TurnUsage:
             total_tokens=self.input_tokens + self.output_tokens,
             input_tokens_details=InputTokensDetails(cached_tokens=self.cached_tokens),
             output_tokens_details=OutputTokensDetails(reasoning_tokens=0),
+            request_usage_entries=list(self.entries),
         )
 
     def as_response_usage(self) -> ResponseUsage:
@@ -443,9 +601,16 @@ class AnthropicModel(Model):
                     tool_choice['disable_parallel_tool_use'] = True
                 request['tool_choice'] = tool_choice
 
+        betas = []
         if self.refusal_fallback:
             request['fallbacks'] = 'default'
-            request['betas'] = [REFUSAL_FALLBACK_BETA]
+            betas.append(REFUSAL_FALLBACK_BETA)
+        extra_args = getattr(model_settings, 'extra_args', None) or {}
+        if extra_args.get('speed') == 'fast':
+            request['speed'] = 'fast'
+            betas.append(FAST_MODE_BETA)
+        if betas:
+            request['betas'] = betas
         return request
 
     async def _run_turn(self, request: Dict[str, Any], on_text=None):

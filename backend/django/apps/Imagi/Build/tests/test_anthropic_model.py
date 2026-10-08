@@ -21,7 +21,9 @@ from apps.Imagi.Build.services.anthropic_model import (
     REFUSAL_TEXT,
     AnthropicModel,
     to_anthropic_messages,
+    to_anthropic_tools,
     to_output_items,
+    toolset_function_tool,
 )
 from apps.Imagi.Build.services.base_agent import build_model_settings
 from apps.Imagi.Build.services.coding_agent import build_agent_model, create_coding_agent
@@ -31,7 +33,7 @@ from apps.Imagi.Build.services.models_service import (
     resolve_reasoning_effort,
 )
 
-CLAUDE_MODELS = ('claude-opus-5-5',)
+CLAUDE_MODELS = ('claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1')
 
 
 def _message(content, stop_reason='end_turn', usage=None):
@@ -97,12 +99,14 @@ class ClaudeRegistryTests(SimpleTestCase):
         for model_id in CLAUDE_MODELS:
             self.assertIn(model_id, ids)
             self.assertEqual(get_model_provider(model_id), 'anthropic')
-            self.assertEqual(resolve_reasoning_effort(model_id, 'max'), 'xhigh')
-        self.assertEqual(get_model_provider('gpt-6-luna'), 'openai')
-        self.assertEqual(get_model_provider('gpt-6-astra'), 'openai')
+            self.assertEqual(resolve_reasoning_effort(model_id, 'max'), 'max')
+        # A retired GPT id now runs on the Claude model for its tier.
+        self.assertEqual(get_model_provider('gpt-6-luna'), 'anthropic')
 
     def test_the_agent_is_served_by_the_provider_of_its_model(self):
-        self.assertEqual(build_agent_model('gpt-6-luna'), 'gpt-6-luna')
+        retired = build_agent_model('gpt-6-astra')
+        self.assertIsInstance(retired, AnthropicModel)
+        self.assertEqual(retired.model, 'claude-fable-5-1')
         claude = build_agent_model('claude-opus-5-5')
         self.assertIsInstance(claude, AnthropicModel)
         self.assertEqual(claude.model, 'claude-opus-5-5')
@@ -155,6 +159,17 @@ class ClaudeRequestTests(SimpleTestCase):
         self.assertNotIn('betas', request)
         self.assertNotIn('tools', request)
         self.assertNotIn('system', request)
+
+    def test_fast_mode_sends_speed_and_its_beta(self):
+        request = AnthropicModel('claude-opus-5-5').build_request(
+            None, 'hi', build_model_settings('low', speed='fast'), [], None,
+        )
+        self.assertEqual(request['speed'], 'fast')
+        self.assertIn('fast-mode-2026-02-01', request['betas'])
+        standard = AnthropicModel('claude-opus-5-5').build_request(
+            None, 'hi', build_model_settings('low'), [], None,
+        )
+        self.assertNotIn('speed', standard)
 
     def test_history_translates_into_alternating_messages(self):
         system, messages = to_anthropic_messages([
@@ -325,3 +340,107 @@ class ApiKeyLoadingTests(SimpleTestCase):
         from apps.Imagi.Build.services.api_keys import read_api_key
         with mock.patch.dict(os.environ, {'OPENAI_KEY': '\n'}):
             self.assertIsNone(read_api_key('OPENAI_KEY'))
+
+
+class _Browser:
+    """A stand-in client toolset."""
+
+    toolset_name = 'browser'
+    halt_text = 'Not executed: an earlier action in this turn failed.'
+
+    def __init__(self, fail_on=()):
+        self.fail_on = set(fail_on)
+        self.ran = []
+
+    def to_param(self):
+        return {'type': 'browser_toolset_20260801', 'configs': {'javascript_exec': {'enabled': False}}}
+
+    def run_member(self, ctx, name, tool_input):
+        self.ran.append(name)
+        if name in self.fail_on:
+            return 'Error: no such element', True
+        return [{'type': 'text', 'text': f'{name} ok'}], False
+
+
+def _member(id_, name, tool_input=None):
+    return {'type': 'tool_use', 'id': id_, 'name': name, 'input': tool_input or {}, 'toolset_name': 'browser'}
+
+
+class ClaudeToolsetTests(SimpleTestCase):
+    """A Claude client toolset rides the Runner as one function tool per turn."""
+
+    def test_the_toolset_is_sent_as_its_own_tools_entry(self):
+        tool = toolset_function_tool(_Browser())
+        self.assertEqual(
+            to_anthropic_tools([tool, add]),
+            [_Browser().to_param(), {
+                'name': 'add', 'description': add.description, 'input_schema': add.params_json_schema,
+            }],
+        )
+
+    def test_a_turns_member_calls_become_one_call_in_order(self):
+        items = to_output_items([
+            _member('b1', 'screenshot'),
+            {'type': 'tool_use', 'id': 't1', 'name': 'add', 'input': {'a': 1, 'b': 2}},
+            _member('b2', 'left_click', {'target': {'type': 'coordinate', 'x': 1, 'y': 2}}),
+        ], 'tool_use')
+        calls = [i for i in items if getattr(i, 'type', '') == 'function_call']
+        self.assertEqual([c.name for c in calls], ['browser', 'add'])
+        payload = json.loads(calls[0].arguments)
+        self.assertEqual([c['id'] for c in payload['calls']], ['b1', 'b2'])
+        self.assertEqual(payload['actions'], 'screenshot, left_click')
+
+    def test_members_run_in_order_and_halt_after_a_failure(self):
+        browser = _Browser(fail_on={'left_click'})
+        tool = toolset_function_tool(browser)
+        items = to_output_items(
+            [_member('b1', 'screenshot'), _member('b2', 'left_click'), _member('b3', 'type', {'text': 'x'})],
+            'tool_use',
+        )
+        call = next(i for i in items if getattr(i, 'type', '') == 'function_call')
+        output = async_to_sync(tool.on_invoke_tool)(SimpleNamespace(context=None), call.arguments)
+        self.assertEqual(browser.ran, ['screenshot', 'left_click'])
+
+        # Sent back as one tool_result per member, each naming its toolset.
+        _, messages = to_anthropic_messages([
+            {'role': 'user', 'content': 'Check the page.'},
+            *[i.model_dump(exclude_none=True) for i in items],
+            {'type': 'function_call_output', 'call_id': call.call_id, 'output': output},
+        ])
+        self.assertEqual([b['id'] for b in messages[1]['content'] if b['type'] == 'tool_use'],
+                         ['b1', 'b2', 'b3'])
+        results = messages[2]['content']
+        self.assertEqual([r['tool_use_id'] for r in results], ['b1', 'b2', 'b3'])
+        self.assertEqual({r['toolset_name'] for r in results}, {'browser'})
+        self.assertNotIn('is_error', results[0])
+        self.assertTrue(results[1]['is_error'])
+        self.assertEqual(results[2]['content'], browser.halt_text)
+
+    def test_a_member_cut_off_by_the_output_cap_is_answered_not_run(self):
+        browser = _Browser()
+        tool = toolset_function_tool(browser)
+        items = to_output_items([_member('b1', 'type', {'text': 'hal'})], 'max_tokens')
+        call = next(i for i in items if getattr(i, 'type', '') == 'function_call')
+        output = json.loads(async_to_sync(tool.on_invoke_tool)(SimpleNamespace(context=None), call.arguments))
+        self.assertEqual(browser.ran, [])
+        self.assertTrue(output['anthropic_toolset_results'][0]['is_error'])
+
+    def test_each_request_is_recorded_for_per_request_pricing(self):
+        client = _FakeClient(
+            _message([{'type': 'server_tool_use', 'id': 's1', 'name': 'web_search', 'input': {'query': 'x'}}],
+                     stop_reason='pause_turn',
+                     usage={'input_tokens': 150_000, 'output_tokens': 10}),
+            _message([{'type': 'text', 'text': 'Done.'}], usage={'input_tokens': 20_000, 'output_tokens': 5}),
+        )
+        agent = Agent(name='t', instructions='x', model=AnthropicModel('claude-haiku-5-5', client=client))
+        result = async_to_sync(Runner.run)(agent, 'Go.')
+        usage = result.context_wrapper.usage
+        self.assertEqual([e.input_tokens for e in usage.request_usage_entries], [150_000, 20_000])
+
+        from apps.Imagi.Build.services.base_agent import long_context_tokens, usage_payload
+        self.assertEqual(long_context_tokens(usage, 'claude-haiku-5-5'), {
+            'long_context_input_tokens': 150_000, 'long_context_output_tokens': 10,
+        })
+        self.assertEqual(long_context_tokens(usage, 'claude-opus-5-5'), {})
+        # 150k at $0.50/M + 10 out at $2.50/M, then 20k at $0.10/M + 5 at $0.50/M.
+        self.assertAlmostEqual(usage_payload(usage, 'claude-haiku-5-5')['cost_usd'], 0.077028, places=5)

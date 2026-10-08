@@ -110,8 +110,25 @@ function pageFrom(args?: Record<string, string>): string | null {
  * Shared by the live feed and persisted-metadata hydration, so a replayed
  * transcript reads exactly as it did while streaming.
  */
+// Preview browser steps. One 'browser' call carries a turn's actions, named
+// in args.actions ("screenshot, left_click"). Looking is reading what the app
+// shows; anything else is using it the way a visitor would.
+const PREVIEW_LOOK_ACTIONS = new Set([
+  'screenshot', 'zoom', 'read_page', 'find', 'get_page_text', 'read_console', 'wait',
+])
+
+function labelForBrowser(actions?: string): string {
+  const steps = (actions ?? '').split(',').map(step => step.trim()).filter(Boolean)
+  if (steps.length > 0 && steps.every(step => step === 'navigate')) return 'Opened a page in the preview'
+  if (steps.length === 0 || steps.every(step => step === 'navigate' || PREVIEW_LOOK_ACTIONS.has(step))) {
+    return 'Looked at your app in the preview'
+  }
+  return 'Tried out your app in the preview'
+}
+
 export function labelForTool(name: string, args?: Record<string, string>): string {
   const page = pageFrom(args)
+  if (name === 'browser') return labelForBrowser(args?.actions)
   switch (name) {
     case 'read_file': return page ? `Looked at ${page}` : 'Looked at your project'
     case 'edit_file':
@@ -350,6 +367,7 @@ export const AgentService = {
       prompt: string;
       model: string;
       reasoningEffort?: string;
+      fastMode?: boolean;
       file?: any;
       conversationId?: number | string | null;
     },
@@ -392,6 +410,7 @@ export const AgentService = {
         message: data.prompt,
         model: data.model,
         reasoning_effort: data.reasoningEffort,
+        fast_mode: data.fastMode,
         project_id: String(projectId),
         conversation_id: data.conversationId ?? undefined,
         current_file: currentFile,

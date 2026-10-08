@@ -153,6 +153,10 @@ class AgentConversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     model_name = models.CharField(max_length=50, choices=get_model_choices())
+    # Claude's fast mode (faster output at a higher per-token price), switched
+    # on by the user in the composer. Threads the coordinator dispatches
+    # inherit it, so turning it on speeds up the whole job, not just the reply.
+    fast_mode = models.BooleanField(default=False)
     provider = models.CharField(max_length=20, choices=get_provider_choices(), default=get_default_provider())
     project_id = models.IntegerField(null=True, blank=True)  # Store reference to ProjectManager's Project ID
     title = models.CharField(max_length=120, blank=True, default='')

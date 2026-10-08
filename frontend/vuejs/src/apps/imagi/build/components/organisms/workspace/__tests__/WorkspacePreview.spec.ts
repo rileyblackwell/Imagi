@@ -313,3 +313,43 @@ describe('WorkspacePreview backdrop', () => {
   })
 })
 
+
+describe('WorkspacePreview error banner', () => {
+  let wrapper: VueWrapper
+  const error = { level: 'error', text: "TypeError: x is undefined", ts: 1 }
+
+  beforeEach(() => {
+    HTMLImageElement.prototype.decode = () => Promise.resolve()
+    frame.mockResolvedValue({ frame: null, etag: 'a' })
+    pages.mockResolvedValue([])
+    resize.mockResolvedValue({})
+  })
+
+  afterEach(() => {
+    wrapper.unmount()
+    start.mockReset(); frame.mockReset()
+  })
+
+  async function mountWith(extra: Record<string, unknown>) {
+    start.mockResolvedValue({
+      frame: 'AAAA', etag: 'a', path: '/', viewport: [320, 320], scroll: scrollAt(0),
+      console_errors: [error], ...extra,
+    })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+  }
+
+  it('offers Fix it while nobody has the error yet', async () => {
+    await mountWith({})
+    expect(wrapper.find('.pv-alert').text()).toContain('Something broke in your app')
+    expect(wrapper.find('.pv-alert').text()).toContain('Fix it')
+  })
+
+  it('says who is fixing an error the server already sent on', async () => {
+    await mountWith({ error_routing: { to: 'thread', conversation_id: 12 } })
+    const banner = wrapper.find('.pv-alert')
+    expect(banner.text()).toContain('Imagi is fixing something in your app')
+    expect(wrapper.find('[data-testid="error-routing-note"]').text()).toContain('the thread that just changed')
+    expect(banner.text()).not.toContain('Fix it')
+  })
+})

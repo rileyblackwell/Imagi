@@ -8,6 +8,7 @@ performed by ProjectCreationService is mocked out so the suite stays fast and
 does not pollute the repository or depend on npm/Django scaffolding.
 """
 
+import json
 import os
 import shutil
 import tempfile
@@ -549,7 +550,7 @@ class InitialBuildServiceTests(TransactionTestCase):
         from apps.Imagi.ProjectManager.services import initial_build_service
 
         with patch(
-            'apps.Imagi.Build.services.base_agent.OPENAI_API_KEY', None
+            'apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', None
         ):
             started = initial_build_service.start_initial_build(self.project, self.user)
         self.assertFalse(started)
@@ -560,7 +561,7 @@ class InitialBuildServiceTests(TransactionTestCase):
         from apps.Imagi.ProjectManager.services import initial_build_service
 
         with patch(
-            'apps.Imagi.Build.services.base_agent.OPENAI_API_KEY', 'test-key'
+            'apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', 'test-key'
         ), patch.object(initial_build_service.threading, 'Thread') as mock_thread:
             started = initial_build_service.start_initial_build(self.project, self.user)
         self.assertTrue(started)
@@ -691,8 +692,8 @@ class InitialBuildServiceTests(TransactionTestCase):
         )
 
     def test_main_thread_runs_on_the_default_model_not_the_build_model(self):
-        # The pages race the clock on the quick tier; the main thread is where
-        # the founder keeps working afterwards, so it gets the everyday default.
+        # The pages race the clock in fast mode; the main thread is where the
+        # founder keeps working afterwards, so it gets the everyday default.
         from apps.Imagi.Build.models import AgentConversation
 
         self._run_build(['accept'])
@@ -705,7 +706,6 @@ class InitialBuildServiceTests(TransactionTestCase):
         )
         self.assertEqual(lead.model_name, settings.IMAGI_BUILDER['DEFAULT_MODEL'])
         self.assertEqual(task.model_name, settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'])
-        self.assertNotEqual(lead.model_name, task.model_name)
 
     def test_reuses_an_existing_main_thread(self):
         from apps.Imagi.Build.models import AgentConversation
@@ -989,6 +989,36 @@ class InitialBuildServiceTests(TransactionTestCase):
         self.assertFalse(applied)
 
 
+def _wait_out_sqlite_table_locks(test):
+    """Make the test database wait for a table lock instead of failing.
+
+    The first build's page threads share the test database's in-memory
+    SQLite with the main thread, and shared-cache SQLite reports a held table
+    lock at once instead of waiting for it the way Postgres (or an on-disk
+    SQLite) does. Each statement is retried briefly until the lock clears.
+    """
+    import sqlite3
+    import time
+
+    from django.db.backends.sqlite3.base import SQLiteCursorWrapper
+
+    original = SQLiteCursorWrapper.execute
+
+    def execute(self, query, params=None):
+        for _ in range(200):
+            try:
+                return original(self, query, params)
+            except sqlite3.OperationalError as e:
+                if 'locked' not in str(e):
+                    raise
+                time.sleep(0.02)
+        return original(self, query, params)
+
+    waiting = patch.object(SQLiteCursorWrapper, 'execute', execute)
+    waiting.start()
+    test.addCleanup(waiting.stop)
+
+
 class ParallelInitialBuildTests(TransactionTestCase):
     """The first build fans out across pages instead of writing just one.
 
@@ -1000,6 +1030,7 @@ class ParallelInitialBuildTests(TransactionTestCase):
     """
 
     def setUp(self):
+        _wait_out_sqlite_table_locks(self)
         self.user = User.objects.create_user(username='owner', password='pw123456')
         self.project = Project.objects.create(
             user=self.user, name='Beanline', description=VALID_DESCRIPTION
@@ -1074,18 +1105,19 @@ class ParallelInitialBuildTests(TransactionTestCase):
         paths = [p.view_path for p in PAGE_BRIEFS]
         self.assertEqual(len(paths), len(set(paths)))
 
-    def test_pages_run_against_one_shared_deadline(self):
-        # The founder waits for the slowest page, not the sum of all three, so
-        # the clock has to start once for the whole build rather than per page.
+    def test_home_races_its_own_deadline_and_each_other_page_gets_one(self):
+        # The founder waits only for the home page, so its clock starts with
+        # the build; the pages behind it each get their own budget, counted
+        # from when they start, since they may queue behind one another.
         calls = self._run()
 
-        deadlines = {
-            call['deadline_at'] for runs in calls.values() for call in runs
-        }
-        self.assertEqual(len(deadlines), 1, 'each page got its own deadline')
-        self.assertIsNotNone(next(iter(deadlines)))
+        home_deadline = calls['home'][0]['deadline_at']
+        self.assertIsNotNone(home_deadline)
+        for slug in ('about', 'contact'):
+            self.assertIsNotNone(calls[slug][0]['deadline_at'])
+            self.assertNotEqual(calls[slug][0]['deadline_at'], home_deadline)
 
-    def test_all_three_subagents_are_dispatched_from_the_one_main_thread(self):
+    def test_every_page_is_dispatched_from_the_one_main_thread(self):
         from apps.Imagi.Build.models import AgentConversation
 
         self._run()
@@ -1101,16 +1133,50 @@ class ParallelInitialBuildTests(TransactionTestCase):
         self.assertEqual(tasks.count(), 3)
         self.assertTrue(all(t.parent_id == lead.id for t in tasks))
 
-        # The thread opens with the founder's brief and one acknowledgement
-        # carrying a link to every subagent thread it started.
+        # The thread opens with the founder's brief and the home page's
+        # thread, then links the threads it planned after home.
         messages = list(lead.messages.order_by('created_at'))
-        self.assertEqual([m.role for m in messages], ['user', 'assistant'])
+        self.assertEqual([m.role for m in messages], ['user', 'assistant', 'assistant'])
         self.assertIn('Beanline', messages[0].content)
-        dispatched = messages[1].metadata['dispatched_tasks']
+        dispatched = [
+            d['conversation_id']
+            for m in messages[1:] for d in m.metadata['dispatched_tasks']
+        ]
+        self.assertEqual(sorted(dispatched), sorted(tasks.values_list('id', flat=True)))
+        home = tasks.get(title__contains='home')
         self.assertEqual(
-            {d['conversation_id'] for d in dispatched},
-            set(tasks.values_list('id', flat=True)),
+            [d['conversation_id'] for d in messages[1].metadata['dispatched_tasks']],
+            [home.id],
         )
+
+    def test_a_planned_build_routes_every_page_and_lists_them_as_they_land(self):
+        from apps.Imagi.ProjectManager.services import initial_page_plan
+        from apps.Imagi.ProjectManager.services.initial_build_service import PageBrief
+
+        planned = initial_page_plan._clean([
+            {'slug': 'menu', 'label': 'Menu', 'summary': 'the menu page — what we serve',
+             'requirements': 'List the drinks.'},
+            {'slug': 'visit-us', 'label': 'Visit', 'summary': 'the visit page — where we are',
+             'requirements': 'Show the hours.'},
+        ], PageBrief)
+        published = []
+        with patch.object(initial_page_plan, 'plan_pages', return_value=planned), \
+                patch.object(initial_page_plan, 'scaffold_pages') as scaffold, \
+                patch.object(
+                    initial_page_plan, 'publish_ready_pages',
+                    side_effect=lambda _path, ready: published.append([p.slug for p in ready]),
+                ):
+            calls = self._run()
+
+        self.assertEqual(set(calls), {'home', 'menu', 'visit-us'})
+        plan = scaffold.call_args[0][1]
+        self.assertEqual([p.slug for p in plan], ['home', 'menu', 'visit-us'])
+        self.assertIn("'/menu'", calls['menu'][0]['user_input'])
+        self.assertIn('VisitUsView.vue', calls['visit-us'][0]['user_input'])
+        # Each landed page is added to the navigation, home always first.
+        self.assertEqual(len(published), 2)
+        self.assertTrue(all(slugs[0] == 'home' for slugs in published))
+        self.assertEqual(set(published[-1]), {'home', 'menu', 'visit-us'})
 
     def test_a_page_that_fails_does_not_stop_its_siblings(self):
         # Pages stand alone: one agent erroring out must not cost the founder
@@ -1127,6 +1193,79 @@ class ParallelInitialBuildTests(TransactionTestCase):
         self.assertEqual(set(calls), {'home', 'about', 'contact'})
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_the_project_opens_once_the_home_page_lands(self):
+        # The founder starts on the home page, so the project opens the moment
+        # it merges; the other pages keep building behind it. The early open
+        # re-syncs the files first, so the other pages wait for that re-sync
+        # and report whether it came while they were still running.
+        import threading
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        home_opened = threading.Event()
+        seen = {}
+
+        def fake_process(_self, **kwargs):
+            # The page is read from its brief, not the database: a waiting
+            # page must hold no database lock the home page's merge needs.
+            slug = next(
+                name for name, view in (
+                    ('home', 'HomeView.vue'), ('about', 'AboutView.vue'),
+                    ('contact', 'ContactView.vue'),
+                ) if view in kwargs['user_input']
+            )
+            if slug != 'home':
+                seen[slug] = home_opened.wait(timeout=20)
+            AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
+                review_status='accepted'
+            )
+            return {'success': True, 'files_changed': []}
+
+        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=[],
+        ), patch.object(
+            initial_build_service, '_resync_project_files',
+            side_effect=lambda _pk: home_opened.set(),
+        ):
+            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
+
+        self.assertEqual(seen, {'about': True, 'contact': True})
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_only_the_home_page_runs_in_fast_mode(self):
+        # The project opens when home lands, so home alone pays for speed;
+        # the other pages build behind it at standard speed.
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        self.assertEqual(settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'], 'claude-opus-5-5')
+        fast_by_slug = {}
+
+        def fake_process(_self, **kwargs):
+            title = AgentConversation.objects.get(id=kwargs['conversation_id']).title
+            slug = title.rsplit('—', 1)[-1].strip().split(' ')[0]
+            fast_by_slug[slug] = _self.fast_mode
+            AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
+                review_status='accepted'
+            )
+            return {'success': True, 'files_changed': []}
+
+        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=[],
+        ):
+            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
+
+        self.assertEqual(fast_by_slug, {'home': True, 'about': False, 'contact': False})
+        # The page threads keep the standard speed for later follow-ups.
+        self.assertFalse(
+            AgentConversation.objects.filter(kind='task', fast_mode=True).exists()
+        )
 
     def test_the_build_fails_only_when_no_page_lands(self):
         self._run({'home': 'fail', 'about': 'fail', 'contact': 'fail'})
@@ -1544,3 +1683,99 @@ class FounderBriefTests(SimpleTestCase):
         from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief
 
         self.assertNotIn('How the app should work', build_founder_brief('Harbor Yoga', 'A boutique yoga studio.'))
+
+
+class InitialPagePlanTests(SimpleTestCase):
+    """The first build's page plan and the scaffold it is routed in."""
+
+    def _clean(self, raw):
+        from apps.Imagi.ProjectManager.services import initial_page_plan
+        from apps.Imagi.ProjectManager.services.initial_build_service import PageBrief
+        return initial_page_plan._clean(raw, PageBrief)
+
+    def _raw(self, slug, **extra):
+        return {'slug': slug, 'label': slug.title(), 'summary': f'the {slug} page',
+                'requirements': 'Say what it is.', **extra}
+
+    def test_unusable_reserved_and_repeated_pages_are_dropped(self):
+        pages = self._clean([
+            self._raw('menu'), self._raw('Menu'), self._raw('register'),
+            self._raw('pricing'), self._raw('home'), self._raw('Our Story'),
+            self._raw('9lives'), {'slug': 'x'}, 'nonsense',
+            self._raw('blank', requirements=''),
+        ])
+        self.assertEqual([p.slug for p in pages], ['menu', 'our-story'])
+        self.assertEqual(pages[1].view_path, 'frontend/vuejs/src/apps/home/views/OurStoryView.vue')
+        self.assertEqual(pages[1].route, '/our-story')
+        # Only home carries the sign-in wiring.
+        self.assertIn('do not import the auth store', pages[0].requirements)
+
+    def test_the_build_never_exceeds_twenty_pages(self):
+        from apps.Imagi.ProjectManager.services.initial_page_plan import MAX_PAGES
+        pages = self._clean([self._raw(f'page-{i}') for i in range(40)])
+        self.assertEqual(len(pages), MAX_PAGES - 1)  # plus home
+
+    def test_no_key_means_the_fixed_fallback(self):
+        from apps.Imagi.ProjectManager.services import initial_page_plan
+        with patch('apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', None):
+            self.assertIsNone(initial_page_plan.plan_pages('Beanline', 'Coffee'))
+
+    def test_the_plan_is_read_from_a_structured_answer(self):
+        from types import SimpleNamespace
+        from apps.Imagi.ProjectManager.services import initial_page_plan
+        from apps.Imagi.ProjectManager.services.initial_build_service import PageBrief
+
+        answer = SimpleNamespace(
+            stop_reason='end_turn',
+            content=[SimpleNamespace(type='text', text=json.dumps({'pages': [self._raw('menu')]}))],
+        )
+        client = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: (
+            self.assertEqual(kw['output_config']['format']['type'], 'json_schema') or answer
+        )))
+        with patch('apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', 'k'), \
+                patch('anthropic.Anthropic', return_value=client):
+            pages = initial_page_plan.plan_pages('Beanline', 'Coffee', page_brief_cls=PageBrief)
+        self.assertEqual([p.slug for p in pages], ['menu'])
+
+    def test_scaffold_routes_every_page_and_lists_only_ready_ones(self):
+        import subprocess
+        from apps.Imagi.ProjectManager.services import initial_page_plan
+        from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
+        from apps.Imagi.Build.services.frontend_integrity import (
+            find_router_contract_problems,
+            find_unresolved_imports,
+        )
+
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        views = os.path.join(root, initial_page_plan.HOME_APP, 'views')
+        os.makedirs(views)
+        for name in ('HomeView.vue', 'AboutView.vue', 'ContactView.vue'):
+            with open(os.path.join(views, name), 'w') as f:
+                f.write('<template><div /></template>\n')
+        subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
+        subprocess.run(['git', '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit',
+                        '--allow-empty', '-qm', 'init'], cwd=root, check=True)
+
+        home = PAGE_BRIEFS[0]
+        plan = [home] + self._clean([self._raw('menu'), self._raw('visit-us')])
+        self.assertTrue(initial_page_plan.scaffold_pages(root, plan, [home]))
+
+        router = open(os.path.join(root, initial_page_plan.ROUTER_PATH)).read()
+        for page in plan:
+            self.assertIn(f'path: "{page.route}"', router)
+            self.assertTrue(os.path.isfile(os.path.join(root, page.view_path)))
+        # Scaffold pages the plan left out are gone, not left unrouted.
+        self.assertFalse(os.path.exists(os.path.join(views, 'AboutView.vue')))
+        nav = open(os.path.join(root, initial_page_plan.SITE_PAGES_PATH)).read()
+        self.assertIn('"/"', nav)
+        self.assertNotIn('/menu', nav)
+        self.assertEqual(find_unresolved_imports(root), [])
+        self.assertEqual(find_router_contract_problems(root), [])
+
+        initial_page_plan.publish_ready_pages(root, [home, plan[1]])
+        nav = open(os.path.join(root, initial_page_plan.SITE_PAGES_PATH)).read()
+        self.assertIn('{ path: "/menu", label: "Menu" }', nav)
+        status = subprocess.run(['git', 'status', '--porcelain'], cwd=root,
+                                capture_output=True, text=True).stdout
+        self.assertEqual(status, '', 'scaffold changes are committed')

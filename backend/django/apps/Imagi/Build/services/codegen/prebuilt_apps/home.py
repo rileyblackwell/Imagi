@@ -180,6 +180,21 @@ export { default as ContactView } from './ContactView.vue'
 """
 
 
+SITE_PAGES_TS = """// Kept by Imagi: the site's pages that are ready, in navigation order.
+// Build navigation from this list instead of hard-coding links.
+export interface SitePage {
+  path: string
+  label: string
+}
+
+export const sitePages: SitePage[] = [
+  { path: "/", label: "Home" },
+  { path: "/about", label: "About" },
+  { path: "/contact", label: "Contact" },
+]
+"""
+
+
 def home_app_files() -> List[Dict[str, str]]:
     app_name = 'home'
     cap = 'Home'
@@ -199,6 +214,13 @@ def home_app_files() -> List[Dict[str, str]]:
         elif f['name'] == f'{views_dir}/index.ts':
             f['content'] = HOME_VIEWS_INDEX_TS
     files += [
+        {
+            # The navigation list the first build's pages render; the build
+            # rewrites it as pages are planned and finish (initial_page_plan).
+            'name': f'frontend/vuejs/src/apps/{app_name}/site-pages.ts',
+            'type': 'typescript',
+            'content': SITE_PAGES_TS,
+        },
         {
             'name': f'{views_dir}/AboutView.vue',
             'type': 'vue',

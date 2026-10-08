@@ -35,7 +35,7 @@ export interface AIModel {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'gpt-6-luna': {
+  'claude-haiku-5-5':{
     maxTokens: 1000000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -44,7 +44,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 1000000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'claude-opus-5-5': {
+  'claude-sonnet-5-5':{
     maxTokens: 1000000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -53,7 +53,16 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 1000000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-6-astra': {
+  'claude-opus-5-5':{
+    maxTokens: 1000000,
+    rateLimits: {
+      tokensPerMinute: 60000,
+      requestsPerMinute: 250
+    },
+    contextWindow: 1000000,
+    capabilities: ['code_generation', 'chat', 'analysis']
+  },
+  'claude-fable-5-1':{
     maxTokens: 1000000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -64,27 +73,40 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   }
 };
 
-// The three models on offer, one per tier and ordered faster → smarter —
-// the order the composer's intelligence slider runs in. The lineup blends
-// providers on purpose: each tier gets the best current fit, and it is
-// revisited as better fits ship. Mirrors the backend registry, including
-// prices (the provider's list price, no markup). Opus 5.5 carries the
+// The four models on offer, all Claude, ordered faster → smarter — the order
+// the composer's intelligence slider runs in. Mirrors the backend registry,
+// including prices (Anthropic's list price, no markup). Opus 5.5 carries the
 // `default` flag: createInstance prefers it over list order.
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gpt-6-luna',
-    name: 'GPT 6 Luna',
-    provider: 'openai',
-    type: 'openai',
+    id: 'claude-haiku-5-5',
+    name: 'Claude Haiku 5.5',
+    provider: 'anthropic',
+    type: 'anthropic',
     context_window: 1000000,
     features: ['chat', 'code', 'analysis'],
     default: false,
-    description: 'OpenAI | GPT 6 Luna — fast and inexpensive, yet capable at most tasks',
+    description: 'Anthropic | Claude Haiku 5.5 — fast and inexpensive, yet capable at most tasks',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 1000000,
     inputPricePerMTokens: 0.1,
     outputPricePerMTokens: 0.5,
-    api_version: 'responses'
+    api_version: 'messages'
+  },
+  {
+    id: 'claude-sonnet-5-5',
+    name: 'Claude Sonnet 5.5',
+    provider: 'anthropic',
+    type: 'anthropic',
+    context_window: 1000000,
+    features: ['chat', 'code', 'analysis'],
+    default: false,
+    description: 'Anthropic | Claude Sonnet 5.5 — quick and capable, a strong everyday builder',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 1000000,
+    inputPricePerMTokens: 2,
+    outputPricePerMTokens: 10,
+    api_version: 'messages'
   },
   {
     id: 'claude-opus-5-5',
@@ -102,19 +124,19 @@ export const AI_MODELS: AIModel[] = [
     api_version: 'messages'
   },
   {
-    id: 'gpt-6-astra',
-    name: 'GPT 6 Astra',
-    provider: 'openai',
-    type: 'openai',
+    id: 'claude-fable-5-1',
+    name: 'Claude Fable 5.1',
+    provider: 'anthropic',
+    type: 'anthropic',
     context_window: 1000000,
     features: ['chat', 'code', 'analysis'],
     default: false,
-    description: 'OpenAI | GPT 6 Astra — frontier intelligence for the hardest work',
+    description: 'Anthropic | Claude Fable 5.1 — frontier intelligence for the hardest work',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 1000000,
     inputPricePerMTokens: 10,
     outputPricePerMTokens: 50,
-    api_version: 'responses'
+    api_version: 'messages'
   }
 ];
 
@@ -122,7 +144,9 @@ export const AI_MODELS: AIModel[] = [
  *  tier. A stored conversation or an older tab can still carry one. Mirrors
  *  the backend's LEGACY_MODEL_ALIASES. */
 export const LEGACY_MODEL_ALIASES: Record<string, string> = {
-  'gpt-5.6-luna': 'gpt-6-luna',
+  'gpt-6-luna': 'claude-haiku-5-5',
+  'gpt-5.6-luna': 'claude-haiku-5-5',
+  'gpt-6-astra': 'claude-fable-5-1',
   'gpt-5.6-terra': 'claude-opus-5-5',
   'gpt-5.6-sol': 'claude-opus-5-5',
 };
@@ -140,15 +164,10 @@ export function canonicalModelId(modelId: string | null | undefined): string | n
 /**
  * Reasoning effort levels — how much reasoning the model uses per request.
  */
-// One reasoning-effort ladder for every model, ordered faster → smarter. The
-// OpenAI SDK's ReasoningEffort literal is none / minimal / low / medium / high /
-// xhigh, with nothing above xhigh: a 'max' rung was never real (the SDK rejects
-// it, and the backend then silently sent the request with no reasoning effort
-// at all). 'minimal' is left off so every model offers the same choices, and
-// 'none' — no reasoning — is a different concept than "think less", not a
-// point on this speed/intelligence ladder. Must stay in step with the
-// backend's REASONING_EFFORT_CHOICES.
-export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
+// One effort ladder for every model, ordered faster → smarter: Claude's
+// output_config.effort levels. Must stay in step with the backend's
+// REASONING_EFFORT_CHOICES.
+export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export interface ReasoningEffortOption {
   id: ReasoningEffort;
@@ -161,7 +180,8 @@ export const REASONING_EFFORTS: ReasoningEffortOption[] = [
   { id: 'low', name: 'Low', description: 'Quick answers for small edits' },
   { id: 'medium', name: 'Medium', description: 'The balanced default for everyday building' },
   { id: 'high', name: 'High', description: 'Deeper thinking for multi-step work' },
-  { id: 'xhigh', name: 'Extra High', description: 'The most thorough, for the hardest tasks' },
+  { id: 'xhigh', name: 'Extra High', description: 'Thorough work on the hardest tasks' },
+  { id: 'max', name: 'Max', description: 'Everything the model has, whatever it takes' },
 ];
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
@@ -171,7 +191,7 @@ export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
 // selection persisted back then can still be restored from storage.
 export const LEGACY_REASONING_EFFORT_ALIASES: Record<string, ReasoningEffort> = {
   minimal: 'low',
-  max: 'xhigh',
+  none: 'low',
 };
 
 /** The effort options a model accepts, ordered faster → smarter. Every model
@@ -184,7 +204,7 @@ export function reasoningEffortsForModel(modelId?: string | null): ReasoningEffo
 }
 
 /** Re-seat an effort onto the ladder: an effort already on it passes through,
- *  a legacy alias ('minimal', 'max') lands on its nearest rung, and anything
+ *  a legacy alias ('minimal', 'none') lands on its nearest rung, and anything
  *  else — empty, unknown, or garbage from another session — falls back to the
  *  default. Takes a plain string because the value may come from storage or an
  *  older client rather than from typed code. */
@@ -199,6 +219,14 @@ export function clampEffortToModel(
   return Object.prototype.hasOwnProperty.call(LEGACY_REASONING_EFFORT_ALIASES, effort)
     ? LEGACY_REASONING_EFFORT_ALIASES[effort]!
     : DEFAULT_REASONING_EFFORT;
+}
+
+/** Models that offer Claude's fast mode: faster output at a higher price
+ *  (twice the list price per token). */
+export const FAST_MODE_MODELS: readonly string[] = ['claude-opus-5-5'];
+
+export function supportsFastMode(modelId?: string | null): boolean {
+  return !!modelId && FAST_MODE_MODELS.includes(modelId);
 }
 
 // Conversation / agent instance types
@@ -297,6 +325,7 @@ export interface ConversationDto {
   id: number;
   title: string;
   model_name: string;
+  fast_mode?: boolean;
   project_id: number | null;
   kind: ConversationKind;
   /** Lead conversation this task was dispatched from */
@@ -344,6 +373,10 @@ export interface AgentInstance {
   totalTokens: number | null;
   selectedModelId: string | null;
   selectedEffort: ReasoningEffort;
+  /** Fast mode switched on in the composer. Saved on the conversation, and
+   *  threads the coordinator dispatches inherit it. Only sent to a model
+   *  that offers it (supportsFastMode). */
+  fastMode?: boolean;
   selectedFile: any | null;
   conversation: AIMessage[];
   isProcessing: boolean;

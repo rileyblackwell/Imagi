@@ -13,10 +13,11 @@ import {
 
 describe('the selectable model list', () => {
   it('offers one model per tier, faster to smarter', () => {
-    // Quick & efficient, balanced all-rounder, frontier — a blend of
-    // providers, each the best current fit for its tier.
-    expect(AI_MODELS.map(m => m.id)).toEqual(['gpt-6-luna', 'claude-opus-5-5', 'gpt-6-astra'])
-    expect(AI_MODELS.map(m => m.provider)).toEqual(['openai', 'anthropic', 'openai'])
+    // All Claude for now: Haiku, Sonnet, Opus, Fable.
+    expect(AI_MODELS.map(m => m.id)).toEqual([
+      'claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1',
+    ])
+    expect(new Set(AI_MODELS.map(m => m.provider))).toEqual(new Set(['anthropic']))
   })
 
   it('makes Opus 5.5 the default rather than the priciest model', () => {
@@ -30,22 +31,26 @@ describe('the selectable model list', () => {
       AI_MODELS.map(m => [m.id, [m.inputPricePerMTokens, m.outputPricePerMTokens, m.context_window]])
     )
     expect(prices).toEqual({
-      'gpt-6-luna': [0.1, 0.5, 1000000],
+      'claude-haiku-5-5': [0.1, 0.5, 1000000],
+      'claude-sonnet-5-5': [2, 10, 1000000],
       'claude-opus-5-5': [4, 20, 1000000],
-      'gpt-6-astra': [10, 50, 1000000],
+      'claude-fable-5-1': [10, 50, 1000000],
     })
   })
 
-  it('carries a retired 5.6 model over to the current model for its tier', () => {
+  it('carries a retired GPT model over to the current model for its tier', () => {
     // Stored conversations and older tabs still name these; mirrors the
     // backend's LEGACY_MODEL_ALIASES.
     expect(LEGACY_MODEL_ALIASES).toEqual({
-      'gpt-5.6-luna': 'gpt-6-luna',
+      'gpt-6-luna': 'claude-haiku-5-5',
+      'gpt-5.6-luna': 'claude-haiku-5-5',
+      'gpt-6-astra': 'claude-fable-5-1',
       'gpt-5.6-terra': 'claude-opus-5-5',
       'gpt-5.6-sol': 'claude-opus-5-5',
     })
     expect(canonicalModelId('gpt-5.6-terra')).toBe('claude-opus-5-5')
-    expect(canonicalModelId('gpt-6-astra')).toBe('gpt-6-astra')
+    expect(canonicalModelId('gpt-6-astra')).toBe('claude-fable-5-1')
+    expect(canonicalModelId('claude-sonnet-5-5')).toBe('claude-sonnet-5-5')
     expect(canonicalModelId(null)).toBeNull()
     expect(canonicalModelId('constructor')).toBe('constructor')
   })
@@ -58,9 +63,9 @@ describe('the selectable model list', () => {
 })
 
 describe('the reasoning effort ladder', () => {
-  const ladder = ['low', 'medium', 'high', 'xhigh'] as const
+  const ladder = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 
-  it('offers the same four rungs, faster to smarter, to every model', () => {
+  it('offers the same five rungs, faster to smarter, to every model', () => {
     expect(REASONING_EFFORTS.map(o => o.id)).toEqual(ladder)
     for (const model of AI_MODELS) {
       expect(reasoningEffortsForModel(model.id).map(o => o.id)).toEqual(ladder)
@@ -68,7 +73,7 @@ describe('the reasoning effort ladder', () => {
   })
 
   it('names and describes each rung for the picker', () => {
-    expect(REASONING_EFFORTS.map(o => o.name)).toEqual(['Low', 'Medium', 'High', 'Extra High'])
+    expect(REASONING_EFFORTS.map(o => o.name)).toEqual(['Low', 'Medium', 'High', 'Extra High', 'Max'])
     for (const option of REASONING_EFFORTS) {
       expect(option.description.length).toBeGreaterThan(0)
     }
@@ -89,22 +94,20 @@ describe('the reasoning effort ladder', () => {
     }
   })
 
-  it("re-seats the retired 'minimal' and 'max' rungs onto the ladder", () => {
-    // The SDK's ReasoningEffort literal tops out at xhigh — 'max' was never a
-    // real rung — and 'minimal' was dropped so every model offers the same
-    // choices. An older tab or a stored selection can still send either.
-    expect(LEGACY_REASONING_EFFORT_ALIASES).toEqual({ minimal: 'low', max: 'xhigh' })
-    expect(clampEffortToModel('minimal', 'gpt-6-astra')).toBe('low')
-    expect(clampEffortToModel('minimal', 'claude-opus-5-5')).toBe('low')
-    expect(clampEffortToModel('max', 'gpt-6-astra')).toBe('xhigh')
-    expect(clampEffortToModel('max', 'claude-opus-5-5')).toBe('xhigh')
+  it("re-seats the retired 'minimal' and 'none' rungs onto the ladder", () => {
+    // OpenAI-only rungs an older tab or a stored selection can still send.
+    expect(LEGACY_REASONING_EFFORT_ALIASES).toEqual({ minimal: 'low', none: 'low' })
+    expect(clampEffortToModel('minimal', 'claude-fable-5-1')).toBe('low')
+    expect(clampEffortToModel('none', 'claude-opus-5-5')).toBe('low')
+    // Claude takes 'max' as it is.
+    expect(clampEffortToModel('max', 'claude-haiku-5-5')).toBe('max')
   })
 
   it('falls back to the default when nothing usable is selected', () => {
     expect(DEFAULT_REASONING_EFFORT).toBe('medium')
-    expect(clampEffortToModel(null, 'gpt-6-astra')).toBe('medium')
-    expect(clampEffortToModel(undefined, 'gpt-6-luna')).toBe('medium')
-    expect(clampEffortToModel('', 'gpt-6-luna')).toBe('medium')
+    expect(clampEffortToModel(null, 'claude-fable-5-1')).toBe('medium')
+    expect(clampEffortToModel(undefined, 'claude-haiku-5-5')).toBe('medium')
+    expect(clampEffortToModel('', 'claude-haiku-5-5')).toBe('medium')
     expect(clampEffortToModel('bogus', 'claude-opus-5-5')).toBe('medium')
     // Object prototype names are not aliases either.
     expect(clampEffortToModel('constructor', 'claude-opus-5-5')).toBe('medium')

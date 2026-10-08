@@ -48,8 +48,20 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Get API key
+# API keys. Every model on offer is Claude, served through the Agents SDK by
+# AnthropicModel; the OpenAI key is only needed if GPT models come back (and
+# for dictation, which reads its own).
+ANTHROPIC_API_KEY = read_api_key('ANTHROPIC_KEY')
 OPENAI_API_KEY = read_api_key('OPENAI_KEY')
+
+if not OPENAI_API_KEY:
+    # The SDK exports traces to OpenAI by default; with no OpenAI account
+    # there is nowhere to send them, and every run would log a warning.
+    try:
+        from agents import set_tracing_disabled
+        set_tracing_disabled(True)
+    except ImportError:  # pragma: no cover - defensive fallback
+        pass
 
 # Platform defaults for every user's project (see IMAGI_BUILDER in
 # imagi/settings.py); fallbacks keep tests and scripts working without it.
@@ -137,10 +149,10 @@ TASK_REPORT_KINDS = ('done', 'ready', 'question', 'error')
 TASK_REPORT_MAX_CHARS = 2000
 
 # Model used to auto-name a conversation from its opening exchange. Always the
-# smallest suite tier (Luna) so naming a thread costs the least usage possible —
-# it should never feel like it competes with the build itself. Resolved through
-# the registry so it tracks Luna's real backend id if that mapping ever changes.
-TITLE_SUITE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'gpt-6-luna')
+# smallest tier (Haiku) so naming a thread costs the least usage possible — it
+# should never feel like it competes with the build itself. Resolved through
+# the registry so it tracks the model's real backend id if that ever changes.
+TITLE_SUITE_MODEL = _BUILDER_SETTINGS.get('TITLE_MODEL', 'claude-haiku-5-5')
 
 
 def _clean_title(raw: str) -> Optional[str]:
@@ -167,14 +179,14 @@ def generate_conversation_title(user_input: str, assistant_reply: str) -> Option
     None when unavailable (no key, API error) so the caller can fall back to
     the provisional first-line title.
     """
-    if not OPENAI_API_KEY:
+    if not ANTHROPIC_API_KEY:
         return None
     try:
-        from openai import OpenAI
+        import anthropic
 
         from .models_service import get_backend_model_id
 
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         prompt = (
             "Write a short, specific title for this coding-assistant conversation.\n"
             "Rules: 3-6 words, Title Case, no quotes, no ending punctuation, and "
@@ -182,15 +194,20 @@ def generate_conversation_title(user_input: str, assistant_reply: str) -> Option
             f"User request:\n{(user_input or '').strip()[:800]}\n\n"
             f"Assistant reply:\n{(assistant_reply or '').strip()[:800]}"
         )
-        response = client.responses.create(
+        response = client.messages.create(
             model=get_backend_model_id(TITLE_SUITE_MODEL),
-            input=prompt,
-            max_output_tokens=500,
-            # Naming a thread needs no reasoning. GPT 6 takes 'none' and
-            # rejects 'minimal', which only the GPT 5 generation accepted.
-            reasoning={"effort": "none"},
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt}],
+            # Naming a thread needs next to no reasoning.
+            output_config={"effort": "low"},
         )
-        return _clean_title(getattr(response, "output_text", "") or "")
+        if response.stop_reason == "refusal":
+            return None
+        text = "".join(
+            getattr(block, "text", "") for block in response.content
+            if getattr(block, "type", "") == "text"
+        )
+        return _clean_title(text)
     except Exception as e:
         logger.warning(f"Conversation title generation failed: {e}")
         return None
@@ -280,8 +297,7 @@ def out_of_credit_message(provider: str) -> str:
     return (
         f"This stopped because the {provider} account Imagi uses has run out "
         f"of credit, so no more work can be done on {provider} models until "
-        "it is topped up. Nothing more was spent. Add credit, then try again "
-        "— or switch to a model from the other provider."
+        "it is topped up. Nothing more was spent. Add credit, then try again."
     )
 
 
@@ -358,7 +374,8 @@ def make_run_bounds_hook(
                 input_tokens = getattr(usage, 'input_tokens', 0) or 0
                 output_tokens = getattr(usage, 'output_tokens', 0) or 0
                 cost = compute_cost_usd(
-                    model_id, input_tokens, output_tokens, cached_input_tokens(usage)
+                    model_id, input_tokens, output_tokens, cached_input_tokens(usage),
+                    **long_context_tokens(usage, model_id),
                 )
                 if cost is not None and cost >= budget_usd:
                     return RunBudgetExceeded(cost, budget_usd)
@@ -394,6 +411,7 @@ def build_model_settings(
     reasoning_effort: Optional[str] = None,
     parallel_tool_calls: Optional[bool] = None,
     service_tier: Optional[str] = None,
+    speed: Optional[str] = None,
 ):
     """
     Build ModelSettings for an agent, applying a reasoning effort level when one
@@ -407,6 +425,8 @@ def build_model_settings(
     the agent's requests. The SDK has no field for it, so it rides in
     extra_args, which the Responses model merges into every create() call.
 
+    speed='fast' asks for Claude's fast mode (Opus 5.5), also via extra_args.
+
     Returns None when ModelSettings is unavailable, so callers can omit the
     argument entirely and fall back to SDK defaults.
     """
@@ -415,11 +435,22 @@ def build_model_settings(
     kwargs = {}
     if parallel_tool_calls is not None:
         kwargs['parallel_tool_calls'] = parallel_tool_calls
+    extra_args = {}
     if service_tier:
-        kwargs['extra_args'] = {'service_tier': service_tier}
+        extra_args['service_tier'] = service_tier
+    if speed:
+        # Claude's fast mode; AnthropicModel turns it into the request's
+        # speed parameter and beta.
+        extra_args['speed'] = speed
+    if extra_args:
+        kwargs['extra_args'] = extra_args
     if reasoning_effort and Reasoning is not None:
         try:
-            return ModelSettings(reasoning=Reasoning(effort=reasoning_effort), **kwargs)
+            # Reasoning's effort literal is OpenAI's ladder, which has no
+            # 'max'; Claude's does. The value is only ever read back as a
+            # string (AnthropicModel puts it in output_config.effort), so it
+            # is set without the OpenAI-side validation.
+            return ModelSettings(reasoning=Reasoning.model_construct(effort=reasoning_effort), **kwargs)
         except Exception as e:  # pragma: no cover - defensive
             logger.warning(f"Could not apply reasoning effort '{reasoning_effort}': {e}")
     try:
@@ -474,7 +505,8 @@ def compact_history(messages: List[Dict[str, str]], max_chars: int = HISTORY_MAX
 # Argument keys surfaced with tool_call SSE events so the workspace activity
 # feed can show what a tool touched. Allowlisted (rather than passing every
 # key through) so bulky values like file contents never ride the stream.
-_TOOL_ARG_KEYS = ('path', 'file_path', 'pattern', 'query', 'app_name', 'url')
+# 'actions' names a browser call's steps (screenshot, left_click, ...).
+_TOOL_ARG_KEYS = ('path', 'file_path', 'pattern', 'query', 'app_name', 'url', 'actions')
 _TOOL_ARG_MAX_CHARS = 200
 
 
@@ -591,6 +623,30 @@ def cached_input_tokens(usage) -> int:
     return cached if isinstance(cached, int) else 0
 
 
+def long_context_tokens(usage, model_id: str) -> Dict[str, int]:
+    """The share of a usage reading billed at a model's long-context rates,
+    as compute_cost_usd keyword arguments (empty when there is none).
+
+    The rate applies per request, by that request's prompt size, so it is
+    read off the reading's per-request entries.
+    """
+    from .models_service import long_context_threshold
+
+    threshold = long_context_threshold(model_id)
+    if not threshold:
+        return {}
+    counts = {'long_context_input_tokens': 0, 'long_context_cached_tokens': 0,
+              'long_context_output_tokens': 0}
+    for entry in getattr(usage, 'request_usage_entries', None) or ():
+        prompt = getattr(entry, 'input_tokens', 0) or 0
+        if prompt <= threshold:
+            continue
+        counts['long_context_input_tokens'] += prompt
+        counts['long_context_cached_tokens'] += cached_input_tokens(entry)
+        counts['long_context_output_tokens'] += getattr(entry, 'output_tokens', 0) or 0
+    return {key: value for key, value in counts.items() if value}
+
+
 def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
     """Token usage (with cost when priceable) from an SDK Usage object, or None.
 
@@ -609,7 +665,8 @@ def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
         "output_tokens": output_tokens,
     }
     cost = compute_cost_usd(
-        model_id, input_tokens, output_tokens, cached_input_tokens(usage)
+        model_id, input_tokens, output_tokens, cached_input_tokens(usage),
+        **long_context_tokens(usage, model_id),
     )
     if cost is not None:
         payload["cost_usd"] = cost
@@ -863,6 +920,10 @@ class AgentContext:
     # instructions (tools.lead_task_roster). Built in _prepare_run because the
     # instructions callable runs on the event loop, where the ORM may not.
     task_roster: str = ''
+    # Task runs only: each file the thread writes is also copied into the
+    # project the preview serves, so the user and the thread see it at once
+    # (live_apply). Off for drafts and the first build's pages.
+    live_apply: bool = False
 
 
 class ImagiAgentService:
@@ -879,6 +940,7 @@ class ImagiAgentService:
         model: str = DEFAULT_MODEL,
         reasoning_effort: Optional[str] = None,
         agent_kind: Optional[str] = None,
+        fast_mode: Optional[bool] = None,
     ):
         """
         Initialize the agent service.
@@ -893,10 +955,16 @@ class ImagiAgentService:
                 conversation stays an ordinary kind='task' — so it keeps the
                 worktree isolation, review lifecycle and check-in routing every
                 other dispatched task has. None follows the conversation.
+            fast_mode: The user's fast-mode switch for this run, saved on the
+                conversation so threads it dispatches inherit it. None keeps
+                whatever the conversation already has (thread runs).
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
         self.agent_kind = agent_kind
+        self.fast_mode = fast_mode
+        # Whether the current run asks for fast mode; set by _prepare_run.
+        self._run_fast = bool(fast_mode)
         # Agents cached per conversation kind: lead runs carry the delegation
         # tool, task runs carry ask_user (+ its stop behavior).
         self._agents: Dict[str, Agent] = {}
@@ -905,9 +973,9 @@ class ImagiAgentService:
         self._run_kind: Optional[str] = None
 
         # Verify API key is available
-        if not OPENAI_API_KEY:
-            logger.warning("OpenAI API key not found - agent features may not work properly")
-        else:
+        if not ANTHROPIC_API_KEY:
+            logger.warning("Anthropic API key not found - agent features may not work properly")
+        if OPENAI_API_KEY:
             # Set environment variable for the agents SDK
             os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
@@ -916,6 +984,17 @@ class ImagiAgentService:
         if reasoning_effort is not None and reasoning_effort != self.reasoning_effort:
             self.reasoning_effort = reasoning_effort
             self._agents = {}
+
+    def _pricing_model(self, model: Optional[str] = None) -> str:
+        """The id this run's tokens are priced under: the model's own, or its
+        fast-mode pricing id when the run's role asks for fast mode."""
+        from .coding_agent import run_speed
+        from .models_service import pricing_model_id
+
+        model = model or self.model
+        return pricing_model_id(
+            model, run_speed(self._run_kind or 'chat', model, self._run_fast)
+        )
 
     @property
     def agent(self) -> Agent:
@@ -926,12 +1005,13 @@ class ImagiAgentService:
         callers outside a run (tests, scripts) fall back to the plain agent.
         """
         kind = self._run_kind or 'chat'
-        if kind not in self._agents:
+        key = f'{kind}:fast' if self._run_fast else kind
+        if key not in self._agents:
             from .coding_agent import create_coding_agent
-            self._agents[kind] = create_coding_agent(
-                self.model, self.reasoning_effort, kind=kind
+            self._agents[key] = create_coding_agent(
+                self.model, self.reasoning_effort, kind=kind, fast_mode=self._run_fast
             )
-        return self._agents[kind]
+        return self._agents[key]
 
     # -------------------------------------------------------------------------
     # Conversation Management
@@ -1242,6 +1322,11 @@ class ImagiAgentService:
             conversation_id=conversation.id,
             conversation_kind=conversation.kind,
             current_file=current_file,
+            live_apply=(
+                conversation.kind == 'task'
+                and not conversation.variant_group
+                and self.agent_kind != 'initial_build'
+            ),
         )
         if conversation.kind == 'lead':
             # Best-effort: a lead that cannot see its roster still works, it
@@ -1256,6 +1341,23 @@ class ImagiAgentService:
         # agent_kind wins: it selects the persona while the conversation keeps
         # its own kind for isolation and lifecycle.
         self._run_kind = self.agent_kind or conversation.kind
+        # The composer's fast-mode switch sticks to the conversation, so the
+        # threads it dispatches next inherit it; a thread run passes none and
+        # keeps its own.
+        # A pinned role (the first build) sets its own speed per run and
+        # leaves the conversation's setting alone, so a later follow-up to
+        # that thread runs at the speed the user chose.
+        if (
+            self.fast_mode is not None and self.agent_kind is None
+            and conversation.fast_mode != self.fast_mode
+        ):
+            conversation.fast_mode = self.fast_mode
+            AgentConversation.objects.filter(pk=conversation.pk).update(
+                fast_mode=self.fast_mode
+            )
+        self._run_fast = (
+            self.fast_mode if self.fast_mode is not None else conversation.fast_mode
+        )
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.
@@ -2068,7 +2170,7 @@ class ImagiAgentService:
             yield start_event
 
             run_kwargs: Dict[str, Any] = {}
-            bounds_hook = make_run_bounds_hook(model or self.model, cost_budget_usd)
+            bounds_hook = make_run_bounds_hook(self._pricing_model(model), cost_budget_usd)
             if bounds_hook is not None:
                 run_kwargs["hooks"] = bounds_hook
 
@@ -2102,7 +2204,7 @@ class ImagiAgentService:
                 # The done path meters only the final result, and the retry
                 # replaces it — meter the first round's spend now.
                 await sync_to_async(self._record_usage_event)(
-                    user, model, extract_usage(result, model or self.model), conversation
+                    user, model, extract_usage(result, self._pricing_model(model)), conversation
                 )
                 retry_parts: List[str] = []
                 result = Runner.run_streamed(
@@ -2127,7 +2229,7 @@ class ImagiAgentService:
                     yield {"type": "delta", "text": "\n\n" + LEAD_DISPATCH_FAILED_NOTE}
 
             metadata = extract_run_metadata(result)
-            usage = extract_usage(result, model or self.model)
+            usage = extract_usage(result, self._pricing_model(model))
 
             await sync_to_async(self.add_assistant_message)(
                 conversation,
@@ -2310,7 +2412,7 @@ class ImagiAgentService:
                 # omitted from the displayed message metadata (where absent
                 # means unknown).
                 try:
-                    interrupted_usage = extract_usage(result, model or self.model)
+                    interrupted_usage = extract_usage(result, self._pricing_model(model))
                 except Exception:  # pragma: no cover - defensive
                     interrupted_usage = None
                 if interrupted_usage:
@@ -2320,7 +2422,7 @@ class ImagiAgentService:
             # The round's spend, for the stream-wide cost ceiling.
             if cap_state is not None and result is not None:
                 try:
-                    round_usage = extract_usage(result, model or self.model) or {}
+                    round_usage = extract_usage(result, self._pricing_model(model)) or {}
                     cap_state["cost_usd"] = float(round_usage.get("cost_usd") or 0.0)
                 except Exception:  # pragma: no cover - defensive
                     pass
@@ -2385,7 +2487,7 @@ class ImagiAgentService:
 
             run_kwargs: Dict[str, Any] = {}
             bounds_hook = make_run_bounds_hook(
-                model or self.model, cost_budget_usd, deadline_at
+                self._pricing_model(model), cost_budget_usd, deadline_at
             )
             if bounds_hook is not None:
                 run_kwargs["hooks"] = bounds_hook
@@ -2410,7 +2512,7 @@ class ImagiAgentService:
                     "dispatch_task; running a corrective turn", conversation.id,
                 )
                 self._record_usage_event(
-                    user, model, extract_usage(result, model or self.model), conversation
+                    user, model, extract_usage(result, self._pricing_model(model)), conversation
                 )
                 result = Runner.run_sync(
                     self.agent,
@@ -2428,7 +2530,7 @@ class ImagiAgentService:
                     response_content = LEAD_DISPATCH_FAILED_NOTE
 
             metadata = extract_run_metadata(result)
-            usage = extract_usage(result, model or self.model)
+            usage = extract_usage(result, self._pricing_model(model))
 
             # Add assistant message (with run metadata) to conversation
             self.add_assistant_message(
@@ -2474,7 +2576,7 @@ class ImagiAgentService:
             # turn. Without this, a run the hook stops — the initial build,
             # on most runs — would never be metered.
             usage = usage_payload(
-                getattr(bounds_hook, 'last_usage', None), model or self.model
+                getattr(bounds_hook, 'last_usage', None), self._pricing_model(model)
             )
             if conversation is not None:
                 try:

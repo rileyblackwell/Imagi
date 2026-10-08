@@ -1593,6 +1593,14 @@ class DispatchTaskToolTests(TestCase):
         self.assertEqual(task.queued_prompt, 'Build a pricing page')
         self.assertEqual(result['dispatched_tasks'][0]['conversation_id'], task.id)
 
+    def test_a_thread_inherits_the_coordinators_fast_mode(self):
+        self.lead.fast_mode = True
+        self.lead.save(update_fields=['fast_mode'])
+
+        dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
+
+        self.assertTrue(AgentConversation.objects.get(kind='task').fast_mode)
+
     def test_the_tool_asks_the_lead_for_one_short_acknowledgement(self):
         # This instruction is what the lead reads at the moment it decides
         # what to say next, so it has to agree with the prompt: one line back
