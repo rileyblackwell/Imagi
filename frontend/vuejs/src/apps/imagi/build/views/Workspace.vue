@@ -478,9 +478,9 @@ onMounted(async () => {
     void handlePrompt(queuedText, instanceId)
   })
 
-  // Background task runs are driven through the same path, targeted at the
-  // task's instance: dispatched briefs from the lead agent, and answers the
-  // user gives to a subagent's question from the check-in queue.
+  // Background task runs are shown through the same path, targeted at the
+  // task's instance. The server starts every thread run itself (dispatched
+  // briefs, forwarded follow-ups, the user's own messages); this only watches.
   store.setTaskRunner((instanceId, taskPrompt) => {
     void handlePrompt(taskPrompt, instanceId)
   })

@@ -37,7 +37,8 @@ from ..models import (
     TREE_WRITING_KINDS,
 )
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
-from ..services.detached_runs import start_detached_run
+from ..services.detached_runs import start_detached_run, watch_conversation
+from ..services.thread_scheduler import start_waiting_threads
 from ..services.usage_limits import check_usage_allowed, record_usage
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
@@ -952,15 +953,19 @@ async def agent_stream(request):
         # belong to the response: if the connection drops it keeps going and
         # finishes on its own (see detached_runs). The response only relays
         # its events, plus keepalives while it is quiet.
-        run = start_detached_run(lambda: agent_service.process_stream(
-            user_input=message,
+        run = start_detached_run(
+            lambda: agent_service.process_stream(
+                user_input=message,
+                user=user,
+                model=model,
+                project_id=project_id,
+                current_file=payload.get('current_file'),
+                conversation_id=conversation_id,
+                reasoning_effort=reasoning_effort,
+            ),
             user=user,
-            model=model,
-            project_id=project_id,
-            current_file=payload.get('current_file'),
             conversation_id=conversation_id,
-            reasoning_effort=reasoning_effort,
-        ))
+        )
         async for frame in run.frames(_sse):
             yield frame
 
@@ -973,6 +978,106 @@ async def agent_stream(request):
     # held back and delivered at once, which defeats the point.
     response['X-Accel-Buffering'] = 'no'
     return response
+
+
+def _sse_response(frames):
+    response = StreamingHttpResponse(frames, content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
+
+
+@csrf_exempt
+async def conversation_events(request, conversation_id):
+    """Watch a conversation's run live, as Server-Sent Events.
+
+    Runs happen on the server; a browser only watches them. This is how it
+    watches a thread the server started (a dispatch, a follow-up), and how
+    any tab picks a run back up after its connection dropped: ?after=N
+    resumes after event N. Without it, it follows the current run — or the
+    next one, when work is waiting for the thread to start.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    user = await _authenticate_stream_request(request)
+    if user is None:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    owned = await sync_to_async(
+        AgentConversation.objects.filter(id=conversation_id, user=user).exists
+    )()
+    if not owned:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    after = request.GET.get('after')
+    try:
+        after = int(after) if after not in (None, '') else None
+    except ValueError:
+        after = None
+    return _sse_response(
+        watch_conversation(conversation_id, user, _sse, after=after)
+    )
+
+
+@csrf_exempt
+async def conversation_send(request, conversation_id):
+    """Give a thread its next message, and start it on the server.
+
+    The message is staged on the thread (exactly where the coordinator's
+    message_task puts one) and the scheduler starts it now, or as soon as it
+    is free — after its current run, or when a parallel slot opens. The
+    browser then watches it with conversation_events. Sent with no message,
+    it starts work that is already staged (retrying a thread whose run never
+    began).
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    user = await _authenticate_stream_request(request)
+    if user is None:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    message = str(payload.get('message') or '').strip()
+
+    def stage():
+        conversation = AgentConversation.objects.filter(
+            id=conversation_id, user=user
+        ).first()
+        if conversation is None:
+            return None, 'not_found'
+        if conversation.kind != 'task':
+            return None, 'not_a_thread'
+        if conversation.archived_at is not None or conversation.review_status == 'dismissed':
+            return None, 'discarded'
+        fields = []
+        queued = (conversation.queued_prompt or '').strip()
+        # A retry re-sends what is already waiting; it must not queue twice.
+        if message and not (queued == message or queued.endswith(f"\n\n{message}")):
+            conversation.queued_prompt = f"{queued}\n\n{message}" if queued else message
+            fields.append('queued_prompt')
+        if not (conversation.queued_prompt or '').strip():
+            return None, 'nothing_to_send'
+        if conversation.review_status in ('failed', 'accepted'):
+            # Asking it for more re-opens it; the run's start makes it
+            # official, this makes the scheduler pick it up.
+            conversation.review_status = 'active'
+            fields.append('review_status')
+        if fields:
+            conversation.save(update_fields=fields)
+        return conversation, None
+
+    conversation, problem = await sync_to_async(stage)()
+    if problem == 'not_found':
+        return JsonResponse({'error': 'Not found'}, status=404)
+    if problem:
+        return JsonResponse({'error': problem}, status=400)
+    outcome = await start_waiting_threads(user)
+    conversation = await sync_to_async(
+        AgentConversation.objects.get
+    )(id=conversation_id)
+    data = await sync_to_async(_serialize_conversation)(conversation)
+    data['blocked'] = outcome.get('blocked')
+    return JsonResponse(data, status=202)
 
 
 # ---------------------------------------------------------------------------

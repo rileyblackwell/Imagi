@@ -1283,7 +1283,11 @@ class ImagiAgentService:
         run_fields = ["run_started_at", "cancel_requested_at"]
         conversation.cancel_requested_at = None
         if conversation.queued_prompt:
-            conversation.queued_prompt = ''
+            # Only what this run delivers is consumed: a message staged for
+            # the thread after its run was claimed waits for the next run.
+            queued = conversation.queued_prompt
+            rest = queued[len(user_input):].strip() if queued.startswith(user_input) else ''
+            conversation.queued_prompt = rest
             run_fields.append("queued_prompt")
         if reopen_task:
             conversation.review_status = 'active'

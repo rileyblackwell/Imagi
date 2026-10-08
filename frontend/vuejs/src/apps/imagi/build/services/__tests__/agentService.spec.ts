@@ -223,6 +223,71 @@ describe('AgentService.streamAgent', () => {
   })
 })
 
+describe('AgentService.watchRun', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('follows a thread\'s run from its event log to the end', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      streamingResponse([
+        sse({ type: 'start', conversation_id: 7, seq: 1 }),
+        sse({ type: 'delta', text: 'Built it', seq: 2 }),
+        sse({ type: 'done', response: 'Built it', conversation_id: 7, seq: 3 }),
+      ]) as any,
+    )
+    const onDelta = vi.fn()
+
+    const result = await AgentService.watchRun(7, { onDelta })
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/v1/agents/conversations/7/events/',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Token test-token' }) }),
+    )
+    expect(onDelta).toHaveBeenCalledWith('Built it')
+    expect(result.response).toBe('Built it')
+  })
+
+  it('resumes after the last event it saw, and says where a drop left off', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      streamingResponse([sse({ type: 'delta', text: 'more', seq: 5 })]) as any,
+    )
+
+    await expect(AgentService.watchRun(7, {}, undefined, 4)).rejects.toMatchObject({
+      code: 'stream_dropped',
+      body: { last_seq: 5 },
+    })
+    expect(fetch).toHaveBeenCalledWith('/api/v1/agents/conversations/7/events/?after=4', expect.any(Object))
+  })
+
+  it('treats a watch that cannot connect as dropped, not as a failed run', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
+
+    await expect(AgentService.watchRun(7, {}, undefined, 2)).rejects.toMatchObject({
+      code: 'stream_dropped',
+      body: { conversation_id: 7, last_seq: 2 },
+    })
+  })
+})
+
+describe('AgentService.sendToThread', () => {
+  beforeEach(() => {
+    apiPost.mockReset()
+  })
+
+  it('hands the message to the server, which starts the thread', async () => {
+    apiPost.mockResolvedValue({ data: { id: 7, blocked: null } })
+
+    const result = await AgentService.sendToThread(7, 'Make it blue')
+
+    expect(apiPost).toHaveBeenCalledWith('/v1/agents/conversations/7/send/', { message: 'Make it blue' })
+    expect(result).toEqual({ id: 7, blocked: null })
+  })
+})
+
 describe('labelForTool', () => {
   // These lines are the whole of what a business owner ever sees of HOW their
   // app got built, so every one of them has to be readable by someone who has
