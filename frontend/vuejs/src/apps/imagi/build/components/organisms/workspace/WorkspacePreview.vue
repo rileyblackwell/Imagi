@@ -1,254 +1,282 @@
 <template>
-  <div class="pv-root relative w-full h-full flex flex-col">
-    <!-- Toolbar — the plate. Wears the same wash + hairline as the chat pane's
-         masthead opposite it, so the two halves of the workspace match. -->
-    <div class="pv-bar">
-      <!-- Navigation controls, seated in one recessed rail -->
-      <div class="pv-rail shrink-0">
-        <button
-          type="button"
-          @click="goBack"
-          :disabled="!canGoBack || phase !== 'ready'"
-          title="Back"
-          aria-label="Back"
-          class="pv-nav"
-        >
-          <i class="fas fa-arrow-left"></i>
-        </button>
+  <div class="pv-root relative w-full h-full flex flex-col" :class="{ 'pv-root--phone': viewMode === 'phone' }">
+    <!-- The dock: one frosted pill floating on the stage above the app —
+         navigation, where you are (also the page menu), and how big a screen
+         to look at it on. It sits in its own band rather than over the app,
+         because anything laid over the frame would hide the app's own header. -->
+    <div class="pv-dockbar">
+      <div class="pv-dock">
+        <div class="pv-rail shrink-0">
+          <button
+            type="button"
+            @click="goBack"
+            :disabled="!canGoBack || phase !== 'ready'"
+            title="Back"
+            aria-label="Back"
+            class="pv-nav"
+          >
+            <i class="fas fa-arrow-left"></i>
+          </button>
 
-        <button
-          type="button"
-          @click="goForward"
-          :disabled="!canGoForward || phase !== 'ready'"
-          title="Forward"
-          aria-label="Forward"
-          class="pv-nav"
-        >
-          <i class="fas fa-arrow-right"></i>
-        </button>
+          <button
+            type="button"
+            @click="goForward"
+            :disabled="!canGoForward || phase !== 'ready'"
+            title="Forward"
+            aria-label="Forward"
+            class="pv-nav"
+          >
+            <i class="fas fa-arrow-right"></i>
+          </button>
 
-        <button
-          type="button"
-          @click="reload"
-          title="Refresh page"
-          aria-label="Refresh page"
-          class="pv-nav"
-        >
-          <i class="fas fa-sync-alt" :class="{ 'fa-spin': busy }"></i>
-        </button>
+          <button
+            type="button"
+            @click="reload"
+            title="Refresh page"
+            aria-label="Refresh page"
+            class="pv-nav"
+          >
+            <i class="fas fa-rotate-right" :class="{ 'fa-spin': busy }"></i>
+          </button>
 
-        <!-- Home is the one control here that has a second door: the nameplate
-             beside it is also the page menu, and the home page is a row in it.
-             That is why it, and nothing else in this rail, stands down on the
-             narrowest phones (see the 359px block in the styles). -->
-        <button
-          type="button"
-          @click="goHome"
-          title="Go to home page"
-          aria-label="Go to home page"
-          class="pv-nav pv-nav--home"
-        >
-          <i class="fas fa-home"></i>
-        </button>
-      </div>
+          <!-- Home has a second door (the home page is a row in the page
+               menu), which is why it alone stands down on the narrowest phones. -->
+          <button
+            type="button"
+            @click="goHome"
+            title="Go to home page"
+            aria-label="Go to home page"
+            class="pv-nav pv-nav--home"
+          >
+            <i class="fas fa-house"></i>
+          </button>
+        </div>
 
-      <!-- The nameplate: where you are, said as the path it is — the app folder
-           the page lives in, then the page itself ("home/about"). Also the
-           app/page selector. -->
-      <div class="relative flex-1 min-w-0" ref="menuRoot">
-        <button
-          type="button"
-          @click="onMenuToggle"
-          :disabled="apps.length === 0"
-          :aria-expanded="menuOpen"
-          aria-haspopup="true"
-          class="pv-plate group"
-        >
-          <span v-if="location.dir" class="pv-plate-dir">{{ location.dir }}</span>
-          <span v-if="location.dir" class="pv-plate-sep" aria-hidden="true">/</span>
-          <span class="pv-plate-page">{{ location.page }}</span>
-          <i class="fas fa-chevron-down pv-plate-chevron" :class="{ 'rotate-180': menuOpen }"></i>
-        </button>
+        <span class="pv-dock-sep" aria-hidden="true"></span>
 
-        <!-- Directory tree: apps are folders, their pages are the files inside -->
-        <div
-          v-if="menuOpen && apps.length> 0"
-          class="pv-menu"
-        >
-          <div v-for="(app, i) in apps" :key="app.name" class="pv-row" :style="{ '--pv-i': i }">
-            <!-- Folder row -->
-            <button
-              type="button"
-              @click="toggleApp(app.name)"
-              class="pv-folder group/folder"
-            >
-              <i
-                class="fas fa-chevron-right pv-folder-chevron"
-                :class="{ 'rotate-90': isExpanded(app.name) }"
-              ></i>
-              <i
-                class="fas pv-folder-icon"
-                :class="isExpanded(app.name) ? 'fa-folder-open' : 'fa-folder'"
-              ></i>
-              <span class="truncate">{{ app.name }}</span>
-            </button>
+        <!-- The nameplate: the section of the app this page lives in, then the
+             page itself ("home / About"). Also opens the page menu. -->
+        <div class="relative flex-1 min-w-0" ref="menuRoot">
+          <button
+            type="button"
+            @click="onMenuToggle"
+            :disabled="apps.length === 0"
+            :aria-expanded="menuOpen"
+            aria-haspopup="true"
+            class="pv-plate"
+          >
+            <span v-if="location.dir" class="pv-plate-dir">{{ location.dir }}</span>
+            <span v-if="location.dir" class="pv-plate-sep" aria-hidden="true">/</span>
+            <span class="pv-plate-page">{{ location.page }}</span>
+            <i class="fas fa-chevron-down pv-plate-chevron" :class="{ 'rotate-180': menuOpen }"></i>
+          </button>
 
-            <!-- Files (pages) nested under the folder, with a tree guide line -->
-            <div v-if="isExpanded(app.name)" class="pv-files">
-              <p v-if="!app.pages.length" class="pv-files-empty">No pages</p>
+          <!-- Every page in the project, grouped by the section it belongs to:
+               folders, then the pages inside them. Names only — the menu is a
+               map of the app, not of its source tree. -->
+          <div v-if="menuOpen && apps.length > 0" class="pv-menu">
+            <p class="pv-menu-head">
+              Pages in your app
+              <span class="pv-menu-count">{{ pageCount }}</span>
+            </p>
+            <div v-for="(app, i) in apps" :key="app.name" class="pv-row" :style="{ '--pv-i': i }">
               <button
-                v-for="page in app.pages"
-                :key="page.path"
                 type="button"
-                @click="onSelectPage(page.path)"
-                :class="['pv-file', page.path === currentPath && 'pv-file--current']"
+                @click="toggleApp(app.name)"
+                :aria-expanded="isExpanded(app.name)"
+                class="pv-folder"
               >
                 <i
-                  class="fas pv-file-icon"
-                  :class="page.path === currentPath ? 'fa-circle-dot' : 'fa-file'"
+                  class="fas fa-chevron-right pv-folder-chevron"
+                  :class="{ 'rotate-90': isExpanded(app.name) }"
                 ></i>
-                <span class="truncate flex-1">{{ page.title }}</span>
-                <span class="pv-file-path">{{ page.path }}</span>
+                <i
+                  class="fas pv-folder-icon"
+                  :class="isExpanded(app.name) ? 'fa-folder-open' : 'fa-folder'"
+                ></i>
+                <span class="truncate flex-1 text-left">{{ app.name }}</span>
+                <span class="pv-folder-count">{{ app.pages.length }}</span>
               </button>
+
+              <div v-if="isExpanded(app.name)" class="pv-files">
+                <p v-if="!app.pages.length" class="pv-files-empty">No pages yet</p>
+                <button
+                  v-for="page in app.pages"
+                  :key="page.path"
+                  type="button"
+                  @click="onSelectPage(page.path)"
+                  :aria-current="page.path === currentPath ? 'page' : undefined"
+                  :class="['pv-file', page.path === currentPath && 'pv-file--current']"
+                >
+                  <i class="fas fa-file-lines pv-file-icon"></i>
+                  <span class="truncate flex-1">{{ page.title }}</span>
+                  <span v-if="page.path === currentPath" class="pv-file-here">Viewing</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Screen size: the app at the pane's full width, or at a phone's.
+             Desktop-only control — on a phone the preview already is one. -->
+        <div class="pv-size shrink-0" role="group" aria-label="Screen size">
+          <button
+            type="button"
+            @click="setViewMode('desktop')"
+            :aria-pressed="viewMode === 'desktop'"
+            title="Desktop view"
+            aria-label="Desktop view"
+            :class="['pv-size-btn', viewMode === 'desktop' && 'pv-size-btn--on']"
+          >
+            <i class="fas fa-desktop"></i>
+          </button>
+          <button
+            type="button"
+            @click="setViewMode('phone')"
+            :aria-pressed="viewMode === 'phone'"
+            title="Phone view"
+            aria-label="Phone view"
+            :class="['pv-size-btn', viewMode === 'phone' && 'pv-size-btn--on']"
+          >
+            <i class="fas fa-mobile-screen"></i>
+          </button>
+        </div>
+
+        <!-- Back to the main agent: phones only, where the preview has
+             replaced the chat (see canReturnToChat). -->
+        <button
+          v-if="canReturnToChat"
+          type="button"
+          @click="emit('return-to-chat')"
+          class="pv-switch shrink-0"
+          aria-label="Back to the coordinator"
+        >
+          <i class="fas fa-chevron-left pv-switch-chevron"></i>
+          <i class="fas fa-comments pv-switch-icon"></i>
+          <span class="pv-switch-label">Coordinator</span>
+          <span v-if="returnCount" class="pv-switch-count">{{ returnCount }}</span>
+        </button>
+
+        <!-- Loading ribbon along the dock's lower edge while the session is
+             starting or a navigation is in flight. -->
+        <div v-if="busy" class="pv-progress" aria-hidden="true"></div>
       </div>
-
-      <!-- Back to the main agent. This pane has no masthead of its own, so the
-           workspace's one navigation idiom — a named pill on the right of the
-           plate, chevron leading, badged with what is waiting over there —
-           moves onto the toolbar rather than being reinvented here. Phones
-           only: see canReturnToChat for why desktop doesn't get one.
-
-           There is one destination and it is the main agent: the subagents are
-           reached through it, the same as everywhere else in the workspace. -->
-      <button
-        v-if="canReturnToChat"
-        type="button"
-        @click="emit('return-to-chat')"
-        class="pv-switch group shrink-0"
-        aria-label="Back to the coordinator"
-      >
-        <i class="fas fa-chevron-left pv-switch-chevron"></i>
-        <i class="fas fa-comments pv-switch-icon"></i>
-        <span class="pv-switch-label">Coordinator</span>
-        <span v-if="returnCount" class="pv-switch-count">{{ returnCount }}</span>
-      </button>
-
-      <!-- Loading ribbon: rides the plate's bottom edge while the session is
-           starting or a navigation is in flight. -->
-      <div v-if="busy" class="pv-progress" aria-hidden="true"></div>
     </div>
 
-    <!-- Screen: frames from the remote browser, input forwarded back.
-         NOTE for future edits: this element's box IS the remote viewport —
-         paneSize() measures it and pageCoords() maps client coords through it
-          1:1. Never give it padding, a border, or anything else that makes its
-         rect disagree with the <img> inside; decoration goes on the background
-         or in pointer-events-none overlays. -->
-    <div
-      ref="screenRef"
-      tabindex="0"
-      class="pv-stage relative flex-1 min-h-0 outline-none overflow-hidden touch-none"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @pointerup="onPointerUp"
-      @pointercancel="onPointerCancel"
-      @wheel.prevent="onWheel"
-      @keydown="onKeyDown"
-      @keyup="onKeyUp"
-      @contextmenu.prevent
-    >
-      <!-- contain, not fill: pane and remote viewport can briefly disagree
-           (resizes are debounced), and letterboxing against the container's
-           background reads better than stretched text. The translate3d carries
-           the optimistic local scroll (compositor-only, always present so the
-           img keeps its own layer); gaps it opens show the container bg. -->
-      <img
-        v-if="frameSrc"
-        :src="frameSrc"
-        alt=""
-        draggable="false"
-        decoding="async"
-        class="w-full h-full select-none pointer-events-none"
-        :style="frameStyle"
-      />
+    <!-- The frame: the app as a lit card on the stage, or inside a phone. -->
+    <div class="pv-stagewrap">
+      <div class="pv-frame">
 
-      <!-- Console-error banner: recent JS errors reported by the previewed
-           page itself. Pointer events must not leak through to the screen's
-           input forwarding underneath. -->
-      <div
-        v-if="consoleBannerVisible && latestConsoleError"
-        class="pv-alert"
-        @pointerdown.stop
-        @pointermove.stop
-        @pointerup.stop
-        @wheel.stop
-      >
-        <span class="pv-alert-edge" aria-hidden="true"></span>
-        <div class="pv-alert-mark">
-          <i class="fas fa-exclamation"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="pv-alert-title">Something broke in your app</p>
-          <p class="pv-alert-detail">{{ latestConsoleError.text }}</p>
-        </div>
-        <button type="button" @click="onFixConsoleError" class="pv-btn pv-btn--ink shrink-0">
-          <i class="fas fa-wand-magic-sparkles"></i>
-          Fix it
-        </button>
-        <button
-          type="button"
-          @click="dismissConsoleBanner"
-          title="Dismiss"
-          aria-label="Dismiss"
-          class="pv-alert-dismiss"
+        <!-- Screen: frames from the remote browser, input forwarded back.
+             NOTE for future edits: this element's box IS the remote viewport —
+             paneSize() measures it and pageCoords() maps client coords through it
+              1:1. Never give it padding, a border, or anything else that makes its
+             rect disagree with the <img> inside; decoration goes on the background
+             or in pointer-events-none overlays. -->
+        <div
+          ref="screenRef"
+          tabindex="0"
+          class="pv-stage relative flex-1 min-h-0 outline-none overflow-hidden touch-none"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @pointercancel="onPointerCancel"
+          @wheel.prevent="onWheel"
+          @keydown="onKeyDown"
+          @keyup="onKeyUp"
+          @contextmenu.prevent
         >
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
+          <!-- contain, not fill: pane and remote viewport can briefly disagree
+               (resizes are debounced), and letterboxing against the container's
+               background reads better than stretched text. The translate3d carries
+               the optimistic local scroll (compositor-only, always present so the
+               img keeps its own layer); gaps it opens show the container bg. -->
+          <img
+            v-if="frameSrc"
+            :src="frameSrc"
+            alt=""
+            draggable="false"
+            decoding="async"
+            class="w-full h-full select-none pointer-events-none"
+            :style="frameStyle"
+          />
 
-      <!-- Starting: the wait is long enough (first start installs the whole
-           dependency tree) that it gets a real progress story — an elapsed
-           clock and copy that tracks which stage the wait is in. -->
-      <div v-if="phase === 'starting'" class="pv-veil">
-        <div class="pv-notice">
-          <div class="pv-orbit" aria-hidden="true"><span class="pv-orbit-core"></span></div>
-          <h3 class="pv-notice-title">Bringing your app to life</h3>
-          <p class="pv-notice-body" aria-live="polite">{{ startingStage }}</p>
-          <p class="pv-clock">{{ elapsedLabel }}</p>
-        </div>
-      </div>
-
-      <!-- Error overlay -->
-      <div v-else-if="phase === 'error'" class="pv-veil pv-veil--solid">
-        <div class="pv-notice">
-          <div class="pv-mark pv-mark--alert" aria-hidden="true">
-            <i class="fas fa-triangle-exclamation"></i>
+          <!-- Console-error banner: recent JS errors reported by the previewed
+               page itself. Pointer events must not leak through to the screen's
+               input forwarding underneath. -->
+          <div
+            v-if="consoleBannerVisible && latestConsoleError"
+            class="pv-alert"
+            @pointerdown.stop
+            @pointermove.stop
+            @pointerup.stop
+            @wheel.stop
+          >
+            <span class="pv-alert-edge" aria-hidden="true"></span>
+            <div class="pv-alert-mark">
+              <i class="fas fa-exclamation"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="pv-alert-title">Something broke in your app</p>
+              <p class="pv-alert-detail">{{ latestConsoleError.text }}</p>
+            </div>
+            <button type="button" @click="onFixConsoleError" class="pv-btn pv-btn--ink shrink-0">
+              <i class="fas fa-wand-magic-sparkles"></i>
+              Fix it
+            </button>
+            <button
+              type="button"
+              @click="dismissConsoleBanner"
+              title="Dismiss"
+              aria-label="Dismiss"
+              class="pv-alert-dismiss"
+            >
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          <h3 class="pv-notice-title">The preview couldn't start</h3>
-          <p class="pv-notice-body">This is the preview server, not your app's code — a retry usually clears it.</p>
-          <pre class="pv-code">{{ error }}</pre>
-          <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
-            <i class="fas fa-sync-alt"></i>
-            Try again
-          </button>
-        </div>
-      </div>
 
-      <!-- Stopped overlay (session ended, e.g. idle shutdown or restart) -->
-      <div v-else-if="phase === 'stopped'" class="pv-veil">
-        <div class="pv-notice">
-          <div class="pv-mark" aria-hidden="true">
-            <i class="fas fa-moon"></i>
+          <!-- Starting: the wait is long enough (first start installs the whole
+               dependency tree) that it gets a real progress story — an elapsed
+               clock and copy that tracks which stage the wait is in. -->
+          <div v-if="phase === 'starting'" class="pv-veil">
+            <div class="pv-notice">
+              <div class="pv-orbit" aria-hidden="true"><span class="pv-orbit-core"></span></div>
+              <h3 class="pv-notice-title">Bringing your app to life</h3>
+              <p class="pv-notice-body" aria-live="polite">{{ startingStage }}</p>
+              <p class="pv-clock">{{ elapsedLabel }}</p>
+            </div>
           </div>
-          <h3 class="pv-notice-title">Your preview dozed off</h3>
-          <p class="pv-notice-body">The session shuts down after a quiet spell to save you money. Everything you built is safe.</p>
-          <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
-            <i class="fas fa-play"></i>
-            Wake it up
-          </button>
+
+          <!-- Error overlay -->
+          <div v-else-if="phase === 'error'" class="pv-veil pv-veil--solid">
+            <div class="pv-notice">
+              <div class="pv-mark pv-mark--alert" aria-hidden="true">
+                <i class="fas fa-triangle-exclamation"></i>
+              </div>
+              <h3 class="pv-notice-title">The preview couldn't start</h3>
+              <p class="pv-notice-body">This is the preview server, not your app's code — a retry usually clears it.</p>
+              <pre class="pv-code">{{ error }}</pre>
+              <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
+                <i class="fas fa-sync-alt"></i>
+                Try again
+              </button>
+            </div>
+          </div>
+
+          <!-- Stopped overlay (session ended, e.g. idle shutdown or restart) -->
+          <div v-else-if="phase === 'stopped'" class="pv-veil">
+            <div class="pv-notice">
+              <div class="pv-mark" aria-hidden="true">
+                <i class="fas fa-moon"></i>
+              </div>
+              <h3 class="pv-notice-title">Your preview dozed off</h3>
+              <p class="pv-notice-body">The session shuts down after a quiet spell to save you money. Everything you built is safe.</p>
+              <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
+                <i class="fas fa-play"></i>
+                Wake it up
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -308,10 +336,33 @@ const viewport = ref<[number, number]>([1280, 800])
 const navigating = ref(false)
 const busy = computed(() => phase.value === 'starting' || navigating.value)
 
+// Screen size the app is shown at. Phone narrows the screen element itself, so
+// the ResizeObserver resizes the remote viewport like any other pane resize.
+type ViewMode = 'desktop' | 'phone'
+const VIEW_MODE_KEY = 'imagi.preview.viewMode'
+
+function readViewMode(): ViewMode {
+  try {
+    return localStorage.getItem(VIEW_MODE_KEY) === 'phone' ? 'phone' : 'desktop'
+  } catch {
+    return 'desktop'
+  }
+}
+
+const viewMode = ref<ViewMode>(readViewMode())
+
+function setViewMode(mode: ViewMode) {
+  viewMode.value = mode
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode)
+  } catch {
+    // Storage unavailable (private mode): the choice lasts for this visit.
+  }
+}
+
 const menuOpen = ref(false)
-// Folders (apps) start collapsed; this holds the ones currently open. When the
-// menu opens we seed it with the folder holding the current page (see
-// onMenuToggle) so you land on where you are without the whole tree unfurling.
+// The folders (apps) currently open in the page menu. Opening the menu opens
+// all of them (see onMenuToggle); a folder can still be folded away by hand.
 const expandedApps = ref<string[]>([])
 const menuRoot = ref<HTMLElement | null>(null)
 const screenRef = ref<HTMLElement | null>(null)
@@ -989,17 +1040,14 @@ async function refreshPages() {
 function onMenuToggle() {
   menuOpen.value = !menuOpen.value
   if (menuOpen.value) {
-    // Open only the folder holding the current page, so you land on where you
-    // are rather than the whole tree.
-    const active = apps.value.find(a => a.pages.some(p => p.path === currentPath.value))
-    expandedApps.value = active ? [active.name] : []
+    // Every section open: the menu's job is to show all the pages there are.
+    expandedApps.value = apps.value.map(a => a.name)
     // Routes may have changed since the last fetch (the agent edits routers);
     // refresh in the background whenever the menu opens.
     void refreshPages()
   }
 }
 
-// Folders start collapsed; expandedApps tracks the ones currently open.
 function isExpanded(name: string): boolean {
   return expandedApps.value.includes(name)
 }
@@ -1024,6 +1072,8 @@ function normalizePath(input: string): string {
   return trimmed.startsWith('/') ? trimmed : '/' + trimmed
 }
 
+const pageCount = computed(() => apps.value.reduce((n, a) => n + a.pages.length, 0))
+
 function onSelectPage(path: string) {
   navigateTo(path)
   menuOpen.value = false
@@ -1036,18 +1086,12 @@ function onDocClick(e: MouseEvent) {
   }
 }
 
-// The page's own name, as it reads in the app's directory: the route's last
-// segment, with the root of an app taking the app's own name ('/' -> "home").
-function pageSlug(path: string): string {
-  return path.replace(/\/+$/, '').split('/').pop() || 'home'
-}
-
-// What the collapsed plate says: the app folder holding the current page and
-// the page inside it, shown as a path — "home/about", "auth/signin".
+// What the collapsed plate says: the section of the app holding the current
+// page, then the page by name, as the menu lists it — "home / About".
 const location = computed(() => {
   for (const app of apps.value) {
     const page = app.pages.find(p => p.path === currentPath.value)
-    if (page) return { dir: app.name, page: pageSlug(page.path) }
+    if (page) return { dir: app.name, page: page.title }
   }
   // No router claims this path — a 404, or a route the agent added since the
   // last fetch. There is no folder to name, so show the address itself.
@@ -1189,330 +1233,131 @@ defineExpose({ reload })
 
 <style scoped>
 /* ---------------------------------------------------------------------------
-   The preview pane is the other half of the workspace: the chat sits on the
-   left in a porcelain plate, and the user's own app sits here. So the chrome
-   wears the same materials as WorkspacePaneHeader — the wash, the hairline,
-   the display face — and then gets out of the way. Everything below the plate
-   belongs to the app being built, which is why the stage is a quiet matte
-   rather than another surface competing for attention.
+   Glass Dock. The preview pane is a Spotlight stage: the user's app sits on it
+   as a lit card (or inside a phone), and the controls float above it in one
+   frosted pill. The chrome stays quiet so the app is the brightest thing here.
+   Colours come from the --sl-* tokens (shared/styles/spotlight.css), so the
+   light and dark themes differ only there.
    --------------------------------------------------------------------------- */
 
 .pv-root {
-  background: var(--sl-surface, #ffffff);
+  background-color: var(--sl-bg, #f8f7f4);
+  background-image: radial-gradient(70% 320px at 50% -80px, var(--sl-spot-core, rgba(255, 170, 110, 0.3)), transparent 70%);
 }
 
-.dark .pv-root {
-  background: var(--sl-bg, #0a0a0a);
-}
+/* --- The dock ------------------------------------------------------------ */
 
-/* --- The plate ----------------------------------------------------------- */
-
-/* The pane's masthead, and it never moves: flex-shrink 0 so the stage below
-   can never squeeze it, in the same way .pane-header holds its height on the
-   chat side of the divider. The stage is the only part of this pane that
-   gives — everything the user scrolls happens inside it, under this bar. */
-.pv-bar {
+.pv-dockbar {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   flex-shrink: 0;
+  justify-content: center;
+  padding: 0.75rem 1rem 0.625rem;
+}
+
+.pv-dock {
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4375rem 0.625rem;
-  background: linear-gradient(180deg, rgba(239, 246, 255, 0.5) 0%, rgba(239, 246, 255, 0) 100%);
-  border-bottom: 1px solid rgba(19, 26, 44, 0.08);
-  /* Casts onto the stage so the app reads as seated *under* the chrome. */
-  box-shadow: 0 8px 16px -14px rgba(19, 26, 44, 0.55);
+  gap: 0.25rem;
+  width: 100%;
+  max-width: 44rem;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
+  background: color-mix(in srgb, var(--sl-surface, #ffffff) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: var(--sl-card-shadow, 0 14px 34px -20px rgba(20, 21, 30, 0.2));
 }
 
-.dark .pv-bar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 100%);
-  border-bottom-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 18px -14px rgba(0, 0, 0, 0.9);
+.pv-dock-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 1.125rem;
+  margin: 0 0.125rem;
+  background: var(--sl-line-strong, rgba(20, 21, 30, 0.15));
 }
 
-/* Navigation lives in one recessed rail, so four ghost glyphs read as a
-   single instrument instead of four loose dots. */
 .pv-rail {
   display: flex;
   align-items: center;
   gap: 0.0625rem;
-  padding: 0.125rem;
-  border-radius: 9999px;
-  background: rgba(19, 26, 44, 0.045);
-  box-shadow: inset 0 1px 2px rgba(19, 26, 44, 0.05);
-}
-
-.dark .pv-rail {
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .pv-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 9999px;
-  font-size: 0.6875rem;
-  color: rgba(19, 26, 44, 0.55);
+  font-size: 0.75rem;
+  color: var(--sl-muted, #5c6172);
   cursor: pointer;
   transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
 .pv-nav:hover:not(:disabled) {
-  color: theme('colors.blue.950');
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 2px rgba(19, 26, 44, 0.12);
+  color: var(--sl-text, #14151c);
+  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
 }
 
-.pv-nav:active:not(:disabled) {
-  transform: scale(0.92);
-}
+.pv-nav:active:not(:disabled) { transform: scale(0.92); }
 
 .pv-nav:disabled {
-  opacity: 0.28;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-.pv-nav:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
-}
-
-.dark .pv-nav {
-  color: rgba(219, 234, 254, 0.55);
-}
-
-.dark .pv-nav:hover:not(:disabled) {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: none;
-}
-
-.dark .pv-nav:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(251, 191, 36, 0.5);
-}
-
-/* --- Back to the main agent ---------------------------------------------- */
-
-/* Deliberately the pane masthead's switch (.pane-switch), part for part: same
-   material, same height, same right-hand seat, same chevron-then-icon-then-word
-   order. Moving between the workspace's views is one gesture, so it is one
-   object — it should not matter that the preview happens to be built by a
-   different component. */
-.pv-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3125rem;
-  height: 1.75rem;
-  padding: 0 0.5625rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(19, 26, 44, 0.1);
-  background: rgba(255, 255, 255, 0.85);
-  color: rgba(19, 26, 44, 0.72);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 #ffffff;
-  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.pv-switch:hover {
-  background: #ffffff;
-  border-color: rgba(19, 26, 44, 0.22);
-  color: theme('colors.blue.950');
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(19, 26, 44, 0.08);
-}
-
+.pv-nav:focus-visible,
+.pv-plate:focus-visible,
+.pv-size-btn:focus-visible,
 .pv-switch:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
-}
-
-.dark .pv-switch {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(219, 234, 254, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.dark .pv-switch:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.dark .pv-switch:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(251, 191, 36, 0.5);
-}
-
-.pv-switch-chevron {
-  font-size: 0.5rem;
-  opacity: 0.45;
-  transition: transform 0.16s ease, opacity 0.16s ease;
-}
-
-.pv-switch:hover .pv-switch-chevron {
-  opacity: 0.8;
-  transform: translateX(-2px);
-}
-
-.pv-switch-icon {
-  font-size: 0.625rem;
-  opacity: 0.7;
-  transition: opacity 0.16s ease;
-}
-
-.pv-switch:hover .pv-switch-icon {
-  opacity: 0.95;
-}
-
-/* What is waiting back in the thread — the masthead's navy-ink badge, the
-   recipe this workspace keeps for things you act on. */
-.pv-switch-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.0625rem;
-  height: 1.0625rem;
-  padding: 0 0.25rem;
-  border-radius: 9999px;
-  background: theme('colors.blue.950');
-  color: #fbfaf7;
-  font-size: 0.625rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.dark .pv-switch-count {
-  background: #f3ede2;
-  color: theme('colors.blue.950');
-}
-
-/* Phones: the toolbar now seats four nav glyphs, an address and a way out on
-   ~360px. Everything sheds a few pixels so the address keeps a readable share
-   — no control is dropped, because each one is the only way to do its job. */
-@media (max-width: 767px) {
-  .pv-bar {
-    gap: 0.375rem;
-    padding: 0.4375rem 0.5rem;
-  }
-
-  .pv-nav {
-    width: 1.5rem;
-    height: 1.5rem;
-  }
-
-  .pv-switch {
-    height: 1.625rem;
-    gap: 0.25rem;
-    padding: 0 0.5rem;
-  }
-}
-
-/* The narrowest phones (320px). The chevron goes, exactly as it does on the
-   pane mastheads at this width, and the nameplate gives up its padding — but
-   neither buys enough on its own, and an address you cannot read is not an
-   address. So Home stands down too: it is the only control on this bar that
-   has a second door (the nameplate is the page menu, and the home page is a
-   row in it), which is what makes it the one that can go. */
-@media (max-width: 359px) {
-  .pv-switch-chevron {
-    display: none;
-  }
-
-  .pv-nav--home {
-    display: none;
-  }
-
-  .pv-plate {
-    padding: 0 1.625rem 0 0.5rem;
-  }
-
-  .pv-plate-chevron {
-    right: 0.5rem;
-  }
+  box-shadow: 0 0 0 2px var(--sl-focus, #d9730d);
 }
 
 /* --- The nameplate ------------------------------------------------------- */
 
-/* Three typefaces doing three jobs: the app in small caps (where you are), the
-   page in the display face (what you're looking at), the path in mono (the truth). */
 .pv-plate {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.4375rem;
+  gap: 0.375rem;
   width: 100%;
-  height: 2.125rem;
-  padding: 0 2rem 0 0.75rem;
+  height: 2rem;
+  padding: 0 2rem 0 0.875rem;
   border-radius: 9999px;
-  /* An address reads from the left even when it doesn't fill the plate — a
-     button's centred default would float the page name mid-bar. */
   text-align: left;
-  border: 1px solid rgba(19, 26, 44, 0.1);
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: inset 0 1px 0 #ffffff;
+  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
   cursor: pointer;
-  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+  transition: background-color 0.16s ease;
 }
 
-.pv-plate:hover:not(:disabled) {
-  border-color: rgba(19, 26, 44, 0.22);
-  background: #ffffff;
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(19, 26, 44, 0.08);
-}
+.pv-plate:hover:not(:disabled) { background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
 
 .pv-plate:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-.pv-plate:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
-}
-
-.dark .pv-plate {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.045);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.dark .pv-plate:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.dark .pv-plate:focus-visible {
-  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(251, 191, 36, 0.5);
-}
-
-/* The plate reads as one path — the folder set back, the page carrying the
-   weight — so the two are the same size and differ only in colour. */
 .pv-plate-dir {
   flex-shrink: 0;
   max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: -0.008em;
-  color: rgba(19, 26, 44, 0.42);
+  font-size: 0.8125rem;
+  color: var(--sl-faint, #8a8fa0);
 }
 
 .pv-plate-sep {
   flex-shrink: 0;
   font-size: 0.8125rem;
-  color: rgba(19, 26, 44, 0.24);
+  color: var(--sl-faint, #8a8fa0);
+  opacity: 0.6;
 }
 
 .pv-plate-page {
@@ -1521,20 +1366,14 @@ defineExpose({ reload })
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: left;
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
+  font-family: var(--sl-font-display);
   font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: -0.008em;
-  color: theme('colors.blue.950');
+  letter-spacing: -0.01em;
+  color: var(--sl-text, #14151c);
 }
 
-.dark .pv-plate-dir { color: rgba(219, 234, 254, 0.42); }
-.dark .pv-plate-sep { color: rgba(219, 234, 254, 0.22); }
-.dark .pv-plate-page { color: rgba(255, 255, 255, 0.94); }
-
-/* Narrow panes drop the folder before the page name ever wraps. */
+/* Narrow panes drop the section before the page name ever truncates. */
 @media (max-width: 640px) {
   .pv-plate-dir,
   .pv-plate-sep { display: none; }
@@ -1542,30 +1381,101 @@ defineExpose({ reload })
 
 .pv-plate-chevron {
   position: absolute;
-  right: 0.75rem;
+  right: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.5625rem;
-  color: rgba(19, 26, 44, 0.35);
+  color: var(--sl-faint, #8a8fa0);
   pointer-events: none;
   transition: transform 0.2s ease;
 }
 
-.pv-plate-chevron.rotate-180 {
-  transform: translateY(-50%) rotate(180deg);
+.pv-plate-chevron.rotate-180 { transform: translateY(-50%) rotate(180deg); }
+
+/* --- Screen size --------------------------------------------------------- */
+
+.pv-size {
+  display: flex;
+  padding: 0.125rem;
+  border-radius: 9999px;
+  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
 }
 
-.dark .pv-plate-chevron { color: rgba(219, 234, 254, 0.4); }
+.pv-size-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: var(--sl-faint, #8a8fa0);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
 
-/* Loading ribbon on the plate's bottom edge — a browser's own progress bar,
-   reduced to a travelling sliver of ink. */
+.pv-size-btn:hover { color: var(--sl-text, #14151c); }
+
+.pv-size-btn--on {
+  color: var(--sl-text, #14151c);
+  background: var(--sl-surface, #ffffff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+.dark .pv-size-btn--on { background: var(--sl-surface-2, #1a1d28); }
+
+/* --- Back to the main agent (phones) ------------------------------------- */
+
+.pv-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
+  color: var(--sl-muted, #5c6172);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.pv-switch:hover {
+  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
+  color: var(--sl-text, #14151c);
+}
+
+.pv-switch-chevron { font-size: 0.5rem; opacity: 0.55; }
+.pv-switch-icon { font-size: 0.625rem; opacity: 0.75; }
+
+.pv-switch-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.0625rem;
+  height: 1.0625rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: var(--sl-grad);
+  color: var(--sl-on-accent, #1a0e08);
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Loading ribbon: a travelling sliver of the coral-to-amber light along the
+   dock's lower edge. */
 .pv-progress {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 1.25rem;
+  right: 1.25rem;
   bottom: -1px;
   height: 2px;
   overflow: hidden;
+  border-radius: 2px;
   pointer-events: none;
 }
 
@@ -1575,12 +1485,9 @@ defineExpose({ reload })
   top: 0;
   bottom: 0;
   width: 34%;
-  background: linear-gradient(90deg, transparent, rgba(19, 26, 44, 0.7), transparent);
+  border-radius: 2px;
+  background: var(--sl-grad);
   animation: pv-slide 1.2s ease-in-out infinite;
-}
-
-.dark .pv-progress::after {
-  background: linear-gradient(90deg, transparent, rgba(243, 237, 226, 0.75), transparent);
 }
 
 @keyframes pv-slide {
@@ -1588,49 +1495,60 @@ defineExpose({ reload })
   100% { transform: translateX(400%); }
 }
 
-/* --- The index (app / page menu) ----------------------------------------- */
+/* --- The page menu ------------------------------------------------------- */
 
 .pv-menu {
   position: absolute;
   z-index: 20;
-  left: 0;
-  margin-top: 0.5rem;
-  min-width: 18rem;
+  left: 50%;
+  margin-top: 0.625rem;
+  width: 20rem;
+  max-width: calc(100vw - 1.5rem);
   max-height: 60vh;
   overflow-y: auto;
   padding: 0.375rem;
   border-radius: 1rem;
-  border: 1px solid rgba(19, 26, 44, 0.08);
-  background: #ffffff;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 18px 48px -14px rgba(19, 26, 44, 0.24),
-    0 2px 6px -2px rgba(19, 26, 44, 0.1);
-  transform-origin: top left;
+  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
+  background: var(--sl-surface, #ffffff);
+  box-shadow: var(--sl-card-shadow), 0 24px 60px -24px rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
+  transform-origin: top center;
   animation: pv-menu-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
 .dark .pv-menu {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: #0f0f0f;
-  box-shadow: 0 18px 48px -14px rgba(0, 0, 0, 0.8);
-}
-
-@media (max-width: 768px) {
-  .pv-menu {
-    left: auto;
-    right: 0;
-    max-width: calc(100vw - 1.5rem);
-    transform-origin: top right;
-  }
+  background: var(--sl-surface-2, #1a1d28);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
 }
 
 @keyframes pv-menu-in {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translate(-50%, -4px) scale(0.98); }
+  to { opacity: 1; transform: translateX(-50%); }
 }
 
-/* Rows arrive in sequence, so opening the menu reads as a list unfolding. */
+.pv-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.625rem 0.5rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sl-faint, #8a8fa0);
+}
+
+.pv-menu-count,
+.pv-folder-count {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--sl-faint, #8a8fa0);
+}
+
 .pv-row {
   animation: pv-row-in 0.22s ease both;
   animation-delay: calc(var(--pv-i, 0) * 28ms);
@@ -1646,140 +1564,202 @@ defineExpose({ reload })
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.375rem 0.5rem;
-  border-radius: 0.5rem;
+  padding: 0.4375rem 0.625rem;
+  border-radius: 0.625rem;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: theme('colors.blue.950');
+  font-weight: 600;
+  color: var(--sl-text, #14151c);
   cursor: pointer;
   transition: background-color 0.14s ease;
 }
 
-.pv-folder:hover { background: rgba(19, 26, 44, 0.05); }
+.pv-folder:hover { background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035)); }
 
-.pv-folder:focus-visible {
+.pv-folder:focus-visible,
+.pv-file:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px rgba(194, 65, 12, 0.4);
+  box-shadow: inset 0 0 0 2px var(--sl-focus, #d9730d);
 }
-
-.dark .pv-folder { color: #ffffff; }
-.dark .pv-folder:hover { background: rgba(255, 255, 255, 0.06); }
 
 .pv-folder-chevron {
-  width: 0.75rem;
+  width: 0.625rem;
   flex-shrink: 0;
-  font-size: 0.5625rem;
-  color: rgba(19, 26, 44, 0.3);
-  transition: transform 0.2s ease, color 0.14s ease;
+  font-size: 0.5rem;
+  color: var(--sl-faint, #8a8fa0);
+  transition: transform 0.2s ease;
 }
 
-.pv-folder:hover .pv-folder-chevron { color: rgba(19, 26, 44, 0.5); }
 .pv-folder-chevron.rotate-90 { transform: rotate(90deg); }
 
 .pv-folder-icon {
   flex-shrink: 0;
+  width: 0.875rem;
   font-size: 0.75rem;
-  color: rgba(19, 26, 44, 0.4);
+  color: var(--sl-amber, #ee8c10);
 }
-
-.dark .pv-folder-chevron { color: rgba(219, 234, 254, 0.35); }
-.dark .pv-folder:hover .pv-folder-chevron { color: rgba(219, 234, 254, 0.55); }
-.dark .pv-folder-icon { color: rgba(219, 234, 254, 0.45); }
 
 .pv-files {
-  margin-left: 1.05rem;
+  margin: 0.0625rem 0 0.25rem 1.3125rem;
   padding-left: 0.5rem;
-  border-left: 1px solid rgba(19, 26, 44, 0.08);
+  border-left: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
 }
-
-.dark .pv-files { border-left-color: rgba(255, 255, 255, 0.1); }
 
 .pv-files-empty {
-  padding: 0.375rem 0.5rem;
+  padding: 0.375rem 0.625rem;
   font-size: 0.75rem;
   font-style: italic;
-  color: rgba(19, 26, 44, 0.35);
+  color: var(--sl-faint, #8a8fa0);
 }
-
-.dark .pv-files-empty { color: rgba(219, 234, 254, 0.35); }
 
 .pv-file {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.375rem 0.5rem;
-  border-radius: 0.5rem;
+  padding: 0.4375rem 0.625rem;
+  border-radius: 0.625rem;
   font-size: 0.8125rem;
   text-align: left;
-  color: rgba(19, 26, 44, 0.7);
+  color: var(--sl-muted, #5c6172);
   cursor: pointer;
   transition: background-color 0.14s ease, color 0.14s ease;
 }
 
 .pv-file:hover {
-  background: rgba(19, 26, 44, 0.05);
-  color: theme('colors.blue.950');
-}
-
-.pv-file:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px rgba(194, 65, 12, 0.4);
+  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
+  color: var(--sl-text, #14151c);
 }
 
 .pv-file--current {
-  background: theme('colors.blue.50');
-  font-weight: 500;
-  color: theme('colors.blue.950');
+  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
+  font-weight: 600;
+  color: var(--sl-text, #14151c);
 }
 
 .pv-file-icon {
   width: 0.875rem;
   flex-shrink: 0;
   font-size: 0.6875rem;
-  color: rgba(19, 26, 44, 0.3);
+  color: var(--sl-faint, #8a8fa0);
 }
 
-.pv-file--current .pv-file-icon { color: theme('colors.blue.600'); }
+.pv-file--current .pv-file-icon { color: var(--sl-coral, #ec4a33); }
 
-/* The page's own path, kept quiet until you're hovering the row it belongs to */
-.pv-file-path {
+.pv-file-here {
   flex-shrink: 0;
-  max-width: 8rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--sl-coral, #ec4a33);
+}
+
+/* --- The stage and the frame --------------------------------------------- */
+
+.pv-stagewrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  padding: 0 1rem 1rem;
+}
+
+/* The app as a lit card: rounded, edged with a hairline, and set on the
+   stage's light. Decoration lives here, never on .pv-stage (see the note on
+   the screen element in the template). */
+.pv-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.625rem;
-  color: rgba(19, 26, 44, 0.28);
-  opacity: 0;
-  transition: opacity 0.14s ease;
+  border-radius: 1rem;
+  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
+  box-shadow: var(--sl-win-shadow, 0 40px 90px -40px rgba(20, 21, 30, 0.45));
 }
 
-.pv-file:hover .pv-file-path,
-.pv-file--current .pv-file-path { opacity: 1; }
+/* Phone view: the frame becomes a handset at a phone's width, centred on the
+   stage under its own pool of light; the dock stays above it, clear of the
+   app. 390px is a current iPhone's CSS width. */
+.pv-root--phone .pv-stagewrap {
+  background-image: radial-gradient(40% 60% at 50% 100%, var(--sl-spot-mid, rgba(255, 140, 90, 0.14)), transparent 70%);
+}
 
-.dark .pv-file { color: rgba(219, 234, 254, 0.8); }
-.dark .pv-file:hover { background: rgba(255, 255, 255, 0.06); color: #ffffff; }
-.dark .pv-file--current { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
-.dark .pv-file-icon { color: rgba(219, 234, 254, 0.35); }
-.dark .pv-file--current .pv-file-icon { color: theme('colors.blue.300'); }
-.dark .pv-file-path { color: rgba(219, 234, 254, 0.3); }
+.pv-root--phone .pv-frame {
+  flex: 0 1 auto;
+  align-self: center;
+  width: calc(390px + 1.5rem);
+  height: 100%;
+  max-height: 52rem;
+  padding: 0.75rem;
+  border-radius: 2.75rem;
+  border: 0;
+  background: linear-gradient(160deg, #2a2d38, #121319);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 40px 80px -30px rgba(0, 0, 0, 0.6),
+    0 50px 90px -50px var(--sl-glow, rgba(255, 120, 80, 0.3));
+}
 
-/* --- The stage ----------------------------------------------------------- */
+.pv-root--phone .pv-stage { border-radius: 2rem; }
 
-/* Warm paper, faintly tooth-textured. The frame is object-contain, so when the
-   pane and the remote viewport briefly disagree — or an optimistic scroll
-   opens a gap — what shows through is matting, not a glitch. */
+/* What shows through when the frame and remote viewport briefly disagree, or
+   an optimistic scroll opens a gap: a quiet matte, not a glitch. */
 .pv-stage {
-  background-color: var(--sl-bg-deep, #f5f0e7);
-  background-image: radial-gradient(circle at 1px 1px, var(--sl-dot, rgba(19, 26, 44, 0.055)) 1px, transparent 0);
-  background-size: 14px 14px;
+  background-color: var(--sl-bg-deep, #f0eee9);
 }
 
-.dark .pv-stage {
-  background-color: var(--sl-bg-deep, #0b0b0d);
-  background-image: radial-gradient(circle at 1px 1px, var(--sl-dot, rgba(255, 255, 255, 0.05)) 1px, transparent 0);
+/* Phones: the preview already fills a phone, so no stage margins, no card,
+   no handset and no size switch. */
+@media (max-width: 767px) {
+  .pv-dockbar { padding: 0.5rem; }
+
+  .pv-dock { gap: 0.125rem; }
+
+  .pv-nav {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .pv-size { display: none; }
+
+  .pv-stagewrap,
+  .pv-root--phone .pv-stagewrap {
+    padding: 0;
+    background-image: none;
+  }
+
+  .pv-frame,
+  .pv-root--phone .pv-frame {
+    flex: 1;
+    align-self: stretch;
+    width: auto;
+    height: auto;
+    max-height: none;
+    padding: 0;
+    border: 0;
+    border-top: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .pv-root--phone .pv-stage { border-radius: 0; }
+
+  .pv-switch {
+    height: 1.75rem;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+  }
+}
+
+/* The narrowest phones (320px): Home goes (the page menu has it) and the
+   switch drops its chevron, so the page name keeps a readable share. */
+@media (max-width: 359px) {
+  .pv-switch-chevron,
+  .pv-nav--home,
+  .pv-dock-sep { display: none; }
 }
 
 /* --- Notices (starting / stopped / error) -------------------------------- */
