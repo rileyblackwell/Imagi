@@ -8,6 +8,8 @@ import type {
   AdCampaign,
   AdConnection,
   AdConnectionPayload,
+  AdDraft,
+  AdDraftPayload,
   AdProvider,
   AdsSummary,
   AdsSyncResult,
@@ -201,6 +203,31 @@ const MarketingService = {
   ): Promise<AdCampaign> {
     const { data } = await api.post(`${base(projectId)}/ads/campaigns/${adCampaignId}/status/`, { action })
     return data.campaign
+  },
+
+  // -- Ad drafts ------------------------------------------------------------
+  async listAdDrafts(projectId: number): Promise<{ drafts: AdDraft[]; total: number }> {
+    const { data } = await api.get(`${base(projectId)}/ads/drafts/`)
+    return data
+  },
+
+  async getAdDraft(projectId: number, draftId: number): Promise<AdDraft> {
+    const { data } = await api.get(`${base(projectId)}/ads/drafts/${draftId}/`)
+    return data.draft
+  },
+
+  async createAdDraft(projectId: number, payload: AdDraftPayload): Promise<AdDraft> {
+    const { data } = await api.post(`${base(projectId)}/ads/drafts/`, payload)
+    return data.draft
+  },
+
+  async updateAdDraft(projectId: number, draftId: number, payload: AdDraftPayload): Promise<AdDraft> {
+    const { data } = await api.patch(`${base(projectId)}/ads/drafts/${draftId}/`, payload)
+    return data.draft
+  },
+
+  async deleteAdDraft(projectId: number, draftId: number): Promise<void> {
+    await api.delete(`${base(projectId)}/ads/drafts/${draftId}/`)
   },
 }
 

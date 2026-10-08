@@ -3,7 +3,7 @@
 
   Resolves the project from the URL slug (like ProjectHub), points the
   marketing store at it, and renders the tab navigation with a child
-  router-view for Overview / Campaigns / Audience / Inbox / Settings.
+  router-view for Campaigns / Audience / Inbox / Channels.
 
   Route: /imagi/project/:projectName/marketing
 -->
@@ -13,7 +13,7 @@
     :project="project"
     :is-loading="isLoading"
     title="Marketing"
-    description="Reach customers and drive sales — text and voice campaigns powered by Twilio, plus your Google and Meta ad campaigns, all in one place."
+    description="Run campaigns that reach your customers: texts to your contacts through Twilio, and search ads on Google."
     loading-label="Loading marketing workspace…"
     :tabs="tabs"
     :show-banner="showConnectBanner"
@@ -48,18 +48,24 @@ const { project, isLoading } = useProjectFromSlug(() => props.projectName, 'the 
 const marketingStore = useMarketingStore()
 
 const tabs: ToolTab[] = [
-  { name: 'marketing-overview', label: 'Overview', icon: 'fa-chart-line' },
-  { name: 'marketing-campaigns', label: 'Campaigns', icon: 'fa-paper-plane', children: ['marketing-campaign-detail'] },
+  {
+    name: 'marketing-overview',
+    label: 'Campaigns',
+    icon: 'fa-paper-plane',
+    children: ['marketing-campaign-detail', 'marketing-ad-new', 'marketing-ad-draft', 'marketing-ads'],
+  },
   { name: 'marketing-audience', label: 'Audience', icon: 'fa-address-book' },
-  { name: 'marketing-ads', label: 'Ads', icon: 'fa-rectangle-ad' },
   { name: 'marketing-inbox', label: 'Inbox', icon: 'fa-inbox' },
-  { name: 'marketing-settings', label: 'Settings', icon: 'fa-gear' },
+  { name: 'marketing-settings', label: 'Channels', icon: 'fa-plug' },
 ]
+
+// Pages that already say which channels are connected don't need the banner.
+const BANNERLESS = new Set(['marketing-settings', 'marketing-overview', 'marketing-ad-new', 'marketing-ad-draft', 'marketing-ads'])
 
 const showConnectBanner = computed(() =>
   marketingStore.settings !== null
   && !marketingStore.isConfigured
-  && route.name !== 'marketing-settings'
+  && !BANNERLESS.has(String(route.name))
 )
 
 // Point the marketing store at the resolved project and load settings once

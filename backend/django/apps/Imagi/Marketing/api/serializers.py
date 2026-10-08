@@ -6,7 +6,7 @@ import re
 
 from rest_framework import serializers
 
-from ..models import AdCampaign, AdConnection, Campaign, Contact, MarketingSettings, Message
+from ..models import AdCampaign, AdConnection, AdDraft, Campaign, Contact, MarketingSettings, Message
 from ..services.campaign_service import inbound_webhook_url, status_callback_url
 
 # Twilio hard limit for a single (concatenated) SMS body.
@@ -271,3 +271,64 @@ class ConversationSerializer(serializers.ModelSerializer):
             'last_message_body', 'last_message_direction', 'last_message_at',
             'message_count',
         ]
+
+
+def _clean_text_list(value, max_items: int, max_length: int, label: str) -> list:
+    """Trim a list of strings, drop blanks and enforce the platform's limits."""
+    if not isinstance(value, list):
+        raise serializers.ValidationError(f'{label} must be a list.')
+    cleaned = []
+    for item in value:
+        text = str(item).strip()
+        if not text:
+            continue
+        if len(text) > max_length:
+            raise serializers.ValidationError(
+                f'Each {label.lower().rstrip("s")} can be at most {max_length} characters.'
+            )
+        cleaned.append(text)
+    if len(cleaned) > max_items:
+        raise serializers.ValidationError(f'Use at most {max_items} {label.lower()}.')
+    return cleaned
+
+
+class AdDraftSerializer(serializers.ModelSerializer):
+    """A Google search ad planned in Imagi. It is never sent to the platform."""
+
+    class Meta:
+        model = AdDraft
+        fields = [
+            'id', 'provider', 'name', 'goal', 'final_url', 'phone_number',
+            'headlines', 'descriptions', 'keywords', 'location', 'daily_budget',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'provider', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Give the campaign a name.')
+        return value
+
+    def validate_headlines(self, value):
+        return _clean_text_list(value, AdDraft.MAX_HEADLINES, AdDraft.HEADLINE_MAX, 'Headlines')
+
+    def validate_descriptions(self, value):
+        return _clean_text_list(
+            value, AdDraft.MAX_DESCRIPTIONS, AdDraft.DESCRIPTION_MAX, 'Descriptions'
+        )
+
+    def validate_keywords(self, value):
+        keywords = _clean_text_list(value, AdDraft.MAX_KEYWORDS, 80, 'Keywords')
+        seen = set()
+        unique = []
+        for keyword in keywords:
+            if keyword.lower() not in seen:
+                seen.add(keyword.lower())
+                unique.append(keyword)
+        return unique
+
+    def validate_daily_budget(self, value):
+        if value is not None and value <= 0:
+            raise serializers.ValidationError('The daily budget must be more than zero.')
+        return value

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AdCampaign, AdConnection, Campaign, Contact, MarketingSettings, Message
+from .models import AdCampaign, AdConnection, AdDraft, Campaign, Contact, MarketingSettings, Message
 
 
 @admin.register(AdConnection)
@@ -45,4 +45,12 @@ class MessageAdmin(admin.ModelAdmin):
     list_display = ('direction', 'channel', 'to_number', 'status', 'campaign', 'created_at')
     list_filter = ('direction', 'channel', 'status')
     search_fields = ('to_number', 'from_number', 'twilio_sid', 'body')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(AdDraft)
+class AdDraftAdmin(admin.ModelAdmin):
+    list_display = ('name', 'project', 'provider', 'goal', 'daily_budget', 'updated_at')
+    list_filter = ('provider', 'goal')
+    search_fields = ('name', 'project__name')
     readonly_fields = ('created_at', 'updated_at')

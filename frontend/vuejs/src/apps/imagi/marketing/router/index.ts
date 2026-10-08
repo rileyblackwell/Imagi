@@ -1,8 +1,8 @@
 import type { RouteRecordRaw } from 'vue-router'
 import MarketingWorkspace from '../views/MarketingWorkspace.vue'
 import MarketingOverview from '../views/MarketingOverview.vue'
-import MarketingCampaigns from '../views/MarketingCampaigns.vue'
 import MarketingCampaignDetail from '../views/MarketingCampaignDetail.vue'
+import MarketingAdBuilder from '../views/MarketingAdBuilder.vue'
 import MarketingAudience from '../views/MarketingAudience.vue'
 import MarketingAds from '../views/MarketingAds.vue'
 import MarketingInbox from '../views/MarketingInbox.vue'
@@ -25,16 +25,30 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       {
+        // The Campaigns home: start a text or a Google ad, and every campaign.
         path: '',
         name: 'marketing-overview',
         component: MarketingOverview,
-        meta: { requiresAuth: true, title: 'Marketing Overview' }
+        meta: { requiresAuth: true, title: 'Campaigns' }
       },
       {
+        // The old campaign list now lives on the home page; keep its links
+        // (and ?new=1, which opens the text composer) working.
         path: 'campaigns',
         name: 'marketing-campaigns',
-        component: MarketingCampaigns,
-        meta: { requiresAuth: true, title: 'Campaigns' }
+        redirect: to => ({ name: 'marketing-overview', params: to.params, query: to.query })
+      },
+      {
+        path: 'campaigns/google/new',
+        name: 'marketing-ad-new',
+        component: MarketingAdBuilder,
+        meta: { requiresAuth: true, title: 'New Google ad' }
+      },
+      {
+        path: 'campaigns/google/:draftId(\\d+)',
+        name: 'marketing-ad-draft',
+        component: MarketingAdBuilder,
+        meta: { requiresAuth: true, title: 'Google ad' }
       },
       {
         path: 'campaigns/:campaignId',
@@ -52,7 +66,7 @@ const routes: RouteRecordRaw[] = [
         path: 'ads',
         name: 'marketing-ads',
         component: MarketingAds,
-        meta: { requiresAuth: true, title: 'Ads' }
+        meta: { requiresAuth: true, title: 'Ad results' }
       },
       {
         path: 'inbox',
@@ -64,7 +78,7 @@ const routes: RouteRecordRaw[] = [
         path: 'settings',
         name: 'marketing-settings',
         component: MarketingSettings,
-        meta: { requiresAuth: true, title: 'Marketing Settings' }
+        meta: { requiresAuth: true, title: 'Channels' }
       }
     ]
   }

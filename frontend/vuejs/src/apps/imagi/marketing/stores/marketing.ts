@@ -13,6 +13,8 @@ import type {
   AdCampaign,
   AdConnection,
   AdConnectionPayload,
+  AdDraft,
+  AdDraftPayload,
   AdProvider,
   AdsSummary,
   AdsSyncResult,
@@ -50,6 +52,7 @@ interface MarketingState {
   adCampaigns: AdCampaign[]
   adCampaignsLoading: boolean
   adsSyncing: boolean
+  adDrafts: AdDraft[]
 }
 
 export const useMarketingStore = defineStore('marketing', {
@@ -72,6 +75,7 @@ export const useMarketingStore = defineStore('marketing', {
     adCampaigns: [],
     adCampaignsLoading: false,
     adsSyncing: false,
+    adDrafts: [],
   }),
 
   getters: {
@@ -297,6 +301,31 @@ export const useMarketingStore = defineStore('marketing', {
       const index = this.adCampaigns.findIndex(c => c.id === adCampaignId)
       if (index !== -1) this.adCampaigns[index] = campaign
       return campaign
+    },
+
+    // -- Ad drafts --------------------------------------------------------------
+    async fetchAdDrafts(): Promise<AdDraft[]> {
+      const { drafts } = await MarketingService.listAdDrafts(this.requireProject())
+      this.adDrafts = drafts
+      return drafts
+    },
+
+    async getAdDraft(draftId: number): Promise<AdDraft> {
+      return MarketingService.getAdDraft(this.requireProject(), draftId)
+    },
+
+    async saveAdDraft(draftId: number | null, payload: AdDraftPayload): Promise<AdDraft> {
+      const projectId = this.requireProject()
+      const draft = draftId === null
+        ? await MarketingService.createAdDraft(projectId, payload)
+        : await MarketingService.updateAdDraft(projectId, draftId, payload)
+      this.adDrafts = [draft, ...this.adDrafts.filter(d => d.id !== draft.id)]
+      return draft
+    },
+
+    async deleteAdDraft(draftId: number): Promise<void> {
+      await MarketingService.deleteAdDraft(this.requireProject(), draftId)
+      this.adDrafts = this.adDrafts.filter(d => d.id !== draftId)
     },
   },
 })

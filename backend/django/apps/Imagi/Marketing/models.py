@@ -480,3 +480,56 @@ class AdCampaign(models.Model):
                 return f'{base}?act={self.account_id}&selected_campaign_ids={self.external_id}'
             return base
         return 'https://ads.google.com/aw/campaigns'
+
+
+class AdDraft(models.Model):
+    """
+    A Google search ad planned in Imagi, before it exists on the platform.
+
+    The workspace's ad builder saves here: the goal, landing page, the
+    responsive search ad's headlines and descriptions, keywords, where to show
+    it and a daily budget. Nothing is sent to Google and nothing is spent;
+    launching from Imagi comes later, once a connected account can take it.
+    """
+
+    GOAL_WEBSITE = 'website'
+    GOAL_CALLS = 'calls'
+    GOAL_CHOICES = [
+        (GOAL_WEBSITE, 'Website visits'),
+        (GOAL_CALLS, 'Phone calls'),
+    ]
+
+    # Google's responsive search ad limits.
+    HEADLINE_MAX = 30
+    DESCRIPTION_MAX = 90
+    MAX_HEADLINES = 15
+    MAX_DESCRIPTIONS = 4
+    MAX_KEYWORDS = 50
+
+    project = models.ForeignKey(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='ad_drafts',
+    )
+    provider = models.CharField(
+        max_length=10,
+        choices=AdConnection.PROVIDER_CHOICES,
+        default=AdConnection.PROVIDER_GOOGLE,
+    )
+    name = models.CharField(max_length=255)
+    goal = models.CharField(max_length=20, choices=GOAL_CHOICES, default=GOAL_WEBSITE)
+    final_url = models.URLField(max_length=500, blank=True, default='')
+    phone_number = models.CharField(max_length=20, blank=True, default='')
+    headlines = models.JSONField(default=list, blank=True)
+    descriptions = models.JSONField(default=list, blank=True)
+    keywords = models.JSONField(default=list, blank=True)
+    location = models.CharField(max_length=255, blank=True, default='')
+    daily_budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.name} (draft {self.get_provider_display()} ad)"
