@@ -259,13 +259,8 @@ function relativeTime(iso: string): string {
 /* Live run: ink travels down the rail, and the card breathes with the faintest
    left-edge glow. This is the one moving thing in the list. */
 .agent-card--working {
-  --rail: rgba(37, 99, 235, 0.32);
-  --status: theme('colors.blue.600');
-}
-
-.dark .agent-card--working {
-  --rail: rgba(147, 197, 253, 0.3);
-  --status: theme('colors.blue.300');
+  --rail: color-mix(in srgb, var(--sl-work) 32%, transparent);
+  --status: var(--sl-work);
 }
 
 /* The glow the rail casts into the card — light bleeding off a lit edge, so a
@@ -279,12 +274,8 @@ function relativeTime(iso: string): string {
   bottom: 0;
   width: 40%;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.09) 0%, rgba(59, 130, 246, 0) 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sl-work) 10%, transparent) 0%, transparent 100%);
   animation: rail-breathe 3.2s var(--iw-ease-ambient) infinite;
-}
-
-.dark .agent-card--working::before {
-  background: linear-gradient(90deg, rgba(147, 197, 253, 0.1) 0%, rgba(147, 197, 253, 0) 100%);
 }
 
 .agent-card--working .agent-card__rail::after {
@@ -294,21 +285,11 @@ function relativeTime(iso: string): string {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    theme('colors.blue.500') 40%,
-    theme('colors.blue.400') 60%,
+    var(--sl-work) 40%,
+    color-mix(in srgb, var(--sl-work) 70%, transparent) 60%,
     transparent 100%
   );
   animation: rail-travel 2.6s var(--iw-ease-ambient) infinite;
-}
-
-.dark .agent-card--working .agent-card__rail::after {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    theme('colors.blue.300') 40%,
-    theme('colors.blue.200') 60%,
-    transparent 100%
-  );
 }
 
 /* Waiting on you: solid navy ink — a full-height mark you can spot from the
@@ -531,7 +512,7 @@ function relativeTime(iso: string): string {
 
   .agent-card--working .agent-card__rail::after {
     animation: none;
-    background: theme('colors.blue.500');
+    background: var(--sl-work);
   }
 
   .agent-card:hover,

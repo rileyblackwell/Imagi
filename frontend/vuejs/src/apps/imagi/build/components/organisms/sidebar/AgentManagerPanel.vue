@@ -431,9 +431,9 @@ async function openByConversation(conversationId: number) {
 .fleet-meter__seg--working {
   background: linear-gradient(
     90deg,
-    theme('colors.blue.400') 0%,
-    theme('colors.blue.600') 50%,
-    theme('colors.blue.400') 100%
+    color-mix(in srgb, var(--sl-work) 65%, transparent) 0%,
+    var(--sl-work) 50%,
+    color-mix(in srgb, var(--sl-work) 65%, transparent) 100%
   );
   background-size: 200% 100%;
   animation: fleet-drift 2.8s linear infinite;
@@ -445,16 +445,6 @@ async function openByConversation(conversationId: number) {
 
 .fleet-meter__seg--starting {
   background: rgba(19, 26, 44, 0.2);
-}
-
-.dark .fleet-meter__seg--working {
-  background: linear-gradient(
-    90deg,
-    theme('colors.blue.300') 0%,
-    theme('colors.blue.200') 50%,
-    theme('colors.blue.300') 100%
-  );
-  background-size: 200% 100%;
 }
 
 .dark .fleet-meter__seg--waiting {

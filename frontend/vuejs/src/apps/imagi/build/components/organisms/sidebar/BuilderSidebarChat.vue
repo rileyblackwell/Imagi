@@ -66,7 +66,7 @@
            a question to answer, or the news that one finished -->
       <CheckInQueue
         v-if="isLeadThread"
-        :queue="store.checkIns"
+        :queue="queueCards"
         :busy="resolvingCheckIn"
         @accept="emit('check-in-accept', $event)"
         @dismiss="emit('check-in-dismiss', $event)"
@@ -230,6 +230,12 @@ const headerState = computed<'waiting' | 'idle'>(() => {
   // lights the dot.
   return store.checkIns.some(c => c.kind !== 'done') ? 'waiting' : 'idle'
 })
+
+/** What the queue above the composer still carries. A thread's question is
+ *  not one of them: it is asked and answered on that thread's own card in the
+ *  chat, where the job it belongs to is named, so the queue would only be a
+ *  second copy of the same question. */
+const queueCards = computed(() => store.checkIns.filter(c => c.kind !== 'question'))
 
 async function goToLead() {
   const lead = store.leadInstance
