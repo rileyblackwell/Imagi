@@ -55,7 +55,7 @@ describe('ThreadComposer', () => {
     const steer = vi.spyOn(store, 'steerThread').mockReturnValue(true)
 
     await wrapper.find('textarea').setValue('We are open Saturdays, 9 to 1')
-    await wrapper.find('button.thread-send').trigger('click')
+    await wrapper.find('button.btn-send').trigger('click')
 
     expect(steer).toHaveBeenCalledWith('inst-thread', 'We are open Saturdays, 9 to 1')
     expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('')
@@ -71,9 +71,37 @@ describe('ThreadComposer', () => {
     expect(steer).toHaveBeenCalledWith('inst-thread', 'keep going')
   })
 
+  it('says the thread can be steered', () => {
+    const { wrapper } = mountFor(makeThread({ reviewStatus: 'accepted' }))
+    expect(wrapper.find('textarea').attributes('placeholder')).toBe('Steer this thread…')
+  })
+
   it('asks for an answer when the thread is waiting on one', () => {
     const { wrapper } = mountFor(makeThread({ reviewStatus: 'input' }))
-    expect(wrapper.find('textarea').attributes('placeholder')).toBe('Answer this thread…')
+    expect(wrapper.find('textarea').attributes('placeholder')).toBe('Answer this thread, or steer it somewhere else…')
+  })
+
+  it('wears the coordinator composer: model and reasoning, usage, and the mic button', () => {
+    const { wrapper } = mountFor(makeThread())
+    const chips = wrapper.findAll('button.control-chip').map(c => c.attributes('aria-label'))
+    expect(chips).toEqual(['Model and reasoning', 'Usage limits'])
+    expect(wrapper.find('button.btn-send').exists()).toBe(true)
+  })
+
+  it('changes the model on this thread only', async () => {
+    const { store, wrapper } = mountFor(makeThread())
+    const setModel = vi.spyOn(store, 'setInstanceModel').mockImplementation(() => {})
+    await wrapper.find('button[aria-label="Model and reasoning"]').trigger('click')
+    const astra = wrapper.findAll('#tune-panel button.model-row').find(r => r.text().includes('Astra'))!
+    await astra.trigger('click')
+    expect(setModel).toHaveBeenCalledWith('inst-thread', 'gpt-6-astra')
+  })
+
+  it('stops this thread, not the coordinator, from a tap mid-run', async () => {
+    const { store, wrapper } = mountFor(makeThread({ reviewStatus: 'active', isProcessing: true }))
+    const abort = vi.spyOn(store, 'abortInstanceRun').mockImplementation(() => {})
+    await wrapper.find('button.btn-send').trigger('click')
+    expect(abort).toHaveBeenCalledWith('inst-thread')
   })
 
   it('shows a message queued behind a live run, and cancels it', async () => {

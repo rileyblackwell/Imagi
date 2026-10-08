@@ -109,16 +109,6 @@
                   {{ message.filesChanged.length }} {{ message.filesChanged.length === 1 ? 'file' : 'files' }} updated
                 </span>
               </div>
-              <!-- Run token usage: outside the memoized v-html, so its late
-                   arrival (on done) never needs a cache invalidation. Renders
-                   only when tokens were captured — absent usage is unknown,
-                   never "0 tokens". -->
-              <p
-                v-if="typeof messageTokens(message) === 'number'"
-                class="mt-1.5 text-[10px] text-ink/35 dark:text-white/30"
-              >
-                {{ formatTokens(messageTokens(message)!) }}
-              </p>
             </div>
 
             <!-- System Message -->
@@ -445,34 +435,6 @@ const formatMessage = (message: AIMessage, index: number): string => {
   }
   renderedHtmlCache.set(cacheKey, { content, html })
   return html
-}
-
-/**
- * Total tokens a reply used, or null when its usage was never captured
- * (absent means unknown, never free — and an all-zero total also renders
- * nothing rather than a misleading "0 tokens").
- */
-const messageTokens = (message: AIMessage): number | null => {
-  const usage = message.usage
-  if (!usage) return null
-  const input = typeof usage.inputTokens === 'number' ? usage.inputTokens : null
-  const output = typeof usage.outputTokens === 'number' ? usage.outputTokens : null
-  if (input === null && output === null) return null
-  const total = (input ?? 0) + (output ?? 0)
-  return total > 0 ? total : null
-}
-
-/** Tiny usage caption under a reply, e.g. "9,340 tokens", "12.3k tokens". */
-const formatTokens = (total: number): string => {
-  if (total >= 1_000_000) {
-    const millions = total / 1_000_000
-    return `${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M tokens`
-  }
-  if (total > 10_000) {
-    const thousands = total / 1_000
-    return `${thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10}k tokens`
-  }
-  return `${total.toLocaleString()} tokens`
 }
 </script>
 

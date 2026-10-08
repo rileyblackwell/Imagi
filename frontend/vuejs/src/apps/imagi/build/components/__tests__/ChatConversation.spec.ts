@@ -416,3 +416,13 @@ describe('ChatConversation questions with choices', () => {
     expect(wrapper.findAll('.question-option').every(b => b.attributes('disabled') !== undefined)).toBe(true)
   })
 })
+
+describe('ChatConversation reply footer', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('does not show how many tokens a reply used', () => {
+    const reply = { ...assistant('Done.'), usage: { inputTokens: 9000, outputTokens: 1200 } } as AIMessage
+    const wrapper = mount(ChatConversation, { props: { messages: [user('hi'), reply] } })
+    expect(wrapper.text()).not.toMatch(/tokens/i)
+  })
+})
