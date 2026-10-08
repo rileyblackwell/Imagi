@@ -66,7 +66,6 @@
   /* Surfaces */
   --sl-chip-bg: rgba(20, 21, 30, 0.035);
   --sl-chip-bg-hover: rgba(20, 21, 30, 0.065);
-  --sl-pill-bg: rgba(255, 255, 255, 0.75);
   --sl-card-bg: linear-gradient(180deg, #ffffff, #fdfcfa);
   --sl-card-shadow: 0 1px 2px rgba(20, 21, 30, 0.04), 0 14px 34px -20px rgba(20, 21, 30, 0.2);
   --sl-half-build-bg:
@@ -144,7 +143,6 @@
 
   --sl-chip-bg: rgba(255, 255, 255, 0.04);
   --sl-chip-bg-hover: rgba(255, 255, 255, 0.07);
-  --sl-pill-bg: rgba(20, 22, 31, 0.6);
   --sl-card-bg: linear-gradient(180deg, var(--sl-surface-2), var(--sl-surface));
   --sl-card-shadow: none;
   --sl-half-build-bg:
@@ -282,24 +280,46 @@
   letter-spacing: -0.035em;
 }
 
-/* Pill eyebrow with a lit pip — the page's opening label */
+/* Marquee eyebrow — the page's opening label. No container: the words sit
+   between two lit hairlines, like the billing line on a theatre marquee. The
+   leading rule (.sl-pip) burns coral and the trailing one amber, each ending
+   in a small diamond at the words. Each rule is one element cut to a
+   diamond-plus-hairline with clip-path, so the markup stays a <p> with a pip
+   and a label. Works centred (hero, About) and left-aligned (docs, legal,
+   project pages). The class keeps its old name so every page picks it up. */
 .spotlight .sl-pill {
+  --sl-rule: clamp(28px, 6vw, 72px);
   margin: 0;
-  padding: 7px 14px 7px 10px;
-  border: 1px solid var(--sl-line-strong);
-  border-radius: 999px;
-  background: var(--sl-pill-bg);
-  backdrop-filter: blur(6px);
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
+  gap: 16px;
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  color: color-mix(in srgb, var(--sl-text) 86%, transparent);
+}
+
+.spotlight .sl-pip,
+.spotlight .sl-pill::after {
+  flex: none;
+  width: var(--sl-rule);
+  height: 7px;
 }
 
 .spotlight .sl-pip {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--sl-grad);
-  box-shadow: 0 0 10px var(--sl-coral);
+  background: linear-gradient(90deg, transparent, var(--sl-coral) 75%);
+  clip-path: polygon(0 calc(50% - 0.5px), calc(100% - 7px) calc(50% - 0.5px), calc(100% - 3.5px) 0, 100% 50%, calc(100% - 3.5px) 100%, calc(100% - 7px) calc(50% + 0.5px), 0 calc(50% + 0.5px));
+}
+
+.spotlight .sl-pill::after {
+  content: '';
+  background: linear-gradient(90deg, var(--sl-amber) 25%, transparent);
+  clip-path: polygon(100% calc(50% - 0.5px), 7px calc(50% - 0.5px), 3.5px 0, 0 50%, 3.5px 100%, 7px calc(50% + 0.5px), 100% calc(50% + 0.5px));
+}
+
+@media (max-width: 560px) {
+  .spotlight .sl-pill {
+    gap: 10px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+  }
 }
 
 /* "run" — the half of the promise most site builders leave out — is the one
