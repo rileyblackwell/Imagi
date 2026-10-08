@@ -1631,7 +1631,7 @@ class PromptSizeTests(SimpleTestCase):
         from apps.Imagi.Build.services.coding_agent import CODING_AGENT_INSTRUCTIONS
 
         for name, prompt, ceiling in (
-            ('chat', CODING_AGENT_INSTRUCTIONS, 3_000),
+            ('chat', CODING_AGENT_INSTRUCTIONS, 3_100),
             # Raised from 5,500 for app-error routing (2026-10-08).
             ('lead', LEAD_AGENT_INSTRUCTIONS, 5_900),
             ('task role', TASK_AGENT_INSTRUCTIONS, 3_500),

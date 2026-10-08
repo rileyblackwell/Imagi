@@ -29,11 +29,18 @@ PREBUILT_MAP = {
 }
 
 
-def generate_prebuilt_app_files(app_name: str, app_description: str | None = None) -> List[Dict[str, str]]:
+def generate_prebuilt_app_files(
+    app_name: str,
+    app_description: str | None = None,
+    project_name: str | None = None,
+) -> List[Dict[str, str]]:
     key = (app_name or '').lower()
     func = PREBUILT_MAP.get(key)
     if not func:
         return []
+    if key == 'auth':
+        # The auth pages carry the business's name in their header.
+        return func(project_name)
     return func()
 
 
