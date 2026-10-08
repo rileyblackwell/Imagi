@@ -1544,16 +1544,12 @@ class InitialBuildAgentTests(SimpleTestCase):
         ):
             self.assertIn(rule, INITIAL_BUILD_INSTRUCTIONS)
 
-    def test_every_first_build_page_is_described_in_the_shared_prompt(self):
-        # Each subagent needs to know the other pages exist and where they
-        # live, so it can link them in its own header and footer without
-        # touching a file it does not own.
-        from apps.Imagi.ProjectManager.services.initial_build_service import (
-            PAGE_BRIEFS,
-        )
-
-        for page in PAGE_BRIEFS:
-            self.assertIn(page.view_path, INITIAL_BUILD_INSTRUCTIONS)
+    def test_pages_link_each_other_through_the_shared_page_list(self):
+        # The pages are planned per business, so the shared prompt cannot
+        # name them; every page renders its navigation from the list Imagi
+        # keeps, and the list only names pages that are finished.
+        self.assertIn('site-pages', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('sitePages', INITIAL_BUILD_INSTRUCTIONS)
 
     def test_the_home_brief_wires_in_the_prebuilt_auth_pages(self):
         # The auth app is prebuilt and left untouched; bringing its two pages

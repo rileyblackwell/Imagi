@@ -364,12 +364,15 @@ IMAGI_BUILDER = {
     # building and merge as they finish. Not yet measured on Opus fast mode —
     # tune once a live build has been timed.
     'INITIAL_BUILD_TIME_BUDGET_S': 45,
-    # Pages the first build writes, one subagent per entry, each owning a
-    # single already-routed view file (see initial_build_service.PAGE_BRIEFS
-    # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).
-    # Empty or unset builds all of them; trimming the list is the direct lever
-    # on what a project creation costs.
-    'INITIAL_BUILD_PAGES': ['home', 'about', 'contact'],
+    # The pages after home are planned per business (Riley, 2026-10-08):
+    # one quick call picks usually 5 to 20 pages in all, never more than 20
+    # (initial_page_plan.MAX_PAGES). Setting INITIAL_BUILD_PAGES to a list of
+    # PAGE_BRIEFS slugs skips the plan and builds exactly those.
+    'INITIAL_BUILD_PLANNER_MODEL': 'claude-sonnet-5-5',
+    # Planned pages build behind home at standard speed, this many at once,
+    # each with its own time budget counted from when it starts.
+    'INITIAL_BUILD_MAX_PARALLEL_PAGES': 6,
+    'INITIAL_BUILD_PAGE_TIME_BUDGET_S': 120,
     # First builds create UI from a description rather than reasoning about
     # existing code, so they run at low effort: it roughly halves per-turn
     # latency, which buys more pages inside the time budget than deeper

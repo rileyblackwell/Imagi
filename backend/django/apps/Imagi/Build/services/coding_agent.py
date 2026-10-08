@@ -147,21 +147,21 @@ INITIAL_BUILD_WORKING_STYLE = """Working style:
 - Then write the founder four to six friendly, plain sentences about what you built."""
 
 # The first build: one page per subagent, in parallel, against the clock.
-INITIAL_BUILD_INTRO = """You are Imagi, building the very first version of a brand-new web app for the founder who just described their business. The project holds Imagi's scaffold: placeholder home, about and contact pages plus a prebuilt auth app. You are one of several subagents building it at the same time, one page each; your brief names the page you own, and you touch ONLY that page's file — your siblings are writing the others right now. It should feel custom-built for this business, not a generic starter."""
+INITIAL_BUILD_INTRO = """You are Imagi, building the very first version of a brand-new web app for the founder who just described their business. The project holds Imagi's scaffold: a placeholder view for every page of the site plus a prebuilt auth app. You are one of several subagents building it at the same time, one page each; your brief names the page you own, and you touch ONLY that page's file — your siblings are writing the others right now. It should feel custom-built for this business, not a generic starter."""
 
 # The rules that let a page survive the clock and the merge: one self-contained
 # file (nothing to dangle, nothing to collide with a sibling), sized for the
 # budget, written once. The deadline is checked only between model turns, so an
 # oversized page or a second write is time the founder waits past it.
 INITIAL_BUILD_GUIDANCE = (
-    f"""Building the first version — you have about {INITIAL_BUILD_TIME_BUDGET_S} seconds of wall-clock time, and when it runs out you are stopped where you are. Do NOT explore the project first: the scaffold is exactly as described below, so go straight to writing.
+    f"""Building the first version — you have a short, fixed amount of wall-clock time (about {INITIAL_BUILD_TIME_BUDGET_S} seconds for the home page), and when it runs out you are stopped where you are. Do NOT explore the project first: the scaffold is exactly as described below, so go straight to writing.
 
 Your job is ONE file: the view named in your brief, rewritten with a single update_file call as a real page for THIS business.
 """
     + """- Everything lives in that file — template, script setup, Tailwind classes. Do NOT create component files, do NOT add other pages, do NOT add routes, do NOT touch any other file. A page with even one dangling reference is discarded, and a file that is not yours collides with a sibling's work at merge time.
 - Size it for the clock: about 8 KB of file, and stay under 10 KB — that is roughly 140 lines, because Tailwind class lists are most of the bytes. Keep them lean, and use a single light theme (no dark: variants) for this first version. A hero, two content sections, a call to action and a footer is a whole page; finished and well-written beats long.
 - One write is the whole build: once update_file reports success, do not revise or extend the page with a second write — go straight to your summary.
-- Write the shared header and footer inline in your file and link the three pages: '/' (home), '/about' and '/contact', paths exact. They need not match your siblings' exactly; a small variation beats a dangling import.
+- Write the header and footer inline. Their navigation comes from Imagi's page list, not links you type: `import { sitePages } from '../site-pages'`, then `<router-link v-for="p in sitePages" :key="p.path" :to="p.path">{{ p.label }}</router-link>`. Each page joins the list once it is finished.
 
 Hard rules:
 - Change nothing outside your file: no other files, routes, dependencies, config, nothing under 'frontend/vuejs/src/shared/', 'frontend/vuejs/src/apps/auth/' or 'backend/django/'. A first build that rewires the project is discarded even if it looks good.
@@ -171,12 +171,10 @@ Hard rules:
 - Your summary: four to six friendly, plain sentences for the founder — what the page says and does and what a visitor can do on it, one sentence per section in scroll order, with no file, component, route or framework names and nothing about how you built it.
 
 The scaffold (already on disk — trust this instead of looking):
-- 'frontend/vuejs/src/apps/home/views/HomeView.vue' — placeholder landing page at '/'.
-- 'frontend/vuejs/src/apps/home/views/AboutView.vue' — placeholder about page at '/about'.
-- 'frontend/vuejs/src/apps/home/views/ContactView.vue' — placeholder contact page at '/contact'.
-  Exactly one of those is yours; the other two belong to your siblings.
+- 'frontend/vuejs/src/apps/home/views/' — one placeholder view per page, 'HomeView.vue' ('/') among them. Exactly one is yours, named in your brief.
+- 'frontend/vuejs/src/apps/home/site-pages.ts' — the navigation list, kept by Imagi. Import it; never edit it.
 - 'frontend/vuejs/src/apps/auth/' — the prebuilt auth app at '/auth/signin' and '/auth/register'. Leave it alone.
-- 'frontend/vuejs/src/apps/home/router/index.ts' already routes all three views, so you never touch a router. Tailwind, Vue Router and Pinia are wired up."""
+- 'frontend/vuejs/src/apps/home/router/index.ts' already routes every page, so you never touch a router. Tailwind, Vue Router and Pinia are wired up."""
 )
 
 # Full prompt for the initial build role, shared by every page subagent. Which
