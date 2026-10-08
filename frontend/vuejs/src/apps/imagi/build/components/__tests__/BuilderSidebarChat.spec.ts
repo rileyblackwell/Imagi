@@ -92,22 +92,31 @@ const instance = (overrides: Partial<AgentInstance> = {}): AgentInstance => ({
   ...overrides,
 } as AgentInstance)
 
+/** What the composer asked the store to change, by model id or effort —
+ *  the composer writes the instance being typed to through the store. */
+const selects = {
+  model: vi.fn() as ReturnType<typeof vi.fn>,
+  effort: vi.fn() as ReturnType<typeof vi.fn>,
+}
+
 function mountWith(active: AgentInstance = instance()) {
   const store = useAgentStore()
   store.$patch({ instances: [active], activeInstanceId: active.id })
   // The select callbacks write the store the way the workspace does, so the
   // panel's checked state follows a pick as it would in the app.
   const current = () => store.instances.find(i => i.id === active.id)!
+  selects.model = vi.fn((id: string) => {
+    current().selectedModelId = id
+  })
+  selects.effort = vi.fn((effort: ReasoningEffort) => {
+    current().selectedEffort = effort
+  })
+  vi.spyOn(store, 'setInstanceModel').mockImplementation((_id, modelId) => selects.model(modelId))
+  vi.spyOn(store, 'setInstanceEffort').mockImplementation((_id, effort) => selects.effort(effort))
   return mount(BuilderSidebarChat, {
     attachTo: document.body,
     props: {
       onPromptSubmit: vi.fn().mockResolvedValue(undefined),
-      onModelSelect: vi.fn(async (id: string) => {
-        current().selectedModelId = id
-      }),
-      onEffortSelect: vi.fn(async (effort: ReasoningEffort) => {
-        current().selectedEffort = effort
-      }),
     },
     global: {
       stubs: { ChatConversation: true, CheckInQueue: true, WorkspacePaneHeader: true },
@@ -250,18 +259,18 @@ describe('BuilderSidebarChat dictation', () => {
 
     // Clicking hands the change to the workspace, and the menu follows it.
     await rows[2]!.trigger('click')
-    expect(wrapper.props('onModelSelect')).toHaveBeenCalledWith('gpt-6-astra')
+    expect(selects.model).toHaveBeenCalledWith('gpt-6-astra')
     await nextTick()
     expect(checked(modelRows(wrapper))).toBe(2)
     await effortBars(wrapper)[0]!.trigger('click')
-    expect(wrapper.props('onEffortSelect')).toHaveBeenCalledWith('low')
+    expect(selects.effort).toHaveBeenCalledWith('low')
     await nextTick()
     expect(checked(effortBars(wrapper))).toBe(0)
     expect(chip.text()).toBe('Astra · Low')
 
     // Picking what is already chosen writes nothing.
     await modelRows(wrapper)[2]!.trigger('click')
-    expect(wrapper.props('onModelSelect')).toHaveBeenCalledTimes(1)
+    expect(selects.model).toHaveBeenCalledTimes(1)
 
     // The menu stays open while both are being tuned; the chip puts it away.
     expect(tunePanel(wrapper).exists()).toBe(true)
@@ -279,7 +288,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(checked(effortBars(wrapper))).toBe(1)
     await effortGroup(wrapper).trigger('mouseleave')
     expect(readout(wrapper)).toBe('Medium')
-    expect(wrapper.props('onEffortSelect')).not.toHaveBeenCalled()
+    expect(selects.effort).not.toHaveBeenCalled()
   })
 
   it('arrow keys move each group, clamped at the ends, and focus follows', async () => {
@@ -288,24 +297,24 @@ describe('BuilderSidebarChat dictation', () => {
     const list = tunePanel(wrapper).find('[aria-labelledby="tune-model-heading"]')
     // Down the list is smarter.
     await list.trigger('keydown', { key: 'ArrowDown' })
-    expect(wrapper.props('onModelSelect')).toHaveBeenLastCalledWith('gpt-6-astra')
+    expect(selects.model).toHaveBeenLastCalledWith('gpt-6-astra')
     await nextTick()
     expect(document.activeElement).toBe(modelRows(wrapper)[2]!.element)
     await list.trigger('keydown', { key: 'ArrowDown' })
-    expect(wrapper.props('onModelSelect')).toHaveBeenCalledTimes(1)
+    expect(selects.model).toHaveBeenCalledTimes(1)
     await list.trigger('keydown', { key: 'Home' })
-    expect(wrapper.props('onModelSelect')).toHaveBeenLastCalledWith('gpt-6-luna')
+    expect(selects.model).toHaveBeenLastCalledWith('gpt-6-luna')
 
     // The bars stand left to right, so Up is more.
     await effortGroup(wrapper).trigger('keydown', { key: 'ArrowUp' })
-    expect(wrapper.props('onEffortSelect')).toHaveBeenLastCalledWith('high')
+    expect(selects.effort).toHaveBeenLastCalledWith('high')
     await nextTick()
     expect(document.activeElement).toBe(effortBars(wrapper)[2]!.element)
     await effortGroup(wrapper).trigger('keydown', { key: 'End' })
-    expect(wrapper.props('onEffortSelect')).toHaveBeenLastCalledWith('xhigh')
+    expect(selects.effort).toHaveBeenLastCalledWith('xhigh')
     await nextTick()
     await effortGroup(wrapper).trigger('keydown', { key: 'ArrowRight' })
-    expect(wrapper.props('onEffortSelect')).toHaveBeenCalledTimes(2)
+    expect(selects.effort).toHaveBeenCalledTimes(2)
   })
 
   it('a conversation on a model the menu does not offer sits on the default', async () => {
@@ -347,7 +356,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(modelRows(wrapper).every(r => r.attributes('disabled') !== undefined)).toBe(true)
     expect(effortBars(wrapper).every(b => b.attributes('disabled') !== undefined)).toBe(true)
     await effortGroup(wrapper).trigger('keydown', { key: 'ArrowUp' })
-    expect(wrapper.props('onEffortSelect')).not.toHaveBeenCalled()
+    expect(selects.effort).not.toHaveBeenCalled()
     expect(tuneChip(wrapper).attributes('disabled')).toBeDefined()
   })
 
@@ -729,22 +738,12 @@ describe('BuilderSidebarChat dictation', () => {
     expect(dictation.start).not.toHaveBeenCalled()
   })
 
-  it('has no composer and ignores ⌘D on a read-only task thread', () => {
-    wrapper = mountWith(instance({ id: 'task-1', kind: 'task', title: 'Contact page' }))
-    expect(sendButton(wrapper).exists()).toBe(false)
-    expect(wrapper.find('.fa-microphone').exists()).toBe(false)
+  it('gives a thread the same composer, mic and ⌘D included', () => {
+    wrapper = mountWith(instance({ id: 'task-1', kind: 'task', title: 'Contact page', reviewStatus: 'accepted' }))
+    expect(sendButton(wrapper).exists()).toBe(true)
+    expect(wrapper.find('textarea').attributes('placeholder')).toBe('Steer this thread…')
     press({ key: 'd', metaKey: true })
-    expect(dictation.start).not.toHaveBeenCalled()
-  })
-
-  it('closes a live mic when the thread turns read-only', async () => {
-    const lead = instance()
-    const task = instance({ id: 'task-1', kind: 'task' })
-    wrapper = mountWith(lead)
-    const store = useAgentStore()
-    store.$patch({ instances: [lead, task], activeInstanceId: task.id })
-    await nextTick()
-    expect(dictation.cancel).toHaveBeenCalled()
+    expect(dictation.start).toHaveBeenCalled()
   })
 
   it('is a plain send arrow where the browser cannot record, with the picker shut', async () => {
