@@ -23,7 +23,7 @@
   <div v-if="queue.length> 0" class="mb-1.5">
     <!-- Queue depth: only worth showing once something is waiting behind -->
     <div v-if="queue.length> 1" class="queue-head">
-      <span class="queue-head__label">From your subagents</span>
+      <span class="queue-head__label">From your threads</span>
       <span class="queue-head__count">{{ queue.length }}</span>
       <span class="queue-head__rule"></span>
     </div>
@@ -254,7 +254,7 @@ const siblingIndex = computed(
  *  — the same subagent, so the same words. Falls back to the workspace title
  *  for a task dispatched before goals were carried on the queue. */
 const jobName = computed(
-  () => current.value?.task.goal || current.value?.task.title || 'Background subagent'
+  () => current.value?.task.goal || current.value?.task.title || 'Thread'
 )
 
 const kindIcon = computed(() => {
@@ -273,8 +273,8 @@ const kindLabel = computed(() => {
     // changes are already live in the project, and the green rail and the
     // "Got it" button below already say so — the label needs no clause on
     // the end of it.
-    case 'ready': return 'Subagent complete — one of your options'
-    default: return 'Subagent complete'
+    case 'ready': return 'Thread complete — one of your options'
+    default: return 'Thread complete'
   }
 })
 

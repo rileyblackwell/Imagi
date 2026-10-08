@@ -20,7 +20,7 @@
           </p>
           <p>
             The workspace has two halves. On the left is your <strong class="ink-strong">conversation</strong>
-            with your main agent (and the Subagents pane, which shows the agents it has put to work). On the right is a
+            with the coordinator (and the Threads pane, which shows the threads it has put to work). On the right is a
             <strong class="ink-strong">live, interactive preview</strong> of your actual
             running app that updates as the agents work. On a phone, the two share the screen—use the Preview switch in the
             chat header to flip to your app.
@@ -115,9 +115,9 @@
 
         <DocsStepCard :number="3" title="Watch the Agent Work">
           <p class="text-lg leading-relaxed mb-6">
-            Your main agent answers questions itself, and hands every change you ask for to a
-            <strong class="ink-strong">subagent</strong>—a card appears in your chat naming the job, and you can open it to
-            follow along. The subagent doesn't just reply—it builds. As it works you'll see a live status line
+            The coordinator answers questions itself, and hands every change you ask for to a
+            <strong class="ink-strong">thread</strong>—a card appears in your chat naming the job, and you can open it to
+            follow along. The thread doesn't just reply—it builds. As it works you'll see a live status line
             (<em class="font-display italic">"Planning…," "Reading project files…," "Editing project files…"</em>)
             and an <strong class="ink-strong">activity feed</strong> that checks off each
             step it takes in plain language. For bigger requests it posts a <strong class="ink-strong">plan
@@ -170,34 +170,35 @@
         </div>
       </section>
 
-      <!-- Subagents -->
+      <!-- Coordinator and threads -->
       <section class="mb-16">
         <h2 class="display display--section">
-          Your Main Agent and Subagents
+          The Coordinator and Threads
         </h2>
         <p class="lede lede--section">
-          You direct the whole build from one conversation. Your <strong class="ink-strong">main agent</strong> works out
-          what you're asking for and puts <strong class="ink-strong">subagents</strong> to work on the building—each in its
+          You direct the whole build from one conversation. The <strong class="ink-strong">coordinator</strong> works out
+          what you're asking for and puts <strong class="ink-strong">threads</strong> to work on the building—each in its
           own isolated copy of your app, so several can run at once without colliding.
         </p>
         <div class="rule-cols rule-cols--2">
-          <DocsCard title="Main thread">
-            Your primary conversation—the one place you direct the build from. Ask for changes here and your main agent hands
-            each separate request to its own subagent; ask several things at once and they're built in parallel.
+          <DocsCard title="The coordinator">
+            Your primary conversation—tell it what you want, one thing after another. It hands each separate request to
+            its own thread; ask for several things and they're built in parallel.
           </DocsCard>
-          <DocsCard title="Subagents">
-            Each job appears as a card in your chat that turns into "Subagent complete" when it's done, with a summary of
-            what changed. The <strong class="ink-strong">Subagents</strong> switch in the chat header shows how many are
-            working and opens a list of active and past subagents; open any one to read its thread, then "Back to main
-            thread".
+          <DocsCard title="Threads">
+            Each job appears as a card in your chat that turns into "Thread complete" when it's done, with a summary of
+            what changed. The <strong class="ink-strong">Threads</strong> switch in the chat header lists them as
+            waiting on you, working, and finished. Open any thread to read it, and type into it to steer it
+            directly—a change, an answer, or "keep going".
           </DocsCard>
           <DocsCard title="Applied automatically">
-            When a subagent finishes, its work goes into your app on its own—you don't need to approve it. Updates collect
-            under "From your subagents" above the message box: "Got it" to clear one, or "See the work" to open its thread.
-            If a subagent needs a decision from you, it asks there and waits for your answer.
+            When a thread finishes, its work goes into your app on its own—you don't need to approve it. Updates collect
+            under "From your threads" above the message box: "Got it" to clear one, or "See the work" to open its thread.
+            If a thread needs a decision from you, it asks there and waits for your answer—reply there, or inside the
+            thread itself.
           </DocsCard>
           <DocsCard title="Alternatives to compare">
-            Ask for alternatives—"show me two versions of the homepage"—and up to three subagents build independent takes on
+            Ask for alternatives—"show me two versions of the homepage"—and up to three threads build independent takes on
             the same request. Those wait for you: pick "Use this one" on the version you want, and "Discard" the rest.
           </DocsCard>
         </div>

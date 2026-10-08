@@ -252,24 +252,14 @@
       </div>
       </Transition>
 
-      <!-- A background task's thread is read-only: it is driven by the main
-           thread (dispatch, and answers relayed from the check-in queue), so
-           there is no composer here — just a way back. -->
-      <div v-if="isTaskThread" class="px-2 pt-1 pb-3">
-        <div class="rounded-2xl border border-ink/[0.08] dark:border-white/[0.14] bg-ink/[0.03] dark:bg-white/[0.03] px-3 py-2.5">
-          <p class="text-[11px] leading-snug text-ink/60 dark:text-white/55">
-            This agent is working in the background. You direct it from your main
-            thread — its results and questions arrive there.
-          </p>
-          <button
-            type="button"
-            class="btn-back-to-lead iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
-            @click="goToLead"
-          >
-            Back to main thread
-          </button>
-        </div>
-      </div>
+      <!-- A thread opened here (rather than in the Threads pane) is steered
+           with the same small composer: what the user types is its next turn. -->
+      <ThreadComposer
+        v-if="isTaskThread && activeInstance"
+        :instance="activeInstance"
+        back-label="Back to coordinator"
+        @back="goToLead"
+      />
 
       <div v-else class="px-2 pt-1 pb-3">
         <!-- Check-in queue: subagents reporting back, one card at a time —
@@ -438,6 +428,7 @@ import { ChatConversation } from '../../organisms/chat'
 import CheckInQueue from '../../molecules/sidebar/CheckInQueue.vue'
 import { isBuiltInInput, useDictation } from '../../../composables/useDictation'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
+import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { CheckInDto, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
 import { reasoningEffortsForModel } from '../../../types/services'
@@ -472,8 +463,8 @@ const activeInstance = computed(() => store.activeInstance)
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 
-// The user drives everything from the lead thread; a task's thread is a
-// read-only record of what a background subagent did.
+// The user drives most work from the coordinator (the lead conversation); a
+// task is one of its threads, which the user can also steer directly.
 const isTaskThread = computed(() => activeInstance.value?.kind === 'task')
 const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
 
@@ -483,7 +474,7 @@ const isLeadThread = computed(() => activeInstance.value?.kind === 'lead')
 // what makes an unnamed masthead legible, because a name now means you are
 // reading somebody else's thread rather than your own.
 const headerTitle = computed(() =>
-  isTaskThread.value ? (activeInstance.value?.title || 'Background agent') : ''
+  isTaskThread.value ? (activeInstance.value?.title || 'Thread') : ''
 )
 
 /** Where you can go from the main thread. Subagents first — it is the nearer
@@ -494,7 +485,7 @@ const paneSwitches = computed(() => [
   {
     id: 'manager',
     icon: 'fas fa-layer-group',
-    label: 'Subagents',
+    label: 'Threads',
     // Both read the same number, and that is the point rather than a
     // duplication: the dot on the icon says something is alive over there and
     // can be caught without looking, the badge says how much. Working right
@@ -532,24 +523,24 @@ const headerStatus = computed(() => {
   if (isTaskThread.value) {
     switch (instance?.reviewStatus) {
       case 'input': return 'Asked you a question'
-      case 'ready': return 'Subagent complete — one of your options'
+      case 'ready': return 'Thread complete — one of your options'
       case 'failed': return 'Stopped before finishing'
-      case 'accepted': return 'Subagent complete'
+      case 'accepted': return 'Thread complete'
       case 'dismissed': return 'Discarded'
-      default: return 'Read only'
+      default: return ''
     }
   }
   // Not everything in the queue is owed an answer: a subagent that finished
   // put its work in the app on its own, so its card is news to read. Saying
   // "1 agent is waiting on you" over a card with nothing to decide sends the
   // user looking for a decision that does not exist.
-  const waiting = store.checkIns.filter(c => c.kind !== 'done').length
+  const waiting = store.waitingCheckIns.length
   if (waiting > 0) {
-    return `${waiting} ${waiting === 1 ? 'agent is' : 'agents are'} waiting on you`
+    return `${waiting} ${waiting === 1 ? 'thread is' : 'threads are'} waiting on you`
   }
   const finished = store.checkIns.length
   if (finished > 0) {
-    return `${finished} ${finished === 1 ? 'subagent' : 'subagents'} finished`
+    return `${finished} ${finished === 1 ? 'thread' : 'threads'} finished`
   }
   // Nothing running and nothing waiting: the plate is just the thread's name.
   // "Ready when you are" was a line spent saying that no line was needed.
@@ -1206,8 +1197,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('blur', releaseDictationKey)
 })
 
-// A task thread has no composer, so a mic left open there would have nowhere
-// to put its words.
+// A thread's composer has no dictation, so a mic left open there would have
+// nowhere to put its words.
 watch(isTaskThread, readOnly => {
   if (readOnly) {
     keyHeld = false
@@ -1752,35 +1743,6 @@ textarea:active {
   -webkit-tap-highlight-color: transparent !important;
   border: none !important;
   transition: none !important;
-}
-
-/* Back-to-main-thread button on a read-only task thread — same navy ink
-   recipe as the composer's send button */
-.btn-back-to-lead {
-  background: theme('colors.blue.950');
-  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.btn-back-to-lead:hover {
-  background: theme('colors.blue.900');
-  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.btn-back-to-lead:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .btn-back-to-lead {
-  background: #f3ede2;
-}
-
-.dark .btn-back-to-lead:hover {
-  background: #ffffff;
 }
 
 /* Navy ink send button - matching the site's primary "Start Building" button.

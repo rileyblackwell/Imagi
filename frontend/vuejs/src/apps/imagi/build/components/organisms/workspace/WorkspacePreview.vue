@@ -128,11 +128,11 @@
         type="button"
         @click="emit('return-to-chat')"
         class="pv-switch group shrink-0"
-        aria-label="Back to the main agent"
+        aria-label="Back to the coordinator"
       >
         <i class="fas fa-chevron-left pv-switch-chevron"></i>
         <i class="fas fa-comments pv-switch-icon"></i>
-        <span class="pv-switch-label">Main agent</span>
+        <span class="pv-switch-label">Coordinator</span>
         <span v-if="returnCount" class="pv-switch-count">{{ returnCount }}</span>
       </button>
 

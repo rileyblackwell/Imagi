@@ -1,29 +1,30 @@
 <!--
-  AgentManagerPanel.vue — the crew ledger.
+  AgentManagerPanel.vue — the threads pane.
 
-  Everything the project's subagents are doing, in one column. The pane wears
-  the same masthead as the chat pane, then states the fleet twice: once as a
-  meter (how the work splits between running and waiting on you) and once as
-  the cards themselves. Read-only by design — decisions happen in the main
-  agent's check-in queue, so this pane's whole job is legibility.
+  Every thread the coordinator has dispatched, grouped by what it wants from
+  the user: waiting on you, working, finished. The pane wears the same
+  masthead as the chat pane, then states the fleet twice: once as a meter and
+  once as the cards. Opening a thread shows its transcript with a composer, so
+  the user can steer it directly; its results and questions still report back
+  to the coordinator.
 -->
 <template>
   <div class="iw-surface relative overflow-hidden h-full bg-canvas transition-colors duration-300">
-    <!-- Opening a subagent is a navigation, so it moves like one: the list
+    <!-- Opening a thread is a navigation, so it moves like one: the list
          slides out to the left as the thread comes in from the right, and
          back the other way on the return. The leaving pane is taken out of
          flow (see .pane-nav-leave-active) so the two cross in place rather
          than one waiting for the other to finish. -->
     <Transition :name="opened ? 'pane-nav-push' : 'pane-nav-pop'">
-    <!-- Reading one subagent's thread. It happens here rather than in the chat
-         pane on purpose: a subagent is something you look in on, so opening one
-         must not displace the thread you are actually talking in. -->
+    <!-- Reading (and steering) one thread. It happens here rather than in the
+         chat pane on purpose: opening a thread must not displace the
+         coordinator chat and its draft. -->
     <div v-if="opened" key="opened" class="pane-nav-view flex flex-col h-full">
       <WorkspacePaneHeader
-        :title="opened.title || 'Background agent'"
+        :title="opened.title || 'Thread'"
         :status="openedStatus"
         :state="openedState"
-        :switches="[{ id: 'back', icon: 'fas fa-layer-group', label: 'Subagents', direction: 'back' }]"
+        :switches="[{ id: 'back', icon: 'fas fa-layer-group', label: 'Threads', direction: 'back' }]"
         @switch="closeOpened"
       />
 
@@ -40,24 +41,9 @@
         />
       </div>
 
-      <!-- No composer: this thread is driven from the main thread (dispatch,
-           and answers relayed from the check-in queue). -->
-      <div class="shrink-0 px-2 pt-1 pb-3">
-        <div class="rounded-2xl border border-ink/[0.08] dark:border-white/[0.14] bg-ink/[0.03] dark:bg-white/[0.03] px-3 py-2.5">
-          <p class="text-[11px] leading-snug text-ink/60 dark:text-white/55">
-            {{ opened.isProcessing
-              ? 'This agent is working in the background. You direct it from your main thread — its results and questions arrive there.'
-              : 'A record of what this agent did. You direct subagents from your main thread.' }}
-          </p>
-          <button
-            type="button"
-            class="btn-back iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
-            @click="closeOpened"
-          >
-            Back to subagents
-          </button>
-        </div>
-      </div>
+      <!-- The user can steer a thread from inside it: what they type is its
+           next turn, the same as a follow-up the coordinator forwards. -->
+      <ThreadComposer :instance="opened" @back="closeOpened" />
     </div>
 
     <div v-else key="list" class="pane-nav-view flex flex-col h-full">
@@ -70,14 +56,14 @@
          where everything is driven from. The preview is a hop further out —
          you get there through the main agent, the same as everything else. -->
     <WorkspacePaneHeader
-      title="Subagents"
+      title="Threads"
       :status="fleetStatus"
       :state="fleetState"
       :switches="[{
         id: 'chat',
         icon: 'fas fa-comments',
-        label: 'Main agent',
-        count: store.checkIns.length,
+        label: 'Coordinator',
+        count: store.waitingCheckIns.length,
         direction: 'back',
       }]"
       @switch="emit('collapse')"
@@ -86,7 +72,7 @@
     <!-- Fleet meter: the same numbers as the status line, drawn. Segments are
          proportional, so a glance says whether the crew is busy or the pile of
          work waiting on you is the bigger half. -->
-    <div v-if="activeAgents.length> 0" class="fleet-meter" :title="fleetStatus">
+    <div v-if="fleetSegments.length > 0" class="fleet-meter" :title="fleetStatus">
       <span
         v-for="seg in fleetSegments"
         :key="seg.key"
@@ -110,48 +96,55 @@
       </div>
 
       <template v-else>
-        <!-- Active: every subagent still on the hook — running, waiting on an
-             answer, or finished but not yet accepted. One list, because to the
-             user they are one thing; the rail and status say which is which.
-             Read-only: decisions happen in the main agent's queue. -->
-        <div class="section-head">
-          <span class="section-head__label">Active</span>
-          <span v-if="activeAgents.length" class="section-head__count">{{ activeAgents.length }}</span>
-          <span class="section-head__rule"></span>
-        </div>
+        <!-- Three groups, in the order they want the user: threads waiting
+             on you (a question, takes to pick from, a run that stopped), the
+             ones working right now, and the ones that are finished. -->
+        <template v-for="section in sections" :key="section.key">
+          <div v-if="section.items.length > 0" :class="['section-head', `section-head--${section.key}`]">
+            <span class="section-head__label">{{ section.label }}</span>
+            <span class="section-head__count">{{ section.items.length }}</span>
+            <span class="section-head__rule"></span>
+          </div>
 
-        <!-- The crew reorders itself as agents finish and new ones are
-             dispatched. TransitionGroup makes that a movement rather than a
-             re-render: a new agent falls in, a settled one fades out of the
-             column, and everyone in between slides to their new place. The
-             per-card --stagger becomes the enter delay, so a batch of
-             parallel takes arrives in sequence instead of all at once. -->
-        <TransitionGroup
-          v-if="activeAgents.length> 0"
-          name="agent-list"
-          tag="div"
-          class="agent-list"
-          appear
-        >
-          <InstanceCard
-            v-for="(instance, i) in activeAgents"
-            :key="instance.id"
-            :instance="instance"
-            :index="i"
-            :is-active="instance.id === store.openedSubagentId"
-            :variant-index="variantPlace(instance).index"
-            :variant-count="variantPlace(instance).count"
-            @select="handleSelect(instance)"
-          />
-        </TransitionGroup>
+          <!-- Threads reorder as they finish and new ones are dispatched.
+               TransitionGroup makes that a movement rather than a re-render;
+               the per-card --stagger spaces a batch of parallel takes. -->
+          <TransitionGroup
+            v-if="section.items.length > 0"
+            name="agent-list"
+            tag="div"
+            :class="['agent-list', section.key === 'finished' ? '' : 'mb-2']"
+            appear
+          >
+            <InstanceCard
+              v-for="(instance, i) in section.items"
+              :key="instance.id"
+              :instance="instance"
+              :index="i"
+              :is-active="instance.id === store.openedThreadId"
+              :variant-index="variantPlace(instance).index"
+              :variant-count="variantPlace(instance).count"
+              @select="handleSelect(instance)"
+            />
+          </TransitionGroup>
 
-        <!-- Nothing running: say what would put something here -->
-        <div v-else class="empty-plate">
+          <button
+            v-if="section.key === 'finished' && finishedHidden > 0"
+            type="button"
+            class="show-more iw-press"
+            @click="showAllFinished = true"
+          >
+            Show {{ finishedHidden }} more
+          </button>
+        </template>
+
+        <!-- Nothing at all yet: say what would put something here -->
+        <div v-if="!hasThreads" class="empty-plate">
           <span class="empty-plate__mark"><i class="fas fa-layer-group text-[10px]"></i></span>
-          <p class="empty-plate__title">No agents working right now</p>
+          <p class="empty-plate__title">No threads yet</p>
           <p class="empty-plate__body">
-            Ask for what you want in your chat — your agent hands off anything
-            worth building in parallel.
+            Tell the coordinator what you want, one thing after another — it
+            starts a thread for each job and they work in parallel.
           </p>
         </div>
 
@@ -177,7 +170,7 @@
                 :key="instance.id"
                 :instance="instance"
                 :index="i"
-                :is-active="instance.id === store.openedSubagentId || instance.id === store.activeInstanceId"
+                :is-active="instance.id === store.openedThreadId || instance.id === store.activeInstanceId"
                 :is-archived="!!instance.archivedAt"
                 @select="handleSelect(instance)"
               />
@@ -200,43 +193,67 @@ import '../../../styles/workspace.css'
 import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import FoldTransition from '../../molecules/common/FoldTransition.vue'
+import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
 import { ChatConversation } from '../../organisms/chat'
 import type { AgentInstance } from '../../../types/services'
 
 const emit = defineEmits<{
   (e: 'collapse'): void
   /** A thread the user can actually talk in was clicked (a legacy chat, a
-   *  stray lead) — the workspace flips the sidebar to chat for it. Subagents
+   *  stray lead) — the workspace flips the sidebar to chat for it. Threads
    *  never emit this: they open in place, right here. */
   (e: 'select', instanceId: string): void
 }>()
 
 const store = useAgentStore()
 const showHistory = ref(false)
-const opened = computed(() => store.openedSubagent)
+const opened = computed(() => store.openedThread)
 
-// Already newest-first. The main agent's own thread is the chat pane, so it
-// is deliberately absent here — this panel is only about the subagents.
+// Already newest-first. The coordinator's own chat is the chat pane, so it is
+// deliberately absent here — this panel is only about the threads.
 const activeAgents = computed(() => store.activeAgentInstances)
 const history = computed(() => store.historyInstances)
 
-const workingCount = computed(() => activeAgents.value.filter(a => a.isProcessing).length)
+/** Finished threads pile up; the newest few are shown until asked for more. */
+const FINISHED_PREVIEW = 5
+const showAllFinished = ref(false)
+const finishedHidden = computed(() =>
+  showAllFinished.value ? 0 : Math.max(0, store.finishedThreads.length - FINISHED_PREVIEW)
+)
+
+const sections = computed(() => [
+  { key: 'waiting', label: 'Waiting on you', items: store.waitingThreads },
+  { key: 'working', label: 'Working', items: store.workingThreads },
+  {
+    key: 'finished',
+    label: 'Finished',
+    items: showAllFinished.value
+      ? store.finishedThreads
+      : store.finishedThreads.slice(0, FINISHED_PREVIEW),
+  },
+])
+
+const hasThreads = computed(() => sections.value.some(s => s.items.length > 0))
+
+const workingCount = computed(() => store.workingThreads.length)
 
 /** The fleet at a glance, leading with whoever is actually working. */
 const fleetStatus = computed(() => {
-  const total = activeAgents.value.length
-  if (total === 0) return 'No agents working'
   const working = workingCount.value
-  if (working === total) return `${total} ${total === 1 ? 'agent' : 'agents'} working`
-  if (working > 0) return `${working} working · ${total - working} waiting on you`
-  return `${total} ${total === 1 ? 'agent' : 'agents'} waiting on you`
+  const waiting = store.waitingThreads.length
+  if (working === 0 && waiting === 0) {
+    return store.finishedThreads.length > 0 ? 'All threads finished' : 'No threads yet'
+  }
+  if (waiting === 0) return `${working} ${working === 1 ? 'thread' : 'threads'} working`
+  if (working === 0) return `${waiting} waiting on you`
+  return `${working} working · ${waiting} waiting on you`
 })
 
 /** The dot beside that line. Live work outranks the rest — the same precedence
  *  a card applies to its own rail. */
 const fleetState = computed<'working' | 'waiting' | 'idle'>(() => {
   if (workingCount.value > 0) return 'working'
-  return activeAgents.value.length > 0 ? 'waiting' : 'idle'
+  return store.waitingThreads.length > 0 ? 'waiting' : 'idle'
 })
 
 /**
@@ -245,10 +262,9 @@ const fleetState = computed<'working' | 'waiting' | 'idle'>(() => {
  * are dropped so the bar never carries a zero-width sliver.
  */
 const fleetSegments = computed(() => {
-  const agents = activeAgents.value
-  const working = agents.filter(a => a.isProcessing).length
-  const starting = agents.filter(a => !a.isProcessing && a.reviewStatus === 'active').length
-  const waiting = agents.length - working - starting
+  const working = store.workingThreads.filter(a => a.isProcessing).length
+  const starting = store.workingThreads.length - working
+  const waiting = store.waitingThreads.length
   return [
     { key: 'working', count: working },
     { key: 'waiting', count: waiting },
@@ -278,8 +294,8 @@ function variantPlace(instance: AgentInstance): { index: number; count: number }
   return { index: siblings.indexOf(instance.id) + 1, count: siblings.length }
 }
 
-/** The open subagent's own header line — the same wording its card uses, and
- *  only while it is resting. What a running subagent is doing is narrated at
+/** The open thread's own header line — the same wording its card uses, and
+ *  only while it is resting. What a running thread is doing is narrated at
  *  the foot of its transcript instead, where the work itself is. */
 const openedStatus = computed(() => {
   const instance = opened.value
@@ -287,11 +303,11 @@ const openedStatus = computed(() => {
   if (instance.isProcessing) return ''
   switch (instance.reviewStatus) {
     case 'input': return 'Asked you a question'
-    case 'ready': return 'Subagent complete — one of your options'
+    case 'ready': return 'Thread complete — one of your options'
     case 'failed': return 'Stopped before finishing'
-    case 'accepted': return 'Subagent complete'
+    case 'accepted': return 'Thread complete'
     case 'dismissed': return 'Discarded'
-    default: return 'Read only'
+    default: return ''
   }
 })
 
@@ -307,14 +323,14 @@ const openedState = computed<'waiting' | 'idle'>(() => {
 })
 
 /**
- * A card was clicked. A subagent opens in place, so the user stays in this
+ * A card was clicked. A thread opens in place, so the user stays in this
  * pane and the main thread keeps its place. History also holds threads the
  * user can still talk in (legacy chats, a stray second lead) — those have a
  * composer, so they still belong in the chat pane.
  */
 async function handleSelect(instance: AgentInstance) {
   if (instance.kind === 'task') {
-    await store.openSubagent(instance.id)
+    await store.openThread(instance.id)
     return
   }
   emit('select', instance.id)
@@ -322,13 +338,13 @@ async function handleSelect(instance: AgentInstance) {
 }
 
 function closeOpened() {
-  void store.openSubagent(null)
+  void store.openThread(null)
 }
 
-/** A dispatch card inside a subagent's transcript: follow it in place. */
+/** A dispatch card inside a thread's transcript: follow it in place. */
 async function openByConversation(conversationId: number) {
   const instance = store.instances.find(i => i.conversationId === conversationId)
-  if (instance) await store.openSubagent(instance.id)
+  if (instance) await store.openThread(instance.id)
 }
 </script>
 
@@ -358,7 +374,7 @@ async function openByConversation(conversationId: number) {
   inset: 0;
 }
 
-/* Push (opening a subagent): the thread arrives from the right, the list
+/* Push (opening a thread): the thread arrives from the right, the list
    recedes to the left — the deeper view comes forward. */
 .pane-nav-push-enter-from {
   opacity: 0;
@@ -589,6 +605,37 @@ async function openByConversation(conversationId: number) {
   transform: rotate(90deg);
 }
 
+/* "Show N more" under the finished list: a quiet text button. */
+.show-more {
+  display: block;
+  margin: 0.375rem auto 0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: rgba(19, 26, 44, 0.5);
+  transition: background-color var(--iw-dur-2) var(--iw-ease-out), color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.show-more:hover {
+  background: rgba(239, 246, 255, 0.8);
+  color: rgba(19, 26, 44, 0.8);
+}
+
+.dark .show-more {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dark .show-more:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.show-more:focus-visible {
+  outline: none;
+  box-shadow: var(--iw-focus-ring);
+}
+
 /* ── Empty state ────────────────────────────────────────────────────────── */
 
 /* A drawn-but-unfilled plate: the same dashed language the "not started yet"
@@ -741,33 +788,5 @@ async function openByConversation(conversationId: number) {
   .empty-plate {
     opacity: 1;
   }
-}
-
-/* Navy ink primary — the same recipe the chat pane's back button wears */
-.btn-back {
-  background: theme('colors.blue.950');
-  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.btn-back:hover {
-  background: theme('colors.blue.900');
-  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.btn-back:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .btn-back {
-  background: #f3ede2;
-}
-
-.dark .btn-back:hover {
-  background: #ffffff;
 }
 </style>

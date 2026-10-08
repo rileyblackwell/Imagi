@@ -85,13 +85,13 @@ TASK_CONTINUE_PROMPT = (
 LEAD_DISPATCH_RETRY_PROMPT = (
     "[Automated check] Your last reply tells the user that background work was "
     "started, but you did not make a successful dispatch_task call this turn — "
-    "no subagent exists and nothing is being built. If the user's request is a "
+    "no thread exists and nothing is being built. If the user's request is a "
     "job, call dispatch_task NOW with the full brief, goal and overview, then "
-    "reply with ONE short sentence telling the user you are putting a subagent "
-    "on it and end your turn. If it is a follow-up for a subagent you already "
-    "have, call message_task for that subagent instead. "
+    "reply with ONE short sentence telling the user you are starting a thread "
+    "on it and end your turn. If it is a follow-up for a thread you already "
+    "have, call message_task for that thread instead. "
     "If you were not actually claiming to have started new "
-    "work (for example, a subagent from an earlier turn is already on it), "
+    "work (for example, a thread from an earlier turn is already on it), "
     "answer the user plainly instead. Never tell the user work was kicked off "
     "unless dispatch_task succeeded in the same turn."
 )
@@ -650,10 +650,11 @@ def dispatch_task_refs(dispatched: Optional[List[Dict[str, Any]]]) -> Optional[L
 
 
 # A lead reply narrating a kickoff: delegation verbs ("kicked off",
-# "dispatched", "spun up", "putting a subagent on it", "passed it to the
-# subagent"). Verbs, not the bare nouns: the lead answers status questions
-# from its roster ("the subagent on your menu is still working"), and a reply
-# that merely mentions a subagent claims nothing. A match only ever costs one
+# "dispatched", "spun up", "starting a thread on it", "passed it to the
+# thread"). Verbs, not the bare nouns: the lead answers status questions
+# from its roster ("the thread on your menu is still working"), and a reply
+# that merely mentions a thread claims nothing. "Subagent" was the old name
+# for a thread and is still matched. A match only ever costs one
 # corrective turn, whose prompt lets the model answer plainly if no dispatch
 # was intended.
 _LEAD_DISPATCH_CLAIM_RE = re.compile(
@@ -661,9 +662,9 @@ _LEAD_DISPATCH_CLAIM_RE = re.compile(
     r'|\bdispatch(?:ed|ing)\b'
     r'|\bsp(?:un|inning)\s+up\b'
     r'|\bhand(?:ed|ing)\s+(?:\w+\s+){0,2}?(?:off|over|to)\b'
-    r'|\bput(?:ting)?\s+(?:a\s+|another\s+)?(?:sub-?agent|background\s+\w+)\b'
-    r'|\b(?:pass(?:ed|ing)?|sent|sending)\s+(?:\w+\s+){0,3}?(?:on\s+)?to\s+(?:the\s+|your\s+|a\s+)?sub-?agent\b'
-    r'|\bstart(?:ed|ing)\s+(?:a\s+)?(?:sub-?agent|background\s+(?:task|agent|job|worker))\b',
+    r'|\bput(?:ting)?\s+(?:a\s+|another\s+)?(?:sub-?agent|thread|background\s+\w+)\b'
+    r'|\b(?:pass(?:ed|ing)?|sent|sending)\s+(?:\w+\s+){0,3}?(?:on\s+)?to\s+(?:the\s+|your\s+|a\s+)?(?:sub-?agent|thread)\b'
+    r'|\bstart(?:ed|ing)\s+(?:a\s+|another\s+|a\s+new\s+)?(?:sub-?agent|thread|background\s+(?:task|agent|job|worker))\b',
     re.IGNORECASE,
 )
 
@@ -728,7 +729,7 @@ _TASK_REPORT_LABELS = {
 # closed tab, a network blip) before it could sign off. Written for the owner:
 # what happened to their app (nothing), and what to do (try it again).
 TASK_INTERRUPTED_NOTE = (
-    "This subagent was cut off before it finished — the connection to its run "
+    "This thread was cut off before it finished — the connection to its run "
     "dropped, so it never got to sign off. Nothing it started has been added "
     "to the app. Try it again to pick the job back up."
 )
@@ -746,7 +747,7 @@ def _label_task_report(message) -> str:
         return message.content
     job = (report.get('goal') or report.get('title') or '').strip()
     state = _TASK_REPORT_LABELS.get(report.get('kind'), 'reported back')
-    header = f"[Subagent report] The subagent you dispatched {state}"
+    header = f"[Thread report] The thread you dispatched {state}"
     if job:
         header += f'. Its job: "{job}"'
     return f"{header}. In its own words:\n{message.content}"

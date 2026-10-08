@@ -144,7 +144,7 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--working')
-    expect(card.text()).toContain('Subagent working')
+    expect(card.text()).toContain('Thread working')
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     // Nothing has come back yet, so there is no result half at all — and
     // mid-run chatter is not a result.
@@ -156,7 +156,7 @@ describe('ChatConversation dispatch card', () => {
     const wrapper = withSubagent({ reviewStatus: 'active', brief: JOB })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Subagent starting')
+    expect(card.text()).toContain('Thread starting')
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
   })
 
@@ -171,7 +171,7 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.classes()).toContain('dispatch-card--done')
-    expect(card.text()).toContain('Subagent complete')
+    expect(card.text()).toContain('Thread complete')
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     expect(card.find('.dispatch-card__result').text()).toBe(SUMMARY)
   })
@@ -234,7 +234,7 @@ describe('ChatConversation dispatch card', () => {
     })
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Subagent complete')
+    expect(card.text()).toContain('Thread complete')
     expect(card.text()).not.toContain('waiting on you')
     expect(card.text()).not.toContain('Add to my app')
   })
@@ -249,7 +249,7 @@ describe('ChatConversation dispatch card', () => {
     }))
 
     const card = wrapper.find('.dispatch-card')
-    expect(card.text()).toContain('Subagent complete — one of your options')
+    expect(card.text()).toContain('Thread complete — one of your options')
     expect(card.find('.dispatch-card__job').text()).toBe(JOB)
     expect(card.find('.dispatch-card__result').text()).toBe('Built two takes on the pricing table.')
   })
@@ -283,7 +283,7 @@ describe('ChatConversation dispatch card', () => {
 
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Contact page')
-    expect(card.text()).toContain('Subagent starting')
+    expect(card.text()).toContain('Thread starting')
   })
 })
 

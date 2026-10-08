@@ -667,7 +667,7 @@ def dispatch_task_impl(
             'duplicate': True,
             'dispatched_tasks': already,
             'instruction': (
-                "A subagent is ALREADY working on this exact job — nothing new "
+                "A thread is ALREADY working on this exact job — nothing new "
                 "was started, and the existing one is untouched. Do not dispatch "
                 "it again. Tell the user it is already under way (one short "
                 "sentence, since its card is further up the thread rather than "
@@ -735,9 +735,9 @@ def dispatch_task_impl(
         'instruction': (
             f"{len(dispatched)} background task(s) are now staged and will start "
             "running in parallel. Reply with ONE short sentence telling the "
-            "user you are putting a subagent on it, then end your turn. "
+            "user you are starting a thread on it, then end your turn. "
             "Nothing more: the workspace is already showing them a card per "
-            "subagent that names the job, describes what it will do and links "
+            "thread that names the job, describes what it will do and links "
             "to its thread, and tells them the work runs in the background "
             "while they keep going — so a second line from you repeats what is "
             "on their screen. Each one applies its own changes when it "
@@ -808,7 +808,7 @@ def lead_task_roster(lead) -> str:
             state = 'about to start'
         else:
             state = _ROSTER_STATUS[task.review_status]
-        line = f'- Subagent {task.id}: "{job}" — {state}'
+        line = f'- Thread {task.id}: "{job}" — {state}'
         question = ' '.join((questions.get(task.id) or '').split())
         if question:
             if len(question) > LEAD_ROSTER_QUESTION_MAX_CHARS:
@@ -816,7 +816,7 @@ def lead_task_roster(lead) -> str:
             line += f'. Its question: "{question}"'
         lines.append(line)
     return (
-        "Your subagents (most recent first; the number is the id message_task "
+        "Your threads (most recent first; the number is the id message_task "
         "takes):\n" + "\n".join(lines)
     )
 
@@ -841,13 +841,13 @@ def message_task_impl(ctx, task_id, message: str) -> dict:
 
     text = (message or '').strip()
     if not text:
-        raise ValueError("message must say what to tell the subagent")
+        raise ValueError("message must say what to tell the thread")
     text = text[:MESSAGE_TASK_MAX_CHARS]
 
     try:
         task_pk = int(task_id)
     except (TypeError, ValueError):
-        raise ValueError("task_id must be a subagent's number from your roster")
+        raise ValueError("task_id must be a thread's number from your roster")
 
     lead = AgentConversation.objects.filter(
         id=getattr(ctx, 'conversation_id', None), user_id=ctx.user_id
@@ -855,19 +855,19 @@ def message_task_impl(ctx, task_id, message: str) -> dict:
     if lead is None:
         raise ValueError("Could not resolve the current conversation")
     if lead.kind != 'lead':
-        raise ValueError("Only the lead thread can message its subagents")
+        raise ValueError("Only the coordinator can message its threads")
 
     task = AgentConversation.objects.filter(
         id=task_pk, user_id=ctx.user_id, kind='task', parent=lead,
     ).first()
     if task is None:
         raise ValueError(
-            f"There is no subagent {task_id} in this thread. Use an id from "
+            f"There is no thread {task_id} under you. Use an id from "
             "your roster, or dispatch_task if this is new work."
         )
     if task.archived_at is not None or task.review_status == 'dismissed':
         raise ValueError(
-            f"Subagent {task_pk}'s work was discarded, so there is nothing to "
+            f"Thread {task_pk}'s work was discarded, so there is nothing to "
             "follow up on. Use dispatch_task to start it fresh."
         )
 
@@ -901,10 +901,10 @@ def message_task_impl(ctx, task_id, message: str) -> dict:
         'success': True,
         'dispatched_tasks': [payload],
         'instruction': (
-            f"Your message is on its way to subagent {task.id}; it picks it up "
+            f"Your message is on its way to thread {task.id}; it picks it up "
             "as its next turn (after its current run, if it is mid-run) and "
             "reports back on its own card. Tell the user in ONE short sentence "
-            "that you passed it to the subagent already on that job, then end "
+            "that you passed it to the thread already on that job, then end "
             "your turn — do not also dispatch_task for it."
         ),
     }
@@ -1197,39 +1197,39 @@ def dispatch_task(
     title: str = "",
     drafts: int = 1,
 ) -> str:
-    """Dispatch a self-contained task to a background subagent that builds it in an isolated copy of the project, in parallel with this conversation.
+    """Dispatch a self-contained task to a background thread that builds it in an isolated copy of the project, in parallel with this conversation.
 
     Call this for ANY building work, large or small — you have no file-editing
-    tools. Call it immediately rather than pre-reading the project: the subagent
-    finds the relevant files itself. A single-draft subagent applies its changes
+    tools. Call it immediately rather than pre-reading the project: the thread
+    finds the relevant files itself. A single-draft thread applies its changes
     when it finishes (the user is never asked to approve) and its card in this
-    thread becomes "Subagent complete" with its own summary; it interrupts
+    conversation becomes "Thread complete" with its own summary; it interrupts
     sooner only with a question. Multi-draft variants wait for the user to pick
     one. Never wait for a dispatched task.
 
-    ONE job, ONE call, ONE subagent: the whole job in one brief. Never split a
-    job by section, layer or step, and never repeat a call — each subagent
+    ONE job, ONE call, ONE thread: the whole job in one brief. Never split a
+    job by section, layer or step, and never repeat a call — each thread
     merges its own copy back, so two on one job overwrite each other. Only
     genuinely separate asks in one message are more than one call.
 
     Args:
-        description: The brief for the subagent, written like a ticket for an
+        description: The brief for the thread, written like a ticket for an
             engineer who has not read this conversation: the goal, what "done"
             looks like, and any files or pages the user named or you already
             know (do not go read the project just to fill this in).
         goal: A SHORT plain-language name for this job, written for the USER
             rather than the engineer — a handful of words, one line, no full
             stop ("Redesigning your home page", "Adding customer reviews",
-            "Fixing the menu on phones"). It is what the subagent is called on
-            its card in this thread while it works and after it lands, so it
+            "Fixing the menu on phones"). It is what the thread is called on
+            its card in this conversation while it works and after it lands, so it
             says what the work is and never how it will be done, and it names
             no files, folders, components, or libraries. Ten words at the
             outside — anything longer is cut off.
         overview: Three to five plain sentences, written for the USER, on what
-            this subagent is about to do: what will be different in their app
+            this thread is about to do: what will be different in their app
             when it is done, what they or a visitor will see and be able to
             do, and any specifics they asked for, said back to them. It is
-            the body of the subagent's card in this thread while it works —
+            the body of the thread's card in this conversation while it works —
             a friendly person describing the job they are starting, in
             everyday words (page, button, menu, colors, photo, form) — so it
             names no files, folders, components, libraries, or code (not even
@@ -1257,21 +1257,21 @@ def dispatch_task(
 
 @function_tool
 def message_task(ctx: RunContextWrapper, task_id: int, message: str) -> str:
-    """Send a follow-up to a subagent that already has this job, instead of starting a new one.
+    """Send a follow-up to a thread that already has this job, instead of starting a new one.
 
-    Use it whenever the user's message is about work one of your subagents is
+    Use it whenever the user's message is about work one of your threads is
     doing or has done: a change to it ("make that button blue too"), a
     correction, more detail, or the answer to a question it asked. The
-    subagent gets your message as its next turn — at once if it is idle, or
+    thread gets your message as its next turn — at once if it is idle, or
     as soon as its current run ends — keeps its own context and files, and
-    reports back on its own card. Finished subagents can be messaged too; they
+    reports back on its own card. Finished threads can be messaged too; they
     apply the follow-up the same way they applied the original work.
 
-    Use dispatch_task instead only for genuinely new work no subagent has.
+    Use dispatch_task instead only for genuinely new work no thread has.
 
     Args:
-        task_id: The subagent's number, from the roster in your instructions.
-        message: What the subagent should do, written to it like a note from a
+        task_id: The thread's number, from the roster in your instructions.
+        message: What the thread should do, written to it like a note from a
             colleague: the change or answer, with the user's own specifics.
             Quote the user's words when they matter.
     """

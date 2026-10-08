@@ -115,7 +115,7 @@ export function labelForTool(name: string, args?: Record<string, string>): strin
     case 'create_app': return 'Set up a new part of your app'
     case 'create_directory':
     case 'delete_directory': return 'Tidied up your project'
-    case 'dispatch_task': return 'Started a subagent'
+    case 'dispatch_task': return 'Started a thread'
     case 'ask_user': return 'Asked you a question'
     default: return 'Worked on your app'
   }

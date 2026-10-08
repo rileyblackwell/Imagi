@@ -1756,7 +1756,7 @@ class LeadAgentConfigurationTests(SimpleTestCase):
 
     def test_the_lead_is_told_one_job_is_one_subagent(self):
         self.assertIn(
-            'ONE job, ONE dispatch_task call, ONE subagent', LEAD_AGENT_INSTRUCTIONS
+            'ONE job, ONE dispatch_task call, ONE thread', LEAD_AGENT_INSTRUCTIONS
         )
 
     def test_the_lead_answers_an_ordinary_question_in_the_thread(self):
@@ -1816,6 +1816,10 @@ class LeadDispatchClaimTests(SimpleTestCase):
             "I'm putting a subagent on your home page now.",
             "I passed that on to the subagent already working on your menu.",
             "Sent it to the subagent on your booking page.",
+            # Subagents are called threads now; the same claims in the new
+            # words are just as unbacked.
+            "I'm starting a thread on your home page now.",
+            "I passed that on to the thread already working on your menu.",
         ):
             self.assertTrue(
                 lead_claims_unmade_dispatch(self.lead, self.context, text), text
@@ -1829,6 +1833,8 @@ class LeadDispatchClaimTests(SimpleTestCase):
             "The subagent on your menu is still working on it.",
             "Your booking page subagent is waiting on you: which days are you open?",
             "Two background tasks are finished and one is still going.",
+            "The thread on your menu is still working on it.",
+            "You can open that thread and reply to it there.",
         ):
             self.assertFalse(
                 lead_claims_unmade_dispatch(self.lead, self.context, text), text

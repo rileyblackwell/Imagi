@@ -303,10 +303,10 @@ export function useAgentRun(projectId: Ref<string>) {
             store.removeMessage(instanceId, userMessageId)
           }
           const reason = abortController.signal.aborted
-            ? 'This subagent was stopped before it finished.'
+            ? 'This thread was stopped before it finished.'
             : runStarted
-              ? 'The connection to this subagent dropped before it finished.'
-              : 'The request to start this subagent did not get through' +
+              ? 'The connection to this thread dropped before it finished.'
+              : 'The request to start this thread did not get through' +
                 (agentError instanceof Error && agentError.message ? ` (${agentError.message}).` : '.')
           await store.failTaskRun(
             instanceId,
