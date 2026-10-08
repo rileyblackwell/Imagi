@@ -31,6 +31,8 @@ from .views import (
     conversation_detail,
     conversation_accept,
     conversation_cancel,
+    conversation_events,
+    conversation_send,
     conversation_dismiss,
     conversation_restore_checkpoint,
     conversation_messages,
@@ -73,6 +75,10 @@ agents_patterns = [
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),
     path('conversations/<int:conversation_id>/cancel/', conversation_cancel, name='conversation_cancel'),
+    # Runs happen on the server: a thread is sent its next message here and
+    # started there, and any tab watches a run live through events.
+    path('conversations/<int:conversation_id>/send/', conversation_send, name='conversation_send'),
+    path('conversations/<int:conversation_id>/events/', conversation_events, name='conversation_events'),
     # Task review: accept merges the task's worktree into the canonical
     # tree, dismiss discards it.
     path('conversations/<int:conversation_id>/accept/', conversation_accept, name='conversation_accept'),

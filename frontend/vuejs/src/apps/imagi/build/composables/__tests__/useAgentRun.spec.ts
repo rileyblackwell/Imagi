@@ -4,13 +4,15 @@ import { setActivePinia, createPinia } from 'pinia'
 import type { AgentInstance } from '../../types/services'
 import type { AgentStreamHandlers } from '../../services/agentService'
 
-// The run talks to the agent through streamAgent; each test scripts what the
-// stream does by giving it a function that drives the handlers.
+// The run talks to the agent through streamAgent (a thread's run, through
+// watchRun); each test scripts what the stream does by giving it a function
+// that drives the handlers.
 type Script = (handlers: AgentStreamHandlers, signal?: AbortSignal) => Promise<unknown>
 let script: Script = async () => ({ response: '' })
 
 const agentService = vi.hoisted(() => ({
   streamAgent: vi.fn(),
+  watchRun: vi.fn(),
   updateConversation: vi.fn(),
   getConversation: vi.fn(),
   cancelConversationRun: vi.fn(),
@@ -111,6 +113,10 @@ describe('useAgentRun', () => {
       (_project: string, _data: unknown, handlers: AgentStreamHandlers, signal?: AbortSignal) =>
         script(handlers, signal)
     )
+    agentService.watchRun.mockImplementation(
+      (_conversationId: number, handlers: AgentStreamHandlers, signal?: AbortSignal) =>
+        script(handlers, signal)
+    )
   })
 
   describe('a run that finishes', () => {
@@ -189,6 +195,9 @@ describe('useAgentRun', () => {
 
       expect(fileService.getProjectFiles).not.toHaveBeenCalled()
       expect(versionControl.commitAfterFileOperation).not.toHaveBeenCalled()
+      // The server ran it; this tab watched.
+      expect(agentService.streamAgent).not.toHaveBeenCalled()
+      expect(agentService.watchRun).toHaveBeenCalled()
       // Its card catches up with the server's account of the run straight away.
       expect(agentService.getConversation).toHaveBeenCalled()
     })
@@ -293,18 +302,21 @@ describe('useAgentRun', () => {
       ])
     })
 
-    it('puts a refused subagent back in line instead of failing it', async () => {
-      const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
-      const fail = vi.spyOn(store, 'failTaskRun')
-      script = async () => {
-        throw streamError('busy', { status: 429, body: { error: 'too_many_concurrent_runs' } })
+    it('watches a thread\'s run on the server rather than starting one', async () => {
+      const { handlePrompt, live } = setup({ kind: 'task', reviewStatus: 'active' })
+      script = async (h) => {
+        h.onStart?.(live().conversationId!, {})
+        h.onDelta?.('On it')
+        return { response: 'On it' }
       }
 
       await handlePrompt('Build the pricing page')
 
-      expect(live().pendingBrief).toBe('Build the pricing page')
-      expect(live().conversation).toEqual([])
-      expect(fail).not.toHaveBeenCalled()
+      expect(agentService.watchRun).toHaveBeenCalledWith(
+        live().conversationId, expect.any(Object), expect.any(AbortSignal), undefined,
+      )
+      expect(agentService.streamAgent).not.toHaveBeenCalled()
+      expect(contents(live())).toEqual(['user: Build the pricing page', 'assistant: On it'])
     })
 
     it('explains a spent usage allowance and refreshes the meter', async () => {
@@ -382,41 +394,66 @@ describe('useAgentRun', () => {
       expect(live().isProcessing).toBe(false)
     })
 
-    it('fails a subagent whose request never got through and keeps its brief', async () => {
-      const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
-      const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
-      script = async () => { throw new Error('Network Error') }
-
-      await handlePrompt('Build the pricing page')
-
-      // The run never started, so the brief was not consumed: the retry
-      // sends it again, and the bubble for it goes.
-      expect(fail).toHaveBeenCalledWith(
-        live().id, expect.stringContaining('did not get through (Network Error).'), 'Build the pricing page'
-      )
-      expect(live().conversation).toEqual([])
-    })
-
-    it('keeps following a thread whose connection dropped mid-run', async () => {
-      // The run is not tied to the connection: it keeps working on the
-      // server, so the thread stays "working" and is picked up from there.
+    it('keeps a thread working when this tab cannot watch it', async () => {
+      // The thread runs on the server whatever happens to this tab, so a
+      // failed watch is never reported as a failed thread.
       const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
       const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
       const follow = vi.spyOn(store, 'followRunOnServer')
-      script = async (h) => {
-        h.onStart?.(live().conversationId!, {})
-        h.onDelta?.('Working on it')
-        throw streamError('The connection to the run dropped.', { code: 'stream_dropped' })
-      }
+      script = async () => { throw new Error('Network Error') }
 
       await handlePrompt('Build the pricing page')
 
       expect(fail).not.toHaveBeenCalled()
       expect(follow).toHaveBeenCalledWith(live().id)
       expect(live().isProcessing).toBe(true)
-      expect(live().reviewStatus).toBe('active')
       expect(agentService.cancelConversationRun).not.toHaveBeenCalled()
+    })
+
+    it('picks a dropped watch back up where it left off', async () => {
+      const { handlePrompt, live } = setup({ kind: 'task', reviewStatus: 'active' })
+      let calls = 0
+      script = async (h) => {
+        calls += 1
+        if (calls === 1) {
+          h.onStart?.(live().conversationId!, {})
+          h.onDelta?.('Working ')
+          throw streamError('The connection to the run dropped.', {
+            code: 'stream_dropped', body: { conversation_id: live().conversationId, last_seq: 2 },
+          })
+        }
+        h.onDelta?.('on it')
+        return { response: 'Working on it' }
+      }
+
+      const run = handlePrompt('Build the pricing page')
+      await vi.advanceTimersByTimeAsync(1000)
+      await run
+
+      expect(agentService.watchRun).toHaveBeenLastCalledWith(
+        live().conversationId, expect.any(Object), expect.any(AbortSignal), 2,
+      )
       expect(contents(live())).toEqual(['user: Build the pricing page', 'assistant: Working on it'])
+      expect(live().isProcessing).toBe(false)
+    })
+
+    it('follows a thread from the server once re-attaching keeps failing', async () => {
+      const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
+      const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
+      const follow = vi.spyOn(store, 'followRunOnServer')
+      script = async (h) => {
+        h.onStart?.(live().conversationId!, {})
+        throw streamError('The connection to the run dropped.', { code: 'stream_dropped' })
+      }
+
+      const run = handlePrompt('Build the pricing page')
+      await vi.advanceTimersByTimeAsync(7000)
+      await run
+
+      expect(agentService.watchRun).toHaveBeenCalledTimes(4)
+      expect(fail).not.toHaveBeenCalled()
+      expect(follow).toHaveBeenCalledWith(live().id)
+      expect(live().reviewStatus).toBe('active')
     })
 
     it('keeps the main thread working when its connection drops', async () => {
@@ -433,19 +470,22 @@ describe('useAgentRun', () => {
       expect(contents(live())).toEqual(['user: Add a pricing page'])
     })
 
-    it('fails a subagent whose stream broke for another reason, keeping its transcript', async () => {
+    it('stops a thread on the server when the user stops it', async () => {
       const { handlePrompt, live, store } = setup({ kind: 'task', reviewStatus: 'active' })
       const fail = vi.spyOn(store, 'failTaskRun').mockResolvedValue(undefined)
-      script = async (h) => {
-        h.onStart?.(1, {})
+      script = (h, signal) => new Promise((_, reject) => {
+        h.onStart?.(live().conversationId!, {})
         h.onDelta?.('Working on it')
-        throw new Error('Stream ended')
-      }
+        signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      })
 
-      await handlePrompt('Build the pricing page')
+      const run = handlePrompt('Build the pricing page')
+      await vi.waitFor(() => expect(live().conversation).toHaveLength(2))
+      store.abortInstanceRun(live().id)
+      await run
 
       expect(fail).toHaveBeenCalledWith(
-        live().id, expect.stringContaining('connection to this thread dropped'), null
+        live().id, expect.stringContaining('was stopped before it finished'), null
       )
       expect(contents(live())[0]).toBe('user: Build the pricing page')
     })

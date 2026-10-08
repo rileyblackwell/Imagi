@@ -381,6 +381,10 @@ def _create_build_task(user, lead, project_id, model, prompt, page):
         parent=lead,
         review_status='active',
         queued_prompt=prompt,
+        # Claimed for this build's own runner from the start: the thread
+        # scheduler starts any staged thread nobody is running, and this one
+        # is about to be run right here.
+        run_started_at=timezone.now(),
     )
     SystemPrompt.objects.create(
         conversation=task, content=INITIAL_BUILD_INSTRUCTIONS

@@ -6,7 +6,8 @@ import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import type { AIMessage } from '../types/index'
-import type { DispatchedTaskRef } from '../types/services'
+import type { AgentResponse, DispatchedTaskRef } from '../types/services'
+import type { AgentStreamHandlers } from '../services/agentService'
 
 // Tools that mutate project files. Also drives the interrupted-run cleanup:
 // a stopped/turn-capped run that called any of these still changed the disk.
@@ -28,6 +29,37 @@ export function describeAgentTool(name: string): string {
     return 'Editing project files…'
   }
   return 'Working…'
+}
+
+// How many times a tab re-attaches to a thread's run after its watch drops,
+// and how long it waits before each try. Past that it falls back to polling.
+export const WATCH_RETRY_DELAYS_MS = [1000, 2000, 4000]
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+/**
+ * Watch a thread's run through to its end, re-attaching where the last
+ * watch left off when the connection drops. The run itself is on the
+ * server and never depends on this.
+ */
+async function watchThreadRun(
+  conversationId: number,
+  handlers: AgentStreamHandlers,
+  signal: AbortSignal,
+): Promise<AgentResponse> {
+  let after: number | undefined
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await AgentService.watchRun(conversationId, handlers, signal, after)
+    } catch (watchError) {
+      const dropped = (watchError as any)?.code === STREAM_DROPPED
+      if (!dropped || signal.aborted || attempt >= WATCH_RETRY_DELAYS_MS.length) throw watchError
+      const lastSeq = ((watchError as any)?.body as any)?.last_seq
+      if (typeof lastSeq === 'number') after = lastSeq
+      await wait(WATCH_RETRY_DELAYS_MS[attempt]!)
+      if (signal.aborted) throw watchError
+    }
+  }
 }
 
 /**
@@ -77,6 +109,10 @@ export function useAgentRun(projectId: Ref<string>) {
     // history) applies to them. Committing canonical here would snapshot a
     // parallel lead run's half-finished edits under this task's prompt.
     const isTaskRun = instance.kind === 'task'
+    // A thread's work runs on the server, which starts it from what is staged
+    // there (a dispatch, a forwarded follow-up, or a message the store already
+    // sent). This tab only watches; closing it leaves the thread working.
+    const watchOnly = isTaskRun && conversationIdBefore != null
     // Set when the connection closed under a run that is still going on the
     // server: the run is followed from there (the store's resync poll), so
     // this handler must not mark it finished on its way out.
@@ -166,76 +202,79 @@ export function useAgentRun(projectId: Ref<string>) {
 
       try {
         store.setInstanceStatus(instanceId, 'Thinking…')
-        const response = await AgentService.streamAgent(
-          projectId.value,
-          {
-            prompt: promptText,
-            model: instance.selectedModelId,
-            reasoningEffort: instance.selectedEffort,
-            file: instance.selectedFile,
-            conversationId: conversationIdBefore ?? undefined
-          },
-          {
-            onStart: (conversationId, info) => {
-              runStarted = true
-              if (conversationId && !instance.conversationId) {
-                store.updateInstanceConversationId(instanceId, conversationId)
-              }
-              // Tie the optimistic bubble to its persisted row so the inline
-              // restore-checkpoint control works without a reload.
-              if (info?.userMessageId || info?.checkpoint) {
-                store.setMessageCheckpoint(
-                  instanceId, userMessageId, info.userMessageId, info.checkpoint
-                )
-              }
-            },
-            onDelta: (text) => {
-              ensureAssistantMessage()
-              // The reply is streaming; the status line would just sit under it.
-              store.setInstanceStatus(instanceId, '')
-              streamedText += text
-              store.setMessageContent(instanceId, streamingMessageId, streamedText)
-            },
-            onToolCall: (name, args) => {
-              ensureAssistantMessage()
-              sawActivity = true
-              if (FILE_EDIT_TOOLS.has(name)) sawFileEdit = true
-              store.appendMessageActivity(
-                instanceId,
-                streamingMessageId,
-                toolCallToActivityStep(name, args)
+        const handlers: AgentStreamHandlers = {
+          onStart: (conversationId, info) => {
+            runStarted = true
+            if (conversationId && !instance.conversationId) {
+              store.updateInstanceConversationId(instanceId, conversationId)
+            }
+            // Tie the optimistic bubble to its persisted row so the inline
+            // restore-checkpoint control works without a reload.
+            if (info?.userMessageId || info?.checkpoint) {
+              store.setMessageCheckpoint(
+                instanceId, userMessageId, info.userMessageId, info.checkpoint
               )
-              store.setInstanceStatus(instanceId, describeAgentTool(name))
-            },
-            onPlan: (plan) => {
-              ensureAssistantMessage()
-              sawPlan = sawPlan || plan.length > 0
-              store.setMessagePlan(instanceId, streamingMessageId, plan)
-            },
-            onTitle: (conversationId, title) => {
-              // The backend auto-named the thread from its opening exchange;
-              // reflect it in the sidebar without a reload.
-              store.applyInstanceTitle(conversationId, title)
-            },
-            onTaskDispatch: (tasks) => {
-              // The lead agent delegated work: start those background runs now,
-              // in parallel, while this run keeps streaming. They edit their own
-              // worktrees, so they neither block nor are blocked by this one.
-              store.startDispatchedTasks(tasks)
-              // Link the subagents into the reply itself, so the work is one
-              // click away and the main thread stays a clean summary.
-              ensureAssistantMessage()
-              dispatchedRefs = [
-                ...dispatchedRefs,
-                ...tasks.map(t => ({ conversationId: t.conversation_id, title: t.title || '' }))
-              ]
-              store.patchMessage(instanceId, streamingMessageId, {
-                dispatchedTasks: dispatchedRefs
-              })
-            },
+            }
           },
-          abortController.signal
-        )
+          onDelta: (text) => {
+            ensureAssistantMessage()
+            // The reply is streaming; the status line would just sit under it.
+            store.setInstanceStatus(instanceId, '')
+            streamedText += text
+            store.setMessageContent(instanceId, streamingMessageId, streamedText)
+          },
+          onToolCall: (name, args) => {
+            ensureAssistantMessage()
+            sawActivity = true
+            if (FILE_EDIT_TOOLS.has(name)) sawFileEdit = true
+            store.appendMessageActivity(
+              instanceId,
+              streamingMessageId,
+              toolCallToActivityStep(name, args)
+            )
+            store.setInstanceStatus(instanceId, describeAgentTool(name))
+          },
+          onPlan: (plan) => {
+            ensureAssistantMessage()
+            sawPlan = sawPlan || plan.length > 0
+            store.setMessagePlan(instanceId, streamingMessageId, plan)
+          },
+          onTitle: (conversationId, title) => {
+            // The backend auto-named the thread from its opening exchange;
+            // reflect it in the sidebar without a reload.
+            store.applyInstanceTitle(conversationId, title)
+          },
+          onTaskDispatch: (tasks) => {
+            // The lead agent delegated work: start those background runs now,
+            // in parallel, while this run keeps streaming. They edit their own
+            // worktrees, so they neither block nor are blocked by this one.
+            store.startDispatchedTasks(tasks)
+            // Link the subagents into the reply itself, so the work is one
+            // click away and the main thread stays a clean summary.
+            ensureAssistantMessage()
+            dispatchedRefs = [
+              ...dispatchedRefs,
+              ...tasks.map(t => ({ conversationId: t.conversation_id, title: t.title || '' }))
+            ]
+            store.patchMessage(instanceId, streamingMessageId, {
+              dispatchedTasks: dispatchedRefs
+            })
+          },
+        }
+        const response = watchOnly
+          ? await watchThreadRun(conversationIdBefore!, handlers, abortController.signal)
+          : await AgentService.streamAgent(
+            projectId.value,
+            {
+              prompt: promptText,
+              model: instance.selectedModelId,
+              reasoningEffort: instance.selectedEffort,
+              file: instance.selectedFile,
+              conversationId: conversationIdBefore ?? undefined
+            },
+            handlers,
+            abortController.signal
+          )
 
         if ((response as any).conversation_id && !instance.conversationId) {
           store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
@@ -302,10 +341,12 @@ export function useAgentRun(projectId: Ref<string>) {
         // The run reported its own ending (a cost ceiling, an empty provider
         // balance, a model error): the server has already recorded it.
         const reported = (agentError as any)?.reported === true
-        if (errorCode === STREAM_DROPPED && runStarted && !abortController.signal.aborted) {
-          // Only the connection ended. The run is not tied to it and keeps
-          // working on the server, so keep showing it as working and pick
-          // the result up from there when it finishes.
+        const followable = watchOnly ? !reported : errorCode === STREAM_DROPPED && runStarted
+        if (followable && !abortController.signal.aborted) {
+          // Only the connection ended (or, for a thread, this tab could not
+          // keep watching it). The run is not tied to it and keeps working on
+          // the server, so keep showing it as working and pick the result up
+          // from there when it finishes.
           followedOnServer = true
           store.followRunOnServer(instanceId)
           return

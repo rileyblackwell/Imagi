@@ -192,6 +192,168 @@ export interface ConversationMessageDto {
   checkpoint?: string
 }
 
+/**
+ * The error for a request refused before its stream opened. Those answers
+ * are plain JSON, not SSE. DRF-style rejections use "detail" (e.g. the 409
+ * {"detail": "agent_busy"} when another run holds the project); our own
+ * errors use "error".
+ */
+async function preStreamError(response: Response): Promise<AgentStreamError> {
+  let detail = ''
+  let errorBody: Record<string, unknown> | undefined
+  try {
+    const body = await response.json()
+    detail = body?.error || body?.detail || ''
+    if (body && typeof body === 'object') errorBody = body
+  } catch { /* non-JSON body */ }
+  return new AgentStreamError(
+    detail || `Agent request failed (${response.status})`,
+    { status: response.status, body: errorBody }
+  )
+}
+
+/**
+ * Read a run's event stream (a fresh run, or a watch of one already going)
+ * through to the run's last event.
+ */
+async function readRunStream(
+  body: ReadableStream<Uint8Array>,
+  handlers: AgentStreamHandlers,
+  signal?: AbortSignal,
+): Promise<AgentResponse> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let done: AgentResponse | null = null
+  let streamError = ''
+  let streamErrorCode: string | undefined
+  const text: string[] = []
+  const toolCalls: string[] = []
+  let plan: AgentPlanStep[] = []
+  let conversationId: number | undefined
+  // The last event's number in the run's log, so a dropped watch can resume
+  // right after it instead of replaying the run.
+  let lastSeq: number | undefined
+  // Tasks already handed to onTaskDispatch, so the 'done' payload's repeat
+  // of them cannot start the same background run twice.
+  const dispatchedIds = new Set<number>()
+
+  const handleEvent = (event: any) => {
+    if (typeof event.seq === 'number') lastSeq = event.seq
+    switch (event.type) {
+      case 'start':
+        conversationId = event.conversation_id
+        handlers.onStart?.(event.conversation_id, {
+          userMessageId: event.user_message_id,
+          checkpoint: event.checkpoint,
+        })
+        break
+      case 'delta':
+        text.push(event.text)
+        handlers.onDelta?.(event.text)
+        break
+      case 'tool_call':
+        toolCalls.push(event.name)
+        handlers.onToolCall?.(event.name, event.args)
+        break
+      case 'plan':
+        plan = event.plan || []
+        handlers.onPlan?.(plan)
+        break
+      case 'title':
+        handlers.onTitle?.(event.conversation_id, event.title)
+        break
+      case 'task_dispatch':
+        // Mid-stream so the background runs start while the lead is still
+        // talking; ids are tracked to skip the duplicate in 'done'.
+        for (const task of (event.tasks || []) as DispatchedTaskDto[]) {
+          dispatchedIds.add(task.conversation_id)
+        }
+        if (event.tasks?.length) handlers.onTaskDispatch?.(event.tasks)
+        break
+      case 'done':
+        done = {
+          response: event.response ?? text.join(''),
+          conversation_id: event.conversation_id,
+          files_changed: event.files_changed || [],
+          tool_calls: event.tool_calls || toolCalls,
+          plan: event.plan || plan,
+          // Usage (and its cost) is best-effort on the backend; absent
+          // means "unknown", never "free".
+          usage: event.usage,
+          dispatched_tasks: event.dispatched_tasks,
+          question: event.question,
+          single_message: event.single_message ?? true,
+        }
+        // Backstop: the terminal payload repeats every dispatch, so a
+        // task whose mid-stream event was missed still gets fired — but
+        // one already fired must not run twice.
+        {
+          const missed = ((event.dispatched_tasks || []) as DispatchedTaskDto[])
+            .filter(t => !dispatchedIds.has(t.conversation_id))
+          if (missed.length > 0) {
+            for (const task of missed) dispatchedIds.add(task.conversation_id)
+            handlers.onTaskDispatch?.(missed)
+          }
+        }
+        break
+      case 'error':
+        streamError = event.error || 'Agent run failed'
+        streamErrorCode = event.code
+        break
+    }
+  }
+
+  const droppedAt = () => (conversationId != null || lastSeq != null)
+    ? { conversation_id: conversationId, last_seq: lastSeq }
+    : undefined
+
+  while (true) {
+    let chunk: ReadableStreamReadResult<Uint8Array>
+    try {
+      chunk = await reader.read()
+    } catch (readError) {
+      // A user's Stop aborts the read too; that one is theirs to report.
+      if (signal?.aborted) throw readError
+      // The network went away under the stream (a mobile browser
+      // backgrounding the tab, a proxy closing a long request).
+      throw new AgentStreamError('The connection to the run dropped.', {
+        code: STREAM_DROPPED,
+        body: droppedAt(),
+      })
+    }
+    const { value, done: finished } = chunk
+    if (finished) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // SSE frames are separated by a blank line; the last chunk may be partial.
+    const frames = buffer.split('\n\n')
+    buffer = frames.pop() ?? ''
+    for (const frame of frames) {
+      const line = frame.split('\n').find(l => l.startsWith('data: '))
+      if (!line) continue
+      try {
+        handleEvent(JSON.parse(line.slice(6)))
+      } catch {
+        console.warn('Skipping malformed agent stream frame')
+      }
+    }
+  }
+
+  if (streamError) {
+    throw new AgentStreamError(streamError, { code: streamErrorCode, reported: true })
+  }
+  if (done) return done
+
+  // Stream ended without a terminal event: the connection closed (a proxy
+  // ends any request after 15 minutes) or the server went away. Either way
+  // the run's outcome is on the server, not in this stream.
+  throw new AgentStreamError('The connection to the run dropped.', {
+    code: STREAM_DROPPED,
+    body: droppedAt(),
+  })
+}
+
 export const AgentService = {
   /**
    * Run the agent, surfacing output as it arrives.
@@ -253,146 +415,62 @@ export const AgentService = {
       }),
     })
 
-    if (!response.ok || !response.body) {
-      // Errors before the stream opens are plain JSON, not SSE. DRF-style
-      // rejections use "detail" (e.g. the 409 {"detail": "agent_busy"} when
-      // another run holds the project); our own errors use "error".
-      let detail = ''
-      let errorBody: Record<string, unknown> | undefined
-      try {
-        const body = await response.json()
-        detail = body?.error || body?.detail || ''
-        if (body && typeof body === 'object') errorBody = body
-      } catch { /* non-JSON body */ }
-      throw new AgentStreamError(
-        detail || `Agent request failed (${response.status})`,
-        { status: response.status, body: errorBody }
-      )
+    if (!response.ok || !response.body) throw await preStreamError(response)
+
+    return readRunStream(response.body, handlers, signal)
+  },
+
+  /**
+   * Watch a thread's run on the server: its events so far, then live ones,
+   * through to its end. Watching never starts or stops anything — closing
+   * the tab mid-watch leaves the run going.
+   *
+   * With `after`, picks up right after the last event this tab saw. With
+   * work staged and no run yet, waits for the run the server is about to
+   * start.
+   */
+  async watchRun(
+    conversationId: number,
+    handlers: AgentStreamHandlers = {},
+    signal?: AbortSignal,
+    after?: number,
+  ): Promise<AgentResponse> {
+    const token = getAuthToken()
+    const query = after != null ? `?after=${after}` : ''
+    let response: Response
+    try {
+      response = await fetch(`/api/v1/agents/conversations/${conversationId}/events/${query}`, {
+        signal,
+        headers: {
+          'Accept': 'text/event-stream',
+          ...(token ? { Authorization: `Token ${token}` } : {}),
+        },
+      })
+    } catch (fetchError) {
+      if (signal?.aborted) throw fetchError
+      throw new AgentStreamError('The connection to the run dropped.', {
+        code: STREAM_DROPPED,
+        body: { conversation_id: conversationId, last_seq: after },
+      })
     }
+    if (!response.ok || !response.body) throw await preStreamError(response)
+    return readRunStream(response.body, handlers, signal)
+  },
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    let done: AgentResponse | null = null
-    let streamError = ''
-    let streamErrorCode: string | undefined
-    const text: string[] = []
-    const toolCalls: string[] = []
-    let plan: AgentPlanStep[] = []
-    let conversationId: number | undefined
-    // Tasks already handed to onTaskDispatch, so the 'done' payload's repeat
-    // of them cannot start the same background run twice.
-    const dispatchedIds = new Set<number>()
-
-    const handleEvent = (event: any) => {
-      switch (event.type) {
-        case 'start':
-          conversationId = event.conversation_id
-          handlers.onStart?.(event.conversation_id, {
-            userMessageId: event.user_message_id,
-            checkpoint: event.checkpoint,
-          })
-          break
-        case 'delta':
-          text.push(event.text)
-          handlers.onDelta?.(event.text)
-          break
-        case 'tool_call':
-          toolCalls.push(event.name)
-          handlers.onToolCall?.(event.name, event.args)
-          break
-        case 'plan':
-          plan = event.plan || []
-          handlers.onPlan?.(plan)
-          break
-        case 'title':
-          handlers.onTitle?.(event.conversation_id, event.title)
-          break
-        case 'task_dispatch':
-          // Mid-stream so the background runs start while the lead is still
-          // talking; ids are tracked to skip the duplicate in 'done'.
-          for (const task of (event.tasks || []) as DispatchedTaskDto[]) {
-            dispatchedIds.add(task.conversation_id)
-          }
-          if (event.tasks?.length) handlers.onTaskDispatch?.(event.tasks)
-          break
-        case 'done':
-          done = {
-            response: event.response ?? text.join(''),
-            conversation_id: event.conversation_id,
-            files_changed: event.files_changed || [],
-            tool_calls: event.tool_calls || toolCalls,
-            plan: event.plan || plan,
-            // Usage (and its cost) is best-effort on the backend; absent
-            // means "unknown", never "free".
-            usage: event.usage,
-            dispatched_tasks: event.dispatched_tasks,
-            question: event.question,
-            single_message: event.single_message ?? true,
-          }
-          // Backstop: the terminal payload repeats every dispatch, so a
-          // task whose mid-stream event was missed still gets fired — but
-          // one already fired must not run twice.
-          {
-            const missed = ((event.dispatched_tasks || []) as DispatchedTaskDto[])
-              .filter(t => !dispatchedIds.has(t.conversation_id))
-            if (missed.length > 0) {
-              for (const task of missed) dispatchedIds.add(task.conversation_id)
-              handlers.onTaskDispatch?.(missed)
-            }
-          }
-          break
-        case 'error':
-          streamError = event.error || 'Agent run failed'
-          streamErrorCode = event.code
-          break
-      }
-    }
-
-    while (true) {
-      let chunk: ReadableStreamReadResult<Uint8Array>
-      try {
-        chunk = await reader.read()
-      } catch (readError) {
-        // A user's Stop aborts the read too; that one is theirs to report.
-        if (signal?.aborted) throw readError
-        // The network went away under the stream (a mobile browser
-        // backgrounding the tab, a proxy closing a long request).
-        throw new AgentStreamError('The connection to the run dropped.', {
-          code: STREAM_DROPPED,
-          body: conversationId != null ? { conversation_id: conversationId } : undefined,
-        })
-      }
-      const { value, done: finished } = chunk
-      if (finished) break
-      buffer += decoder.decode(value, { stream: true })
-
-      // SSE frames are separated by a blank line; the last chunk may be partial.
-      const frames = buffer.split('\n\n')
-      buffer = frames.pop() ?? ''
-      for (const frame of frames) {
-        const line = frame.split('\n').find(l => l.startsWith('data: '))
-        if (!line) continue
-        try {
-          handleEvent(JSON.parse(line.slice(6)))
-        } catch {
-          console.warn('Skipping malformed agent stream frame')
-        }
-      }
-    }
-
-    if (streamError) {
-      throw new AgentStreamError(streamError, { code: streamErrorCode, reported: true })
-    }
-    if (done) return done
-
-    // Stream ended without a terminal event: the connection closed (a proxy
-    // ends any request after 15 minutes) or the server went away. Either way
-    // the run's outcome is on the server, not in this stream.
-    throw new AgentStreamError('The connection to the run dropped.', {
-      code: STREAM_DROPPED,
-      body: conversationId != null ? { conversation_id: conversationId } : undefined,
+  /**
+   * Give a thread something to do. The server stages it and starts the
+   * thread itself (now, or when the thread's current run ends); the browser
+   * only watches. A message already waiting is not staged twice, so a retry
+   * is safe.
+   */
+  async sendToThread(
+    conversationId: number,
+    message: string,
+  ): Promise<ConversationDto & { blocked?: string | null }> {
+    const response = await api.post(`/v1/agents/conversations/${conversationId}/send/`, {
+      message,
     })
+    return response.data
   },
 
   formatError(error: any): string {
