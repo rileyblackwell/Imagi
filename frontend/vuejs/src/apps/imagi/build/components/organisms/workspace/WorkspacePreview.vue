@@ -1,8 +1,7 @@
 <template>
-  <div class="pv-root relative w-full h-full flex flex-col" :class="{ 'pv-root--phone': viewMode === 'phone' }">
+  <div class="pv-root relative w-full h-full flex flex-col">
     <!-- The dock: one frosted pill floating on the stage above the app —
-         navigation, where you are (also the page menu), and how big a screen
-         to look at it on. It sits in its own band rather than over the app,
+         navigation, and where you are (also the page menu). It sits in its own band rather than over the app,
          because anything laid over the frame would hide the app's own header. -->
     <div class="pv-dockbar">
       <div class="pv-dock">
@@ -117,31 +116,6 @@
           </div>
         </div>
 
-        <!-- Screen size: the app at the pane's full width, or at a phone's.
-             Desktop-only control — on a phone the preview already is one. -->
-        <div class="pv-size shrink-0" role="group" aria-label="Screen size">
-          <button
-            type="button"
-            @click="setViewMode('desktop')"
-            :aria-pressed="viewMode === 'desktop'"
-            title="Desktop view"
-            aria-label="Desktop view"
-            :class="['pv-size-btn', viewMode === 'desktop' && 'pv-size-btn--on']"
-          >
-            <i class="fas fa-desktop"></i>
-          </button>
-          <button
-            type="button"
-            @click="setViewMode('phone')"
-            :aria-pressed="viewMode === 'phone'"
-            title="Phone view"
-            aria-label="Phone view"
-            :class="['pv-size-btn', viewMode === 'phone' && 'pv-size-btn--on']"
-          >
-            <i class="fas fa-mobile-screen"></i>
-          </button>
-        </div>
-
         <!-- Back to the main agent: phones only, where the preview has
              replaced the chat (see canReturnToChat). -->
         <button
@@ -163,7 +137,7 @@
       </div>
     </div>
 
-    <!-- The frame: the app as a lit card on the stage, or inside a phone. -->
+    <!-- The frame: the app as a lit card on the stage. -->
     <div class="pv-stagewrap">
       <div class="pv-frame">
 
@@ -177,6 +151,7 @@
           ref="screenRef"
           tabindex="0"
           class="pv-stage relative flex-1 min-h-0 outline-none overflow-hidden touch-none"
+          :style="stageStyle"
           @pointerdown="onPointerDown"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
@@ -200,6 +175,24 @@
             class="w-full h-full select-none pointer-events-none"
             :style="frameStyle"
           />
+
+          <!-- The page's scrollbar, drawn here so it moves with the page the
+               moment it scrolls (the remote page's own is hidden). Its pointer
+               input stays here, never forwarded to the page underneath; wheel
+               input passes through and scrolls the page as usual. -->
+          <div
+            v-if="scrollbar && phase === 'ready'"
+            ref="scrollbarRef"
+            class="pv-scrollbar"
+            :class="{ 'is-active': scrollbarActive || thumbDragging, 'is-dragging': thumbDragging }"
+            aria-hidden="true"
+            @pointerdown.stop.prevent="onScrollbarPointerDown"
+            @pointermove.stop="onScrollbarPointerMove"
+            @pointerup.stop="onScrollbarPointerUp"
+            @pointercancel.stop="onScrollbarPointerUp"
+          >
+            <div class="pv-scrollbar-thumb" :style="thumbStyle"></div>
+          </div>
 
           <!-- Console-error banner: recent JS errors reported by the previewed
                page itself. Pointer events must not leak through to the screen's
@@ -292,6 +285,7 @@ import {
   type PreviewConsoleError,
   type PreviewFrame,
   type PreviewInputEvent,
+  type PreviewScroll,
 } from '../../../services/previewService'
 
 const props = defineProps<{
@@ -336,30 +330,6 @@ const viewport = ref<[number, number]>([1280, 800])
 const navigating = ref(false)
 const busy = computed(() => phase.value === 'starting' || navigating.value)
 
-// Screen size the app is shown at. Phone narrows the screen element itself, so
-// the ResizeObserver resizes the remote viewport like any other pane resize.
-type ViewMode = 'desktop' | 'phone'
-const VIEW_MODE_KEY = 'imagi.preview.viewMode'
-
-function readViewMode(): ViewMode {
-  try {
-    return localStorage.getItem(VIEW_MODE_KEY) === 'phone' ? 'phone' : 'desktop'
-  } catch {
-    return 'desktop'
-  }
-}
-
-const viewMode = ref<ViewMode>(readViewMode())
-
-function setViewMode(mode: ViewMode) {
-  viewMode.value = mode
-  try {
-    localStorage.setItem(VIEW_MODE_KEY, mode)
-  } catch {
-    // Storage unavailable (private mode): the choice lasts for this visit.
-  }
-}
-
 const menuOpen = ref(false)
 // The folders (apps) currently open in the page menu. Opening the menu opens
 // all of them (see onMenuToggle); a folder can still be folded away by hand.
@@ -387,37 +357,48 @@ function paneSize(): { width: number; height: number } {
   }
 }
 
-// Frames are decoded off-screen before being shown, so the JPEG decode never
-// blocks the paint that displays it (decoding on the visible <img> stutters
-// scrolling). The sequence numbers keep a slow decode from replacing a newer
-// frame with an older one.
-let frameSeq = 0
+// Every frame request (poll, input batch, navigation, start) takes a number
+// when it is sent, and a response only lands if it was sent after the one
+// already applied. Responses race each other — a poll and an input batch can
+// be served by different workers — so arrival order means nothing; without
+// this an older poll could replace a newer frame mid-scroll and the page would
+// jump back.
+let requestSeq = 0
+let appliedSeq = 0
 let shownFrameSeq = 0
 
-function showFrame(src: string, onShown?: () => void) {
-  const seq = ++frameSeq
+// Frames are decoded off-screen before being shown, so the JPEG decode never
+// blocks the paint that displays it (decoding on the visible <img> stutters
+// scrolling). The frame's scroll offset goes on screen in the same tick as its
+// pixels, so the transform that places it (see frameStyle) never lags them.
+function showFrame(src: string, seq: number, scroll: PreviewScroll | null | undefined) {
   const img = new Image()
   img.src = src
   const show = () => {
-    if (disposed) return
-    if (seq > shownFrameSeq) {
-      shownFrameSeq = seq
-      frameSrc.value = src
-    }
-    // Fires even when a newer frame superseded this one: the pixels on screen
-    // are at least as fresh as this frame, which is what callers care about.
-    onShown?.()
+    if (disposed || seq <= shownFrameSeq) return
+    shownFrameSeq = seq
+    frameSrc.value = src
+    // A frame that couldn't report its offset keeps the last one: the best
+    // guess, and right whenever the page didn't move.
+    if (scroll) shownScrollY.value = scroll.y
   }
   img.decode().then(show, show)
 }
 
-// onShown fires once this frame's content is on screen (or immediately when
-// the payload carried no bitmap — the pixels already shown are up to date).
-function applyFrame(f: PreviewFrame, onShown?: () => void) {
+// Apply one response. Returns false (and changes nothing) when a response
+// sent later has already been applied.
+function applyFrame(f: PreviewFrame, seq: number): boolean {
+  if (seq <= appliedSeq) return false
+  appliedSeq = seq
+  // Kept when a payload has none: the page failed to report it this once
+  // (typically mid-navigation), which says nothing about its height.
+  if (f.scroll) scrollInfo.value = f.scroll
   if (f.frame) {
-    showFrame(`data:image/jpeg;base64,${f.frame}`, onShown)
-  } else {
-    onShown?.()
+    showFrame(`data:image/jpeg;base64,${f.frame}`, seq, f.scroll)
+  } else if (seq > shownFrameSeq) {
+    // No bitmap: it matched the etag, so the pixels on screen are this frame.
+    shownFrameSeq = seq
+    if (f.scroll) shownScrollY.value = f.scroll.y
   }
   if (f.etag) etag.value = f.etag
   if (typeof f.path === 'string') currentPath.value = f.path
@@ -427,6 +408,14 @@ function applyFrame(f: PreviewFrame, onShown?: () => void) {
   // A full replacement list on every payload (empty array clears); guarded so
   // a payload from an older backend without the field keeps the current list.
   if (Array.isArray(f.console_errors)) consoleErrors.value = f.console_errors
+  return true
+}
+
+// For responses that aren't input batches (start, poll, navigate): apply it,
+// and if no input was sent while it was out, it is the server's word on where
+// the page is scrolled.
+function applyStatus(f: PreviewFrame, seq: number) {
+  if (applyFrame(f, seq) && inputInFlight === 0 && lastInputSeq < seq) reconcileScroll(f)
 }
 
 // ---------------------------------------------------------------------------
@@ -477,10 +466,11 @@ async function startPreview() {
   phase.value = 'starting'
   error.value = null
   try {
+    const seq = ++requestSeq
     const result = await PreviewService.start(props.projectId, paneSize(), deviceScaleFactor)
     if (disposed) return
-    resetLocalScroll()
-    applyFrame(result)
+    resyncScroll()
+    applyStatus(result, seq)
     phase.value = 'ready'
     schedulePoll(200)
     // The size passed to start() can be stale — measured before the pane was
@@ -504,7 +494,7 @@ async function startPreview() {
 function markSessionStopped() {
   phase.value = 'stopped'
   stopInertia()
-  resetLocalScroll()
+  resyncScroll()
 }
 
 // While paused the frames aren't visible, so polling drops to a slow
@@ -529,14 +519,15 @@ async function pollFrame() {
     schedulePoll(1000)
     return
   }
-  if (inputInFlight) {
+  if (inputInFlight > 0) {
     // Input responses carry frames themselves; just check back in shortly.
     schedulePoll(300)
     return
   }
   try {
+    const seq = ++requestSeq
     const f = await PreviewService.frame(props.projectId, etag.value)
-    applyFrame(f)
+    applyStatus(f, seq)
   } catch (e) {
     if (e instanceof PreviewNotRunningError) {
       markSessionStopped()
@@ -548,62 +539,207 @@ async function pollFrame() {
 }
 
 // ---------------------------------------------------------------------------
-// Optimistic local scrolling
+// Scrolling
 //
-// A touch drag otherwise gives zero visual feedback until a server round trip
-// returns a frame (150–500ms on mobile). So while a drag or its inertia glide
-// is scrolling, the frame <img> is translated (compositor-only translate3d)
-// by the deltas the server hasn't shown yet.
+// The page lives in a remote browser, so a scroll otherwise shows nothing
+// until a round trip brings back a frame. Instead the client keeps its own
+// idea of where the page is scrolled (targetScrollY) and moves it the moment a
+// wheel, drag or glide happens. Every frame reports the scroll offset it was
+// captured at (shownScrollY once on screen), so the frame is drawn shifted by
+// exactly the distance between the two (compositor-only translate3d). When a
+// frame arrives that already shows the scroll, the shift disappears in the
+// same paint the new pixels appear: nothing moves, the gap just fills in.
 //
-// Reconciliation: the offset is kept as two buckets of client-px deltas —
-// `unsent` (wheel events still in inputQueue) and `inflight` (sent, response
-// pending). When an input batch's response frame is actually on screen, that
-// batch's share leaves the transform in the same paint that the bitmap takes
-// it over, so fast networks show mostly bitmap motion and slow networks show
-// mostly transform motion, without double-scroll in either. Known trade-offs,
-// accepted: (a) a poll frame racing an input batch can briefly double-count
-// that batch (rare — polling skips while input is in flight — and the input
-// response corrects it); (b) over-scroll past the page edge translates pixels
-// the server won't, then snaps back on ack — reads as a rubber-band.
+// Being absolute is what keeps it steady. An earlier version counted deltas
+// in flight and retired them as responses arrived, and any response that
+// raced another (a poll beside an input batch, two workers answering out of
+// order) counted a scroll twice or not at all, which read as the page jumping.
 //
-// Vertical only: most previewed pages don't scroll horizontally, and a false
-// horizontal shift on a slightly-diagonal swipe looks worse than no feedback.
-// Horizontal wheel deltas still go to the server unchanged.
+// The client's estimate is replaced by the server's offset whenever a
+// response covers every input sent (reconcileScroll), replaying wheel deltas
+// that haven't been sent yet. Pages whose scrolling happens inside an element
+// rather than the document report nothing to scroll; those get no
+// optimistic shift, just frames.
 // ---------------------------------------------------------------------------
 
-const localScrollY = ref(0)
-let unsentLocalY = 0
-let inflightLocalY = 0
-// Bumped on reset so in-flight reconciliation closures from before the reset
-// can't drive the buckets negative afterwards.
-let localScrollGen = 0
+/** Scroll metrics from the latest response: page height, background. */
+const scrollInfo = ref<PreviewScroll | null>(null)
+/** Scroll offset (page px) of the frame on screen. */
+const shownScrollY = ref(0)
+/** Where the page is, or is about to be, scrolled to (page px). */
+const targetScrollY = ref(0)
 
-const frameStyle = computed(() => ({
-  objectFit: 'contain' as const,
-  transform: `translate3d(0, ${localScrollY.value}px, 0)`,
-}))
+// Scroll input not yet sent, in order: wheel deltas, or an absolute offset
+// from the scrollbar. Replayed onto the server's offset in reconcileScroll.
+type ScrollOp = { dy: number } | { top: number }
+let unsentScroll: ScrollOp[] = []
 
-function updateLocalScroll() {
-  // Beyond a screenful the content has fully left the pane, so cap there
-  // (viewport height ≈ pane height; the two are kept in sync).
-  const limit = viewport.value[1]
-  localScrollY.value = Math.max(-limit, Math.min(unsentLocalY + inflightLocalY, limit))
+const maxScrollY = computed(() => {
+  const s = scrollInfo.value
+  return s ? Math.max(0, s.height - s.viewport_height) : 0
+})
+
+function clampScroll(y: number): number {
+  return Math.max(0, Math.min(y, maxScrollY.value))
 }
 
-function resetLocalScroll() {
-  localScrollGen++
-  wheelEdgeDir = 0
-  unsentLocalY = 0
-  inflightLocalY = 0
-  localScrollY.value = 0
+function replayScroll(from: number, ops: ScrollOp[]): number {
+  let y = from
+  for (const op of ops) y = 'top' in op ? clampScroll(op.top) : clampScroll(y + op.dy)
+  return y
 }
 
-// Inertia deltas are produced in remote-page px; the transform wants client
-// px. Same axis convention as pageCoords, inverted.
+// f answers every input sent so far: adopt its offset plus what's unsent.
+function reconcileScroll(f: PreviewFrame) {
+  targetScrollY.value = f.scroll ? replayScroll(f.scroll.y, unsentScroll) : shownScrollY.value
+}
+
+// A wheel delta the server is about to apply. Deltas of one sign merge (the
+// clamp at the page edge gives the same answer either way); a reversal starts
+// a new entry, matching the separate wheel events enqueue sends for it.
+function scrollLocallyBy(dy: number) {
+  if (!dy) return
+  const last = unsentScroll[unsentScroll.length - 1]
+  if (last && 'dy' in last && Math.sign(last.dy) === Math.sign(dy)) last.dy += dy
+  else unsentScroll.push({ dy })
+  targetScrollY.value = clampScroll(targetScrollY.value + dy)
+}
+
+function scrollLocallyTo(top: number) {
+  // An absolute offset makes everything queued before it moot.
+  unsentScroll = [{ top }]
+  targetScrollY.value = clampScroll(top)
+}
+
+// Forget the estimate (navigation, pause, a dropped batch): show the frame
+// where it is until the next response says where the page is.
+function resyncScroll() {
+  unsentScroll = []
+  targetScrollY.value = shownScrollY.value
+}
+
+// Remote-page px -> client px (the pane and the viewport are kept in sync, so
+// this is ~1; it differs only while a resize is in flight).
 function pageToClientScaleY(): number {
   const rect = screenRef.value?.getBoundingClientRect()
   const vh = viewport.value[1]
   return rect && rect.height > 0 && vh > 0 ? rect.height / vh : 1
+}
+
+const frameStyle = computed(() => {
+  const dpr = window.devicePixelRatio || 1
+  // Beyond a screenful the frame has fully left the pane, so cap there.
+  const limit = viewport.value[1]
+  const raw = (shownScrollY.value - targetScrollY.value) * pageToClientScaleY()
+  // Whole device pixels, so text in the frame stays crisp while it is shifted.
+  const shift = Math.round(Math.max(-limit, Math.min(raw, limit)) * dpr) / dpr
+  return {
+    objectFit: 'contain' as const,
+    transform: `translate3d(0, ${shift}px, 0)`,
+  }
+})
+
+// The strip a shift uncovers shows the page's own background, so a fast
+// scroll reads as content still arriving rather than a dark hole.
+const stageStyle = computed(() => {
+  const bg = scrollInfo.value?.background || ''
+  if (!bg) return undefined
+  // Transparent all the way down means the browser's default white canvas.
+  const transparent = /^rgba\(.*,\s*0(\.0+)?\)$/.test(bg)
+  return { backgroundColor: transparent ? '#fff' : bg }
+})
+
+// ---------------------------------------------------------------------------
+// Scrollbar
+//
+// The page's own scrollbar is hidden server-side: drawn into the frame, it
+// slid with the shift above and snapped back with each new frame. This one is
+// drawn here from targetScrollY, so it moves the instant the page does. It
+// shows while scrolling and on hover, like the workspace's other scrollbars.
+// ---------------------------------------------------------------------------
+
+const scrollbarRef = ref<HTMLElement | null>(null)
+const scrollbarActive = ref(false)
+let scrollbarTimer: number | null = null
+let thumbDrag: { pointerId: number; startY: number; startTop: number; travel: number } | null = null
+const thumbDragging = ref(false)
+
+const scrollbar = computed(() => {
+  const s = scrollInfo.value
+  if (!s || maxScrollY.value <= 0 || s.height <= 0) return null
+  return {
+    // Share of the page in view, and how far down it is (0..1).
+    size: Math.min(1, s.viewport_height / s.height),
+    at: Math.max(0, Math.min(targetScrollY.value / maxScrollY.value, 1)),
+  }
+})
+
+const thumbStyle = computed(() => {
+  const bar = scrollbar.value
+  if (!bar) return undefined
+  return {
+    '--pv-thumb-size': `${(bar.size * 100).toFixed(3)}%`,
+    '--pv-thumb-at': bar.at.toFixed(5),
+  }
+})
+
+function flashScrollbar() {
+  scrollbarActive.value = true
+  if (scrollbarTimer) window.clearTimeout(scrollbarTimer)
+  scrollbarTimer = window.setTimeout(() => {
+    scrollbarTimer = null
+    scrollbarActive.value = false
+  }, 900)
+}
+
+watch(targetScrollY, (next, prev) => {
+  if (phase.value === 'ready' && Math.abs(next - prev) >= 1) flashScrollbar()
+})
+
+function thumbTravel(): number {
+  const track = scrollbarRef.value
+  const thumb = track?.querySelector<HTMLElement>('.pv-scrollbar-thumb')
+  if (!track || !thumb) return 0
+  return Math.max(1, track.clientHeight - thumb.offsetHeight)
+}
+
+function scrollToThumbTop(top: number) {
+  if (phase.value !== 'ready' || !Number.isFinite(top)) return
+  enqueue({ kind: 'scroll', y: Math.round(clampScroll(top)) })
+}
+
+function onScrollbarPointerDown(e: PointerEvent) {
+  if (phase.value !== 'ready' || !scrollbar.value || e.button !== 0) return
+  const track = scrollbarRef.value
+  if (!track) return
+  stopInertia()
+  const travel = thumbTravel()
+  const onThumb = (e.target as HTMLElement).classList.contains('pv-scrollbar-thumb')
+  if (!onThumb) {
+    // A press on the track jumps there, centring the thumb on the pointer,
+    // and the same press can carry on as a drag.
+    const rect = track.getBoundingClientRect()
+    const thumbPx = rect.height - travel
+    const ratio = (e.clientY - rect.top - thumbPx / 2) / travel
+    scrollToThumbTop(Math.max(0, Math.min(ratio, 1)) * maxScrollY.value)
+  }
+  thumbDrag = { pointerId: e.pointerId, startY: e.clientY, startTop: targetScrollY.value, travel }
+  thumbDragging.value = true
+  try { track.setPointerCapture(e.pointerId) } catch {}
+}
+
+function onScrollbarPointerMove(e: PointerEvent) {
+  if (!thumbDrag || e.pointerId !== thumbDrag.pointerId) return
+  const dy = e.clientY - thumbDrag.startY
+  scrollToThumbTop(thumbDrag.startTop + (dy / thumbDrag.travel) * maxScrollY.value)
+}
+
+function onScrollbarPointerUp(e: PointerEvent) {
+  if (!thumbDrag || e.pointerId !== thumbDrag.pointerId) return
+  try { scrollbarRef.value?.releasePointerCapture(e.pointerId) } catch {}
+  thumbDrag = null
+  thumbDragging.value = false
+  flashScrollbar()
 }
 
 // ---------------------------------------------------------------------------
@@ -611,8 +747,21 @@ function pageToClientScaleY(): number {
 // ---------------------------------------------------------------------------
 
 let inputQueue: PreviewInputEvent[] = []
-let inputInFlight = false
+// Batches sent and not yet answered. Usually one: input applies in order. Two
+// wheel-only batches may overlap (see flushInput), which doubles how often
+// new pixels arrive during a scroll on a slow link.
+let inputInFlight = 0
+let inFlightWheelOnly = false
+let lastInputSeq = 0
+let lastInputSentAt = 0
+// A response that covers all input sent can't be identified while batches
+// overlap or after one failed, so the next quiet poll settles the scroll.
+let scrollNeedsResync = false
 let flushTimer: number | null = null
+
+// The second of two overlapping batches waits at least this long after the
+// first, so a fast link still gathers a few wheel events into each.
+const PIPELINE_GAP_MS = 40
 
 function modifiersFrom(e: MouseEvent | KeyboardEvent): number {
   return (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.metaKey ? 4 : 0) | (e.shiftKey ? 8 : 0)
@@ -628,17 +777,32 @@ function pageCoords(e: PointerEvent | WheelEvent): { x: number; y: number } {
   }
 }
 
+function sameSign(a: number | undefined, b: number | undefined): boolean {
+  return !a || !b || Math.sign(a) === Math.sign(b)
+}
+
 function enqueue(event: PreviewInputEvent, immediate = false) {
   if (phase.value !== 'ready') return
   lastActivityAt = Date.now()
+  // Every wheel event moves the page here first (ctrl+wheel is a zoom
+  // gesture, not a scroll); an absolute scroll from the scrollbar likewise.
+  if (event.kind === 'wheel' && !((event.modifiers || 0) & 2)) scrollLocallyBy(event.deltaY || 0)
+  if (event.kind === 'scroll') scrollLocallyTo(event.y || 0)
   // Coalesce consecutive mouse moves so dragging doesn't flood the queue.
   const last = inputQueue[inputQueue.length - 1]
   if (event.type === 'mouseMoved' && last?.type === 'mouseMoved') {
     inputQueue[inputQueue.length - 1] = event
-  } else if (event.kind === 'wheel' && last?.kind === 'wheel') {
+  } else if (event.kind === 'scroll' && last?.kind === 'scroll') {
+    inputQueue[inputQueue.length - 1] = event
+  } else if (
+    event.kind === 'wheel' && last?.kind === 'wheel' &&
+    sameSign(last.deltaY, event.deltaY) && sameSign(last.deltaX, event.deltaX)
+  ) {
     // Sum the deltas but take the newest coordinates/modifiers — the merged
     // event must land where the pointer is now, or a scroll that crosses into
-    // a nested scroll container keeps scrolling the old one.
+    // a nested scroll container keeps scrolling the old one. A reversal stays
+    // a separate event: the page clamps each one at its edge in turn, which
+    // is what the local estimate assumes.
     last.deltaX = (last.deltaX || 0) + (event.deltaX || 0)
     last.deltaY = (last.deltaY || 0) + (event.deltaY || 0)
     last.x = event.x
@@ -647,11 +811,14 @@ function enqueue(event: PreviewInputEvent, immediate = false) {
   } else {
     inputQueue.push(event)
   }
-  if (inputQueue.length > 64) inputQueue = inputQueue.slice(-64)
+  if (inputQueue.length > 64) {
+    inputQueue = inputQueue.slice(-64)
+    scrollNeedsResync = true
+  }
   // Wheel events flush immediately: anything arriving while a batch is in
   // flight coalesces into the next one anyway, so pre-batching them only adds
   // latency between the gesture and the frame that shows it.
-  scheduleFlush(immediate || event.kind === 'wheel' ? 0 : 24)
+  scheduleFlush(immediate || event.kind === 'wheel' || event.kind === 'scroll' ? 0 : 24)
 }
 
 function scheduleFlush(delay: number) {
@@ -661,43 +828,64 @@ function scheduleFlush(delay: number) {
 
 async function flushInput() {
   flushTimer = null
-  if (inputInFlight || inputQueue.length === 0 || phase.value !== 'ready') return
+  if (inputQueue.length === 0 || phase.value !== 'ready') return
+  const wheelOnly = inputQueue.every(ev => ev.kind === 'wheel')
+  if (inputInFlight > 0) {
+    // Only a pure wheel batch may overlap a pure wheel batch: deltas add up
+    // the same in either order, clicks and keys don't.
+    if (inputInFlight > 1 || !wheelOnly || !inFlightWheelOnly) return
+    const wait = lastInputSentAt + PIPELINE_GAP_MS - Date.now()
+    if (wait > 0) {
+      scheduleFlush(wait)
+      return
+    }
+    scrollNeedsResync = true
+  }
   const batch = inputQueue
   inputQueue = []
-  inputInFlight = true
-  // This batch's optimistic scroll stops being "unsent" now. `carried` (not a
-  // blanket zeroing) keeps the accounting right when this response's decode
-  // overlaps the next batch's flight.
-  const carried = unsentLocalY
-  const gen = localScrollGen
-  const wheelDy = batch.reduce((sum, ev) => sum + (ev.kind === 'wheel' ? ev.deltaY || 0 : 0), 0)
-  inflightLocalY += carried
-  unsentLocalY = 0
-  const settleCarried = () => {
-    if (gen !== localScrollGen) return
-    inflightLocalY -= carried
-    updateLocalScroll()
-  }
+  // The wheel deltas in this batch are the server's to apply now.
+  unsentScroll = []
+  const seq = ++requestSeq
+  lastInputSeq = seq
+  lastInputSentAt = Date.now()
+  inFlightWheelOnly = inputInFlight === 0 ? wheelOnly : inFlightWheelOnly && wheelOnly
+  inputInFlight++
+  let response: PreviewFrame | null = null
   try {
-    const f = await PreviewService.sendInput(props.projectId, batch, etag.value)
-    // The response reflects the whole batch (even as frame:null when pixels
-    // didn't change, e.g. scrolled at the page edge): retire this batch's
-    // share of the transform in the paint where the bitmap takes over.
-    if (wheelDy !== 0 && gen === localScrollGen) wheelEdgeDir = f.frame ? 0 : Math.sign(wheelDy)
-    applyFrame(f, settleCarried)
+    response = await PreviewService.sendInput(props.projectId, batch, etag.value)
+    applyFrame(response, seq)
   } catch (e) {
-    // Batch never applied server-side; its optimistic scroll must not persist.
-    settleCarried()
+    // The batch never applied server-side, so the estimate that counted it
+    // is wrong; the next quiet poll puts it right.
+    scrollNeedsResync = true
     if (e instanceof PreviewNotRunningError) {
+      inputInFlight--
       markSessionStopped()
       return
     }
     // Drop the batch on transient failure; interaction continues from live state.
-  } finally {
-    inputInFlight = false
+  }
+  inputInFlight--
+  if (inputInFlight === 0) {
+    if (scrollNeedsResync) {
+      scrollNeedsResync = false
+      if (inputQueue.length === 0) {
+        resyncSoon()
+        return
+      }
+    } else if (response && seq === lastInputSeq) {
+      // The newest batch, nothing else out: the server's offset is current.
+      reconcileScroll(response)
+    }
   }
   if (inputQueue.length > 0) scheduleFlush(0)
   schedulePoll() // activity-based: quick while the user is interacting
+}
+
+// A poll sent while nothing else is out answers for all input.
+function resyncSoon() {
+  if (inputQueue.length > 0) scheduleFlush(0)
+  schedulePoll(0)
 }
 
 const BUTTON_NAMES: Array<'left' | 'middle' | 'right'> = ['left', 'middle', 'right']
@@ -760,10 +948,8 @@ function startInertia(x: number, y: number, vx: number, vy: number) {
     inertiaVy *= INERTIA_FRICTION
     if (Math.hypot(inertiaVx, inertiaVy) < INERTIA_MIN_SPEED) return
     // Same convention as a drag: wheel delta is opposite the finger travel.
+    // enqueue moves the content locally too, same as the drag did.
     enqueue({ kind: 'wheel', x: inertiaX, y: inertiaY, deltaX: -inertiaVx * dt, deltaY: -inertiaVy * dt, modifiers: 0 })
-    // The glide moves the content optimistically too, same as the drag did.
-    unsentLocalY += inertiaVy * dt * pageToClientScaleY()
-    updateLocalScroll()
     inertiaRaf = requestAnimationFrame(step)
   }
   inertiaRaf = requestAnimationFrame(step)
@@ -812,10 +998,8 @@ function onPointerMove(e: PointerEvent) {
     }
     if (touchDrag.scrolling && (dx !== 0 || dy !== 0)) {
       // Wheel delta is opposite the finger travel: drag up -> scroll down.
+      // enqueue moves the content locally, so it follows the finger at once.
       enqueue({ kind: 'wheel', x, y, deltaX: -dx, deltaY: -dy, modifiers: 0 })
-      // Optimistic feedback: the content follows the finger immediately.
-      unsentLocalY += e.clientY - touchDrag.lastClientY
-      updateLocalScroll()
       // Track a smoothed finger velocity (px/ms) to seed the release glide.
       const dt = Math.max(1, e.timeStamp - touchDrag.lastT)
       touchDrag.vx = touchDrag.vx * 0.7 + (dx / dt) * 0.3
@@ -869,8 +1053,9 @@ function onPointerCancel(e: PointerEvent) {
   if (touchDrag && e.pointerId === touchDrag.pointerId) {
     touchDrag = null
     try { screenRef.value?.releasePointerCapture(e.pointerId) } catch {}
-    // The gesture is void; snap the optimistic offset back to server truth.
-    resetLocalScroll()
+    // The gesture is void; the next quiet poll says where the page ended up.
+    scrollNeedsResync = true
+    if (inputInFlight === 0) resyncSoon()
   }
 }
 
@@ -878,13 +1063,6 @@ function onPointerCancel(e: PointerEvent) {
 // report lines or pages instead, which would scroll a few pixels per notch.
 // Chromium's own line height for wheel scrolling is 40px.
 const WHEEL_LINE_PX = 40
-
-// Direction (1 down, -1 up) the page last refused to scroll in: a wheel batch
-// whose response came back with unchanged pixels hit the page's edge (or a
-// spot with nothing to scroll). Further wheel in that direction skips the
-// optimistic shift, so a mouse wheel spun at the bottom of a page doesn't
-// bounce the frame on every notch. Any batch that does move clears it.
-let wheelEdgeDir = 0
 
 function onWheel(e: WheelEvent) {
   if (phase.value !== 'ready') return
@@ -900,14 +1078,10 @@ function onWheel(e: WheelEvent) {
     deltaX *= viewport.value[0]
     deltaY *= viewport.value[1]
   }
+  // A wheel takes over from a touch glide still running.
+  if (!e.ctrlKey && deltaY !== 0) stopInertia()
+  // enqueue moves the frame now instead of a round trip later.
   enqueue({ kind: 'wheel', x, y, deltaX, deltaY, modifiers: modifiersFrom(e) })
-  // Optimistic feedback, as for a touch drag: the frame moves now instead of
-  // a round trip later. Ctrl+wheel is a zoom gesture, not a scroll.
-  if (!e.ctrlKey && deltaY !== 0 && Math.sign(deltaY) !== wheelEdgeDir) {
-    stopInertia()
-    unsentLocalY -= deltaY * pageToClientScaleY()
-    updateLocalScroll()
-  }
 }
 
 function keyEvent(e: KeyboardEvent, type: 'keyDown' | 'keyUp'): PreviewInputEvent {
@@ -945,14 +1119,15 @@ async function doNavigate(action: 'goto' | 'back' | 'forward' | 'reload', path?:
   lastActivityAt = Date.now()
   // Any scroll offset (optimistic or gliding) belongs to the page being left.
   stopInertia()
-  resetLocalScroll()
+  resyncScroll()
   // Hard navigation clears the page's error buffer, so the same error text
   // on the fresh document should notify again.
   dismissedErrorKey.value = null
   navigating.value = true
   try {
+    const seq = ++requestSeq
     const f = await PreviewService.navigate(props.projectId, action, path)
-    applyFrame(f)
+    applyStatus(f, seq)
     schedulePoll(300)
   } catch (e) {
     if (e instanceof PreviewNotRunningError) markSessionStopped()
@@ -1167,6 +1342,7 @@ onBeforeUnmount(() => {
   if (pollTimer) window.clearTimeout(pollTimer)
   if (resizeTimer) window.clearTimeout(resizeTimer)
   if (flushTimer) window.clearTimeout(flushTimer)
+  if (scrollbarTimer) window.clearTimeout(scrollbarTimer)
   stopElapsed()
   stopInertia()
   observer?.disconnect()
@@ -1176,13 +1352,16 @@ watch(
   () => props.projectId,
   (next, prev) => {
     if (next && next !== prev) {
-      shownFrameSeq = ++frameSeq // drop any frame still decoding for the old project
+      // Drop any response or frame still on its way for the old project.
+      shownFrameSeq = appliedSeq = ++requestSeq
       frameSrc.value = null
+      scrollInfo.value = null
+      shownScrollY.value = 0
       etag.value = undefined
       phase.value = 'idle'
       apps.value = []
       stopInertia()
-      resetLocalScroll()
+      resyncScroll()
       consoleErrors.value = []
       dismissedErrorKey.value = null
       void refreshPages()
@@ -1206,7 +1385,7 @@ watch(
       // Nobody can see the pane; a glide or half-reconciled optimistic offset
       // must not keep running (or linger) into the background.
       stopInertia()
-      resetLocalScroll()
+      resyncScroll()
       // Likewise a poll timer set moments ago could still fire at the active
       // cadence; rescheduling drops it to the keep-alive interval right away.
       schedulePoll()
@@ -1234,7 +1413,7 @@ defineExpose({ reload })
 <style scoped>
 /* ---------------------------------------------------------------------------
    Glass Dock. The preview pane is a Spotlight stage: the user's app sits on it
-   as a lit card (or inside a phone), and the controls float above it in one
+   as a lit card, and the controls float above it in one
    frosted pill. The chrome stays quiet so the app is the brightest thing here.
    Colours come from the --sl-* tokens (shared/styles/spotlight.css), so the
    light and dark themes differ only there.
@@ -1313,7 +1492,6 @@ defineExpose({ reload })
 
 .pv-nav:focus-visible,
 .pv-plate:focus-visible,
-.pv-size-btn:focus-visible,
 .pv-switch:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--sl-focus, #d9730d);
@@ -1391,38 +1569,6 @@ defineExpose({ reload })
 }
 
 .pv-plate-chevron.rotate-180 { transform: translateY(-50%) rotate(180deg); }
-
-/* --- Screen size --------------------------------------------------------- */
-
-.pv-size {
-  display: flex;
-  padding: 0.125rem;
-  border-radius: 9999px;
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-}
-
-.pv-size-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.875rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  color: var(--sl-faint, #8a8fa0);
-  cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.pv-size-btn:hover { color: var(--sl-text, #14151c); }
-
-.pv-size-btn--on {
-  color: var(--sl-text, #14151c);
-  background: var(--sl-surface, #ffffff);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
-}
-
-.dark .pv-size-btn--on { background: var(--sl-surface-2, #1a1d28); }
 
 /* --- Back to the main agent (phones) ------------------------------------- */
 
@@ -1679,39 +1825,67 @@ defineExpose({ reload })
   box-shadow: var(--sl-win-shadow, 0 40px 90px -40px rgba(20, 21, 30, 0.45));
 }
 
-/* Phone view: the frame becomes a handset at a phone's width, centred on the
-   stage under its own pool of light; the dock stays above it, clear of the
-   app. 390px is a current iPhone's CSS width. */
-.pv-root--phone .pv-stagewrap {
-  background-image: radial-gradient(40% 60% at 50% 100%, var(--sl-spot-mid, rgba(255, 140, 90, 0.14)), transparent 70%);
-}
-
-.pv-root--phone .pv-frame {
-  flex: 0 1 auto;
-  align-self: center;
-  width: calc(390px + 1.5rem);
-  height: 100%;
-  max-height: 52rem;
-  padding: 0.75rem;
-  border-radius: 2.75rem;
-  border: 0;
-  background: linear-gradient(160deg, #2a2d38, #121319);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 40px 80px -30px rgba(0, 0, 0, 0.6),
-    0 50px 90px -50px var(--sl-glow, rgba(255, 120, 80, 0.3));
-}
-
-.pv-root--phone .pv-stage { border-radius: 2rem; }
-
 /* What shows through when the frame and remote viewport briefly disagree, or
    an optimistic scroll opens a gap: a quiet matte, not a glitch. */
 .pv-stage {
   background-color: var(--sl-bg-deep, #f0eee9);
 }
 
-/* Phones: the preview already fills a phone, so no stage margins, no card,
-   no handset and no size switch. */
+/* The page's scrollbar (see the template): a slim ink pill that shows while
+   the page moves and on hover, then gets out of the way — the same overlay
+   treatment as the workspace's own scrolling panels. It sits over whatever
+   the previewed app draws, light or dark, so the pill carries a faint light
+   rim to stay visible on both. */
+.pv-scrollbar {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.125rem;
+  bottom: 0.25rem;
+  z-index: 2;
+  width: 0.875rem;
+  cursor: default;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  touch-action: none;
+}
+
+.pv-stage:hover .pv-scrollbar,
+.pv-scrollbar.is-active {
+  opacity: 1;
+}
+
+.pv-scrollbar-thumb {
+  position: absolute;
+  right: 0.1875rem;
+  width: 0.375rem;
+  height: max(2rem, var(--pv-thumb-size, 100%));
+  top: calc((100% - max(2rem, var(--pv-thumb-size, 100%))) * var(--pv-thumb-at, 0));
+  border-radius: 9999px;
+  background-color: rgba(20, 21, 30, 0.38);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+  transition: width 160ms ease, background-color 160ms ease;
+}
+
+.pv-scrollbar:hover .pv-scrollbar-thumb,
+.pv-scrollbar.is-dragging .pv-scrollbar-thumb {
+  width: 0.5rem;
+  background-color: rgba(20, 21, 30, 0.55);
+}
+
+@media (hover: none) {
+  /* Touch: no hover, so only while scrolling; too slim to aim at, so it is
+     a position indicator there, as on a phone's own browser. */
+  .pv-stage:hover .pv-scrollbar:not(.is-active) { opacity: 0; }
+  .pv-scrollbar { pointer-events: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-scrollbar,
+  .pv-scrollbar-thumb { transition: none; }
+}
+
+/* Phones: the preview already fills a phone, so no stage margins and no
+   card. */
 @media (max-width: 767px) {
   .pv-dockbar { padding: 0.5rem; }
 
@@ -1722,30 +1896,17 @@ defineExpose({ reload })
     height: 1.75rem;
   }
 
-  .pv-size { display: none; }
-
-  .pv-stagewrap,
-  .pv-root--phone .pv-stagewrap {
+  .pv-stagewrap {
     padding: 0;
     background-image: none;
   }
 
-  .pv-frame,
-  .pv-root--phone .pv-frame {
-    flex: 1;
-    align-self: stretch;
-    width: auto;
-    height: auto;
-    max-height: none;
-    padding: 0;
+  .pv-frame {
     border: 0;
     border-top: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
     border-radius: 0;
-    background: none;
     box-shadow: none;
   }
-
-  .pv-root--phone .pv-stage { border-radius: 0; }
 
   .pv-switch {
     height: 1.75rem;
