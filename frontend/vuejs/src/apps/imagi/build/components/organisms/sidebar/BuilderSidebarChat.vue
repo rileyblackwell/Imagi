@@ -37,6 +37,7 @@
         :status-text="activeInstance?.statusText || ''"
         :can-restore="canRestoreCheckpoints"
         :show-activity="!isLeadThread"
+        agent-kind="coordinator"
         @restore-checkpoint="emit('restore-checkpoint', $event)"
         @open-task="onOpenTask"
         @answer="onAnswerQuestion"

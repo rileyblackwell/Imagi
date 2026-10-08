@@ -10,10 +10,26 @@
       </div>
       
       <template v-if="processedMessages.length> 0">
-        <div class="max-w-3xl mx-auto">
+        <!-- The rail: the agent's side of the chat hangs off one thin line
+             down the left, a node per step coloured by how it went, so the
+             transcript reads like a log of the work. The user's messages
+             stay as bubbles on the right, off the rail — the rail is the
+             agent's story, the bubbles are the user's. -->
+        <div class="rail-feed max-w-3xl mx-auto">
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
+            <!-- A thread opens on the coordinator's hand-off, not on something
+                 the user typed, so it hangs on the rail as the brief rather
+                 than sitting in a user bubble. -->
+            <div v-if="isBrief(message, index)"
+              class="msg-row rail-entry brief-row"
+              :class="{ 'animate-message-in': message.isNew }">
+              <span class="rail-node rail-node--brief" aria-hidden="true"><i class="fas fa-share"></i></span>
+              <p class="rail-who"><span class="rail-name">From the coordinator</span></p>
+              <p class="brief-text whitespace-pre-wrap break-words">{{ message.content }}</p>
+            </div>
+
             <!-- User Message: a single compact bubble that opens the turn -->
-            <div v-if="message.role === 'user'"
+            <div v-else-if="message.role === 'user'"
               class="msg-row user-row group flex flex-col items-end"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
@@ -40,9 +56,20 @@
 
             <!-- Assistant Message: the agent's work flows plainly below the bubble -->
             <div v-else-if="message.role === 'assistant'"
-              class="msg-row assistant-response"
-              :class="{ 'animate-message-in': message.isNew }"
+              class="msg-row rail-entry assistant-response"
+              :class="{ 'animate-message-in': message.isNew, 'rail-entry--asking': message.question && isAnswerable(index) }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
+              <!-- Who is speaking, as the node on the rail: the coordinator's
+                   lit mark, or a thread's blue ring. A question still waiting
+                   on the user lights its node amber instead. -->
+              <span v-if="message.question && isAnswerable(index)" class="rail-node rail-node--wait" aria-hidden="true">
+                <i class="fas fa-question"></i>
+              </span>
+              <span v-else :class="['rail-node', `rail-node--${agentKind}`]" aria-hidden="true">{{ agentKind === 'coordinator' ? 'i' : '' }}</span>
+              <p class="rail-who">
+                <span class="rail-name">{{ speakerName }}</span>
+                <span v-if="message.question && isAnswerable(index)" class="rail-tag">Needs your answer</span>
+              </p>
               <AgentActivityFeed
                 v-if="activityVisible && message.activity?.length"
                 :steps="message.activity"
@@ -75,7 +102,7 @@
                    the work stands, and opens that subagent's thread. When one
                    finishes it says so here, in place — nothing arrives
                    underneath as a second telling. -->
-              <div v-if="message.dispatchedTasks?.length" class="mt-2 flex flex-col gap-1.5">
+              <div v-if="message.dispatchedTasks?.length" class="dispatch-list mt-3 flex flex-col gap-3">
                 <DispatchCard
                   v-for="task in message.dispatchedTasks"
                   :key="task.conversationId"
@@ -112,19 +139,14 @@
             </div>
 
             <!-- System Message -->
-            <div v-else-if="message.role === 'system'"
-              class="msg-row flex justify-center"
+            <!-- System notes hang on the rail as a small quiet node: part of
+                 the log, but nobody speaking. -->
+            <div v-else
+              class="msg-row rail-entry system-row"
               :class="{ 'animate-fade-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <span class="text-xs text-ink/40 dark:text-bone/40 px-3 py-1">{{ message.content }}</span>
-            </div>
-
-            <!-- Other message types -->
-            <div v-else
-              class="msg-row flex justify-center"
-              :class="{ 'animate-message-in': message.isNew }"
-              :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <span class="text-xs text-ink/40 dark:text-bone/40 px-3 py-1">{{ message.content }}</span>
+              <span class="rail-node rail-node--note" aria-hidden="true"></span>
+              <p class="system-text">{{ message.content }}</p>
             </div>
           </template>
 
@@ -133,9 +155,9 @@
                It fades both ways: when the reply starts arriving this hands
                over to the text rather than vanishing out from under it. -->
           <Transition name="status">
-            <div v-if="showActivityIndicator" class="msg-row assistant-response">
+            <div v-if="showActivityIndicator" class="msg-row rail-entry status-row">
+              <span class="rail-node rail-node--live" aria-hidden="true"><span class="status-orb"></span></span>
               <div class="agent-status flex items-center gap-2.5">
-                <span class="status-orb"></span>
                 <!-- Keyed on the reading so each new step cross-fades in
                      place, the same way the pane masthead's status does. -->
                 <Transition name="status-text" mode="out-in">
@@ -194,7 +216,21 @@ const props = withDefaults(defineProps<{
    *  reply is a second, emptier telling of the same thing. Defaults on, so a
    *  subagent's transcript still shows how it worked. */
   showActivity?: boolean
-}>(), { showActivity: true })
+  /** Whose transcript this is. A thread's nodes are blue rings and its first
+   *  message is the coordinator's brief; the coordinator wears the lit mark. */
+  agentKind?: 'coordinator' | 'thread'
+  /** The name over the agent's replies: "Coordinator", or the thread's job. */
+  agentName?: string
+}>(), { showActivity: true, agentKind: 'coordinator', agentName: '' })
+
+const speakerName = computed(() =>
+  props.agentName || (props.agentKind === 'thread' ? 'Thread' : 'Coordinator')
+)
+
+/** A thread's transcript opens on the brief the coordinator handed it. */
+function isBrief(message: AIMessage, index: number): boolean {
+  return props.agentKind === 'thread' && index === 0 && message.role === 'user'
+}
 
 const activityVisible = computed(() => props.showActivity)
 
@@ -470,16 +506,17 @@ const formatMessage = (message: AIMessage, index: number): string => {
   }
 }
 
-/* The user's prompt is the one element that gets a bubble */
+/* The user's prompt is the one element that gets a bubble: solid, off the
+   rail on the right, so it reads as the user's side of the conversation.
+   Ink on the daylight floor, a raised surface on the dark one. */
 .user-bubble {
   max-width: 85%;
   padding: 0.625rem 0.875rem;
-  border-radius: var(--iw-r-lg);
-  border-bottom-right-radius: var(--iw-r-xs);
-  background-color: theme('colors.blue.50');
-  border: 1px solid rgba(191, 219, 254, 0.6);
-  box-shadow: var(--iw-shadow-1);
-  color: theme('colors.blue.950');
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  background-color: #1c1d26;
+  border: 1px solid transparent;
+  box-shadow: var(--sl-card-shadow, var(--iw-shadow-1));
+  color: #f2f2f6;
   /* Long unbroken strings (paths, URLs) wrap instead of widening the chat
      and dragging in a horizontal scrollbar. */
   overflow-wrap: anywhere;
@@ -487,9 +524,168 @@ const formatMessage = (message: AIMessage, index: number): string => {
 }
 
 .dark .user-bubble {
-  background-color: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.92);
+  background-color: var(--sl-surface-2, #1a1d28);
+  border-color: var(--sl-line-strong, rgba(255, 255, 255, 0.14));
+  color: var(--sl-text, #eef0f6);
+}
+
+/* ── The rail ───────────────────────────────────────────────────────────
+   One line down the left edge, and a node on it for every step the agent
+   takes. Nodes are punched out of the line by a ring of the floor colour,
+   so the line reads as running between them rather than through them. */
+.rail-feed {
+  position: relative;
+  --rail-x: 0.5625rem;
+  --node: 1.25rem;
+  --node-ring: 0 0 0 4px rgb(var(--app-canvas));
+}
+
+.rail-feed::before {
+  content: '';
+  position: absolute;
+  left: var(--rail-x);
+  top: 0.625rem;
+  bottom: 0.625rem;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--sl-line-strong, rgba(19, 26, 44, 0.15)),
+    var(--sl-line, rgba(19, 26, 44, 0.09)) 85%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.rail-entry {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.rail-node {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--node);
+  height: var(--node);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.5625rem;
+  background: rgb(var(--app-canvas));
+  box-shadow: var(--node-ring);
+}
+
+/* The coordinator's mark: the Spotlight light, lit. */
+.rail-node--coordinator {
+  background: var(--sl-grad);
+  color: var(--sl-on-accent, #1a0e08);
+  font-family: var(--sl-font-display, inherit);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  box-shadow: var(--node-ring), 0 0 14px -2px var(--sl-glow, rgba(255, 120, 80, 0.3));
+}
+
+/* A thread: a blue ring, the colour of work in progress. */
+.rail-node--thread {
+  border: 1.5px solid var(--sl-work);
+}
+
+/* Waiting on the user: amber and glowing, the one node asking for a hand. */
+.rail-node--wait {
+  background: var(--sl-wait);
+  color: rgb(var(--app-canvas));
+  box-shadow: var(--node-ring), 0 0 16px -2px var(--sl-wait);
+}
+
+.rail-node--brief {
+  border: 1.5px solid var(--sl-line-strong);
+  color: var(--sl-muted);
+  font-size: 0.5rem;
+}
+
+.rail-node--note {
+  left: calc(var(--rail-x) - 3px);
+  top: 0.4375rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--sl-faint);
+}
+
+.rail-node--live .status-orb {
+  margin: 0;
+}
+
+/* The speaker, on the node's line. */
+.rail-who {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--node);
+  margin-bottom: 0.1875rem;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.rail-name {
+  font-weight: 600;
+  color: var(--sl-text);
+  overflow-wrap: anywhere;
+}
+
+/* A small mono label in the state's colour, the rail's way of saying how a
+   step went (dispatch cards wear the same). */
+.rail-tag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sl-wait);
+  white-space: nowrap;
+}
+
+/* A question still waiting on the user steps off the rail into an amber
+   tinted box, so it is the one thing in the log that asks to be read. */
+.rail-entry--asking {
+  margin-left: -0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 2.75rem;
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--sl-wait) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sl-wait) 22%, transparent);
+}
+
+.rail-entry--asking > .rail-node {
+  left: 0.75rem;
+  top: 0.75rem;
+  box-shadow: 0 0 16px -2px var(--sl-wait);
+}
+
+/* The brief a thread opens on: the coordinator's words, quietly boxed. */
+.brief-text {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.625rem;
+  background: var(--sl-chip-bg, rgba(19, 26, 44, 0.035));
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--sl-muted);
+}
+
+.brief-row .rail-name {
+  font-weight: 500;
+  color: var(--sl-faint);
+}
+
+.system-text {
+  min-height: var(--node);
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--sl-muted);
+}
+
+.status-row .agent-status {
+  min-height: var(--node);
 }
 
 /* The agent's work flows directly on the panel background — no box, no label */
@@ -546,11 +742,13 @@ const formatMessage = (message: AIMessage, index: number): string => {
 .prose {
   font-size: 0.875rem;
   line-height: 1.6;
-  color: theme('colors.blue.950');
-}
-
-.dark .prose {
-  color: rgba(219, 234, 254, 0.85);
+  color: var(--sl-text);
+  --tw-prose-body: var(--sl-text);
+  --tw-prose-invert-body: var(--sl-text);
+  --tw-prose-bold: var(--sl-text);
+  --tw-prose-invert-bold: var(--sl-text);
+  --tw-prose-headings: var(--sl-text);
+  --tw-prose-invert-headings: var(--sl-text);
 }
 
 /* Markdown children arrive via v-html and never get the scope attribute,

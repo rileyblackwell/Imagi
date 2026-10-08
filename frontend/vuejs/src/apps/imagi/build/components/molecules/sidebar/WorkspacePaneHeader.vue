@@ -354,7 +354,8 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 }
 
 .pane-dot--waiting {
-  background: theme('colors.blue.950');
+  background: var(--sl-wait, theme('colors.blue.950'));
+  box-shadow: 0 0 8px -1px var(--sl-wait, transparent);
 }
 
 /* A live run: the dot itself holds steady — a marker that flickers looks like
@@ -362,7 +363,7 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
    signal radiating rather than a light being switched. */
 .pane-dot--working {
   position: relative;
-  background: theme('colors.blue.500');
+  background: var(--sl-work, theme('colors.blue.500'));
   animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
 }
 
@@ -376,8 +377,8 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 }
 
 .dark .pane-dot--idle { background: rgba(255, 255, 255, 0.22); }
-.dark .pane-dot--waiting { background: #f3ede2; }
-.dark .pane-dot--working { background: theme('colors.blue.300'); }
+.dark .pane-dot--waiting { background: var(--sl-wait, #f3ede2); }
+.dark .pane-dot--working { background: var(--sl-work, theme('colors.blue.300')); }
 
 @keyframes pane-pulse-core {
   0%, 100% { opacity: 1; }
@@ -413,12 +414,12 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 }
 
 .pane-status--idle { color: rgba(19, 26, 44, 0.42); }
-.pane-status--waiting { color: rgba(19, 26, 44, 0.78); }
-.pane-status--working { color: theme('colors.blue.600'); }
+.pane-status--waiting { color: var(--sl-wait, rgba(19, 26, 44, 0.78)); }
+.pane-status--working { color: var(--sl-work, theme('colors.blue.600')); }
 
 .dark .pane-status--idle { color: rgba(219, 234, 254, 0.4); }
-.dark .pane-status--waiting { color: rgba(243, 237, 226, 0.85); }
-.dark .pane-status--working { color: theme('colors.blue.300'); }
+.dark .pane-status--waiting { color: var(--sl-wait, rgba(243, 237, 226, 0.85)); }
+.dark .pane-status--working { color: var(--sl-work, theme('colors.blue.300')); }
 
 /* One reading giving way to the next: down and out, up and in — the direction
    of a line being replaced from below. */

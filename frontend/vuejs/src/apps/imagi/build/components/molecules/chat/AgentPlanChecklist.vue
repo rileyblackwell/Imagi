@@ -21,7 +21,7 @@
           <i
             v-if="step.status === 'completed'"
             key="done"
-            class="fas fa-check text-[9px] text-blue-600/70 dark:text-blue-300/70"
+            class="fas fa-check plan-done"
           ></i>
           <i
             v-else-if="step.status === 'in_progress'"
@@ -65,6 +65,18 @@ function stepTextClass(step: AgentPlanStep): string {
    same interval, so the plan reads as one thing being re-graded. */
 .plan-step {
   transition: color var(--iw-dur-3) var(--iw-ease-out);
+}
+
+/* A finished step: the rail's green, a filled tick. */
+.plan-done {
+  display: grid;
+  place-items: center;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--sl-ok);
+  color: rgb(var(--app-canvas, 255 255 255));
+  font-size: 0.4375rem;
 }
 
 .plan-mark-enter-active {
