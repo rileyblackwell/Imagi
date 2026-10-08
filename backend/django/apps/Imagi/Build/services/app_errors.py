@@ -6,8 +6,10 @@ their errors to log files. When something new breaks, it goes to the thread
 that most likely caused it, which is the thread that last changed the app
 through a live edit (live_apply), if it did so recently. That thread gets the
 error as its next message, and a finished thread is reopened for it. With no
-such thread, the error goes to the project's coordinator as a fresh run, and
-the coordinator hands it to a thread right away (its prompt says to).
+such thread, a new thread is started under the project's coordinator to fix
+it, and the coordinator's chat shows it with a thread card, the way any thread
+it dispatches is shown. Errors that arrive while that fix thread is still
+working join it rather than starting another.
 
 Each distinct error is routed once per ERROR_TTL, so a page that logs the
 same error on every render, polled several times a second, still starts one
@@ -35,8 +37,12 @@ ATTRIBUTION_WINDOW = 10 * 60
 MAX_ERRORS = 6
 MAX_ERROR_CHARS = 500
 
+FIX_THREAD_TITLE = 'Fix an app error'
+FIX_THREAD_GOAL = 'Fix the error your app reported.'
+
 LAST_EDIT_KEY = 'imagi:live-apply:last:{project_id}'
 ROUTED_KEY = 'imagi:app-error:{project_id}:{signature}'
+FIX_THREAD_KEY = 'imagi:app-error:fix-thread:{project_id}'
 LOG_OFFSET_KEY = 'imagi:app-error:log-offset:{path}'
 
 _DATA_NOTE = (
@@ -106,10 +112,10 @@ def route(user, project, errors) -> Optional[Dict[str, Any]]:
     """Decide where new app errors go, and stage them there.
 
     Returns None when there is nothing to do (no errors, already routed,
-    routing off), else {'to': 'thread' | 'coordinator', ...}. A 'thread'
-    result has been staged on the thread already; the caller starts it with
-    the thread scheduler. A 'coordinator' result carries the lead and prompt
-    for the caller to start as a run.
+    routing off), else {'to': 'thread' | 'new_thread', ...}. A 'thread'
+    result has been staged on that thread already, and a 'new_thread' result
+    on a fix thread just started under the coordinator; either way the caller
+    starts it with the thread scheduler.
     """
     from ..models import AgentConversation
     from .usage_limits import check_usage_allowed
@@ -140,62 +146,109 @@ def route(user, project, errors) -> Optional[Dict[str, Any]]:
             f"'{last.get('path')}'. Find out whether your work caused them and fix "
             f"them if so.\n{_DATA_NOTE}\n{_fenced(texts)}"
         )
-        queued = (thread.queued_prompt or '').strip()
-        thread.queued_prompt = f"{queued}\n\n{message}" if queued else message
-        fields = ['queued_prompt']
-        if thread.review_status in ('accepted', 'failed'):
-            thread.review_status = 'active'
-            fields.append('review_status')
-        thread.save(update_fields=fields)
+        _stage(thread, message)
         decision = {'to': 'thread', 'conversation_id': thread.id, 'title': thread.title}
         cache.set(routed_key, decision, ERROR_TTL)
         logger.info("Sent an app error in project %s to thread %s", project.id, thread.id)
         return decision
+
+    message = (
+        "[App error] The app reported these errors, and no thread was working "
+        "on that part of it just now. Find the cause and fix it.\n"
+        f"{_DATA_NOTE}\n{_fenced(texts)}"
+    )
+    fixer = _working_fix_thread(user, project)
+    if fixer is not None:
+        # Still on an earlier error: the new one is likely related, and one
+        # thread fixing both beats two threads editing the same code.
+        _stage(fixer, message)
+        decision = {'to': 'thread', 'conversation_id': fixer.id, 'title': fixer.title}
+    else:
+        fixer = _start_fix_thread(user, project, message)
+        if fixer is None:
+            return None
+        decision = {'to': 'new_thread', 'conversation_id': fixer.id, 'title': fixer.title}
+    cache.set(routed_key, decision, ERROR_TTL)
+    logger.info("Sent an app error in project %s to fix thread %s", project.id, fixer.id)
+    return decision
+
+
+def _stage(thread, message: str) -> None:
+    """Queue the message as the thread's next turn, reopening it if finished."""
+    queued = (thread.queued_prompt or '').strip()
+    thread.queued_prompt = f"{queued}\n\n{message}" if queued else message
+    fields = ['queued_prompt']
+    if thread.review_status in ('accepted', 'failed'):
+        thread.review_status = 'active'
+        fields.append('review_status')
+    thread.save(update_fields=fields)
+
+
+def _working_fix_thread(user, project):
+    """The fix thread started for an earlier error, while it is still at it."""
+    from ..models import AgentConversation
+
+    fixer_id = cache.get(FIX_THREAD_KEY.format(project_id=project.id))
+    if not fixer_id:
+        return None
+    return AgentConversation.objects.filter(
+        id=fixer_id, user=user, project_id=project.id, kind='task',
+        archived_at__isnull=True, review_status='active',
+    ).first()
+
+
+def _start_fix_thread(user, project, brief: str):
+    """Start a thread under the coordinator to fix errors no thread owns.
+
+    It is created the way the coordinator's own dispatch creates a thread (its
+    model, speed and system prompt), and the coordinator's chat gets an
+    assistant message with the thread's card, so the user sees a thread
+    starting rather than a message they never sent.
+    """
+    from ..models import AgentConversation, AgentMessage, SystemPrompt
+    from .base_agent import build_message_metadata, dispatch_task_refs
+    from .coding_agent import CODING_AGENT_INSTRUCTIONS
 
     lead = AgentConversation.objects.filter(
         user=user, project_id=project.id, kind='lead', archived_at__isnull=True,
     ).order_by('created_at').first()
     if lead is None:
         return None
-    from ..api.views import _project_has_running_conversation
-
-    if _project_has_running_conversation(user, project.id):
-        # The coordinator (or a chat) is mid-run; the error is routed on a
-        # later poll, once it is free, instead of queuing behind it.
-        return None
-    prompt = (
-        "[App error] My app reported these errors and no thread was working on "
-        "that part of it just now. Get them fixed right away.\n"
-        f"{_DATA_NOTE}\n{_fenced(texts)}"
+    fixer = AgentConversation.objects.create(
+        user=user,
+        model_name=lead.model_name,
+        fast_mode=lead.fast_mode,
+        project_id=project.id,
+        mode='agent',
+        title=FIX_THREAD_TITLE,
+        goal=FIX_THREAD_GOAL,
+        kind='task',
+        parent=lead,
+        review_status='active',
+        queued_prompt=brief,
     )
-    decision = {'to': 'coordinator', 'conversation_id': lead.id, 'title': lead.title}
-    cache.set(routed_key, decision, ERROR_TTL)
-    logger.info("Sent an app error in project %s to its coordinator", project.id)
-    return {**decision, 'prompt': prompt, 'model': lead.model_name}
+    SystemPrompt.objects.create(conversation=fixer, content=CODING_AGENT_INSTRUCTIONS)
+    AgentMessage.objects.create(
+        conversation=lead,
+        role='assistant',
+        content="Your app hit an error, so I've started a thread to fix it.",
+        metadata=build_message_metadata(
+            dispatched_tasks=dispatch_task_refs(
+                [{'conversation_id': fixer.id, 'title': fixer.title}]
+            )
+        ),
+    )
+    cache.set(FIX_THREAD_KEY.format(project_id=project.id), fixer.id, ERROR_TTL)
+    return fixer
 
 
 async def route_and_start(user, project, errors) -> Optional[Dict[str, Any]]:
-    """route(), then start whatever run it staged. For async views."""
+    """route(), then start the thread it staged. For async views."""
     from asgiref.sync import sync_to_async
+    from .thread_scheduler import start_waiting_threads
 
     decision = await sync_to_async(route)(user, project, errors)
     if not decision or decision.get('already'):
         return decision
-    if decision['to'] == 'thread':
-        from .thread_scheduler import start_waiting_threads
-
-        await start_waiting_threads(user)
-    else:
-        from .base_agent import ImagiAgentService
-        from .detached_runs import start_detached_run
-
-        service = ImagiAgentService(model=decision['model'])
-        start_detached_run(
-            lambda: service.process_stream(
-                user_input=decision['prompt'], user=user, model=decision['model'],
-                project_id=project.id, conversation_id=decision['conversation_id'],
-            ),
-            user=user,
-            conversation_id=decision['conversation_id'],
-        )
+    await start_waiting_threads(user)
     return {k: v for k, v in decision.items() if k in ('to', 'conversation_id', 'title')}
