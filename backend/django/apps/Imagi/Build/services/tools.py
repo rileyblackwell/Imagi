@@ -383,8 +383,15 @@ def grep_impl(
     """
     regex = _compile_search_pattern(pattern)
     search_root = resolve_safe_path(project, path) if path else os.path.realpath(project.project_path)
-    if not os.path.isdir(search_root):
-        raise ValueError(f"Search path '{path}' is not a directory in the project")
+    # Agents routinely scope a search to one file ("find the hex colours in
+    # HomeView.vue"), as Claude Code's own Grep allows, so a file path searches
+    # just that file instead of failing the call.
+    if os.path.isfile(search_root):
+        candidates = [(search_root, None)]
+    elif os.path.isdir(search_root):
+        candidates = _iter_project_files(search_root)
+    else:
+        raise ValueError(f"Search path '{path}' does not exist in the project")
 
     project_root = os.path.realpath(project.project_path)
     matches = []
@@ -392,7 +399,7 @@ def grep_impl(
     truncated = False
     deadline = time.monotonic() + GREP_TIME_BUDGET_SECONDS
 
-    for abs_path, _ in _iter_project_files(search_root):
+    for abs_path, _ in candidates:
         rel_to_project = os.path.relpath(abs_path, project_root)
         if include and not fnmatch.fnmatch(os.path.basename(abs_path), include) \
                 and not fnmatch.fnmatch(rel_to_project, include):
@@ -989,7 +996,7 @@ def grep_files(ctx: RunContextWrapper, pattern: str, path: str = "", include: st
 
     Args:
         pattern: Regular expression to search for (e.g. 'createRouter', 'class\\s+\\w+View').
-        path: Optional project-relative directory to limit the search (e.g. 'frontend/vuejs/src').
+        path: Optional project-relative directory or file to limit the search (e.g. 'frontend/vuejs/src').
         include: Optional glob to filter which files are searched (e.g. '*.vue', '*.py').
     """
     try:
