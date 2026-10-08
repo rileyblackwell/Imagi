@@ -251,6 +251,30 @@ def _sync_db_mirror(project, file_path: str, should_exist: bool) -> None:
         logger.warning(f"Could not sync database mirror for {file_path}: {e}")
 
 
+def _live_start(ctx, file_path: str):
+    """Before a thread's edit: what it had there, and where the preview's
+    error logs stood (see live_apply)."""
+    from . import live_apply
+
+    if not live_apply.applies_to(ctx):
+        return None, None
+    return live_apply.snapshot(ctx, file_path), live_apply.Mark(ctx)
+
+
+def _live_finish(ctx, file_path: str, before, result: dict) -> str:
+    """After a thread's edit: copy it into the app and add what the preview
+    made of it to the tool's answer."""
+    from . import live_apply
+
+    previous, mark = before
+    if mark is not None:
+        try:
+            result.update(live_apply.apply_edit(ctx, file_path, previous, mark))
+        except Exception as e:  # pragma: no cover - never fail a written edit
+            logger.warning(f"Live apply of {file_path} failed: {e}")
+    return json.dumps(result)
+
+
 def _get_project(ctx):
     """Resolve the Project model from agent context.
 
@@ -727,6 +751,7 @@ def dispatch_task_impl(
         conversation = AgentConversation.objects.create(
             user_id=ctx.user_id,
             model_name=parent.model_name,
+            fast_mode=parent.fast_mode,
             project_id=parent.project_id,
             mode='agent',
             title=provisional_title,
@@ -908,7 +933,16 @@ def message_task_impl(ctx, task_id, message: str) -> dict:
     # rather than replacing it — the subagent should hear both.
     queued = task.queued_prompt.strip()
     task.queued_prompt = f"{queued}\n\n{text}" if queued else text
-    task.save(update_fields=['queued_prompt'])
+    fields = ['queued_prompt']
+    # A finished or stopped thread is reopened here, not only when a browser
+    # delivers the message, so the server's thread scheduler picks it up
+    # (it starts active threads with a staged prompt) and the follow-up runs
+    # with nobody watching. Its run forks a fresh worktree from the app as it
+    # is now and applies again when it finishes.
+    if task.review_status in ('accepted', 'failed'):
+        task.review_status = 'active'
+        fields.append('review_status')
+    task.save(update_fields=fields)
 
     payload = {
         'conversation_id': task.id,
@@ -1070,9 +1104,10 @@ def edit_file(
     """
     try:
         project = _get_project(ctx.context)
+        before = _live_start(ctx.context, normalize_file_path(project, file_path))
         result = edit_file_impl(project, file_path, old_string, new_string, replace_all)
         _sync_db_mirror(project, result["path"], should_exist=True)
-        return json.dumps(result)
+        return _live_finish(ctx.context, result["path"], before, result)
     except Exception as e:
         logger.error(f"Error editing file {file_path}: {e}")
         return _error_result(str(e))
@@ -1091,6 +1126,7 @@ def update_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
         file_path = normalize_file_path(project, file_path)
         _refuse_protected(file_path)
         full_path = resolve_safe_path(project, file_path)
+        before = _live_start(ctx.context, file_path)
         service = ViewFileService(project=project)
         result = service.update_file(file_path, content)
 
@@ -1098,7 +1134,7 @@ def update_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
             return _error_result(f"update_file appeared to succeed but file not found at {file_path}")
 
         _sync_db_mirror(project, file_path, should_exist=True)
-        return json.dumps({"success": True, "path": file_path, "message": result.get("message", "File updated successfully")})
+        return _live_finish(ctx.context, file_path, before, {"success": True, "path": file_path, "message": result.get("message", "File updated successfully")})
     except Exception as e:
         logger.error(f"Error updating file {file_path}: {e}")
         return _error_result(str(e))
@@ -1117,6 +1153,7 @@ def create_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
         file_path = normalize_file_path(project, file_path)
         _refuse_protected(file_path)
         resolve_safe_path(project, file_path)
+        before = _live_start(ctx.context, file_path)
         file_type = infer_file_type(file_path)
         service = CreateFileService(project=project)
         result = service.create_file({"name": file_path, "content": content, "type": file_type})
@@ -1127,7 +1164,7 @@ def create_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
 
         actual_path = result.get("path", file_path)
         _sync_db_mirror(project, actual_path, should_exist=True)
-        return json.dumps({"success": True, "path": actual_path, "message": f"File created at {actual_path}"})
+        return _live_finish(ctx.context, actual_path, before, {"success": True, "path": actual_path, "message": f"File created at {actual_path}"})
     except Exception as e:
         logger.error(f"Error creating file {file_path}: {e}")
         return _error_result(str(e))
@@ -1145,6 +1182,7 @@ def delete_file(ctx: RunContextWrapper, file_path: str) -> str:
         file_path = normalize_file_path(project, file_path)
         _refuse_protected(file_path)
         full_path = resolve_safe_path(project, file_path)
+        before = _live_start(ctx.context, file_path)
         service = DeleteFileService(project=project)
         service.delete_file(file_path)
 
@@ -1152,7 +1190,7 @@ def delete_file(ctx: RunContextWrapper, file_path: str) -> str:
             return _error_result(f"delete_file appeared to succeed but file still exists at {file_path}")
 
         _sync_db_mirror(project, file_path, should_exist=False)
-        return json.dumps({"success": True, "path": file_path, "message": "File deleted successfully"})
+        return _live_finish(ctx.context, file_path, before, {"success": True, "path": file_path, "message": "File deleted successfully"})
     except Exception as e:
         logger.error(f"Error deleting file {file_path}: {e}")
         return _error_result(str(e))

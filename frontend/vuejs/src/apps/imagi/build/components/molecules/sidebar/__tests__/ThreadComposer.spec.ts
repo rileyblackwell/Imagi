@@ -92,9 +92,9 @@ describe('ThreadComposer', () => {
     const { store, wrapper } = mountFor(makeThread())
     const setModel = vi.spyOn(store, 'setInstanceModel').mockImplementation(() => {})
     await wrapper.find('button[aria-label="Model and reasoning"]').trigger('click')
-    const astra = wrapper.findAll('#tune-panel button.model-row').find(r => r.text().includes('Astra'))!
-    await astra.trigger('click')
-    expect(setModel).toHaveBeenCalledWith('inst-thread', 'gpt-6-astra')
+    const fable = wrapper.findAll('#tune-panel button.model-row').find(r => r.text().includes('Fable'))!
+    await fable.trigger('click')
+    expect(setModel).toHaveBeenCalledWith('inst-thread', 'claude-fable-5-1')
   })
 
   it('stops this thread, not the coordinator, from a tap mid-run', async () => {

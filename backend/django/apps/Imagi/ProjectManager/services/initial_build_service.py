@@ -66,7 +66,7 @@ and every page that did not simply keeps its placeholder.
 import logging
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from django.conf import settings
 from django.db import close_old_connections
@@ -145,13 +145,20 @@ This page alone carries the sign-in wiring. The auth pages are prebuilt at '/aut
 )
 
 
-def _lead_ack(pages) -> str:
+def _lead_ack(pages, planning=False) -> str:
     """The lead thread's acknowledgement of the dispatch it just made.
 
     Written directly rather than generated: the lead's only job here is to hand
     the briefs over, and a model call to produce one fixed sentence would add
-    latency and cost to project creation.
+    latency and cost to project creation. ``planning`` says the pages after
+    home are still being chosen; _more_threads_note follows once they are.
     """
+    if planning:
+        return (
+            "On it. I've started a thread on your home page, and your app opens "
+            "as soon as it's ready. Meanwhile I'm working out which other pages "
+            "your business needs."
+        )
     names = ', '.join(p.slug for p in pages)
     if len(pages) == 1:
         return (
@@ -164,6 +171,17 @@ def _lead_ack(pages) -> str:
         f"version of your app, one per page ({names}), all working at the same "
         "time. You can watch them work there; I'll let you know when "
         "they're done."
+    )
+
+
+def _more_threads_note(pages) -> str:
+    """The lead's second message: the pages it planned after home."""
+    labels = [getattr(p, 'label', None) or p.title.replace(' page', '') for p in pages]
+    listed = labels[0] if len(labels) == 1 else ', '.join(labels[:-1]) + f' and {labels[-1]}'
+    noun = 'thread' if len(pages) == 1 else 'threads'
+    return (
+        f"I've also started {len(pages)} {noun} for the rest of your site: {listed}. "
+        "Each page shows up in your app's navigation as soon as it's finished."
     )
 
 
@@ -195,6 +213,7 @@ def build_initial_prompt(
     design_preferences: str = "",
     page: PageBrief = None,
     app_details: str = "",
+    siblings=(),
 ) -> str:
     """Compose one page subagent's brief from the founder's inputs.
 
@@ -206,7 +225,9 @@ def build_initial_prompt(
     owns.
 
     ``page`` defaults to the home page, which is also what the founder sees as
-    the opening message of their main thread.
+    the opening message of their main thread. ``siblings`` is the whole page
+    plan when it is known (it is not yet when the home page starts), so a page
+    can mention the others by name without linking to them by hand.
     """
     page = page or PAGE_BRIEFS[0]
 
@@ -236,12 +257,20 @@ Read this as the app's functional brief. Before writing code, work out from it t
     prompt += f"""
 
 Your page: {page.summary}.
-Rewrite '{page.view_path}' (routed at '{page.route}'), and no other file. Your siblings are building the other pages at the same time.
+Rewrite '{page.view_path}' (routed at '{page.route}'), and no other file. Your siblings are building the other pages at the same time.{_sibling_line(page, siblings)}
 
 {page.requirements}
 
 When you're done, briefly summarize what you built."""
     return prompt
+
+
+def _sibling_line(page, siblings) -> str:
+    others = [p for p in siblings if p.slug != page.slug]
+    if not others:
+        return ''
+    listed = ', '.join(f"'{p.route}' ({p.summary})" for p in others)
+    return f" The site's other pages: {listed}."
 
 
 def build_repair_prompt(problems, router_problems=(), auth_problems=()) -> str:
@@ -317,11 +346,11 @@ def start_initial_build(project, user) -> bool:
     already correct when the create response returns) and runs the agent
     in a daemon thread. Returns False when no AI provider is configured.
     """
-    from apps.Imagi.Build.services.base_agent import OPENAI_API_KEY
+    from apps.Imagi.Build.services.base_agent import ANTHROPIC_API_KEY
 
-    if not OPENAI_API_KEY:
+    if not ANTHROPIC_API_KEY:
         logger.warning(
-            "OPENAI_KEY not configured - skipping initial AI build for project %s",
+            "ANTHROPIC_KEY not configured - skipping initial AI build for project %s",
             project.pk,
         )
         return False
@@ -362,7 +391,7 @@ def _ensure_lead_conversation(service, user, project_id, model):
     )
 
 
-def _open_lead_thread(service, lead, prompt, tasks):
+def _open_lead_thread(service, lead, prompt, tasks, planning=False):
     """Record the dispatch in the main thread, the way a real one reads.
 
     The founder's brief becomes the opening user message and the lead's
@@ -378,7 +407,26 @@ def _open_lead_thread(service, lead, prompt, tasks):
     service.add_user_message(lead, prompt)
     service.add_assistant_message(
         lead,
-        _lead_ack([t.page for t in tasks]),
+        _lead_ack([t.page for t in tasks], planning=planning),
+        build_message_metadata(
+            dispatched_tasks=dispatch_task_refs(
+                [{'conversation_id': t.id, 'title': t.title} for t in tasks]
+            )
+        ),
+    )
+
+
+def _record_more_threads(service, lead, tasks):
+    """Add the threads planned after home to the main thread, linked the same
+    way as the first dispatch."""
+    from apps.Imagi.Build.services.base_agent import (
+        build_message_metadata,
+        dispatch_task_refs,
+    )
+
+    service.add_assistant_message(
+        lead,
+        _more_threads_note([t.page for t in tasks]),
         build_message_metadata(
             dispatched_tasks=dispatch_task_refs(
                 [{'conversation_id': t.id, 'title': t.title} for t in tasks]
@@ -438,7 +486,12 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
 
         user = get_user_model().objects.get(pk=user_id)
         model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-        service = ImagiAgentService(model=model, agent_kind='initial_build')
+        # Only the home page races the clock: the project opens when it lands.
+        # The other pages build behind it at standard speed, which costs half.
+        fast = page.slug == 'home' and builder.get('INITIAL_BUILD_SPEED') == 'fast'
+        service = ImagiAgentService(
+            model=model, agent_kind='initial_build', fast_mode=fast
+        )
         return _build_and_apply(
             service, task, user, project_id, prompt, builder, deadline_at
         )
@@ -454,15 +507,19 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
 
 
 def _run_initial_build(project_id: int, user_id: int) -> None:
-    """Thread body: dispatch every page of the first build, then land the results.
+    """Thread body: build the home page first, plan the rest, land each page.
 
-    The pages run concurrently against ONE shared deadline, so the founder waits
-    for the slowest page rather than the sum of all of them. Each page merges
-    itself as it finishes (the merge takes an exclusive lock on the project's
-    git repo, so simultaneous finishes serialize safely).
+    The home page starts the moment the project exists, in fast mode and on
+    its own deadline, and the project opens as soon as it lands. While it
+    runs, the pages after it are planned for this business (initial_page_plan)
+    and routed, then built behind it at standard speed, a few at a time. Each
+    page merges itself as it finishes (the merge takes an exclusive lock on
+    the project's git repo, so simultaneous finishes serialize safely) and
+    joins the site's navigation, which the preview hot-reloads.
     """
     close_old_connections()
     from ..models import Project
+    from . import initial_page_plan
 
     try:
         from django.contrib.auth import get_user_model
@@ -473,69 +530,111 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
 
         builder = getattr(settings, 'IMAGI_BUILDER', {})
         model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
+        design = getattr(project, 'design_preferences', '')
+        app_details = getattr(project, 'app_details', '')
+
+        def prompt_for(page, siblings=()):
+            return build_initial_prompt(
+                project.name, project.description, design, page,
+                app_details=app_details, siblings=siblings,
+            )
 
         # agent_kind pins the first-build persona (its prompt and design
         # direction) onto what is otherwise a plain background task.
         service = ImagiAgentService(model=model, agent_kind='initial_build')
 
-        pages = _pages_to_build(builder)
-        prompts = {
-            page.slug: build_initial_prompt(
-                project.name,
-                project.description,
-                getattr(project, 'design_preferences', ''),
-                page,
-                app_details=getattr(project, 'app_details', ''),
-            )
-            for page in pages
-        }
+        # A fixed page list in settings skips the plan (and is what the
+        # fallback below uses when no plan can be made).
+        fixed = builder.get('INITIAL_BUILD_PAGES')
+        pages = _pages_to_build(builder) if fixed else [PAGE_BRIEFS[0]]
+        home = pages[0]
 
         # The main thread outlives the build — it is where the founder keeps
         # chatting — so it runs on the everyday default, not the build model.
         lead = _ensure_lead_conversation(
             service, user, project_id, builder.get('DEFAULT_MODEL') or model
         )
-        tasks = [
-            _create_build_task(
-                user, lead, project_id, model, prompts[page.slug], page
-            )
-            for page in pages
-        ]
         founder_brief = build_founder_brief(
-            project.name,
-            project.description,
-            getattr(project, 'design_preferences', ''),
-            app_details=getattr(project, 'app_details', ''),
+            project.name, project.description, design, app_details=app_details,
         )
-        _open_lead_thread(service, lead, founder_brief, tasks)
 
-        # One deadline for everything, started before the first agent does.
+        max_parallel = max(1, builder.get('INITIAL_BUILD_MAX_PARALLEL_PAGES') or 6)
+        # Home alone races the clock; every other page gets its own budget,
+        # counted from when it starts (_build_and_apply), not a shared one.
         time_budget = builder.get('INITIAL_BUILD_TIME_BUDGET_S', 60)
-        deadline_at = time.monotonic() + time_budget if time_budget else None
+        home_deadline = time.monotonic() + time_budget if time_budget else None
 
+        applied = {}
+        ready = []
         with ThreadPoolExecutor(
-            max_workers=len(tasks), thread_name_prefix=f'initial-build-{project_id}'
+            max_workers=max_parallel, thread_name_prefix=f'initial-build-{project_id}'
         ) as pool:
-            futures = {
-                task.page.slug: pool.submit(
-                    _run_one_page,
-                    task.page,
-                    task,
-                    user_id,
-                    project_id,
-                    prompts[task.page.slug],
-                    builder,
-                    deadline_at,
+            def submit(task, deadline_at=None):
+                return pool.submit(
+                    _run_one_page, task.page, task, user_id, project_id,
+                    task.queued_prompt, builder, deadline_at,
                 )
-                for task in tasks
-            }
-            # The prebuilt sign-in pages are restyled to match the home page
-            # as soon as it lands, in the background (auth_restyle_service).
-            if 'home' in futures:
-                futures['home'].add_done_callback(
-                    lambda done: done.result() and queue_auth_restyle(project_id, user_id)
+
+            home_task = _create_build_task(
+                user, lead, project_id, model, prompt_for(home), home
+            )
+            _open_lead_thread(
+                service, lead, founder_brief, [home_task], planning=not fixed,
+            )
+            futures = {submit(home_task, home_deadline): home_task}
+
+            # Plan the rest while the home page builds.
+            if fixed:
+                rest = pages[1:]
+            else:
+                rest = initial_page_plan.plan_pages(
+                    project.name, project.description, app_details, design,
+                    builder=builder, page_brief_cls=PageBrief,
+                ) or list(PAGE_BRIEFS[1:])
+            plan = [home] + rest
+            if not fixed:
+                initial_page_plan.scaffold_pages(project.project_path, plan, [home])
+            ready = [home]
+
+            rest_tasks = [
+                _create_build_task(
+                    user, lead, project_id, model, prompt_for(page, plan), page
                 )
-            applied = {slug: future.result() for slug, future in futures.items()}
+                for page in rest
+            ]
+            if rest_tasks:
+                _record_more_threads(service, lead, rest_tasks)
+            for task in rest_tasks:
+                futures[submit(task)] = task
+
+            for future in as_completed(futures):
+                page = futures[future].page
+                applied[page.slug] = future.result()
+                if not applied[page.slug]:
+                    continue
+                if page.slug != home.slug:
+                    # The finished page joins the navigation; the preview
+                    # hot-reloads it, so it appears while the rest build.
+                    ready = [p for p in plan if p is home or applied.get(p.slug)]
+                    if not fixed:
+                        initial_page_plan.publish_ready_pages(project.project_path, ready)
+                else:
+                    # Open the project now rather than when the slowest page
+                    # finishes: the founder lands on the home page, and the
+                    # others merge into the running preview as they finish.
+                    _resync_project_files(project_id)
+                    Project.objects.filter(pk=project_id).update(
+                        generation_status='completed',
+                        last_generated_at=timezone.now(),
+                    )
+                    logger.info(
+                        "Initial AI build of project %s: home page applied, project ready",
+                        project_id,
+                    )
+                    # The prebuilt sign-in pages are restyled to match the
+                    # home page as soon as it lands, in the background
+                    # (auth_restyle_service).
+                    queue_auth_restyle(project_id, user_id)
 
         _resync_project_files(project_id)
 
@@ -708,7 +807,10 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
     attempts = builder.get('INITIAL_BUILD_REPAIR_ATTEMPTS', 2)
     min_repair_seconds = builder.get('INITIAL_BUILD_MIN_REPAIR_SECONDS', 12)
     if deadline_at is None:
-        time_budget = builder.get('INITIAL_BUILD_TIME_BUDGET_S', 60)
+        time_budget = builder.get(
+            'INITIAL_BUILD_PAGE_TIME_BUDGET_S',
+            builder.get('INITIAL_BUILD_TIME_BUDGET_S', 60),
+        )
         deadline_at = time.monotonic() + time_budget if time_budget else None
 
     user_input = prompt

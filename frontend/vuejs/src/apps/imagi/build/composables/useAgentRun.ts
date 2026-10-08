@@ -7,6 +7,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import type { AIMessage } from '../types/index'
 import type { AgentResponse, DispatchedTaskRef } from '../types/services'
+import { supportsFastMode } from '../types/services'
 import type { AgentStreamHandlers } from '../services/agentService'
 
 // Tools that mutate project files. Also drives the interrupted-run cleanup:
@@ -21,6 +22,7 @@ export const FILE_EDIT_TOOLS = new Set([
 export function describeAgentTool(name: string): string {
   if (name === 'update_plan') return 'Planning…'
   if (name === 'web_search' || name === 'web_search_call') return 'Searching the web…'
+  if (name === 'browser') return 'Using the preview…'
   if (['get_project_tree', 'list_project_files', 'glob_files', 'grep_files', 'read_file'].includes(name)) {
     return 'Reading project files…'
   }
@@ -268,6 +270,7 @@ export function useAgentRun(projectId: Ref<string>) {
               prompt: promptText,
               model: instance.selectedModelId,
               reasoningEffort: instance.selectedEffort,
+              fastMode: !!instance.fastMode && supportsFastMode(instance.selectedModelId),
               file: instance.selectedFile,
               conversationId: conversationIdBefore ?? undefined
             },

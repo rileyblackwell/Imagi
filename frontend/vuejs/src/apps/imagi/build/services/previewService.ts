@@ -80,6 +80,10 @@ export interface PreviewFrame {
    *  last ~5, deduped by text, a full replacement list on every payload
    *  (empty array means none), cleared on hard navigation. */
   console_errors?: PreviewConsoleError[]
+  /** Where the server sent the app's current errors to be fixed: the thread
+   *  whose recent edit likely caused them, or the coordinator. Absent when
+   *  nothing was routed (no errors, or the coordinator was busy). */
+  error_routing?: { to: 'thread' | 'new_thread'; conversation_id: number } | null
   /** Scroll position the frame shows; null when the page couldn't report it. */
   scroll?: PreviewScroll | null
 }

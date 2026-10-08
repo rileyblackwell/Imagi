@@ -328,7 +328,7 @@ def _preview_json_body(request):
     return data if isinstance(data, dict) else None
 
 
-async def _run_preview_call(request, project_id, call):
+async def _run_preview_call(request, project_id, call, after=None):
     """Authenticate, resolve the project, then run ``call(service)``.
 
     ORM work (token auth, project fetch) stays on sync_to_async's default
@@ -358,7 +358,28 @@ async def _run_preview_call(request, project_id, call):
         return JsonResponse({'running': False, 'error': str(e)}, status=409)
     except BrowserPreviewError as e:
         return JsonResponse({'error': str(e)}, status=400)
+    if after is not None:
+        try:
+            await after(user, project, payload)
+        except Exception as e:  # pragma: no cover - never fail a frame over it
+            logger.warning(f"Preview follow-up failed for project {project_id}: {e}")
     return JsonResponse(payload)
+
+
+async def _route_app_errors(user, project, payload):
+    """New errors the app reported go to a thread that can fix them
+    (app_errors); the frame says which, so the banner can too."""
+    from apps.Imagi.Build.services import app_errors
+
+    errors = list(payload.get('console_errors') or [])
+    errors += await sync_to_async(app_errors.new_server_log_errors, thread_sensitive=False)(project)
+    if not errors:
+        return
+    routed = await app_errors.route_and_start(user, project, errors)
+    if routed:
+        payload['error_routing'] = {
+            'to': routed['to'], 'conversation_id': routed['conversation_id'],
+        }
 
 
 @csrf_exempt
@@ -369,7 +390,8 @@ async def preview_frame(request, project_id):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     etag = request.GET.get('etag')
     return await _run_preview_call(
-        request, project_id, lambda service: service.frame(etag=etag)
+        request, project_id, lambda service: service.frame(etag=etag),
+        after=_route_app_errors,
     )
 
 
@@ -884,6 +906,9 @@ async def agent_stream(request):
 
     model = resolve_model(payload.get('model', DEFAULT_MODEL))
     reasoning_effort = payload.get('reasoning_effort')
+    # Absent means "leave the conversation's setting as it is".
+    fast_mode = payload.get('fast_mode')
+    fast_mode = None if fast_mode is None else bool(fast_mode)
 
     # Busy guard, scoped by what the run will edit. Chat/lead runs edit the
     # shared canonical tree, so only one of those may be live per project;
@@ -955,7 +980,9 @@ async def agent_stream(request):
     if not allowed:
         return JsonResponse(limit_payload, status=429)
 
-    agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
+    agent_service = ImagiAgentService(
+        model=model, reasoning_effort=reasoning_effort, fast_mode=fast_mode
+    )
 
     async def event_stream():
         # The run is started here, as the response begins, but it does not
@@ -1333,6 +1360,7 @@ def _serialize_conversation(conversation):
         'id': conversation.id,
         'title': conversation.title or '',
         'model_name': conversation.model_name,
+        'fast_mode': conversation.fast_mode,
         'project_id': conversation.project_id,
         'kind': conversation.kind,
         'parent': conversation.parent_id,
@@ -1369,6 +1397,32 @@ def _conversation_project(conversation):
     return PMProject.objects.filter(
         id=conversation.project_id, user=conversation.user
     ).first()
+
+
+def _take_back_live_edits(conversation):
+    """A thread discarded before it merged: undo the edits it applied to the
+    app live (live_apply), where the app still has its version. Best-effort."""
+    if conversation.kind != 'task' or not conversation.worktree_path:
+        return
+    if conversation.review_status == 'accepted':
+        return
+    try:
+        from apps.Imagi.Build.services import live_apply
+
+        project = _conversation_project(conversation)
+        if project and project.project_path:
+            restored = live_apply.revert(
+                conversation, project.project_path, conversation.worktree_path
+            )
+            if restored:
+                logger.info(
+                    f"Took {len(restored)} live edit(s) of discarded thread "
+                    f"{conversation.id} back out of the app"
+                )
+    except Exception as e:
+        logger.warning(
+            f"Could not take back the live edits of conversation {conversation.id}: {e}"
+        )
 
 
 def _remove_conversation_worktree(conversation):
@@ -1510,6 +1564,7 @@ def conversation_detail(request, conversation_id):
         if conversation.kind == 'task' and _conversation_is_running(conversation):
             return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
         # A task's worktree would otherwise leak beside the project dir.
+        _take_back_live_edits(conversation)
         _remove_conversation_worktree(conversation)
         conversation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -1799,6 +1854,7 @@ def conversation_dismiss(request, conversation_id):
     if _conversation_is_running(conversation):
         return Response({'detail': 'agent_busy'}, status=status.HTTP_409_CONFLICT)
 
+    _take_back_live_edits(conversation)
     _remove_conversation_worktree(conversation)
     conversation.review_status = 'dismissed'
     conversation.worktree_path = ''

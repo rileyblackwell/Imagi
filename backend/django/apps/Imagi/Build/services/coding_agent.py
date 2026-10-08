@@ -32,6 +32,7 @@ from apps.Imagi.Build.services.models_service import (
     get_model_identity_instructions,
     get_model_provider,
     resolve_reasoning_effort,
+    supports_fast_mode,
 )
 from .base_agent import build_model_settings
 from .tools import (
@@ -75,6 +76,21 @@ INITIAL_BUILD_TIME_BUDGET_S = _BUILDER_SETTINGS.get('INITIAL_BUILD_TIME_BUDGET_S
 # throughput, and the 'fast' tier (GPT 6's name for what earlier models
 # called 'priority') roughly doubles it. None leaves the account default.
 INITIAL_BUILD_SERVICE_TIER = _BUILDER_SETTINGS.get('INITIAL_BUILD_SERVICE_TIER')
+
+# The Claude counterpart: fast mode (speed 'fast') for the first build, on a
+# model that has it (Opus 5.5). Faster output at twice the price per token —
+# worth it on the one run a founder is watching a clock on. None turns it off.
+
+
+def run_speed(kind: str, model: str, fast_mode: bool = False) -> Optional[str]:
+    """The speed a run's requests ask for on a model: 'fast' when the run
+    asks for fast mode (the user's switch, or the first build's home page) on
+    a model that offers it; otherwise None (standard). ``kind`` is accepted so
+    a role-specific speed has one place to land."""
+    del kind
+    if fast_mode and supports_fast_mode(model):
+        return 'fast'
+    return None
 
 # Project memory files, in priority order (Codex reads AGENTS.md,
 # Claude Code reads CLAUDE.md). Only the first one found is loaded.
@@ -135,21 +151,21 @@ INITIAL_BUILD_WORKING_STYLE = """Working style:
 - Then write the founder four to six friendly, plain sentences about what you built."""
 
 # The first build: one page per subagent, in parallel, against the clock.
-INITIAL_BUILD_INTRO = """You are Imagi, building the very first version of a brand-new web app for the founder who just described their business. The project holds Imagi's scaffold: placeholder home, about and contact pages plus a prebuilt auth app. You are one of several subagents building it at the same time, one page each; your brief names the page you own, and you touch ONLY that page's file — your siblings are writing the others right now. It should feel custom-built for this business, not a generic starter."""
+INITIAL_BUILD_INTRO = """You are Imagi, building the very first version of a brand-new web app for the founder who just described their business. The project holds Imagi's scaffold: a placeholder view for every page of the site plus a prebuilt auth app. You are one of several subagents building it at the same time, one page each; your brief names the page you own, and you touch ONLY that page's file — your siblings are writing the others right now. It should feel custom-built for this business, not a generic starter."""
 
 # The rules that let a page survive the clock and the merge: one self-contained
 # file (nothing to dangle, nothing to collide with a sibling), sized for the
 # budget, written once. The deadline is checked only between model turns, so an
 # oversized page or a second write is time the founder waits past it.
 INITIAL_BUILD_GUIDANCE = (
-    f"""Building the first version — you have about {INITIAL_BUILD_TIME_BUDGET_S} seconds of wall-clock time, and when it runs out you are stopped where you are. Do NOT explore the project first: the scaffold is exactly as described below, so go straight to writing.
+    f"""Building the first version — you have a short, fixed amount of wall-clock time (about {INITIAL_BUILD_TIME_BUDGET_S} seconds for the home page), and when it runs out you are stopped where you are. Do NOT explore the project first: the scaffold is exactly as described below, so go straight to writing.
 
 Your job is ONE file: the view named in your brief, rewritten with a single update_file call as a real page for THIS business.
 """
     + """- Everything lives in that file — template, script setup, Tailwind classes. Do NOT create component files, do NOT add other pages, do NOT add routes, do NOT touch any other file. A page with even one dangling reference is discarded, and a file that is not yours collides with a sibling's work at merge time.
 - Size it for the clock: about 8 KB of file, and stay under 10 KB — that is roughly 140 lines, because Tailwind class lists are most of the bytes. Keep them lean, and use a single light theme (no dark: variants) for this first version. A hero, two content sections, a call to action and a footer is a whole page; finished and well-written beats long.
 - One write is the whole build: once update_file reports success, do not revise or extend the page with a second write — go straight to your summary.
-- Write the shared header and footer inline in your file and link the three pages: '/' (home), '/about' and '/contact', paths exact. They need not match your siblings' exactly; a small variation beats a dangling import.
+- Write the header and footer inline. Their navigation comes from Imagi's page list, not links you type: `import { sitePages } from '../site-pages'`, then `<router-link v-for="p in sitePages" :key="p.path" :to="p.path">{{ p.label }}</router-link>`. Each page joins the list once it is finished.
 
 Hard rules:
 - Change nothing outside your file: no other files, routes, dependencies, config, nothing under 'frontend/vuejs/src/shared/', 'frontend/vuejs/src/apps/auth/' or 'backend/django/'. A first build that rewires the project is discarded even if it looks good.
@@ -159,12 +175,10 @@ Hard rules:
 - Your summary: four to six friendly, plain sentences for the founder — what the page says and does and what a visitor can do on it, one sentence per section in scroll order, with no file, component, route or framework names and nothing about how you built it.
 
 The scaffold (already on disk — trust this instead of looking):
-- 'frontend/vuejs/src/apps/home/views/HomeView.vue' — placeholder landing page at '/'.
-- 'frontend/vuejs/src/apps/home/views/AboutView.vue' — placeholder about page at '/about'.
-- 'frontend/vuejs/src/apps/home/views/ContactView.vue' — placeholder contact page at '/contact'.
-  Exactly one of those is yours; the other two belong to your siblings.
+- 'frontend/vuejs/src/apps/home/views/' — one placeholder view per page, 'HomeView.vue' ('/') among them. Exactly one is yours, named in your brief.
+- 'frontend/vuejs/src/apps/home/site-pages.ts' — the navigation list, kept by Imagi. Import it; never edit it.
 - 'frontend/vuejs/src/apps/auth/' — the prebuilt auth app at '/auth/signin' and '/auth/register'. Leave it alone.
-- 'frontend/vuejs/src/apps/home/router/index.ts' already routes all three views, so you never touch a router. Tailwind, Vue Router and Pinia are wired up."""
+- 'frontend/vuejs/src/apps/home/router/index.ts' already routes every page, so you never touch a router. Tailwind, Vue Router and Pinia are wired up."""
 )
 
 # Full prompt for the initial build role, shared by every page subagent. Which
@@ -179,6 +193,15 @@ INITIAL_BUILD_INSTRUCTIONS = "\n\n".join(
 WEB_SEARCH_INSTRUCTIONS = """
 Web search is available for current outside information — facts about the user's business or industry, up-to-date library usage — not for what you already know or what lives in the project."""
 
+# Appended when the preview browser is attached. It is the same browser the
+# user watches in the workspace's preview pane, so they see every action.
+BROWSER_INSTRUCTIONS = """
+The browser tools drive the workspace's live preview of this app — the same browser the user is watching, so they see what you do in it. Use them to check how a page looks or behaves (screenshot, read_page, find, clicks and typing), to reproduce something the user reports, or to confirm finished work; skip them when the code answers the question. Only the app's own pages open there (navigate takes a path such as /about). Never submit real payments or personal data."""
+
+# A thread edits an isolated copy, so the preview shows the app without its
+# changes until they are applied.
+TASK_BROWSER_INSTRUCTIONS = BROWSER_INSTRUCTIONS + """ Each file you write goes into the app at once and the preview reloads, so look at your change right after you make it, and fix anything the edit's result reports under preview_errors before moving on. If a result says applied_to_app is false, someone else changed that file, so the preview shows your version only after you finish."""
+
 # Lead intro — the coordinator never edits files itself.
 LEAD_AGENT_INTRO = """You are Imagi, the user's coordinator for building their web application — not a builder. The user tells you what they want, one thing after another, and you hand all real building work to background threads, one job each. You have no file-editing tools and never change the project yourself; you can read the project to answer questions and to scope the work you delegate."""
 
@@ -188,7 +211,7 @@ LEAD_AGENT_INTRO = """You are Imagi, the user's coordinator for building their w
 LEAD_WORKING_STYLE = """Working style — decide what each message is, then act:
 - A REPLY is anything you can answer yourself: a question about the app, a clarification, a decision, ordinary conversation. Answer it directly, in this thread, and stop — nothing dispatched, no card. Use your read tools when that helps you answer accurately.
 - A JOB is any request to build, change, fix, style or add something, however small. You never do this work yourself: call dispatch_task as your very first action, before reading files or writing prose — the thread finds the relevant files itself. Only genuine ambiguity about WHAT the user wants earns one clarifying ask_user call instead.
-- A FOLLOW-UP is about work a thread already has, finished or not: a change ("make that button blue too"), more detail, or the answer to its question. Send it to that thread with message_task, never a new one, which would overwrite its work — unless the user asks for a new thread, which they get. Your roster below says who has what; if unclear, ask.
+- A FOLLOW-UP is about work a thread already has, finished or not: a change ("make that button blue too"), more detail, or the answer to its question. Send it to that thread with message_task, never a new one: the thread still holds its job's full context, and a new one would overwrite its work — unless the user asks for a new thread, which they get. Your roster below says who has what; if unclear, ask.
 - A STATUS question ("is the menu done yet?") is a REPLY: answer from your roster and reports, never guessing past them.
 - ONE job, ONE dispatch_task call, ONE thread. "Redesign my home page" is one job in one brief; never split a job by section, layer or step, never send a second thread to help the first, never repeat a call. Several genuinely separate asks in one message are one call each, in the same turn. drafts > 1 only when the user explicitly asked for alternatives to compare.
 - The brief is a ticket for an engineer who has not read this conversation: the goal, what "done" looks like, the specifics the user gave. The goal and overview are for the USER instead, in everyday words — what will be different in their app, never how it will be built, and no file, class, component or library names, not even one the user named. Overview example: "I'm adding a small 'Last updated September 2026' note under the footer of your home page. It will sit just below the copyright line, in the page's own colors. Nothing else on the page will change."
@@ -318,6 +341,7 @@ def create_coding_agent(
     model: str = DEFAULT_MODEL,
     reasoning_effort: Optional[str] = None,
     kind: str = 'chat',
+    fast_mode: bool = False,
 ) -> Agent:
     """
     Create the Imagi agent for a given conversation role.
@@ -336,6 +360,8 @@ def create_coding_agent(
             plus dispatch_task (new work) and message_task (follow-ups to a
             subagent it already has), with no file-editing tools — it delegates
             all building to subagents.
+        fast_mode: Ask for Claude's fast mode (see run_speed); ignored on a
+            model that doesn't offer it.
 
     Returns:
         Agent: The configured agent for that role
@@ -391,10 +417,27 @@ def create_coding_agent(
     if web_search_enabled:
         tools.append(WebSearchTool())
 
+    # The preview browser, for the same roles: the coordinator and threads
+    # can look at and use the running app the way the user does. It is a
+    # Claude toolset, so only Claude models get it; the first build has no
+    # time for it, and nothing to look at yet.
+    browser_enabled = (
+        kind != 'initial_build'
+        and get_model_provider(model) == 'anthropic'
+        and _BUILDER_SETTINGS.get('ENABLE_PREVIEW_BROWSER', True)
+    )
+    if browser_enabled:
+        from .preview_browser_tool import preview_browser_tool
+        tools.append(preview_browser_tool())
+
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
         instructions = get_dynamic_coding_instructions(context, agent, base_instructions)
         if web_search_enabled:
             instructions += "\n" + WEB_SEARCH_INSTRUCTIONS
+        if browser_enabled:
+            instructions += "\n" + (
+                TASK_BROWSER_INSTRUCTIONS if kind == 'task' else BROWSER_INSTRUCTIONS
+            )
         # The role prompt goes last of the three, because for a subagent it
         # ends with how to sign off — the one instruction that has to survive
         # a long run full of file paths and component names.
@@ -409,12 +452,17 @@ def create_coding_agent(
     # the lead calls its tools one at a time and sees each result before the
     # next. Builders are unaffected: their parallel reads and edits are wanted.
     #
-    # The first build alone asks for a service tier: it is the one run a
-    # person is watching a clock on, and the tier is priced per token.
+    # The first build alone asks for a faster tier (OpenAI's service tier,
+    # Claude's fast mode): it is the one run a person is watching a clock
+    # on, and the tier is priced per token.
     model_settings = build_model_settings(
         effort,
         parallel_tool_calls=False if kind == 'lead' else None,
-        service_tier=INITIAL_BUILD_SERVICE_TIER if kind == 'initial_build' else None,
+        service_tier=(
+            INITIAL_BUILD_SERVICE_TIER
+            if kind == 'initial_build' and get_model_provider(model) == 'openai' else None
+        ),
+        speed=run_speed(kind, model, fast_mode),
     )
     if model_settings is not None:
         kwargs['model_settings'] = model_settings

@@ -154,6 +154,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     // A conversation stored on a retired model reopens on its successor.
     selectedModelId: canonicalModelId(dto.model_name) || fallbackModelId,
     selectedEffort: DEFAULT_REASONING_EFFORT,
+    fastMode: !!dto.fast_mode,
     selectedFile: null,
     conversation: [],
     isProcessing: !!dto.is_running,
@@ -1209,7 +1210,7 @@ export const useAgentStore = defineStore('agent', {
       if (!instance) return
       instance.selectedModelId = modelId
       // Every model shares one reasoning ladder, but the effort riding along
-      // may predate it (a 'minimal' or 'max' restored from an older session),
+      // may predate it (a 'minimal' or 'none' restored from an older session),
       // so it is re-seated onto the ladder here rather than sent as-is.
       instance.selectedEffort = clampEffortToModel(instance.selectedEffort, modelId)
       if (instance.conversationId) {
@@ -1220,12 +1221,20 @@ export const useAgentStore = defineStore('agent', {
 
     // Reasoning effort is a per-request tuning knob kept in client state only
     // (there is no backend field to persist it to). The clamp re-seats a
-    // legacy rung ('minimal' → 'low', 'max' → 'xhigh') and drops anything
+    // legacy rung ('minimal' or 'none' → 'low') and drops anything
     // unknown back to the default, so the ladder is all that ever gets sent.
     setInstanceEffort(instanceId: string, effort: ReasoningEffort) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.selectedEffort = clampEffortToModel(effort, instance.selectedModelId)
+    },
+
+    // Fast mode rides along with each message; the server saves it on the
+    // conversation, so there is nothing to persist from here.
+    setInstanceFastMode(instanceId: string, on: boolean) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.fastMode = on
     },
 
     setInstanceFile(instanceId: string, file: ProjectFile | null) {
