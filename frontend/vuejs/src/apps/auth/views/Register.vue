@@ -167,102 +167,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 import { Form, Field } from 'vee-validate'
-import { useAuthStore } from '@/apps/auth/stores/index'
-import { formatAuthError } from '@/apps/auth/plugins/validation'
-import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
+import { useRegisterForm } from '@/apps/auth/composables/useRegisterForm'
+import type { PasswordRequirementsRef } from '@/apps/auth/types/form'
 
-import { 
+import {
   AuthLinks,
   PasswordInput,
   FormInput,
   FormCheckbox,
   PasswordRequirements,
   GradientButton,
-} from '@/apps/auth/components' 
+} from '@/apps/auth/components'
 
-const router = useRouter()
-const authStore = useAuthStore()
-const serverError = ref('')
-const isSubmitting = ref(false)
+const { authStore, serverError, isSubmitting, hasAcceptedTerms, onSubmit: handleSubmit } = useRegisterForm()
 const passwordRequirements = ref<PasswordRequirementsRef | null>(null)
-const hasAcceptedTerms = ref(false)
 
 defineOptions({
   name: 'Register'
 })
-
-// Clear any auth errors when component is unmounted
-onBeforeUnmount(() => {
-  authStore.clearError()
-})
-
-const handleSubmit = async (values: RegisterFormValues) => {
-  serverError.value = ''
-  isSubmitting.value = true
-
-  try {
-    // Get values from VeeValidate
-    const username = values.username?.trim()
-    const email = values.email?.trim()
-    const password = values.password
-    const passwordConfirmation = values.password_confirmation
-    const agreeToTerms = values.agreeToTerms === true
-    
-    // Update terms acceptance state
-    hasAcceptedTerms.value = agreeToTerms
-    
-    // Validate all required fields
-    if (!username || !email || !password) {
-      serverError.value = 'Please fill in all required fields'
-      isSubmitting.value = false
-      return
-    }
-    
-    // Check terms acceptance first
-    if (!agreeToTerms) {
-      serverError.value = 'You must accept the Terms of Service and Privacy Policy to continue'
-      isSubmitting.value = false
-      return
-    }
-
-    // Check password confirmation matches
-    if (password !== passwordConfirmation) {
-      serverError.value = 'Passwords do not match'
-      isSubmitting.value = false
-      return
-    }
-    
-    // Validate password length
-    if (password.length < 8) {
-      serverError.value = 'Password must be at least 8 characters long'
-      isSubmitting.value = false
-      return
-    }
-
-    // Create registration data
-    const registerData = {
-      username,
-      email,
-      password,
-      password_confirmation: passwordConfirmation,
-      terms_accepted: agreeToTerms
-    }
-
-    document.body.style.cursor = 'wait'
-
-    await authStore.register(registerData)
-    
-    await router.push('/')
-  } catch (error: unknown) {
-    serverError.value = formatAuthError(error)
-  } finally {
-    isSubmitting.value = false
-    document.body.style.cursor = 'default'
-  }
-}
 </script>
 
 <style scoped>

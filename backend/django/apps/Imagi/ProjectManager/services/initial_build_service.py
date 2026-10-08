@@ -52,6 +52,11 @@ nothing points at. That one earns a repair run but never costs the build: a page
 that loads and is hard to sign into still beats the scaffold, so an unrepaired
 one is merged anyway.
 
+Sign-in and registration are never built here: every project ships Imagi's
+prebuilt auth, which the agents cannot change. Once the home page lands, one
+more thread restyles those pages to match it, in the background and outside
+this build's deadline (auth_restyle_service).
+
 Build progress is tracked on the existing Project.generation_status field
 ('generating' -> 'completed'/'failed'). Because each page stands alone, this is
 not all-or-nothing: the build counts as completed when at least one page landed,
@@ -66,6 +71,8 @@ from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from django.db import close_old_connections
 from django.utils import timezone
+
+from .auth_restyle_service import queue_auth_restyle
 
 logger = logging.getLogger(__name__)
 
@@ -522,6 +529,12 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 )
                 for task in tasks
             }
+            # The prebuilt sign-in pages are restyled to match the home page
+            # as soon as it lands, in the background (auth_restyle_service).
+            if 'home' in futures:
+                futures['home'].add_done_callback(
+                    lambda done: done.result() and queue_auth_restyle(project_id, user_id)
+                )
             applied = {slug: future.result() for slug, future in futures.items()}
 
         _resync_project_files(project_id)

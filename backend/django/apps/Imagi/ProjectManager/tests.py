@@ -617,7 +617,9 @@ class InitialBuildServiceTests(TransactionTestCase):
         ), patch(
             'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
             return_value=list(unresolved),
-        ):
+        ), patch.object(
+            initial_build_service, 'queue_auth_restyle'
+        ) as self.queue_auth_restyle:
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
 
@@ -1035,9 +1037,19 @@ class ParallelInitialBuildTests(TransactionTestCase):
         with patch.object(ImagiAgentService, 'process', fake_process), patch(
             'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
             return_value=[],
-        ):
+        ), patch.object(
+            initial_build_service, 'queue_auth_restyle'
+        ) as self.queue_auth_restyle:
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
+
+    def test_the_sign_in_restyle_starts_once_the_home_page_lands(self):
+        self._run()
+        self.queue_auth_restyle.assert_called_once_with(self.project.pk, self.user.pk)
+
+    def test_no_sign_in_restyle_without_a_home_page_to_match(self):
+        self._run({'home': 'fail'})
+        self.queue_auth_restyle.assert_not_called()
 
     def test_every_page_gets_its_own_subagent_and_its_own_file(self):
         from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
@@ -1325,6 +1337,63 @@ class ScaffoldWiringTests(TestCase):
             self.assertFalse(os.path.isdir(os.path.join(
                 self.backend_root, 'apps', app
             )))
+
+    def _manage(self, *args):
+        """Run the generated project's manage.py, as its developer would."""
+        import subprocess
+        import sys
+
+        env = {k: v for k, v in os.environ.items() if k != 'DJANGO_SETTINGS_MODULE'}
+        return subprocess.run(
+            [sys.executable, 'manage.py', *args],
+            cwd=self.backend_root, env=env, capture_output=True, text=True,
+            timeout=600,
+        )
+
+    def test_the_prebuilt_auth_passes_its_own_tests_in_a_generated_project(self):
+        # The end-to-end check that the template is not just text that looks
+        # right: the generated project boots, and the auth app's own suite
+        # (signin, register, logout, CSRF, lockout, rate limits) passes in it.
+        # No label: run exactly what the founder's own `manage.py test` runs.
+        result = self._manage('test', '--noinput')
+        self.assertEqual(
+            result.returncode, 0,
+            f"generated project's auth tests failed:\n{result.stdout}\n{result.stderr}",
+        )
+        self.assertIn('OK', result.stderr)
+        self.assertNotIn('Ran 0 tests', result.stderr)
+
+    def test_a_freshly_scaffolded_project_passes_the_merge_gates(self):
+        # Every first-build merge runs these on the whole tree, so an import
+        # in the prebuilt auth the checker cannot resolve would block them all.
+        from apps.Imagi.Build.services.frontend_integrity import (
+            find_router_contract_problems,
+            find_unresolved_imports,
+        )
+
+        self.assertEqual(find_unresolved_imports(self.project.project_path), [])
+        self.assertEqual(find_router_contract_problems(self.project.project_path), [])
+
+    def test_generated_settings_name_the_auth_rate_limits(self):
+        settings_src, _ = self._settings_src()
+        self.assertIn("'auth_signin'", settings_src)
+        self.assertIn("'auth_register'", settings_src)
+
+    def test_dev_proxy_keeps_the_host_so_csrf_origin_checks_pass(self):
+        # The sign-in and register endpoints enforce CSRF, and Django compares
+        # a POST's Origin with the Host it receives. Rewriting Host to the
+        # backend's port would fail every sign-in in the preview.
+        vite = self._read(self.project.project_path, 'frontend', 'vuejs', 'vite.config.ts')
+        self.assertIn('changeOrigin: false', vite)
+        self.assertNotIn('changeOrigin: true', vite)
+
+    def test_the_auth_pages_carry_the_business_name(self):
+        brand = self._read(
+            self.project.project_path,
+            'frontend', 'vuejs', 'src', 'apps', 'auth', 'brand.ts',
+        )
+        self.assertIn('"Wiring Check"', brand)
+        self.assertNotIn('__BUSINESS_NAME__', brand)
 
     def test_scaffolded_files_are_mirrored_to_database(self):
         # Disk is the source of truth; the DB mirror should hold the same
