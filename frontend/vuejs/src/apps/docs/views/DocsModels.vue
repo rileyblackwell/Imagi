@@ -68,6 +68,16 @@
             consume your usage faster.
           </p>
         </div>
+        <div class="bg-ink/[0.03] dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
+          <h4 class="callout__title">
+            Fast mode
+          </h4>
+          <p class="callout__body">
+            On Opus 5.5 the same menu has a Fast mode switch under Speed. Turn it on for noticeably quicker replies, at
+            twice the price, so it uses your plan's usage twice as fast. The chip adds "· Fast" while it's on, and threads
+            the coordinator starts follow its setting. The other models don't offer it, so the switch is greyed out for them.
+          </p>
+        </div>
       </section>
 
       <!-- Reasoning effort -->
