@@ -123,6 +123,37 @@
       <p id="tune-effort-note" class="tune-note px-3 pt-1 pb-3">
         More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default.
       </p>
+
+      <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
+        <span id="tune-speed-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
+          Speed
+        </span>
+      </div>
+      <!-- Fast mode: a switch, off by default. It costs twice as much per
+           token, so the price sits right beside it. -->
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="fastOn"
+        aria-labelledby="tune-speed-heading tune-fast-name"
+        aria-describedby="tune-fast-note"
+        :disabled="!instance || !fastAvailable"
+        class="fast-row"
+        data-testid="fast-mode-switch"
+        @click="toggleFast"
+      >
+        <span class="min-w-0 flex-1 text-left">
+          <span id="tune-fast-name" class="model-row__name">Fast mode</span>
+          <span id="tune-fast-note" class="model-row__blurb">
+            {{ fastAvailable
+              ? 'Faster replies at twice the price, so it uses your plan\'s usage twice as quickly. Threads the coordinator starts use it too.'
+              : 'Available on Opus 5.5.' }}
+          </span>
+        </span>
+        <span class="fast-switch" :class="{ 'fast-switch--on': fastOn }" aria-hidden="true">
+          <span class="fast-switch__knob"></span>
+        </span>
+      </button>
     </div>
   </div>
   </Transition>
@@ -374,7 +405,7 @@ import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { isBuiltInInput, useDictation } from '../../../composables/useDictation'
 import type { AIModel } from '../../../types/index'
 import type { AgentInstance, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
-import { reasoningEffortsForModel } from '../../../types/services'
+import { reasoningEffortsForModel, supportsFastMode } from '../../../types/services'
 
 const props = withDefaults(
   defineProps<{
@@ -601,7 +632,19 @@ const modelTier = (id: string) => MODEL_TIERS[id] ?? ''
  *  reasoning rung, so both settings are legible without opening anything. */
 const tuneLabel = computed(
   () => `${modelShortName(currentModel.value?.id)} · ${effortOptions.value[effortIndex.value]?.name ?? 'Reasoning'}`
+    + (fastOn.value ? ' · Fast' : '')
 )
+
+// Fast mode only exists on some models; on the others the switch is shown
+// off and disabled, and the instance's choice waits for a model that has it.
+const fastAvailable = computed(() => supportsFastMode(instance.value?.selectedModelId))
+const fastOn = computed(() => fastAvailable.value && !!instance.value?.fastMode)
+
+function toggleFast() {
+  if (instance.value && fastAvailable.value) {
+    store.setInstanceFastMode(instance.value.id, !fastOn.value)
+  }
+}
 
 function pickModel(id: string) {
   if (id !== instance.value?.selectedModelId) void handleModelSelect(id)
@@ -1446,7 +1489,93 @@ function handleEffortSelect(effort: ReasoningEffort) {
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* Fast mode row: laid out like a model row, ending on a small switch whose
+   track fills in the send button's navy (cream in dark) when on. */
+.fast-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: calc(100% - 0.5rem);
+  margin: 0.25rem 0.25rem 0.5rem;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.fast-row:hover:not(:disabled) {
+  background-color: rgba(19, 26, 44, 0.05);
+}
+
+.dark .fast-row:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+.fast-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fast-row:focus-visible {
+  box-shadow: var(--iw-focus-ring);
+}
+
+.fast-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px rgba(19, 26, 44, 0.25);
+  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.fast-switch__knob {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background-color: rgba(19, 26, 44, 0.45);
+  transition:
+    transform var(--iw-dur-2) var(--iw-ease-out),
+    background-color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.fast-switch--on {
+  background-color: rgb(19, 26, 44);
+  box-shadow: none;
+}
+
+.fast-switch--on .fast-switch__knob {
+  transform: translateX(0.75rem);
+  background-color: #fff;
+}
+
+.dark .fast-switch {
+  box-shadow: inset 0 0 0 1px rgba(243, 237, 226, 0.3);
+}
+
+.dark .fast-switch__knob {
+  background-color: rgba(243, 237, 226, 0.5);
+}
+
+.dark .fast-switch--on {
+  background-color: #f3ede2;
+}
+
+.dark .fast-switch--on .fast-switch__knob {
+  background-color: rgb(19, 26, 44);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .fast-row,
+  .fast-switch,
+  .fast-switch__knob,
   .model-row,
   .effort-bar__fill {
     transition: none;

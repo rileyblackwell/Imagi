@@ -144,6 +144,21 @@ describe('useAgentRun', () => {
       )
     })
 
+    it('sends fast mode only to a model that offers it', async () => {
+      script = async () => ({ response: 'ok' })
+      const opus = setup({ fastMode: true })
+      await opus.handlePrompt('Hi')
+      expect(agentService.streamAgent).toHaveBeenLastCalledWith(
+        '42', expect.objectContaining({ fastMode: true }), expect.any(Object), expect.any(AbortSignal),
+      )
+
+      const haiku = setup({ fastMode: true, selectedModelId: 'claude-haiku-5-5' })
+      await haiku.handlePrompt('Hi')
+      expect(agentService.streamAgent).toHaveBeenLastCalledWith(
+        '42', expect.objectContaining({ fastMode: false }), expect.any(Object), expect.any(AbortSignal),
+      )
+    })
+
     it('uses the final text when the stream missed some of it', async () => {
       const { handlePrompt, live } = setup()
       script = async (h) => {

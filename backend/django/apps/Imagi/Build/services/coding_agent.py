@@ -32,6 +32,7 @@ from apps.Imagi.Build.services.models_service import (
     get_model_identity_instructions,
     get_model_provider,
     resolve_reasoning_effort,
+    supports_fast_mode,
 )
 from .base_agent import build_model_settings
 from .tools import (
@@ -75,6 +76,24 @@ INITIAL_BUILD_TIME_BUDGET_S = _BUILDER_SETTINGS.get('INITIAL_BUILD_TIME_BUDGET_S
 # throughput, and the 'fast' tier (GPT 6's name for what earlier models
 # called 'priority') roughly doubles it. None leaves the account default.
 INITIAL_BUILD_SERVICE_TIER = _BUILDER_SETTINGS.get('INITIAL_BUILD_SERVICE_TIER')
+
+# The Claude counterpart: fast mode (speed 'fast') for the first build, on a
+# model that has it (Opus 5.5). Faster output at twice the price per token —
+# worth it on the one run a founder is watching a clock on. None turns it off.
+INITIAL_BUILD_SPEED = _BUILDER_SETTINGS.get('INITIAL_BUILD_SPEED')
+
+
+def run_speed(kind: str, model: str, fast_mode: bool = False) -> Optional[str]:
+    """The speed a run's requests ask for on a model: 'fast' when the user
+    switched fast mode on, or for the first build, on a model that offers it;
+    otherwise None (standard)."""
+    if not supports_fast_mode(model):
+        return None
+    if fast_mode:
+        return 'fast'
+    if kind == 'initial_build' and INITIAL_BUILD_SPEED:
+        return INITIAL_BUILD_SPEED
+    return None
 
 # Project memory files, in priority order (Codex reads AGENTS.md,
 # Claude Code reads CLAUDE.md). Only the first one found is loaded.
@@ -323,6 +342,7 @@ def create_coding_agent(
     model: str = DEFAULT_MODEL,
     reasoning_effort: Optional[str] = None,
     kind: str = 'chat',
+    fast_mode: bool = False,
 ) -> Agent:
     """
     Create the Imagi agent for a given conversation role.
@@ -341,6 +361,8 @@ def create_coding_agent(
             plus dispatch_task (new work) and message_task (follow-ups to a
             subagent it already has), with no file-editing tools — it delegates
             all building to subagents.
+        fast_mode: Ask for Claude's fast mode (see run_speed); ignored on a
+            model that doesn't offer it.
 
     Returns:
         Agent: The configured agent for that role
@@ -431,12 +453,17 @@ def create_coding_agent(
     # the lead calls its tools one at a time and sees each result before the
     # next. Builders are unaffected: their parallel reads and edits are wanted.
     #
-    # The first build alone asks for a service tier: it is the one run a
-    # person is watching a clock on, and the tier is priced per token.
+    # The first build alone asks for a faster tier (OpenAI's service tier,
+    # Claude's fast mode): it is the one run a person is watching a clock
+    # on, and the tier is priced per token.
     model_settings = build_model_settings(
         effort,
         parallel_tool_calls=False if kind == 'lead' else None,
-        service_tier=INITIAL_BUILD_SERVICE_TIER if kind == 'initial_build' else None,
+        service_tier=(
+            INITIAL_BUILD_SERVICE_TIER
+            if kind == 'initial_build' and get_model_provider(model) == 'openai' else None
+        ),
+        speed=run_speed(kind, model, fast_mode),
     )
     if model_settings is not None:
         kwargs['model_settings'] = model_settings

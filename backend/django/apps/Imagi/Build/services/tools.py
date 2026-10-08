@@ -709,6 +709,7 @@ def dispatch_task_impl(
         conversation = AgentConversation.objects.create(
             user_id=ctx.user_id,
             model_name=parent.model_name,
+            fast_mode=parent.fast_mode,
             project_id=parent.project_id,
             mode='agent',
             title=provisional_title,

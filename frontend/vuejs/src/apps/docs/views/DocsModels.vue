@@ -38,8 +38,7 @@
           <DocsCard title="Haiku 5.5">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Fast</span></p>
             Fast and inexpensive, yet capable at most tasks—not just small edits and quick questions. Turn up the effort
-            and it handles harder work too, while stretching your usage further than the other models. New projects'
-            first builds run on Haiku, so they're ready quickly.
+            and it handles harder work too, while stretching your usage further than the other models.
           </DocsCard>
           <DocsCard title="Sonnet 5.5">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Quick</span></p>
@@ -49,7 +48,8 @@
           <DocsCard title="Opus 5.5">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced · default</span></p>
             Thoughtful and dependable, with strong judgment on code and design—pages, features, fixes and questions
-            alike. It's the default: start here, and switch only when a task calls for it.
+            alike. It's the default: start here, and switch only when a task calls for it. New projects' first builds
+            run on Opus 5.5 in fast mode, and open as soon as the home page is ready.
           </DocsCard>
           <DocsCard title="Fable 5.1">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Frontier</span></p>

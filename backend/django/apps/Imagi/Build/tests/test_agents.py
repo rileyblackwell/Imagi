@@ -1268,6 +1268,15 @@ class ComputeCostTests(SimpleTestCase):
         self.assertEqual(compute_cost_usd('claude-haiku-5-5', 1_000_000, 0, 1_000_000), 0.1)
         # A cached count past the input it belongs to is capped, never negative.
         self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, 5_000_000), 0.2)
+
+    def test_fast_mode_bills_at_double_the_list_price(self):
+        from apps.Imagi.Build.services.models_service import pricing_model_id
+        fast = pricing_model_id('claude-opus-5-5', 'fast')
+        self.assertEqual(compute_cost_usd(fast, 1_000_000, 1_000_000), 48.0)
+        self.assertEqual(compute_cost_usd(fast, 1_000_000, 0, 900_000), 1.16)
+        # A model without fast mode always bills at standard speed.
+        self.assertEqual(pricing_model_id('claude-haiku-5-5', 'fast'), 'claude-haiku-5-5')
+        self.assertEqual(pricing_model_id('claude-opus-5-5', None), 'claude-opus-5-5')
         self.assertEqual(compute_cost_usd('claude-opus-5-5', 1_000_000, 0, -5), 4.0)
 
     def test_haiku_bills_long_prompts_at_its_long_context_rate(self):
@@ -1592,6 +1601,29 @@ class InitialBuildAgentTests(SimpleTestCase):
         self.assertIn('stay under 10 KB', INITIAL_BUILD_INSTRUCTIONS)
         self.assertIn('One write is the whole build', INITIAL_BUILD_INSTRUCTIONS)
         self.assertNotIn('If you finish with time left', INITIAL_BUILD_INSTRUCTIONS)
+
+
+class FastModeTests(SimpleTestCase):
+    """The composer's fast-mode switch, and the first build's own fast mode."""
+
+    def test_fast_mode_applies_only_where_the_model_offers_it(self):
+        from apps.Imagi.Build.services.coding_agent import run_speed
+        self.assertEqual(run_speed('lead', 'claude-opus-5-5', True), 'fast')
+        self.assertEqual(run_speed('task', 'claude-opus-5-5', True), 'fast')
+        self.assertIsNone(run_speed('lead', 'claude-opus-5-5', False))
+        self.assertIsNone(run_speed('lead', 'claude-haiku-5-5', True))
+        # The first build is fast on its own, with no switch.
+        self.assertEqual(run_speed('initial_build', 'claude-opus-5-5'), 'fast')
+
+    def test_a_fast_run_gets_a_fast_agent_and_fast_pricing(self):
+        service = ImagiAgentService(model='claude-opus-5-5')
+        service._run_kind = 'lead'
+        self.assertIsNone(service.agent.model_settings.extra_args)
+        self.assertEqual(service._pricing_model(), 'claude-opus-5-5')
+
+        service._run_fast = True
+        self.assertEqual(service.agent.model_settings.extra_args, {'speed': 'fast'})
+        self.assertEqual(service._pricing_model(), 'claude-opus-5-5:fast')
 
 
 class PromptSizeTests(SimpleTestCase):

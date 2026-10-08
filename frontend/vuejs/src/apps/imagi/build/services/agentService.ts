@@ -367,6 +367,7 @@ export const AgentService = {
       prompt: string;
       model: string;
       reasoningEffort?: string;
+      fastMode?: boolean;
       file?: any;
       conversationId?: number | string | null;
     },
@@ -409,6 +410,7 @@ export const AgentService = {
         message: data.prompt,
         model: data.model,
         reasoning_effort: data.reasoningEffort,
+        fast_mode: data.fastMode,
         project_id: String(projectId),
         conversation_id: data.conversationId ?? undefined,
         current_file: currentFile,

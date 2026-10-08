@@ -352,11 +352,17 @@ IMAGI_BUILDER = {
     # them rather than just one. Wall clock is the slowest page; what scales
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
-    # The first build's pages run on the quick tier: it is racing the clock,
-    # and a page write's wall clock is output throughput. The project's main
-    # thread still gets DEFAULT_MODEL — this only picks the page builders.
-    'INITIAL_BUILD_MODEL': 'claude-haiku-5-5',
-    'INITIAL_BUILD_TIME_BUDGET_S': 24,
+    # The first build's pages run on Opus 5.5 in fast mode (Riley,
+    # 2026-10-08): the best first impression, as quickly as it can be had.
+    # Fast mode bills at twice the list price ($8 / $40 per M tokens, metered
+    # as such in models_service). The project's main thread still gets
+    # DEFAULT_MODEL — this only picks the page builders.
+    'INITIAL_BUILD_MODEL': 'claude-opus-5-5',
+    'INITIAL_BUILD_SPEED': 'fast',
+    # The project opens as soon as the home page lands; the other pages keep
+    # building and merge as they finish. Not yet measured on Opus fast mode —
+    # tune once a live build has been timed.
+    'INITIAL_BUILD_TIME_BUDGET_S': 45,
     # Pages the first build writes, one subagent per entry, each owning a
     # single already-routed view file (see initial_build_service.PAGE_BRIEFS
     # for the briefs and prebuilt_apps/home.py for the scaffold they rewrite).
@@ -371,9 +377,9 @@ IMAGI_BUILDER = {
     # Cost and turns are runaway backstops now, not the operative limit — the
     # time budget stops a normal build long before either binds. Both are PER
     # PAGE, so the ceiling for a whole build is this times the page count.
-    # The cost figure is metered at list price (models_service), and at
-    # Claude Haiku 5.5's rates a page costs well under a cent — so this is
-    # far above real expected spend. Sized so it never cuts a build short on its own;
+    # The cost figure is metered at list price (models_service); at Opus 5.5
+    # fast-mode rates a page is roughly $0.20–0.50, so this stays well above
+    # real expected spend. Sized so it never cuts a build short on its own;
     # time does that.
     'INITIAL_BUILD_COST_BUDGET_USD': 1.50,
     'INITIAL_BUILD_MAX_TURNS': 12,

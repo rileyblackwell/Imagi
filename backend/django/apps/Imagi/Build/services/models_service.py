@@ -5,7 +5,7 @@ This module provides centralized definitions for all AI models used across the a
 ensuring that model information (IDs, names, costs, etc.) is maintained in a single location.
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from django.conf import settings
 
@@ -95,6 +95,10 @@ MODELS = {
         # Safety classifiers can decline a request; re-run it server-side on
         # Anthropic's recommended fallback instead of failing the turn.
         'refusal_fallback': True,
+        # Fast mode (speed 'fast', beta fast-mode-2026-02-01, Claude API
+        # only): faster output at twice the price per token ($8 / $40).
+        'fast_mode': True,
+        'fast_price_multiplier': 2,
     },
     'claude-fable-5-1': {
         'id': 'claude-fable-5-1',
@@ -222,6 +226,24 @@ def canonical_model_id(model_id: str) -> str:
     """The current id for a model: a retired id maps to its successor."""
     return LEGACY_MODEL_ALIASES.get(model_id, model_id)
 
+# A pricing id for a request made in fast mode: '<model id>:fast'. Only cost
+# accounting sees it; the conversation still records the public model id.
+FAST_PRICING_SUFFIX = ':fast'
+
+
+def supports_fast_mode(model_id: str) -> bool:
+    """Whether a model can be served in fast mode (speed 'fast')."""
+    return bool((get_model_by_id(model_id) or {}).get('fast_mode'))
+
+
+def pricing_model_id(model_id: str, speed: Optional[str] = None) -> str:
+    """The id compute_cost_usd prices a run under: the model's own, or its
+    fast-mode pricing id when the run asked for fast mode on a model that has it."""
+    if speed == 'fast' and supports_fast_mode(model_id):
+        return f"{model_id}{FAST_PRICING_SUFFIX}"
+    return model_id
+
+
 def get_model_by_id(model_id: str) -> dict:
     """
     Get a model definition by its ID. A retired id resolves to its
@@ -318,7 +340,8 @@ def compute_cost_usd(
     Compute the USD cost of a run at the model's list price.
 
     Args:
-        model_id: The public model ID (e.g. 'claude-opus-5-5')
+        model_id: The public model ID (e.g. 'claude-opus-5-5'), or a fast-mode
+            pricing id from pricing_model_id ('claude-opus-5-5:fast')
         input_tokens: All input tokens the run consumed, cached ones included
         output_tokens: Output tokens produced by the run
         cached_input_tokens: How many of input_tokens were served from the
@@ -331,6 +354,9 @@ def compute_cost_usd(
         float or None: The cost in USD, or None when the model (or its
         pricing) is unknown so callers can omit cost cleanly.
     """
+    fast = bool(model_id) and model_id.endswith(FAST_PRICING_SUFFIX)
+    if fast:
+        model_id = model_id[:-len(FAST_PRICING_SUFFIX)]
     model = get_model_by_id(model_id)
     if not model:
         return None
@@ -339,6 +365,10 @@ def compute_cost_usd(
     if input_price is None or output_price is None:
         return None
     cached_price = model.get('cached_input_price_per_m_tokens', input_price)
+    multiplier = model.get('fast_price_multiplier', 1) if fast else 1
+    input_price, output_price, cached_price = (
+        input_price * multiplier, output_price * multiplier, cached_price * multiplier,
+    )
 
     def clamp(value, ceiling):
         return min(max(value or 0, 0), ceiling or 0)

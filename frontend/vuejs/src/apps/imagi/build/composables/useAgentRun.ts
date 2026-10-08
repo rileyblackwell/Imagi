@@ -7,6 +7,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import type { AIMessage } from '../types/index'
 import type { AgentResponse, DispatchedTaskRef } from '../types/services'
+import { supportsFastMode } from '../types/services'
 import type { AgentStreamHandlers } from '../services/agentService'
 
 // Tools that mutate project files. Also drives the interrupted-run cleanup:
@@ -269,6 +270,7 @@ export function useAgentRun(projectId: Ref<string>) {
               prompt: promptText,
               model: instance.selectedModelId,
               reasoningEffort: instance.selectedEffort,
+              fastMode: !!instance.fastMode && supportsFastMode(instance.selectedModelId),
               file: instance.selectedFile,
               conversationId: conversationIdBefore ?? undefined
             },

@@ -61,7 +61,7 @@ and every page that did not simply keeps its placeholder.
 import logging
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from django.conf import settings
 from django.db import close_old_connections
@@ -483,6 +483,10 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         time_budget = builder.get('INITIAL_BUILD_TIME_BUDGET_S', 60)
         deadline_at = time.monotonic() + time_budget if time_budget else None
 
+        # The home page goes first: it is the page the founder opens on, and
+        # the project is ready as soon as it lands (below).
+        tasks.sort(key=lambda task: task.page.slug != 'home')
+
         with ThreadPoolExecutor(
             max_workers=len(tasks), thread_name_prefix=f'initial-build-{project_id}'
         ) as pool:
@@ -499,7 +503,24 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 )
                 for task in tasks
             }
-            applied = {slug: future.result() for slug, future in futures.items()}
+            applied = {}
+            slugs = {future: slug for slug, future in futures.items()}
+            for future in as_completed(futures.values()):
+                slug = slugs[future]
+                applied[slug] = future.result()
+                if slug == 'home' and applied[slug]:
+                    # Open the project now rather than when the slowest page
+                    # finishes: the founder lands on the home page, and the
+                    # others merge into the running preview as they finish.
+                    _resync_project_files(project_id)
+                    Project.objects.filter(pk=project_id).update(
+                        generation_status='completed',
+                        last_generated_at=timezone.now(),
+                    )
+                    logger.info(
+                        "Initial AI build of project %s: home page applied, project ready",
+                        project_id,
+                    )
 
         _resync_project_files(project_id)
 

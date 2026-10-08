@@ -665,8 +665,8 @@ class InitialBuildServiceTests(TransactionTestCase):
         )
 
     def test_main_thread_runs_on_the_default_model_not_the_build_model(self):
-        # The pages race the clock on the quick tier; the main thread is where
-        # the founder keeps working afterwards, so it gets the everyday default.
+        # The pages race the clock in fast mode; the main thread is where the
+        # founder keeps working afterwards, so it gets the everyday default.
         from apps.Imagi.Build.models import AgentConversation
 
         self._run_build(['accept'])
@@ -679,7 +679,6 @@ class InitialBuildServiceTests(TransactionTestCase):
         )
         self.assertEqual(lead.model_name, settings.IMAGI_BUILDER['DEFAULT_MODEL'])
         self.assertEqual(task.model_name, settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'])
-        self.assertNotEqual(lead.model_name, task.model_name)
 
     def test_reuses_an_existing_main_thread(self):
         from apps.Imagi.Build.models import AgentConversation
@@ -1076,6 +1075,52 @@ class ParallelInitialBuildTests(TransactionTestCase):
         self.assertEqual(set(calls), {'home', 'about', 'contact'})
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_the_project_opens_once_the_home_page_lands(self):
+        # The founder starts on the home page, so the project opens the moment
+        # it merges; the other pages keep building behind it. The early open
+        # re-syncs the files first, so the other pages wait for that re-sync
+        # and report whether it came while they were still running.
+        import threading
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        home_opened = threading.Event()
+        seen = {}
+
+        def fake_process(_self, **kwargs):
+            title = AgentConversation.objects.get(id=kwargs['conversation_id']).title
+            slug = title.rsplit('—', 1)[-1].strip().split(' ')[0]
+            if slug != 'home':
+                seen[slug] = home_opened.wait(timeout=10)
+            AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
+                review_status='accepted'
+            )
+            return {'success': True, 'files_changed': []}
+
+        with patch.object(ImagiAgentService, 'process', fake_process), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=[],
+        ), patch.object(
+            initial_build_service, '_resync_project_files',
+            side_effect=lambda _pk: home_opened.set(),
+        ):
+            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
+
+        self.assertEqual(seen, {'about': True, 'contact': True})
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+
+    def test_the_first_build_runs_on_opus_in_fast_mode(self):
+        from apps.Imagi.Build.services.coding_agent import create_coding_agent
+
+        model = settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL']
+        self.assertEqual(model, 'claude-opus-5-5')
+        agent = create_coding_agent(model, kind='initial_build')
+        self.assertEqual(agent.model_settings.extra_args, {'speed': 'fast'})
+        # Every other role runs at standard speed.
+        self.assertIsNone(create_coding_agent(model, kind='task').model_settings.extra_args)
 
     def test_the_build_fails_only_when_no_page_lands(self):
         self._run({'home': 'fail', 'about': 'fail', 'contact': 'fail'})

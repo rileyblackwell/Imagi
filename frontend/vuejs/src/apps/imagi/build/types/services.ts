@@ -221,6 +221,14 @@ export function clampEffortToModel(
     : DEFAULT_REASONING_EFFORT;
 }
 
+/** Models that offer Claude's fast mode: faster output at a higher price
+ *  (twice the list price per token). */
+export const FAST_MODE_MODELS: readonly string[] = ['claude-opus-5-5'];
+
+export function supportsFastMode(modelId?: string | null): boolean {
+  return !!modelId && FAST_MODE_MODELS.includes(modelId);
+}
+
 // Conversation / agent instance types
 
 /** What role a conversation plays in the workspace (lead thread / task / plain chat). */
@@ -317,6 +325,7 @@ export interface ConversationDto {
   id: number;
   title: string;
   model_name: string;
+  fast_mode?: boolean;
   project_id: number | null;
   kind: ConversationKind;
   /** Lead conversation this task was dispatched from */
@@ -364,6 +373,10 @@ export interface AgentInstance {
   totalTokens: number | null;
   selectedModelId: string | null;
   selectedEffort: ReasoningEffort;
+  /** Fast mode switched on in the composer. Saved on the conversation, and
+   *  threads the coordinator dispatches inherit it. Only sent to a model
+   *  that offers it (supportsFastMode). */
+  fastMode?: boolean;
   selectedFile: any | null;
   conversation: AIMessage[];
   isProcessing: boolean;

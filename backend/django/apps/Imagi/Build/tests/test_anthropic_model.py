@@ -160,6 +160,17 @@ class ClaudeRequestTests(SimpleTestCase):
         self.assertNotIn('tools', request)
         self.assertNotIn('system', request)
 
+    def test_fast_mode_sends_speed_and_its_beta(self):
+        request = AnthropicModel('claude-opus-5-5').build_request(
+            None, 'hi', build_model_settings('low', speed='fast'), [], None,
+        )
+        self.assertEqual(request['speed'], 'fast')
+        self.assertIn('fast-mode-2026-02-01', request['betas'])
+        standard = AnthropicModel('claude-opus-5-5').build_request(
+            None, 'hi', build_model_settings('low'), [], None,
+        )
+        self.assertNotIn('speed', standard)
+
     def test_history_translates_into_alternating_messages(self):
         system, messages = to_anthropic_messages([
             {'role': 'system', 'content': 'Extra rules.'},
