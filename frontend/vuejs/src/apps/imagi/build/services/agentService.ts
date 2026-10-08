@@ -110,18 +110,25 @@ function pageFrom(args?: Record<string, string>): string | null {
  * Shared by the live feed and persisted-metadata hydration, so a replayed
  * transcript reads exactly as it did while streaming.
  */
-// The preview browser's tools, all named browser_<action>. Looking is
-// reading what the app shows; anything else is using it like a visitor would.
-const PREVIEW_LOOK_TOOLS = new Set([
-  'browser_screenshot', 'browser_zoom', 'browser_read_page', 'browser_find',
-  'browser_get_page_text', 'browser_read_console', 'browser_wait',
+// Preview browser steps. One 'browser' call carries a turn's actions, named
+// in args.actions ("screenshot, left_click"). Looking is reading what the app
+// shows; anything else is using it the way a visitor would.
+const PREVIEW_LOOK_ACTIONS = new Set([
+  'screenshot', 'zoom', 'read_page', 'find', 'get_page_text', 'read_console', 'wait',
 ])
+
+function labelForBrowser(actions?: string): string {
+  const steps = (actions ?? '').split(',').map(step => step.trim()).filter(Boolean)
+  if (steps.length > 0 && steps.every(step => step === 'navigate')) return 'Opened a page in the preview'
+  if (steps.length === 0 || steps.every(step => step === 'navigate' || PREVIEW_LOOK_ACTIONS.has(step))) {
+    return 'Looked at your app in the preview'
+  }
+  return 'Tried out your app in the preview'
+}
 
 export function labelForTool(name: string, args?: Record<string, string>): string {
   const page = pageFrom(args)
-  if (name === 'browser_navigate') return 'Opened a page in the preview'
-  if (PREVIEW_LOOK_TOOLS.has(name)) return 'Looked at your app in the preview'
-  if (name.startsWith('browser_')) return 'Tried out your app in the preview'
+  if (name === 'browser') return labelForBrowser(args?.actions)
   switch (name) {
     case 'read_file': return page ? `Looked at ${page}` : 'Looked at your project'
     case 'edit_file':

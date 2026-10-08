@@ -508,7 +508,7 @@ describe('describeAgentTool', () => {
     expect(describeAgentTool('grep_files')).toBe('Reading project files…')
     expect(describeAgentTool('delete_file')).toBe('Editing project files…')
     expect(describeAgentTool('web_search')).toBe('Searching the web…')
-    expect(describeAgentTool('browser_screenshot')).toBe('Using the preview…')
+    expect(describeAgentTool('browser')).toBe('Using the preview…')
     expect(describeAgentTool('something_new')).toBe('Working…')
   })
 })

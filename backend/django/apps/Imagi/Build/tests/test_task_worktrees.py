@@ -1133,7 +1133,7 @@ class TaskCheckInTests(GitRepoTestMixin, TestCase):
         # A run stopped by its turn or cost cap has already written files; if
         # it did not finalize, the task would sit at 'active' forever — never
         # applied, never reviewed, and never reported to the user.
-        from apps.Imagi.Build.services.agent_runtime import MaxTurnsExceeded
+        from agents import MaxTurnsExceeded
 
         task = self._task()
         self._worktree_with_change(task)
@@ -2022,7 +2022,7 @@ class LeadFollowUpTests(GitRepoTestMixin, TestCase):
         self.assertEqual(lead_task_roster(self.lead), '')
 
     def test_a_lead_run_carries_its_roster_into_its_instructions(self):
-        from apps.Imagi.Build.services.agent_runtime import RunContextWrapper
+        from agents import RunContextWrapper
         from apps.Imagi.Build.services.coding_agent import get_dynamic_coding_instructions
 
         task = self._task()

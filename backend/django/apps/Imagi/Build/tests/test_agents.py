@@ -16,7 +16,7 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 
-from apps.Imagi.Build.services.agent_runtime import MaxTurnsExceeded
+from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -274,12 +274,16 @@ class ToolWrapperTests(TransactionTestCase):
         os.makedirs(os.path.join(self.root, 'backend', 'django'))
 
     def _invoke(self, tool, ctx=None, **args):
-        from apps.Imagi.Build.services.agent_runtime import RunContextWrapper
+        from agents.tool_context import ToolContext
 
         context = ctx or AgentContext(
             user_id=self.user.id, project_id=self.project.id, project_path=self.root
         )
-        raw = async_to_sync(tool.on_invoke_tool)(RunContextWrapper(context), json.dumps(args))
+        tool_ctx = ToolContext(
+            context=context, tool_name=tool.name, tool_call_id='call_1',
+            tool_arguments=json.dumps(args),
+        )
+        raw = async_to_sync(tool.on_invoke_tool)(tool_ctx, json.dumps(args))
         return json.loads(raw)
 
     def _mirror_paths(self):
@@ -505,7 +509,10 @@ class _FakeStreamedRun:
 
 
 def _delta_event(text):
-    return SimpleNamespace(type='text_delta', delta=text)
+    return SimpleNamespace(
+        type='raw_response_event',
+        data=SimpleNamespace(type='response.output_text.delta', delta=text),
+    )
 
 
 def _tool_call_event(name):
@@ -1366,7 +1373,7 @@ class ReasoningEffortLadderTests(SimpleTestCase):
         # Claude takes 'max' directly, so the top of the ladder is no longer
         # folded down to 'xhigh'.
         agent = create_coding_agent(model='claude-fable-5-1', reasoning_effort='max')
-        self.assertEqual(agent.model_settings.effort, 'max')
+        self.assertEqual(agent.model_settings.reasoning.effort, 'max')
 
 
 class RunBoundsHookTests(SimpleTestCase):
@@ -1575,7 +1582,7 @@ class InitialBuildAgentTests(SimpleTestCase):
             kind='initial_build', reasoning_effort='xhigh'
         )
         self.assertEqual(
-            agent.model_settings.effort, INITIAL_BUILD_REASONING_EFFORT
+            agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
         )
 
     def test_prompt_sizes_the_page_for_the_clock_and_forbids_a_second_write(self):
@@ -1614,13 +1621,19 @@ class PromptSizeTests(SimpleTestCase):
 class BuildModelSettingsTests(SimpleTestCase):
     """Request-level settings that ride on every model call."""
 
-    def test_settings_carry_effort_parallelism_and_fallback(self):
-        settings_ = build_model_settings(
-            'low', parallel_tool_calls=False, refusal_fallback=True
-        )
-        self.assertEqual(settings_.effort, 'low')
-        self.assertFalse(settings_.parallel_tool_calls)
-        self.assertTrue(settings_.refusal_fallback)
+    def test_service_tier_rides_in_extra_args(self):
+        settings_ = build_model_settings('low', service_tier='priority')
+        self.assertEqual(settings_.extra_args, {'service_tier': 'priority'})
+        self.assertEqual(settings_.reasoning.effort, 'low')
+
+    def test_no_service_tier_means_no_extra_args(self):
+        # Absent, not {}: the SDK merges extra_args into every request, and
+        # an empty dict is a needless key on each one.
+        self.assertIsNone(build_model_settings('low').extra_args)
+
+    def test_max_effort_survives_for_claude(self):
+        # OpenAI's Reasoning type has no 'max'; Claude takes it as is.
+        self.assertEqual(build_model_settings('max').reasoning.effort, 'max')
 
     def test_every_model_but_haiku_falls_back_on_a_refusal(self):
         for model, expected in (
@@ -1631,7 +1644,7 @@ class BuildModelSettingsTests(SimpleTestCase):
         ):
             with self.subTest(model=model):
                 agent = create_coding_agent(model=model)
-                self.assertEqual(agent.model_settings.refusal_fallback, expected)
+                self.assertEqual(agent.model.refusal_fallback, expected)
 
 
 class UsagePayloadTests(SimpleTestCase):

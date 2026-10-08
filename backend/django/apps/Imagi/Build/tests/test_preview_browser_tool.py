@@ -47,7 +47,10 @@ class ToolsetParamTests(SimpleTestCase):
         for kind, expected in (('lead', True), ('task', True), ('chat', True), ('initial_build', False)):
             with self.subTest(kind=kind):
                 agent = create_coding_agent(kind=kind)
-                has = any(isinstance(t, PreviewBrowserToolset) for t in agent.tools)
+                has = any(
+                    isinstance(getattr(t, 'anthropic_toolset', None), PreviewBrowserToolset)
+                    for t in agent.tools
+                )
                 self.assertEqual(has, expected)
 
 

@@ -1,5 +1,5 @@
 """
-Base agent service for the Imagi workspace (agent loop: agent_runtime).
+Base Agent Service using OpenAI Agents SDK.
 
 This module provides the agent harness for the Imagi workspace: it owns
 conversation persistence, context construction (including automatic history
@@ -16,16 +16,23 @@ from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
 
+from agents import Agent, MaxTurnsExceeded, Runner, RunConfig
 from asgiref.sync import sync_to_async
 
-from .agent_runtime import (
-    Agent,
-    MaxTurnsExceeded,
-    ModelSettings,
-    Runner,
-    RunConfig,
-    RunHooks,
-)
+try:  # ModelSettings location can vary across SDK versions
+    from agents import ModelSettings
+except ImportError:  # pragma: no cover - defensive fallback
+    ModelSettings = None
+
+try:  # Run lifecycle hooks (used for the initial build's cost/time caps)
+    from agents import RunHooks
+except ImportError:  # pragma: no cover - defensive fallback
+    RunHooks = None
+
+try:  # Reasoning config for the OpenAI Responses API
+    from openai.types.shared import Reasoning
+except ImportError:  # pragma: no cover - defensive fallback
+    Reasoning = None
 
 from django.conf import settings
 from apps.Imagi.Build.services.api_keys import read_api_key
@@ -41,8 +48,20 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Get API key
+# API keys. Every model on offer is Claude, served through the Agents SDK by
+# AnthropicModel; the OpenAI key is only needed if GPT models come back (and
+# for dictation, which reads its own).
 ANTHROPIC_API_KEY = read_api_key('ANTHROPIC_KEY')
+OPENAI_API_KEY = read_api_key('OPENAI_KEY')
+
+if not OPENAI_API_KEY:
+    # The SDK exports traces to OpenAI by default; with no OpenAI account
+    # there is nowhere to send them, and every run would log a warning.
+    try:
+        from agents import set_tracing_disabled
+        set_tracing_disabled(True)
+    except ImportError:  # pragma: no cover - defensive fallback
+        pass
 
 # Platform defaults for every user's project (see IMAGI_BUILDER in
 # imagi/settings.py); fallbacks keep tests and scripts working without it.
@@ -244,8 +263,8 @@ def provider_out_of_credit(exc: BaseException) -> Optional[str]:
     """The provider ('Anthropic' / 'OpenAI') whose balance ran out, if that is
     what this error is — otherwise None.
 
-    Walks the exception chain: a model error can be re-raised from inside
-    another.
+    Walks the exception chain: the Agents SDK can re-raise a model error from
+    inside its own.
     """
     seen = set()
     current: Optional[BaseException] = exc
@@ -285,9 +304,9 @@ def out_of_credit_message(provider: str) -> str:
 def response_has_tool_calls(response) -> bool:
     """Whether a model response asked for tool calls that have yet to run.
 
-    The runtime names every tool call's type with a '_call' suffix
-    ('function_call', 'browser_call', ...), so the suffix is a stable test
-    across tool kinds.
+    The SDK names every tool item's type with a '_call' suffix ('function_call',
+    'file_search_call', ...), and reasoning/message items never end that way, so
+    the suffix is a stable test across tool kinds.
     """
     for item in getattr(response, 'output', None) or ():
         item_type = getattr(item, 'type', '') or ''
@@ -303,7 +322,7 @@ def make_run_bounds_hook(
 ):
     """A RunHooks that stops a run at its cost and/or wall-clock bound.
 
-    Both are checked after each model turn — the only point the loop hands us
+    Both are checked after each model turn — the only point the SDK hands us
     control — so a run overshoots by at most the turn in flight.
 
     A turn that ends over its bound while holding tool calls is allowed to run
@@ -321,7 +340,7 @@ def make_run_bounds_hook(
     """
     has_budget = bool(budget_usd) and budget_usd > 0
     has_deadline = deadline_at is not None
-    if not (has_budget or has_deadline):
+    if RunHooks is None or not (has_budget or has_deadline):
         return None
 
     # The hook is built immediately before its run, so this is the run's start.
@@ -332,7 +351,7 @@ def make_run_bounds_hook(
         # run; raised before the next model turn starts instead.
         deferred_stop = None
         # The run's aggregate usage as of the last model turn. A run this hook
-        # stops loses the run result that normally carries its usage, and the
+        # stops loses the SDK result that normally carries its usage, and the
         # initial build ends that way on most runs — so the caller meters it
         # from here instead.
         last_usage = None
@@ -356,7 +375,7 @@ def make_run_bounds_hook(
                 output_tokens = getattr(usage, 'output_tokens', 0) or 0
                 cost = compute_cost_usd(
                     model_id, input_tokens, output_tokens, cached_input_tokens(usage),
-                    **long_context_tokens(usage),
+                    **long_context_tokens(usage, model_id),
                 )
                 if cost is not None and cost >= budget_usd:
                     return RunBudgetExceeded(cost, budget_usd)
@@ -370,11 +389,11 @@ def make_run_bounds_hook(
                 raise self.deferred_stop
 
         async def on_llm_end(self, context, agent, response):  # noqa: ANN001
-            # The loop adds the turn's usage before calling this, so the
+            # The SDK adds the turn's usage before calling this, so the
             # reading is complete through the turn that passes a bound.
             self._remember_usage(context)
-            # Defensive: if on_llm_start never ran, the deferred turn's tools
-            # have long since run, so stop here rather than never.
+            # Reached only on an SDK without on_llm_start: the deferred turn's
+            # tools have long since run, so stop here rather than never.
             if self.deferred_stop is not None:
                 raise self.deferred_stop
             exceeded = self._exceeded_bound(context)
@@ -391,21 +410,44 @@ def make_run_bounds_hook(
 def build_model_settings(
     reasoning_effort: Optional[str] = None,
     parallel_tool_calls: Optional[bool] = None,
-    refusal_fallback: bool = False,
+    service_tier: Optional[str] = None,
 ):
     """
-    Build an agent's ModelSettings: its effort level, whether it may call
-    several tools in one turn, and whether refusals fall back server-side.
+    Build ModelSettings for an agent, applying a reasoning effort level when one
+    is provided (and supported by the installed SDK).
 
     parallel_tool_calls=False makes the model emit one tool call per turn, so a
     tool with side effects the model cannot see until it returns (dispatch_task
-    creating a thread) cannot be fired twice in the same message.
+    creating a subagent) cannot be fired twice in the same message.
+
+    service_tier names an OpenAI processing tier ('fast', 'flex', ...) for
+    the agent's requests. The SDK has no field for it, so it rides in
+    extra_args, which the Responses model merges into every create() call.
+
+    Returns None when ModelSettings is unavailable, so callers can omit the
+    argument entirely and fall back to SDK defaults.
     """
-    return ModelSettings(
-        effort=reasoning_effort,
-        parallel_tool_calls=parallel_tool_calls,
-        refusal_fallback=refusal_fallback,
-    )
+    if ModelSettings is None:
+        return None
+    kwargs = {}
+    if parallel_tool_calls is not None:
+        kwargs['parallel_tool_calls'] = parallel_tool_calls
+    if service_tier:
+        kwargs['extra_args'] = {'service_tier': service_tier}
+    if reasoning_effort and Reasoning is not None:
+        try:
+            # Reasoning's effort literal is OpenAI's ladder, which has no
+            # 'max'; Claude's does. The value is only ever read back as a
+            # string (AnthropicModel puts it in output_config.effort), so it
+            # is set without the OpenAI-side validation.
+            return ModelSettings(reasoning=Reasoning.model_construct(effort=reasoning_effort), **kwargs)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not apply reasoning effort '{reasoning_effort}': {e}")
+    try:
+        return ModelSettings(**kwargs)
+    except Exception as e:  # pragma: no cover - defensive
+        logger.warning(f"Could not apply model settings {kwargs}: {e}")
+        return ModelSettings()
 
 
 def compact_history(messages: List[Dict[str, str]], max_chars: int = HISTORY_MAX_CHARS) -> List[Dict[str, str]]:
@@ -453,7 +495,8 @@ def compact_history(messages: List[Dict[str, str]], max_chars: int = HISTORY_MAX
 # Argument keys surfaced with tool_call SSE events so the workspace activity
 # feed can show what a tool touched. Allowlisted (rather than passing every
 # key through) so bulky values like file contents never ride the stream.
-_TOOL_ARG_KEYS = ('path', 'file_path', 'pattern', 'query', 'app_name', 'url')
+# 'actions' names a browser call's steps (screenshot, left_click, ...).
+_TOOL_ARG_KEYS = ('path', 'file_path', 'pattern', 'query', 'app_name', 'url', 'actions')
 _TOOL_ARG_MAX_CHARS = 200
 
 
@@ -485,7 +528,7 @@ def extract_tool_args(raw_item) -> Dict[str, str]:
 
 
 def extract_run_metadata(result) -> Dict[str, Any]:
-    """Extract structured metadata from an agent run result.
+    """Extract structured metadata from an Agents SDK run result.
 
     Returns the names of tools the agent called and the project files it
     changed, so the API can surface the agent's activity to the workspace UI
@@ -503,7 +546,7 @@ def extract_run_metadata(result) -> Dict[str, Any]:
             if name:
                 tool_calls.append(name)
 
-        # 'function_call_output': results persisted by the earlier runtime
+        # 'function_call_output' kept as a fallback for older SDK versions
         elif item_type in ('tool_call_output_item', 'function_call_output'):
             output = getattr(item, 'output', None)
             try:
@@ -570,19 +613,32 @@ def cached_input_tokens(usage) -> int:
     return cached if isinstance(cached, int) else 0
 
 
-def long_context_tokens(usage) -> Dict[str, int]:
-    """The share of a usage reading billed at long-context rates, as
-    compute_cost_usd keyword arguments (empty when there is none)."""
-    counts = {}
-    for key in ('long_context_input_tokens', 'long_context_cached_tokens', 'long_context_output_tokens'):
-        value = getattr(usage, key, 0)
-        if isinstance(value, int) and value:
-            counts[key] = value
-    return counts
+def long_context_tokens(usage, model_id: str) -> Dict[str, int]:
+    """The share of a usage reading billed at a model's long-context rates,
+    as compute_cost_usd keyword arguments (empty when there is none).
+
+    The rate applies per request, by that request's prompt size, so it is
+    read off the reading's per-request entries.
+    """
+    from .models_service import long_context_threshold
+
+    threshold = long_context_threshold(model_id)
+    if not threshold:
+        return {}
+    counts = {'long_context_input_tokens': 0, 'long_context_cached_tokens': 0,
+              'long_context_output_tokens': 0}
+    for entry in getattr(usage, 'request_usage_entries', None) or ():
+        prompt = getattr(entry, 'input_tokens', 0) or 0
+        if prompt <= threshold:
+            continue
+        counts['long_context_input_tokens'] += prompt
+        counts['long_context_cached_tokens'] += cached_input_tokens(entry)
+        counts['long_context_output_tokens'] += getattr(entry, 'output_tokens', 0) or 0
+    return {key: value for key, value in counts.items() if value}
 
 
 def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
-    """Token usage (with cost when priceable) from a run's Usage, or None.
+    """Token usage (with cost when priceable) from an SDK Usage object, or None.
 
     An all-zero reading means nothing was tracked (a real run always spends
     input tokens), so it is treated as unavailable rather than reported as
@@ -600,7 +656,7 @@ def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
     }
     cost = compute_cost_usd(
         model_id, input_tokens, output_tokens, cached_input_tokens(usage),
-        **long_context_tokens(usage),
+        **long_context_tokens(usage, model_id),
     )
     if cost is not None:
         payload["cost_usd"] = cost
@@ -608,9 +664,9 @@ def usage_payload(usage, model_id: str) -> Optional[Dict[str, Any]]:
 
 
 def extract_usage(result, model_id: str) -> Optional[Dict[str, Any]]:
-    """Token usage from a run result — see usage_payload.
+    """Token usage from an SDK run result — see usage_payload.
 
-    The runtime aggregates usage on the run's context wrapper.
+    The SDK aggregates usage on the run's context wrapper.
     """
     return usage_payload(
         getattr(getattr(result, 'context_wrapper', None), 'usage', None), model_id
@@ -858,8 +914,7 @@ class AgentContext:
 
 class ImagiAgentService:
     """
-    Agent service for the Imagi workspace, running Claude through
-    agent_runtime.
+    Agent service for the Imagi workspace using OpenAI Agents SDK.
 
     A single agent (the Imagi agent) handles everything — conversation and
     file editing alike. This service owns conversation persistence, context
@@ -899,6 +954,9 @@ class ImagiAgentService:
         # Verify API key is available
         if not ANTHROPIC_API_KEY:
             logger.warning("Anthropic API key not found - agent features may not work properly")
+        if OPENAI_API_KEY:
+            # Set environment variable for the agents SDK
+            os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
     def _apply_reasoning_effort(self, reasoning_effort: Optional[str]) -> None:
         """Update the reasoning effort, invalidating the cached agents if it changed."""
@@ -1684,7 +1742,7 @@ class ImagiAgentService:
     def _capped_run_files(self, conversation) -> List[str]:
         """Files a capped run wrote, read back off its working tree.
 
-        A capped run loses the result object that normally reports
+        A capped run loses the SDK result object that normally reports
         files_changed, but the work itself is on disk — so the tree is the
         record. Only task runs have a worktree to read; a capped chat run
         reports nothing rather than diffing the canonical project. Best-effort:
@@ -1939,11 +1997,13 @@ class ImagiAgentService:
                 last_heartbeat = time.monotonic()
                 await sync_to_async(self._touch_run_started)(conversation)
 
-            if event.type == "text_delta":
-                delta = getattr(event, 'delta', '')
-                if delta:
-                    text_parts.append(delta)
-                    yield {"type": "delta", "text": delta}
+            if event.type == "raw_response_event":
+                data = getattr(event, 'data', None)
+                if getattr(data, 'type', '') == 'response.output_text.delta':
+                    delta = getattr(data, 'delta', '')
+                    if delta:
+                        text_parts.append(delta)
+                        yield {"type": "delta", "text": delta}
 
             elif event.type == "run_item_stream_event":
                 item = getattr(event, 'item', None)
@@ -2057,7 +2117,7 @@ class ImagiAgentService:
 
             # run_streamed returns immediately; the run advances as events are
             # consumed. Sync function tools are dispatched to worker threads by
-            # the runtime, so their ORM writes stay off this event loop.
+            # the SDK, so their ORM writes stay off this event loop.
             result = Runner.run_streamed(
                 self.agent,
                 input=input_messages,
@@ -2446,13 +2506,13 @@ class ImagiAgentService:
             # The run hit one of its caps (turns, cost, or wall clock).
             # Everything the agent wrote before the cap is already on disk, so
             # surface a partial (capped) result rather than a hard failure. The
-            # run result is lost here, so the files it produced are read
+            # SDK result object is lost here, so the files it produced are read
             # back off the working tree instead.
             logger.info("Agent run capped for conversation %s: %s",
                         conversation.id if conversation else None, cap)
             files_changed = self._capped_run_files(conversation)
             capped_note = _capped_run_note(files_changed)
-            # The run result that carries a run's usage is lost with the
+            # The SDK result that carries a run's usage is lost with the
             # exception, but the bounds hook read the aggregate after every
             # turn. Without this, a run the hook stops — the initial build,
             # on most runs — would never be metered.

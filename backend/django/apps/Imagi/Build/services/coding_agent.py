@@ -1,5 +1,5 @@
 """
-The Imagi agent, run by agent_runtime on Claude.
+The Imagi agent, built on the OpenAI Agents SDK.
 
 This is the single agent for the Imagi workspace: it chats with the user AND
 edits files in their project, deciding for itself when to use tools. Its tool
@@ -14,12 +14,23 @@ from typing import Optional
 
 from django.conf import settings
 
-from .agent_runtime import Agent, RunContextWrapper, StopAtTools, WebSearchTool
+from agents import Agent, RunContextWrapper
+
+try:  # Hosted web-search tool (available on the OpenAI Responses API)
+    from agents import WebSearchTool
+except ImportError:  # pragma: no cover - defensive fallback
+    WebSearchTool = None
+
+try:  # Ends a run after a named tool call (task runs stop on ask_user)
+    from agents.agent import StopAtTools
+except ImportError:  # pragma: no cover - defensive fallback
+    StopAtTools = None
 
 from apps.Imagi.Build.services.models_service import (
     get_backend_model_id,
     get_model_by_id,
     get_model_identity_instructions,
+    get_model_provider,
     resolve_reasoning_effort,
 )
 from .base_agent import build_model_settings
@@ -58,6 +69,12 @@ INITIAL_BUILD_REASONING_EFFORT = _BUILDER_SETTINGS.get(
 # Quoted into its prompt so the agent's sense of the clock cannot drift from
 # the cap that actually stops it.
 INITIAL_BUILD_TIME_BUDGET_S = _BUILDER_SETTINGS.get('INITIAL_BUILD_TIME_BUDGET_S', 24)
+
+# The OpenAI service tier the first build requests (IMAGI_BUILDER in settings).
+# A page write is one long streamed tool call, so its wall clock is output
+# throughput, and the 'fast' tier (GPT 6's name for what earlier models
+# called 'priority') roughly doubles it. None leaves the account default.
+INITIAL_BUILD_SERVICE_TIER = _BUILDER_SETTINGS.get('INITIAL_BUILD_SERVICE_TIER')
 
 # Project memory files, in priority order (Codex reads AGENTS.md,
 # Claude Code reads CLAUDE.md). Only the first one found is loaded.
@@ -285,6 +302,23 @@ def get_dynamic_coding_instructions(
     return instructions
 
 
+def build_agent_model(model: str):
+    """
+    What the Agent's `model` is for a public model id: the real OpenAI model id
+    (a string, which the SDK serves through the Responses API) for GPT models,
+    or an AnthropicModel for Claude models.
+    """
+    backend_model = get_backend_model_id(model)
+    if get_model_provider(model) == 'anthropic':
+        from .anthropic_model import AnthropicModel
+        definition = get_model_by_id(model) or {}
+        return AnthropicModel(
+            backend_model,
+            refusal_fallback=bool(definition.get('refusal_fallback')),
+        )
+    return backend_model
+
+
 def create_coding_agent(
     model: str = DEFAULT_MODEL,
     reasoning_effort: Optional[str] = None,
@@ -335,7 +369,8 @@ def create_coding_agent(
         # The coordinator's clarifying question ends its turn the same way a
         # thread's does: the user's answer (a tap on an option, or typed) is
         # the next message.
-        kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
+        if StopAtTools is not None:
+            kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
     elif kind == 'initial_build':
         # One-shot first build of a new project: same full editing toolset as
         # chat, but framed as the initial build with explicit design direction.
@@ -343,30 +378,36 @@ def create_coding_agent(
     elif kind == 'task':
         tools.extend(TASK_AGENT_EXTRA_TOOLS)
         role_instructions = TASK_AGENT_INSTRUCTIONS
-        # ask_user must end the run — the user's answer is the next turn.
-        kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
+        # ask_user must end the run — the user's answer is the next turn. On
+        # SDKs without StopAtTools the tool still records the question; the
+        # model is instructed to stop, it just isn't mechanically enforced.
+        if StopAtTools is not None:
+            kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
 
     # The initial build is the one role that never searches: it is racing a
     # wall-clock budget, and everything it needs is in the founder's brief. A
     # single hosted search can eat a meaningful share of that budget, and it
     # also costs every later turn the tool's schema in the prompt.
     web_search_enabled = (
-        kind != 'initial_build'
+        WebSearchTool is not None
+        and kind != 'initial_build'
         and _BUILDER_SETTINGS.get('ENABLE_WEB_SEARCH', True)
     )
     if web_search_enabled:
         tools.append(WebSearchTool())
 
     # The preview browser, for the same roles: the coordinator and threads
-    # can look at and use the running app the way the user does. The first
-    # build has no time for it, and nothing to look at yet.
+    # can look at and use the running app the way the user does. It is a
+    # Claude toolset, so only Claude models get it; the first build has no
+    # time for it, and nothing to look at yet.
     browser_enabled = (
         kind != 'initial_build'
+        and get_model_provider(model) == 'anthropic'
         and _BUILDER_SETTINGS.get('ENABLE_PREVIEW_BROWSER', True)
     )
     if browser_enabled:
-        from .preview_browser_tool import PreviewBrowserToolset
-        tools.append(PreviewBrowserToolset())
+        from .preview_browser_tool import preview_browser_tool
+        tools.append(preview_browser_tool())
 
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
         instructions = get_dynamic_coding_instructions(context, agent, base_instructions)
@@ -389,16 +430,20 @@ def create_coding_agent(
     # twice — two subagents on one job, each overwriting the other's merge — so
     # the lead calls its tools one at a time and sees each result before the
     # next. Builders are unaffected: their parallel reads and edits are wanted.
-    definition = get_model_by_id(model) or {}
-    kwargs['model_settings'] = build_model_settings(
+    #
+    # The first build alone asks for a service tier: it is the one run a
+    # person is watching a clock on, and the tier is priced per token.
+    model_settings = build_model_settings(
         effort,
         parallel_tool_calls=False if kind == 'lead' else None,
-        refusal_fallback=bool(definition.get('refusal_fallback')),
+        service_tier=INITIAL_BUILD_SERVICE_TIER if kind == 'initial_build' else None,
     )
+    if model_settings is not None:
+        kwargs['model_settings'] = model_settings
     return Agent(
         name="Imagi",
         instructions=instructions_with_identity,
-        model=get_backend_model_id(model),
+        model=build_agent_model(model),
         tools=tools,
         **kwargs
     )

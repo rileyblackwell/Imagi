@@ -22,7 +22,7 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 #
 # `backend_model` is the real provider model id a public id maps to at
 # runtime; for every current model the two coincide. Every model runs through
-# services/agent_runtime.py on the Anthropic Messages API.
+# the Agents SDK on the Anthropic Messages API (services/anthropic_model.py).
 #
 # Prices are the provider's list price per million tokens, with no markup:
 # a run draws down a user's allowance by what it actually costs (see
@@ -117,8 +117,8 @@ MODELS = {
 
 # OpenAI's models, switched off while the workspace runs on Anthropic only.
 # Their definitions are kept so they can come back: list one in MODELS again
-# and give agent_runtime a Responses-API request builder and usage reader for
-# provider 'openai' (the loop, items and events stay as they are).
+# and the Agents SDK serves it through the Responses API as before
+# (coding_agent.build_agent_model picks the model class by provider).
 OPENAI_MODELS = {
     'gpt-6-luna': {
         'id': 'gpt-6-luna',
@@ -324,7 +324,7 @@ def compute_cost_usd(
         cached_input_tokens: How many of input_tokens were served from the
             provider's prompt cache; they bill at the cached-input rate
         long_context_*: The share of each count that came from requests over
-            the model's long-context threshold (see agent_runtime._add_usage);
+            the model's long-context threshold (see base_agent.long_context_tokens);
             billed at the long-context rates when the model has them
 
     Returns:

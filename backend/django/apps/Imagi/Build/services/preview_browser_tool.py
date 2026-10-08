@@ -26,8 +26,6 @@ import logging
 import time
 from urllib.parse import urlsplit
 
-from .agent_runtime import ClientToolset
-
 logger = logging.getLogger(__name__)
 
 # The longest edge, in pixels, of a screenshot sent to the model. Small enough
@@ -338,11 +336,15 @@ def _text(value):
     return [{'type': 'text', 'text': value}]
 
 
-class PreviewBrowserToolset(ClientToolset):
-    """browser_toolset_20260801, executed against the workspace preview."""
+class PreviewBrowserToolset:
+    """browser_toolset_20260801, executed against the workspace preview.
+
+    Attached to an agent through anthropic_model.toolset_function_tool (see
+    preview_browser_tool()), which runs a turn's member calls in order.
+    """
 
     toolset_name = 'browser'
-    name = 'browser'
+    halt_text = 'Not executed: an earlier action in this turn failed.'
 
     def to_param(self):
         configs = {member: {'enabled': False} for member in DISABLED_MEMBERS}
@@ -840,6 +842,12 @@ class _PreviewSession:
 
     def console_errors(self):
         return self.run(self.service._collect_console_errors)
+
+
+def preview_browser_tool():
+    """The preview browser as an agent tool."""
+    from .anthropic_model import toolset_function_tool
+    return toolset_function_tool(PreviewBrowserToolset())
 
 
 # ---------------------------------------------------------------------------
