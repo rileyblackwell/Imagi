@@ -38,7 +38,7 @@
       <section v-if="summary" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
-            <i :class="['fas', stat.icon]" class="text-xs text-blue-700 dark:text-blue-300"></i>
+            <i :class="['fas', stat.icon, ui.statIcon]" class="text-xs"></i>
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
@@ -55,7 +55,7 @@
             type="button"
             class="px-3.5 py-2 rounded-full text-sm font-medium border transition-colors duration-200 focus-ring"
             :class="providerFilter === option.value
-              ? 'border-ink/20 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
+              ? ui.chipOn
               : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] text-ink/70 dark:text-bone/70 hover:text-ink dark:hover:text-white'"
             @click="setProviderFilter(option.value)"
           >
@@ -165,9 +165,9 @@
       <!-- Where ads are created -->
       <p :class="ui.hintText" class="mt-4">
         New campaigns are created in
-        <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Google Ads</a>
+        <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" :class="ui.inlineLink">Google Ads</a>
         or
-        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Meta Ads Manager</a>
+        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" :class="ui.inlineLink">Meta Ads Manager</a>
         — once live, they appear here on the next sync.
       </p>
     </template>

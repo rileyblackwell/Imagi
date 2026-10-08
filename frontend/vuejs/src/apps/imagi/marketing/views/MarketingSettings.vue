@@ -20,7 +20,7 @@
       </div>
       <p :class="ui.bodyText" class="mb-6">
         Find these in the
-        <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Twilio Console</a>.
+        <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" :class="ui.inlineLink">Twilio Console</a>.
         Messages and calls are sent from your own Twilio account.
       </p>
 
@@ -211,7 +211,7 @@
           <li class="flex gap-2.5">
             <i class="fas fa-circle-check text-emerald-600 dark:text-emerald-300 mt-0.5 text-xs"></i>
             US numbers may need
-            <a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">A2P 10DLC registration</a>
+            <a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noopener noreferrer" :class="ui.inlineLink">A2P 10DLC registration</a>
             in Twilio for reliable delivery.
           </li>
         </ul>
@@ -224,7 +224,7 @@
     <h2 :class="ui.headingText" class="mb-1.5 transition-colors duration-300">Ad platforms</h2>
     <p :class="ui.bodyText" class="mb-5">
       Connect your ad accounts to watch campaign performance and pause or resume campaigns from the
-      <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">Ads tab</router-link>.
+      <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" :class="ui.inlineLink">Ads tab</router-link>.
       Credentials are stored encrypted, and Imagi never creates or edits ads without you.
     </p>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

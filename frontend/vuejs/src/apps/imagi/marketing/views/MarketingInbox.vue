@@ -52,11 +52,11 @@
             type="button"
             class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-ink/[0.06] dark:border-white/[0.05] last:border-b-0 transition-colors duration-150 focus-ring-inset"
             :class="selectedId === conversation.id
-              ? 'bg-ink/[0.03] dark:bg-blue-400/10'
+              ? 'bg-ink/[0.03] dark:bg-white/[0.06]'
               : 'hover:bg-ink/[0.03] dark:hover:bg-white/[0.04]'"
             @click="selectConversation(conversation.id)"
           >
-            <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] text-blue-700 dark:text-blue-200 text-xs font-semibold uppercase">
+            <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--sl-chip-bg)] ring-1 ring-[color:var(--sl-line-strong)] text-[color:var(--sl-coral)] text-xs font-semibold uppercase">
               {{ initials(conversation.display_name) }}
             </div>
             <div class="flex-1 min-w-0">
@@ -90,7 +90,7 @@
           <!-- Messages -->
           <div ref="threadPane" class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             <div v-if="threadLoading" class="flex justify-center py-8">
-              <div class="w-5 h-5 border-2 border-ink/[0.12] dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
+              <div class="w-5 h-5 border-2 border-ink/[0.12] dark:border-white/15 border-t-[color:var(--sl-coral)] dark:border-t-[color:var(--sl-coral)] rounded-full animate-spin motion-reduce:animate-none"></div>
             </div>
             <template v-else>
               <div

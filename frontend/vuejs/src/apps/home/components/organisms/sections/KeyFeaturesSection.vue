@@ -38,8 +38,8 @@
           <ProductShot
             src="/product/run-sell.webp"
             alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
-            :width="1800"
-            :height="414"
+            :width="2288"
+            :height="694"
             label="imagi — sell"
             caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
           />
@@ -48,8 +48,8 @@
           <ProductShot
             src="/product/run-marketing.webp"
             alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
-            :width="1800"
-            :height="420"
+            :width="2288"
+            :height="680"
             label="imagi — marketing"
             caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
           />
@@ -121,7 +121,7 @@ export default defineComponent({
   font-weight: 700;
 }
 
-/* Stacked, not side by side: these crops are 1800px of dense UI, and at half
+/* Stacked, not side by side: these crops are 2288px of dense UI, and at half
    the measure their tab labels stop being readable — which defeats the point
    of showing them at all. */
 .shot-pair {

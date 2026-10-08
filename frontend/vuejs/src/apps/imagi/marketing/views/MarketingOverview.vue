@@ -12,7 +12,7 @@
       <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
-            <i :class="['fas', stat.icon]" class="text-xs text-blue-700 dark:text-blue-300"></i>
+            <i :class="['fas', stat.icon, ui.statIcon]" class="text-xs"></i>
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink/50 dark:text-bone/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-ink dark:text-white tabular-nums">{{ stat.value }}</p>
@@ -48,7 +48,7 @@
           </div>
           <router-link
             :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }"
-            class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 transition-colors duration-200 rounded-md focus-ring"
+            :class="ui.textLink"
           >
             Open ads dashboard
           </router-link>
@@ -61,7 +61,7 @@
         </div>
         <p :class="ui.bodyText" v-else>
           Run ads on Google and Meta? Connect your ad accounts to watch spend and results here —
-          <router-link :to="{ name: 'marketing-settings', params: { projectName: route.params.projectName } }" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-ring">connect in settings</router-link>.
+          <router-link :to="{ name: 'marketing-settings', params: { projectName: route.params.projectName } }" :class="ui.inlineLink">connect in settings</router-link>.
         </p>
       </section>
 
@@ -72,7 +72,7 @@
             <h2 :class="ui.panelHeading">Recent campaigns</h2>
             <router-link
               :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 transition-colors duration-200 rounded-md focus-ring"
+              :class="ui.textLink"
             >
               View all
             </router-link>
@@ -82,7 +82,7 @@
               v-for="campaign in overview.recent_campaigns"
               :key="campaign.id"
               :to="{ name: 'marketing-campaign-detail', params: { projectName: route.params.projectName, campaignId: campaign.id } }"
-              class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08] hover:border-ink/25 dark:hover:border-blue-400/30 hover:bg-ink/[0.03] dark:hover:bg-blue-400/[0.06] transition-all duration-200 focus-ring"
+              class="flex items-center gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08] hover:border-ink/25 dark:hover:border-white/25 hover:bg-ink/[0.03] dark:hover:bg-white/[0.04] transition-all duration-200 focus-ring"
             >
               <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
                 <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']" class="text-sm"></i>
@@ -110,7 +110,7 @@
             <h2 :class="ui.panelHeading">Latest replies</h2>
             <router-link
               :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 transition-colors duration-200 rounded-md focus-ring"
+              :class="ui.textLink"
             >
               Open inbox
             </router-link>
@@ -121,7 +121,7 @@
               :key="message.id"
               class="flex items-start gap-3 p-3 rounded-xl border border-ink/10 dark:border-white/[0.08]"
             >
-              <div class="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border bg-ink/[0.04] dark:bg-blue-400/10 border-ink/10 dark:border-blue-400/25 text-blue-600 dark:text-blue-300">
+              <div class="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border border-[color:var(--sl-line)] bg-[color:var(--sl-chip-bg)] text-[color:var(--sl-coral)]">
                 <i class="fas fa-reply text-sm"></i>
               </div>
               <div class="flex-1 min-w-0">

@@ -28,8 +28,8 @@
           type="button"
           class="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 focus-ring"
           :class="form.channel === option.value
-            ? 'border-blue-300 dark:border-blue-400/50 bg-ink/[0.03] dark:bg-blue-400/10 ring-1 ring-blue-300/50 dark:ring-blue-400/30'
-            : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-ink/25 dark:hover:border-blue-400/30'"
+            ? 'border-[color:var(--sl-warm-line)] bg-[color:var(--sl-chip-bg-hover)] ring-1 ring-[color:var(--sl-warm-line)]'
+            : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-ink/25 dark:hover:border-white/25'"
           @click="form.channel = option.value"
         >
           <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
@@ -70,11 +70,11 @@
       <span :class="ui.label">Audience</span>
       <div class="space-y-2.5">
         <label class="flex items-center gap-2.5 text-sm text-ink dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
+          <input v-model="form.audience_type" type="radio" value="all" class="accent-[var(--sl-coral)] focus-ring" />
           All subscribed contacts
         </label>
         <label class="flex items-center gap-2.5 text-sm text-ink dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-ring" />
+          <input v-model="form.audience_type" type="radio" value="tags" class="accent-[var(--sl-coral)] focus-ring" />
           Contacts with any of these tags
         </label>
         <div v-if="form.audience_type === 'tags'" class="pl-6">
@@ -85,8 +85,8 @@
               type="button"
               class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 focus-ring"
               :class="isTagSelected(tag.tag)
-                ? 'border-ink/20 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
-                : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-ink/70 dark:text-bone/70 hover:border-ink/25 dark:hover:border-blue-400/30'"
+                ? ui.chipOn
+                : 'border-ink/10 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-ink/70 dark:text-bone/70 hover:border-ink/25 dark:hover:border-white/25'"
               @click="toggleTag(tag.tag)"
             >
               {{ tag.tag }} <span class="opacity-60">· {{ tag.count }}</span>

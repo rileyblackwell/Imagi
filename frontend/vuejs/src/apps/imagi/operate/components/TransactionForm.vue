@@ -15,7 +15,7 @@
           type="button"
           class="px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors duration-200 focus-ring"
           :class="form.kind === option.value
-            ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
+            ? ui.chipOn
             : 'border-ink/10 dark:border-white/[0.12] text-ink/60 dark:text-bone/60 hover:text-ink dark:hover:text-white'"
           @click="setKind(option.value)"
         >

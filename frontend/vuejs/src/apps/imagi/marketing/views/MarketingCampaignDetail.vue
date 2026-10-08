@@ -200,7 +200,7 @@
                 <tr
                   v-for="message in messages"
                   :key="message.id"
-                  class="border-t border-blue-200/50 dark:border-white/[0.06]"
+                  class="border-t border-ink/[0.06] dark:border-white/[0.06]"
                 >
                   <td class="px-2 py-3 text-ink dark:text-white font-medium">{{ message.contact_name || '—' }}</td>
                   <td class="px-2 py-3 text-ink/70 dark:text-bone/70 font-mono text-xs">{{ message.to_number }}</td>
