@@ -36,7 +36,7 @@
       <div v-reveal="{ delay: 120 }" class="sl-stage">
         <ProductShot
           src="/product/build-workspace.webp"
-          alt="The Imagi build workspace: a conversation with the agent on the left, and on the right the live stock-tracking app it wrote — a watchlist snapshot with AAPL, TSLA and MSFT prices and an AI-written weekly brief."
+          alt="The Imagi build workspace: the coordinator has split a request into two threads, one finished and one still working, and on the right the live stock-tracking app it wrote, with a watchlist snapshot of AAPL, TSLA and MSFT prices."
           :width="2400"
           :height="1500"
           label="imagi — build workspace"
