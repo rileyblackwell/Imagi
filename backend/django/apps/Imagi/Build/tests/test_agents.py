@@ -55,7 +55,7 @@ from apps.Imagi.Build.services.models_service import (
     get_model_provider,
     get_backend_model_id,
     get_model_choices,
-    get_model_identity_instructions,
+    get_model_display_name,
     resolve_reasoning_effort,
 )
 from apps.Imagi.Build.services.coding_agent import (
@@ -1329,7 +1329,7 @@ class ModelRegistryTests(SimpleTestCase):
         self.assertEqual(canonical_model_id('gpt-6-astra'), 'claude-fable-5-1')
         # Billed, named and served as the successor it now runs on.
         self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 4.0)
-        self.assertIn('Claude Opus 5.5', get_model_identity_instructions('gpt-5.6-terra'))
+        self.assertEqual(get_model_display_name('gpt-5.6-terra'), 'Claude Opus 5.5')
         self.assertEqual(get_model_provider('gpt-6-astra'), 'anthropic')
         # Still valid stored values on the conversation's model_name field.
         ids = [model_id for model_id, _ in get_model_choices()]
@@ -1340,10 +1340,6 @@ class ModelRegistryTests(SimpleTestCase):
         self.assertEqual(resolve_model('gpt-6-luna'), 'claude-haiku-5-5')
         self.assertEqual(resolve_model('claude-opus-5-5'), 'claude-opus-5-5')
         self.assertEqual(resolve_model('gpt-oops'), 'claude-opus-5-5')
-
-    def test_identity_prompt_names_fable(self):
-        instructions = get_model_identity_instructions('claude-fable-5-1')
-        self.assertIn('Claude Fable 5.1', instructions)
 
 
 class ReasoningEffortLadderTests(SimpleTestCase):
@@ -1531,15 +1527,11 @@ class InitialBuildAgentTests(SimpleTestCase):
     def test_prompt_scopes_each_subagent_to_a_single_file(self):
         # Half a minute buys one good write. Anything split across files can be
         # cut off mid-way holding a dangling import, which discards the page —
-        # and with several subagents running at once, a stray edit outside your
+        # and with several threads running at once, a stray edit outside your
         # own file also collides with a sibling's work at merge time.
-        self.assertIn('Your job is ONE file', INITIAL_BUILD_INSTRUCTIONS)
-        for rule in (
-            'Do NOT create component files',
-            'do NOT add other pages',
-            'do NOT add routes',
-        ):
-            self.assertIn(rule, INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn("Rewrite only that page's view file", INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('Touching any other file collides', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('references a missing file is thrown away', INITIAL_BUILD_INSTRUCTIONS)
 
     def test_pages_link_each_other_through_the_shared_page_list(self):
         # The pages are planned per business, so the shared prompt cannot
@@ -1591,9 +1583,8 @@ class InitialBuildAgentTests(SimpleTestCase):
         # The deadline can only stop a run between turns, so an oversized
         # page — or a second write after a quick first one — is time the
         # founder waits past the budget, with nothing to show for it.
-        self.assertIn('stay under 10 KB', INITIAL_BUILD_INSTRUCTIONS)
-        self.assertIn('One write is the whole build', INITIAL_BUILD_INSTRUCTIONS)
-        self.assertNotIn('If you finish with time left', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('under 10 KB', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('in a single write', INITIAL_BUILD_INSTRUCTIONS)
 
 
 class FastModeTests(SimpleTestCase):
@@ -1621,28 +1612,87 @@ class FastModeTests(SimpleTestCase):
 
 
 class PromptSizeTests(SimpleTestCase):
-    """The prompts stay short: the current request plus the project context it
-    needs, not an ever-growing list of rules. Ceilings, so growth is a choice."""
+    """The prompts stay minimal: what Imagi is, the agent's role and the
+    user's project. How to use each tool lives in the tool's own description.
+    Ceilings, so growth is a choice."""
 
     def test_each_role_prompt_stays_under_its_ceiling(self):
-        from apps.Imagi.Build.services.coding_agent import CODING_AGENT_INSTRUCTIONS
+        from apps.Imagi.Build.services.coding_agent import (
+            CODING_AGENT_INSTRUCTIONS, TASK_SIGN_OFF,
+        )
 
         for name, prompt, ceiling in (
-            ('chat', CODING_AGENT_INSTRUCTIONS, 3_100),
-            # Raised from 5,500 for app-error routing (2026-10-08).
-            ('lead', LEAD_AGENT_INSTRUCTIONS, 5_900),
-            ('task role', TASK_AGENT_INSTRUCTIONS, 3_500),
-            ('initial build', INITIAL_BUILD_INSTRUCTIONS, 5_000),
+            ('chat', CODING_AGENT_INSTRUCTIONS, 1_000),
+            ('lead', LEAD_AGENT_INSTRUCTIONS, 2_400),
+            ('task', TASK_AGENT_INSTRUCTIONS + TASK_SIGN_OFF, 1_600),
+            ('initial build', INITIAL_BUILD_INSTRUCTIONS, 1_200),
         ):
             with self.subTest(role=name):
                 self.assertLess(len(prompt), ceiling, f"{name} prompt is {len(prompt)} chars")
 
     def test_the_first_build_carries_no_general_project_guidance(self):
-        # A first build rewrites one already-routed file; the layout, API and
-        # payments guidance the other roles need is dead weight on its clock.
-        from apps.Imagi.Build.services.coding_agent import SHARED_PROJECT_GUIDANCE
+        # A first build rewrites one already-routed file; the stack and
+        # prebuilt-areas guidance the other roles need is dead weight on its clock.
+        from apps.Imagi.Build.services.coding_agent import APP_GUIDANCE
 
-        self.assertNotIn(SHARED_PROJECT_GUIDANCE, INITIAL_BUILD_INSTRUCTIONS)
+        self.assertNotIn(APP_GUIDANCE, INITIAL_BUILD_INSTRUCTIONS)
+
+
+class SystemPromptAssemblyTests(SimpleTestCase):
+    """What each role's prompt holds once a run's context is added."""
+
+    def _prompt(self, kind, **context):
+        from agents import RunContextWrapper
+
+        agent = create_coding_agent(kind=kind)
+        ctx = AgentContext(user_id=1, project_id=1, conversation_kind=kind, **context)
+        return agent.instructions(RunContextWrapper(context=ctx), agent)
+
+    PROJECT = dict(
+        project_name='Harbor Bakery',
+        project_description='A neighborhood bakery site.',
+        project_app_details='Customers preorder cakes for pickup.',
+        project_design='Warm, cream and brown, friendly.',
+    )
+
+    def test_the_coordinator_and_threads_know_the_user_s_app(self):
+        # What the founder wrote at project creation: the name, what the app
+        # is, how it works and how it should look.
+        for kind in ('lead', 'task'):
+            prompt = self._prompt(kind, **self.PROJECT)
+            for value in self.PROJECT.values():
+                with self.subTest(kind=kind, value=value):
+                    self.assertIn(value, prompt)
+            self.assertIn('How it works: Customers preorder cakes', prompt)
+            self.assertIn('Look and feel: Warm', prompt)
+
+    def test_blank_project_fields_are_left_out(self):
+        prompt = self._prompt('lead', project_name='Harbor Bakery')
+        self.assertIn('Name: Harbor Bakery', prompt)
+        self.assertNotIn('How it works', prompt)
+        self.assertNotIn('Look and feel', prompt)
+
+    def test_the_first_build_prompt_takes_no_run_context(self):
+        # Its brief already carries the business.
+        self.assertEqual(
+            self._prompt('initial_build', **self.PROJECT), INITIAL_BUILD_INSTRUCTIONS
+        )
+
+    def test_no_prompt_tells_the_model_which_model_it_is(self):
+        for kind in ('lead', 'task', 'chat'):
+            with self.subTest(kind=kind):
+                self.assertNotIn('Model Identity', self._prompt(kind, **self.PROJECT))
+
+    def test_a_thread_s_prompt_ends_with_how_it_signs_off(self):
+        # The last instruction is the one that has to survive a long run: the
+        # final message is the summary card the user reads.
+        from apps.Imagi.Build.services.coding_agent import TASK_SIGN_OFF
+
+        self.assertTrue(self._prompt('task', **self.PROJECT).endswith(TASK_SIGN_OFF))
+
+    def test_the_coordinator_sees_its_threads(self):
+        roster = 'Your threads (the number is what message_task takes):\n- 412 "Menu"'
+        self.assertIn(roster, self._prompt('lead', task_roster=roster))
 
 
 class BuildModelSettingsTests(SimpleTestCase):
@@ -1706,65 +1756,19 @@ class UsagePayloadTests(SimpleTestCase):
 
 
 class TaskSignOffPromptTests(SimpleTestCase):
-    """How a finished subagent reports back to the person who asked.
+    """How a finished thread reports back: its last message is the summary
+    card the business owner reads, so it is written for them."""
 
-    Its last message is the whole of what the business owner reads on the
-    dispatch card in their main thread — for most runs, the only part of the
-    work they ever see. So the prompt fixes two things about it: how long it
-    is (long enough to walk through the whole job, short enough to read), and
-    whose language it is written in (theirs, not an engineer's).
-    """
+    def test_the_sign_off_is_plain_and_honest(self):
+        from apps.Imagi.Build.services.coding_agent import TASK_SIGN_OFF
 
-    def test_the_sign_off_is_a_four_to_six_sentence_paragraph(self):
-        # Two or three sentences could only ever name the headline change, so
-        # a run that touched several things reported one of them. Four to six
-        # is a sentence per change with room for a closing note.
-        self.assertIn(
-            'ONE plain paragraph of four to six sentences',
-            TASK_AGENT_INSTRUCTIONS,
-        )
-        # And the paragraph is one paragraph: the extra room is not a licence
-        # for the headings and bullet breakdowns it keeps out.
-        for banned in ('no headings', 'no bullet lists', 'no code or snippets'):
-            self.assertIn(banned, TASK_AGENT_INSTRUCTIONS)
+        self.assertIn("this thread's summary for the user", TASK_SIGN_OFF)
+        self.assertIn('everyday words', TASK_SIGN_OFF)
+        self.assertIn('no code or file names', TASK_SIGN_OFF)
+        self.assertIn("plain about anything that didn't work", TASK_SIGN_OFF)
 
-    def test_the_extra_sentences_go_on_more_changes_not_more_depth(self):
-        # The failure the length is meant to fix is coverage, not detail: six
-        # sentences about one change is the same unreported run as two.
-        self.assertIn(
-            'Spend those sentences going wide rather than deep',
-            TASK_AGENT_INSTRUCTIONS,
-        )
-        self.assertIn('give each one a sentence', TASK_AGENT_INSTRUCTIONS)
-
-    def test_the_sign_off_is_written_in_the_owner_s_words(self):
-        # Friendly and plain, with worked examples at the right altitude —
-        # what someone would say about their own site, not about the code.
-        self.assertIn(
-            'Sound like a friendly person telling the owner what you did',
-            TASK_AGENT_INSTRUCTIONS,
-        )
-        self.assertIn(
-            'I gave your home page a warmer color scheme', TASK_AGENT_INSTRUCTIONS
-        )
-
-    def test_component_is_named_as_a_word_the_owner_does_not_know(self):
-        # It reads like plain English to whoever writes the code, which is
-        # exactly why it slips through a general "no jargon" rule.
-        self.assertIn(
-            '"Component" is not a word the owner knows', TASK_AGENT_INSTRUCTIONS
-        )
-
-    def test_a_failed_tool_call_still_beats_a_tidy_paragraph(self):
-        # The length rule must not read as licence to round a failure up.
-        self.assertIn('Accuracy comes before all of it', TASK_AGENT_INSTRUCTIONS)
-
-    def test_the_first_build_signs_off_the_same_way(self):
-        # Those subagents land on the same dispatch cards, and their sign-off
-        # is the first thing a founder reads in a brand-new workspace.
-        self.assertIn(
-            'four to six friendly, plain sentences', INITIAL_BUILD_INSTRUCTIONS
-        )
+    def test_the_first_build_signs_off_for_the_founder(self):
+        self.assertIn('four to six plain sentences', INITIAL_BUILD_INSTRUCTIONS)
 
 
 class LeadAgentConfigurationTests(SimpleTestCase):
@@ -1791,47 +1795,29 @@ class LeadAgentConfigurationTests(SimpleTestCase):
         names = {tool.name for tool in agent.tools}
         self.assertIn('dispatch_task', names)
         self.assertIn('message_task', names)
-        self.assertIn('A FOLLOW-UP', LEAD_AGENT_INSTRUCTIONS)
-        self.assertIn('message_task', LEAD_AGENT_INSTRUCTIONS)
+        self.assertIn('start a thread with dispatch_task', LEAD_AGENT_INSTRUCTIONS)
+        self.assertIn('send it to that thread with message_task', LEAD_AGENT_INSTRUCTIONS)
 
     def test_only_the_lead_messages_subagents(self):
         for kind in ('chat', 'task', 'initial_build'):
             agent = create_coding_agent(kind=kind)
             self.assertNotIn('message_task', {tool.name for tool in agent.tools}, kind)
 
-    def test_the_lead_is_told_one_job_is_one_subagent(self):
-        self.assertIn(
-            'ONE job, ONE dispatch_task call, ONE thread', LEAD_AGENT_INSTRUCTIONS
-        )
+    def test_the_lead_delegates_building_and_answers_questions_itself(self):
+        # The one-job-one-thread rule and the unbacked-kickoff guard live on
+        # dispatch_task's description and in lead_claims_unmade_dispatch.
+        self.assertIn('all building goes to threads', LEAD_AGENT_INSTRUCTIONS)
+        self.assertIn('answer it yourself', LEAD_AGENT_INSTRUCTIONS)
 
-    def test_the_lead_answers_an_ordinary_question_in_the_thread(self):
-        # Half the workflow, and the half a non-technical user has to be able
-        # to feel: a message that is not a job comes straight back here, with
-        # nothing dispatched and no card, and they can simply write back.
-        self.assertIn('Answer it directly, in this thread', LEAD_AGENT_INSTRUCTIONS)
-
-    def test_the_lead_acknowledges_a_hand_off_in_one_line(self):
-        # The other half: a card appearing under the user's message with no
-        # reply above it reads as the workspace answering, not as the agent
-        # they just spoke to. One sentence — and no more than one.
-        self.assertIn(
-            'reply with ONE short sentence and end your turn',
-            LEAD_AGENT_INSTRUCTIONS,
-        )
-
-    def test_the_lead_does_not_repeat_what_the_workspace_already_says(self):
-        # The card names the job and describes the work, and the workspace
-        # prints the hand-back line itself, so the lead's sentence must not be
-        # a second copy of either.
-        self.assertIn(
-            'do not say the work runs in the background', LEAD_AGENT_INSTRUCTIONS
-        )
-
-    def test_the_lead_is_told_never_to_narrate_an_unmade_dispatch(self):
-        # A lead was observed replying "Done — I've kicked off a subagent…"
-        # with no dispatch_task call at all, so the request went nowhere. The
-        # prompt now says the claim is only ever made after the call.
-        self.assertIn('Saying it does not make it so', LEAD_AGENT_INSTRUCTIONS)
+    def test_the_lead_knows_every_way_a_thread_comes_back(self):
+        # The [Thread report] labels (base_agent._TASK_REPORT_LABELS), and what
+        # to do with a question the user answers in the coordinator's chat.
+        for phrase in (
+            '[Thread report]', 'finished and applied', 'pick a draft',
+            'stopped to ask the user a question', 'stopped before finishing',
+            "If the user answers a thread's question here, pass it on with message_task",
+        ):
+            self.assertIn(phrase, LEAD_AGENT_INSTRUCTIONS)
 
 
 class LeadDispatchClaimTests(SimpleTestCase):

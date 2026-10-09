@@ -68,9 +68,9 @@ ANSWER_MAX_CHARS = 6000
 MAX_SOURCES = 8
 QUESTION_MAX_CHARS = 2000
 
-WEB_SEARCH_SYSTEM = """You research questions on the web for an AI agent that builds web apps for small businesses. Search, read what you find, and answer the question in a few short paragraphs or a tight list: the facts, numbers, names and code details the agent asked for, current as of today. Say plainly when sources disagree or you could not find something. Do not pad, and do not tell the agent what to build."""
+WEB_SEARCH_SYSTEM = """You research the web for an AI agent that builds apps for small businesses. Answer its question briefly with the facts, numbers and details it asked for, current as of today, and say when sources disagree or you found nothing."""
 
-EXPLORE_INSTRUCTIONS = """You explore a web app's codebase for another agent, read-only. Use the tools to find what the question asks about, then answer briefly: the relevant file paths, what each does, and the few lines that matter, quoted exactly with their line numbers. The project is a Vue 3 frontend under 'frontend/vuejs/' and a Django backend under 'backend/django/'. Search before reading (glob_files, grep_files), read only what you need, and say so when something does not exist. You cannot change files."""
+EXPLORE_INSTRUCTIONS = """You explore a web app's codebase, read-only, for another agent. Answer its question briefly: the relevant files, what they do, and the key lines quoted with line numbers. The app is a Vue 3 frontend in frontend/vuejs/ and a Django backend in backend/django/. Say when something doesn't exist."""
 
 
 def _clip(text: str, limit: int) -> str:
