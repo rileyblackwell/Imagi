@@ -286,7 +286,22 @@ class PreviewPrewarmView(APIView):
         if not cache.add(key, True, timeout=self.PREWARM_THROTTLE_SECONDS):
             return Response({'started': False, 'reason': 'recently prewarmed'},
                             status=status.HTTP_202_ACCEPTED)
-        started = prewarm_recent_previews(request.user) is not None
+        # The size the owner's preview pane had last time, so a prewarmed
+        # preview can go on screen without a resize. start() clamps both.
+        viewport = request.data.get('viewport') or {}
+        size = None
+        if isinstance(viewport, dict):
+            try:
+                size = (int(viewport['width']), int(viewport['height']))
+            except (KeyError, TypeError, ValueError):
+                size = None
+        try:
+            dsf = float(request.data.get('device_scale_factor') or 0) or None
+        except (TypeError, ValueError):
+            dsf = None
+        started = prewarm_recent_previews(
+            request.user, viewport=size, device_scale_factor=dsf
+        ) is not None
         return Response({'started': started}, status=status.HTTP_202_ACCEPTED)
 
 

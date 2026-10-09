@@ -165,11 +165,14 @@ class BrowserBootsAlongsideServersTests(SimpleTestCase):
                 patch.object(self.service.servers, 'ensure_preview', side_effect=ensure_preview), \
                 patch.object(self.service, '_wait_for_frontend'), \
                 patch.object(self.service, '_save_state', side_effect=lambda st: saved.append(dict(st))), \
+                patch.object(self.service, '_open_app_tab') as open_tab, \
                 patch.object(self.service, '_with_page', return_value={'path': '/'}), \
                 self.assertLogs('imagi.timing', level='INFO') as logs:
             status = self.service._start_locked((1024, 700), None, prewarm)
         # One line per start, so slow starts in production can be measured.
         self.assertIn('preview start project=3 cold=True servers=', logs.output[0])
+        # The app opens in its own tab once Vite answers.
+        open_tab.assert_called_once_with(9301, 'http://127.0.0.1:5174/')
         return status, saved[-1]
 
     def test_cold_start_overlaps_the_browser_and_servers(self):
@@ -182,6 +185,42 @@ class BrowserBootsAlongsideServersTests(SimpleTestCase):
     def test_prewarm_marks_the_session(self):
         _status, state = self._start(prewarm=True)
         self.assertTrue(state['prewarmed'])
+
+
+class OpenAppTabTests(SimpleTestCase):
+    def test_opens_the_app_in_a_new_tab_and_closes_the_blank_one(self):
+        calls = []
+
+        class _Resp:
+            def __init__(self, payload=None):
+                self.payload = payload
+
+            def json(self):
+                return self.payload
+
+            def raise_for_status(self):
+                pass
+
+        def get(url, timeout):
+            calls.append(('GET', url))
+            if url.endswith('/json/list'):
+                return _Resp([{'id': 'blank', 'type': 'page'}, {'id': 'w', 'type': 'service_worker'}])
+            return _Resp()
+
+        def put(url, timeout):
+            calls.append(('PUT', url))
+            return _Resp({'id': 'app'})
+
+        with patch.object(browser_preview_service.requests, 'get', side_effect=get), \
+                patch.object(browser_preview_service.requests, 'put', side_effect=put), \
+                patch.object(browser_preview_service, '_pool_invalidate') as invalidate:
+            browser_preview_service.BrowserPreviewService._open_app_tab(9301, 'http://127.0.0.1:5174/')
+        self.assertEqual(calls, [
+            ('GET', 'http://127.0.0.1:9301/json/list'),
+            ('PUT', 'http://127.0.0.1:9301/json/new?http://127.0.0.1:5174/'),
+            ('GET', 'http://127.0.0.1:9301/json/close/blank'),
+        ])
+        invalidate.assert_called_once_with(9301)
 
 
 class PreviewStartLockTests(SimpleTestCase):

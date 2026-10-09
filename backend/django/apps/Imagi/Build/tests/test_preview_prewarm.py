@@ -79,7 +79,10 @@ class PrewarmRecentPreviewsTests(_Root, TestCase):
     def test_starts_the_three_most_recently_opened_newest_first(self):
         started = self._prewarm()
         self.assertEqual([name for name, _ in started], ['a', 'b', 'c'])
-        self.assertTrue(all(kwargs == {'prewarm': True} for _, kwargs in started))
+        self.assertTrue(all(
+            kwargs == {'viewport': None, 'device_scale_factor': None, 'prewarm': True}
+            for _, kwargs in started
+        ))
 
     def test_skips_projects_already_running(self):
         started = self._prewarm(running={'a'})
@@ -161,7 +164,25 @@ class PrewarmEndpointTests(_Root, APITestCase):
         self.assertEqual(first.status_code, 202)
         self.assertTrue(first.json()['started'])
         self.assertFalse(second.json()['started'])
-        prewarm.assert_called_once_with(self.user)
+        prewarm.assert_called_once_with(self.user, viewport=None, device_scale_factor=None)
+
+    def test_passes_on_the_panes_last_size(self):
+        with patch('apps.Imagi.Build.api.views.prewarm_recent_previews', return_value=object()) as prewarm:
+            self.client.post(
+                reverse('api-preview-prewarm'),
+                {'viewport': {'width': 900, 'height': 700}, 'device_scale_factor': 2},
+                format='json',
+            )
+        prewarm.assert_called_once_with(self.user, viewport=(900, 700), device_scale_factor=2.0)
+
+    def test_ignores_a_malformed_size(self):
+        with patch('apps.Imagi.Build.api.views.prewarm_recent_previews', return_value=object()) as prewarm:
+            self.client.post(
+                reverse('api-preview-prewarm'),
+                {'viewport': {'width': 'wide'}, 'device_scale_factor': 'retina'},
+                format='json',
+            )
+        prewarm.assert_called_once_with(self.user, viewport=None, device_scale_factor=None)
 
 
 class OpeningAProjectRanksItTests(_Root, APITestCase):

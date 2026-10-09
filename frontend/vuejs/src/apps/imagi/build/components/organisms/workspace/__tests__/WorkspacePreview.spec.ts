@@ -359,3 +359,43 @@ describe('WorkspacePreview error banner', () => {
     expect(wrapper.find('.pv-alert').text()).not.toContain('Fix it')
   })
 })
+
+describe('WorkspacePreview opening onto a running session', () => {
+  let wrapper: VueWrapper
+
+  beforeEach(() => {
+    HTMLImageElement.prototype.decode = () => Promise.resolve()
+    pages.mockResolvedValue([])
+    resize.mockResolvedValue({})
+    // The start never answers in these tests: whatever shows came from the
+    // frame endpoint alone.
+    start.mockReturnValue(new Promise(() => {}))
+  })
+
+  afterEach(() => {
+    wrapper.unmount()
+    start.mockReset(); frame.mockReset()
+  })
+
+  // jsdom lays nothing out, so the pane measures as the 1280x800 fallback.
+  it('shows a prewarmed preview without waiting for the start', async () => {
+    frame.mockResolvedValue({ frame: 'WARM', etag: 'w', path: '/', viewport: [1280, 800], device_scale_factor: 1 })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+    expect(wrapper.find('img.pv-live').attributes('src')).toContain('WARM')
+  })
+
+  it('waits for the start when the running preview is another size', async () => {
+    frame.mockResolvedValue({ frame: 'SMALL', etag: 's', path: '/', viewport: [800, 600], device_scale_factor: 1 })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+    expect(wrapper.find('img.pv-live').exists()).toBe(false)
+  })
+
+  it('waits for the start when nothing is running yet', async () => {
+    frame.mockRejectedValue(new Error('not running'))
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+    expect(wrapper.find('img.pv-live').exists()).toBe(false)
+  })
+})

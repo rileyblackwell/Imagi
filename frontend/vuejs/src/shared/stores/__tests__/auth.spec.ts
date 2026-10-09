@@ -56,7 +56,7 @@ describe('auth store', () => {
       store.setAuthState(sampleUser, 'tok-prewarm')
       await Promise.resolve()
       await Promise.resolve()
-      expect(apiMock.post).toHaveBeenCalledWith('/v1/builder/preview/prewarm/')
+      expect(apiMock.post).toHaveBeenCalledWith('/v1/builder/preview/prewarm/', {})
     })
 
     it('clears stored auth when called with nulls', () => {

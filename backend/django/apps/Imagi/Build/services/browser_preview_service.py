@@ -530,12 +530,12 @@ class BrowserPreviewService:
         # re-marks a session someone is already using.
         state['prewarmed'] = bool(prewarm and (fresh or state.get('prewarmed')))
         self._save_state(state)
+        if fresh:
+            self._open_app_tab(state['cdp_port'], app_url + '/')
 
         def body(conn, _page):
             self._apply_viewport(conn, state)
             if fresh:
-                conn.call('Page.navigate', {'url': app_url + '/'})
-                self._forget_blank_page(conn, app_url)
                 time.sleep(0.3)  # let the first paint land in the frame below
             else:
                 # Ask the live page where it is — the pooled target info
@@ -784,22 +784,26 @@ class BrowserPreviewService:
         return result.get('result', {}).get('value')
 
     @staticmethod
-    def _forget_blank_page(conn, app_url, timeout=5):
-        """Drop the about:blank the browser launched on from its history.
+    def _open_app_tab(port, url):
+        """Swap the blank tab the browser launched with for one on the app.
 
-        Waits for the app's navigation to commit first (Page.navigate returns
-        before it does, and resetting earlier keeps the blank entry), so
-        "back" never leads outside the app.
+        A tab opened straight onto the app has only the app in its history,
+        so "back" never leads outside it. Navigating the blank tab instead
+        fails on Chromium builds that move the page to a new renderer on its
+        first real navigation ("Not attached to an active page").
         """
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            history = conn.call('Page.getNavigationHistory')
-            entries = history.get('entries', [])
-            index = history.get('currentIndex', 0)
-            if 0 <= index < len(entries) and entries[index].get('url', '').startswith(app_url):
-                conn.call('Page.resetNavigationHistory')
-                return
-            time.sleep(0.05)
+        base = f'http://127.0.0.1:{port}'
+        try:
+            blank = [t for t in requests.get(f'{base}/json/list', timeout=5).json()
+                     if t.get('type') == 'page']
+            requests.put(f'{base}/json/new?{url}', timeout=5).raise_for_status()
+            for target in blank:
+                requests.get(f"{base}/json/close/{target['id']}", timeout=5)
+        except (requests.RequestException, ValueError, KeyError) as e:
+            raise BrowserNotRunning(f'Could not open the app in the preview browser: {e}')
+        finally:
+            # Any pooled connection was to the blank tab.
+            _pool_invalidate(port)
 
     def _timed_launch(self, width, height, dsf):
         began = time.monotonic()
@@ -1435,7 +1439,7 @@ def start_preview_warmup(project):
     return thread
 
 
-def prewarm_recent_previews(user):
+def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     """Bring up previews for the owner's most recently opened projects.
 
     Called at sign-in, on the bet that the projects someone opened last are
@@ -1447,8 +1451,10 @@ def prewarm_recent_previews(user):
     session is shut down after BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT.
 
     The projects start one after another on one background thread, most
-    recent first, so a sign-in never starts several boots at once. Returns
-    the thread, or None when there is nothing to do.
+    recent first, so a sign-in never starts several boots at once. They
+    render at ``viewport`` / ``device_scale_factor`` (the size the owner's
+    preview pane had last time) so the workspace can show one the moment it
+    opens. Returns the thread, or None when there is nothing to do.
     """
     limit = getattr(settings, 'BROWSER_PREVIEW_PREWARM_RECENT', 3)
     if not limit or not getattr(user, 'pk', None):
@@ -1479,7 +1485,11 @@ def prewarm_recent_previews(user):
                     if service.is_running():
                         continue
                     ensure_working_copy(project)
-                    service.start(prewarm=True)
+                    service.start(
+                        viewport=viewport,
+                        device_scale_factor=device_scale_factor,
+                        prewarm=True,
+                    )
                     logger.info("Preview prewarmed for project %s", project.pk)
                 except Exception:
                     logger.warning(
