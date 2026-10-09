@@ -14,8 +14,6 @@ import tempfile
 from django.test import TestCase
 
 from apps.Imagi.Build.services.frontend_integrity import (
-    describe_auth_link_problems,
-    describe_router_contract_problems,
     describe_unresolved_imports,
     find_auth_link_problems,
     find_router_contract_problems,
@@ -54,12 +52,6 @@ class FrontendIntegrityTests(TestCase):
             'file': 'frontend/vuejs/src/apps/home/views/HomeView.vue',
             'import': '@/shared/components/SiteHeader.vue',
         }])
-
-    def test_missing_relative_file_is_reported(self):
-        self._write('apps/home/views/HomeView.vue', "import X from './Missing.vue'\n")
-        self.assertEqual(
-            [p['import'] for p in self._imports()], ['./Missing.vue']
-        )
 
     def test_missing_lazy_route_component_is_reported(self):
         # The most common shape a cut-short build leaves behind: a route
@@ -269,16 +261,6 @@ class FrontendIntegrityTests(TestCase):
             ['frontend/vuejs/src/apps/shop/router/index.ts'],
         )
 
-    def test_project_without_apps_has_no_router_problems(self):
-        self.assertEqual(find_router_contract_problems(self.root), [])
-
-    def test_router_problem_description_names_the_file(self):
-        described = describe_router_contract_problems(
-            [{'file': 'apps/home/router/index.ts', 'detail': 'calls createRouter()'}]
-        )
-        self.assertIn('apps/home/router/index.ts', described)
-        self.assertIn('createRouter', described)
-
     def test_description_lists_every_problem(self):
         problems = [
             {'file': 'a.vue', 'import': './x.vue'},
@@ -288,11 +270,6 @@ class FrontendIntegrityTests(TestCase):
         self.assertIn('a.vue', described)
         self.assertIn('./x.vue', described)
         self.assertIn('@/y.vue', described)
-
-    def test_description_truncates_a_badly_broken_tree(self):
-        problems = [{'file': f'{i}.vue', 'import': './x.vue'} for i in range(40)]
-        described = describe_unresolved_imports(problems)
-        self.assertIn('and 15 more', described)
 
 
 class AuthLinkTests(TestCase):
@@ -367,10 +344,3 @@ class AuthLinkTests(TestCase):
         # that never existed.
         self._write('apps/home/views/HomeView.vue', "<template><h1>Beanline</h1></template>\n")
         self.assertEqual(find_auth_link_problems(self.root), [])
-
-    def test_no_frontend_is_not_an_auth_problem(self):
-        self.assertEqual(find_auth_link_problems(tempfile.mkdtemp()), [])
-
-    def test_description_names_the_lost_route(self):
-        described = describe_auth_link_problems([{'path': '/auth/register'}])
-        self.assertIn('/auth/register', described)

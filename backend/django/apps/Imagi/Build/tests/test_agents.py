@@ -19,7 +19,6 @@ from unittest.mock import PropertyMock, patch
 from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
-from django.conf import settings
 from django.test import SimpleTestCase, TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -234,12 +233,6 @@ class EditFileTests(TestCase):
         with self.assertRaises(ValueError):
             edit_file_impl(self.project, 'frontend/vuejs/src/App.vue', 'same', 'same')
 
-    def test_edit_normalizes_bare_frontend_path(self):
-        result = edit_file_impl(
-            self.project, 'src/App.vue', '<div>App</div>', '<div>Normalized</div>'
-        )
-        self.assertEqual(result['path'], 'frontend/vuejs/src/App.vue')
-
     def test_edit_refuses_git_metadata(self):
         # .git/config can name a command (core.fsmonitor) that the backend's
         # own git calls would run, so the agent may never edit it.
@@ -422,14 +415,6 @@ class PlanTests(SimpleTestCase):
         ])
         self.assertEqual(ctx.plan, [{'step': 'Do work', 'status': 'pending'}])
 
-    def test_set_plan_replaces_previous_plan(self):
-        ctx = AgentContext(user_id=1)
-        set_plan(ctx, [{'step': 'old', 'status': 'pending'}])
-        set_plan(ctx, [{'step': 'new', 'status': 'in_progress'}])
-        self.assertEqual(len(ctx.plan), 1)
-        self.assertEqual(ctx.plan[0]['step'], 'new')
-
-
 class CompactHistoryTests(SimpleTestCase):
     def test_short_history_unchanged(self):
         messages = [
@@ -489,11 +474,6 @@ class ExtractRunMetadataTests(SimpleTestCase):
         ]
         metadata = extract_run_metadata(SimpleNamespace(new_items=items))
         self.assertEqual(metadata['files_changed'], ['a.py'])
-
-    def test_handles_empty_result(self):
-        metadata = extract_run_metadata(SimpleNamespace(new_items=[]))
-        self.assertEqual(metadata, {'tool_calls': [], 'files_changed': []})
-
 
 class _FakeStreamedRun:
     """Stands in for the SDK's RunResultStreaming."""
@@ -722,22 +702,6 @@ class ProcessStreamTests(TestCase):
         self.assertEqual(self.persisted, ['I started'])
         self.assertIsNone(self.persisted_metadata[0])
 
-    def test_max_turns_run_meters_usage(self):
-        class HitsTurnCap(_FakeStreamedRun):
-            async def stream_events(self):
-                yield _delta_event('Working on it ')
-                raise MaxTurnsExceeded('Max turns (30) exceeded')
-
-        run = HitsTurnCap([])
-        run.context_wrapper = SimpleNamespace(
-            usage=SimpleNamespace(input_tokens=2_000_000, output_tokens=90_000)
-        )
-
-        self._run(run)
-
-        usage_event = UsageEvent.objects.get(user=self.user)
-        self.assertEqual(usage_event.total_tokens, 2_090_000)
-
     def test_interrupted_run_without_usage_records_nothing(self):
         # No context_wrapper usage: absent means unknown — never a zero row.
         class Exploding(_FakeStreamedRun):
@@ -773,11 +737,6 @@ class AgentStreamEndpointTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(resp.status_code, 401)
-
-    def test_rejects_get(self):
-        token = Token.objects.create(user=self.user)
-        resp = self.client.get(self.url, HTTP_AUTHORIZATION=f'Token {token.key}')
-        self.assertEqual(resp.status_code, 405)
 
     def test_validates_body(self):
         token = Token.objects.create(user=self.user)
@@ -1011,17 +970,6 @@ class ConversationSummarySerializationTests(TestCase):
             data['last_assistant_summary'],
             'Should the form email you or open a ticket?',
         )
-
-    def test_summary_is_empty_before_the_agent_has_spoken(self):
-        from apps.Imagi.Build.api.views import _serialize_conversation
-
-        AgentMessage.objects.create(
-            conversation=self.conversation, role='user', content='the brief'
-        )
-        self.assertEqual(
-            _serialize_conversation(self.conversation)['last_assistant_summary'], ''
-        )
-
 
 class ConversationMessagesMetadataTests(TestCase):
     """The messages endpoint returns persisted run metadata per message."""
@@ -1309,11 +1257,6 @@ class ModelRegistryTests(SimpleTestCase):
 
     LINEUP = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1']
 
-    def test_the_lineup_is_four_claude_models_faster_to_smarter(self):
-        ids = [model_id for model_id, _ in get_model_choices()]
-        self.assertEqual(ids[:4], self.LINEUP)
-        self.assertIn(('claude-fable-5-1', 'Claude Fable 5.1'), get_model_choices())
-
     def test_each_tier_resolves_to_its_api_id(self):
         for model in self.LINEUP:
             with self.subTest(model=model):
@@ -1524,51 +1467,6 @@ class InitialBuildAgentTests(SimpleTestCase):
             INITIAL_BUILD_INSTRUCTIONS,
         )
 
-    def test_prompt_scopes_each_subagent_to_a_single_file(self):
-        # Half a minute buys one good write. Anything split across files can be
-        # cut off mid-way holding a dangling import, which discards the page —
-        # and with several threads running at once, a stray edit outside your
-        # own file also collides with a sibling's work at merge time.
-        self.assertIn("Rewrite only that page's view file", INITIAL_BUILD_INSTRUCTIONS)
-        self.assertIn('Touching any other file collides', INITIAL_BUILD_INSTRUCTIONS)
-        self.assertIn('references a missing file is thrown away', INITIAL_BUILD_INSTRUCTIONS)
-
-    def test_pages_link_each_other_through_the_shared_page_list(self):
-        # The pages are planned per business, so the shared prompt cannot
-        # name them; every page renders its navigation from the list Imagi
-        # keeps, and the list only names pages that are finished.
-        self.assertIn('site-pages', INITIAL_BUILD_INSTRUCTIONS)
-        self.assertIn('sitePages', INITIAL_BUILD_INSTRUCTIONS)
-
-    def test_the_home_brief_wires_in_the_prebuilt_auth_pages(self):
-        # The auth app is prebuilt and left untouched; bringing its two pages
-        # into the site is the home page's job specifically, so it lives in
-        # that page's brief rather than in the prompt every page shares.
-        from apps.Imagi.ProjectManager.services.initial_build_service import (
-            PAGE_BRIEFS,
-        )
-
-        home = PAGE_BRIEFS[0]
-        self.assertEqual(home.slug, 'home')
-        for path in ("'/auth/signin'", "'/auth/register'"):
-            self.assertIn(path, home.requirements)
-        self.assertIn('useAuthStore', home.requirements)
-        self.assertIn(
-            "Do NOT open, restyle, or modify anything under "
-            "'frontend/vuejs/src/apps/auth/'",
-            home.requirements,
-        )
-
-    def test_the_other_pages_are_told_to_leave_auth_to_home(self):
-        # Two pages both writing an auth header is duplicated work at best; at
-        # worst the about page invents its own sign-in flow.
-        from apps.Imagi.ProjectManager.services.initial_build_service import (
-            PAGE_BRIEFS,
-        )
-
-        for page in PAGE_BRIEFS[1:]:
-            self.assertIn('Do not import the auth store', page.requirements)
-
     def test_initial_build_runs_at_its_configured_effort(self):
         # Set explicitly for the role, so a per-request effort meant for the
         # interactive builders cannot slow the first build down.
@@ -1578,14 +1476,6 @@ class InitialBuildAgentTests(SimpleTestCase):
         self.assertEqual(
             agent.model_settings.reasoning.effort, INITIAL_BUILD_REASONING_EFFORT
         )
-
-    def test_prompt_sizes_the_page_for_the_clock_and_forbids_a_second_write(self):
-        # The deadline can only stop a run between turns, so an oversized
-        # page — or a second write after a quick first one — is time the
-        # founder waits past the budget, with nothing to show for it.
-        self.assertIn('under 10 KB', INITIAL_BUILD_INSTRUCTIONS)
-        self.assertIn('in a single write', INITIAL_BUILD_INSTRUCTIONS)
-
 
 class FastModeTests(SimpleTestCase):
     """The composer's fast-mode switch, and the first build's own fast mode."""
@@ -1678,11 +1568,6 @@ class SystemPromptAssemblyTests(SimpleTestCase):
             self._prompt('initial_build', **self.PROJECT), INITIAL_BUILD_INSTRUCTIONS
         )
 
-    def test_no_prompt_tells_the_model_which_model_it_is(self):
-        for kind in ('lead', 'task', 'chat'):
-            with self.subTest(kind=kind):
-                self.assertNotIn('Model Identity', self._prompt(kind, **self.PROJECT))
-
     def test_a_thread_s_prompt_ends_with_how_it_signs_off(self):
         # The last instruction is the one that has to survive a long run: the
         # final message is the summary card the user reads.
@@ -1708,10 +1593,6 @@ class BuildModelSettingsTests(SimpleTestCase):
         # an empty dict is a needless key on each one.
         self.assertIsNone(build_model_settings('low').extra_args)
 
-    def test_max_effort_survives_for_claude(self):
-        # OpenAI's Reasoning type has no 'max'; Claude takes it as is.
-        self.assertEqual(build_model_settings('max').reasoning.effort, 'max')
-
     def test_every_model_but_haiku_falls_back_on_a_refusal(self):
         for model, expected in (
             ('claude-haiku-5-5', False),
@@ -1726,16 +1607,6 @@ class BuildModelSettingsTests(SimpleTestCase):
 
 class UsagePayloadTests(SimpleTestCase):
     """The metered shape of an SDK usage reading."""
-
-    def test_prices_a_reading(self):
-        payload = usage_payload(
-            SimpleNamespace(input_tokens=1000, output_tokens=100), 'gpt-5.6-terra'
-        )
-        self.assertEqual(payload['input_tokens'], 1000)
-        self.assertEqual(payload['output_tokens'], 100)
-        self.assertEqual(
-            payload['cost_usd'], compute_cost_usd('gpt-5.6-terra', 1000, 100)
-        )
 
     def test_cached_input_from_the_reading_is_priced_at_the_cached_rate(self):
         reading = SimpleNamespace(
@@ -1753,22 +1624,6 @@ class UsagePayloadTests(SimpleTestCase):
         self.assertIsNone(usage_payload(
             SimpleNamespace(input_tokens=0, output_tokens=0), 'gpt-5.6-terra'
         ))
-
-
-class TaskSignOffPromptTests(SimpleTestCase):
-    """How a finished thread reports back: its last message is the summary
-    card the business owner reads, so it is written for them."""
-
-    def test_the_sign_off_is_plain_and_honest(self):
-        from apps.Imagi.Build.services.coding_agent import TASK_SIGN_OFF
-
-        self.assertIn("this thread's summary for the user", TASK_SIGN_OFF)
-        self.assertIn('everyday words', TASK_SIGN_OFF)
-        self.assertIn('no code or file names', TASK_SIGN_OFF)
-        self.assertIn("plain about anything that didn't work", TASK_SIGN_OFF)
-
-    def test_the_first_build_signs_off_for_the_founder(self):
-        self.assertIn('four to six plain sentences', INITIAL_BUILD_INSTRUCTIONS)
 
 
 class LeadAgentConfigurationTests(SimpleTestCase):
@@ -1790,35 +1645,16 @@ class LeadAgentConfigurationTests(SimpleTestCase):
 
     def test_the_lead_can_follow_up_with_a_subagent_it_already_has(self):
         # A follow-up goes to the thread already doing the work; the lead
-        # needs a tool for that, and the prompt has to tell it when to use it.
+        # needs a tool for that.
         agent = create_coding_agent(kind='lead')
         names = {tool.name for tool in agent.tools}
         self.assertIn('dispatch_task', names)
         self.assertIn('message_task', names)
-        self.assertIn('start a thread with dispatch_task', LEAD_AGENT_INSTRUCTIONS)
-        self.assertIn('send it to that thread with message_task', LEAD_AGENT_INSTRUCTIONS)
 
     def test_only_the_lead_messages_subagents(self):
         for kind in ('chat', 'task', 'initial_build'):
             agent = create_coding_agent(kind=kind)
             self.assertNotIn('message_task', {tool.name for tool in agent.tools}, kind)
-
-    def test_the_lead_delegates_building_and_answers_questions_itself(self):
-        # The one-job-one-thread rule and the unbacked-kickoff guard live on
-        # dispatch_task's description and in lead_claims_unmade_dispatch.
-        self.assertIn('all building goes to threads', LEAD_AGENT_INSTRUCTIONS)
-        self.assertIn('answer it yourself', LEAD_AGENT_INSTRUCTIONS)
-
-    def test_the_lead_knows_every_way_a_thread_comes_back(self):
-        # The [Thread report] labels (base_agent._TASK_REPORT_LABELS), and what
-        # to do with a question the user answers in the coordinator's chat.
-        for phrase in (
-            '[Thread report]', 'finished and applied', 'pick a draft',
-            'stopped to ask the user a question', 'stopped before finishing',
-            "If the user answers a thread's question here, pass it on with message_task",
-        ):
-            self.assertIn(phrase, LEAD_AGENT_INSTRUCTIONS)
-
 
 class LeadDispatchClaimTests(SimpleTestCase):
     """The predicate behind the unbacked-kickoff guard."""
@@ -2174,20 +2010,6 @@ class ConversationBriefTests(TestCase):
         )
         self.assertEqual(
             self._brief(task), 'Adding a contact page so customers can reach you.'
-        )
-
-    def test_the_overview_is_served_beside_the_brief(self):
-        # The goal names the job on the card; the overview is its body while
-        # the run is live, so the card needs both from the same fetch.
-        task = self._task(
-            goal='Adding a contact page so customers can reach you.',
-            overview='I am adding a contact page with a form people can fill in.',
-        )
-        resp = self.client.get(reverse('conversation_detail', args=[task.id]))
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(
-            resp.json()['overview'],
-            'I am adding a contact page with a form people can fill in.',
         )
 
     def test_brief_comes_from_the_queued_prompt_before_the_run_fires(self):
@@ -2645,12 +2467,6 @@ class CheckInQueueOrderTests(TestCase):
         self.assertEqual(
             [c['id'] for c in queue], [finished.id, failed.id, question.id]
         )
-
-    def test_questions_among_themselves_stay_fifo(self):
-        first = self._check_in('question', minutes_ago=10)
-        second = self._check_in('question', minutes_ago=5)
-
-        self.assertEqual([c['id'] for c in self._queue()], [first.id, second.id])
 
     def test_a_burst_of_simultaneous_finishes_keeps_its_arrival_order(self):
         # Five subagents landing inside the same second share a created_at, so

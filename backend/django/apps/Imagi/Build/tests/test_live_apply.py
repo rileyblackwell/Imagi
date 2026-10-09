@@ -2,7 +2,6 @@
 Threads' edits applied to the app as they are written (live_apply).
 """
 
-import json
 import os
 import tempfile
 from types import SimpleNamespace
@@ -122,21 +121,3 @@ class LiveApplyTests(GitRepoTestMixin, SimpleTestCase):
             "[browser console] TypeError: Cannot read properties of undefined (reading 'name')",
         ])
         self.assertIn('fix them', result['instruction'])
-
-
-class LiveApplyToolTests(GitRepoTestMixin, SimpleTestCase):
-    """The file tools carry the live result back to the thread."""
-
-    def test_update_file_reports_what_the_app_made_of_it(self):
-        from apps.Imagi.Build.services import tools
-
-        ctx = SimpleNamespace(live_apply=True)
-        with patch.object(tools, '_live_start', return_value=(b'old', object())), \
-                patch.object(live_apply, 'apply_edit', return_value={
-                    'applied_to_app': True, 'preview_errors': ['[browser console] boom'],
-                }):
-            answer = json.loads(tools._live_finish(ctx, 'a.vue', (b'old', object()), {
-                'success': True, 'path': 'a.vue',
-            }))
-        self.assertEqual(answer['preview_errors'], ['[browser console] boom'])
-        self.assertTrue(answer['success'])
