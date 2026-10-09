@@ -61,6 +61,7 @@ from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
     BrowserPreviewService,
+    evict_least_recent_previews,
     prewarm_recent_previews,
 )
 from apps.Imagi.ProjectManager.models import Project as PMProject
@@ -251,6 +252,9 @@ class PreviewSessionView(BrowserPreviewBaseView):
                 device_scale_factor=request.data.get('device_scale_factor'),
             )
             payload['running'] = True
+            # Opening this project may push another of the owner's out of
+            # their most recent few; that one's preview stops now.
+            evict_least_recent_previews(request.user)
             return Response(payload)
         except Exception as e:
             logger.exception("Error starting browser preview")
@@ -276,13 +280,14 @@ class PreviewSessionView(BrowserPreviewBaseView):
 class PreviewPrewarmView(APIView):
     """Warm up previews for the signed-in owner's most recent projects.
 
-    The client calls this right after sign-in (and when it restores a
-    session), so the workspace opens onto a running preview. Fire and forget:
-    it answers at once and the boots run in the background. Repeat calls
-    inside PREWARM_THROTTLE_SECONDS are no-ops.
+    The client calls this at sign-in (or when it restores a session) and
+    then on a heartbeat while Imagi is open, so the workspace opens onto a
+    running preview whenever the owner gets there. Fire and forget: it
+    answers at once and the boots run in the background. Repeat calls inside
+    PREWARM_THROTTLE_SECONDS are no-ops.
     """
     permission_classes = [IsAuthenticated]
-    PREWARM_THROTTLE_SECONDS = 300
+    PREWARM_THROTTLE_SECONDS = 60
 
     def post(self, request):
         from django.core.cache import cache
@@ -291,7 +296,22 @@ class PreviewPrewarmView(APIView):
         if not cache.add(key, True, timeout=self.PREWARM_THROTTLE_SECONDS):
             return Response({'started': False, 'reason': 'recently prewarmed'},
                             status=status.HTTP_202_ACCEPTED)
-        started = prewarm_recent_previews(request.user) is not None
+        # The size the owner's preview pane had last time, so a prewarmed
+        # preview can go on screen without a resize. start() clamps both.
+        viewport = request.data.get('viewport') or {}
+        size = None
+        if isinstance(viewport, dict):
+            try:
+                size = (int(viewport['width']), int(viewport['height']))
+            except (KeyError, TypeError, ValueError):
+                size = None
+        try:
+            dsf = float(request.data.get('device_scale_factor') or 0) or None
+        except (TypeError, ValueError):
+            dsf = None
+        started = prewarm_recent_previews(
+            request.user, viewport=size, device_scale_factor=dsf
+        ) is not None
         return Response({'started': started}, status=status.HTTP_202_ACCEPTED)
 
 

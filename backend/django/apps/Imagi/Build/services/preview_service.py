@@ -290,9 +290,12 @@ class PreviewService:
         if state:
             backend_port = state.get('backend_port')
             frontend_port = state.get('frontend_port')
-            backend_ok = bool(backend_port) and self._port_in_use(backend_port)
+            # A TCP connect, not _port_in_use: that scans every process's
+            # sockets, which cost most of a second per check on a host
+            # running several previews, on every workspace open.
+            backend_ok = bool(backend_port) and port_accepting(backend_port)
             # Legacy single-Django projects have no frontend server.
-            frontend_ok = not frontend_port or self._port_in_use(frontend_port)
+            frontend_ok = not frontend_port or port_accepting(frontend_port)
             if backend_ok and frontend_ok:
                 self.backend_port = backend_port
                 if frontend_port:

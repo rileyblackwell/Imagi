@@ -325,6 +325,7 @@ import {
   type PreviewInputEvent,
   type PreviewScroll,
 } from '../../../services/previewService'
+import { rememberPreviewViewport } from '@/shared/services/previewPrewarm'
 
 const props = defineProps<{
   projectId: string
@@ -524,10 +525,13 @@ async function startPreview() {
   if (!props.projectId || phase.value === 'starting') return
   phase.value = 'starting'
   error.value = null
+  const size = paneSize()
+  viewportDsf = deviceScaleFactor()
+  rememberPreviewViewport(size, viewportDsf)
+  showRunningSession(size)
   try {
     const seq = ++requestSeq
-    viewportDsf = deviceScaleFactor()
-    const result = await PreviewService.start(props.projectId, paneSize(), viewportDsf)
+    const result = await PreviewService.start(props.projectId, size, viewportDsf)
     if (disposed) return
     resyncScroll()
     applyStatus(result, seq)
@@ -549,6 +553,28 @@ async function startPreview() {
     phase.value = 'error'
     error.value = e instanceof Error ? e.message : 'Preview failed to start.'
   }
+}
+
+// A session that is already running (prewarmed at sign-in, or still up from
+// a recent visit) goes on screen straight away: the frame endpoint answers
+// without waiting behind start(), which still runs to claim the session and
+// sync its viewport. Only a frame rendered at this pane's size is shown — one
+// at another size would flash stretched until the resize lands — and a 409
+// just means there is nothing running yet for start() to reattach to.
+function showRunningSession(size: { width: number; height: number }) {
+  const seq = ++requestSeq
+  PreviewService.frame(props.projectId)
+    .then((f) => {
+      if (disposed || phase.value !== 'starting' || !f.frame) return
+      const [w, h] = f.viewport || [0, 0]
+      if (Math.abs(w - size.width) >= 4 || Math.abs(h - size.height) >= 4) return
+      if (f.device_scale_factor !== viewportDsf) return
+      resyncScroll()
+      applyStatus(f, seq)
+      phase.value = 'ready'
+      schedulePoll(200)
+    })
+    .catch(() => {})
 }
 
 function markSessionStopped() {
