@@ -11,8 +11,8 @@
         <p class="sl-eyebrow">What Imagi is</p>
         <h2 class="sl-display sl-h2">For anyone with an idea</h2>
         <p class="sl-lede">
-          No code, no developer, no stack of separate subscriptions. If you can explain your
-          idea, you can build it on Imagi and run it there too.
+          You don&rsquo;t need to code, hire a developer or stitch a dozen tools together.
+          If you can explain it, you can make it.
         </p>
       </div>
 
@@ -40,9 +40,9 @@ export default defineComponent({
     facts: {
       type: Array,
       default: () => [
-        { label: 'Plans start at', value: 'Free', lit: true, caption: 'Upgrade as you grow, cancel anytime.' },
+        { label: 'Plans start at', value: 'Free', lit: true, caption: 'Free usage every week. Paid plans add more.' },
         { label: 'Typical build', value: '10', unit: 'min', lit: true, caption: 'From your brief to an app you can open and share.' },
-        { label: 'Made for', value: 'Founders, small businesses and teams', caption: 'No technical co-founder or engineering queue needed.' }
+        { label: 'Made for', value: 'Founders, small businesses and teams', caption: 'And anyone else with an idea worth trying.' }
       ]
     }
   }

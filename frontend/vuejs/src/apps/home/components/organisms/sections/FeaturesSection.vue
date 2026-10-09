@@ -11,8 +11,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
-          Tell Imagi what you want and it goes to work. You watch the app take shape and
-          step in only when a choice is yours to make.
+          After the first build, the app keeps growing the same way: you ask, and
+          Imagi&rsquo;s agents do the work.
         </p>
       </div>
 
@@ -40,7 +40,7 @@
           :width="2400"
           :height="1500"
           label="imagi — build workspace"
-          caption="A real project mid-conversation: “Ticker Insights”, a stock tracker with AI-written summaries, built from a description and running live beside the chat."
+          caption="A real project mid-conversation: Ticker Insights, with one thread finished and one still working."
         />
       </div>
     </div>
