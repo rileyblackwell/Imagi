@@ -151,14 +151,10 @@ export default defineComponent({
       },
       {
         badge: '11. Ending Your Use',
-        description: 'You can stop using Imagi and ask us to close your account at any time. We may suspend or close an account that breaks these terms, puts Imagi or others at risk, or goes unpaid. Sections 4 and 8 through 12 continue to apply after your account closes.'
+        description: 'You can stop using Imagi and ask us to close your account at any time. We may suspend or close an account that breaks these terms, puts Imagi or others at risk, or goes unpaid. Sections 4 and 8 through 10 continue to apply after your account closes.'
       },
       {
-        badge: '12. Governing Law',
-        description: 'Imagi is based in Grand Rapids, Michigan. These terms are governed by the laws of the State of Michigan, United States, without regard to conflict-of-law rules. Disputes will be handled in the state or federal courts serving Kent County, Michigan, except where the law gives you the right to bring a claim elsewhere.'
-      },
-      {
-        badge: '13. Changes and Contact',
+        badge: '12. Changes and Contact',
         description: 'We may update these terms as Imagi changes. When we do, we will change the date at the top of this page, and for significant changes we will let you know in the product or by email. Continuing to use Imagi after a change means you accept the updated terms.'
       }
     ]
