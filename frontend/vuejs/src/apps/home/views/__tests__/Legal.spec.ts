@@ -36,3 +36,28 @@ describe.each([
     expect(wrapper().find('.closing-stub').text()).toBe(`Ready to start? ${sibling}`)
   })
 })
+
+describe('Legal text matches how Imagi works today', () => {
+  const text = (page: unknown) => mount(page as never, { global: { stubs } }).find('.prose').text()
+
+  it('names the outside services that receive user data', () => {
+    const privacy = text(PrivacyPolicy)
+    for (const provider of ['Anthropic', 'OpenAI', 'Stripe', 'Railway', 'Twilio']) {
+      expect(privacy).toContain(provider)
+    }
+    expect(privacy).toContain('do not sell your personal information')
+  })
+
+  it('numbers every section, with no unnumbered tail', () => {
+    for (const page of [PrivacyPolicy, TermsOfService]) {
+      const eyebrows = mount(page, { global: { stubs } }).findAll('.prose .sec-num').map(n => n.text())
+      expect(eyebrows.every(e => /^Section \d\d$/.test(e))).toBe(true)
+    }
+  })
+
+  it('does not promise publishing apps, and marks the business tools as beta', () => {
+    const terms = text(TermsOfService)
+    expect(terms).toContain('publishing your app to the internet from Imagi is not available yet')
+    expect(terms).toContain('Sell, Market and Operate are in beta')
+  })
+})
