@@ -161,11 +161,15 @@
           @keyup="onKeyUp"
           @contextmenu.prevent
         >
-          <!-- contain, not fill: pane and remote viewport can briefly disagree
-               (resizes are debounced), and letterboxing against the container's
-               background reads better than stretched text. The translate3d carries
-               the optimistic local scroll (compositor-only, always present so the
-               img keeps its own layer); gaps it opens show the container bg. -->
+          <!-- Drawn at exactly the remote viewport's CSS size from the top-left
+               corner, never stretched to the pane: with the browser rendering at
+               this screen's pixel ratio, each frame pixel lands on one screen
+               pixel, which is what keeps text as crisp as in a real browser.
+               While a pane resize is in flight the frame overhangs or falls a
+               few px short, like a real window mid-resize. The translate3d
+               carries the optimistic local scroll (compositor-only, always
+               present so the img keeps its own layer); gaps it opens show the
+               container bg. -->
           <!-- The rest of the page, captured ahead of time (see Backdrop). It
                sits behind the frame and scrolls with the page, so a scroll
                shows real content straight away instead of an empty strip. -->
@@ -191,7 +195,7 @@
             alt=""
             draggable="false"
             decoding="async"
-            class="pv-live w-full h-full select-none pointer-events-none"
+            class="pv-live select-none pointer-events-none"
             :class="{ 'is-covered': backdropCarries }"
             :style="frameStyle"
           />
@@ -203,6 +207,7 @@
             alt=""
             draggable="false"
             class="pv-backdrop-overlay"
+            :style="viewportBox"
             aria-hidden="true"
           />
 
@@ -380,7 +385,15 @@ let observer: ResizeObserver | null = null
 let lastActivityAt = 0
 let disposed = false
 
-const deviceScaleFactor = Math.min(window.devicePixelRatio || 1, 2)
+// The remote browser renders at this screen's pixel ratio, so a frame maps
+// 1:1 onto screen pixels. Read fresh each time: dragging the window to
+// another display or zooming the page changes it. Capped at 2: a 3x phone
+// screen would more than double every frame for little visible gain.
+function deviceScaleFactor(): number {
+  return Math.min(window.devicePixelRatio || 1, 2)
+}
+// The ratio the remote viewport was last set to (see ensureViewportMatchesPane).
+let viewportDsf = deviceScaleFactor()
 
 function paneSize(): { width: number; height: number } {
   const rect = screenRef.value?.getBoundingClientRect()
@@ -427,7 +440,7 @@ function applyFrame(f: PreviewFrame, seq: number): boolean {
   // (typically mid-navigation), which says nothing about its height.
   if (f.scroll) scrollInfo.value = f.scroll
   if (f.frame) {
-    showFrame(`data:image/jpeg;base64,${f.frame}`, seq, f.scroll)
+    showFrame(`data:image/${f.frame_type === 'png' ? 'png' : 'jpeg'};base64,${f.frame}`, seq, f.scroll)
   } else if (seq > shownFrameSeq) {
     // No bitmap: it matched the etag, so the pixels on screen are this frame.
     shownFrameSeq = seq
@@ -513,7 +526,8 @@ async function startPreview() {
   error.value = null
   try {
     const seq = ++requestSeq
-    const result = await PreviewService.start(props.projectId, paneSize(), deviceScaleFactor)
+    viewportDsf = deviceScaleFactor()
+    const result = await PreviewService.start(props.projectId, paneSize(), viewportDsf)
     if (disposed) return
     resyncScroll()
     applyStatus(result, seq)
@@ -665,22 +679,20 @@ function resyncScroll() {
   targetScrollY.value = shownScrollY.value
 }
 
-// Remote-page px -> client px (the pane and the viewport are kept in sync, so
-// this is ~1; it differs only while a resize is in flight).
-function pageToClientScaleY(): number {
-  const rect = screenRef.value?.getBoundingClientRect()
-  const vh = viewport.value[1]
-  return rect && rect.height > 0 && vh > 0 ? rect.height / vh : 1
-}
+// The remote viewport's box in pane px (one page px is one pane px).
+const viewportBox = computed(() => ({
+  width: `${viewport.value[0]}px`,
+  height: `${viewport.value[1]}px`,
+}))
 
 const frameStyle = computed(() => {
   // Beyond a screenful the frame has fully left the pane, so cap there.
   const limit = viewport.value[1]
-  const raw = (shownScrollY.value - targetScrollY.value) * pageToClientScaleY()
+  const raw = shownScrollY.value - targetScrollY.value
   // Whole device pixels, so text in the frame stays crisp while it is shifted.
   const shift = toDevicePx(Math.max(-limit, Math.min(raw, limit)))
   return {
-    objectFit: 'contain' as const,
+    ...viewportBox.value,
     transform: `translate3d(0, ${shift}px, 0)`,
   }
 })
@@ -762,16 +774,15 @@ function toDevicePx(px: number): number {
 const backdropStyle = computed(() => {
   const b = backdrop.value
   if (!b) return undefined
-  const shift = toDevicePx((b.top - targetScrollY.value) * pageToClientScaleY())
+  const shift = toDevicePx(b.top - targetScrollY.value)
   return { transform: `translate3d(0, ${shift}px, 0)` }
 })
 
 function sliceStyle(y: number) {
   const b = backdrop.value
-  const scale = pageToClientScaleY()
   return {
-    top: `${toDevicePx((y - (b?.top ?? 0)) * scale)}px`,
-    height: `${toDevicePx(viewport.value[1] * scale)}px`,
+    ...viewportBox.value,
+    top: `${toDevicePx(y - (b?.top ?? 0))}px`,
   }
 }
 
@@ -941,18 +952,21 @@ let flushTimer: number | null = null
 // The second of two overlapping batches waits at least this long after the
 // first, so a fast link still gathers a few wheel events into each.
 const PIPELINE_GAP_MS = 40
+// How soon after a gesture's last frame the crisp settled frame is fetched.
+const SETTLE_POLL_MS = 50
 
 function modifiersFrom(e: MouseEvent | KeyboardEvent): number {
   return (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.metaKey ? 4 : 0) | (e.shiftKey ? 8 : 0)
 }
 
 function pageCoords(e: PointerEvent | WheelEvent): { x: number; y: number } {
+  // The frame is drawn 1:1 from the pane's top-left corner (see frameStyle).
   const rect = screenRef.value?.getBoundingClientRect()
   if (!rect || rect.width === 0 || rect.height === 0) return { x: 0, y: 0 }
   const [vw, vh] = viewport.value
   return {
-    x: Math.round(((e.clientX - rect.left) / rect.width) * vw * 100) / 100,
-    y: Math.round(((e.clientY - rect.top) / rect.height) * vh * 100) / 100,
+    x: Math.round(Math.max(0, Math.min(e.clientX - rect.left, vw)) * 100) / 100,
+    y: Math.round(Math.max(0, Math.min(e.clientY - rect.top, vh)) * 100) / 100,
   }
 }
 
@@ -1058,7 +1072,18 @@ async function flushInput() {
     }
   }
   if (inputQueue.length > 0) scheduleFlush(0)
+  else if (inputInFlight === 0 && batch.some(isMotion)) {
+    // A scroll or drag just ended on a low-resolution motion frame; fetch
+    // the crisp one right away rather than at the next regular poll.
+    schedulePoll(SETTLE_POLL_MS)
+    return
+  }
   schedulePoll() // activity-based: quick while the user is interacting
+}
+
+// Matches the server's notion of a gesture (dispatch_input's `motion`).
+function isMotion(ev: PreviewInputEvent): boolean {
+  return ev.kind === 'wheel' || ev.kind === 'scroll' || (ev.type === 'mouseMoved' && !!ev.buttons)
 }
 
 // A poll sent while nothing else is out answers for all input.
@@ -1351,9 +1376,13 @@ async function ensureViewportMatchesPane() {
   if (disposed || phase.value !== 'ready') return
   const { width, height } = paneSize()
   const [vw, vh] = viewport.value
-  if (Math.abs(width - vw) < 4 && Math.abs(height - vh) < 4) return
+  const dsf = deviceScaleFactor()
+  // Any difference at all: frames are drawn 1:1, so even a pixel off leaves a
+  // sliver of the page cut off or a strip of stage showing.
+  if (width === vw && height === vh && dsf === viewportDsf) return
   try {
-    await PreviewService.resize(props.projectId, width, height, deviceScaleFactor)
+    await PreviewService.resize(props.projectId, width, height, dsf)
+    viewportDsf = dsf
     viewport.value = [width, height]
     etag.value = undefined // force a fresh frame at the new size
     schedulePoll(100)
@@ -1375,6 +1404,23 @@ function onPaneResized() {
   }
   if (resizeTimer) window.clearTimeout(resizeTimer)
   resizeTimer = window.setTimeout(() => void ensureViewportMatchesPane(), 350)
+}
+
+// Moving the window to a display with another pixel ratio (or zooming)
+// re-renders the remote page at the new ratio. A resolution media query only
+// fires once, so each change re-arms it for the new ratio.
+let stopWatchingPixelRatio: (() => void) | null = null
+
+function watchPixelRatio() {
+  if (disposed || typeof window.matchMedia !== 'function') return
+  const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`)
+  const onChange = () => {
+    stopWatchingPixelRatio?.()
+    watchPixelRatio()
+    onPaneResized()
+  }
+  mq.addEventListener?.('change', onChange)
+  stopWatchingPixelRatio = () => mq.removeEventListener?.('change', onChange)
 }
 
 // ---------------------------------------------------------------------------
@@ -1512,6 +1558,7 @@ onMounted(() => {
     observer = new ResizeObserver(onPaneResized)
     observer.observe(screenRef.value)
   }
+  watchPixelRatio()
   void refreshPages()
   void startPreview()
 })
@@ -1526,6 +1573,7 @@ onBeforeUnmount(() => {
   stopElapsed()
   stopInertia()
   observer?.disconnect()
+  stopWatchingPixelRatio?.()
 })
 
 watch(
@@ -2028,13 +2076,17 @@ defineExpose({ reload })
 .pv-backdrop-slice {
   position: absolute;
   left: 0;
-  width: 100%;
   max-width: none;
   user-select: none;
 }
 
+/* Sized inline to the remote viewport; max-width: none keeps the base img
+   rule from squeezing it into a narrower pane (which would resample it). */
 .pv-live {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
 }
 
 .pv-live.is-covered {
@@ -2043,9 +2095,9 @@ defineExpose({ reload })
 
 .pv-backdrop-overlay {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  max-width: none;
   pointer-events: none;
   user-select: none;
 }
