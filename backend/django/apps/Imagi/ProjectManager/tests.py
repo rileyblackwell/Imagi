@@ -1636,7 +1636,7 @@ class ProjectLimitTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(resp.data['code'], 'project_limit')
-        self.assertIn('Free plan includes 1 active project', resp.data['error'])
+        self.assertIn('Free plan includes one project', resp.data['error'])
         self.assertFalse(Project.objects.filter(name='Second Shop').exists())
         # Refused before any build work starts (and before it is metered).
         self.assertEqual(mock_build.call_count, 1)

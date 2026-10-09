@@ -26,6 +26,10 @@ export interface UsageWindow {
 export interface UsagePlan {
   id: string
   name: string
+  /** Active projects the plan allows; null = unlimited (or not reported) */
+  maxActiveProjects: number | null
+  /** Whether the plan gets features still in early access (the Max tiers) */
+  earlyAccess: boolean
 }
 
 /** One entry of the plan registry (for showing what other plans allow).
@@ -113,6 +117,14 @@ export const useUsageStore = defineStore('usage', {
   },
 
   actions: {
+    /** Whether the plan has room for another project, given how many the user
+     *  has now. Unknown (plan not loaded yet) allows it: the server enforces
+     *  the limit regardless, so never block creation on missing data. */
+    canCreateProject(activeProjects: number): boolean {
+      const limit = this.plan?.maxActiveProjects ?? null
+      return limit === null || activeProjects < limit
+    },
+
     /** Refresh plan + windows. Errors land in state.error (and the previous
      *  data stays — stale beats wrongly-zero); callers never need a catch. */
     async fetchUsage() {
@@ -122,7 +134,12 @@ export const useUsageStore = defineStore('usage', {
         const response = await api.get('/v1/payments/usage/')
         const data = response.data ?? {}
         this.plan = data.plan && data.plan.id
-          ? { id: String(data.plan.id), name: String(data.plan.name ?? data.plan.id) }
+          ? {
+              id: String(data.plan.id),
+              name: String(data.plan.name ?? data.plan.id),
+              maxActiveProjects: toNumber(data.plan.max_active_projects),
+              earlyAccess: data.plan.early_access === true,
+            }
           : null
         this.plans = Array.isArray(data.plans)
           ? data.plans.map((p: any): UsagePlanLimits => ({

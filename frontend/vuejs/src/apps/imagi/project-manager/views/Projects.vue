@@ -234,7 +234,18 @@
                         <dd>Sell, Market and Operate, ready when you want them</dd>
                       </dl>
                     </div>
-                    <div class="brief__foot">
+                    <div v-if="atProjectLimit" class="brief__foot">
+                      <router-link to="/payments/pricing" class="btn-primary group brief__submit">
+                        <span>See plans</span>
+                        <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </router-link>
+                      <p class="brief__note brief__note--limit">
+                        Your {{ usageStore.plan?.name }} plan includes one project. Pro and Max include unlimited projects.
+                      </p>
+                    </div>
+                    <div v-else class="brief__foot">
                       <button
                         type="submit"
                         form="create-project"
@@ -388,6 +399,7 @@ import { projectSlug } from '@/apps/imagi/build/utils/slug'
 import { ConfirmModal } from '@/apps/imagi/build/components/organisms/modals'
 import { takePendingIdea } from '@/apps/home/utils/pendingIdea'
 import StarterDesign from '../components/molecules/brief/StarterDesign.vue'
+import { useUsageStore } from '@/shared/stores/usage'
 import {
   emptyDesign,
   designIsSet,
@@ -422,6 +434,16 @@ const projectNameInput = ref<HTMLInputElement | null>(null)
 // the backend (ProjectManager/api/serializers.py).
 const MIN_DESCRIPTION_LENGTH = 20
 const MIN_DETAILS_LENGTH = 20
+// The plan's project limit (Free holds one). Once the projects list has
+// loaded and the plan is full, the brief's button becomes a way to upgrade
+// instead of a create that the server would refuse. The server still enforces
+// the limit; this only says so before the form is sent.
+const usageStore = useUsageStore()
+const atProjectLimit = computed(() =>
+  Array.isArray(projectStore.projects) &&
+  !usageStore.canCreateProject(projectStore.projects.length)
+)
+
 const canCreate = computed(() =>
   Boolean(newProjectName.value.trim()) &&
   newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH &&
@@ -594,6 +616,9 @@ async function createProject() {
     })
 
   } catch (error: any) {
+    // A refusal may be the plan's project limit; refresh the plan so the
+    // brief switches to its upgrade prompt.
+    void usageStore.fetchUsage()
     showNotification({
       message: error?.message || 'Failed to create project',
       type: 'error'
@@ -713,6 +738,7 @@ onMounted(async () => {
   // description; the visitor only has to name it. Signed-out visitors keep it
   // until they come back signed in, since the form only renders for them.
   if (authStore.isAuthenticated) {
+    void usageStore.fetchUsage()
     const idea = takePendingIdea()
     if (idea && !newProjectDescription.value) {
       newProjectDescription.value = idea
@@ -1134,6 +1160,14 @@ input[type='search']::-webkit-search-cancel-button {
   text-align: center;
   font-size: 0.78rem;
   color: var(--sl-faint);
+}
+
+/* The upgrade prompt is something to read, not a footnote: `faint` misses
+   4.5:1, so it takes `muted`. */
+.brief__note--limit {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--sl-muted);
 }
 
 /* --- Library -------------------------------------------------------------- */
