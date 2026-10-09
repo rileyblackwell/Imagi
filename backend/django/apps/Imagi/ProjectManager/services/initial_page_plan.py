@@ -88,7 +88,7 @@ def view_path(slug: str) -> str:
 
 def _plan_prompt(name, description, app_details='', design_preferences='') -> str:
     low, high = TARGET_PAGES
-    prompt = f"""You are planning the first version of a small business's web app. A home page is already being built. Choose the OTHER pages this business needs in its first version.
+    prompt = f"""Plan the first version of this business's web app. A home page is already being built; choose the other pages it needs.
 
 Business name: {name}
 
@@ -101,13 +101,10 @@ What it does (from the founder):
     prompt += f"""
 
 Rules:
-- Pick the pages a visitor to this particular business would expect, plus the core pages of its product if it has one (for example a menu, a booking page, a catalog, a dashboard view). Usually {low - 1} to {high - 1} pages besides home, never more than {MAX_PAGES - 1}. Prefer fewer, solid pages over many thin ones: the founder adds more later.
-- Each page is one self-contained screen built by its own developer at the same time as the others, so pages must not depend on each other's code.
-- No sign-in, register or account pages (they are prebuilt), and no pricing, checkout, cart or payment pages (Imagi installs those).
-- slug: lowercase words joined by hyphens, used as the URL path ('/<slug>'), unique.
-- label: the one- or two-word name in the site's navigation.
-- summary: one line in the form "the <name> page — <what it is for>".
-- requirements: three to five sentences telling the page's developer what the page contains and does, specific to this business. Pages are presentational: no backend calls, forms keep their data locally and confirm inline."""
+- Pick what a visitor to this business would expect, plus its product's core screens if it has one. Usually {low - 1} to {high - 1} pages besides home, never more than {MAX_PAGES - 1}; fewer, solid pages beat many thin ones.
+- Each page is built on its own, at the same time as the others, so pages can't depend on each other's code.
+- Leave out sign-in, account, pricing, checkout, cart and payment pages; Imagi provides those.
+- slug: the page's URL path, lowercase and hyphenated, unique. label: one or two words for the navigation. summary: "the <name> page — <what it is for>". requirements: three to five sentences on what the page contains and does for this business. Pages are presentational: no backend calls, and forms confirm inline."""
     return prompt
 
 

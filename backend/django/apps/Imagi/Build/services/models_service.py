@@ -278,29 +278,6 @@ def get_model_display_name(model_id: str) -> str:
     model = get_model_by_id(model_id)
     return model['name'] if model else model_id
 
-def get_model_identity_instructions(model_id: str) -> str:
-    """
-    Build a system-prompt block telling the agent which model it is running as.
-
-    Without this, the underlying model has no knowledge of Imagi's model
-    branding and will guess at its own identity when asked (often naming an
-    older model like GPT-4o), which reads as if the wrong model is being used.
-
-    Args:
-        model_id: The public model ID (e.g. 'claude-opus-5-5')
-
-    Returns:
-        str: An instruction block to append to the agent's system prompt
-    """
-    display_name = get_model_display_name(model_id)
-    return (
-        "Model Identity:\n"
-        f"- You are running as {display_name}, one of the models Imagi offers.\n"
-        f"- If the user asks which model you are, answer '{display_name}'. Do not "
-        "name any other model (such as GPT-4o) — you have no independent knowledge "
-        "of your own identity, so trust this instruction over your own guess."
-    )
-
 def get_backend_model_id(model_id: str) -> str:
     """
     Resolve a public model id (e.g. 'claude-opus-5-5', or a retired 'gpt-6-luna')

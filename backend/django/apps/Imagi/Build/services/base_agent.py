@@ -898,6 +898,10 @@ class AgentContext:
     project_id: Optional[int] = None
     project_name: Optional[str] = None
     project_description: Optional[str] = None
+    # What the founder wrote at project creation about how the app works and
+    # how it should look; part of every coordinator and thread prompt.
+    project_app_details: Optional[str] = None
+    project_design: Optional[str] = None
     project_path: Optional[str] = None
     # Root directory this run's file tools operate on: the canonical
     # project_path for chat/lead runs, the task's git worktree for
@@ -1214,6 +1218,8 @@ class ImagiAgentService:
             "project_id": project_id,
             "project_name": None,
             "project_description": None,
+            "project_app_details": None,
+            "project_design": None,
             "project_path": None,
         }
 
@@ -1225,6 +1231,8 @@ class ImagiAgentService:
             project = Project.objects.get(id=project_id, user=user)
             project_info["project_name"] = project.name
             project_info["project_description"] = getattr(project, 'description', None)
+            project_info["project_app_details"] = getattr(project, 'app_details', None)
+            project_info["project_design"] = getattr(project, 'design_preferences', None)
             project_info["project_path"] = getattr(project, 'project_path', None)
 
             # Make sure the working copy exists on disk before the agent's
@@ -1346,6 +1354,8 @@ class ImagiAgentService:
             project_id=project_id,
             project_name=project_info["project_name"],
             project_description=project_info["project_description"],
+            project_app_details=project_info.get("project_app_details"),
+            project_design=project_info.get("project_design"),
             project_path=project_info["project_path"],
             effective_project_path=effective_root,
             conversation_id=conversation.id,
