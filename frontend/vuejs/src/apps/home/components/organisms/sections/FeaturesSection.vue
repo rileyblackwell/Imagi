@@ -11,8 +11,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
-          Chat with the agent, watch your app take shape in the live preview beside you,
-          and put it online when it&rsquo;s ready.
+          Chat with the agent and watch your app take shape in the live preview beside you.
+          Every change after that is one more message.
         </p>
       </div>
 
@@ -74,10 +74,10 @@ export default defineComponent({
           highlights: ['Plain-language briefs', 'Real Vue and Django code', 'Iterate by conversation']
         },
         {
-          title: 'Launch to the web',
-          description: 'Deploy in a click and get a URL you can send to real customers the same afternoon.',
-          icon: 'launch',
-          highlights: ['One-click deploy', 'Custom domains', 'Instant updates']
+          title: 'Many hands at once',
+          description: 'A coordinator splits the work into threads that build pages side by side, and fixes go back to the thread that caused them.',
+          icon: 'teams',
+          highlights: ['Pages built in parallel', 'Fixes its own errors', 'Keeps running if you close the tab']
         }
       ]
     }
