@@ -9,10 +9,10 @@
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">03</span><span>Run</span></p>
-        <h2 class="sl-display sl-h2">Run the business</h2>
+        <h2 class="sl-display sl-h2">Run it as a business</h2>
         <p class="sl-lede">
-          Once the app is live, the rest of the business lives in the same project &mdash;
-          reaching customers, taking payments, and keeping track of the money.
+          When you&rsquo;re ready to turn the app into a business, the tools are already in
+          the same project: reaching customers, taking payments, and keeping track of the money.
         </p>
       </div>
 

@@ -1,22 +1,34 @@
 <!--
-  Step 01 — Start.
-  The first thing anyone does on Imagi: brief the agent on a new app. The
-  four steps of the real create form are named here, then shown on stage: the
-  brief with the card that sums it up, and the starter-design step with its
-  live preview of the app's own name.
+  Step 01 — Create.
+  What Imagi is, told through the first thing anyone does on it: create a
+  project. The few facts worth stating up front (free to start, a typical
+  build, who it is for) sit under the lede, then the four steps of the real
+  create form are named and shown on stage: the brief with the card that sums
+  it up, and the starter-design step with its live preview of the app's name.
 -->
 <template>
   <section id="how-it-works" class="sl-sec step scroll-mt-14">
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
-        <p class="sl-eyebrow"><span class="sl-grad-text step-num">01</span><span>Start</span></p>
-        <h2 class="sl-display sl-h2">Start with a brief</h2>
+        <p class="sl-eyebrow"><span class="sl-grad-text step-num">01</span><span>Create</span></p>
+        <h2 class="sl-display sl-h2">Create a project</h2>
         <p class="sl-lede">
-          Answer four questions in your own words. Imagi turns them into the brief its
-          agent builds from, and your first version starts building the moment you
-          create the project.
+          Every app on Imagi starts as a project. Describe the app in your own words and
+          Imagi&rsquo;s agent builds a real, working web app from it, with the tools to run
+          it as a business right beside it.
         </p>
       </div>
+
+      <!-- The facts worth knowing before you start -->
+      <dl v-reveal="{ delay: 40 }" class="facts">
+        <div v-for="fact in facts" :key="fact.label" class="fact">
+          <dt class="fact__label">{{ fact.label }}</dt>
+          <dd class="fact__value sl-display" :class="{ 'sl-grad-text': fact.lit }">
+            {{ fact.value }}<span v-if="fact.unit" class="fact__unit">&nbsp;{{ fact.unit }}</span>
+          </dd>
+          <p class="fact__caption">{{ fact.caption }}</p>
+        </div>
+      </dl>
 
       <ol v-reveal="{ delay: 60 }" class="brief-steps">
         <li v-for="(item, index) in steps" :key="item.title" class="brief-step">
@@ -71,6 +83,14 @@ export default defineComponent({
   components: { ProductShot },
   directives: { reveal },
   props: {
+    facts: {
+      type: Array,
+      default: () => [
+        { label: 'Plans start at', value: 'Free', lit: true, caption: 'Upgrade as you grow, cancel anytime.' },
+        { label: 'Typical build', value: '10', unit: 'min', lit: true, caption: 'From your brief to an app you can open and share.' },
+        { label: 'Made for', value: 'Founders, small businesses and teams', caption: 'No technical co-founder or engineering queue needed.' }
+      ]
+    },
     steps: {
       type: Array,
       default: () => [
@@ -106,6 +126,70 @@ export default defineComponent({
 
 .step-num {
   font-weight: 700;
+}
+
+/* Three facts on a hairline, above the steps' own hairline: two lit numbers and who it's for */
+.facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
+  margin: clamp(40px, 5vw, 56px) 0 0;
+  border-top: 1px solid var(--sl-line);
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 24px clamp(16px, 2.4vw, 32px) 4px;
+}
+
+.fact:first-child {
+  padding-left: 0;
+}
+
+.fact + .fact {
+  border-left: 1px solid var(--sl-line);
+}
+
+.fact__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sl-muted);
+}
+
+.fact .fact__value {
+  display: flex;
+  align-items: flex-end;
+  min-height: 52px;
+  margin: 0;
+  font-size: clamp(40px, 4.2vw, 52px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fact__unit {
+  font-size: 0.5em;
+  letter-spacing: -0.02em;
+  padding-bottom: 0.12em;
+}
+
+/* The audience is words, not a number, so it sits smaller on the same baseline */
+.fact:last-child .fact__value {
+  font-size: clamp(20px, 1.9vw, 24px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.fact__caption {
+  margin: 0;
+  font-size: 15px;
+  color: var(--sl-muted);
+  text-wrap: pretty;
 }
 
 /* The form's four questions, in a row on a hairline, numbered like the form */
@@ -182,6 +266,17 @@ export default defineComponent({
 }
 
 @media (max-width: 900px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fact:last-child {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--sl-line);
+  }
+
   .brief-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 24px;
@@ -198,6 +293,16 @@ export default defineComponent({
 }
 
 @media (max-width: 560px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fact + .fact {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--sl-line);
+  }
+
   .brief-steps {
     grid-template-columns: minmax(0, 1fr);
   }

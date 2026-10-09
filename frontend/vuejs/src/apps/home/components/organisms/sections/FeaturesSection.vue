@@ -11,8 +11,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
-          Every business starts with a product. Chat with the agent, watch the app take
-          shape in the preview beside you, and put it online when it's ready.
+          Chat with the agent, watch your app take shape in the live preview beside you,
+          and put it online when it&rsquo;s ready.
         </p>
       </div>
 

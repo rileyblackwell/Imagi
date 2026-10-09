@@ -19,8 +19,6 @@
         <FeaturesSection />
         <div class="sl-divider" aria-hidden="true"></div>
         <KeyFeaturesSection />
-        <div class="sl-divider" aria-hidden="true"></div>
-        <StatsSection />
         <ClosingSection />
       </div>
     </DefaultLayout>
@@ -34,7 +32,6 @@ import {
   HeroSection,
   FeaturesSection,
   KeyFeaturesSection,
-  StatsSection,
   StartSection,
   ClosingSection
 } from '@/apps/home/components/organisms/sections'
@@ -47,8 +44,7 @@ export default defineComponent({
     HeroSection,
     FeaturesSection,
     KeyFeaturesSection,
-    StatsSection,
-    StartSection,
+      StartSection,
     ClosingSection
   },
   setup() {
