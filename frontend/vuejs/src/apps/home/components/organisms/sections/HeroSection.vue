@@ -25,9 +25,9 @@
       </h1>
 
       <p class="hero-item sl-lede hero-lede" style="animation-delay: 120ms">
-        Describe the business you want. Imagi's agent writes the web app, shows it
-        running next to the conversation, and puts it online &mdash; then hands you the
-        tools to market, sell and run it.
+        Turn an idea into an app, and the app into a business. Describe it in your own
+        words and Imagi&rsquo;s agent builds it and puts it online, with the tools to
+        market, sell and run it waiting in the same place.
       </p>
 
       <div class="hero-item hero-prompt" style="animation-delay: 180ms">
