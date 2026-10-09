@@ -454,7 +454,10 @@ async def preview_backdrop(request, project_id):
     """The page around the current scroll, for the client to scroll through."""
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
-    return await _run_preview_call(request, project_id, lambda service: service.backdrop())
+    cached_only = request.GET.get('cached') == '1'
+    return await _run_preview_call(
+        request, project_id, lambda service: service.backdrop(cached_only=cached_only)
+    )
 
 
 @csrf_exempt
@@ -469,7 +472,8 @@ async def preview_input(request, project_id):
     return await _run_preview_call(
         request, project_id,
         lambda service: service.dispatch_input(
-            data.get('events') or [], etag=data.get('etag')
+            data.get('events') or [], etag=data.get('etag'),
+            frame=data.get('frame') is not False,
         ),
     )
 

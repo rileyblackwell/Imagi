@@ -57,8 +57,9 @@ export interface PreviewBackdrop {
   viewport: [number, number]
   /** Scroll metrics when it was captured (page height, offset). */
   scroll: PreviewScroll
-  /** Viewport-sized JPEG slices at their document offsets (CSS px). */
-  slices: Array<{ y: number; frame: string }>
+  /** Viewport-sized slices at their document offsets (CSS px), captured at
+   *  the session's full device scale. */
+  slices: Array<{ y: number; frame: string; type?: 'png' | 'jpeg' }>
   /** Fixed/stuck elements alone on transparency (PNG), or null if none. */
   overlay: string | null
 }
@@ -70,6 +71,8 @@ export interface PreviewFrame {
   frame?: string | null
   /** Encoding of `frame`: lossless PNG at rest, JPEG mid-gesture (default). */
   frame_type?: 'png' | 'jpeg'
+  /** Set on an input reply sent with `frame: false`: no bitmap was taken. */
+  frame_skipped?: boolean
   etag?: string
   path?: string
   title?: string
@@ -168,10 +171,12 @@ export const PreviewService = {
   },
 
   /** Capture the page around its current scroll (slow: once per page). */
-  async backdrop(projectId: string): Promise<PreviewBackdrop> {
+  /** `cachedOnly` returns a stored capture or none, never capturing. */
+  async backdrop(projectId: string, opts: { cachedOnly?: boolean } = {}): Promise<PreviewBackdrop> {
     try {
       const response = await api.get(`/v1/builder/${projectId}/preview/backdrop/`, {
         timeout: 30000,
+        params: opts.cachedOnly ? { cached: 1 } : undefined,
       })
       return response.data
     } catch (error) {
@@ -179,17 +184,18 @@ export const PreviewService = {
     }
   },
 
-  /** Forward a batch of input events; the response includes a fresh frame. */
+  /** Forward a batch of input events; the response includes a fresh frame
+   *  unless `frame: false` (then only where the page scrolled to). */
   async sendInput(
     projectId: string,
     events: PreviewInputEvent[],
-    etag?: string
+    etag?: string,
+    opts: { frame?: boolean } = {}
   ): Promise<PreviewFrame> {
     try {
-      const response = await api.post(`/v1/builder/${projectId}/preview/input/`, {
-        events,
-        etag,
-      })
+      const body: Record<string, unknown> = { events, etag }
+      if (opts.frame === false) body.frame = false
+      const response = await api.post(`/v1/builder/${projectId}/preview/input/`, body)
       return response.data
     } catch (error) {
       rethrow(error)

@@ -59,6 +59,7 @@ timing_logger = logging.getLogger('imagi.timing')
 # (cleanup-relevant suffixes live in preview_service so its sweeps cover them).
 BROWSER_PID_SUFFIX = '_browser.pid'
 BROWSER_LOG_SUFFIX = '_browser.log'
+BACKDROP_CACHE_SUFFIX = '_backdrop.json'
 
 # Defaults until the client reports its pane size.
 DEFAULT_VIEWPORT = (1280, 800)
@@ -221,11 +222,24 @@ new Promise(function (resolve) {
 # currently stuck goes in the overlay too.
 
 BACKDROP_MAX_PX = 10000     # CSS px of page per backdrop, around the scroll
-BACKDROP_JPEG_QUALITY = 55
+# Slices are captured at the session's full device scale, like a settled
+# frame, so scrolling through them is as sharp as the page at rest and the
+# frame that lands after the scroll swaps in without a visible change. They
+# are lossless PNG while a slice stays under this budget, else JPEG 90 (photos,
+# big gradients); after BACKDROP_PNG_MISSES slices in a row over it, the rest
+# of the capture skips the wasted PNG encode.
+# Measured at 2x on a 1280x800 view: a text-and-flat-colour slice is ~150-400
+# KB as PNG; a gradient-heavy one 0.6-4 MB as PNG but 200-500 KB as JPEG 90.
+BACKDROP_PNG_BUDGET_B64 = 450_000
+BACKDROP_PNG_MISSES = 2
+BACKDROP_JPEG_QUALITY = FRAME_JPEG_QUALITY
 # After a document's first pass scrolls it through once (firing lazy-loading
 # and scroll-reveal observers), give the images and transitions it started a
 # moment before capturing.
 BACKDROP_WARM_SETTLE_S = 0.6
+# A warm-up captures the backdrop once the freshly loaded app has had this
+# long to fetch its data and images.
+BACKDROP_PREPARE_DELAY_S = 1.5
 PAGE_LOCK_TIMEOUT_S = 5
 
 _BACKDROP_MARK_JS = """
@@ -287,6 +301,34 @@ _BACKDROP_STYLE_JS = """
 # Scroll instantly (whatever the page's scroll-behavior) and say where it
 # landed: the last slice clamps at the bottom of the page.
 _SCROLL_TO_JS = "(function () { window.scrollTo({left: %f, top: %f, behavior: 'instant'}); return [window.scrollX, window.scrollY]; })()"
+
+# Identifies the document and how often its DOM has changed: a captured
+# backdrop is reused (see _load_backdrop_cache) only while this still reads
+# the same, i.e. same document, nothing added, removed or restyled since. The
+# backdrop's own marks and stylesheet don't count.
+_DOC_STAMP_JS = """
+(function () {
+  var s = window.__imagiDocStamp;
+  if (!s) {
+    s = window.__imagiDocStamp = { id: Math.random().toString(36).slice(2), n: 0 };
+    function ours(node) { return node && node.id === '__imagi_backdrop'; }
+    try {
+      new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var r = records[i];
+          if (r.attributeName === 'data-imagi-bd' || ours(r.target) || ours(r.target.parentNode)) continue;
+          if (r.type === 'childList' &&
+              Array.prototype.every.call(r.addedNodes, ours) &&
+              Array.prototype.every.call(r.removedNodes, ours)) continue;
+          s.n++;
+          return;
+        }
+      }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+    } catch (e) {}
+  }
+  return location.href + '#' + s.id + ':' + s.n;
+})()
+"""
 
 _NEXT_FRAME_JS = (
     "new Promise(function (r) { var d = false; function f() { if (!d) { d = true; r(true); } }"
@@ -633,8 +675,13 @@ class BrowserPreviewService:
 
         return self._with_page(state, body)
 
-    def dispatch_input(self, events, etag=None):
-        """Forward a batch of mouse/keyboard/wheel events, then return a frame."""
+    def dispatch_input(self, events, etag=None, frame=True):
+        """Forward a batch of mouse/keyboard/wheel events, then return a frame.
+
+        ``frame=False`` skips the screenshot (``frame_skipped`` in the reply):
+        a client scrolling through a backdrop it already holds only needs to
+        know where the page landed, and the capture is most of the request.
+        """
         if not isinstance(events, list) or len(events) > MAX_EVENTS_PER_REQUEST:
             raise BrowserPreviewError('Invalid input event batch.')
 
@@ -660,7 +707,10 @@ class BrowserPreviewService:
                 method, params = self._translate_event(event, width, height)
                 conn.call(method, params)
             payload = self._status_payload(conn, state, settle_scroll=scrolls)
-            if motion or scrolls:
+            if not frame:
+                payload['frame'] = None
+                payload['frame_skipped'] = True
+            elif motion or scrolls:
                 self._attach_frame(
                     conn, payload, etag,
                     quality=MOTION_JPEG_QUALITY, motion_state=state,
@@ -719,20 +769,33 @@ class BrowserPreviewService:
     # Chromium process management
     # ------------------------------------------------------------------
 
-    def backdrop(self):
+    def backdrop(self, cached_only=False, touch=True):
         """Capture the page around the current scroll as slices + an overlay.
 
         Runs under the project's exclusive page lock (see _page_lock): the
         page is scrolled through and restyled while this works, and no frame
         or input request may see it that way. The scroll is restored before
         the lock is released.
+
+        A complete capture is kept on disk and handed back as-is while the
+        page is unchanged (see _cached_backdrop), so one taken ahead of time
+        (a prewarm, an earlier visit) is on the client the moment it asks.
+        ``cached_only`` returns that or nothing, never capturing: for a client
+        that wants the page mid-gesture, when a capture would get in the way.
+        ``touch=False`` (a warm-up) doesn't count as the owner using it.
         """
-        state = self._require_state(touch=True)
+        state = self._require_state(touch=touch)
         width, height = state.get('viewport', DEFAULT_VIEWPORT)
         dsf = float(state.get('device_scale_factor', 1))
+        empty = {'path': None, 'viewport': [int(width), int(height)], 'scroll': None,
+                 'slices': [], 'overlay': None}
         # User input that arrives mid-capture stops it (see _page_lock): a
         # scroll waiting behind a whole backdrop read as the preview freezing.
         started = time.time()
+
+        cached = self._with_page(state, lambda conn, _page: self._cached_backdrop(conn, state))
+        if cached or cached_only:
+            return cached or empty
 
         def warm(conn, _page):
             # First backdrop for this page: scroll through it once so
@@ -764,51 +827,138 @@ class BrowserPreviewService:
             time.sleep(BACKDROP_WARM_SETTLE_S)
         if self._input_waiting(started):
             # The user is busy with the page; the client asks again once idle.
-            return {'path': None, 'viewport': [int(width), int(height)], 'scroll': None,
-                    'slices': [], 'overlay': None}
+            return empty
 
         def capture(conn, _page):
             self._apply_viewport(conn, state)
+            # Watch the DOM from here on, so the stamp read at the end says
+            # whether the page still looks like these slices.
+            self._evaluate(conn, _DOC_STAMP_JS)
             payload = self._status_payload(conn, state)
             start = payload.get('scroll')
             if not start:
                 raise BrowserPreviewError('The page did not report its size.')
-            scale = 1 / dsf if dsf > 1 else 1
             slices = []
             overlay = None
+            offsets = self._nearest_first(self._backdrop_offsets(start), start)
+            cut_short = False
+            png_misses = 0
             try:
                 marked = self._evaluate(conn, _BACKDROP_MARK_JS) or 0
                 if marked:
-                    overlay = self._capture_overlay(conn, start, width, height, scale)
+                    overlay = self._capture_overlay(conn, start, width, height)
                 self._evaluate(conn, _BACKDROP_STYLE_JS % json.dumps(_BACKDROP_CSS['slices']))
                 seen = set()
                 # Nearest first, so a capture cut short by input still holds
                 # the screens either side of the view (the client needs the
                 # slices to be one contiguous run, which this order keeps).
-                for y in self._nearest_first(self._backdrop_offsets(start), start):
+                for y in offsets:
                     if slices and self._input_waiting(started):
+                        cut_short = True
                         break
                     landed = self._evaluate(conn, _SCROLL_TO_JS % (start['x'], y)) or [start['x'], y]
                     lx, ly = float(landed[0]), float(landed[1])
                     if ly in seen:
                         continue
                     seen.add(ly)
-                    shot = self._capture_screenshot(conn, BACKDROP_JPEG_QUALITY, {
-                        'x': lx, 'y': ly, 'width': int(width), 'height': int(height), 'scale': scale,
-                    })
-                    slices.append({'y': ly, 'frame': shot.get('data', '')})
+                    data, kind = self._capture_slice(conn, {
+                        'x': lx, 'y': ly, 'width': int(width), 'height': int(height), 'scale': 1,
+                    }, png_misses < BACKDROP_PNG_MISSES)
+                    png_misses = 0 if kind == 'png' else png_misses + 1
+                    slices.append({'y': ly, 'frame': data, 'type': kind})
             finally:
                 self._evaluate(conn, _BACKDROP_STYLE_JS % 'null')
                 self._evaluate(conn, _SCROLL_TO_JS % (start['x'], start['y']))
-            return {
+            result = {
                 'path': payload.get('path'),
                 'viewport': [int(width), int(height)],
                 'scroll': start,
                 'slices': sorted(slices, key=lambda sl: sl['y']),
                 'overlay': overlay,
             }
+            if not cut_short and slices:
+                # The page reacts to the scroll being put back on its next
+                # frame (a header that shrinks on scroll); count that in.
+                self._evaluate(conn, _NEXT_FRAME_JS, await_promise=True)
+                stamp = self._evaluate(conn, _DOC_STAMP_JS)
+                if stamp:
+                    self._save_backdrop_cache(state, stamp, result)
+            return result
 
         return self._with_page(state, capture, exclusive=True)
+
+    def prepare_backdrop(self):
+        """Capture the backdrop ahead of the owner opening the workspace.
+
+        Best-effort, for warm-ups: the stored capture is what the workspace's
+        first backdrop request gets back, so the whole page is there to
+        scroll through from the moment the preview appears.
+        """
+        if not self._load_state():
+            return
+        # The app's first paint is in; give its data and images a moment.
+        time.sleep(BACKDROP_PREPARE_DELAY_S)
+        try:
+            self.backdrop(touch=False)
+        except Exception as e:
+            logger.info("Backdrop for project %s not prepared: %s", self.project.pk, e)
+
+    def _capture_slice(self, conn, clip, png):
+        """One backdrop slice at full resolution: (base64, 'png'|'jpeg')."""
+        if png:
+            data = self._capture_png(conn, clip).get('data', '')
+            if len(data) <= BACKDROP_PNG_BUDGET_B64:
+                return data, 'png'
+        return self._capture_screenshot(conn, BACKDROP_JPEG_QUALITY, clip).get('data', ''), 'jpeg'
+
+    @property
+    def _backdrop_cache_file(self):
+        return os.path.join(self.pid_dir, f"{sidecar_stem(self.project)}{BACKDROP_CACHE_SUFFIX}")
+
+    def _backdrop_key(self, state, stamp):
+        return {
+            'stamp': stamp,
+            'viewport': [int(v) for v in state.get('viewport', DEFAULT_VIEWPORT)],
+            'device_scale_factor': float(state.get('device_scale_factor', 1)),
+        }
+
+    def _save_backdrop_cache(self, state, stamp, result):
+        tmp = f"{self._backdrop_cache_file}.{os.getpid()}.tmp"
+        try:
+            with open(tmp, 'w') as fh:
+                json.dump({'key': self._backdrop_key(state, stamp), 'backdrop': result}, fh)
+            os.replace(tmp, self._backdrop_cache_file)
+        except (OSError, TypeError, ValueError):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+
+    def _cached_backdrop(self, conn, state):
+        """The stored backdrop, if the page still matches it, else None.
+
+        It matches while the same document is showing, its DOM hasn't changed
+        since the capture, the viewport is the same, and the view is inside
+        the stretch of page the slices cover.
+        """
+        try:
+            with open(self._backdrop_cache_file) as fh:
+                cached = json.load(fh)
+            key, result = cached['key'], cached['backdrop']
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        stamp = self._evaluate(conn, _DOC_STAMP_JS)
+        if not stamp or key != self._backdrop_key(state, stamp):
+            return None
+        scroll = self._scroll_metrics(conn)
+        slices = result.get('slices') or []
+        if not scroll or not slices or abs(scroll['height'] - result['scroll']['height']) > 1:
+            return None
+        top = slices[0]['y']
+        bottom = slices[-1]['y'] + scroll['viewport_height']
+        if scroll['y'] < top - 0.5 or scroll['y'] + scroll['viewport_height'] > bottom + 0.5:
+            return None
+        return dict(result, scroll=scroll, cached=True)
 
     @staticmethod
     def _backdrop_offsets(metrics):
@@ -852,7 +1002,7 @@ class BrowserPreviewService:
     def _input_waiting_file(self):
         return os.path.join(self.pid_dir, f"{sidecar_stem(self.project)}_input_waiting")
 
-    def _capture_overlay(self, conn, scroll, width, height, scale):
+    def _capture_overlay(self, conn, scroll, width, height):
         """The fixed (and stuck) elements alone, on a transparent background."""
         self._evaluate(conn, _BACKDROP_STYLE_JS % json.dumps(_BACKDROP_CSS['overlay']))
         try:
@@ -862,7 +1012,7 @@ class BrowserPreviewService:
         try:
             shot = conn.call('Page.captureScreenshot', {
                 'format': 'png',
-                'clip': {'x': scroll['x'], 'y': scroll['y'], 'width': int(width), 'height': int(height), 'scale': scale},
+                'clip': {'x': scroll['x'], 'y': scroll['y'], 'width': int(width), 'height': int(height), 'scale': 1},
             })
             return shot.get('data') or None
         finally:
@@ -999,10 +1149,11 @@ class BrowserPreviewService:
         if state and state.get('cdp_port'):
             _pool_invalidate(state['cdp_port'])
             self.servers._kill_by_port(state['cdp_port'])
-        try:
-            os.remove(self.state_file)
-        except OSError:
-            pass
+        for path in (self.state_file, self._backdrop_cache_file):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
         if not keep_profile:
             shutil.rmtree(self.profile_dir, ignore_errors=True)
 
@@ -1213,8 +1364,10 @@ class BrowserPreviewService:
             'scale': 1 / dsf,
         }
 
-    def _capture_png(self, conn):
+    def _capture_png(self, conn, clip=None):
         params = {'format': 'png'}
+        if clip:
+            params['clip'] = clip
         if BrowserPreviewService._fast_screenshots:
             try:
                 # optimizeForSpeed picks fast zlib: ~3x faster than the default
@@ -1554,7 +1707,9 @@ def start_preview_warmup(project):
     def run():
         close_old_connections()
         try:
-            BrowserPreviewService(project).start()
+            service = BrowserPreviewService(project)
+            service.start()
+            service.prepare_backdrop()
             logger.info("Preview warmed up for project %s", project.pk)
         except Exception:
             logger.warning(
@@ -1630,6 +1785,7 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
                         device_scale_factor=device_scale_factor,
                         prewarm=True,
                     )
+                    service.prepare_backdrop()
                     logger.info("Preview prewarmed for project %s", project.pk)
                 except Exception:
                     logger.warning(
@@ -1857,7 +2013,7 @@ def _shut_down_session(state_file):
     _kill_pid_file(prefix + BROWSER_PID_SUFFIX)
     _kill_pid_file(prefix + '_frontend.pid')
     _kill_pid_file(prefix + '_backend.pid')
-    for leftover in (state_file, prefix + '_preview_ports.json'):
+    for leftover in (state_file, prefix + '_preview_ports.json', prefix + BACKDROP_CACHE_SUFFIX):
         try:
             os.remove(leftover)
         except OSError:

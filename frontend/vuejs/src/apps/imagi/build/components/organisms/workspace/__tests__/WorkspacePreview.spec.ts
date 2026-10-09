@@ -316,7 +316,7 @@ describe('WorkspacePreview backdrop', () => {
       viewport: [320, 320],
       scroll: scrollAt(0),
       // The whole 2000px page in 320px slices; the last clamps at 1680.
-      slices: [0, 320, 640, 960, 1280, 1600, 1680].map(y => ({ y, frame: `S${y}` })),
+      slices: [0, 320, 640, 960, 1280, 1600, 1680].map(y => ({ y, frame: `S${y}`, type: y ? 'jpeg' : 'png' })),
       overlay: 'HEADER',
     })
     wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
@@ -337,9 +337,13 @@ describe('WorkspacePreview backdrop', () => {
     // Settled: the frame itself is on screen, no overlay needed.
     expect(wrapper.find('img.pv-live').classes()).not.toContain('is-covered')
     expect(wrapper.find('.pv-backdrop-overlay').exists()).toBe(false)
+    // Each slice is decoded as what the server encoded it as.
+    const srcs = wrapper.findAll('.pv-backdrop-slice').map(img => img.attributes('src'))
+    expect(srcs[0]).toBe('data:image/png;base64,S0')
+    expect(srcs[1]).toBe('data:image/jpeg;base64,S320')
   })
 
-  it('scrolls through the backdrop until the frame catches up', async () => {
+  it('scrolls through the backdrop until the settled frame arrives', async () => {
     let answer: (v: unknown) => void = () => {}
     sendInput.mockReturnValue(new Promise(r => { answer = r }))
 
@@ -348,11 +352,37 @@ describe('WorkspacePreview backdrop', () => {
     expect(wrapper.find('img.pv-live').classes()).toContain('is-covered')
     expect(wrapper.find('.pv-backdrop').attributes('style')).toContain('translate3d(0, -500px, 0)')
     expect(wrapper.find('.pv-backdrop-overlay').attributes('src')).toContain('HEADER')
+    // The backdrop covers where the page is going: no frame wanted back.
+    expect(sendInput.mock.calls[0][3]).toEqual({ frame: false })
 
-    answer({ frame: 'BBBB', etag: 'b', path: '/', scroll: scrollAt(500) })
-    await settle()
+    // The reply only says where the page landed; the backdrop stays up.
+    frame.mockResolvedValue({ frame: 'BBBB', etag: 'b', path: '/', scroll: scrollAt(500) })
+    answer({ frame: null, frame_skipped: true, path: '/', scroll: scrollAt(500) })
+    await flushPromises()
+    expect(wrapper.find('img.pv-live').classes()).toContain('is-covered')
+
+    // Then the settle poll brings the crisp frame of the page at rest.
+    await new Promise(r => setTimeout(r, 120))
+    await flushPromises()
+    expect(wrapper.find('img.pv-live').attributes('src')).toBe('data:image/jpeg;base64,BBBB')
     expect(wrapper.find('img.pv-live').classes()).not.toContain('is-covered')
     expect(wrapper.find('.pv-backdrop-overlay').exists()).toBe(false)
+  })
+
+  it('asks for frames again when a scroll does not move the page', async () => {
+    sendInput.mockResolvedValueOnce({ frame: null, frame_skipped: true, path: '/', scroll: scrollAt(0) })
+    let answer: (v: unknown) => void = () => {}
+    sendInput.mockReturnValue(new Promise(r => { answer = r }))
+
+    // A wheel over something that scrolls inside the page: it stays at 0.
+    await wrapper.find('.pv-stage').trigger('wheel', { deltaY: 100, deltaMode: 0 })
+    await flushPromises()
+    await wrapper.find('.pv-stage').trigger('wheel', { deltaY: 100, deltaMode: 0 })
+    await new Promise(r => setTimeout(r, 5))
+    await flushPromises()
+    expect(sendInput.mock.calls[0][3]).toEqual({ frame: false })
+    expect(sendInput.mock.calls[1][3]).toEqual({ frame: true })
+    answer({ frame: 'BBBB', etag: 'b', path: '/', scroll: scrollAt(0) })
   })
 
   it('is set aside when the page changes', async () => {
@@ -364,6 +394,34 @@ describe('WorkspacePreview backdrop', () => {
   })
 })
 
+
+describe('WorkspacePreview backdrop mid-gesture', () => {
+  let wrapper: VueWrapper
+
+  afterEach(() => {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+    start.mockReset(); frame.mockReset(); sendInput.mockReset(); backdrop.mockReset()
+  })
+
+  it('asks for a stored backdrop when the user scrolls before one is loaded', async () => {
+    HTMLImageElement.prototype.decode = () => Promise.resolve()
+    start.mockResolvedValue({ frame: 'AAAA', etag: 'a', path: '/', viewport: [320, 320], scroll: scrollAt(0) })
+    frame.mockResolvedValue({ frame: null, etag: 'a', path: '/', scroll: scrollAt(0) })
+    pages.mockResolvedValue([])
+    resize.mockRejectedValue(new Error('no layout'))
+    backdrop.mockResolvedValue({ path: null, viewport: [320, 320], scroll: null, slices: [], overlay: null })
+    sendInput.mockResolvedValue({ frame: 'BBBB', etag: 'b', path: '/', scroll: scrollAt(100) })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+
+    // Scrolling straight away: the first poll hasn't fetched a backdrop yet.
+    await wrapper.find('.pv-stage').trigger('wheel', { deltaY: 100, deltaMode: 0 })
+    await settle()
+    expect(backdrop).toHaveBeenCalledWith('7', { cachedOnly: true })
+    expect(sendInput.mock.calls[0][3]).toEqual({ frame: true })
+  })
+})
 
 describe('WorkspacePreview error banner', () => {
   let wrapper: VueWrapper

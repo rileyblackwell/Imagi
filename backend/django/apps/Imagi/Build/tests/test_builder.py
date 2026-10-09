@@ -10,6 +10,7 @@ template UI and pre-SDK agent helpers that no longer exist — the workspace is
 now a Vue SPA talking to the DRF API exercised below.
 """
 
+import json
 import os
 import re
 import shutil
@@ -28,6 +29,7 @@ from rest_framework.test import APITestCase
 
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from apps.Imagi.Build.services.browser_preview_service import (
+    BACKDROP_PNG_BUDGET_B64,
     FRAME_PNG_BUDGET_B64,
     BrowserPreviewError,
     BrowserPreviewService,
@@ -638,6 +640,22 @@ class PreviewMotionFrameTests(TestCase):
             self.service.dispatch_input(events)
         return self._shot_params(conn)
 
+    def test_a_scroll_can_skip_the_frame(self):
+        conn = FakeCdpConnection()
+        entry = {'conn': conn, 'page': {}, 'lock': threading.Lock()}
+        state = {'app_url': 'http://127.0.0.1:5174', 'viewport': [1000, 800],
+                 'device_scale_factor': 2, 'cdp_port': 9999}
+        wheel = {'kind': 'wheel', 'x': 5, 'y': 5, 'deltaX': 0, 'deltaY': 120}
+        with mock.patch.object(self.service, '_require_state', return_value=state), \
+                mock.patch('apps.Imagi.Build.services.browser_preview_service._pool_checkout',
+                           return_value=entry):
+            payload = self.service.dispatch_input([wheel], frame=False)
+        self.assertTrue(payload['frame_skipped'])
+        self.assertIsNone(payload['frame'])
+        self.assertEqual(payload['scroll']['y'], 640)
+        self.assertFalse([m for m, _ in conn.calls if m == 'Page.captureScreenshot'])
+        self.assertIn('Input.dispatchMouseEvent', [m for m, _ in conn.calls])
+
     def test_hovering_gets_full_frames_and_dragging_gets_motion_frames(self):
         hover = {'kind': 'mouse', 'type': 'mouseMoved', 'x': 5, 'y': 5, 'buttons': 0}
         self.assertEqual(self._dispatch([hover])['format'], 'png')
@@ -656,6 +674,8 @@ class FakeScrollingPage(FakeCdpConnection):
         self.y = 640.0
         self.fixed_elements = fixed_elements
         self.warmed = False
+        # How many times the page's DOM has changed (the doc stamp's count).
+        self.mutations = 0
 
     def call(self, method, params=None):
         expr = (params or {}).get('expression', '')
@@ -667,6 +687,9 @@ class FakeScrollingPage(FakeCdpConnection):
                 top = float(re.search(r'top: ([\d.]+)', expr).group(1))
                 self.y = max(0.0, min(top, 4000.0 - 800.0))
                 return {'result': {'type': 'object', 'value': [0, self.y]}}
+            elif '__imagiDocStamp' in expr:
+                self.calls.append((method, params or {}))
+                return {'result': {'type': 'string', 'value': f'http://127.0.0.1:5174/#doc:{self.mutations}'}}
             elif '__imagiBackdropWarm' in expr:
                 self.calls.append((method, params or {}))
                 first, self.warmed = not self.warmed, True
@@ -702,6 +725,12 @@ class PreviewBackdropTests(TestCase):
             'device_scale_factor': 2, 'cdp_port': 9999,
         }
 
+    def _clear_cache(self):
+        try:
+            os.remove(self.service._backdrop_cache_file)
+        except OSError:
+            pass
+
     def _run(self, conn):
         entry = {'conn': conn, 'page': {}, 'lock': threading.Lock()}
         with mock.patch.object(self.service, '_require_state', return_value=self.state), \
@@ -718,12 +747,14 @@ class PreviewBackdropTests(TestCase):
         self.assertTrue(all(s['frame'] for s in result['slices']))
         self.assertEqual(result['scroll']['y'], 640.0)
         self.assertEqual(conn.y, 640.0)  # restored
-        # Slices are 1x even on a 2x session, clipped where each one landed.
-        clips = [p['clip'] for m, p in conn.calls if m == 'Page.captureScreenshot' and p.get('format') == 'jpeg']
+        # Slices are at the session's full 2x, lossless while under budget,
+        # clipped where each one landed (the overlay comes first, at 640).
+        clips = [p['clip'] for m, p in conn.calls if m == 'Page.captureScreenshot'][1:]
         self.assertEqual([c['y'] for c in clips], [0.0, 800.0, 1600.0, 2400.0, 3200.0])
-        self.assertTrue(all(c['scale'] == 0.5 for c in clips))
+        self.assertTrue(all(c['scale'] == 1 for c in clips))
+        self.assertEqual({s['type'] for s in result['slices']}, {'png'})
         # The restyle is always removed again.
-        styles = [p['expression'] for m, p in conn.calls if '__imagi_backdrop' in p.get('expression', '')]
+        styles = [p['expression'] for m, p in conn.calls if "getElementById('__imagi_backdrop')" in p.get('expression', '')]
         self.assertTrue(styles[-1].rstrip().endswith('(null)'))
 
     def test_fixed_elements_come_back_as_a_transparent_overlay(self):
@@ -741,7 +772,8 @@ class PreviewBackdropTests(TestCase):
     def test_first_backdrop_of_a_page_scrolls_through_it_first(self):
         conn = FakeScrollingPage()
         self._run(conn)
-        frames_waited = [p for m, p in conn.calls if 'requestAnimationFrame(f)' in p.get('expression', '')]
+        first_shot = next(i for i, (m, _) in enumerate(conn.calls) if m == 'Page.captureScreenshot')
+        frames_waited = [p for m, p in conn.calls[:first_shot] if 'requestAnimationFrame(f)' in p.get('expression', '')]
         self.assertEqual(len(frames_waited), 5)
         conn.calls.clear()
         self._run(conn)  # same page again: no warm-up pass
@@ -780,6 +812,83 @@ class PreviewBackdropTests(TestCase):
                     pass
             fcntl.flock(held, fcntl.LOCK_UN)
         self.assertTrue(self.service._input_waiting(started))
+
+    def test_slices_over_the_png_budget_fall_back_to_jpeg(self):
+        class HeavyPage(FakeScrollingPage):
+            heavy_until = 4000.0
+
+            def call(self, method, params=None):
+                reply = super().call(method, params)
+                if (method == 'Page.captureScreenshot' and params.get('format') == 'png'
+                        and params['clip']['y'] < self.heavy_until):
+                    return {'data': 'A' * (BACKDROP_PNG_BUDGET_B64 + 1)}
+                return reply
+
+        # A heavy hero (0) amid light sections: only its slice is JPEG.
+        conn = HeavyPage(fixed_elements=0)
+        conn.heavy_until = 1.0
+        conn.y = 0.0
+        result = self._run(conn)
+        self.assertEqual([s['type'] for s in result['slices']], ['jpeg', 'png', 'png', 'png', 'png'])
+
+        # Heavy all the way down: two wasted PNG encodes, then straight to JPEG.
+        self._clear_cache()
+        conn = HeavyPage(fixed_elements=0)
+        result = self._run(conn)
+        self.assertEqual({s['type'] for s in result['slices']}, {'jpeg'})
+        formats = [p['format'] for m, p in conn.calls if m == 'Page.captureScreenshot']
+        self.assertEqual(formats, ['png', 'jpeg', 'png', 'jpeg', 'jpeg', 'jpeg', 'jpeg'])
+        jpeg = [p for m, p in conn.calls if m == 'Page.captureScreenshot' and p['format'] == 'jpeg']
+        self.assertTrue(all(p['quality'] == 90 and p['clip']['scale'] == 1 for p in jpeg))
+
+    def test_an_unchanged_page_gets_the_stored_backdrop_without_capturing(self):
+        conn = FakeScrollingPage()
+        first = self._run(conn)
+        conn.calls.clear()
+        again = self._run(conn)
+        self.assertTrue(again['cached'])
+        self.assertEqual(again['slices'], first['slices'])
+        self.assertFalse([m for m, _ in conn.calls if m == 'Page.captureScreenshot'])
+        # Nor a scroll of the page under the user.
+        self.assertFalse([p for m, p in conn.calls if 'window.scrollTo' in p.get('expression', '')])
+
+    def test_a_changed_page_is_captured_again(self):
+        conn = FakeScrollingPage()
+        self._run(conn)
+        conn.mutations += 1
+        conn.calls.clear()
+        again = self._run(conn)
+        self.assertNotIn('cached', again)
+        self.assertTrue([m for m, _ in conn.calls if m == 'Page.captureScreenshot'])
+
+    def test_a_cut_short_capture_is_not_stored(self):
+        conn = FakeScrollingPage()
+        conn.warmed = True
+        checks = iter([False, False, True] + [False] * 20)
+        with mock.patch.object(self.service, '_input_waiting', side_effect=lambda since: next(checks)):
+            self._run(conn)
+        self.assertFalse(os.path.exists(self.service._backdrop_cache_file))
+
+    def test_cached_only_never_captures(self):
+        conn = FakeScrollingPage()
+        entry = {'conn': conn, 'page': {}, 'lock': threading.Lock()}
+        with mock.patch.object(self.service, '_require_state', return_value=self.state), \
+                mock.patch('apps.Imagi.Build.services.browser_preview_service._pool_checkout',
+                           return_value=entry):
+            result = self.service.backdrop(cached_only=True)
+        self.assertEqual(result['slices'], [])
+        self.assertFalse([m for m, _ in conn.calls if m == 'Page.captureScreenshot'])
+
+    def test_a_view_outside_the_stored_slices_is_captured_again(self):
+        conn = FakeScrollingPage()
+        self._run(conn)
+        with open(self.service._backdrop_cache_file) as fh:
+            stored = json.load(fh)
+        stored['backdrop']['slices'] = stored['backdrop']['slices'][:1]  # covers 0-800 only
+        with open(self.service._backdrop_cache_file, 'w') as fh:
+            json.dump(stored, fh)
+        conn.calls.clear()
+        self.assertNotIn('cached', self._run(conn))
 
     def test_slices_are_taken_outward_from_the_view(self):
         order = BrowserPreviewService._nearest_first([0, 800, 1600, 2400, 3200], {'y': 1700})
