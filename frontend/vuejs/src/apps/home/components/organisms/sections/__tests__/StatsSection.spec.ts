@@ -18,7 +18,13 @@ describe('StatsSection (Why Imagi)', () => {
     for (const name of ['Sell', 'Market', 'Operate']) expect(run).toContain(name)
   })
 
-  it('still shows the project hub screenshot', () => {
-    expect(wrapper().findComponent({ name: 'ProductShot' }).exists()).toBe(true)
+  it('no longer shows the project hub screenshot', () => {
+    expect(wrapper().find('product-shot-stub').exists()).toBe(false)
+  })
+
+  it('states the free start and the typical build time, and nothing about workspace counts', () => {
+    const labels = wrapper().findAll('.spec__label').map((l) => l.text())
+    expect(labels).toEqual(['Plans start at', 'Typical build'])
+    expect(wrapper().findAll('.spec__value')[1].text()).toContain('10')
   })
 })

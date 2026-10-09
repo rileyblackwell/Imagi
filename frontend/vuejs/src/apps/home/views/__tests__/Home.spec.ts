@@ -11,6 +11,7 @@ const stubs = {
   DefaultLayout: { template: '<div class="layout"><slot /></div>' },
   HeroSection: true,
   StatsSection: true,
+  StartSection: true,
   FeaturesSection: true,
   KeyFeaturesSection: true,
   ClosingSection: true
@@ -32,7 +33,7 @@ describe('Home (Spotlight)', () => {
 
   it('keeps the sections in order and closes on the Spotlight closing section', () => {
     const html = mount(Home, { global: { stubs } }).html()
-    const order = ['hero-section', 'stats-section', 'features-section', 'key-features-section', 'closing-section']
+    const order = ['hero-section', 'start-section', 'features-section', 'key-features-section', 'stats-section', 'closing-section']
       .map((tag) => html.indexOf(`<${tag}-stub`))
     expect(order.every((i) => i >= 0)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)

@@ -84,7 +84,7 @@
               it unlocks as soon as the home page lands—click it to open the workspace. Meanwhile the AI works out which
               other pages your business needs (usually five to twenty in all) and puts a thread on each. Those pages
               show up in your app's navigation one by one as they finish, and you can follow each one's thread or keep
-              chatting while they build.
+              chatting while they build. The whole first build usually takes about 10 minutes.
             </p>
           </div>
           <div class="section-rule my-6" aria-hidden="true"></div>

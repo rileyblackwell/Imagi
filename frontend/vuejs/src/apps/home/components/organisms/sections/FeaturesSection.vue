@@ -1,5 +1,5 @@
 <!--
-  Step 01 — Build.
+  Step 02 — Build.
   Three cards explaining the workspace, then a screenshot of the real thing,
   lit on stage. The shot lives here rather than in the hero because this is
   the section that describes what it shows.
@@ -8,7 +8,7 @@
   <section class="sl-sec step">
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
-        <p class="sl-eyebrow"><span class="sl-grad-text step-num">01</span><span>Build</span></p>
+        <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
           Every business starts with a product. Chat with the agent, watch the app take

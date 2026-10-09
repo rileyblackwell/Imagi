@@ -1,6 +1,6 @@
 <!--
-  Step 02 — Run.
-  The mirror of step 01, plus two real crops of the run-half tooling so the
+  Step 03 — Run.
+  The mirror of step 02, plus two real crops of the run-half tooling so the
   claim that these are actual workspaces (and not a roadmap) is visible rather
   than asserted.
 -->
@@ -8,7 +8,7 @@
   <section class="sl-sec step">
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
-        <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Run</span></p>
+        <p class="sl-eyebrow"><span class="sl-grad-text step-num">03</span><span>Run</span></p>
         <h2 class="sl-display sl-h2">Run the business</h2>
         <p class="sl-lede">
           Once the app is live, the rest of the business lives in the same project &mdash;
@@ -37,21 +37,21 @@
         <div class="sl-stage">
           <ProductShot
             src="/product/run-sell.webp"
-            alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
+            alt="The Sell console for Ticker Insights: a payments setup checklist that starts with connecting Stripe, then choosing one-time payments, subscriptions or pay as you go."
             :width="2288"
-            :height="710"
+            :height="1514"
             label="imagi — sell"
-            caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
+            caption="Connect Stripe, choose how you charge and set your prices. Imagi adds the payment pages to your app, and the money goes straight to your Stripe account."
           />
         </div>
         <div class="sl-stage">
           <ProductShot
             src="/product/run-marketing.webp"
-            alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
+            alt="The Marketing workspace for Ticker Insights, with two ways to start a campaign: a text message sent through Twilio, or a Google search ad."
             :width="2288"
-            :height="696"
+            :height="1194"
             label="imagi — marketing"
-            caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
+            caption="Texts go out over your Twilio account and replies land in your inbox. Google search ads can be planned now and launched once Google Ads is connected."
           />
         </div>
       </div>
@@ -75,15 +75,15 @@ export default defineComponent({
       default: () => [
         {
           title: 'Marketing',
-          description: 'Reach customers and grow an audience — campaigns, contacts, ad accounts and a shared inbox for the replies.',
+          description: 'Reach customers and grow an audience: text campaigns to your contacts, Google search ads, and an inbox for the replies.',
           icon: 'marketing',
-          highlights: ['Text and voice campaigns', 'Google and Meta ads', 'Contacts and inbox']
+          highlights: ['Text campaigns', 'Google search ads', 'Contacts and inbox']
         },
         {
           title: 'Sell',
-          description: 'Turn visitors into paying customers with products, checkout links and orders wired into the app you just built.',
+          description: 'Turn visitors into paying customers. Connect Stripe, choose how you charge, and Imagi adds secure payment pages to the app you just built.',
           icon: 'sales',
-          highlights: ['Products and checkout links', 'Orders and customers', 'Paid through your Stripe']
+          highlights: ['One-time, subscription or pay as you go', 'Orders, subscriptions and customers', 'Paid through your Stripe']
         },
         {
           title: 'Operate',

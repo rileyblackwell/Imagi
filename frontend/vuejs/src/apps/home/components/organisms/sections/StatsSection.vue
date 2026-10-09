@@ -1,8 +1,8 @@
 <!--
   "Why Imagi" — the shape of the product, shown rather than asserted.
   This is where the two-halves idea lands: Build and Run as two lit panels
-  (Build cool, Run warm), the real project hub on stage, a row of the few
-  numbers we can state honestly, and the audiences as cards.
+  (Build cool, Run warm), a row of the few numbers we can state honestly,
+  and the audiences as cards.
 -->
 <template>
   <section id="why-imagi" class="sl-sec scroll-mt-14">
@@ -44,18 +44,6 @@
         in two places.
       </p>
 
-      <!-- The hub itself: four workspaces, one project -->
-      <div v-reveal="{ delay: 90 }" class="sl-stage">
-        <ProductShot
-          src="/product/project-hub.webp"
-          alt="The project hub for Ticker Insights, with Build the product on one side and Run the business (Sell, Market and Operate) on the other."
-          :width="2560"
-          :height="1780"
-          label="imagi — project hub"
-          caption="The hub for Ticker Insights. Build makes the product; Sell, Market and Operate run the business around it."
-        />
-      </div>
-
       <!-- Spec row: only numbers we can actually stand behind -->
       <dl v-reveal="{ delay: 120 }" class="spec-row">
         <div v-for="stat in stats" :key="stat.label" class="spec">
@@ -82,12 +70,11 @@
 <script>
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
-import { ProductShot } from '@/apps/home/components/atoms'
 import { LineIcon } from '@/shared/components'
 
 export default defineComponent({
   name: 'StatsSection',
-  components: { LineIcon, ProductShot },
+  components: { LineIcon },
   directives: { reveal },
   props: {
     halves: {
@@ -103,7 +90,7 @@ export default defineComponent({
           name: 'Run',
           title: 'Tools to run the business',
           body: 'Once the app is live, the same project carries everything around it: taking payments, finding and talking to customers, and keeping the money and the work in order.',
-          tools: ['Sell: products, checkout, orders', 'Market: campaigns, contacts, inbox', 'Operate: uptime, visitors, profit']
+          tools: ['Sell: prices, orders, subscriptions', 'Market: texts, Google ads, inbox', 'Operate: uptime, visitors, profit']
         }
       ]
     },
@@ -117,16 +104,10 @@ export default defineComponent({
           caption: 'Usage refreshes on a rolling weekly limit. Upgrade as you grow, cancel anytime.'
         },
         {
-          value: '30',
+          value: '10',
           unit: 'min',
           label: 'Typical build',
           caption: 'From the first prompt to a working app you can open and share.'
-        },
-        {
-          value: '4',
-          unit: '',
-          label: 'Workspaces per project',
-          caption: 'Build, Sell, Market and Operate — all pointed at the same business.'
         }
       ]
     },
@@ -278,7 +259,7 @@ export default defineComponent({
 
 .spec-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: clamp(72px, 9vw, 120px) 0 0;
   border-top: 1px solid var(--sl-line);
   border-bottom: 1px solid var(--sl-line);

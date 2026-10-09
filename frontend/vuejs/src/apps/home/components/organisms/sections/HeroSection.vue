@@ -43,7 +43,7 @@
       <div class="hero-item hero-meta" style="animation-delay: 240ms">
         <span>Start for free. Upgrade anytime.</span>
         <span class="hero-meta__sep" aria-hidden="true"></span>
-        <button type="button" class="hero-meta__link" @click="scrollToWhy">
+        <button type="button" class="hero-meta__link" @click="scrollToHowItWorks">
           <span>See how it works</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -128,14 +128,14 @@ export default defineComponent({
 
     onBeforeUnmount(clearTimers)
 
-    const scrollToWhy = () => {
+    const scrollToHowItWorks = () => {
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
       document
-        .getElementById('why-imagi')
+        .getElementById('how-it-works')
         ?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
     }
 
-    return { placeholder, suggestions, stopDemo, scrollToWhy }
+    return { placeholder, suggestions, stopDemo, scrollToHowItWorks }
   }
 })
 </script>
