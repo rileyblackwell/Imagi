@@ -56,6 +56,7 @@ from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
     BrowserPreviewService,
+    prewarm_recent_previews,
 )
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from rest_framework.exceptions import NotFound, APIException
@@ -232,6 +233,11 @@ class PreviewSessionView(BrowserPreviewBaseView):
         except Exception as hydrate_err:
             logger.warning(f"Could not ensure working copy before preview: {hydrate_err}")
 
+        # Ranks the project for the sign-in prewarm (prewarm_recent_previews).
+        # update() rather than save(): opening a project isn't an edit, so
+        # updated_at stays put.
+        PMProject.objects.filter(pk=project.pk).update(last_opened_at=timezone.now())
+
         viewport = request.data.get('viewport') or {}
         try:
             service = BrowserPreviewService(project)
@@ -260,6 +266,28 @@ class PreviewSessionView(BrowserPreviewBaseView):
         except Exception:
             logger.exception("Error stopping preview")
             raise
+
+
+class PreviewPrewarmView(APIView):
+    """Warm up previews for the signed-in owner's most recent projects.
+
+    The client calls this right after sign-in (and when it restores a
+    session), so the workspace opens onto a running preview. Fire and forget:
+    it answers at once and the boots run in the background. Repeat calls
+    inside PREWARM_THROTTLE_SECONDS are no-ops.
+    """
+    permission_classes = [IsAuthenticated]
+    PREWARM_THROTTLE_SECONDS = 300
+
+    def post(self, request):
+        from django.core.cache import cache
+
+        key = f'preview-prewarm:{request.user.pk}'
+        if not cache.add(key, True, timeout=self.PREWARM_THROTTLE_SECONDS):
+            return Response({'started': False, 'reason': 'recently prewarmed'},
+                            status=status.HTTP_202_ACCEPTED)
+        started = prewarm_recent_previews(request.user) is not None
+        return Response({'started': started}, status=status.HTTP_202_ACCEPTED)
 
 
 class ProjectPagesView(BrowserPreviewBaseView):

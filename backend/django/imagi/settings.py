@@ -475,13 +475,24 @@ FRONTEND_DEP_STORE_ROOT = os.path.expanduser(
 BROWSER_PREVIEW_EXECUTABLE = os.environ.get('BROWSER_PREVIEW_EXECUTABLE', '')
 
 # Preview sessions (browser + dev servers) idle longer than this many seconds
-# are shut down opportunistically when another preview starts. 0 disables.
+# are shut down by a periodic sweep (and whenever a preview starts). 0 disables.
 BROWSER_PREVIEW_IDLE_TIMEOUT = int(os.environ.get('BROWSER_PREVIEW_IDLE_TIMEOUT', '1800'))
 # Start a project's preview session (dev servers + browser) the moment the
 # project is created, alongside its first build, so the workspace opens onto
 # a live session instead of paying the boot after the founder has already
 # waited on the build. Set to 0 to start previews only on demand.
 BROWSER_PREVIEW_PREWARM_ON_CREATE = os.environ.get('BROWSER_PREVIEW_PREWARM_ON_CREATE', '1') == '1'
+# At sign-in, start previews for the owner's most recently opened projects so
+# the workspace opens onto a running session. This many projects (0 disables);
+# none once the host has BROWSER_PREVIEW_MAX_SESSIONS live sessions; and a
+# prewarmed session nobody opens is shut down after
+# BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT seconds. A session holds roughly 100-300 MB
+# of memory (Chromium, Vite, Django) and next to no CPU while idle.
+BROWSER_PREVIEW_PREWARM_RECENT = int(os.environ.get('BROWSER_PREVIEW_PREWARM_RECENT', '3'))
+BROWSER_PREVIEW_MAX_SESSIONS = int(os.environ.get('BROWSER_PREVIEW_MAX_SESSIONS', '12'))
+BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT = int(os.environ.get('BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT', '600'))
+# How often each workspace process sweeps for idle sessions, in seconds.
+BROWSER_PREVIEW_REAP_INTERVAL = int(os.environ.get('BROWSER_PREVIEW_REAP_INTERVAL', '60'))
 
 
 # Marketing / Twilio
@@ -516,3 +527,18 @@ SELL_STOREFRONT_API_BASE = os.environ.get(
     'SELL_STOREFRONT_API_BASE',
     SELL_WEBHOOK_BASE_URL or 'http://localhost:8000',
 )
+
+# Django's default logging drops INFO, which is right for the app at large. The
+# one exception is 'imagi.timing': a line per preview start saying where its
+# time went (servers, browser, total), kept so slow starts in production can be
+# measured rather than guessed at.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'imagi.timing': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}

@@ -67,6 +67,14 @@ class Project(models.Model):
         blank=True,
         help_text="Last time project files were generated"
     )
+    last_opened_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Last time the owner opened the project's workspace preview. The "
+            "most recent few get their preview warmed up at sign-in."
+        )
+    )
     generation_status = models.CharField(
         max_length=20,
         choices=[

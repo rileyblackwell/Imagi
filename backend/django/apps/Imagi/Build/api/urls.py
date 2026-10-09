@@ -14,6 +14,7 @@ from .views import (
     # Builder workspace views
     CreateFileView, DeleteFileView,
     FileContentView,
+    PreviewPrewarmView,
     PreviewSessionView,
     ProjectPagesView,
     preview_backdrop,
@@ -46,6 +47,8 @@ builder_patterns = [
     # Browser preview: a headless Chromium on the backend renders the
     # project's dev servers; the client streams frames and sends input.
     path('<int:project_id>/preview/', PreviewSessionView.as_view(), name='api-preview'),
+    # Sign-in hook: warm the owner's most recently opened previews.
+    path('preview/prewarm/', PreviewPrewarmView.as_view(), name='api-preview-prewarm'),
     path('<int:project_id>/pages/', ProjectPagesView.as_view(), name='api-project-pages'),
     # The frame/input/navigate/resize endpoints are async views: preview
     # traffic runs on the thread pool instead of ASGI's single sync thread.

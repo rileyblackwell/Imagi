@@ -100,6 +100,90 @@ class DualStackStartTests(SimpleTestCase):
         stop_backend.assert_called_once()
 
 
+    def test_django_and_vite_boot_side_by_side(self):
+        # Each start blocks until the other has begun: run one after the
+        # other, the first would wait out its timeout and report it.
+        service = self._service()
+        django_up, vite_up = threading.Event(), threading.Event()
+
+        def start_django(*_args, **_kwargs):
+            django_up.set()
+            return None if vite_up.wait(5) else 'Vite never started alongside'
+
+        def start_vite(*_args, **_kwargs):
+            vite_up.set()
+            return None if django_up.wait(5) else 'Django never started alongside'
+
+        with patch.object(service, '_find_available_port_excluding', return_value=8081), \
+                patch.object(service, '_start_django_backend', side_effect=start_django) as django, \
+                patch.object(service, '_start_vuejs_frontend', side_effect=start_vite), \
+                patch.object(service, '_save_port_state'):
+            result = service._start_dual_stack_preview('/fe', '/be')
+        self.assertTrue(result['success'])
+        # Vite is pointed at Django's port before Django has bound it.
+        django.assert_called_once_with('/be', port=8081)
+        self.assertEqual(service.backend_port, 8081)
+
+    def test_a_backend_that_fails_takes_the_frontend_down_with_it(self):
+        service = self._service()
+        with patch.object(service, '_start_django_backend', return_value='no settings'), \
+                patch.object(service, '_start_vuejs_frontend', return_value=None), \
+                patch.object(service, '_stop_vuejs_frontend') as stop_frontend:
+            with self.assertRaisesRegex(Exception, 'no settings'):
+                service._start_dual_stack_preview('/fe', '/be')
+        stop_frontend.assert_called_once()
+
+
+class BrowserBootsAlongsideServersTests(SimpleTestCase):
+    """A cold start launches Chromium while the dev servers come up."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(lambda: __import__('shutil').rmtree(self.root, ignore_errors=True))
+        overrides = override_settings(PROJECTS_ROOT=self.root, BROWSER_PREVIEW_REAP_INTERVAL=0)
+        overrides.enable()
+        self.addCleanup(overrides.disable)
+        project = SimpleNamespace(id=3, pk=3, name='P', project_path=self.root, user=SimpleNamespace(id=1))
+        self.service = browser_preview_service.BrowserPreviewService(project)
+
+    def _start(self, prewarm=False):
+        launched, servers_up = threading.Event(), threading.Event()
+
+        def launch(width, height, dsf):
+            launched.set()
+            servers_up.wait(5)
+            return {'pid': 1, 'cdp_port': 9301, 'viewport': [width, height], 'device_scale_factor': dsf}
+
+        def ensure_preview():
+            # Returns only once the browser launch is under way.
+            self.assertTrue(launched.wait(5), 'browser did not launch alongside the servers')
+            servers_up.set()
+            return {'preview_url': 'http://localhost:5174', 'message': 'ok'}
+
+        saved = []
+        with patch.object(self.service, '_launch_chromium', side_effect=launch), \
+                patch.object(self.service.servers, 'ensure_preview', side_effect=ensure_preview), \
+                patch.object(self.service, '_wait_for_frontend'), \
+                patch.object(self.service, '_save_state', side_effect=lambda st: saved.append(dict(st))), \
+                patch.object(self.service, '_with_page', return_value={'path': '/'}), \
+                self.assertLogs('imagi.timing', level='INFO') as logs:
+            status = self.service._start_locked((1024, 700), None, prewarm)
+        # One line per start, so slow starts in production can be measured.
+        self.assertIn('preview start project=3 cold=True servers=', logs.output[0])
+        return status, saved[-1]
+
+    def test_cold_start_overlaps_the_browser_and_servers(self):
+        status, state = self._start()
+        self.assertEqual(state['app_url'], 'http://127.0.0.1:5174')
+        self.assertEqual(state['viewport'], [1024, 700])
+        self.assertEqual(set(status['timings']), {'servers', 'browser', 'total'})
+        self.assertFalse(state['prewarmed'])
+
+    def test_prewarm_marks_the_session(self):
+        _status, state = self._start(prewarm=True)
+        self.assertTrue(state['prewarmed'])
+
+
 class PreviewStartLockTests(SimpleTestCase):
     def test_second_starter_waits_for_the_first(self):
         with tempfile.TemporaryDirectory() as pid_dir:
@@ -185,4 +269,4 @@ class StartTakesTheLockTests(SimpleTestCase):
                     patch.object(service, '_start_locked', return_value={'running': True}) as locked:
                 service.start(viewport=(800, 600))
             lock.assert_called_once_with(service.pid_dir, '9')
-            locked.assert_called_once_with((800, 600), None)
+            locked.assert_called_once_with((800, 600), None, False)
