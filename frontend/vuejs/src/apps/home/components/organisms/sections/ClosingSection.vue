@@ -40,7 +40,7 @@ export default defineComponent({
     title: { type: String, default: 'Start your business today' },
     description: {
       type: String,
-      default: 'Describe what you want to build, and have a working web app the same afternoon — with the tools to market, sell and run it waiting in the same project.'
+      default: 'Describe your idea and watch your app come together in about 10 minutes.'
     },
     primaryButtonText: { type: String, default: 'Start building' },
     secondaryButtonText: { type: String, default: 'See pricing' },

@@ -29,7 +29,7 @@ describe('HeroSection', () => {
   it('says what Imagi does: idea to app, app to business', () => {
     mockReducedMotion(true)
     const wrapper = mount(HeroSection, { global: { stubs } })
-    expect(wrapper.find('.hero-lede').text()).toContain('Turn an idea into an app, and the app into a business.')
+    expect(wrapper.find('.hero-lede').text()).toContain('Go from idea to app to business.')
   })
 
   it('opens with the marquee label, its lit rule hidden from screen readers', () => {

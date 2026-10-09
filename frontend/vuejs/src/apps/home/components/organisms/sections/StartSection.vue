@@ -41,9 +41,8 @@
         <div class="look__copy">
           <h3 class="sl-display look__title">See the look before it&rsquo;s built</h3>
           <p class="look__body">
-            Tap a style, colours, fonts and light or dark. A small preview shows them on your
-            app&rsquo;s own name, so you know what you are getting before the first build
-            starts. Skip it and Imagi picks a look that fits.
+            Pick a style, colours, fonts and light or dark, and preview them on your app&rsquo;s
+            own name before the first build starts. Skip it and Imagi picks a look that fits.
           </p>
         </div>
         <div class="sl-stage look__shot">

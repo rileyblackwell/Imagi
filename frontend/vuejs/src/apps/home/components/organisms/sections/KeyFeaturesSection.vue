@@ -13,7 +13,7 @@
         <p class="sl-lede">
           When you&rsquo;re ready to turn the app into a business, the tools are already in
           the same project: reaching customers, taking payments, and keeping track of the money.
-          They&rsquo;re in beta, so they work today and keep growing.
+          All three are in beta: they work today and are still growing.
         </p>
       </div>
 

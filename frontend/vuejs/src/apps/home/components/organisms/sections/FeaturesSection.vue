@@ -11,8 +11,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
-          Tell Imagi what you want. A coordinator plans the work, threads go off and build
-          it, and they come back to you when a choice is yours to make.
+          Tell Imagi what you want and it goes to work. You watch the app take shape and
+          step in only when a choice is yours to make.
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export default defineComponent({
       default: () => [
         {
           title: 'Just say what you want',
-          description: 'Ask for a page, a feature or a fix in plain words. The coordinator turns it into a plan and asks a quick question when something is yours to decide.',
+          description: 'Ask for a page, a feature or a fix in plain words. The coordinator turns it into a plan and checks with you when something is yours to decide.',
           icon: 'chat',
           highlights: ['Plain-language requests', 'Questions you answer in a tap', 'Real Vue and Django code']
         },
