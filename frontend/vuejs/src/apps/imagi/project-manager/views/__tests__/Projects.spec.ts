@@ -31,6 +31,17 @@ vi.mock('@/apps/imagi/build/composables/useConfirm', () => ({
     handleCancel: vi.fn(),
   }),
 }))
+// The plan as the usage endpoint reports it; null until loaded. The limit
+// check mirrors the real store's canCreateProject.
+const usage = reactive({
+  plan: null as null | { id: string; name: string; maxActiveProjects: number | null; earlyAccess: boolean },
+  fetchUsage: vi.fn().mockResolvedValue(undefined),
+  canCreateProject(active: number) {
+    const limit = usage.plan?.maxActiveProjects ?? null
+    return limit === null || active < limit
+  },
+})
+vi.mock('@/shared/stores/usage', () => ({ useUsageStore: () => usage }))
 vi.mock('@/apps/home/utils/pendingIdea', () => ({ takePendingIdea: () => null }))
 
 import Projects from '../Projects.vue'
@@ -59,6 +70,7 @@ describe('Projects (Brief)', () => {
     store.projects = []
     store.createProject.mockReset()
     push.mockReset()
+    usage.plan = null
   })
 
   it('starts on the first step with nothing done and the button off', async () => {
@@ -192,5 +204,33 @@ describe('Projects (Brief)', () => {
     const rows = wrapper.findAll('.project-list .row')
     expect(rows.map((r) => r.find('.row__name').text())).toEqual(['Newer', 'Older'])
     expect(rows.map((r) => r.find('.row__num').text())).toEqual(['01', '02'])
+  })
+
+  it('offers an upgrade instead of a create once Free holds its one project', async () => {
+    usage.plan = { id: 'free', name: 'Free', maxActiveProjects: 1, earlyAccess: false }
+    store.projects = [{ id: 1, name: 'Little Loaf', updated_at: '2026-10-01T00:00:00Z' }]
+    const wrapper = mountPage()
+    await flushPromises()
+    expect(wrapper.find('button.brief__submit').exists()).toBe(false)
+    const link = wrapper.findComponent(RouterLinkStub)
+    expect(link.props('to')).toBe('/payments/pricing')
+    expect(link.text()).toBe('See plans')
+    expect(wrapper.find('.brief__note--limit').text()).toBe(
+      'Your Free plan includes one project. Pro and Max include unlimited projects.',
+    )
+  })
+
+  it('lets Free create its first project, and paid plans create any number', async () => {
+    usage.plan = { id: 'free', name: 'Free', maxActiveProjects: 1, earlyAccess: false }
+    let wrapper = mountPage()
+    await flushPromises()
+    expect(wrapper.find('button.brief__submit').exists()).toBe(true)
+
+    usage.plan = { id: 'pro', name: 'Pro', maxActiveProjects: null, earlyAccess: false }
+    store.projects = [1, 2, 3].map((id) => ({ id, name: `App ${id}`, updated_at: '2026-10-01T00:00:00Z' }))
+    wrapper = mountPage()
+    await flushPromises()
+    expect(wrapper.find('button.brief__submit').exists()).toBe(true)
+    expect(wrapper.find('.brief__note--limit').exists()).toBe(false)
   })
 })

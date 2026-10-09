@@ -41,6 +41,10 @@ def _windows(weekly_usd):
 # already have, but cannot create another until they're under the limit.
 UNLIMITED_PROJECTS = None
 
+# Early access: new features ship to the Max tiers first. A feature in early
+# access gates on has_early_access(user) and opens to everyone else when it
+# graduates. Pro and Free don't get it.
+
 
 # Names mirror the purchasable tiers on the pricing page (Free, Pro, Max), and
 # the two Max tiers are named for what they actually give you: 5x and 10x Pro's
@@ -59,12 +63,14 @@ PLANS = {
         'name': 'Free',
         **_windows(3),
         'max_active_projects': 1,
+        'early_access': False,
     },
     'pro': {
         'id': 'pro',
         'name': 'Pro',
         **_windows(10),
         'max_active_projects': UNLIMITED_PROJECTS,
+        'early_access': False,
     },
     # Max is sold at two usage points (mirroring Claude's Max tier). They are
     # distinct plans, not one collapsed tier, so the higher price really does
@@ -74,12 +80,14 @@ PLANS = {
         'name': 'Max (5x)',
         **_windows(50),
         'max_active_projects': UNLIMITED_PROJECTS,
+        'early_access': True,
     },
     'max_10x': {
         'id': 'max_10x',
         'name': 'Max (10x)',
         **_windows(100),
         'max_active_projects': UNLIMITED_PROJECTS,
+        'early_access': True,
     },
 }
 
@@ -152,17 +160,22 @@ def check_project_limit(user):
     active = Project.objects.filter(user=user, is_active=True).count()
     if active < limit:
         return True, None
-    noun = 'project' if limit == 1 else 'projects'
+    included = 'one project' if limit == 1 else f'{limit} projects'
     return False, {
         'error': (
-            f"The {plan['name']} plan includes {limit} active {noun}. Delete a "
-            "project or upgrade your plan to create another."
+            f"The {plan['name']} plan includes {included}. Upgrade to Pro or "
+            "Max for unlimited projects."
         ),
         'code': 'project_limit',
         'plan': {'id': plan['id'], 'name': plan['name']},
         'max_active_projects': limit,
         'active_projects': active,
     }
+
+
+def has_early_access(user):
+    """Whether the user's plan gets features that are still in early access."""
+    return bool(get_plan_for_user(user).get('early_access'))
 
 
 def list_plans():

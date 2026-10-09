@@ -176,6 +176,8 @@ const pendingSwitch = ref<PendingSwitch | null>(null)
 // `features`: nothing enforces one, and carrying a second figure was the
 // confusion that removing the 5-hour session window was meant to end.
 // `price` is the Stripe subscription price, separate from the allowance.
+// The project limit and early access mirror the registry's
+// max_active_projects (Free holds one) and early_access (both Max tiers).
 const tiers: Tier[] = [
   {
     name: 'Free',
@@ -185,7 +187,7 @@ const tiers: Tier[] = [
     weeklyLimit: '$3 of usage per week',
     features: [
       'Access to the core AI builder',
-      '1 active project',
+      '1 project',
       'Community support',
     ],
     isPopular: false,
@@ -229,6 +231,7 @@ const tiers: Tier[] = [
         features: [
           'Everything in Pro',
           '10× more usage than Pro',
+          'Early access to new features',
           'Priority access at peak times',
         ],
       },

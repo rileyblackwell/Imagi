@@ -32,6 +32,7 @@ from apps.Payments.services.plans import (
     PLANS,
     get_plan,
     get_plan_for_user,
+    has_early_access,
 )
 from apps.Payments.services.transaction_service import TransactionService
 from apps.Payments.services.usage_service import (
@@ -203,14 +204,34 @@ class PlanRegistryTests(APITestCase):
         # The weekly window is the only one checked, so it is the only
         # allowance a plan may advertise — a monthly or per-session figure
         # would be a number we publish but never enforce. The project limit
-        # is enforced at creation (ProjectLimitTests).
+        # is enforced at creation (ProjectLimitTests); early access is a
+        # capability flag, not an allowance.
         for plan in PLANS.values():
-            self.assertEqual(set(plan), {'id', 'name', 'weekly_usd', 'max_active_projects'})
+            self.assertEqual(
+                set(plan), {'id', 'name', 'weekly_usd', 'max_active_projects', 'early_access'}
+            )
 
     def test_only_free_limits_projects(self):
         self.assertEqual(PLANS['free']['max_active_projects'], 1)
         for plan_id in ('pro', 'max_5x', 'max_10x'):
             self.assertIsNone(PLANS[plan_id]['max_active_projects'])
+
+    def test_only_max_gets_early_access(self):
+        self.assertFalse(PLANS['free']['early_access'])
+        self.assertFalse(PLANS['pro']['early_access'])
+        self.assertTrue(PLANS['max_5x']['early_access'])
+        self.assertTrue(PLANS['max_10x']['early_access'])
+
+    def test_has_early_access_follows_the_users_plan(self):
+        user = make_user('early')
+        self.assertFalse(has_early_access(user))
+        Subscription.objects.create(user=user, plan='pro')
+        self.assertFalse(has_early_access(user))
+        Subscription.objects.filter(user=user).update(plan='max_5x')
+        self.assertTrue(has_early_access(user))
+        # A subscriber still on the retired max_20x id keeps the Max perk.
+        Subscription.objects.filter(user=user).update(plan='max_20x')
+        self.assertTrue(has_early_access(user))
 
 
 # --------------------------------------------------------------------------- #
@@ -272,6 +293,15 @@ class UsageWindowTests(APITestCase):
             status_payload['windows']['weekly']['limit_usd'],
             PLANS['free']['weekly_usd'],
         )
+
+    def test_status_reports_what_the_plan_includes(self):
+        plan = get_usage_status(self.user)['plan']
+        self.assertEqual(plan['max_active_projects'], 1)
+        self.assertFalse(plan['early_access'])
+        Subscription.objects.create(user=self.user, plan='max_10x')
+        plan = get_usage_status(self.user)['plan']
+        self.assertIsNone(plan['max_active_projects'])
+        self.assertTrue(plan['early_access'])
 
     def test_weekly_is_the_only_window(self):
         # The 5-hour session window was removed; nothing may reintroduce a

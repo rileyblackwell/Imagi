@@ -253,7 +253,7 @@ export default defineComponent({
     ]
 
     const facts = [
-      { label: 'Plans start at', value: 'Free', caption: 'Free usage every week. Paid plans add more.' },
+      { label: 'Plans start at', value: 'Free', caption: 'One project and free usage every week. Paid plans add more.' },
       { label: 'Markup on AI usage', value: '0%', caption: 'Usage is metered at the AI providers’ own prices.' },
       { label: 'Per run', value: '$10', caption: 'A run that reaches it stops and checks in with you first.' }
     ]

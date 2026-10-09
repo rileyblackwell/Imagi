@@ -70,7 +70,7 @@
             <ul class="space-y-2 mt-1">
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$3 of AI usage per week</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Access to the core AI builder</span></li>
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>1 active project</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>1 project</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Community support</span></li>
             </ul>
           </DocsCard>
@@ -92,6 +92,7 @@
             <ul class="space-y-2 mt-1">
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$100 of AI usage per week — 10× Pro</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Everything in Pro</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Early access to new features</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Priority access at peak times</span></li>
             </ul>
           </DocsCard>

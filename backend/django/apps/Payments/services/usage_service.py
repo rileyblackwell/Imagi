@@ -120,7 +120,14 @@ def get_usage_status(user):
     plan = get_plan_for_user(user)
     now = timezone.now()
     return {
-        'plan': {'id': plan['id'], 'name': plan['name']},
+        'plan': {
+            'id': plan['id'],
+            'name': plan['name'],
+            # What the plan includes beyond its allowance, so the frontend can
+            # say so before a request is refused.
+            'max_active_projects': plan.get('max_active_projects'),
+            'early_access': bool(plan.get('early_access')),
+        },
         'windows': {
             'weekly': _window_status(
                 user, WEEKLY_WINDOW, plan['weekly_usd'], now

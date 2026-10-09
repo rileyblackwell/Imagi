@@ -40,7 +40,7 @@ export default defineComponent({
     facts: {
       type: Array,
       default: () => [
-        { label: 'Plans start at', value: 'Free', lit: true, caption: 'Free usage every week. Paid plans add more.' },
+        { label: 'Plans start at', value: 'Free', lit: true, caption: 'One project and free usage every week. Paid plans add more.' },
         { label: 'Typical build', value: '10', unit: 'min', lit: true, caption: 'From your brief to an app you can open and share.' },
         { label: 'Made for', value: 'Founders, small businesses and teams', caption: 'And anyone else with an idea worth trying.' }
       ]
