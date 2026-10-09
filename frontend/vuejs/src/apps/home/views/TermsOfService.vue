@@ -107,8 +107,8 @@ export default defineComponent({
             text: 'Imagi\'s agents use AI, and their output can be wrong, incomplete, insecure, or similar to content made for others. Review and test what Imagi produces before you rely on it. You are responsible for your app, how you use it, and making sure it follows the laws that apply to you.'
           },
           {
-            title: '4.3 Imagi\'s Platform',
-            text: 'Imagi\'s own software, design and brand belong to Imagi. Prebuilt pieces Imagi adds to your project, such as sign-in and payment pages, are yours to use in that project. If you send us feedback, we may use it freely.'
+            title: '4.3 Imagi Is Open Source',
+            text: 'Imagi\'s source code is open source under the MIT License, and that license governs your use of the code itself. These terms cover your use of the hosted Imagi service. Prebuilt pieces Imagi adds to your project, such as sign-in and payment pages, are yours to use in that project. If you send us feedback, we may use it freely.'
           }
         ]
       },
