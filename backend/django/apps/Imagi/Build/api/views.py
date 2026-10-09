@@ -56,6 +56,7 @@ from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
     BrowserPreviewService,
+    evict_least_recent_previews,
     prewarm_recent_previews,
 )
 from apps.Imagi.ProjectManager.models import Project as PMProject
@@ -246,6 +247,9 @@ class PreviewSessionView(BrowserPreviewBaseView):
                 device_scale_factor=request.data.get('device_scale_factor'),
             )
             payload['running'] = True
+            # Opening this project may push another of the owner's out of
+            # their most recent few; that one's preview stops now.
+            evict_least_recent_previews(request.user)
             return Response(payload)
         except Exception as e:
             logger.exception("Error starting browser preview")

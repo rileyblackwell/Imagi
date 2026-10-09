@@ -488,6 +488,9 @@ BROWSER_PREVIEW_PREWARM_ON_CREATE = os.environ.get('BROWSER_PREVIEW_PREWARM_ON_C
 # prewarmed session nobody opens is shut down after
 # BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT seconds. A session holds roughly 100-300 MB
 # of memory (Chromium, Vite, Django) and next to no CPU while idle.
+# Opening a workspace stops the owner's previews beyond this many most recently
+# used projects, and at BROWSER_PREVIEW_MAX_SESSIONS it pushes out the host's
+# least recently used session.
 BROWSER_PREVIEW_PREWARM_RECENT = int(os.environ.get('BROWSER_PREVIEW_PREWARM_RECENT', '3'))
 BROWSER_PREVIEW_MAX_SESSIONS = int(os.environ.get('BROWSER_PREVIEW_MAX_SESSIONS', '12'))
 BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT = int(os.environ.get('BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT', '600'))

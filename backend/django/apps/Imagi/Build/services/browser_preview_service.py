@@ -495,6 +495,10 @@ class BrowserPreviewService:
         # start() is the one place worth a full health probe: a hung browser
         # should be relaunched here, not surfaced as a request error later.
         fresh = not (state and self._browser_alive(state, probe=True))
+        if fresh and not prewarm:
+            # Someone is opening this project: at the host's session cap,
+            # the least recently used session makes way for it.
+            make_room_for_session(exclude=self.state_file)
 
         # A cold start has three independent boots: Django, Vite and Chromium.
         # Chromium doesn't need the app to be up to launch, so it comes up on
@@ -526,6 +530,8 @@ class BrowserPreviewService:
 
         state['app_url'] = app_url
         state['last_active'] = time.time()
+        if not prewarm:
+            state['last_used'] = state['last_active']
         # Opening the workspace claims a prewarmed session; a prewarm never
         # re-marks a session someone is already using.
         state['prewarmed'] = bool(prewarm and (fresh or state.get('prewarmed')))
@@ -577,9 +583,15 @@ class BrowserPreviewService:
         goes after the shorter prewarm idle limit once the heartbeats stop.
         """
         try:
-            self._require_state(touch=True)
+            state = self._require_state()
         except BrowserNotRunning:
             return False
+        # Only last_active: being kept warm isn't being used, so it doesn't
+        # move the session up the eviction order.
+        now = time.time()
+        if now - state.get('last_active', 0) > 30:
+            state['last_active'] = now
+            self._save_state(state)
         return True
 
     def is_running(self):
@@ -1320,10 +1332,12 @@ class BrowserPreviewService:
         if not state or not self._browser_alive(state):
             raise BrowserNotRunning('The preview browser is not running.')
         if touch:
-            # last_active drives idle reaping; throttle rewrites to one per 30s.
+            # last_active drives idle reaping and last_used drives eviction
+            # order (see make_room_for_session); throttle rewrites to one
+            # per 30s.
             now = time.time()
-            if now - state.get('last_active', 0) > 30:
-                state['last_active'] = now
+            if now - min(state.get('last_active', 0), state.get('last_used', 0)) > 30:
+                state['last_active'] = state['last_used'] = now
                 self._save_state(state)
         return state
 
@@ -1465,7 +1479,9 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     so it can never run up resources: at most
     BROWSER_PREVIEW_PREWARM_RECENT projects, none at all once the host has
     BROWSER_PREVIEW_MAX_SESSIONS live sessions, and an unopened prewarmed
-    session is shut down after BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT.
+    session is shut down after BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT. The
+    owner's previews outside those few, the least recently used, are
+    stopped first (see _projects_by_recent_use for what counts as use).
 
     The projects start one after another on one background thread, most
     recent first, so a sign-in never starts several boots at once. They
@@ -1477,15 +1493,8 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     if not limit or not getattr(user, 'pk', None):
         return None
 
-    from django.db.models import F
-    from apps.Imagi.ProjectManager.models import Project
-
-    projects = list(
-        Project.objects.filter(user=user, is_active=True)
-        .exclude(project_dir='')
-        .select_related('user')
-        .order_by(F('last_opened_at').desc(nulls_last=True), '-updated_at')[:limit]
-    )
+    ranked = _projects_by_recent_use(user)
+    projects = ranked[:limit]
     if not projects:
         return None
 
@@ -1500,6 +1509,8 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
         close_old_connections()
         try:
             from .project_files_service import ensure_working_copy
+            # The owner's sessions beyond the most recent few make way first.
+            _evict_sessions(ranked[limit:])
             for project in projects:
                 if live_session_count() >= getattr(settings, 'BROWSER_PREVIEW_MAX_SESSIONS', 12):
                     logger.info("Preview prewarm stopped: the host is at its session cap")
@@ -1532,26 +1543,137 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     return thread
 
 
+# A session used this recently is on someone's screen and is never evicted.
+IN_USE_SECONDS = 60
+
+
+def _session_last_used(service):
+    """When the session was last opened or interacted with (0 if never)."""
+    state = service._load_state() or {}
+    return state.get('last_used') or 0
+
+
+def _projects_by_recent_use(user):
+    """The owner's projects, most recently used first.
+
+    A project counts as used when its workspace was opened
+    (Project.last_opened_at) and while its preview is being viewed or
+    clicked (the session's last_used), whichever is later, so the project
+    someone has been working in all afternoon outranks one they opened
+    after it and left.
+    """
+    from apps.Imagi.ProjectManager.models import Project
+
+    projects = list(
+        Project.objects.filter(user=user, is_active=True)
+        .exclude(project_dir='')
+        .select_related('user')
+    )
+
+    def last_used(project):
+        opened = project.last_opened_at.timestamp() if project.last_opened_at else 0
+        try:
+            viewed = _session_last_used(BrowserPreviewService(project))
+        except Exception:
+            viewed = 0
+        return (max(opened, viewed), project.updated_at.timestamp() if project.updated_at else 0)
+
+    return sorted(projects, key=last_used, reverse=True)
+
+
+def _evict_sessions(projects):
+    """Stop these projects' running previews, unless one is on screen now."""
+    now = time.time()
+    for project in projects:
+        try:
+            service = BrowserPreviewService(project)
+            if not service.is_running():
+                continue
+            with preview_start_lock(service.pid_dir, sidecar_stem(project)):
+                if now - _session_last_used(service) < IN_USE_SECONDS:
+                    continue
+                service.stop()
+            logger.info("Preview for project %s evicted (least recently used)", project.pk)
+        except Exception:
+            logger.warning("Could not evict preview for project %s", project.pk, exc_info=True)
+
+
+def evict_least_recent_previews(user):
+    """Stop the owner's previews beyond their BROWSER_PREVIEW_PREWARM_RECENT
+    most recently used projects, on a background thread.
+
+    Runs when a workspace opens, so opening a fourth project shuts down the
+    least recently used of the earlier ones right away rather than when it
+    idles out.
+    """
+    limit = getattr(settings, 'BROWSER_PREVIEW_PREWARM_RECENT', 3)
+    if not limit or not getattr(user, 'pk', None):
+        return None
+
+    def run():
+        close_old_connections()
+        try:
+            _evict_sessions(_projects_by_recent_use(user)[limit:])
+        finally:
+            close_old_connections()
+
+    thread = threading.Thread(target=run, name=f"preview-evict-user-{user.pk}", daemon=True)
+    thread.start()
+    return thread
+
+
 # The prewarm thread per user in this process, so heartbeats never stack.
 _prewarm_threads = {}
 _prewarm_lock = threading.Lock()
 
 
-def live_session_count():
-    """How many preview sessions on this host have a live browser."""
+def _live_sessions():
+    """(state file, state) for every preview session on this host with a live browser."""
     root = getattr(settings, 'PROJECTS_ROOT', None)
     if not root or not os.path.isdir(root):
-        return 0
-    count = 0
+        return []
+    sessions = []
     for state_file in glob.glob(os.path.join(root, '*', f'*{BROWSER_STATE_SUFFIX}')):
         try:
             with open(state_file, 'r') as f:
-                pid = (json.load(f) or {}).get('pid')
+                state = json.load(f) or {}
+            pid = state.get('pid')
             if pid and psutil.pid_exists(pid):
-                count += 1
+                sessions.append((state_file, state))
         except (OSError, ValueError, AttributeError):
             continue
-    return count
+    return sessions
+
+
+def live_session_count():
+    """How many preview sessions on this host have a live browser."""
+    return len(_live_sessions())
+
+
+def make_room_for_session(exclude=None):
+    """Keep the host under BROWSER_PREVIEW_MAX_SESSIONS when a session starts.
+
+    At the cap, the least recently used sessions shut down to make room:
+    prewarmed ones nobody opened go first (they were never used), then the
+    ones whose workspace was used longest ago. A session in use within the
+    last IN_USE_SECONDS is left alone even then; starting over the cap beats
+    closing a preview someone is looking at.
+    """
+    cap = getattr(settings, 'BROWSER_PREVIEW_MAX_SESSIONS', 12)
+    if not cap:
+        return
+    sessions = [s for s in _live_sessions() if s[0] != exclude]
+    excess = len(sessions) + 1 - cap
+    if excess <= 0:
+        return
+    now = time.time()
+    idle = sorted(
+        (s for s in sessions if now - (s[1].get('last_used') or 0) >= IN_USE_SECONDS),
+        key=lambda s: (s[1].get('last_used') or 0, s[1].get('last_active') or 0),
+    )
+    for state_file, _ in idle[:excess]:
+        logger.info(f"Evicting least recently used preview: {os.path.basename(state_file)}")
+        _shut_down_session(state_file)
 
 
 _reaper_thread = None
@@ -1617,20 +1739,25 @@ def reap_idle_sessions():
             if now - state.get('last_active', 0) < limit:
                 continue
 
-            prefix = state_file[:-len(BROWSER_STATE_SUFFIX)]
-            logger.info(f"Reaping idle preview session: {os.path.basename(prefix)}")
-            # Browser first, then the dev servers recorded by PreviewService.
-            _kill_pid_file(prefix + BROWSER_PID_SUFFIX)
-            _kill_pid_file(prefix + '_frontend.pid')
-            _kill_pid_file(prefix + '_backend.pid')
-            for leftover in (state_file, prefix + '_preview_ports.json'):
-                try:
-                    os.remove(leftover)
-                except OSError:
-                    pass
-            shutil.rmtree(prefix + BROWSER_PROFILE_SUFFIX, ignore_errors=True)
+            logger.info(f"Reaping idle preview session: {os.path.basename(state_file)}")
+            _shut_down_session(state_file)
         except Exception as e:
             logger.warning(f"Could not reap preview session {state_file}: {e}")
+
+
+def _shut_down_session(state_file):
+    """Stop a session (browser + dev servers) from its state file alone."""
+    prefix = state_file[:-len(BROWSER_STATE_SUFFIX)]
+    # Browser first, then the dev servers recorded by PreviewService.
+    _kill_pid_file(prefix + BROWSER_PID_SUFFIX)
+    _kill_pid_file(prefix + '_frontend.pid')
+    _kill_pid_file(prefix + '_backend.pid')
+    for leftover in (state_file, prefix + '_preview_ports.json'):
+        try:
+            os.remove(leftover)
+        except OSError:
+            pass
+    shutil.rmtree(prefix + BROWSER_PROFILE_SUFFIX, ignore_errors=True)
 
 
 def _kill_pid_file(pid_file):

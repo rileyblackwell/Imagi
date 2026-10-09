@@ -23,11 +23,13 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 
 from apps.Imagi.Build.services import browser_preview_service
 from apps.Imagi.Build.services.browser_preview_service import (
     BrowserPreviewService,
+    _evict_sessions,
+    make_room_for_session,
     prewarm_recent_previews,
     reap_idle_sessions,
 )
@@ -48,7 +50,7 @@ class _Root:
         return root
 
 
-class PrewarmRecentPreviewsTests(_Root, TestCase):
+class _RecentProjects(_Root):
     def setUp(self):
         self.make_root()
         self.user = User.objects.create_user(username='prewarm', password='pw123456')
@@ -80,6 +82,8 @@ class PrewarmRecentPreviewsTests(_Root, TestCase):
                 thread.join(5)
         return started
 
+
+class PrewarmRecentPreviewsTests(_RecentProjects, TestCase):
     def test_starts_the_three_most_recently_opened_newest_first(self):
         started = self._prewarm()
         self.assertEqual([name for name, _ in started], ['a', 'b', 'c'])
@@ -141,6 +145,106 @@ class PrewarmRecentPreviewsTests(_Root, TestCase):
         self.assertEqual(calls, ['a', 'b', 'c'])
 
 
+class LeastRecentlyUsedEvictionTests(_RecentProjects, TestCase):
+    """The owner's previews beyond the three most recently used are stopped."""
+
+    def _evicted_by_prewarm(self):
+        with patch.object(browser_preview_service, '_evict_sessions') as evict:
+            self._prewarm()
+        return [p.name for p in evict.call_args.args[0]]
+
+    def test_the_least_recently_opened_make_way(self):
+        self.assertEqual(self._evicted_by_prewarm(), ['d', 'never'])
+
+    def test_using_a_preview_counts_as_recent_use(self):
+        # 'd' was opened longest ago but its preview was in use a minute ago,
+        # so 'c' (opened 3 hours ago, untouched since) is the one to go.
+        service = BrowserPreviewService(self.projects['d'])
+        with open(service.state_file, 'w') as f:
+            json.dump({'pid': 1, 'last_used': time.time() - 60}, f)
+        started = self._prewarm()
+        self.assertEqual([name for name, _ in started], ['d', 'a', 'b'])
+        self.assertEqual(self._evicted_by_prewarm(), ['c', 'never'])
+
+    def _evict(self, last_used):
+        project = self.projects['d']
+        service = BrowserPreviewService(project)
+        with open(service.state_file, 'w') as f:
+            json.dump({'pid': 1, 'last_used': last_used}, f)
+        with patch.object(BrowserPreviewService, 'is_running', return_value=True), \
+                patch.object(BrowserPreviewService, 'stop', autospec=True) as stop:
+            _evict_sessions([project])
+        return stop.called
+
+    def test_eviction_stops_an_idle_preview(self):
+        self.assertTrue(self._evict(time.time() - 600))
+
+    def test_eviction_spares_a_preview_on_screen(self):
+        self.assertFalse(self._evict(time.time() - 5))
+
+    def test_opening_a_project_evicts_at_once(self):
+        token = Token.objects.create(user=self.user)
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        with patch.object(BrowserPreviewService, 'start', return_value={'path': '/'}), \
+                patch('apps.Imagi.Build.api.views.evict_least_recent_previews') as evict:
+            self.client.post(reverse('api-preview', args=[self.projects['d'].id]), {}, format='json')
+        evict.assert_called_once_with(self.user)
+
+
+@override_settings(BROWSER_PREVIEW_MAX_SESSIONS=3)
+class HostSessionCapTests(_Root, SimpleTestCase):
+    """At the host's cap, a workspace opening pushes out the least recently used session."""
+
+    def setUp(self):
+        self.user_dir = os.path.join(self.make_root(), '1')
+        os.makedirs(self.user_dir)
+        self.now = time.time()
+
+    def _session(self, stem, last_used=None):
+        path = os.path.join(self.user_dir, f'{stem}_browser.json')
+        state = {'pid': os.getpid(), 'last_active': self.now}
+        if last_used is not None:
+            state['last_used'] = self.now - last_used
+        with open(path, 'w') as f:
+            json.dump(state, f)
+        return path
+
+    def _make_room(self, exclude=None):
+        with patch.object(browser_preview_service, '_shut_down_session') as shut:
+            make_room_for_session(exclude=exclude)
+        return [os.path.basename(c.args[0]) for c in shut.call_args_list]
+
+    def test_below_the_cap_nothing_goes(self):
+        self._session('1', last_used=600)
+        self._session('2', last_used=600)
+        self.assertEqual(self._make_room(), [])
+
+    def test_an_unopened_prewarm_goes_before_any_used_session(self):
+        self._session('1', last_used=900)
+        self._session('2')  # prewarmed, never used
+        self._session('3', last_used=300)
+        self.assertEqual(self._make_room(), ['2_browser.json'])
+
+    def test_the_least_recently_used_goes(self):
+        self._session('1', last_used=300)
+        self._session('2', last_used=900)
+        self._session('3', last_used=600)
+        self.assertEqual(self._make_room(), ['2_browser.json'])
+
+    def test_a_session_on_screen_is_never_pushed_out(self):
+        self._session('1', last_used=5)
+        self._session('2', last_used=10)
+        self._session('3', last_used=20)
+        self.assertEqual(self._make_room(), [])
+
+    def test_the_session_being_started_does_not_count(self):
+        self._session('1', last_used=300)
+        self._session('2', last_used=900)
+        mine = self._session('3', last_used=1200)
+        self.assertEqual(self._make_room(exclude=mine), [])
+
+
 class KeepAliveTests(_Root, SimpleTestCase):
     def test_touches_a_running_session_and_leaves_it_prewarmed(self):
         root = self.make_root()
@@ -154,6 +258,8 @@ class KeepAliveTests(_Root, SimpleTestCase):
             state = json.load(f)
         self.assertGreater(state['last_active'], time.time() - 5)
         self.assertTrue(state['prewarmed'])
+        # Kept warm isn't used: it doesn't move up the eviction order.
+        self.assertNotIn('last_used', state)
 
     def test_reports_a_session_that_is_not_running(self):
         root = self.make_root()
@@ -236,7 +342,8 @@ class OpeningAProjectRanksItTests(_Root, APITestCase):
         project = Project.objects.create(user=user, name='Opened', project_path='/tmp/prewarm-opened')
         updated_at = Project.objects.get(pk=project.pk).updated_at
 
-        with patch.object(BrowserPreviewService, 'start', return_value={'path': '/'}):
+        with patch.object(BrowserPreviewService, 'start', return_value={'path': '/'}), \
+                patch('apps.Imagi.Build.api.views.evict_least_recent_previews'):
             resp = self.client.post(reverse('api-preview', args=[project.id]), {}, format='json')
         self.assertEqual(resp.status_code, 200)
         project.refresh_from_db()
