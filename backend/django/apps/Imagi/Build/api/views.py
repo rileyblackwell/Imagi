@@ -271,13 +271,14 @@ class PreviewSessionView(BrowserPreviewBaseView):
 class PreviewPrewarmView(APIView):
     """Warm up previews for the signed-in owner's most recent projects.
 
-    The client calls this right after sign-in (and when it restores a
-    session), so the workspace opens onto a running preview. Fire and forget:
-    it answers at once and the boots run in the background. Repeat calls
-    inside PREWARM_THROTTLE_SECONDS are no-ops.
+    The client calls this at sign-in (or when it restores a session) and
+    then on a heartbeat while Imagi is open, so the workspace opens onto a
+    running preview whenever the owner gets there. Fire and forget: it
+    answers at once and the boots run in the background. Repeat calls inside
+    PREWARM_THROTTLE_SECONDS are no-ops.
     """
     permission_classes = [IsAuthenticated]
-    PREWARM_THROTTLE_SECONDS = 300
+    PREWARM_THROTTLE_SECONDS = 60
 
     def post(self, request):
         from django.core.cache import cache

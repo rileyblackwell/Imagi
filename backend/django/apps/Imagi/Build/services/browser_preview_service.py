@@ -569,6 +569,19 @@ class BrowserPreviewService:
         self._kill_browser()
         return self.servers.stop_preview()
 
+    def keep_alive(self):
+        """Mark a running session as in use, so the idle reaper leaves it be.
+
+        Returns whether a session was running. Doesn't claim a prewarmed
+        session (start() does that), so one kept warm for the owner still
+        goes after the shorter prewarm idle limit once the heartbeats stop.
+        """
+        try:
+            self._require_state(touch=True)
+        except BrowserNotRunning:
+            return False
+        return True
+
     def is_running(self):
         state = self._load_state()
         return bool(state and self._browser_alive(state))
@@ -1442,9 +1455,13 @@ def start_preview_warmup(project):
 def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     """Bring up previews for the owner's most recently opened projects.
 
-    Called at sign-in, on the bet that the projects someone opened last are
-    the ones they open next: the workspace then reattaches to a running
-    session (well under a second) instead of booting one. Bounded three ways
+    Called at sign-in and then on a heartbeat for as long as the owner is
+    signed in with Imagi open, on the bet that the projects someone opened
+    last are the ones they open next: the workspace then reattaches to a
+    running session (well under a second) instead of booting one. Each call
+    starts whichever of those projects isn't running and keeps the running
+    ones from idling out, so they stay warm while the owner browses the rest
+    of the site and go cold once the heartbeats stop. Bounded three ways
     so it can never run up resources: at most
     BROWSER_PREVIEW_PREWARM_RECENT projects, none at all once the host has
     BROWSER_PREVIEW_MAX_SESSIONS live sessions, and an unopened prewarmed
@@ -1472,6 +1489,13 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     if not projects:
         return None
 
+    with _prewarm_lock:
+        # A heartbeat that lands while the last one is still booting
+        # previews has nothing to add.
+        running = _prewarm_threads.get(user.pk)
+        if running is not None and running.is_alive():
+            return None
+
     def run():
         close_old_connections()
         try:
@@ -1482,7 +1506,7 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
                     return
                 try:
                     service = BrowserPreviewService(project)
-                    if service.is_running():
+                    if service.keep_alive():
                         continue
                     ensure_working_copy(project)
                     service.start(
@@ -1502,8 +1526,15 @@ def prewarm_recent_previews(user, viewport=None, device_scale_factor=None):
     thread = threading.Thread(
         target=run, name=f"preview-prewarm-user-{user.pk}", daemon=True
     )
+    with _prewarm_lock:
+        _prewarm_threads[user.pk] = thread
     thread.start()
     return thread
+
+
+# The prewarm thread per user in this process, so heartbeats never stack.
+_prewarm_threads = {}
+_prewarm_lock = threading.Lock()
 
 
 def live_session_count():

@@ -1,43 +1,73 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 const apiMock = vi.hoisted(() => ({ post: vi.fn() }))
 vi.mock('@/shared/services/api', () => ({ default: apiMock }))
 
-describe('prewarmRecentPreviews', () => {
-  beforeEach(() => {
+type Mod = typeof import('@/shared/services/previewPrewarm')
+
+describe('keeping recent previews warm', () => {
+  let mod: Mod
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
     localStorage.clear()
     vi.resetModules()
     apiMock.post.mockReset()
+    apiMock.post.mockResolvedValue({ data: { started: true } })
+    mod = await import('@/shared/services/previewPrewarm')
   })
 
-  async function load() {
-    return (await import('@/shared/services/previewPrewarm')).prewarmRecentPreviews
+  afterEach(() => {
+    mod.stopKeepingPreviewsWarm()
+    vi.useRealTimers()
+  })
+
+  const flush = async () => {
+    await Promise.resolve()
+    await Promise.resolve()
   }
 
-  it('asks the server once per sign-in', async () => {
-    apiMock.post.mockResolvedValue({ data: { started: true } })
-    const prewarm = await load()
-    prewarm('tok-1')
-    prewarm('tok-1')
-    await Promise.resolve()
-    await Promise.resolve()
+  function setHidden(hidden: boolean) {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden })
+    document.dispatchEvent(new Event('visibilitychange'))
+  }
+
+  it('asks at sign-in, then keeps asking for as long as they stay signed in', async () => {
+    mod.keepRecentPreviewsWarm('tok-1')
+    mod.keepRecentPreviewsWarm('tok-1') // same sign-in: no second loop
+    await flush()
     expect(apiMock.post).toHaveBeenCalledTimes(1)
     expect(apiMock.post).toHaveBeenCalledWith('/v1/builder/preview/prewarm/', {})
 
-    // A different sign-in on the same page load prewarms again.
-    prewarm('tok-2')
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(2 * 60_000)
+    expect(apiMock.post).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(2 * 60_000)
+    expect(apiMock.post).toHaveBeenCalledTimes(3)
+  })
+
+  it('stops at sign-out', async () => {
+    mod.keepRecentPreviewsWarm('tok-2')
+    await flush()
+    mod.stopKeepingPreviewsWarm()
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    expect(apiMock.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('pauses while the tab is hidden and beats again on return', async () => {
+    mod.keepRecentPreviewsWarm('tok-3')
+    await flush()
+    setHidden(true)
+    await vi.advanceTimersByTimeAsync(6 * 60_000)
+    expect(apiMock.post).toHaveBeenCalledTimes(1)
+    setHidden(false)
+    await flush()
     expect(apiMock.post).toHaveBeenCalledTimes(2)
   })
 
   it('renders the previews at the size the pane had last time', async () => {
-    apiMock.post.mockResolvedValue({ data: { started: true } })
-    const mod = await import('@/shared/services/previewPrewarm')
     mod.rememberPreviewViewport({ width: 900, height: 700 }, 2)
-    mod.prewarmRecentPreviews('tok-size')
-    await Promise.resolve()
-    await Promise.resolve()
+    mod.keepRecentPreviewsWarm('tok-4')
+    await flush()
     expect(apiMock.post).toHaveBeenCalledWith('/v1/builder/preview/prewarm/', {
       viewport: { width: 900, height: 700 },
       device_scale_factor: 2,
@@ -45,16 +75,14 @@ describe('prewarmRecentPreviews', () => {
   })
 
   it('does nothing without a token', async () => {
-    const prewarm = await load()
-    prewarm(null)
-    await Promise.resolve()
+    mod.keepRecentPreviewsWarm(null)
+    await flush()
     expect(apiMock.post).not.toHaveBeenCalled()
   })
 
   it('swallows a failed request', async () => {
     apiMock.post.mockRejectedValue(new Error('offline'))
-    const prewarm = await load()
-    expect(() => prewarm('tok-3')).not.toThrow()
-    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(() => mod.keepRecentPreviewsWarm('tok-5')).not.toThrow()
+    await flush()
   })
 })

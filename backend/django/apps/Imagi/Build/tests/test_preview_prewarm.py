@@ -11,8 +11,10 @@ import json
 import os
 import shutil
 import tempfile
+import threading
 import time
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -61,14 +63,16 @@ class PrewarmRecentPreviewsTests(_Root, TestCase):
 
     def _prewarm(self, running=(), live=0):
         started = []
+        kept = self.kept = []
 
         def start(service, **kwargs):
             started.append((service.project.name, kwargs))
             return {'running': True}
 
         with patch.object(BrowserPreviewService, 'start', autospec=True, side_effect=start), \
-                patch.object(BrowserPreviewService, 'is_running', autospec=True,
-                             side_effect=lambda service: service.project.name in running), \
+                patch.object(BrowserPreviewService, 'keep_alive', autospec=True,
+                             side_effect=lambda service: kept.append(service.project.name)
+                             or service.project.name in running), \
                 patch.object(browser_preview_service, 'live_session_count', return_value=live), \
                 patch('apps.Imagi.Build.services.project_files_service.ensure_working_copy'):
             thread = prewarm_recent_previews(self.user)
@@ -84,9 +88,27 @@ class PrewarmRecentPreviewsTests(_Root, TestCase):
             for _, kwargs in started
         ))
 
-    def test_skips_projects_already_running(self):
+    def test_keeps_running_ones_warm_instead_of_restarting_them(self):
         started = self._prewarm(running={'a'})
         self.assertEqual([name for name, _ in started], ['b', 'c'])
+        # Every heartbeat touches each of the three, so none idles out while
+        # the owner is signed in.
+        self.assertEqual(self.kept, ['a', 'b', 'c'])
+
+    def test_a_heartbeat_during_a_prewarm_adds_nothing(self):
+        release = threading.Event()
+
+        def slow_start(service, **_kwargs):
+            release.wait(5)
+
+        with patch.object(BrowserPreviewService, 'start', autospec=True, side_effect=slow_start), \
+                patch.object(BrowserPreviewService, 'keep_alive', return_value=False), \
+                patch.object(browser_preview_service, 'live_session_count', return_value=0), \
+                patch('apps.Imagi.Build.services.project_files_service.ensure_working_copy'):
+            first = prewarm_recent_previews(self.user)
+            self.assertIsNone(prewarm_recent_previews(self.user))
+            release.set()
+            first.join(5)
 
     @override_settings(BROWSER_PREVIEW_MAX_SESSIONS=5)
     def test_starts_nothing_once_the_host_is_at_its_session_cap(self):
@@ -111,12 +133,32 @@ class PrewarmRecentPreviewsTests(_Root, TestCase):
                 raise RuntimeError('vite exploded')
 
         with patch.object(BrowserPreviewService, 'start', autospec=True, side_effect=start), \
-                patch.object(BrowserPreviewService, 'is_running', return_value=False), \
+                patch.object(BrowserPreviewService, 'keep_alive', return_value=False), \
                 patch.object(browser_preview_service, 'live_session_count', return_value=0), \
                 patch('apps.Imagi.Build.services.project_files_service.ensure_working_copy'), \
                 self.assertLogs(browser_preview_service.logger, level='WARNING'):
             prewarm_recent_previews(self.user).join(5)
         self.assertEqual(calls, ['a', 'b', 'c'])
+
+
+class KeepAliveTests(_Root, SimpleTestCase):
+    def test_touches_a_running_session_and_leaves_it_prewarmed(self):
+        root = self.make_root()
+        project = SimpleNamespace(id=4, pk=4, name='P', project_path=root, user=SimpleNamespace(id=1))
+        service = BrowserPreviewService(project)
+        with open(service.state_file, 'w') as f:
+            json.dump({'pid': 1, 'cdp_port': 9301, 'last_active': time.time() - 500, 'prewarmed': True}, f)
+        with patch.object(service, '_browser_alive', return_value=True):
+            self.assertTrue(service.keep_alive())
+        with open(service.state_file) as f:
+            state = json.load(f)
+        self.assertGreater(state['last_active'], time.time() - 5)
+        self.assertTrue(state['prewarmed'])
+
+    def test_reports_a_session_that_is_not_running(self):
+        root = self.make_root()
+        project = SimpleNamespace(id=5, pk=5, name='P', project_path=root, user=SimpleNamespace(id=1))
+        self.assertFalse(BrowserPreviewService(project).keep_alive())
 
 
 @override_settings(BROWSER_PREVIEW_IDLE_TIMEOUT=1800, BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT=600)

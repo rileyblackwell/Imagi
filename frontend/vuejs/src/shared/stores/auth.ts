@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import axios from 'axios'
 import api from '@/shared/services/api'
 import { clearAppDataCaches } from '@/shared/services/appCaches'
-import { prewarmRecentPreviews } from '@/shared/services/previewPrewarm'
+import { keepRecentPreviewsWarm, stopKeepingPreviewsWarm } from '@/shared/services/previewPrewarm'
 import type { User } from '@/apps/auth/types/auth'
 
 // Define token data structure interface
@@ -40,9 +40,10 @@ export const useAuthStore = defineStore('global-auth', () => {
   const pendingAuthCheck = ref<Promise<boolean> | null>(null)
   
   // A session restored from storage counts as a sign-in: the store is first
-  // used by the router guard on page load, the earliest moment to start the
-  // owner's recent previews (setAuthState covers signing in afresh).
-  prewarmRecentPreviews(token.value)
+  // used by the router guard on page load, the earliest moment to warm the
+  // owner's recent previews (setAuthState covers signing in afresh). They
+  // stay warm until sign-out, wherever on the site the owner goes.
+  keepRecentPreviewsWarm(token.value)
 
   // Watch for changes to authentication state and sync with localStorage
   watch(() => isAuthenticated.value, (newValue) => {
@@ -90,8 +91,8 @@ export const useAuthStore = defineStore('global-auth', () => {
       // Set axios default auth header
       axios.defaults.headers.common['Authorization'] = `Token ${authToken}`
       sessionTimeout.value = 30 * 60 * 1000 // 30 minutes
-      // Signed in: get their recent projects' previews running.
-      prewarmRecentPreviews(authToken)
+      // Signed in: keep their recent projects' previews running.
+      keepRecentPreviewsWarm(authToken)
     } else {
       clearStoredAuth()
     }
@@ -99,6 +100,9 @@ export const useAuthStore = defineStore('global-auth', () => {
 
   // Helper to clear stored authentication data
   const clearStoredAuth = () => {
+    // Signed out: nothing to keep warm for this browser any more.
+    stopKeepingPreviewsWarm()
+
     // Clear localStorage items
     localStorage.removeItem('token')
     localStorage.removeItem('user')
