@@ -12,6 +12,7 @@ import psutil
 import time
 import logging
 import json
+from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 
 from .safe_paths import UnsafePathError, resolve_within
@@ -365,13 +366,22 @@ class PreviewService:
         """Start both VueJS frontend and Django backend servers."""
         logger.info("Starting dual-stack preview (VueJS + Django)")
 
-        # Each start returns once its server is listening (or has failed), so
-        # there is nothing to wait out between them.
-        backend_error = self._start_django_backend(backend_path)
-        if backend_error:
-            raise Exception(f"Django backend failed to start: {backend_error}")
+        # Django and Vite don't depend on each other to boot — Vite only needs
+        # to know which port Django will be on, to proxy /api there — so they
+        # start side by side and the wait is the slower of the two rather
+        # than their sum. Vite goes on the helper thread because the Django
+        # start reads the database (the project's Sell key), which stays on
+        # the request's own thread and connection.
+        self.backend_port = self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix='preview-vite') as pool:
+            frontend_future = pool.submit(self._start_vuejs_frontend, frontend_path)
+            backend_error = self._start_django_backend(backend_path, port=self.backend_port)
+            frontend_error = frontend_future.result()
 
-        frontend_error = self._start_vuejs_frontend(frontend_path)
+        if backend_error:
+            if not frontend_error:
+                self._stop_vuejs_frontend(port=self.frontend_port)
+            raise Exception(f"Django backend failed to start: {backend_error}")
         if frontend_error:
             # If frontend fails, stop the backend
             self._stop_django_backend(port=self.backend_port)
@@ -392,8 +402,13 @@ class PreviewService:
             'message': 'Full-stack development servers started successfully'
         }
 
-    def _start_django_backend(self, backend_path):
-        """Start Django backend server. Returns None on success, error text on failure."""
+    def _start_django_backend(self, backend_path, port=None):
+        """Start Django backend server. Returns None on success, error text on failure.
+
+        ``port`` is one the caller already chose (the dual-stack start picks it
+        up front so Vite can be pointed at it while Django boots); without it a
+        free one is found here.
+        """
         try:
             logger.info(f"Attempting to start Django backend in: {backend_path}")
 
@@ -426,7 +441,7 @@ class PreviewService:
             )
 
             # Find available port for backend (avoiding conflict with main project on 8000)
-            self.backend_port = self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
+            self.backend_port = port or self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
             logger.info(f"Starting Django backend on port {self.backend_port}")
 
             # Ensure PID file directory exists

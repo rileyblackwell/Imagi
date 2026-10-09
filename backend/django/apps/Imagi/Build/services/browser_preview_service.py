@@ -29,6 +29,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     import fcntl
@@ -50,6 +51,9 @@ from .preview_service import (
 )
 
 logger = logging.getLogger(__name__)
+# One line per preview start with where its time went (see settings.LOGGING,
+# which lets it through in production where INFO is otherwise dropped).
+timing_logger = logging.getLogger('imagi.timing')
 
 # Per-project files this service writes beside the dev-server PID files
 # (cleanup-relevant suffixes live in preview_service so its sweeps cover them).
@@ -451,7 +455,7 @@ class BrowserPreviewService:
     # Session lifecycle
     # ------------------------------------------------------------------
 
-    def start(self, viewport=None, device_scale_factor=None):
+    def start(self, viewport=None, device_scale_factor=None, prewarm=False):
         """Ensure dev servers + Chromium are running and showing the app.
 
         Idempotent: an already-healthy session is reused, so the workspace
@@ -461,20 +465,19 @@ class BrowserPreviewService:
         routinely — the warm-up at project creation and the workspace opening
         moments later — and the second must wait and reattach to what the
         first brought up, not launch a duplicate session over it.
+
+        ``prewarm`` marks a session started ahead of the owner asking for it
+        (see prewarm_recent_previews), which the idle reaper shuts down
+        sooner if nobody opens it.
         """
         with preview_start_lock(self.pid_dir, sidecar_stem(self.project)):
-            return self._start_locked(viewport, device_scale_factor)
+            return self._start_locked(viewport, device_scale_factor, prewarm)
 
-    def _start_locked(self, viewport, device_scale_factor):
+    def _start_locked(self, viewport, device_scale_factor, prewarm=False):
+        ensure_idle_reaper()
         reap_idle_sessions()
-
-        server_state = self.servers.ensure_preview()
-        # The dev servers report a localhost preview URL; dual-stack projects
-        # point it at Vite, legacy single-Django projects at runserver.
-        app_url = (server_state.get('preview_url') or '').replace('localhost', '127.0.0.1').rstrip('/')
-        if not app_url:
-            app_url = f"http://127.0.0.1:{self.servers.frontend_port}"
-        self._wait_for_frontend(app_url)
+        started = time.monotonic()
+        timings = {}
 
         state = self._load_state()
         if viewport:
@@ -492,40 +495,73 @@ class BrowserPreviewService:
         # start() is the one place worth a full health probe: a hung browser
         # should be relaunched here, not surfaced as a request error later.
         fresh = not (state and self._browser_alive(state, probe=True))
-        if fresh:
-            # Opening the app URL directly keeps about:blank out of the
-            # page's history, so "back" never leads outside the app.
-            state = self._launch_chromium(width, height, dsf, app_url + '/')
-        else:
+
+        # A cold start has three independent boots: Django, Vite and Chromium.
+        # Chromium doesn't need the app to be up to launch, so it comes up on
+        # a blank page alongside the dev servers and is pointed at the app
+        # once Vite answers — the wait is the slowest boot, not all three.
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix='preview-browser') as pool:
+            launch = pool.submit(self._timed_launch, width, height, dsf) if fresh else None
+            # A server failure propagates once the launch finishes (leaving
+            # the block waits for it). That browser is recorded in the state
+            # file, so a retry reattaches to it and the idle reaper collects
+            # it otherwise.
+            server_state = self.servers.ensure_preview()
+            # The dev servers report a localhost preview URL; dual-stack
+            # projects point it at Vite, legacy single-Django ones at runserver.
+            app_url = (server_state.get('preview_url') or '').replace('localhost', '127.0.0.1').rstrip('/')
+            if not app_url:
+                app_url = f"http://127.0.0.1:{self.servers.frontend_port}"
+            self._wait_for_frontend(app_url)
+            timings['servers'] = time.monotonic() - started
+            if launch is not None:
+                state, timings['browser'] = launch.result()
+
+        if not fresh:
             state['viewport'] = [width, height]
-            # A reused browser (typically one the warm-up launched at 1x
+            # A reused browser (typically one a warm-up launched at 1x
             # before any client said otherwise) adopts the client's density,
             # or a Retina screen gets soft frames until the pane is resized.
             state['device_scale_factor'] = dsf
 
         state['app_url'] = app_url
         state['last_active'] = time.time()
+        # Opening the workspace claims a prewarmed session; a prewarm never
+        # re-marks a session someone is already using.
+        state['prewarmed'] = bool(prewarm and (fresh or state.get('prewarmed')))
         self._save_state(state)
 
         def body(conn, _page):
             self._apply_viewport(conn, state)
-            # Ask the live page where it is — the pooled target info records
-            # the URL from when the connection was first resolved.
-            history = conn.call('Page.getNavigationHistory')
-            entries = history.get('entries', [])
-            index = history.get('currentIndex', 0)
-            current = entries[index].get('url', '') if 0 <= index < len(entries) else ''
-            # A reused browser may sit on a network error page from before
-            # the dev servers were (re)started; bring it back to the app.
-            if not fresh and not current.startswith(app_url):
+            if fresh:
                 conn.call('Page.navigate', {'url': app_url + '/'})
+                self._forget_blank_page(conn, app_url)
                 time.sleep(0.3)  # let the first paint land in the frame below
+            else:
+                # Ask the live page where it is — the pooled target info
+                # records the URL from when the connection was first resolved.
+                history = conn.call('Page.getNavigationHistory')
+                entries = history.get('entries', [])
+                index = history.get('currentIndex', 0)
+                current = entries[index].get('url', '') if 0 <= index < len(entries) else ''
+                # A reused browser may sit on a network error page from before
+                # the dev servers were (re)started; bring it back to the app.
+                if not current.startswith(app_url):
+                    conn.call('Page.navigate', {'url': app_url + '/'})
+                    time.sleep(0.3)  # let the first paint land in the frame below
             payload = self._status_payload(conn, state)
             self._attach_frame(conn, payload, None)
             return payload
 
         status = self._with_page(state, body)
+        timings['total'] = time.monotonic() - started
         status['servers'] = server_state.get('message', '')
+        status['timings'] = {k: round(v, 2) for k, v in timings.items()}
+        timing_logger.info(
+            "preview start project=%s cold=%s %s",
+            self.project.pk, fresh,
+            ' '.join(f"{k}={v:.2f}s" for k, v in timings.items()),
+        )
         return status
 
     def stop(self):
@@ -746,6 +782,29 @@ class BrowserPreviewService:
         if result.get('exceptionDetails'):
             return None
         return result.get('result', {}).get('value')
+
+    @staticmethod
+    def _forget_blank_page(conn, app_url, timeout=5):
+        """Drop the about:blank the browser launched on from its history.
+
+        Waits for the app's navigation to commit first (Page.navigate returns
+        before it does, and resetting earlier keeps the blank entry), so
+        "back" never leads outside the app.
+        """
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            history = conn.call('Page.getNavigationHistory')
+            entries = history.get('entries', [])
+            index = history.get('currentIndex', 0)
+            if 0 <= index < len(entries) and entries[index].get('url', '').startswith(app_url):
+                conn.call('Page.resetNavigationHistory')
+                return
+            time.sleep(0.05)
+
+    def _timed_launch(self, width, height, dsf):
+        began = time.monotonic()
+        state = self._launch_chromium(width, height, dsf)
+        return state, time.monotonic() - began
 
     def _launch_chromium(self, width, height, dsf, initial_url='about:blank'):
         executable = find_chromium()
@@ -1376,16 +1435,131 @@ def start_preview_warmup(project):
     return thread
 
 
+def prewarm_recent_previews(user):
+    """Bring up previews for the owner's most recently opened projects.
+
+    Called at sign-in, on the bet that the projects someone opened last are
+    the ones they open next: the workspace then reattaches to a running
+    session (well under a second) instead of booting one. Bounded three ways
+    so it can never run up resources: at most
+    BROWSER_PREVIEW_PREWARM_RECENT projects, none at all once the host has
+    BROWSER_PREVIEW_MAX_SESSIONS live sessions, and an unopened prewarmed
+    session is shut down after BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT.
+
+    The projects start one after another on one background thread, most
+    recent first, so a sign-in never starts several boots at once. Returns
+    the thread, or None when there is nothing to do.
+    """
+    limit = getattr(settings, 'BROWSER_PREVIEW_PREWARM_RECENT', 3)
+    if not limit or not getattr(user, 'pk', None):
+        return None
+
+    from django.db.models import F
+    from apps.Imagi.ProjectManager.models import Project
+
+    projects = list(
+        Project.objects.filter(user=user, is_active=True)
+        .exclude(project_dir='')
+        .select_related('user')
+        .order_by(F('last_opened_at').desc(nulls_last=True), '-updated_at')[:limit]
+    )
+    if not projects:
+        return None
+
+    def run():
+        close_old_connections()
+        try:
+            from .project_files_service import ensure_working_copy
+            for project in projects:
+                if live_session_count() >= getattr(settings, 'BROWSER_PREVIEW_MAX_SESSIONS', 12):
+                    logger.info("Preview prewarm stopped: the host is at its session cap")
+                    return
+                try:
+                    service = BrowserPreviewService(project)
+                    if service.is_running():
+                        continue
+                    ensure_working_copy(project)
+                    service.start(prewarm=True)
+                    logger.info("Preview prewarmed for project %s", project.pk)
+                except Exception:
+                    logger.warning(
+                        "Preview prewarm for project %s did not complete; the "
+                        "workspace will start it on demand", project.pk, exc_info=True,
+                    )
+        finally:
+            close_old_connections()
+
+    thread = threading.Thread(
+        target=run, name=f"preview-prewarm-user-{user.pk}", daemon=True
+    )
+    thread.start()
+    return thread
+
+
+def live_session_count():
+    """How many preview sessions on this host have a live browser."""
+    root = getattr(settings, 'PROJECTS_ROOT', None)
+    if not root or not os.path.isdir(root):
+        return 0
+    count = 0
+    for state_file in glob.glob(os.path.join(root, '*', f'*{BROWSER_STATE_SUFFIX}')):
+        try:
+            with open(state_file, 'r') as f:
+                pid = (json.load(f) or {}).get('pid')
+            if pid and psutil.pid_exists(pid):
+                count += 1
+        except (OSError, ValueError, AttributeError):
+            continue
+    return count
+
+
+_reaper_thread = None
+_reaper_lock = threading.Lock()
+
+
+def ensure_idle_reaper():
+    """Run reap_idle_sessions on a timer in this process.
+
+    Reaping used to happen only when some preview started, so a session
+    nobody returned to could outlive its idle limit for as long as the host
+    stayed quiet — and a prewarmed session nobody opens is exactly that. One
+    daemon thread per process; reaping is idempotent, so several workers
+    each running one is harmless.
+    """
+    global _reaper_thread
+    interval = getattr(settings, 'BROWSER_PREVIEW_REAP_INTERVAL', 60)
+    if not interval:
+        return
+    with _reaper_lock:
+        if _reaper_thread is not None and _reaper_thread.is_alive():
+            return
+
+        def loop():
+            while True:
+                time.sleep(interval)
+                try:
+                    reap_idle_sessions()
+                except Exception:
+                    logger.warning("Idle preview reaping failed", exc_info=True)
+
+        _reaper_thread = threading.Thread(target=loop, name='preview-idle-reaper', daemon=True)
+        _reaper_thread.start()
+
+
 def reap_idle_sessions():
     """Shut down preview sessions (browser + dev servers) idle past the limit.
 
-    Runs opportunistically when any preview starts. Works purely from the
+    Runs when any preview starts and on ensure_idle_reaper's timer. Works purely from the
     per-project files on disk so it needs no database access and covers
     every user's projects.
     """
     timeout = getattr(settings, 'BROWSER_PREVIEW_IDLE_TIMEOUT', 1800)
     if not timeout:
         return
+    # A session prewarmed at sign-in that the owner never opened goes sooner.
+    prewarm_timeout = min(
+        getattr(settings, 'BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT', 600) or timeout, timeout
+    )
 
     root = getattr(settings, 'PROJECTS_ROOT', None)
     if not root or not os.path.isdir(root):
@@ -1398,7 +1572,8 @@ def reap_idle_sessions():
                 state = json.load(f)
             if not isinstance(state, dict):
                 continue
-            if now - state.get('last_active', 0) < timeout:
+            limit = prewarm_timeout if state.get('prewarmed') else timeout
+            if now - state.get('last_active', 0) < limit:
                 continue
 
             prefix = state_file[:-len(BROWSER_STATE_SUFFIX)]
