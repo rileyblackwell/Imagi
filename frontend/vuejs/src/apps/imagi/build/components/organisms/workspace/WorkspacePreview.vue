@@ -440,7 +440,10 @@ function applyFrame(f: PreviewFrame, seq: number): boolean {
   // Kept when a payload has none: the page failed to report it this once
   // (typically mid-navigation), which says nothing about its height.
   if (f.scroll) scrollInfo.value = f.scroll
-  if (f.frame) {
+  if (f.frame_skipped) {
+    // Asked for no bitmap (a scroll the backdrop carries): what's on screen
+    // stays, and the scroll above is all this reply says.
+  } else if (f.frame) {
     showFrame(`data:image/${f.frame_type === 'png' ? 'png' : 'jpeg'};base64,${f.frame}`, seq, f.scroll)
   } else if (seq > shownFrameSeq) {
     // No bitmap: it matched the etag, so the pixels on screen are this frame.
@@ -743,12 +746,18 @@ const stageStyle = computed(() => {
 // elements (a fixed or sticky header) captured separately on transparency.
 // While a scroll is ahead of the frames, the backdrop is what's on screen,
 // scrolled locally, with the fixed layer pinned on top: the page simply
-// scrolls. When the frame for where the page landed arrives, it takes over.
+// scrolls. Its slices are as sharp as a frame at rest, so a scroll it covers
+// asks for no frames at all (they would only be lower-resolution motion
+// frames); the crisp frame for where the page landed takes over once the
+// gesture ends, showing the same pixels.
 //
-// Fetched only while the user isn't interacting (it scrolls the remote page
+// Captured only while the user isn't interacting (it scrolls the remote page
 // through, under a lock that holds input back), and again when the page,
 // its height or the pane width changes, when a scroll settles near the edge
-// of what it covers, or when the page has changed and it's a while old.
+// of what it covers, or when the page has changed and it's a while old. The
+// server keeps the last capture and hands it back while the page is
+// unchanged, so one taken ahead of time (when the preview was warmed up) is
+// asked for straight away, even mid-gesture.
 // ---------------------------------------------------------------------------
 
 interface Backdrop {
@@ -771,6 +780,8 @@ let backdropRetryAt = 0
 // past this age, a changed frame triggers a fresh one.
 const BACKDROP_STALE_MS = 15000
 const BACKDROP_IDLE_MS = 400
+// Mid-gesture, with no backdrop yet, how often to ask for a stored one.
+const BACKDROP_CACHED_RETRY_MS = 1500
 
 function dropBackdrop() {
   backdropGen++
@@ -782,15 +793,18 @@ const backdropUsable = computed(() => {
   return !!b && b.path === currentPath.value && Math.abs(b.width - viewport.value[0]) <= 2
 })
 
-// The backdrop, not the frame, is on screen: the scroll is ahead of the
-// frames and the backdrop covers the whole view where the page is headed.
-const backdropCarries = computed(() => {
+// Whether the backdrop covers the whole view with the page scrolled to y.
+function backdropCovers(y: number): boolean {
   const b = backdrop.value
   if (!backdropUsable.value || !b) return false
-  if (Math.abs(shownScrollY.value - targetScrollY.value) < 0.5) return false
-  const y = targetScrollY.value
   return y >= b.top - 0.5 && y + viewport.value[1] <= b.bottom + 0.5
-})
+}
+
+// The backdrop, not the frame, is on screen: the scroll is ahead of the
+// frames and the backdrop covers the whole view where the page is headed.
+const backdropCarries = computed(() =>
+  Math.abs(shownScrollY.value - targetScrollY.value) >= 0.5 && backdropCovers(targetScrollY.value)
+)
 
 function toDevicePx(px: number): number {
   const dpr = window.devicePixelRatio || 1
@@ -832,15 +846,21 @@ function decodeImage(src: string): Promise<void> {
 
 async function maybeRefreshBackdrop() {
   if (backdropLoading || disposed || phase.value !== 'ready' || props.paused) return
-  // Never mid-gesture: the capture holds input back while it runs.
-  if (inputInFlight > 0 || inputQueue.length > 0 || Date.now() - lastActivityAt < BACKDROP_IDLE_MS) return
   if (Date.now() < backdropRetryAt || !backdropWanted()) return
+  // Never a capture mid-gesture: it holds input back while it runs. A
+  // stored one costs nothing, so with none on screen ask for that.
+  const busy = inputInFlight > 0 || inputQueue.length > 0 || Date.now() - lastActivityAt < BACKDROP_IDLE_MS
+  if (busy && backdropUsable.value) return
   backdropLoading = true
   const gen = backdropGen
   try {
-    const b = await PreviewService.backdrop(props.projectId)
+    const b = await PreviewService.backdrop(props.projectId, { cachedOnly: busy })
+    if (!b?.slices?.length && busy) backdropRetryAt = Date.now() + BACKDROP_CACHED_RETRY_MS
     if (disposed || gen !== backdropGen || !b?.slices?.length || !b.scroll) return
-    const slices = b.slices.map(sl => ({ y: sl.y, src: `data:image/jpeg;base64,${sl.frame}` }))
+    const slices = b.slices.map(sl => ({
+      y: sl.y,
+      src: `data:image/${sl.type === 'png' ? 'png' : 'jpeg'};base64,${sl.frame}`,
+    }))
     const overlay = b.overlay ? `data:image/png;base64,${b.overlay}` : null
     // Decoded before use, so the first scroll over it doesn't stall a paint.
     await Promise.all([...slices.map(sl => decodeImage(sl.src)), overlay ? decodeImage(overlay) : null])
@@ -974,6 +994,10 @@ let lastInputSentAt = 0
 // overlap or after one failed, so the next quiet poll settles the scroll.
 let scrollNeedsResync = false
 let flushTimer: number | null = null
+// Set when a backdrop-carried scroll turns out not to move the page: until
+// the scrolling pauses this long, batches ask for frames again.
+let framesUntil = 0
+const FRAMES_AFTER_STILL_SCROLL_MS = 500
 
 // The second of two overlapping batches waits at least this long after the
 // first, so a fast link still gathers a few wheel events into each.
@@ -1069,10 +1093,21 @@ async function flushInput() {
   lastInputSentAt = Date.now()
   inFlightWheelOnly = inputInFlight === 0 ? wheelOnly : inFlightWheelOnly && wheelOnly
   inputInFlight++
+  // A plain page scroll the backdrop covers needs no frame back (see Backdrop).
+  const now = Date.now()
+  if (now < framesUntil) framesUntil = now + FRAMES_AFTER_STILL_SCROLL_MS
+  const lite = now >= framesUntil && batch.every(isPageScroll) && backdropCovers(targetScrollY.value)
+  const fromY = scrollInfo.value?.y
   let response: PreviewFrame | null = null
   try {
-    response = await PreviewService.sendInput(props.projectId, batch, etag.value)
-    applyFrame(response, seq)
+    response = await PreviewService.sendInput(props.projectId, batch, etag.value, { frame: !lite })
+    if (applyFrame(response, seq) && lite && response.scroll && fromY !== undefined &&
+        Math.abs(response.scroll.y - fromY) < 0.5 && !scrollsPastEdge(batch, fromY)) {
+      // The page didn't move: the wheel went to something scrolling inside
+      // it, which only frames can show.
+      framesUntil = Date.now() + FRAMES_AFTER_STILL_SCROLL_MS
+    }
+    void maybeRefreshBackdrop()
   } catch (e) {
     // The batch never applied server-side, so the estimate that counted it
     // is wrong; the next quiet poll puts it right.
@@ -1105,6 +1140,22 @@ async function flushInput() {
     return
   }
   schedulePoll() // activity-based: quick while the user is interacting
+}
+
+// A wheel or scrollbar move that scrolls the page vertically (ctrl+wheel is
+// a zoom; a mostly sideways wheel likely scrolls something inside the page).
+function isPageScroll(ev: PreviewInputEvent): boolean {
+  if (ev.kind === 'scroll') return true
+  return ev.kind === 'wheel' && !((ev.modifiers || 0) & 2) &&
+    Math.abs(ev.deltaX || 0) <= Math.abs(ev.deltaY || 0)
+}
+
+// Whether a batch's wheel deltas only push against the end of the page it
+// is already at (or carry no vertical movement), so not moving is expected.
+function scrollsPastEdge(batch: PreviewInputEvent[], fromY: number): boolean {
+  const dy = batch.reduce((sum, ev) => sum + (ev.kind === 'wheel' ? ev.deltaY || 0 : 0), 0)
+  if (batch.some(ev => ev.kind === 'scroll') || Math.abs(dy) < 1) return true
+  return dy > 0 ? fromY >= maxScrollY.value - 0.5 : fromY <= 0.5
 }
 
 // Matches the server's notion of a gesture (dispatch_input's `motion`).
