@@ -65,10 +65,19 @@ DEFAULT_VIEWPORT = (1280, 800)
 MIN_VIEWPORT, MAX_VIEWPORT = 320, 3840
 MAX_EVENTS_PER_REQUEST = 64
 
-# JPEG quality for streamed frames. Frames produced while the user is
-# scrolling or dragging trade a little fidelity for encode speed and payload
-# size — the next idle poll re-delivers a crisp frame of the settled page.
-FRAME_JPEG_QUALITY = 70
+# Frames of a page at rest are lossless PNG, so text and hairlines come
+# through exactly as Chromium drew them (JPEG at any quality halves the colour
+# resolution, which smears coloured text). Measured at 2x, an app view is
+# ~150-400 KB as PNG, roughly JPEG 90's size and under 2x JPEG 70's, and a
+# frame is only re-sent when the page changes.
+# Photo-heavy views can run to megabytes as PNG, so a PNG over the budget is
+# replaced by a high-quality JPEG, and the session skips PNG for a while.
+FRAME_PNG_BUDGET_B64 = 900_000
+FRAME_PNG_RETRY_S = 10
+FRAME_JPEG_QUALITY = 90
+# Frames produced while the user is scrolling or dragging trade fidelity for
+# encode speed and payload size; the poll after the gesture re-delivers a
+# crisp frame of the settled page.
 MOTION_JPEG_QUALITY = 55
 
 # How long to wait for the Vite dev server to answer HTTP before pointing
@@ -291,6 +300,13 @@ _MOUSE_BUTTONS = {'none', 'left', 'middle', 'right', 'back', 'forward'}
 _KEY_EVENT_TYPES = {'keyDown', 'keyUp'}
 
 
+def _as_int(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 class BrowserPreviewError(Exception):
     """Raised for user-reportable browser preview failures."""
 
@@ -321,6 +337,9 @@ class CdpConnection:
         # (overrides live exactly as long as the CDP session that set them);
         # None until _apply_viewport sends the first one.
         self.applied_viewport = None
+        # While a view's PNG frames run over budget, capture JPEG until this
+        # time (see _capture_settled).
+        self.png_skip_until = 0
         # Whether this connection has registered the console-error collector
         # for future documents (same session-scoped lifetime as emulation).
         self.console_watch_registered = False
@@ -622,9 +641,15 @@ class BrowserPreviewService:
         state = self._require_state(touch=True)
         width, height = state.get('viewport', DEFAULT_VIEWPORT)
         # Scroll/drag batches arrive back-to-back while the user's gesture is
-        # in progress, so their frames prioritize latency over fidelity.
+        # in progress, so their frames prioritize latency over fidelity. A
+        # plain hover is not a gesture: the pointer rests over the page while
+        # the user reads it, and a low-resolution frame per mouse move kept the
+        # whole page blurry for as long as the mouse moved.
         motion = any(
-            isinstance(e, dict) and (e.get('kind') == 'wheel' or e.get('type') == 'mouseMoved')
+            isinstance(e, dict) and (
+                e.get('kind') == 'wheel'
+                or (e.get('type') == 'mouseMoved' and _as_int(e.get('buttons')))
+            )
             for e in events
         )
         scrolls = any(isinstance(e, dict) and e.get('kind') in ('wheel', 'scroll') for e in events)
@@ -645,7 +670,7 @@ class BrowserPreviewService:
             return payload
 
         # Not idempotent: a retry would dispatch the whole event batch twice.
-        return self._with_page(state, body, idempotent=False)
+        return self._with_page(state, body, idempotent=False, preempt=True)
 
     def navigate(self, action, path=None):
         """goto/back/forward/reload, then return a frame."""
@@ -678,7 +703,7 @@ class BrowserPreviewService:
 
         # Not idempotent: a retried 'back' navigates back twice, a retried
         # goto/reload re-fires the navigation.
-        return self._with_page(state, body, idempotent=False)
+        return self._with_page(state, body, idempotent=False, preempt=True)
 
     def resize(self, width, height, device_scale_factor=None):
         """Adopt the client pane's size (CSS pixels)."""
@@ -705,6 +730,9 @@ class BrowserPreviewService:
         state = self._require_state(touch=True)
         width, height = state.get('viewport', DEFAULT_VIEWPORT)
         dsf = float(state.get('device_scale_factor', 1))
+        # User input that arrives mid-capture stops it (see _page_lock): a
+        # scroll waiting behind a whole backdrop read as the preview freezing.
+        started = time.time()
 
         def warm(conn, _page):
             # First backdrop for this page: scroll through it once so
@@ -722,6 +750,10 @@ class BrowserPreviewService:
                 return False
             try:
                 for y in self._backdrop_offsets(start):
+                    if self._input_waiting(started):
+                        # Warm it properly next time.
+                        self._evaluate(conn, 'window.__imagiBackdropWarm = null')
+                        return False
                     self._evaluate(conn, _SCROLL_TO_JS % (start['x'], y))
                     self._evaluate(conn, _NEXT_FRAME_JS, await_promise=True)
             finally:
@@ -730,6 +762,10 @@ class BrowserPreviewService:
 
         if self._with_page(state, warm, exclusive=True):
             time.sleep(BACKDROP_WARM_SETTLE_S)
+        if self._input_waiting(started):
+            # The user is busy with the page; the client asks again once idle.
+            return {'path': None, 'viewport': [int(width), int(height)], 'scroll': None,
+                    'slices': [], 'overlay': None}
 
         def capture(conn, _page):
             self._apply_viewport(conn, state)
@@ -746,7 +782,12 @@ class BrowserPreviewService:
                     overlay = self._capture_overlay(conn, start, width, height, scale)
                 self._evaluate(conn, _BACKDROP_STYLE_JS % json.dumps(_BACKDROP_CSS['slices']))
                 seen = set()
-                for y in self._backdrop_offsets(start):
+                # Nearest first, so a capture cut short by input still holds
+                # the screens either side of the view (the client needs the
+                # slices to be one contiguous run, which this order keeps).
+                for y in self._nearest_first(self._backdrop_offsets(start), start):
+                    if slices and self._input_waiting(started):
+                        break
                     landed = self._evaluate(conn, _SCROLL_TO_JS % (start['x'], y)) or [start['x'], y]
                     lx, ly = float(landed[0]), float(landed[1])
                     if ly in seen:
@@ -763,7 +804,7 @@ class BrowserPreviewService:
                 'path': payload.get('path'),
                 'viewport': [int(width), int(height)],
                 'scroll': start,
-                'slices': slices,
+                'slices': sorted(slices, key=lambda sl: sl['y']),
                 'overlay': overlay,
             }
 
@@ -782,6 +823,34 @@ class BrowserPreviewService:
             offsets.append(y)
             y += vh
         return offsets
+
+    @staticmethod
+    def _nearest_first(offsets, metrics):
+        """offsets reordered outward from the view: here, below, above, ..."""
+        if not offsets:
+            return offsets
+        here = max(i for i, y in enumerate(offsets) if y <= metrics['y'] or i == 0)
+        order = [here]
+        below, above = here + 1, here - 1
+        while below < len(offsets) or above >= 0:
+            if below < len(offsets):
+                order.append(below)
+                below += 1
+            if above >= 0:
+                order.append(above)
+                above -= 1
+        return [offsets[i] for i in order]
+
+    def _input_waiting(self, since):
+        """Whether user input has queued for the page lock since ``since``."""
+        try:
+            return os.path.getmtime(self._input_waiting_file) > since
+        except OSError:
+            return False
+
+    @property
+    def _input_waiting_file(self):
+        return os.path.join(self.pid_dir, f"{sidecar_stem(self.project)}_input_waiting")
 
     def _capture_overlay(self, conn, scroll, width, height, scale):
         """The fixed (and stuck) elements alone, on a transparent background."""
@@ -982,7 +1051,7 @@ class BrowserPreviewService:
     # ------------------------------------------------------------------
 
     @contextlib.contextmanager
-    def _page_lock(self, exclusive):
+    def _page_lock(self, exclusive, preempt=False):
         """Cross-process lock on this project's page.
 
         Frame, input and navigation requests share it; a backdrop capture
@@ -991,6 +1060,10 @@ class BrowserPreviewService:
         pool lock alone wouldn't keep another worker's frame from catching
         the page mid-capture. Best effort: a lock not acquired in
         PAGE_LOCK_TIMEOUT_S is skipped rather than failing the request.
+
+        ``preempt`` (user input) that finds the lock held says so by touching
+        a stamp file the backdrop capture checks between slices, so it wraps
+        up and lets the input through instead of making it wait.
         """
         if fcntl is None:
             yield
@@ -1011,6 +1084,14 @@ class BrowserPreviewService:
                     locked = True
                     break
                 except OSError:
+                    if preempt:
+                        preempt = False
+                        try:
+                            with open(self._input_waiting_file, 'a'):
+                                pass
+                            os.utime(self._input_waiting_file)
+                        except OSError:
+                            pass
                     if time.time() >= deadline:
                         break
                     time.sleep(0.01)
@@ -1020,8 +1101,8 @@ class BrowserPreviewService:
                 fcntl.flock(fh, fcntl.LOCK_UN)
             fh.close()
 
-    def _with_page(self, state, body, idempotent=True, exclusive=False):
-        with self._page_lock(exclusive):
+    def _with_page(self, state, body, idempotent=True, exclusive=False, preempt=False):
+        with self._page_lock(exclusive, preempt):
             return self._with_page_unlocked(state, body, idempotent)
 
     def _with_page_unlocked(self, state, body, idempotent=True):
@@ -1132,13 +1213,37 @@ class BrowserPreviewService:
             'scale': 1 / dsf,
         }
 
-    def _attach_frame(self, conn, payload, etag, quality=FRAME_JPEG_QUALITY, motion_state=None):
+    def _capture_png(self, conn):
+        params = {'format': 'png'}
+        if BrowserPreviewService._fast_screenshots:
+            try:
+                # optimizeForSpeed picks fast zlib: ~3x faster than the default
+                # for a slightly larger file (measured 34 vs 92 ms at 2x).
+                return conn.call('Page.captureScreenshot', {**params, 'optimizeForSpeed': True})
+            except CdpError:
+                BrowserPreviewService._fast_screenshots = False
+        return conn.call('Page.captureScreenshot', params)
+
+    def _capture_settled(self, conn):
+        """A full-resolution frame of the page at rest: (base64, 'png'|'jpeg')."""
+        if time.time() >= getattr(conn, 'png_skip_until', 0):
+            data = self._capture_png(conn).get('data', '')
+            if len(data) <= FRAME_PNG_BUDGET_B64:
+                return data, 'png'
+            conn.png_skip_until = time.time() + FRAME_PNG_RETRY_S
+        return self._capture_screenshot(conn, FRAME_JPEG_QUALITY).get('data', ''), 'jpeg'
+
+    def _attach_frame(self, conn, payload, etag, quality=None, motion_state=None):
         clip = (
             self._motion_clip(conn, motion_state, payload.get('scroll'))
             if motion_state else None
         )
-        shot = self._capture_screenshot(conn, quality, clip)
-        data = shot.get('data', '')
+        if quality is None and clip is None:
+            data, frame_type = self._capture_settled(conn)
+        else:
+            shot = self._capture_screenshot(conn, quality or FRAME_JPEG_QUALITY, clip)
+            data, frame_type = shot.get('data', ''), 'jpeg'
+        payload['frame_type'] = frame_type
         # The etag only has to change when the frame does, so hash the base64
         # text as-is — decoding it first would just burn CPU per frame.
         digest = hashlib.sha1(data.encode('ascii')).hexdigest() if data else ''

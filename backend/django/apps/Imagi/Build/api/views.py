@@ -43,7 +43,12 @@ from ..services.usage_limits import check_usage_allowed, record_usage
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
-from ..services.models_service import canonical_model_id, get_model_by_id
+from ..services.models_service import (
+    DEFAULT_REASONING_EFFORT,
+    canonical_model_id,
+    canonical_reasoning_effort,
+    get_model_by_id,
+)
 from ..services.transcription_service import (
     TRANSCRIPTION_MODEL,
     InvalidAudio,
@@ -1409,6 +1414,13 @@ def _serialize_conversation(conversation):
         'title': conversation.title or '',
         'model_name': conversation.model_name,
         'fast_mode': conversation.fast_mode,
+        'reasoning_effort': conversation.reasoning_effort or DEFAULT_REASONING_EFFORT,
+        # The coordinator's thread defaults (workspace settings); every other
+        # kind reports the platform default, which is what it would dispatch.
+        'thread_model_name': resolve_model(conversation.thread_model_name),
+        'thread_reasoning_effort': (
+            conversation.thread_reasoning_effort or DEFAULT_REASONING_EFFORT
+        ),
         'project_id': conversation.project_id,
         'kind': conversation.kind,
         'parent': conversation.parent_id,
@@ -1625,6 +1637,25 @@ def conversation_detail(request, conversation_id):
     if 'model_name' in request.data:
         conversation.model_name = request.data.get('model_name') or conversation.model_name
         updated_fields.append('model_name')
+    # Efforts off the ladder (an old tab's 'minimal') land on their nearest
+    # rung; anything unrecognized is refused rather than stored.
+    for field in ('reasoning_effort', 'thread_reasoning_effort'):
+        if field in request.data:
+            effort = canonical_reasoning_effort(request.data.get(field))
+            if effort is None:
+                return create_error_response(
+                    f'Invalid {field}', status.HTTP_400_BAD_REQUEST
+                )
+            setattr(conversation, field, effort)
+            updated_fields.append(field)
+    if 'thread_model_name' in request.data:
+        requested = request.data.get('thread_model_name')
+        if not (requested and get_model_by_id(requested)):
+            return create_error_response(
+                'Invalid thread_model_name', status.HTTP_400_BAD_REQUEST
+            )
+        conversation.thread_model_name = canonical_model_id(requested)
+        updated_fields.append('thread_model_name')
     if 'archived' in request.data:
         archived = bool(request.data.get('archived'))
         # Unarchiving a lead while a newer live lead exists would violate the

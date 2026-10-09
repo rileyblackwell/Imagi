@@ -138,7 +138,8 @@ export function labelForTool(name: string, args?: Record<string, string>): strin
     case 'grep_files':
     case 'glob_files':
     case 'get_project_tree':
-    case 'list_project_files': return 'Looked through your project'
+    case 'list_project_files':
+    case 'explore_project': return 'Looked through your project'
     case 'update_plan': return 'Planned out the work'
     case 'web_search':
     case 'web_search_call': return 'Looked something up online'
@@ -586,6 +587,9 @@ export const AgentService = {
   async updateConversation(conversationId: number, patch: {
     title?: string
     model_name?: string
+    reasoning_effort?: string
+    thread_model_name?: string
+    thread_reasoning_effort?: string
     archived?: boolean
   }): Promise<ConversationDto> {
     const response = await api.patch(

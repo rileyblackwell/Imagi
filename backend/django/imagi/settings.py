@@ -406,8 +406,13 @@ IMAGI_BUILDER = {
     # than starting one that will be killed mid-edit (which tends to leave more
     # dangling references than it fixes).
     'INITIAL_BUILD_MIN_REPAIR_SECONDS': 8,
-    # Attach Claude's server-side web search to the agent.
+    # Give the coordinator and threads the Haiku helpers: web_search (Claude's
+    # server-side web search) and explore_project (a read-only codebase
+    # sweep). They run on HELPER_MODEL whatever model the agent is on, so
+    # search results and skimmed files never bill at the agent's own rate
+    # (Build/services/helper_tools.py).
     'ENABLE_WEB_SEARCH': True,
+    'HELPER_MODEL': 'claude-haiku-5-5',
     # Give the coordinator and threads Claude's browser use tools, driving
     # the workspace's live preview (Build/services/preview_browser_tool.py).
     'ENABLE_PREVIEW_BROWSER': True,

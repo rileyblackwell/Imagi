@@ -23,7 +23,7 @@ export function describeAgentTool(name: string): string {
   if (name === 'update_plan') return 'Planning…'
   if (name === 'web_search' || name === 'web_search_call') return 'Searching the web…'
   if (name === 'browser') return 'Using the preview…'
-  if (['get_project_tree', 'list_project_files', 'glob_files', 'grep_files', 'read_file'].includes(name)) {
+  if (['get_project_tree', 'list_project_files', 'glob_files', 'grep_files', 'read_file', 'explore_project'].includes(name)) {
     return 'Reading project files…'
   }
   if (FILE_EDIT_TOOLS.has(name)) {

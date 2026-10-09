@@ -66,8 +66,10 @@ export interface PreviewBackdrop {
 /** Snapshot of the remote page: navigation state plus (optionally) a frame. */
 export interface PreviewFrame {
   running?: boolean
-  /** Base64 JPEG. Null when it matched the etag we already have. */
+  /** Base64 image. Null when it matched the etag we already have. */
   frame?: string | null
+  /** Encoding of `frame`: lossless PNG at rest, JPEG mid-gesture (default). */
+  frame_type?: 'png' | 'jpeg'
   etag?: string
   path?: string
   title?: string

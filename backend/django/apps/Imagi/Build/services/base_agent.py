@@ -377,6 +377,9 @@ def make_run_bounds_hook(
                     model_id, input_tokens, output_tokens, cached_input_tokens(usage),
                     **long_context_tokens(usage, model_id),
                 )
+                helpers = getattr(getattr(context, 'context', None), 'helper_cost_usd', 0)
+                if cost is not None and isinstance(helpers, (int, float)):
+                    cost += helpers
                 if cost is not None and cost >= budget_usd:
                     return RunBudgetExceeded(cost, budget_usd)
             return None
@@ -924,6 +927,10 @@ class AgentContext:
     # project the preview serves, so the user and the thread see it at once
     # (live_apply). Off for drafts and the first build's pages.
     live_apply: bool = False
+    # What this run's Haiku helpers (web_search, explore_project) have cost.
+    # They are metered on their own; this lets the run's cost ceiling count
+    # them too.
+    helper_cost_usd: float = 0.0
 
 
 class ImagiAgentService:
@@ -984,6 +991,28 @@ class ImagiAgentService:
         if reasoning_effort is not None and reasoning_effort != self.reasoning_effort:
             self.reasoning_effort = reasoning_effort
             self._agents = {}
+
+    def _sync_reasoning_effort(self, conversation, requested: Optional[str]) -> None:
+        """Save a requested effort on the conversation, or run at its saved one.
+
+        A pinned role (the first build) sets its own effort and leaves the
+        conversation's alone.
+        """
+        from .models_service import canonical_reasoning_effort
+
+        if self.agent_kind is not None:
+            return
+        effort = canonical_reasoning_effort(requested or self.reasoning_effort)
+        if effort is None:
+            stored = canonical_reasoning_effort(conversation.reasoning_effort)
+            if stored:
+                self._apply_reasoning_effort(stored)
+            return
+        if conversation.reasoning_effort != effort:
+            conversation.reasoning_effort = effort
+            AgentConversation.objects.filter(pk=conversation.pk).update(
+                reasoning_effort=effort
+            )
 
     def _pricing_model(self, model: Optional[str] = None) -> str:
         """The id this run's tokens are priced under: the model's own, or its
@@ -1358,6 +1387,10 @@ class ImagiAgentService:
         self._run_fast = (
             self.fast_mode if self.fast_mode is not None else conversation.fast_mode
         )
+        # The same for effort: what the composer sends is saved on the
+        # conversation, and a run that names none (a thread the server
+        # started) runs at the one saved there.
+        self._sync_reasoning_effort(conversation, reasoning_effort)
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.

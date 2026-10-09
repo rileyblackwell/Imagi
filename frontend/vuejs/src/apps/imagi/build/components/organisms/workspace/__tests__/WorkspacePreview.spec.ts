@@ -162,6 +162,57 @@ describe('WorkspacePreview wheel scrolling', () => {
   })
 })
 
+describe('WorkspacePreview frame sharpness', () => {
+  let wrapper: VueWrapper
+
+  beforeEach(() => {
+    HTMLImageElement.prototype.decode = () => Promise.resolve()
+    frame.mockResolvedValue({ frame: null, etag: 'a' })
+    pages.mockResolvedValue([])
+    resize.mockResolvedValue({})
+  })
+
+  afterEach(() => {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+    start.mockReset(); frame.mockReset(); resize.mockReset()
+  })
+
+  it('shows a lossless frame as PNG and others as JPEG', async () => {
+    start.mockResolvedValue({ frame: 'PNG0', frame_type: 'png', etag: 'a', viewport: [320, 320], scroll: scrollAt(0) })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+    expect(wrapper.find('img.pv-live').attributes('src')).toBe('data:image/png;base64,PNG0')
+
+    frame.mockResolvedValue({ frame: 'JPG1', etag: 'b', scroll: scrollAt(0) })
+    await new Promise(r => setTimeout(r, 250))
+    await settle()
+    expect(wrapper.find('img.pv-live').attributes('src')).toBe('data:image/jpeg;base64,JPG1')
+  })
+
+  it('draws the frame at the remote viewport size, never stretched to the pane', async () => {
+    start.mockResolvedValue({ frame: 'AAAA', etag: 'a', viewport: [320, 320], scroll: scrollAt(0) })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+    const style = wrapper.find('img.pv-live').attributes('style') || ''
+    expect(style).toContain('width: 320px')
+    expect(style).toContain('height: 320px')
+    expect(style).not.toContain('object-fit')
+  })
+
+  it('resizes the remote viewport when the pane is off by a single pixel', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, right: 641, bottom: 480, width: 641, height: 480, x: 0, y: 0, toJSON: () => ({}),
+    } as DOMRect)
+    start.mockResolvedValue({ frame: 'AAAA', etag: 'a', viewport: [640, 480], scroll: scrollAt(0) })
+    wrapper = mount(WorkspacePreview, { props: { projectId: '7' } })
+    await settle()
+    await new Promise(r => requestAnimationFrame(() => r(null)))
+    await settle()
+    expect(resize).toHaveBeenCalledWith('7', 641, 480, expect.any(Number))
+  })
+})
+
 describe('WorkspacePreview scrollbar', () => {
   let wrapper: VueWrapper
 

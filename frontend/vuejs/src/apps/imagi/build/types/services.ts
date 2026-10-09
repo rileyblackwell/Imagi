@@ -326,6 +326,12 @@ export interface ConversationDto {
   title: string;
   model_name: string;
   fast_mode?: boolean;
+  /** The effort this conversation runs at (saved from its composer) */
+  reasoning_effort?: string;
+  /** The coordinator's thread defaults, from the workspace settings: the
+   *  model and effort its new threads start on */
+  thread_model_name?: string;
+  thread_reasoning_effort?: string;
   project_id: number | null;
   kind: ConversationKind;
   /** Lead conversation this task was dispatched from */
@@ -373,6 +379,9 @@ export interface AgentInstance {
   totalTokens: number | null;
   selectedModelId: string | null;
   selectedEffort: ReasoningEffort;
+  /** The coordinator only: the model and effort its new threads start on,
+   *  as saved from the workspace settings. */
+  threadDefaults?: { modelId: string; effort: ReasoningEffort };
   /** Fast mode switched on in the composer. Saved on the conversation, and
    *  threads the coordinator dispatches inherit it. Only sent to a model
    *  that offers it (supportsFastMode). */

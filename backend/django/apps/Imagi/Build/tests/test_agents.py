@@ -1504,19 +1504,16 @@ class RunBoundsHookTests(SimpleTestCase):
 class InitialBuildAgentTests(SimpleTestCase):
     """The first-build role's own configuration, which trades depth for speed."""
 
-    def test_initial_build_has_no_web_search_tool(self):
-        # A hosted search can eat a large share of a half-minute budget, and
-        # its schema costs every later turn prompt tokens.
+    def test_initial_build_has_no_helper_tools(self):
+        # A search can eat a large share of a half-minute budget, and its
+        # schema costs every later turn prompt tokens.
         agent = create_coding_agent(kind='initial_build')
-        self.assertNotIn(
-            'WebSearchTool', [type(tool).__name__ for tool in agent.tools]
-        )
+        names = {getattr(tool, 'name', '') for tool in agent.tools}
+        self.assertFalse({'web_search', 'explore_project'} & names, names)
 
     def test_chat_keeps_web_search(self):
         agent = create_coding_agent(kind='chat')
-        self.assertIn(
-            'WebSearchTool', [type(tool).__name__ for tool in agent.tools]
-        )
+        self.assertIn('web_search', {getattr(tool, 'name', '') for tool in agent.tools})
 
     def test_initial_build_can_still_write_files(self):
         agent = create_coding_agent(kind='initial_build')
