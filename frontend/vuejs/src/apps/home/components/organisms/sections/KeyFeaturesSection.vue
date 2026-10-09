@@ -11,9 +11,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">03</span><span>Run</span><StatusBadge tone="neutral" label="Beta" /></p>
         <h2 class="sl-display sl-h2">Run it as a business</h2>
         <p class="sl-lede">
-          When you&rsquo;re ready to turn the app into a business, the tools are already in
-          the same project: reaching customers, taking payments, and keeping track of the money.
-          They&rsquo;re in beta, so they work today and keep growing.
+          When the app is ready for customers, the business tools are already in the project.
+          All three are in beta: they work today and are still growing.
         </p>
       </div>
 
