@@ -1,6 +1,6 @@
 // Types used in stores
 import type { ProjectFile } from './components'
-import type { AIModel, AgentInstance, CheckInDto } from './services'
+import type { AIModel, AgentInstance, CheckInDto, ReasoningEffort } from './services'
 
 /**
  * Agent store state interface
@@ -23,7 +23,9 @@ export interface AgentState {
   /** The check-in queue has been read from the server at least once, so
    *  anything that appears in it from now on is news. */
   checkInsLoaded: boolean;
-  /** The model new threads start on — the user's setting, kept in this
-   *  browser. Opus 5.5 unless they pick another. */
+  /** The model and effort new threads start on — the workspace settings,
+   *  saved on the coordinator so the server dispatches with them. Opus 5.5
+   *  on Medium unless the user picks otherwise. */
   threadModelId: string;
+  threadEffort: ReasoningEffort;
 }

@@ -403,6 +403,13 @@ def is_valid_reasoning_effort(effort: str) -> bool:
     """Whether the given reasoning effort level is on the platform ladder."""
     return effort in REASONING_EFFORT_IDS
 
+def canonical_reasoning_effort(effort: Optional[str]) -> Optional[str]:
+    """An effort on the ladder: itself, a legacy rung's successor, or None
+    when it is neither (for callers that refuse rather than fall back)."""
+    if effort and is_valid_reasoning_effort(effort):
+        return effort
+    return LEGACY_REASONING_EFFORT_ALIASES.get(effort or '')
+
 def model_supports_reasoning(model_id: str) -> bool:
     """
     Whether the model supports the reasoning 'effort' parameter.
