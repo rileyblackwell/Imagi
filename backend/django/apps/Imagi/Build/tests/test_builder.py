@@ -15,6 +15,7 @@ import re
 import shutil
 import tempfile
 import threading
+import time
 from unittest import mock
 from unittest.mock import patch
 
@@ -27,13 +28,14 @@ from rest_framework.test import APITestCase
 
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from apps.Imagi.Build.services.browser_preview_service import (
+    FRAME_PNG_BUDGET_B64,
     BrowserPreviewError,
     BrowserPreviewService,
     CdpError,
 )
 from apps.Imagi.Build.services.create_app_service import CreateAppService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
-from apps.Imagi.Build.services.preview_service import child_env
+from apps.Imagi.Build.services.preview_service import child_env, sidecar_stem
 from apps.Imagi.Build.services.codegen.prebuilt_apps import PREBUILT_MAP
 
 
@@ -592,6 +594,60 @@ class PreviewMotionFrameTests(TestCase):
         self.assertNotIn('Page.getLayoutMetrics', [m for m, _ in conn.calls])
 
 
+    def test_frames_at_rest_are_lossless_png(self):
+        conn = FakeCdpConnection()
+        payload = {}
+        self.service._attach_frame(conn, payload, None)
+        self.assertEqual(self._shot_params(conn)['format'], 'png')
+        self.assertEqual(payload['frame_type'], 'png')
+        # Mid-gesture frames stay JPEG.
+        conn = FakeCdpConnection()
+        payload = {}
+        state = {'viewport': [1000, 800], 'device_scale_factor': 2}
+        self.service._attach_frame(conn, payload, None, quality=55, motion_state=state)
+        self.assertEqual(self._shot_params(conn)['format'], 'jpeg')
+        self.assertEqual(payload['frame_type'], 'jpeg')
+
+    def test_a_png_over_budget_is_replaced_by_jpeg_for_a_while(self):
+        class HeavyPage(FakeCdpConnection):
+            def call(self, method, params=None):
+                reply = super().call(method, params)
+                if method == 'Page.captureScreenshot' and params.get('format') == 'png':
+                    return {'data': 'A' * (FRAME_PNG_BUDGET_B64 + 1)}
+                return reply
+
+        conn = HeavyPage()
+        payload = {}
+        self.service._attach_frame(conn, payload, None)
+        shot = self._shot_params(conn)
+        self.assertEqual((shot['format'], shot['quality']), ('jpeg', 90))
+        self.assertEqual(payload['frame'], 'ZnJhbWU=')
+        # The next frame of this view skips the wasted PNG encode.
+        conn.calls.clear()
+        self.service._attach_frame(conn, {}, None)
+        self.assertEqual([p['format'] for m, p in conn.calls if m == 'Page.captureScreenshot'], ['jpeg'])
+
+    def _dispatch(self, events):
+        conn = FakeCdpConnection()
+        entry = {'conn': conn, 'page': {}, 'lock': threading.Lock()}
+        state = {'app_url': 'http://127.0.0.1:5174', 'viewport': [1000, 800],
+                 'device_scale_factor': 2, 'cdp_port': 9999}
+        with mock.patch.object(self.service, '_require_state', return_value=state), \
+                mock.patch('apps.Imagi.Build.services.browser_preview_service._pool_checkout',
+                           return_value=entry):
+            self.service.dispatch_input(events)
+        return self._shot_params(conn)
+
+    def test_hovering_gets_full_frames_and_dragging_gets_motion_frames(self):
+        hover = {'kind': 'mouse', 'type': 'mouseMoved', 'x': 5, 'y': 5, 'buttons': 0}
+        self.assertEqual(self._dispatch([hover])['format'], 'png')
+        drag = dict(hover, buttons=1)
+        shot = self._dispatch([drag])
+        self.assertEqual(shot['format'], 'jpeg')
+        self.assertEqual(shot['clip']['scale'], 0.5)
+
+
+
 class FakeScrollingPage(FakeCdpConnection):
     """A 4000px page in an 800px viewport that really scrolls."""
 
@@ -690,6 +746,44 @@ class PreviewBackdropTests(TestCase):
         conn.calls.clear()
         self._run(conn)  # same page again: no warm-up pass
         self.assertFalse([p for m, p in conn.calls if 'requestAnimationFrame(f)' in p.get('expression', '')])
+
+    def test_input_cuts_a_capture_short_and_keeps_the_nearest_slices(self):
+        conn = FakeScrollingPage()
+        conn.warmed = True
+        conn.y = 1700.0
+        checks = iter([False, False, False, True])
+        with mock.patch.object(self.service, '_input_waiting', side_effect=lambda since: next(checks)):
+            result = self._run(conn)
+        # Here (1600), below (2400), above (800): one contiguous run.
+        self.assertEqual([s['y'] for s in result['slices']], [800.0, 1600.0, 2400.0])
+        self.assertEqual(conn.y, 1700.0)  # restored
+
+    def test_input_before_the_capture_defers_it(self):
+        conn = FakeScrollingPage()
+        conn.warmed = True
+        with mock.patch.object(self.service, '_input_waiting', return_value=True):
+            result = self._run(conn)
+        self.assertEqual(result['slices'], [])
+        self.assertFalse([m for m, _ in conn.calls if m == 'Page.captureScreenshot'])
+
+    def test_input_waiting_on_the_page_lock_is_flagged(self):
+        import fcntl
+        started = time.time() - 1
+        self.assertFalse(self.service._input_waiting(started))
+        with open(os.path.join(self.service.pid_dir, f"{sidecar_stem(self.project)}_page.lock"), 'a') as held:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            with mock.patch('apps.Imagi.Build.services.browser_preview_service.PAGE_LOCK_TIMEOUT_S', 0.05):
+                with self.service._page_lock(False):
+                    pass
+                self.assertFalse(self.service._input_waiting(started))  # a poll just waits
+                with self.service._page_lock(False, preempt=True):
+                    pass
+            fcntl.flock(held, fcntl.LOCK_UN)
+        self.assertTrue(self.service._input_waiting(started))
+
+    def test_slices_are_taken_outward_from_the_view(self):
+        order = BrowserPreviewService._nearest_first([0, 800, 1600, 2400, 3200], {'y': 1700})
+        self.assertEqual(order, [1600, 2400, 800, 3200, 0])
 
     def test_offsets_stay_near_the_scroll_on_a_very_long_page(self):
         offsets = BrowserPreviewService._backdrop_offsets(
