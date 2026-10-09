@@ -155,11 +155,11 @@ export default defineComponent({
       },
       {
         badge: '12. Governing Law',
-        description: 'These terms are governed by the laws of the State of California, United States, without regard to conflict-of-law rules. Disputes will be handled in the state or federal courts in San Francisco County, California, except where the law gives you the right to bring a claim elsewhere.'
+        description: 'Imagi is based in Grand Rapids, Michigan. These terms are governed by the laws of the State of Michigan, United States, without regard to conflict-of-law rules. Disputes will be handled in the state or federal courts serving Kent County, Michigan, except where the law gives you the right to bring a claim elsewhere.'
       },
       {
         badge: '13. Changes and Contact',
-        description: 'We may update these terms as Imagi changes. When we do, we will change the date at the top of this page, and for significant changes we will let you know in the product or by email. Continuing to use Imagi after a change means you accept the updated terms. Questions can be sent to support@imagi.com.'
+        description: 'We may update these terms as Imagi changes. When we do, we will change the date at the top of this page, and for significant changes we will let you know in the product or by email. Continuing to use Imagi after a change means you accept the updated terms.'
       }
     ]
 

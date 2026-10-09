@@ -164,7 +164,7 @@ export default defineComponent({
       },
       {
         badge: '10. Changes and Contact',
-        description: 'We may update this policy as Imagi changes. When we do, we will change the date at the top of this page, and for significant changes we will let you know in the product or by email. Questions or requests about your data can be sent to support@imagi.com.'
+        description: 'We may update this policy as Imagi changes. When we do, we will change the date at the top of this page, and for significant changes we will let you know in the product or by email.'
       }
     ]
 
