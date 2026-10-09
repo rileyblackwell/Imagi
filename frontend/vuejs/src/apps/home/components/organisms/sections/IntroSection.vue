@@ -11,9 +11,8 @@
         <p class="sl-eyebrow">What Imagi is</p>
         <h2 class="sl-display sl-h2">For anyone with an idea</h2>
         <p class="sl-lede">
-          You don&rsquo;t need to code or hire a developer. Describe your idea in your own
-          words, and Imagi&rsquo;s agent builds a real, working web app from it, with the tools
-          to run it as a business right beside it.
+          No code, no developer, no stack of separate subscriptions. If you can explain your
+          idea, you can build it on Imagi and run it there too.
         </p>
       </div>
 

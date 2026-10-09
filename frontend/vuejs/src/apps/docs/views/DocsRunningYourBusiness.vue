@@ -23,6 +23,10 @@
             messages flow through accounts you control. Operate needs no connection; it is one dashboard for your live app
             and your business's money.
           </p>
+          <p>
+            All three are in <strong class="ink-strong">beta</strong>. They work today, and they are still in development,
+            so expect them to grow and change. Each one carries a Beta label in your project hub and on its own page.
+          </p>
         </div>
       </section>
 

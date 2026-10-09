@@ -11,8 +11,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
-          Chat with the agent and watch your app take shape in the live preview beside you.
-          Every change after that is one more message.
+          Tell Imagi what you want. A coordinator plans the work, threads go off and build
+          it, and they come back to you when a choice is yours to make.
         </p>
       </div>
 
@@ -62,22 +62,22 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          title: 'Design visually',
-          description: 'Shape the application without touching a file. Changes land in the preview as you make them.',
-          icon: 'design',
-          highlights: ['Visual builder', 'Live preview', 'Component library']
-        },
-        {
-          title: 'Chat and plan',
-          description: 'An agent that understands the business you are describing, not just the code. Plan features, work through problems, and write it together.',
+          title: 'Just say what you want',
+          description: 'Ask for a page, a feature or a fix in plain words. The coordinator turns it into a plan and asks a quick question when something is yours to decide.',
           icon: 'chat',
-          highlights: ['Plain-language briefs', 'Real Vue and Django code', 'Iterate by conversation']
+          highlights: ['Plain-language requests', 'Questions you answer in a tap', 'Real Vue and Django code']
         },
         {
-          title: 'Many hands at once',
-          description: 'A coordinator splits the work into threads that build pages side by side, and fixes go back to the thread that caused them.',
+          title: 'Threads do the work',
+          description: 'The coordinator hands the work to threads that build side by side. They keep going if you close the tab, and fixes go back to the thread that caused them.',
           icon: 'teams',
-          highlights: ['Pages built in parallel', 'Fixes its own errors', 'Keeps running if you close the tab']
+          highlights: ['Pages built in parallel', 'Fixes its own errors', 'Keeps working while you’re away']
+        },
+        {
+          title: 'A live app beside you',
+          description: 'Your app runs next to the chat the whole time. The agent uses it like a person would, clicking and typing to check its own work, and so can you.',
+          icon: 'design',
+          highlights: ['Live preview', 'The agent drives your app', 'Changes land as they’re made']
         }
       ]
     }

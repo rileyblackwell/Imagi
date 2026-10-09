@@ -71,7 +71,7 @@
           <li class="flex items-start gap-3">
             <div class="checklist__tick mt-2.5" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed"><strong class="ink-strong">Run the business</strong> — the project's hub
-              links to Build and to the Sell, Market, and Operate workspaces.</span>
+              links to Build and to the Sell, Market, and Operate workspaces, which are in beta.</span>
           </li>
         </ul>
       </section>

@@ -9,6 +9,7 @@
 -->
 <template>
   <ToolWorkspaceShell
+    beta
     :project-name="projectName"
     :project="project"
     :is-loading="isLoading"
