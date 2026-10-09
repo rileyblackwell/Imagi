@@ -77,7 +77,7 @@ describe('Projects (Brief)', () => {
     await flushPromises()
     expect(wrapper.find('h1').text()).toBe('Brief the agent on a new app')
     expect(wrapper.find('label[for="project-description"]').text()).toBe('What is your app?')
-    expect(wrapper.find('label[for="project-details"]').text()).toBe('What does it do?')
+    expect(wrapper.find('label[for="project-details"]').text()).toBe('How does it work?')
     expect(wrapper.find('.brief__name').text()).toBe('Your app')
     expect(wrapper.find('.brief__facts').text()).toContain('Sell, Market and Operate')
   })
@@ -131,7 +131,7 @@ describe('Projects (Brief)', () => {
     expect(push).toHaveBeenCalledWith({ name: 'project-hub', params: { projectName: 'little-loaf' } })
   })
 
-  it('won\'t create a project until it says what the app does', async () => {
+  it('won\'t create a project until it says how the app works', async () => {
     const wrapper = mountPage()
     await wrapper.find('#project-name').setValue('Little Loaf')
     await wrapper.find('#project-description').setValue(DESCRIPTION)
@@ -140,46 +140,14 @@ describe('Projects (Brief)', () => {
     expect(store.createProject).not.toHaveBeenCalled()
   })
 
-  it('starts sentences about what the app does with one tap', async () => {
+  it('previews the starter design with the app\'s own name and description', async () => {
     const wrapper = mountPage()
-    const starters = wrapper.findAll('.starters').at(1)!.findAll('button')
-    await starters[0].trigger('click')
-    expect((wrapper.find('#project-details').element as HTMLTextAreaElement).value).toBe('People can ')
-    await wrapper.find('#project-details').setValue('People can book a table')
-    await starters[1].trigger('click')
-    expect((wrapper.find('#project-details').element as HTMLTextAreaElement).value)
-      .toBe('People can book a table. It keeps track of ')
-    expect(wrapper.findAll('.step')[2].classes()).toContain('is-done')
-  })
-
-  it('asks different questions once a kind of app is picked, and sends the kind', async () => {
-    store.createProject.mockResolvedValue({ id: 9, name: 'Wick' })
-    const wrapper = mountPage()
-    const kind = (name: string) =>
-      wrapper.findAll('.starters').at(0)!.findAll('button').find((b) => b.text() === name)!
-    const starterLabels = () =>
-      wrapper.findAll('.starters').at(1)!.findAll('button').map((b) => b.text())
-
-    expect(starterLabels()[0]).toContain('People can')
-    await kind('Online store').trigger('click')
-    expect(kind('Online store').attributes('aria-pressed')).toBe('true')
-    expect(starterLabels()[0]).toContain('It sells')
-    expect(wrapper.find('#project-details-hint').text()).toContain('What do you sell')
-    expect(wrapper.find('.brief__facts').text()).toContain('Online store')
-
-    // Tapping it again goes back to the general questions.
-    await kind('Online store').trigger('click')
-    expect(starterLabels()[0]).toContain('People can')
-    await kind('Online store').trigger('click')
-
-    await wrapper.find('#project-name').setValue('Wick')
-    await wrapper.find('#project-description').setValue('Handmade candles from my kitchen studio.')
-    await wrapper.find('#project-details').setValue('It sells candles in three sizes.')
-    await wrapper.find('form#create-project').trigger('submit')
-    await flushPromises()
-    expect(store.createProject.mock.calls[0][0].app_details)
-      .toBe('Kind of app: Online store.\n\nIt sells candles in three sizes.')
-
+    expect(wrapper.find('.preview__title').text()).toBe('Your app’s name')
+    await wrapper.find('#project-name').setValue('Little Loaf')
+    await wrapper.find('#project-description').setValue('A pre-order site for my bakery. Customers pick loaves for Saturday.')
+    expect(wrapper.find('.preview__brand').text()).toBe('Little Loaf')
+    expect(wrapper.find('.preview__title').text()).toBe('Little Loaf')
+    expect(wrapper.find('.preview__text').text()).toBe('A pre-order site for my bakery.')
   })
 
   it('builds a starter design from the presets and the notes', async () => {

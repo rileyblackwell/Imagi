@@ -5,8 +5,9 @@
   Four one-tap choices (style, colours, fonts, light or dark), each optional
   and each undone by tapping it again, then a free-text box for anything the
   presets don't cover. A small preview underneath shows the choices applied
-  to a sample screen, so a non-technical founder sees what "Forest, classic
-  type" means before the build does. The colours in the preview are the
+  to a sample screen with the app's name and the first sentence of what it is,
+  so a non-technical founder sees what "Forest, classic type" means for their
+  app before the build starts. The colours in the preview are the
   founder's app colours, not Imagi's, which is why they are inline values
   rather than Spotlight tokens.
 
@@ -127,14 +128,14 @@
           <span class="preview__links" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>
         <div class="preview__body">
-          <p class="preview__title">A headline for your home page</p>
-          <p class="preview__text">Body text sits here, in the font your app will use.</p>
+          <p class="preview__title">{{ appName || 'Your app’s name' }}</p>
+          <p class="preview__text">{{ previewText }}</p>
           <span class="preview__button">Get started</span>
           <span class="preview__accent" aria-hidden="true"></span>
         </div>
       </div>
       <figcaption class="preview__caption">
-        {{ designIsSet(modelValue) ? 'A rough preview. The build refines it into the full design.' : 'Pick nothing and Imagi chooses a look that fits your app.' }}
+        {{ designIsSet(modelValue) ? 'A quick prototype of the styling. The build takes it from here and makes the full app.' : 'Pick nothing and Imagi chooses a look that fits your app.' }}
       </figcaption>
     </figure>
 
@@ -170,6 +171,8 @@ import {
 const props = defineProps<{
   modelValue: StarterDesign
   appName?: string
+  /** What the app is (step 2), shown as the sample screen's intro text. */
+  appDescription?: string
   disabled?: boolean
 }>()
 
@@ -188,6 +191,16 @@ const set = <K extends keyof StarterDesign>(key: K, value: StarterDesign[K]) =>
 // its own button.
 const toggle = (key: Choice, id: string) =>
   set(key, props.modelValue[key] === id ? null : id)
+
+// The sample screen shows the founder's own words: the first sentence of what
+// the app is, cut short so it stays a one-glance preview.
+const PREVIEW_TEXT_MAX = 110
+const previewText = computed(() => {
+  const text = (props.appDescription ?? '').trim()
+  if (!text) return 'What your app is shows up here, in the font your app will use.'
+  const first = text.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? text
+  return first.length > PREVIEW_TEXT_MAX ? `${first.slice(0, PREVIEW_TEXT_MAX - 1).trimEnd()}…` : first
+})
 
 const isCustom = computed(() => props.modelValue.palette === CUSTOM_PALETTE_ID)
 

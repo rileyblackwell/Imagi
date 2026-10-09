@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import {
-  composeAppDetails,
   composeDesignPreferences,
   summarizeDesign,
   designIsSet,
@@ -36,9 +35,4 @@ describe('projectBrief', () => {
     )
   })
 
-  it('leads what the app does with its kind, except for "something else"', () => {
-    expect(composeAppDetails('booking', ' People can book. ')).toBe('Kind of app: Bookings.\n\nPeople can book.')
-    expect(composeAppDetails('other', 'People can book.')).toBe('People can book.')
-    expect(composeAppDetails(null, 'People can book.')).toBe('People can book.')
-  })
 })

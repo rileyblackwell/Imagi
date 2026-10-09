@@ -11,10 +11,9 @@
   - Project file editing (handled by the build workspace)
 
   Design: "Brief" on the Spotlight stage. Starting an app is four numbered
-  steps on a lit rail (name it, what the app is, what it does, set the look),
-  written for people who are not technical. Picking a kind of app in step 2
-  tailors what step 3 asks, and step 4 is a starter design system (see
-  utils/projectBrief.ts and components/molecules/brief/StarterDesign.vue), with a card beside them
+  steps on a lit rail (name it, what the app is, how it works, set the look),
+  written for people who are not technical. Step 4 is a starter design system
+  with a live preview (see components/molecules/brief/StarterDesign.vue), with a card beside them
   showing the brief the agent will receive and the button that sends it. The
   copy is app-first: the business tools are mentioned as what the same project
   offers once someone wants to turn the app into a business. The projects you
@@ -101,7 +100,7 @@
                       <template v-else>01</template>
                     </span>
                     <label class="step__title" for="project-name">Name it</label>
-                    <p class="step__hint">The name of your app. You can change it later.</p>
+                    <p class="step__hint">The name of your app.</p>
                     <input
                       id="project-name"
                       ref="projectNameInput"
@@ -115,8 +114,7 @@
                     >
                   </div>
 
-                  <!-- 02 — What the app is. Picking a kind is the form's one
-                       branch: it changes what step 3 asks. -->
+                  <!-- 02 — What the app is: what, who for, and its goal. -->
                   <div class="step" :class="stepClass(2)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
@@ -124,29 +122,15 @@
                     </span>
                     <label class="step__title" for="project-description">What is your app?</label>
                     <p id="project-description-hint" class="step__hint">
-                      A sentence or two: what it is and who it&rsquo;s for. Pick the closest kind if one fits.
+                      A few sentences: what your app is, who it&rsquo;s for, and what it should help them do.
                     </p>
-                    <div class="starters" role="group" aria-label="Kind of app">
-                      <button
-                        v-for="kind in APP_KINDS"
-                        :key="kind.id"
-                        type="button"
-                        class="starter"
-                        :class="{ 'is-on': appKind === kind.id }"
-                        :aria-pressed="appKind === kind.id"
-                        :disabled="isCreating"
-                        @click="toggleKind(kind.id)"
-                      >
-                        {{ kind.label }}
-                      </button>
-                    </div>
                     <div class="lit-field">
                       <textarea
                         id="project-description"
                         v-model="newProjectDescription"
                         rows="3"
                         class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="A stock tracker for retail investors. Later I'd like to sell it as a monthly subscription."
+                        placeholder="A stock tracker for everyday investors. It helps them see how their portfolio is doing at a glance, without reading financial reports."
                         aria-describedby="project-description-hint project-description-meter"
                         :disabled="isCreating"
                         @focus="focusedStep = 2"
@@ -164,38 +148,25 @@
                     </div>
                   </div>
 
-                  <!-- 03 — What the app does. Required: it is the spec the
-                       first build plans every page from. Its questions follow
-                       the kind picked in step 2. -->
+                  <!-- 03 — How the app works. Required: it is the functional
+                       spec the first build plans every page from. -->
                   <div class="step" :class="stepClass(3)">
                     <span class="step__node" aria-hidden="true">
                       <svg v-if="detailsDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                       <template v-else>03</template>
                     </span>
-                    <label class="step__title" for="project-details">What does it do?</label>
+                    <label class="step__title" for="project-details">How does it work?</label>
                     <p id="project-details-hint" class="step__hint">
-                      {{ activeKind.hint }} Imagi turns this into the plan for your app.
+                      The details of how it works: what people can do on it, the steps they go through,
+                      and what it needs to keep track of. Imagi turns this into the plan for your app.
                     </p>
-                    <div class="starters" role="group" aria-label="Sentence starters">
-                      <button
-                        v-for="starter in activeKind.starters"
-                        :key="starter"
-                        type="button"
-                        class="starter"
-                        :disabled="isCreating"
-                        @click="addStarter(starter)"
-                      >
-                        <span aria-hidden="true">+</span> {{ starter }}&hellip;
-                      </button>
-                    </div>
                     <div class="lit-field">
                       <textarea
                         id="project-details"
-                        ref="projectDetailsInput"
                         v-model="newProjectDetails"
                         rows="4"
                         class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        :placeholder="activeKind.example"
+                        placeholder="People add the stocks they own and how many shares. It shows the total value, today's change and a chart for each stock. Each morning it writes a short summary of what moved and why."
                         aria-describedby="project-details-hint project-details-meter"
                         :disabled="isCreating"
                         @focus="focusedStep = 3"
@@ -230,6 +201,7 @@
                     <StarterDesign
                       v-model="newProjectDesign"
                       :app-name="newProjectName.trim()"
+                      :app-description="newProjectDescription.trim()"
                       :disabled="isCreating"
                       @focus="focusedStep = 4"
                       @blur="focusedStep = null"
@@ -252,11 +224,7 @@
                         {{ newProjectDescription.trim() || 'What your app does shows up here as you describe it.' }}
                       </p>
                       <dl class="brief__facts">
-                        <template v-if="appKind && appKind !== GENERIC_KIND.id">
-                          <dt>Kind</dt>
-                          <dd>{{ activeKind.label }}</dd>
-                        </template>
-                        <dt>What it does</dt>
+                        <dt>How it works</dt>
                         <dd class="brief__clamp" :class="{ 'is-empty': !newProjectDetails.trim() }">{{ newProjectDetails.trim() || 'Shows up here as you describe it' }}</dd>
                         <dt>Look</dt>
                         <dd>{{ designSummary || 'Imagi picks one' }}</dd>
@@ -421,13 +389,9 @@ import { ConfirmModal } from '@/apps/imagi/build/components/organisms/modals'
 import { takePendingIdea } from '@/apps/home/utils/pendingIdea'
 import StarterDesign from '../components/molecules/brief/StarterDesign.vue'
 import {
-  APP_KINDS,
-  GENERIC_KIND,
-  kindById,
   emptyDesign,
   designIsSet,
   summarizeDesign,
-  composeAppDetails,
   composeDesignPreferences,
   type StarterDesign as StarterDesignValue,
 } from '../utils/projectBrief'
@@ -447,15 +411,9 @@ const newProjectDescription = ref('')
 // chosen is fine — the build carries strong default design direction.
 const newProjectDesign = ref<StarterDesignValue>(emptyDesign())
 const designSummary = computed(() => summarizeDesign(newProjectDesign.value))
-// Optional: the kind of app. It tailors step 3's questions and leads the
-// app_details the build reads.
-const appKind = ref<string | null>(null)
-const activeKind = computed(() => kindById(appKind.value) ?? GENERIC_KIND)
-const toggleKind = (id: string) => { appKind.value = appKind.value === id ? null : id }
-// Required: what the app does, in plain words. The initial build reads it as
+// Required: how the app works, in plain words. The initial build reads it as
 // the app's functional brief.
 const newProjectDetails = ref('')
-const projectDetailsInput = ref<HTMLTextAreaElement | null>(null)
 const isCreating = ref(false)
 const projectNameInput = ref<HTMLInputElement | null>(null)
 
@@ -501,21 +459,6 @@ const meterLabel = (length: number, min: number) => {
 const descriptionMeterLabel = computed(() => meterLabel(descriptionLength.value, MIN_DESCRIPTION_LENGTH))
 const detailsProgress = computed(() => Math.min(1, detailsLength.value / MIN_DETAILS_LENGTH))
 const detailsMeterLabel = computed(() => meterLabel(detailsLength.value, MIN_DETAILS_LENGTH))
-
-// Sentence starters for "What does it do?" (they follow the kind of app).
-// Most founders have never written a spec; a first few words gets them past
-// the empty box.
-const addStarter = (starter: string) => {
-  const text = newProjectDetails.value.replace(/\s+$/, '')
-  const sep = !text ? '' : /[.!?]$/.test(text) ? ' ' : '. '
-  newProjectDetails.value = `${text}${sep}${starter} `
-  requestAnimationFrame(() => {
-    const el = projectDetailsInput.value
-    if (!el) return
-    el.focus()
-    el.setSelectionRange(el.value.length, el.value.length)
-  })
-}
 
 const isInitializing = ref(true)
 
@@ -609,10 +552,10 @@ async function createProject() {
     return
   }
 
-  // Validate what the app does — the first build plans its pages from it
+  // Validate how the app works — the first build plans its pages from it
   if (newProjectDetails.value.trim().length < MIN_DETAILS_LENGTH) {
     showNotification({
-      message: 'Please say what your app does — what people can do on it and what it keeps track of.',
+      message: 'Please say how your app works — what people can do on it and what it keeps track of.',
       type: 'error'
     })
     return
@@ -625,7 +568,7 @@ async function createProject() {
     const projectData = {
       name: newProjectName.value.trim(),
       description: newProjectDescription.value.trim(), // Use the description value
-      app_details: composeAppDetails(appKind.value, newProjectDetails.value),
+      app_details: newProjectDetails.value.trim(),
       design_preferences: composeDesignPreferences(newProjectDesign.value), // Optional
     }
 
@@ -636,7 +579,6 @@ async function createProject() {
     newProjectDescription.value = ''
     newProjectDetails.value = ''
     newProjectDesign.value = emptyDesign()
-    appKind.value = null
 
     // Log project information to debug any ID issues
     console.debug('Created project details:', {
@@ -996,57 +938,6 @@ input[type='search']::-webkit-search-cancel-button {
 
 .step .field__input:focus {
   border-bottom-color: var(--sl-amber);
-}
-
-/* Sentence starters and moods: small pills that write into the field below,
-   so a blank box never has to be faced cold. */
-.starters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
-}
-
-.starter {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.8rem;
-  border: 1px solid var(--sl-line);
-  border-radius: 999px;
-  background: var(--sl-chip-bg);
-  font-size: 0.8125rem;
-  color: var(--sl-muted);
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
-}
-
-.starter span {
-  color: var(--sl-amber);
-  font-weight: 600;
-}
-
-.starter:hover:not(:disabled) {
-  background: var(--sl-chip-bg-hover);
-  border-color: var(--sl-line-strong);
-  color: var(--sl-text);
-}
-
-.starter:focus-visible {
-  outline: 2px solid var(--sl-focus);
-  outline-offset: 2px;
-}
-
-.starter.is-on,
-.starter.is-on:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent);
-  font-weight: 600;
-}
-
-.starter:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* The description gets the home page's glowing prompt sheet: it is the answer

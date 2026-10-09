@@ -1,79 +1,12 @@
 /**
- * projectBrief.ts — the questions behind the projects page's create form.
+ * projectBrief.ts — the starter design behind the projects page's create form.
  *
- * The form asks what the app is, what it does, and how it should look. Two
- * answers here shape the rest of it:
- *
- * - The kind of app (a booking app, an online store, ...) is the form's one
- *   branch. It changes what step 3 asks: its hint, its sentence starters and
- *   its example, so someone describing a store is asked about orders and
- *   someone describing a booking app is asked about bookings.
- * - The starter design (style, colours, fonts, theme, notes) is the app's
- *   first design system. It is sent as plain text in `design_preferences`,
- *   written so the build agent can act on it directly (named colours with
- *   hex values, font suggestions), with no schema change on the backend.
+ * The form's last step, "Set the look", is the app's first design system:
+ * style, colours, fonts, theme and notes. It is sent as plain text in
+ * `design_preferences`, written so the build agent can act on it directly
+ * (named colours with hex values, font suggestions), with no schema change on
+ * the backend.
  */
-
-export interface AppKind {
-  id: string
-  label: string
-  /** Step 3's hint once this kind is picked: the questions worth answering. */
-  hint: string
-  /** One-tap first words for step 3. */
-  starters: readonly string[]
-  /** Step 3's example answer. */
-  example: string
-}
-
-export const GENERIC_KIND: AppKind = {
-  id: 'other',
-  label: 'Something else',
-  hint: 'In everyday words: what people can do on it, what it needs to keep track of, and anything that matters to you.',
-  starters: ['People can', 'It keeps track of', 'It should'],
-  example: 'People can sign up and save their favourites. It keeps track of each person’s list. It should work well on phones.',
-}
-
-export const APP_KINDS: readonly AppKind[] = [
-  {
-    id: 'booking',
-    label: 'Bookings',
-    hint: 'What can people book, how far ahead, and do they pay when they book? What do you need to see each day?',
-    starters: ['People can book', 'Each booking needs', 'I can see'],
-    example: 'People can book a class up to two weeks ahead and pay when they book. Each booking needs a name and phone number. I can see the day’s bookings and cancel a class.',
-  },
-  {
-    id: 'store',
-    label: 'Online store',
-    hint: 'What do you sell, how do people find and order it, and what does each order need?',
-    starters: ['It sells', 'Customers can', 'Each order needs'],
-    example: 'It sells handmade candles in three sizes. Customers can browse by scent, add to a cart and pay online. Each order needs a delivery address.',
-  },
-  {
-    id: 'community',
-    label: 'Community',
-    hint: 'Who joins, what can members do, and what is only for members?',
-    starters: ['People join by', 'Members can', 'Only members see'],
-    example: 'People join by signing up with email. Members can post questions and reply to each other. Only members see the event calendar.',
-  },
-  {
-    id: 'tool',
-    label: 'Tool or tracker',
-    hint: 'What do people put in, what do they get back, and what does it keep track of over time?',
-    starters: ['People can add', 'It keeps track of', 'It shows'],
-    example: 'People can add their workouts with sets and weights. It keeps track of every session. It shows progress for each exercise as a chart.',
-  },
-  {
-    id: 'content',
-    label: 'Portfolio or blog',
-    hint: 'What do you want to show, how is it organised, and how do people get in touch?',
-    starters: ['It shows', 'Each post has', 'Visitors can'],
-    example: 'It shows my photography grouped into weddings, portraits and travel. Each post has a title and a short story. Visitors can send me an enquiry.',
-  },
-  GENERIC_KIND,
-]
-
-export const kindById = (id: string | null): AppKind | null =>
-  APP_KINDS.find(kind => kind.id === id) ?? null
 
 export interface DesignStyle {
   id: string
@@ -200,15 +133,4 @@ export function summarizeDesign(d: StarterDesign): string {
   if (!summary) return notes
   const sentence = summary.charAt(0).toUpperCase() + summary.slice(1)
   return notes ? `${sentence}. ${notes}` : sentence
-}
-
-/**
- * What the app does, as sent in `app_details`. A picked kind leads it, so the
- * build knows the shape of app before it reads the details.
- */
-export function composeAppDetails(kindId: string | null, details: string): string {
-  const text = details.trim()
-  const kind = kindById(kindId)
-  if (!kind || kind.id === GENERIC_KIND.id) return text
-  return `Kind of app: ${kind.label}.\n\n${text}`
 }
