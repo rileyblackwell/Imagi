@@ -1,10 +1,10 @@
 <!--
   WorkspaceSettings.vue — the workspace's settings panel.
 
-  Opened from the gear in either pane's header. Models for now: which model
-  the coordinator runs on, which model new threads start on, and one tap to
-  move every thread onto it. Each setting is its own section, so the panel
-  grows by adding sections.
+  Opened from the gear in either pane's header. Thread defaults for now: the
+  model and effort new threads start on, and one tap to move every thread onto
+  them. The coordinator picks its own in its text box. Each setting is its own
+  section, so the panel grows by adding sections.
 -->
 <template>
   <Teleport to="body">
@@ -35,30 +35,30 @@
           </div>
 
           <div class="iw-scroll max-h-[min(36rem,calc(100vh-8rem))] overflow-y-auto px-5 py-4">
-            <section aria-labelledby="settings-models">
-              <h3 id="settings-models" class="settings-section-title">Models</h3>
+            <section aria-labelledby="settings-threads">
+              <h3 id="settings-threads" class="settings-section-title">Threads</h3>
+              <p class="settings-row__hint mt-1">
+                New threads start on these. You can still change one thread from its own text box.
+              </p>
 
               <div class="settings-row">
-                <p class="settings-row__name">Coordinator</p>
-                <p class="settings-row__hint">The agent you talk to. It answers and hands out the work.</p>
-                <ModelChoice
-                  class="mt-2"
-                  label="Coordinator model"
-                  :model-value="store.leadInstance?.selectedModelId ?? null"
-                  @update:model-value="setCoordinatorModel"
-                />
-              </div>
-
-              <div class="settings-row">
-                <p class="settings-row__name">Threads</p>
-                <p class="settings-row__hint">
-                  New threads start on this model. You can still change one thread from its own text box.
-                </p>
+                <p class="settings-row__name">Model</p>
                 <ModelChoice
                   class="mt-2"
                   label="Thread model"
                   :model-value="store.threadModelId"
                   @update:model-value="store.setThreadModel"
+                />
+              </div>
+
+              <div class="settings-row">
+                <p class="settings-row__name">Effort</p>
+                <p class="settings-row__hint">How hard a thread thinks before it acts. Higher is slower and costs more.</p>
+                <EffortChoice
+                  class="mt-2"
+                  label="Thread effort"
+                  :model-value="store.threadEffort"
+                  @update:model-value="store.setThreadEffort"
                 />
                 <button
                   v-if="offCount > 0"
@@ -66,10 +66,10 @@
                   class="settings-switch iw-press mt-3 w-full rounded-full px-3 py-2 text-xs font-semibold text-paper dark:text-ink"
                   @click="store.switchAllThreadsToThreadModel()"
                 >
-                  Switch {{ offCount }} {{ offCount === 1 ? 'thread' : 'threads' }} to {{ threadModelName }}
+                  Switch {{ offCount }} {{ offCount === 1 ? 'thread' : 'threads' }} to {{ defaultsName }}
                 </button>
                 <p v-else-if="hasThreads" class="settings-row__hint mt-2">
-                  Every thread is on {{ threadModelName }}.
+                  Every thread is on {{ defaultsName }}.
                 </p>
               </div>
             </section>
@@ -84,7 +84,8 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { useWorkspaceSettings } from '../../../composables/useWorkspaceSettings'
-import { AI_MODELS } from '../../../types/services'
+import { AI_MODELS, REASONING_EFFORTS } from '../../../types/services'
+import EffortChoice from '../../molecules/sidebar/EffortChoice.vue'
 import ModelChoice from '../../molecules/sidebar/ModelChoice.vue'
 
 const store = useAgentStore()
@@ -96,15 +97,13 @@ const hasThreads = computed(() =>
   store.instances.some(i => i.kind === 'task' && !i.archivedAt && i.reviewStatus !== 'dismissed')
 )
 
-const threadModelName = computed(() => {
-  const name = AI_MODELS.find(m => m.id === store.threadModelId)?.name ?? 'Claude Opus 5.5'
-  return name.replace(/^(?:GPT\s*\d+(?:\.\d+)?|Claude)\s*/i, '').trim()
+/** "Opus 5.5 · Medium": the thread defaults, as the switch button names them. */
+const defaultsName = computed(() => {
+  const model = (AI_MODELS.find(m => m.id === store.threadModelId)?.name ?? 'Claude Opus 5.5')
+    .replace(/^(?:GPT\s*\d+(?:\.\d+)?|Claude)\s*/i, '').trim()
+  const effort = REASONING_EFFORTS.find(e => e.id === store.threadEffort)?.name ?? 'Medium'
+  return `${model} · ${effort}`
 })
-
-function setCoordinatorModel(id: string) {
-  const lead = store.leadInstance
-  if (lead) store.setInstanceModel(lead.id, id)
-}
 
 // Focus moves into the dialog so Escape and Tab work from the first key.
 watch(open, isOpen => {

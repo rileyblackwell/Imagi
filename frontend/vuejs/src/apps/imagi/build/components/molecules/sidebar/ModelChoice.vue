@@ -5,27 +5,19 @@
   with its tier under its name, the chosen one lifted.
 -->
 <template>
-  <div role="radiogroup" :aria-label="label" class="model-choice">
-    <button
-      v-for="m in models"
-      :key="m.id"
-      type="button"
-      role="radio"
-      :aria-checked="m.id === modelValue"
-      class="model-choice__option iw-press"
-      :class="{ 'model-choice__option--on': m.id === modelValue }"
-      @click="m.id !== modelValue && emit('update:modelValue', m.id)"
-    >
-      <span class="model-choice__name">{{ m.short }}</span>
-      <span class="model-choice__tier">{{ m.tier }}</span>
-    </button>
-  </div>
+  <ChoiceSegments
+    :options="models"
+    :model-value="modelValue"
+    :label="label"
+    @update:model-value="id => emit('update:modelValue', id)"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { AI_MODELS } from '../../../types/services'
+import ChoiceSegments from './ChoiceSegments.vue'
 
 defineProps<{
   modelValue: string | null
@@ -61,74 +53,6 @@ const models = computed(() => {
   return [...lineup]
     .filter(m => m.id in RANK)
     .sort((a, b) => RANK[a.id]! - RANK[b.id]!)
-    .map(m => ({ id: m.id, short: shortName(m.name), tier: TIERS[m.id] ?? '' }))
+    .map(m => ({ id: m.id, name: shortName(m.name), sub: TIERS[m.id] ?? '' }))
 })
 </script>
-
-<style scoped>
-.model-choice {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 0.875rem;
-  background: rgba(19, 26, 44, 0.05);
-}
-
-.dark .model-choice {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.model-choice__option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.0625rem;
-  padding: 0.5rem 0.25rem;
-  border-radius: 0.625rem;
-  color: rgba(19, 26, 44, 0.65);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.model-choice__option:hover:not(.model-choice__option--on) {
-  color: rgba(19, 26, 44, 0.9);
-}
-
-.model-choice__option--on {
-  background: #ffffff;
-  color: rgba(19, 26, 44, 0.95);
-  box-shadow: 0 1px 2px rgba(19, 26, 44, 0.12), 0 0 0 1px rgba(19, 26, 44, 0.06);
-}
-
-.model-choice__option:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .model-choice__option {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.dark .model-choice__option:hover:not(.model-choice__option--on) {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.dark .model-choice__option--on {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.model-choice__name {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.model-choice__tier {
-  font-size: 10px;
-  opacity: 0.7;
-}
-</style>

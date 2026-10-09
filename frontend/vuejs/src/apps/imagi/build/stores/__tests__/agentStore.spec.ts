@@ -396,11 +396,10 @@ describe('agent store startDispatchedTasks', () => {
     expect(runs.mock.calls[0]![0]).toBe(adopted!.id)
   })
 
-  it('starts a dispatched thread on the thread model, even from a retired one', () => {
-    // The coordinator's own model (a retired GPT 5.6 one here) is not what a
-    // new thread runs on: it starts on the user's thread model, so the chip
-    // and the run never name a model the picker no longer offers.
-    agentService.updateConversation.mockResolvedValue({})
+  it('opens a dispatched thread on the model the server started it on, re-seating a retired one', () => {
+    // The server picks a new thread's model (the workspace's thread
+    // defaults); the card shows that model, or a retired id's successor, so
+    // the chip never names a model the picker no longer offers.
     const store = useAgentStore()
     store.setTaskRunner(vi.fn())
 
@@ -412,8 +411,9 @@ describe('agent store startDispatchedTasks', () => {
 
     const model = (id: number) => store.instances.find(i => i.conversationId === id)?.selectedModelId
     expect(model(9010)).toBe('claude-opus-5-5')
-    expect(model(9011)).toBe('claude-opus-5-5')
-    expect(model(9012)).toBe('claude-opus-5-5')
+    expect(model(9011)).toBe('claude-haiku-5-5')
+    expect(model(9012)).toBe('claude-fable-5-1')
+    expect(agentService.updateConversation).not.toHaveBeenCalled()
   })
 
   it('carries the lead\'s goal and overview onto the card from the first frame', async () => {
@@ -1341,30 +1341,68 @@ describe('agent store thread model setting', () => {
     model_name: model,
   })
 
-  it('starts on Opus 5.5', () => {
+  it('starts on Opus 5.5 at Medium', () => {
     expect(useAgentStore().threadModelId).toBe('claude-opus-5-5')
+    expect(useAgentStore().threadEffort).toBe('medium')
   })
 
-  it('remembers the pick, and ignores a model the lineup does not offer', () => {
-    useAgentStore().setThreadModel('claude-haiku-5-5')
-    setActivePinia(createPinia())
-    expect(useAgentStore().threadModelId).toBe('claude-haiku-5-5')
+  it('saves the defaults on the coordinator, and ignores a model the lineup does not offer', () => {
+    const store = useAgentStore()
+    const lead = makeInstance({ kind: 'lead', conversationId: 1, selectedModelId: 'claude-opus-5-5' })
+    store.instances = [lead]
+    store.setThreadModel('claude-haiku-5-5')
+    store.setThreadEffort('xhigh')
+    expect(agentService.updateConversation).toHaveBeenCalledWith(1, { thread_model_name: 'claude-haiku-5-5' })
+    expect(agentService.updateConversation).toHaveBeenCalledWith(1, { thread_reasoning_effort: 'xhigh' })
+    expect(store.leadInstance?.threadDefaults).toEqual({ modelId: 'claude-haiku-5-5', effort: 'xhigh' })
 
-    localStorage.setItem('imagi.threadModel', 'not-a-model')
-    setActivePinia(createPinia())
-    expect(useAgentStore().threadModelId).toBe('claude-opus-5-5')
+    store.setThreadModel('not-a-model')
+    expect(store.threadModelId).toBe('claude-opus-5-5')
   })
 
-  it('starts a new thread on the thread model, whatever the coordinator runs on', () => {
+  it('reads the defaults off the coordinator when the workspace loads', async () => {
+    agentService.listConversations.mockResolvedValue([
+      {
+        id: 1, title: '', model_name: 'claude-sonnet-5-5', project_id: 7, kind: 'lead', parent: null,
+        review_status: '', variant_group: '', has_worktree: false, archived_at: null,
+        created_at: '', updated_at: '', last_message_preview: '', is_running: false, total_tokens: null,
+        reasoning_effort: 'low', thread_model_name: 'claude-fable-5-1', thread_reasoning_effort: 'high',
+      },
+    ])
+    agentService.getConversationMessages.mockResolvedValue([])
+    agentService.listCheckIns.mockResolvedValue([])
+    const store = useAgentStore()
+    store.setProjectId('7')
+    await store.loadInstances(7)
+    store.stopCheckInPolling()
+    expect(store.threadModelId).toBe('claude-fable-5-1')
+    expect(store.threadEffort).toBe('high')
+    // The coordinator keeps its own model and effort.
+    expect(store.leadInstance?.selectedModelId).toBe('claude-sonnet-5-5')
+    expect(store.leadInstance?.selectedEffort).toBe('low')
+  })
+
+  it('opens a new thread on the model the server dispatched it on, at the default effort', () => {
     const store = useAgentStore()
     store.setTaskRunner(vi.fn())
-    store.setThreadModel('claude-haiku-5-5')
+    store.threadEffort = 'high'
 
-    store.startDispatchedTasks([dispatch(9801, 'claude-fable-5-1')])
+    store.startDispatchedTasks([dispatch(9801, 'claude-haiku-5-5')])
 
     const thread = store.instances.find(i => i.conversationId === 9801)!
     expect(thread.selectedModelId).toBe('claude-haiku-5-5')
-    expect(agentService.updateConversation).toHaveBeenCalledWith(9801, { model_name: 'claude-haiku-5-5' })
+    expect(thread.selectedEffort).toBe('high')
+    // The server already started it there; nothing to re-save.
+    expect(agentService.updateConversation).not.toHaveBeenCalled()
+  })
+
+  it('saves a thread\'s own effort on its conversation', () => {
+    const store = useAgentStore()
+    const thread = makeInstance({ kind: 'task', conversationId: 55, selectedEffort: 'medium' })
+    store.instances = [thread]
+    store.setInstanceEffort(thread.id, 'max')
+    expect(thread.selectedEffort).toBe('max')
+    expect(agentService.updateConversation).toHaveBeenCalledWith(55, { reasoning_effort: 'max' })
   })
 
   it('switches every thread that can still run, and leaves the rest', () => {

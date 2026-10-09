@@ -43,7 +43,7 @@ describe('WorkspaceSettings', () => {
   const panel = () => document.body.querySelector('[role="dialog"]')
   const groups = () => Array.from(document.body.querySelectorAll<HTMLElement>('[role="radiogroup"]'))
   const checked = (group: HTMLElement) =>
-    group.querySelector('[aria-checked="true"] .model-choice__name')?.textContent?.trim()
+    group.querySelector('[aria-checked="true"] .choice-segments__name')?.textContent?.trim()
   const option = (group: HTMLElement, name: string) =>
     Array.from(group.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.includes(name))!
 
@@ -77,34 +77,45 @@ describe('WorkspaceSettings', () => {
     expect(useWorkspaceSettings().open.value).toBe(false)
   })
 
-  it('shows Opus 5.5 for the coordinator and for threads by default', async () => {
+  it('has no coordinator model: only the thread defaults, Opus 5.5 on Medium', async () => {
     await openWith([agent('lead1', 'lead', 'claude-opus-5-5')])
-    const [coordinator, threads] = groups()
-    expect(checked(coordinator!)).toBe('Opus 5.5')
-    expect(checked(threads!)).toBe('Opus 5.5')
+    const [model, effort, ...rest] = groups()
+    expect(rest).toHaveLength(0)
+    expect(panel()?.textContent).not.toContain('Coordinator')
+    expect(model!.getAttribute('aria-label')).toBe('Thread model')
+    expect(checked(model!)).toBe('Opus 5.5')
+    expect(effort!.getAttribute('aria-label')).toBe('Thread effort')
+    expect(checked(effort!)).toBe('Medium')
   })
 
-  it('sets the coordinator and the thread model apart', async () => {
+  it('saves the thread model and effort on the coordinator, leaving its own model alone', async () => {
+    const { AgentService } = await import('@/apps/imagi/build/services/agentService')
     const store = await openWith([agent('lead1', 'lead', 'claude-opus-5-5')])
-    const [coordinator, threads] = groups()
-    option(coordinator!, 'Fable').click()
-    option(threads!, 'Haiku').click()
+    const [model, effort] = groups()
+    option(model!, 'Haiku').click()
+    option(effort!, 'High').click()
     await nextTick()
-    expect(store.leadInstance?.selectedModelId).toBe('claude-fable-5-1')
     expect(store.threadModelId).toBe('claude-haiku-5-5')
+    expect(store.threadEffort).toBe('high')
+    expect(store.leadInstance?.selectedModelId).toBe('claude-opus-5-5')
+    expect(AgentService.updateConversation).toHaveBeenCalledWith(1, { thread_model_name: 'claude-haiku-5-5' })
+    expect(AgentService.updateConversation).toHaveBeenCalledWith(1, { thread_reasoning_effort: 'high' })
   })
 
-  it('switches the threads on another model, then says they all match', async () => {
+  it('switches the threads off the defaults, then says they all match', async () => {
+    const offEffort = { ...agent('t4', 'task', 'claude-opus-5-5'), selectedEffort: 'low' as const }
     const store = await openWith([
       agent('lead1', 'lead', 'claude-opus-5-5'),
       agent('t2', 'task', 'claude-fable-5-1'),
       agent('t3', 'task', 'claude-opus-5-5'),
+      offEffort,
     ])
     const switchAll = document.body.querySelector<HTMLButtonElement>('.settings-switch')!
-    expect(switchAll.textContent?.trim()).toBe('Switch 1 thread to Opus 5.5')
+    expect(switchAll.textContent?.trim()).toBe('Switch 2 threads to Opus 5.5 · Medium')
     switchAll.click()
     await nextTick()
-    expect(store.instances.filter(i => i.kind === 'task').every(i => i.selectedModelId === 'claude-opus-5-5')).toBe(true)
-    expect(panel()?.textContent).toContain('Every thread is on Opus 5.5.')
+    const threads = store.instances.filter(i => i.kind === 'task')
+    expect(threads.every(i => i.selectedModelId === 'claude-opus-5-5' && i.selectedEffort === 'medium')).toBe(true)
+    expect(panel()?.textContent).toContain('Every thread is on Opus 5.5 · Medium.')
   })
 })

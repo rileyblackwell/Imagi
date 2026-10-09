@@ -659,6 +659,23 @@ def _user_asked_for_variants(parent) -> bool:
     return bool(latest and _VARIANT_REQUEST.search(latest.content or ''))
 
 
+def thread_defaults(lead) -> tuple:
+    """The model and effort a coordinator's new threads start on: its
+    workspace settings, or the platform defaults (Opus 5.5, Medium)."""
+    from apps.Imagi.Build.services.base_agent import DEFAULT_MODEL
+    from apps.Imagi.Build.services.models_service import (
+        DEFAULT_REASONING_EFFORT,
+        canonical_model_id,
+        canonical_reasoning_effort,
+        get_model_by_id,
+    )
+
+    model = lead.thread_model_name
+    model = canonical_model_id(model) if model and get_model_by_id(model) else DEFAULT_MODEL
+    effort = canonical_reasoning_effort(lead.thread_reasoning_effort) or DEFAULT_REASONING_EFFORT
+    return model, effort
+
+
 def dispatch_task_impl(
     ctx, description: str, goal: str = '', overview: str = '', title: str = '',
     drafts: int = 1,
@@ -745,12 +762,16 @@ def dispatch_task_impl(
         count = 1
     variant_group = uuid.uuid4().hex if count > 1 else ''
     provisional_title = ((title or '').strip() or brief).splitlines()[0][:80]
+    thread_model, thread_effort = thread_defaults(parent)
 
     dispatched = []
     for _ in range(count):
         conversation = AgentConversation.objects.create(
             user_id=ctx.user_id,
-            model_name=parent.model_name,
+            # A thread starts on the workspace's thread defaults, whatever
+            # the coordinator itself runs on; the user can change it after.
+            model_name=thread_model,
+            reasoning_effort=thread_effort,
             fast_mode=parent.fast_mode,
             project_id=parent.project_id,
             mode='agent',

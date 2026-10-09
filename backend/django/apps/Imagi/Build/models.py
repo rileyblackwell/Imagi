@@ -157,6 +157,15 @@ class AgentConversation(models.Model):
     # on by the user in the composer. Threads the coordinator dispatches
     # inherit it, so turning it on speeds up the whole job, not just the reply.
     fast_mode = models.BooleanField(default=False)
+    # The reasoning effort this conversation runs at, picked in its composer
+    # ('' = the platform default). Saved so a thread the server starts on its
+    # own runs at the effort the user chose for it.
+    reasoning_effort = models.CharField(max_length=10, blank=True, default='')
+    # On the coordinator only: the model and effort the threads it dispatches
+    # start on, set in the workspace settings ('' = the platform default).
+    # A thread keeps its own afterwards, so the user can still change one.
+    thread_model_name = models.CharField(max_length=50, blank=True, default='')
+    thread_reasoning_effort = models.CharField(max_length=10, blank=True, default='')
     provider = models.CharField(max_length=20, choices=get_provider_choices(), default=get_default_provider())
     project_id = models.IntegerField(null=True, blank=True)  # Store reference to ProjectManager's Project ID
     title = models.CharField(max_length=120, blank=True, default='')

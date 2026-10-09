@@ -18,23 +18,11 @@ import { AgentService } from '../services/agentService'
 
 const DEFAULT_MODEL_ID = 'claude-opus-5-5'
 
-// The user's pick of model for new threads. Kept per browser, like the rest
-// of the workspace's view settings; unset or unreadable falls back to Opus 5.5.
-const THREAD_MODEL_KEY = 'imagi.threadModel'
-
 /** A model id the lineup offers, re-seating a retired one; anything else is
  *  the default. */
 function threadModelOrDefault(modelId: string | null | undefined): string {
   const id = canonicalModelId(modelId)
   return id && AI_MODELS.some(m => m.id === id) ? id : DEFAULT_MODEL_ID
-}
-
-function readThreadModelId(): string {
-  try {
-    return threadModelOrDefault(localStorage.getItem(THREAD_MODEL_KEY))
-  } catch {
-    return DEFAULT_MODEL_ID
-  }
 }
 
 // The catalog's `default: true` entry wins over list order, so the effective
@@ -153,7 +141,13 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     totalTokens: typeof dto.total_tokens === 'number' ? dto.total_tokens : null,
     // A conversation stored on a retired model reopens on its successor.
     selectedModelId: canonicalModelId(dto.model_name) || fallbackModelId,
-    selectedEffort: DEFAULT_REASONING_EFFORT,
+    selectedEffort: clampEffortToModel(dto.reasoning_effort),
+    threadDefaults: dto.kind === 'lead'
+      ? {
+          modelId: threadModelOrDefault(dto.thread_model_name),
+          effort: clampEffortToModel(dto.thread_reasoning_effort),
+        }
+      : undefined,
     fastMode: !!dto.fast_mode,
     selectedFile: null,
     conversation: [],
@@ -184,7 +178,8 @@ export const useAgentStore = defineStore('agent', {
     instancesLoading: false,
     checkIns: [],
     checkInsLoaded: false,
-    threadModelId: readThreadModelId(),
+    threadModelId: DEFAULT_MODEL_ID,
+    threadEffort: DEFAULT_REASONING_EFFORT,
   }),
 
   getters: {
@@ -193,13 +188,13 @@ export const useAgentStore = defineStore('agent', {
       return state.instances.find(i => i.id === state.activeInstanceId) || null
     },
 
-    /** Threads still able to run (not archived, not discarded) on a model
-     *  other than the one new threads start on — what "switch all threads"
+    /** Threads still able to run (not archived, not discarded) on a model or
+     *  effort other than the thread defaults — what "switch all threads"
      *  would change. */
     threadsOffThreadModel(state): AgentInstance[] {
       return state.instances.filter(
         i => i.kind === 'task' && !i.archivedAt && i.reviewStatus !== 'dismissed' &&
-          i.selectedModelId !== state.threadModelId
+          (i.selectedModelId !== state.threadModelId || i.selectedEffort !== state.threadEffort)
       )
     },
 
@@ -356,6 +351,10 @@ export const useAgentStore = defineStore('agent', {
         if (!this.instances.some(i => i.kind === 'lead' && !i.archivedAt)) {
           await this.createInstance({ kind: 'lead', activate: false })
         }
+        // The thread defaults live on the coordinator, which dispatches with them.
+        const defaults = this.leadInstance?.threadDefaults
+        this.threadModelId = defaults?.modelId ?? DEFAULT_MODEL_ID
+        this.threadEffort = defaults?.effort ?? DEFAULT_REASONING_EFFORT
 
         // Pick active: remembered id from localStorage, else the lead
         const remembered = localStorage.getItem(`activeAgentInstance_${projectId}`)
@@ -621,11 +620,9 @@ export const useAgentStore = defineStore('agent', {
           // Nothing has been said in it yet, so there is nothing to fetch.
           instance.messagesLoaded = true
           this.instances.unshift(instance)
-          // A new thread starts on the user's thread model, whatever the
-          // coordinator that dispatched it runs on.
-          if (instance.selectedModelId !== this.threadModelId) {
-            this.setInstanceModel(instance.id, this.threadModelId)
-          }
+          // The server started it on the thread defaults; the dispatch
+          // carries the model, and the effort is the default it was given.
+          instance.selectedEffort = this.threadEffort
         }
         // The lead re-dispatched work this subagent already has: the server
         // handed back the running task rather than staging a new one, so it is
@@ -1186,22 +1183,37 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    /** The model new threads start on. */
+    /** The model new threads start on (workspace settings). */
     setThreadModel(modelId: string) {
-      const id = threadModelOrDefault(modelId)
-      this.threadModelId = id
-      try {
-        localStorage.setItem(THREAD_MODEL_KEY, id)
-      } catch {
-        // Private mode or storage blocked: the pick holds for this session.
+      this.threadModelId = threadModelOrDefault(modelId)
+      this._saveThreadDefaults({ thread_model_name: this.threadModelId })
+    },
+
+    /** The effort new threads start on (workspace settings). */
+    setThreadEffort(effort: ReasoningEffort) {
+      this.threadEffort = clampEffortToModel(effort)
+      this._saveThreadDefaults({ thread_reasoning_effort: this.threadEffort })
+    },
+
+    /** Save the thread defaults on the coordinator, which dispatches with them. */
+    _saveThreadDefaults(patch: { thread_model_name?: string; thread_reasoning_effort?: string }) {
+      const lead = this.leadInstance
+      if (!lead) return
+      lead.threadDefaults = { modelId: this.threadModelId, effort: this.threadEffort }
+      if (lead.conversationId) {
+        AgentService.updateConversation(lead.conversationId, patch)
+          .catch(e => console.error('Failed to save thread defaults:', e))
       }
     },
 
-    /** Move every thread that can still run onto the thread model. A live
-     *  run finishes on the model it started with; its next turn uses this. */
+    /** Move every thread that can still run onto the thread defaults. A live
+     *  run finishes on what it started with; its next turn uses these. */
     switchAllThreadsToThreadModel(): number {
       const threads = this.threadsOffThreadModel
-      for (const thread of threads) this.setInstanceModel(thread.id, this.threadModelId)
+      for (const thread of threads) {
+        if (thread.selectedModelId !== this.threadModelId) this.setInstanceModel(thread.id, this.threadModelId)
+        if (thread.selectedEffort !== this.threadEffort) this.setInstanceEffort(thread.id, this.threadEffort)
+      }
       return threads.length
     },
 
@@ -1219,14 +1231,20 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    // Reasoning effort is a per-request tuning knob kept in client state only
-    // (there is no backend field to persist it to). The clamp re-seats a
-    // legacy rung ('minimal' or 'none' → 'low') and drops anything
-    // unknown back to the default, so the ladder is all that ever gets sent.
+    // Saved on the conversation, so a thread the server starts runs at the
+    // effort picked for it. The clamp re-seats a legacy rung ('minimal' or
+    // 'none' → 'low') and drops anything unknown back to the default, so the
+    // ladder is all that ever gets sent.
     setInstanceEffort(instanceId: string, effort: ReasoningEffort) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
-      instance.selectedEffort = clampEffortToModel(effort, instance.selectedModelId)
+      const next = clampEffortToModel(effort, instance.selectedModelId)
+      if (next === instance.selectedEffort) return
+      instance.selectedEffort = next
+      if (instance.conversationId) {
+        AgentService.updateConversation(instance.conversationId, { reasoning_effort: next })
+          .catch(e => console.error('Failed to persist effort:', e))
+      }
     },
 
     // Fast mode rides along with each message; the server saves it on the

@@ -16,11 +16,6 @@ from django.conf import settings
 
 from agents import Agent, RunContextWrapper
 
-try:  # Hosted web-search tool (available on the OpenAI Responses API)
-    from agents import WebSearchTool
-except ImportError:  # pragma: no cover - defensive fallback
-    WebSearchTool = None
-
 try:  # Ends a run after a named tool call (task runs stop on ask_user)
     from agents.agent import StopAtTools
 except ImportError:  # pragma: no cover - defensive fallback
@@ -50,13 +45,6 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Default model
 DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'claude-opus-5-5')
-
-# The lead thread only triages (reply vs job) and writes short briefs — cheap,
-# near-mechanical work that doesn't need the builders' reasoning budget. It
-# runs at a deliberately low reasoning effort so it decides and dispatches with
-# minimal latency (which also frees the thread sooner); the chat/task builders
-# keep the requested effort for the actual coding. Tunable via IMAGI_BUILDER.
-LEAD_REASONING_EFFORT = _BUILDER_SETTINGS.get('LEAD_REASONING_EFFORT', 'low')
 
 # The initial build is bounded by wall-clock time (the founder is waiting on
 # it), and it writes new UI from a description rather than reasoning about
@@ -189,9 +177,9 @@ INITIAL_BUILD_INSTRUCTIONS = "\n\n".join(
     (INITIAL_BUILD_INTRO, INITIAL_BUILD_WORKING_STYLE, DESIGN_DIRECTION, INITIAL_BUILD_GUIDANCE)
 )
 
-# Appended only when the hosted web-search tool is attached.
-WEB_SEARCH_INSTRUCTIONS = """
-Web search is available for current outside information — facts about the user's business or industry, up-to-date library usage — not for what you already know or what lives in the project."""
+# Appended when the Haiku helpers are attached (helper_tools).
+HELPER_INSTRUCTIONS = """
+Two helpers run on a faster, cheaper model and hand you back a short answer: web_search, for current outside information (the user's business or industry, prices, how a library or service works today), and explore_project, for broad questions about the codebase that would otherwise take you many searches and reads. Use them instead of doing that legwork yourself; read files directly when you already know where to look."""
 
 # Appended when the preview browser is attached. It is the same browser the
 # user watches in the workspace's preview pane, so they see every action.
@@ -366,12 +354,9 @@ def create_coding_agent(
     Returns:
         Agent: The configured agent for that role
     """
-    # The lead coordinates; it never builds. Force its low reasoning effort here
-    # (ignoring the per-request setting, which is meant for the builders) so
-    # triage-and-dispatch stays fast regardless of what the user picked.
-    if kind == 'lead':
-        reasoning_effort = LEAD_REASONING_EFFORT
-    elif kind == 'initial_build':
+    # The coordinator runs at the effort picked in its own composer, like any
+    # thread (default Medium); only the first build pins its own.
+    if kind == 'initial_build':
         reasoning_effort = INITIAL_BUILD_REASONING_EFFORT
     effort = resolve_reasoning_effort(model, reasoning_effort)
     identity = get_model_identity_instructions(model)
@@ -405,17 +390,17 @@ def create_coding_agent(
         if StopAtTools is not None:
             kwargs['tool_use_behavior'] = StopAtTools(stop_at_tool_names=['ask_user'])
 
-    # The initial build is the one role that never searches: it is racing a
-    # wall-clock budget, and everything it needs is in the founder's brief. A
-    # single hosted search can eat a meaningful share of that budget, and it
-    # also costs every later turn the tool's schema in the prompt.
-    web_search_enabled = (
-        WebSearchTool is not None
-        and kind != 'initial_build'
+    # Web search and project exploration run on Haiku (helper_tools), so
+    # the legwork never bills at the agent's own rate. The initial build is
+    # the one role without them: it is racing a wall-clock budget, and
+    # everything it needs is in the founder's brief.
+    helpers_enabled = (
+        kind != 'initial_build'
         and _BUILDER_SETTINGS.get('ENABLE_WEB_SEARCH', True)
     )
-    if web_search_enabled:
-        tools.append(WebSearchTool())
+    if helpers_enabled:
+        from .helper_tools import HELPER_TOOLS
+        tools.extend(HELPER_TOOLS)
 
     # The preview browser, for the same roles: the coordinator and threads
     # can look at and use the running app the way the user does. It is a
@@ -432,8 +417,8 @@ def create_coding_agent(
 
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
         instructions = get_dynamic_coding_instructions(context, agent, base_instructions)
-        if web_search_enabled:
-            instructions += "\n" + WEB_SEARCH_INSTRUCTIONS
+        if helpers_enabled:
+            instructions += "\n" + HELPER_INSTRUCTIONS
         if browser_enabled:
             instructions += "\n" + (
                 TASK_BROWSER_INSTRUCTIONS if kind == 'task' else BROWSER_INSTRUCTIONS

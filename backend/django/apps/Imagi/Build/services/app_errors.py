@@ -208,15 +208,18 @@ def _start_fix_thread(user, project, brief: str):
     from ..models import AgentConversation, AgentMessage, SystemPrompt
     from .base_agent import build_message_metadata, dispatch_task_refs
     from .coding_agent import CODING_AGENT_INSTRUCTIONS
+    from .tools import thread_defaults
 
     lead = AgentConversation.objects.filter(
         user=user, project_id=project.id, kind='lead', archived_at__isnull=True,
     ).order_by('created_at').first()
     if lead is None:
         return None
+    model_name, reasoning_effort = thread_defaults(lead)
     fixer = AgentConversation.objects.create(
         user=user,
-        model_name=lead.model_name,
+        model_name=model_name,
+        reasoning_effort=reasoning_effort,
         fast_mode=lead.fast_mode,
         project_id=project.id,
         mode='agent',
