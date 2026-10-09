@@ -14,7 +14,9 @@
     <DefaultLayout>
       <div class="relative">
         <HeroSection />
-        <StatsSection />
+        <IntroSection />
+        <div class="sl-divider" aria-hidden="true"></div>
+        <StartSection />
         <div class="sl-divider" aria-hidden="true"></div>
         <FeaturesSection />
         <div class="sl-divider" aria-hidden="true"></div>
@@ -32,7 +34,8 @@ import {
   HeroSection,
   FeaturesSection,
   KeyFeaturesSection,
-  StatsSection,
+  IntroSection,
+  StartSection,
   ClosingSection
 } from '@/apps/home/components/organisms/sections'
 import { checkBackendHealth } from '@/apps/home/services/healthService'
@@ -44,7 +47,8 @@ export default defineComponent({
     HeroSection,
     FeaturesSection,
     KeyFeaturesSection,
-    StatsSection,
+      IntroSection,
+  StartSection,
     ClosingSection
   },
   setup() {

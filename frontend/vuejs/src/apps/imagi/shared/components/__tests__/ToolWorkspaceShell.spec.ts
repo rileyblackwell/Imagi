@@ -65,6 +65,12 @@ describe('ToolWorkspaceShell', () => {
     expect(wrapper.find('.tab-body').exists()).toBe(false)
   })
 
+  it('shows a Beta pill beside the title only when the tool is in beta', () => {
+    expect(mountShell().find('header').text()).not.toContain('Beta')
+    expect(mountShell({ beta: true }).find('header').text()).toContain('Beta')
+    expect(mountShell({ beta: true }).find('h1').text()).toBe('Sell')
+  })
+
   it('only shows the connect banner when asked to', () => {
     expect(mountShell().find('.banner').exists()).toBe(false)
     expect(mountShell({ showBanner: true }).find('.banner').text()).toContain('Connect Stripe')

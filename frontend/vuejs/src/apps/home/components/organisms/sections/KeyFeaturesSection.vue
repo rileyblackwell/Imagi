@@ -1,18 +1,19 @@
 <!--
-  Step 02 — Run.
-  The mirror of step 01, plus two real crops of the run-half tooling so the
+  Step 03 — Run.
+  The mirror of step 02, plus one real crop of the run-half tooling so the
   claim that these are actual workspaces (and not a roadmap) is visible rather
-  than asserted.
+  than asserted. Sell, Market and Operate are in beta, and say so.
 -->
 <template>
   <section class="sl-sec step">
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
-        <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Run</span></p>
-        <h2 class="sl-display sl-h2">Run the business</h2>
+        <p class="sl-eyebrow"><span class="sl-grad-text step-num">03</span><span>Run</span><StatusBadge tone="neutral" label="Beta" /></p>
+        <h2 class="sl-display sl-h2">Run it as a business</h2>
         <p class="sl-lede">
-          Once the app is live, the rest of the business lives in the same project &mdash;
-          reaching customers, taking payments, and keeping track of the money.
+          When you&rsquo;re ready to turn the app into a business, the tools are already in
+          the same project: reaching customers, taking payments, and keeping track of the money.
+          They&rsquo;re in beta, so they work today and keep growing.
         </p>
       </div>
 
@@ -32,28 +33,16 @@
         </article>
       </div>
 
-      <!-- Two crops of the real tooling: payments and campaigns -->
-      <div v-reveal="{ delay: 120 }" class="shot-pair">
-        <div class="sl-stage">
-          <ProductShot
-            src="/product/run-sell.webp"
-            alt="The Sell workspace for Ticker Insights, with tabs for payments, products, orders, customers and settings, and a prompt to connect a Stripe account."
-            :width="2288"
-            :height="710"
-            label="imagi — sell"
-            caption="Payments run through your own Stripe account — Imagi never sits between you and the money."
-          />
-        </div>
-        <div class="sl-stage">
-          <ProductShot
-            src="/product/run-marketing.webp"
-            alt="The Marketing workspace for Ticker Insights, with tabs for campaigns, audience, ads, inbox and settings, and a prompt to connect a Twilio account."
-            :width="2288"
-            :height="696"
-            label="imagi — marketing"
-            caption="Text and voice campaigns go out over Twilio, with Google and Meta ad accounts alongside them."
-          />
-        </div>
+      <!-- One crop of the real tooling: starting a campaign -->
+      <div v-reveal="{ delay: 120 }" class="sl-stage">
+        <ProductShot
+          src="/product/run-marketing.webp"
+          alt="The Marketing workspace for Ticker Insights, with two ways to start a campaign: a text message sent through Twilio, or a Google search ad."
+          :width="2288"
+          :height="1194"
+          label="imagi — marketing"
+          caption="Texts go out over your Twilio account and replies land in your inbox. Google search ads can be planned now and launched once Google Ads is connected."
+        />
       </div>
     </div>
   </section>
@@ -63,11 +52,11 @@
 import { defineComponent } from 'vue'
 import reveal from '@/apps/home/directives/reveal'
 import { ProductShot } from '@/apps/home/components/atoms'
-import { LineIcon } from '@/shared/components'
+import { LineIcon, StatusBadge } from '@/shared/components'
 
 export default defineComponent({
   name: 'KeyFeaturesSection',
-  components: { LineIcon, ProductShot },
+  components: { LineIcon, ProductShot, StatusBadge },
   directives: { reveal },
   props: {
     features: {
@@ -75,15 +64,15 @@ export default defineComponent({
       default: () => [
         {
           title: 'Marketing',
-          description: 'Reach customers and grow an audience — campaigns, contacts, ad accounts and a shared inbox for the replies.',
+          description: 'Reach customers and grow an audience: text campaigns to your contacts, Google search ads, and an inbox for the replies.',
           icon: 'marketing',
-          highlights: ['Text and voice campaigns', 'Google and Meta ads', 'Contacts and inbox']
+          highlights: ['Text campaigns', 'Google search ads', 'Contacts and inbox']
         },
         {
           title: 'Sell',
-          description: 'Turn visitors into paying customers with products, checkout links and orders wired into the app you just built.',
+          description: 'Turn visitors into paying customers. Connect Stripe, choose how you charge, and Imagi adds secure payment pages to the app you just built.',
           icon: 'sales',
-          highlights: ['Products and checkout links', 'Orders and customers', 'Paid through your Stripe']
+          highlights: ['One-time, subscription or pay as you go', 'Orders, subscriptions and customers', 'Paid through your Stripe']
         },
         {
           title: 'Operate',
@@ -121,17 +110,4 @@ export default defineComponent({
   font-weight: 700;
 }
 
-/* Stacked, not side by side: these crops are 2288px of dense UI, and at half
-   the measure their tab labels stop being readable — which defeats the point
-   of showing them at all. */
-.shot-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: clamp(40px, 5vw, 64px);
-  margin-top: clamp(64px, 8vw, 104px);
-}
-
-.shot-pair .sl-stage {
-  margin-top: 0;
-}
 </style>

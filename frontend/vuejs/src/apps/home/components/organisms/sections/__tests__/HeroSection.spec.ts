@@ -26,6 +26,12 @@ describe('HeroSection', () => {
     expect(wrapper.find('.hero-accent').text()).toBe('run')
   })
 
+  it('says what Imagi does: idea to app, app to business', () => {
+    mockReducedMotion(true)
+    const wrapper = mount(HeroSection, { global: { stubs } })
+    expect(wrapper.find('.hero-lede').text()).toContain('Turn an idea into an app, and the app into a business.')
+  })
+
   it('opens with the marquee label, its lit rule hidden from screen readers', () => {
     mockReducedMotion(true)
     const label = mount(HeroSection, { global: { stubs } }).find('.sl-pill')

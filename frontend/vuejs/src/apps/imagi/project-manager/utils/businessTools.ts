@@ -52,6 +52,8 @@ export interface BusinessTool {
   lineIcon: string
   accent: ToolAccent
   status: ToolStatus
+  /** Works today but still in development; shown as a Beta pill. */
+  beta?: boolean
   /**
    * Named route to navigate to when the card is clicked. Available tools point
    * at a real view; coming-soon tools reuse the generic 'project-tool' route.
@@ -62,7 +64,8 @@ export interface BusinessTool {
 }
 
 /**
- * The four pillars of the Imagi workspace, all live today: "Build" (the AI
+ * The four pillars of the Imagi workspace, all live today (Sell, Market and
+ * Operate in beta): "Build" (the AI
  * app builder), "Sell" (Stripe-powered products, checkout, orders, and
  * customers), "Market" (Twilio-powered campaigns, inbox, and audience), and
  * "Operate" (a dashboard for the live app and the business's money).
@@ -97,6 +100,7 @@ export const businessTools: BusinessTool[] = [
     lineIcon: 'sales',
     accent: 'emerald',
     status: 'available',
+    beta: true,
     routeName: 'sell-overview',
     features: [
       { icon: 'fa-cart-shopping', name: 'Storefront & checkout', description: 'Sell products and take payments with Stripe.' },
@@ -115,6 +119,7 @@ export const businessTools: BusinessTool[] = [
     lineIcon: 'marketing',
     accent: 'violet',
     status: 'available',
+    beta: true,
     routeName: 'marketing-overview',
     features: [
       { icon: 'fa-comment-sms', name: 'Text campaigns', description: 'Text your contacts, now or scheduled, through Twilio.' },
@@ -133,6 +138,7 @@ export const businessTools: BusinessTool[] = [
     lineIcon: 'finance',
     accent: 'amber',
     status: 'available',
+    beta: true,
     routeName: 'operate-dashboard',
     features: [
       { icon: 'fa-signal', name: 'Your app', description: 'Uptime, response time, and visitors to your live app.' },

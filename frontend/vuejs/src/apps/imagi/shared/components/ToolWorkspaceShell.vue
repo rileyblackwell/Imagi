@@ -59,7 +59,10 @@
                     <span class="eyebrow__rule" aria-hidden="true"></span>
                     <span class="truncate">{{ project.name }}</span>
                   </p>
-                  <h1 class="display mt-6 text-[2.5rem] sm:text-5xl md:text-[3.4rem]">{{ title }}</h1>
+                  <div class="mt-6 flex items-center gap-4">
+                    <h1 class="display text-[2.5rem] sm:text-5xl md:text-[3.4rem]">{{ title }}</h1>
+                    <StatusBadge v-if="beta" tone="neutral" label="Beta" />
+                  </div>
                 </div>
                 <p class="lede mt-6 md:mt-0 md:max-w-md md:pb-2 text-base sm:text-[1.0625rem]">
                   {{ description }}
@@ -109,6 +112,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
+import { StatusBadge } from '@/shared/components'
 
 export interface ToolTab {
   name: string
@@ -127,6 +131,8 @@ defineProps<{
   loadingLabel: string
   tabs: ToolTab[]
   showBanner?: boolean
+  /** Still in development: a Beta pill beside the title. */
+  beta?: boolean
 }>()
 
 const route = useRoute()

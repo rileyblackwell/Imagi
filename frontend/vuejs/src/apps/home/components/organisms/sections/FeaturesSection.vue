@@ -1,5 +1,5 @@
 <!--
-  Step 01 — Build.
+  Step 02 — Build.
   Three cards explaining the workspace, then a screenshot of the real thing,
   lit on stage. The shot lives here rather than in the hero because this is
   the section that describes what it shows.
@@ -8,11 +8,11 @@
   <section class="sl-sec step">
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
-        <p class="sl-eyebrow"><span class="sl-grad-text step-num">01</span><span>Build</span></p>
+        <p class="sl-eyebrow"><span class="sl-grad-text step-num">02</span><span>Build</span></p>
         <h2 class="sl-display sl-h2">Build your web app</h2>
         <p class="sl-lede">
-          Every business starts with a product. Chat with the agent, watch the app take
-          shape in the preview beside you, and put it online when it's ready.
+          Tell Imagi what you want. A coordinator plans the work, threads go off and build
+          it, and they come back to you when a choice is yours to make.
         </p>
       </div>
 
@@ -62,22 +62,22 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          title: 'Design visually',
-          description: 'Shape the application without touching a file. Changes land in the preview as you make them.',
-          icon: 'design',
-          highlights: ['Visual builder', 'Live preview', 'Component library']
-        },
-        {
-          title: 'Chat and plan',
-          description: 'An agent that understands the business you are describing, not just the code. Plan features, work through problems, and write it together.',
+          title: 'Just say what you want',
+          description: 'Ask for a page, a feature or a fix in plain words. The coordinator turns it into a plan and asks a quick question when something is yours to decide.',
           icon: 'chat',
-          highlights: ['Plain-language briefs', 'Real Vue and Django code', 'Iterate by conversation']
+          highlights: ['Plain-language requests', 'Questions you answer in a tap', 'Real Vue and Django code']
         },
         {
-          title: 'Launch to the web',
-          description: 'Deploy in a click and get a URL you can send to real customers the same afternoon.',
-          icon: 'launch',
-          highlights: ['One-click deploy', 'Custom domains', 'Instant updates']
+          title: 'Threads do the work',
+          description: 'The coordinator hands the work to threads that build side by side. They keep going if you close the tab, and fixes go back to the thread that caused them.',
+          icon: 'teams',
+          highlights: ['Pages built in parallel', 'Fixes its own errors', 'Keeps working while you’re away']
+        },
+        {
+          title: 'A live app beside you',
+          description: 'Your app runs next to the chat the whole time. The agent uses it like a person would, clicking and typing to check its own work, and so can you.',
+          icon: 'design',
+          highlights: ['Live preview', 'The agent drives your app', 'Changes land as they’re made']
         }
       ]
     }

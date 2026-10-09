@@ -24,6 +24,13 @@ describe('ToolCategoryCard', () => {
     expect(wrapper.findAll('.module__features li')).toHaveLength(3)
   })
 
+  it('marks Sell, Market and Operate as beta, and not Build', () => {
+    for (const id of ['sell', 'market', 'operate']) {
+      expect(mountWith({ tool: tool(id) }).text()).toContain('Beta')
+    }
+    expect(mountWith({ tool: tool('build') }).text()).not.toContain('Beta')
+  })
+
   it('draws the same mark the home page uses for the same module', () => {
     // Both read from LineIcon's set — the hub's marks are not a second
     // vocabulary that can drift away from the one a visitor arrives with.

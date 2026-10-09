@@ -69,7 +69,10 @@
     <template v-else>
       <span class="sl-card__icon module__icon"><LineIcon :name="tool.lineIcon" /></span>
       <div class="module__text">
-        <h3 class="sl-card__title">{{ tool.name }}</h3>
+        <div class="module__title">
+          <h3 class="sl-card__title">{{ tool.name }}</h3>
+          <StatusBadge v-if="tool.beta" tone="neutral" label="Beta" />
+        </div>
         <p class="sl-card__body">{{ tool.tagline }}</p>
         <p v-if="isBuildLocked" class="module__cta--waiting">Building</p>
         <ul v-else class="module__features module__inline">
@@ -89,7 +92,7 @@
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { type BusinessTool } from '../../../utils/businessTools'
-import { LineIcon } from '@/shared/components'
+import { LineIcon, StatusBadge } from '@/shared/components'
 
 const props = withDefaults(
   defineProps<{
@@ -359,6 +362,12 @@ const target = computed<RouteLocationRaw>(() => {
   align-items: center;
   gap: 18px;
   padding: 22px;
+}
+
+.module__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .module__text {
