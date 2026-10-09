@@ -1,4 +1,6 @@
-FROM python:3.13-slim
+# Official image via AWS's public mirror of Docker Hub: Railway's builders hit
+# Docker Hub's anonymous pull rate limit (429) and failed every deploy.
+FROM public.ecr.aws/docker/library/python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
