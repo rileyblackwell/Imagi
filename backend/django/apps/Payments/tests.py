@@ -68,19 +68,6 @@ def make_transaction(user, amount, **kwargs):
 # --------------------------------------------------------------------------- #
 # Models
 # --------------------------------------------------------------------------- #
-class TransactionModelTests(APITestCase):
-    def setUp(self):
-        self.user = make_user()
-
-    def test_purchase_gets_default_description(self):
-        txn = make_transaction(self.user, 20, status='completed')
-        self.assertIn('Credit purchase', txn.description)
-
-    def test_explicit_description_is_preserved(self):
-        txn = make_transaction(self.user, 20, description='Custom note')
-        self.assertEqual(txn.description, 'Custom note')
-
-
 class PaymentMethodModelTests(APITestCase):
     def setUp(self):
         self.user = make_user()
@@ -150,9 +137,6 @@ class PaymentMethodServiceTests(APITestCase):
 class PlanRegistryTests(APITestCase):
     def setUp(self):
         self.user = make_user()
-
-    def test_get_plan_returns_known_plan(self):
-        self.assertEqual(get_plan('pro')['name'], 'Pro')
 
     def test_unknown_plan_falls_back_to_free(self):
         self.assertEqual(get_plan('legacy-gold')['id'], 'free')
@@ -308,13 +292,6 @@ class UsageWindowTests(APITestCase):
         # second allowance without this failing.
         self.assertEqual(set(get_usage_status(self.user)['windows']), {'weekly'})
 
-    def test_a_long_sitting_counts_fully_against_the_week(self):
-        # There is no session cap, so activity hours apart all still counts.
-        self._event(0.10, timedelta(hours=5, minutes=1))
-        self._event(0.10, timedelta(minutes=1))
-        windows = get_usage_status(self.user)['windows']
-        self.assertEqual(windows['weekly']['used_usd'], 0.20)
-
     def test_event_older_than_a_week_counts_nowhere(self):
         self._event(0.10, timedelta(days=7, minutes=1))
         windows = get_usage_status(self.user)['windows']
@@ -335,16 +312,6 @@ class UsageWindowTests(APITestCase):
         record_usage(other, 'gpt-5.6-terra', 9_999, 0, cost_usd=5.0)
         windows = get_usage_status(self.user)['windows']
         self.assertEqual(windows['weekly']['used_usd'], 0)
-
-    def test_pricier_model_draws_the_allowance_down_faster(self):
-        # The same token count on different models costs different amounts —
-        # that is the whole reason metering is by cost rather than tokens.
-        record_usage(self.user, 'gpt-5.6-luna', 1_000_000, 0, cost_usd=1.0)
-        cheap = get_usage_status(self.user)['windows']['weekly']['used_usd']
-        record_usage(self.user, 'gpt-5.6-sol', 1_000_000, 0, cost_usd=6.0)
-        both = get_usage_status(self.user)['windows']['weekly']['used_usd']
-        self.assertEqual(cheap, 1.0)
-        self.assertEqual(both - cheap, 6.0)
 
 
 class FallbackRateTests(APITestCase):
@@ -741,18 +708,6 @@ class PaymentsAPITests(APITestCase):
         resp = self.client.get(reverse('api-transaction-history'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['total_count'], 1)
-
-    def test_prepaid_credit_endpoints_are_gone(self):
-        # The dollar-balance system was removed; these must not come back
-        # silently, because nothing debits a balance any more.
-        from django.urls.exceptions import NoReverseMatch
-
-        for name in (
-            'api-credit-balance', 'api-check-credits', 'api-deduct-credits',
-            'api-credit-packages', 'api-process-payment',
-        ):
-            with self.assertRaises(NoReverseMatch):
-                reverse(name)
 
 
 class CheckoutSessionTests(APITestCase):

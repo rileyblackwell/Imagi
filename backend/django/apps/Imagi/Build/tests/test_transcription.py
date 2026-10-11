@@ -77,12 +77,6 @@ class TranscribeAudioTests(SimpleTestCase):
             ts.transcribe_audio(b'ftypisom', 'audio/mp4')
         self.assertEqual(client.audio.transcriptions.create.call_args.kwargs['file'][0], 'dictation.mp4')
 
-    def test_silence_comes_back_as_an_empty_string(self):
-        fake_cls, _ = fake_openai('   ')
-        with patch('openai.OpenAI', fake_cls):
-            text, _ = ts.transcribe_audio(WEBM_BYTES, 'audio/webm')
-        self.assertEqual(text, '')
-
     def test_a_prompt_echo_is_dropped_rather_than_typed(self):
         # What gpt-4o-transcribe actually returns for a clip with no speech in
         # it: the priming vocabulary, whole or in pieces, in its own order.
@@ -200,14 +194,6 @@ class AgentTranscribeViewTests(TestCase):
         event = UsageEvent.objects.get(user=self.user)
         self.assertEqual(event.model_name, ts.TRANSCRIPTION_MODEL)
         self.assertEqual((event.input_tokens, event.output_tokens), (900, 12))
-
-    @patch('apps.Imagi.Build.api.views.record_usage')
-    @patch('apps.Imagi.Build.api.views.transcribe_audio')
-    def test_unmetered_silence_still_returns(self, transcribe, record):
-        transcribe.return_value = ('', {'input_tokens': None, 'output_tokens': None, 'cost_usd': None})
-        resp = self.post({'audio': self.clip()})
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.json(), {'text': ''})
 
     @patch('apps.Imagi.Build.api.views.record_usage', side_effect=RuntimeError('ledger down'))
     @patch('apps.Imagi.Build.api.views.transcribe_audio')

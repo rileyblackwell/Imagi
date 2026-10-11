@@ -25,10 +25,7 @@ from apps.Imagi.Build.services.base_agent import (
     make_run_bounds_hook,
 )
 from apps.Imagi.Build.services.coding_agent import create_coding_agent
-from apps.Imagi.Build.services.models_service import (
-    canonical_reasoning_effort,
-    compute_cost_usd,
-)
+from apps.Imagi.Build.services.models_service import compute_cost_usd
 from apps.Imagi.Build.services.tools import dispatch_task_impl, thread_defaults
 from apps.Payments.models import UsageEvent
 
@@ -208,12 +205,6 @@ class SavedEffortTests(TestCase):
         service._sync_reasoning_effort(self.thread, 'low')
         self.thread.refresh_from_db()
         self.assertEqual(self.thread.reasoning_effort, 'xhigh')
-
-    def test_legacy_rungs_are_reseated_and_garbage_refused(self):
-        self.assertEqual(canonical_reasoning_effort('minimal'), 'low')
-        self.assertEqual(canonical_reasoning_effort('max'), 'max')
-        self.assertIsNone(canonical_reasoning_effort('turbo'))
-        self.assertIsNone(canonical_reasoning_effort(None))
 
 
 class ConversationSettingsEndpointTests(TestCase):

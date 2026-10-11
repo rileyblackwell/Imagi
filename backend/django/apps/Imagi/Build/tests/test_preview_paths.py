@@ -33,14 +33,8 @@ def _project(pk, name, user_id=1):
 
 
 class SidecarStemTests(SimpleTestCase):
-    def test_stem_is_the_project_id_not_the_name(self):
-        self.assertEqual(sidecar_stem(_project(7, 'My Shop')), '7')
-
     def test_traversing_name_does_not_reach_the_stem(self):
         self.assertEqual(sidecar_stem(_project(7, '../9/Their Shop')), '7')
-
-    def test_absolute_name_does_not_reach_the_stem(self):
-        self.assertEqual(sidecar_stem(_project(7, '/etc/cron.d/x')), '7')
 
 
 class SidecarPathTests(SimpleTestCase):

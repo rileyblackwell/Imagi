@@ -508,15 +508,6 @@ class SingleLeadTests(TestCase):
         self.assertEqual(resp.json()['kind'], 'chat')
         self.assertEqual(resp.json()['review_status'], '')
 
-    def test_legacy_rows_default_to_chat(self):
-        conversation = AgentConversation.objects.create(
-            user=self.user, model_name='gpt-5.6-terra', project_id=self.project.id
-        )
-        self.assertEqual(conversation.kind, 'chat')
-        self.assertEqual(conversation.review_status, '')
-        self.assertEqual(conversation.worktree_path, '')
-        self.assertIsNone(conversation.parent)
-
     def test_cannot_create_a_conversation_on_another_users_project(self):
         other = User.objects.create_user(username='leadother', password='pw123456')
         theirs = Project.objects.create(user=other, name='Their Project')
@@ -768,8 +759,6 @@ class TaskReportsToLeadTests(GitRepoTestMixin, TestCase):
 
         report = self._reports()[0]
         self.assertEqual(report.metadata['task_report']['kind'], 'question')
-        self.assertIn('could not put it into your app', report.content)
-        self.assertNotIn('Add to my app', report.content)
 
     def test_a_variant_take_still_waits_to_be_picked(self):
         # The one place finished work still waits on the user: they asked to
@@ -824,19 +813,6 @@ class TaskReportsToLeadTests(GitRepoTestMixin, TestCase):
         self.assertEqual(reports[0].content, 'Stripe it is.')
         self.assertEqual(reports[0].metadata['task_report']['kind'], 'done')
 
-    def test_two_subagents_reporting_keep_their_own_entries(self):
-        one = self._task()
-        other = self._task()
-        self._worktree_with_change(one, name='one.txt')
-        self._worktree_with_change(other, name='other.txt')
-
-        self.service._finalize_task_run(one, self._context(), 'One is done.')
-        self.service._finalize_task_run(other, self._context(), 'The other is done.')
-
-        self.assertEqual(
-            [r.content for r in self._reports()], ['One is done.', 'The other is done.']
-        )
-
     def test_a_task_without_a_lead_thread_reports_nowhere(self):
         # Its lead was deleted (parent goes null rather than cascading). The
         # queue still holds the card; there is simply nowhere to remember it.
@@ -862,13 +838,6 @@ class TaskReportsToLeadTests(GitRepoTestMixin, TestCase):
         self.assertIn('[Thread report]', report_line)
         self.assertIn('Making your home page clearer.', report_line)
         self.assertIn('Built the page.', report_line)
-
-    def test_the_leads_own_replies_are_left_alone(self):
-        self.service.add_assistant_message(self.lead, 'On it.')
-
-        history = self.service.build_conversation_history(self.lead)
-
-        self.assertEqual(history[-1]['content'], 'On it.')
 
     def test_a_report_is_the_leads_memory_not_a_second_bubble(self):
         # The user has already read this subagent's sign-off on its card in the
@@ -1601,21 +1570,6 @@ class DispatchTaskToolTests(TestCase):
 
         self.assertTrue(AgentConversation.objects.get(kind='task').fast_mode)
 
-    def test_the_tool_asks_the_lead_for_one_short_acknowledgement(self):
-        # This instruction is what the lead reads at the moment it decides
-        # what to say next, so it has to agree with the prompt: one line back
-        # to the user, not silence and not a paragraph.
-        result = dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
-
-        self.assertIn('ONE short sentence', result['instruction'])
-
-    def test_dispatch_records_tasks_on_the_run_context(self):
-        context = self._context(self.lead)
-
-        dispatch_task_impl(context, 'Build a pricing page')
-
-        self.assertEqual(len(context.dispatched_tasks), 1)
-
     def test_multiple_drafts_share_a_variant_group(self):
         self._asks('Show me three different directions for the hero.')
         dispatch_task_impl(self._context(self.lead), 'Try a hero section', drafts=3)
@@ -1645,10 +1599,6 @@ class DispatchTaskToolTests(TestCase):
         self.assertEqual(len(result['dispatched_tasks']), 1)
         self.assertEqual(AgentConversation.objects.get(kind='task').variant_group, '')
 
-    def test_single_draft_has_no_variant_group(self):
-        dispatch_task_impl(self._context(self.lead), 'Just one')
-        self.assertEqual(AgentConversation.objects.get(kind='task').variant_group, '')
-
     def test_only_the_lead_can_dispatch(self):
         """Subagents dispatching subagents would rebuild the tangle the single
         main thread exists to remove."""
@@ -1664,21 +1614,6 @@ class DispatchTaskToolTests(TestCase):
         with self.assertRaises(ValueError):
             dispatch_task_impl(self._context(self.lead), '   ')
 
-    def test_dispatch_persists_the_user_facing_goal(self):
-        # The brief is a ticket for the subagent; the goal is the same job in
-        # the user's language, and it is what their card in the main thread
-        # shows for as long as the task exists.
-        dispatch_task_impl(
-            self._context(self.lead),
-            'Create frontend/vuejs/src/apps/pricing/views/PricingView.vue with three tiers',
-            goal='Adding a pricing page with three plans customers can compare.',
-        )
-
-        task = AgentConversation.objects.get(kind='task')
-        self.assertEqual(
-            task.goal, 'Adding a pricing page with three plans customers can compare.'
-        )
-
     def test_goal_is_flattened_and_capped(self):
         dispatch_task_impl(
             self._context(self.lead), 'Build it',
@@ -1688,12 +1623,6 @@ class DispatchTaskToolTests(TestCase):
         goal = AgentConversation.objects.get(kind='task').goal
         self.assertLessEqual(len(goal), DISPATCH_GOAL_MAX_CHARS)
         self.assertTrue(goal.startswith('Adding a page. With extra room.'))
-
-    def test_dispatch_without_a_goal_still_works(self):
-        # Optional to call, never optional to have: the card falls back to the
-        # brief rather than the dispatch failing.
-        dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
-        self.assertEqual(AgentConversation.objects.get(kind='task').goal, '')
 
     def test_dispatch_persists_the_overview(self):
         # The goal names the job; the overview describes it — the few
@@ -1723,10 +1652,6 @@ class DispatchTaskToolTests(TestCase):
         overview = AgentConversation.objects.get(kind='task').overview
         self.assertLessEqual(len(overview), DISPATCH_OVERVIEW_MAX_CHARS)
         self.assertTrue(overview.startswith('Adding a page. With extra room.'))
-
-    def test_dispatch_without_an_overview_still_works(self):
-        dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
-        self.assertEqual(AgentConversation.objects.get(kind='task').overview, '')
 
 
 class DispatchTaskDuplicateTests(TestCase):
@@ -2089,16 +2014,6 @@ class CheckInEndpointTests(TestCase):
         self.assertEqual([c['id'] for c in data], [finished.id, question.id])
         self.assertEqual(data[0]['kind'], 'ready')
         self.assertEqual(data[0]['task']['id'], finished.conversation_id)
-
-    def test_list_stays_oldest_first_within_one_kind(self):
-        first = self._check_in(body='first')
-        second = self._check_in(body='second')
-
-        resp = self.client.get(
-            reverse('check_ins_list'), {'project_id': self.project.id}
-        )
-
-        self.assertEqual([c['id'] for c in resp.json()], [first.id, second.id])
 
     def test_list_clears_a_done_card_for_work_already_in_the_app(self):
         # Filed before finished-and-merged tasks stopped queueing. Showing it

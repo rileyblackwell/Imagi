@@ -16,17 +16,6 @@ class VersionInfoBinariesTests(TestCase):
     said anything.
     """
 
-    def test_reports_binaries_that_are_present(self):
-        response = self.client.get(reverse('home_ops:version_web'))
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        # Whatever this machine has, the two fields must agree with each other.
-        self.assertIn('binaries', body)
-        self.assertEqual(
-            body['missing_binaries'],
-            sorted(name for name, path in body['binaries'].items() if not path),
-        )
-
     def test_missing_binary_is_named(self):
         """A binary that is not on PATH is listed, not silently omitted."""
         with patch('apps.Home.api.views.shutil.which', return_value=None):

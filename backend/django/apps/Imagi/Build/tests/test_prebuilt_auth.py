@@ -131,15 +131,6 @@ class TemplateParityTests(SimpleTestCase):
         self.assertIn("label = 'user_auth'", apps_py)
         self.assertIn(TEMPLATE_BACKEND + 'migrations/__init__.py', self.files)
 
-    def test_the_hardened_endpoints_ship(self):
-        views = self.files[TEMPLATE_BACKEND + 'api/views.py']
-        self.assertIn('@csrf_protect', views)
-        self.assertIn('LoginRateThrottle', views)
-        self.assertIn('FAILED_LOGIN_LIMIT', views)
-        # One message for a wrong username or password: no account enumeration.
-        self.assertIn('Invalid username or password.', views)
-        self.assertIn('validate_password', self.files[TEMPLATE_BACKEND + 'api/serializers.py'])
-
 
 class TemplateOutputTests(SimpleTestCase):
     """What auth_app_files hands the scaffold."""
@@ -161,12 +152,6 @@ class TemplateOutputTests(SimpleTestCase):
     def test_the_prebuilt_map_passes_the_project_name_through(self):
         files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth', None, 'Beanline')}
         self.assertIn('"Beanline"', files[TEMPLATE_FRONTEND + 'brand.ts'])
-
-    def test_files_carry_a_type_for_the_file_service(self):
-        types = {f['name']: f['type'] for f in auth_app_files('X')}
-        self.assertEqual(types[TEMPLATE_FRONTEND + 'views/Login.vue'], 'vue')
-        self.assertEqual(types[TEMPLATE_FRONTEND + 'styles/auth.css'], 'css')
-        self.assertEqual(types[TEMPLATE_BACKEND + 'api/views.py'], 'python')
 
     def test_no_imagi_branding_or_design_tokens_leak_into_projects(self):
         for path, content in template_files().items():

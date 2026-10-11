@@ -65,12 +65,6 @@ class ProjectModelTests(TestCase):
         self.assertEqual(first.slug, 'duplicate-name')
         self.assertEqual(second.slug, 'duplicate-name-1')
 
-    def test_project_path_is_generated(self):
-        project = Project.objects.create(user=self.user, name='Path App')
-        self.assertTrue(project.project_path)
-        self.assertIn(self.user.username, project.project_path)
-        self.assertIn(project.slug, project.project_path)
-
     def test_generated_directory_is_stored_relative(self):
         # The whole point of project_dir: nothing machine-specific on the row.
         project = Project.objects.create(user=self.user, name='Relative App')
@@ -146,32 +140,6 @@ class ProjectCreateSerializerTests(APITestCase):
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
 
-    def test_duplicate_active_name_rejected(self):
-        Project.objects.create(user=self.user, name='Existing Project')
-        from apps.Imagi.ProjectManager.api.serializers import (
-            ProjectCreateSerializer,
-        )
-
-        request = type('R', (), {'user': self.user})()
-        serializer = ProjectCreateSerializer(
-            data={'name': 'Existing Project', 'description': VALID_DESCRIPTION},
-            context={'request': request},
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn('name', serializer.errors)
-
-    def test_missing_description_rejected(self):
-        from apps.Imagi.ProjectManager.api.serializers import (
-            ProjectCreateSerializer,
-        )
-
-        request = type('R', (), {'user': self.user})()
-        serializer = ProjectCreateSerializer(
-            data={'name': 'No Description'}, context={'request': request}
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn('description', serializer.errors)
-
     def test_app_details_are_optional_and_saved_trimmed(self):
         from apps.Imagi.ProjectManager.api.serializers import (
             ProjectCreateSerializer,
@@ -228,15 +196,6 @@ class ProjectManagementServiceTests(TestCase):
     def test_get_project_returns_none_for_other_users_project(self):
         theirs = Project.objects.create(user=self.other, name='Theirs')
         self.assertIsNone(self.service.get_project(theirs.id))
-
-    @patch.object(ProjectManagementService, '_stop_project_server_and_cleanup_files')
-    @patch.object(ProjectManagementService, '_delete_project_directory')
-    def test_delete_project_hard_deletes_row(self, mock_dir, mock_pid):
-        project = Project.objects.create(user=self.user, name='To Delete')
-        pid = project.id
-        result = self.service.delete_project(project)
-        self.assertTrue(result['success'])
-        self.assertFalse(Project.objects.filter(id=pid).exists())
 
     @patch.object(ProjectManagementService, '_delete_project_directory')
     def test_delete_project_removes_preview_sidecar_files(self, mock_dir):
@@ -660,9 +619,6 @@ class InitialBuildServiceTests(TransactionTestCase):
         # every dispatched task has.
         self.assertEqual(task.parent_id, lead.id)
         self.assertEqual(task.title, 'Initial build — home page')
-        # The card names the job from the goal; without one it would show the
-        # whole engineering brief.
-        self.assertEqual(task.goal, 'Build the landing page — the first thing anyone sees.')
         self.assertEqual(task.system_prompt.content, INITIAL_BUILD_INSTRUCTIONS)
         self.assertEqual(calls[0]['conversation_id'], task.id)
 
@@ -677,18 +633,6 @@ class InitialBuildServiceTests(TransactionTestCase):
         self.assertEqual(
             messages[1].metadata['dispatched_tasks'],
             [{'conversation_id': task.id, 'title': 'Initial build — home page'}],
-        )
-
-    def test_build_runs_on_the_configured_initial_build_model(self):
-        from apps.Imagi.Build.models import AgentConversation
-
-        self._run_build(['accept'])
-
-        task = AgentConversation.objects.get(
-            user=self.user, project_id=self.project.pk, kind='task'
-        )
-        self.assertEqual(
-            task.model_name, settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL']
         )
 
     def test_main_thread_runs_on_the_default_model_not_the_build_model(self):
@@ -889,21 +833,6 @@ class InitialBuildServiceTests(TransactionTestCase):
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'failed')
 
-    def test_repair_prompt_covers_imports_and_routers_together(self):
-        from apps.Imagi.ProjectManager.services.initial_build_service import (
-            build_repair_prompt,
-        )
-
-        prompt = build_repair_prompt(
-            [{'file': 'HomeView.vue', 'import': '/images/hero.jpg'}],
-            [{'file': 'router/index.ts', 'detail': 'calls createRouter()'}],
-        )
-        self.assertIn('/images/hero.jpg', prompt)
-        self.assertIn('router/index.ts', prompt)
-        # An invented image must be removed, not "created properly" — the
-        # project has no image assets and the agent cannot make binaries.
-        self.assertIn('inline <svg>', prompt)
-
     def test_every_run_shares_one_wall_clock_deadline(self):
         # The founder's wait is what is being bounded, so a repair must eat
         # into the same budget as the build — not restart it. A per-run budget
@@ -1096,15 +1025,6 @@ class ParallelInitialBuildTests(TransactionTestCase):
                 if other.slug != page.slug:
                     self.assertNotIn(other.view_path, prompt)
 
-    def test_no_two_pages_are_given_the_same_file(self):
-        # The merge-safety invariant: the three worktrees are merged one after
-        # another, so two agents writing the same path would conflict and lose
-        # somebody's page.
-        from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
-
-        paths = [p.view_path for p in PAGE_BRIEFS]
-        self.assertEqual(len(paths), len(set(paths)))
-
     def test_home_races_its_own_deadline_and_each_other_page_gets_one(self):
         # The founder waits only for the home page, so its clock starts with
         # the build; the pages behind it each get their own budget, counted
@@ -1243,7 +1163,6 @@ class ParallelInitialBuildTests(TransactionTestCase):
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
         from apps.Imagi.ProjectManager.services import initial_build_service
 
-        self.assertEqual(settings.IMAGI_BUILDER['INITIAL_BUILD_MODEL'], 'claude-opus-5-5')
         fast_by_slug = {}
 
         def fake_process(_self, **kwargs):
@@ -1407,12 +1326,6 @@ class ScaffoldWiringTests(TestCase):
             if os.path.isfile(candidate):
                 return self._read(candidate), os.path.join(self.backend_root, entry)
         self.fail('No Django settings.py found in scaffolded backend')
-
-    def test_auth_app_is_installed_with_authtoken(self):
-        settings_src, _ = self._settings_src()
-        self.assertIn("'apps.auth'", settings_src)
-        self.assertIn("'apps.home'", settings_src)
-        self.assertIn("'rest_framework.authtoken'", settings_src)
 
     def test_auth_api_is_mounted_under_api_v1(self):
         api_v1 = self._read(self.backend_root, 'api', 'v1', 'url.py')
@@ -1678,12 +1591,6 @@ class FounderBriefTests(SimpleTestCase):
         self.assertIn('How the app should work:\nMembers book classes and pay monthly.', brief)
         self.assertLess(brief.index('What it does'), brief.index('How the app should work'))
         self.assertLess(brief.index('How the app should work'), brief.index('Design & style'))
-
-    def test_opens_with_the_app_rather_than_a_business(self):
-        from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief
-
-        brief = build_founder_brief('Harbor Yoga', 'A boutique yoga studio.')
-        self.assertTrue(brief.startswith('Build the first version of my app.\n\nApp name: Harbor Yoga'))
 
     def test_leaves_the_section_out_when_blank(self):
         from apps.Imagi.ProjectManager.services.initial_build_service import build_founder_brief

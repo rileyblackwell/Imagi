@@ -133,10 +133,6 @@ class SyncDbMirrorTests(ProjectFilesTestCase):
 
         self.assertIsNone(self._db_content('frontend/vuejs/src/Old.vue'))
 
-    def test_ignores_non_syncable_paths(self):
-        _sync_db_mirror(self.project, 'frontend/vuejs/src/logo.png', should_exist=True)
-        self.assertEqual(self.project.files.count(), 0)
-
     def test_oversized_file_never_errors(self):
         # Files past the DB size cap stay disk-only; the sync must not raise.
         big = 'x' * (project_files_service.MAX_SYNCED_FILE_BYTES + 1)

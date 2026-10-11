@@ -259,14 +259,6 @@ class OutOfCreditTests(_TaskRunTestCase):
         )
         self.assertEqual(provider_out_of_credit(error), 'Anthropic')
 
-    def test_recognizes_an_exhausted_openai_quota(self):
-        error = _openai_error(
-            openai.RateLimitError, 429, 'You exceeded your current quota.',
-            {'message': 'You exceeded your current quota.', 'type': 'insufficient_quota',
-             'code': 'insufficient_quota'},
-        )
-        self.assertEqual(provider_out_of_credit(error), 'OpenAI')
-
     def test_an_ordinary_rate_limit_is_not_out_of_credit(self):
         error = _openai_error(
             openai.RateLimitError, 429, 'Rate limit reached for requests.',

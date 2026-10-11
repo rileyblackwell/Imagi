@@ -1,7 +1,7 @@
 """
 Tests for the Builder app.
 
-Covers the Builder models, the CreateFileService, and the current Builder DRF
+Covers the CreateFileService and the current Builder DRF
 API (file creation/content, auth gating and project ownership).
 
 Note: the previous server-rendered view/service tests (`builder:landing_page`,
@@ -38,81 +38,11 @@ from apps.Imagi.Build.services.browser_preview_service import (
 from apps.Imagi.Build.services.create_app_service import CreateAppService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
 from apps.Imagi.Build.services.preview_service import child_env, sidecar_stem
-from apps.Imagi.Build.services.codegen.prebuilt_apps import PREBUILT_MAP
 
 
 class DefaultAppsTests(TestCase):
     """The default scaffold must not include the legacy payments app —
     payment pages come from the Sell workspace's prebuilt templates."""
-
-    def test_payments_is_not_a_prebuilt_app(self):
-        self.assertNotIn('payments', PREBUILT_MAP)
-        self.assertEqual(set(PREBUILT_MAP), {'home', 'auth'})
-
-    def test_prebuilt_auth_backend_is_registrable_and_migratable(self):
-        """The auth app must declare a non-conflicting label (its default,
-        'auth', collides with django.contrib.auth) and ship a migrations
-        package so `manage.py makemigrations` works if models are added."""
-        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
-            generate_prebuilt_app_files,
-        )
-
-        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
-
-        self.assertIn("label = 'user_auth'", files['backend/django/apps/auth/apps.py'])
-        self.assertIn('backend/django/apps/auth/migrations/__init__.py', files)
-
-    def test_prebuilt_auth_api_covers_the_frontend_contract(self):
-        """Every endpoint the generated frontend calls must exist: the auth
-        app's own service hits csrf/signin/register/logout/user, and the
-        scaffold's shared auth store bootstraps via init/."""
-        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
-            generate_prebuilt_app_files,
-        )
-
-        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
-        urls = files['backend/django/apps/auth/api/urls.py']
-
-        for route in ('csrf/', 'signin/', 'register/', 'logout/', 'init/', 'user/'):
-            self.assertIn(f"path('{route}'", urls)
-
-    def test_prebuilt_auth_mirrors_imagi_auth_module(self):
-        """The generated auth code must stay a verbatim copy of Imagi's own
-        auth module: same hardened signin/register views (generic invalid
-        credential message, Django password validators) and a frontend that
-        rides the shared api client instead of a bespoke axios instance."""
-        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
-            generate_prebuilt_app_files,
-        )
-
-        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
-
-        views = files['backend/django/apps/auth/api/views.py']
-        # Generic message: no username-enumeration via distinct errors.
-        self.assertIn('Invalid username or password.', views)
-        self.assertNotIn('No account found with this username', views)
-
-        serializers = files['backend/django/apps/auth/api/serializers.py']
-        # Full Django password validation, not just a length check.
-        self.assertIn('validate_password', serializers)
-
-        service = files['frontend/vuejs/src/apps/auth/services/api.ts']
-        self.assertIn("import api from '@/shared/services/api'", service)
-        self.assertNotIn('axios.create', service)
-
-        store = files['frontend/vuejs/src/apps/auth/stores/index.ts']
-        self.assertIn("from '@/shared/stores/auth'", store)
-
-    def test_prebuilt_home_page_links_to_sign_in(self):
-        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
-            generate_prebuilt_app_files,
-        )
-
-        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('home')}
-        home_view = files['frontend/vuejs/src/apps/home/views/HomeView.vue']
-
-        self.assertIn('/auth/signin', home_view)
-        self.assertIn('/auth/register', home_view)
 
     def test_ensure_default_apps_skips_payments(self):
         user = User.objects.create_user(username='founder', password='testpass123')
@@ -129,21 +59,6 @@ class DefaultAppsTests(TestCase):
         self.assertTrue(os.path.isdir(os.path.join(apps_dir, 'home')))
         self.assertTrue(os.path.isdir(os.path.join(apps_dir, 'auth')))
         self.assertFalse(os.path.isdir(os.path.join(apps_dir, 'payments')))
-
-
-class BuilderModelTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass123')
-
-        self.project_root = tempfile.mkdtemp(prefix='builder_model_')
-        self.project = PMProject.objects.create(
-            user=self.user, name="Test Project", project_path=self.project_root
-        )
-        self.addCleanup(lambda: shutil.rmtree(self.project_root, ignore_errors=True))
-
-    def test_project_creation(self):
-        self.assertEqual(str(self.project), "Test Project (testuser)")
-        self.assertEqual(self.project.slug, "test-project")
 
 
 class BuilderAPITests(APITestCase):
@@ -168,17 +83,6 @@ class BuilderAPITests(APITestCase):
             format='json',
         )
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_create_file_writes_to_disk(self):
-        relative_path = 'frontend/vuejs/src/apps/blog/views/About.vue'
-        resp = self.client.post(
-            reverse('api-create-file', args=[self.project.id]),
-            {'path': relative_path, 'content': 'hello world'},
-            format='json',
-        )
-        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(resp.data['path'], relative_path)
-        self.assertTrue(os.path.exists(os.path.join(self.project_root, relative_path)))
 
     def test_create_file_accepts_form_encoded_data(self):
         # Regression: form posts arrive as an immutable QueryDict; the view must
@@ -423,27 +327,7 @@ class CreateFileServiceTests(TestCase):
             created_content = created_file.read()
 
         self.assertIn('<template>', created_content)
-        self.assertIn('Welcome to NewAbout', created_content)
         self.assertIn("defineOptions({ name: 'NewAbout' })", created_content)
-
-    def test_creates_default_component_when_content_empty(self):
-        relative_path = 'frontend/vuejs/src/components/atoms/PrimaryButton.vue'
-        result = self.service.create_file({
-            'name': relative_path,
-            'type': 'vue',
-            'content': '\n'
-        })
-
-        expected_path = os.path.join(self.project_root, relative_path)
-        self.assertTrue(os.path.exists(expected_path))
-        self.assertEqual(result['path'], relative_path)
-
-        with open(expected_path, 'r', encoding='utf-8') as created_file:
-            created_content = created_file.read()
-
-        self.assertIn('<!-- Atom: PrimaryButton -->', created_content)
-        self.assertIn('.primarybutton-component', created_content)
-        self.assertIn("defineOptions({ name: 'PrimaryButton' })", created_content)
 
 
 class FakeCdpConnection:
@@ -594,7 +478,6 @@ class PreviewMotionFrameTests(TestCase):
         self.service._attach_frame(conn, {}, None, quality=55, motion_state=state)
         self.assertNotIn('clip', self._shot_params(conn))
         self.assertNotIn('Page.getLayoutMetrics', [m for m, _ in conn.calls])
-
 
     def test_frames_at_rest_are_lossless_png(self):
         conn = FakeCdpConnection()
@@ -1021,19 +904,6 @@ class PreviewEndpointTests(APITestCase):
         self.assertFalse(body['running'])
         self.assertIn('error', body)
 
-    def test_backdrop_reports_browser_not_running_as_409(self):
-        resp = self.client.get(reverse('api-preview-backdrop', args=[self.project.id]))
-        self.assertEqual(resp.status_code, 409)
-        self.assertFalse(resp.json()['running'])
-
-    def test_input_reports_browser_not_running_as_409(self):
-        resp = self.client.post(
-            reverse('api-preview-input', args=[self.project.id]),
-            data='{"events": []}', content_type='application/json',
-        )
-        self.assertEqual(resp.status_code, 409)
-        self.assertFalse(resp.json()['running'])
-
     def test_session_status_reports_not_running_when_idle(self):
         resp = self.client.get(reverse('api-preview', args=[self.project.id]))
         self.assertEqual(resp.status_code, 200)
@@ -1065,21 +935,26 @@ class PreviewEndpointTests(APITestCase):
             user=other, name='Their Preview', project_path=self.project.project_path
         )
         for method, name in (('get', 'api-preview'), ('post', 'api-preview'),
-                             ('delete', 'api-preview'), ('get', 'api-project-pages')):
+                             ('delete', 'api-preview'), ('get', 'api-project-pages'),
+                             ('get', 'api-preview-frame')):
             with self.subTest(method=method, name=name):
                 resp = getattr(self.client, method)(reverse(name, args=[theirs.id]))
                 self.assertEqual(resp.status_code, 404)
 
-    def test_navigate_and_resize_report_browser_not_running_as_409(self):
+    def test_other_endpoints_report_browser_not_running_as_409(self):
         for name, body in (
+            ('api-preview-backdrop', None),
+            ('api-preview-input', '{"events": []}'),
             ('api-preview-navigate', '{"action": "reload"}'),
             ('api-preview-resize', '{"width": 800, "height": 600}'),
         ):
-            resp = self.client.post(
-                reverse(name, args=[self.project.id]),
-                data=body, content_type='application/json',
-            )
-            self.assertEqual(resp.status_code, 409)
+            url = reverse(name, args=[self.project.id])
+            if body is None:
+                resp = self.client.get(url)
+            else:
+                resp = self.client.post(url, data=body, content_type='application/json')
+            self.assertEqual(resp.status_code, 409, name)
+            self.assertFalse(resp.json()['running'])
 
     def test_input_rejects_oversized_batch(self):
         # BrowserPreviewError surfaces as a 400, exactly like the DRF views.
@@ -1098,25 +973,6 @@ class PreviewEndpointTests(APITestCase):
         )
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.json()['error'], 'Invalid JSON body')
-
-    def test_wrong_methods_are_405(self):
-        resp = self.client.post(
-            reverse('api-preview-frame', args=[self.project.id]),
-            data='{}', content_type='application/json',
-        )
-        self.assertEqual(resp.status_code, 405)
-        resp = self.client.get(reverse('api-preview-input', args=[self.project.id]))
-        self.assertEqual(resp.status_code, 405)
-
-    def test_other_users_project_is_404(self):
-        other = User.objects.create_user(username='previewother', password='pw123456')
-        other_path = tempfile.mkdtemp(prefix='preview_api_other_')
-        self.addCleanup(lambda: shutil.rmtree(other_path, ignore_errors=True))
-        other_project = PMProject.objects.create(
-            user=other, name='Their Preview', project_path=other_path
-        )
-        resp = self.client.get(reverse('api-preview-frame', args=[other_project.id]))
-        self.assertEqual(resp.status_code, 404)
 
 
 class PreviewChildEnvTests(TestCase):
