@@ -148,15 +148,15 @@
 
       <div class="sl-divider" aria-hidden="true"></div>
 
-      <!-- Plans, and what isn't here yet -->
+      <!-- What it costs, and what isn't here yet -->
       <section class="sl-sec about-step">
         <div class="sl-wrap">
           <div v-reveal class="sl-head">
             <p class="sl-eyebrow">Good to know</p>
             <h2 class="sl-display sl-h2">What it costs, and what&rsquo;s next</h2>
             <p class="sl-lede">
-              Every plan comes with a weekly allowance of AI usage. Which model you pick and
-              how hard it thinks decide how far that goes.
+              Imagi is free, with no weekly limit on AI usage. One safeguard stays: a single
+              run that gets expensive checks in with you before it goes further.
             </p>
           </div>
 
@@ -253,7 +253,7 @@ export default defineComponent({
     ]
 
     const facts = [
-      { label: 'Plans start at', value: 'Free', caption: 'One project and free usage every week. Paid plans add more.' },
+      { label: 'Price', value: 'Free', caption: 'One open plan: no usage limit, as many projects as you need.' },
       { label: 'Markup on AI usage', value: '0%', caption: 'Usage is metered at the AI providers’ own prices.' },
       { label: 'Per run', value: '$10', caption: 'A run that reaches it stops and checks in with you first.' }
     ]

@@ -21,7 +21,7 @@
             <p class="sl-lede legal-rise">
               How Imagi handles your data — what we collect, how it is stored, who it is shared with, and the control you have over it.
             </p>
-            <p class="legal-updated legal-rise">Last updated: October 9, 2026</p>
+            <p class="legal-updated legal-rise">Last updated: October 12, 2026</p>
           </div>
         </section>
 
@@ -99,8 +99,8 @@ export default defineComponent({
             text: 'What you tell us about each project (its name, description and look), your conversations with Imagi\'s agents, any voice recordings you dictate, and the code, pages and files the agents write for you.'
           },
           {
-            title: '2.3 Billing',
-            text: 'Your plan, your usage against its weekly allowance, and payment records. Card details are collected and held by Stripe, our payment processor; we do not store your full card number.'
+            title: '2.3 Plan and Usage',
+            text: 'Your plan and a record of the AI usage your runs consume. Imagi is free today, so we hold no payment details for it; if you choose a paid plan in the future, card details will be collected and held by Stripe, our payment processor, and we will not store your full card number.'
           },
           {
             title: '2.4 Business Tools',
@@ -130,7 +130,7 @@ export default defineComponent({
           },
           {
             title: '4.2 Infrastructure and Payments',
-            text: 'Imagi and its database are hosted on Railway. Payments for Imagi plans are processed by Stripe.'
+            text: 'Imagi and its database are hosted on Railway. If Imagi offers paid plans, their payments will be processed by Stripe.'
           },
           {
             title: '4.3 Services You Connect',

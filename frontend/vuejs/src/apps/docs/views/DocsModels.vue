@@ -20,7 +20,7 @@
             Both settings are per conversation, so different threads can use different settings. The model you pick is saved
             with the conversation; reasoning effort applies while the workspace is open and goes back to Medium when you
             reload the page. The general rule: smarter models and more reasoning give better results on hard tasks, but
-            they use your plan's usage faster.
+            each run costs more.
           </p>
         </div>
       </section>
@@ -94,7 +94,7 @@
           OpenAI models can also run faster. With one picked, the same menu shows a Speed choice. Standard is the
           default. <strong class="ink-strong">Fast</strong> is about twice as fast at twice the price, on every OpenAI model.
           <strong class="ink-strong">Ultrafast</strong> is up to eight times as fast at six times the price, on Sol and Astra.
-          The higher price uses your plan's usage that much faster, so save it for when waiting costs you more than usage does.
+          Save it for when waiting costs you more than the higher price does.
           The chip shows the speed when it isn't Standard, like "Sol · Medium · Ultrafast". Each thread keeps its own,
           and threads the coordinator starts begin at Standard.
         </p>
@@ -157,9 +157,9 @@
           <DocsCard title="Complex features">
             Move up to Fable 5.1 and High, Extra High or Max effort when a task is large or intricate and getting it right matters most.
           </DocsCard>
-          <DocsCard title="Watch your usage">
-            Smarter models and more reasoning use your plan's usage faster. The Usage panel in the workspace shows where you
-            stand—see Plans &amp; Usage for details.
+          <DocsCard title="Watch the cost">
+            Smarter models and more reasoning cost more per run, and any single run that reaches $10 stops to check in with
+            you—see Plans &amp; Usage for details.
           </DocsCard>
         </div>
       </section>
@@ -173,7 +173,7 @@
           <DocsNavigationCard
             to="/docs/plans"
             title="Plans & Usage"
-            description="See how usage limits work and what each plan includes."
+            description="See what the free plan includes and how AI usage works."
           />
           <DocsNavigationCard
             to="/docs/building"

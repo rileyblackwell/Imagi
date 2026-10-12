@@ -144,7 +144,7 @@
         </div>
       </div>
       <p id="tune-effort-note" class="tune-note px-3 pt-1 pb-3">
-        More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default.
+        More reasoning helps with difficult problems but costs more per run. Medium is the default.
       </p>
 
       <!-- OpenAI's faster tiers. Only an OpenAI model has them, so the
@@ -200,7 +200,7 @@
           :class="{ 'tune-note--cost': currentTier !== '' }"
           data-testid="speed-cost-note"
         >
-          Fast costs twice the standard price and Ultrafast six times, so they use your plan's usage that much faster.
+          Fast costs twice the standard price and Ultrafast six times, so each run costs that much more.
         </p>
       </template>
     </div>

@@ -163,7 +163,7 @@
           <DocsNavigationCard
             to="/docs/plans"
             title="Plans & Usage"
-            description="See how plans, usage limits, and billing work as your business grows."
+            description="See what the free plan includes and how AI usage works."
           />
         </div>
       </section>
