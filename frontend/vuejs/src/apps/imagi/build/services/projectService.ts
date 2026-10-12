@@ -23,6 +23,23 @@ function projectsCacheKey(): string {
   return PROJECTS_CACHE_PREFIX
 }
 
+// The projects list is one small database read, so a request still open after
+// this long is not going to answer: the server is restarting or unreachable.
+// Give up early and retry instead of leaving the list spinning on the app-wide
+// 60s timeout.
+const LIST_TIMEOUT_MS = 12000
+// Retries after the first try, for failures a moment later can fix (no answer,
+// or a gateway error while a server restarts), with this pause before each.
+const LIST_RETRY_DELAYS_MS = [1500, 4000]
+
+function isTransientError(error: any): boolean {
+  const status = error?.response?.status
+  if (status) return status === 502 || status === 503 || status === 504
+  // No response at all: the api interceptor reports these as a network error
+  // or a timeout.
+  return true
+}
+
 /**
  * Project Service
  * 
@@ -123,8 +140,18 @@ export const ProjectService = {
         timeout: api.defaults.timeout
       })
       
-      const response = await api.get(endpoint)
-      
+      let response
+      for (let attempt = 0; ; attempt++) {
+        try {
+          response = await api.get(endpoint, { timeout: LIST_TIMEOUT_MS })
+          break
+        } catch (err: any) {
+          if (attempt >= LIST_RETRY_DELAYS_MS.length || !isTransientError(err)) throw err
+          console.warn(`Project list request failed (${err?.message}); retrying`)
+          await new Promise((resolve) => setTimeout(resolve, LIST_RETRY_DELAYS_MS[attempt]))
+        }
+      }
+
       console.debug(`Project API - getProjects response:`, {
         status: response.status,
         statusText: response.statusText,
@@ -170,6 +197,10 @@ export const ProjectService = {
         throw new Error('You must be logged in to view projects')
       }
       
+      if (isTransientError(error)) {
+        throw new Error('Couldn’t reach Imagi to load your projects. Try again in a moment.')
+      }
+
       // Re-throw the error for the calling code to handle
       throw error
     }

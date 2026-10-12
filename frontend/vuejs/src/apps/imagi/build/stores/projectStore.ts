@@ -238,7 +238,9 @@ export const useProjectStore = defineStore('builder', () => {
 
         return projectsData
       } catch (err: any) {
-        handleError(err, 'Failed to fetch projects')
+        // Errors without a response are the service's own, already worded for
+        // people (it couldn't reach the server, or the sign-in expired).
+        handleError(err, !err?.response && err?.message ? err.message : 'Failed to fetch projects')
         return []
       } finally {
         setLoading(false)
