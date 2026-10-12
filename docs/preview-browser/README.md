@@ -100,8 +100,8 @@ screenshot preview on its next load. The domain can stay.
 | `PREVIEW_PARENT_ORIGINS` | `FRONTEND_URL` | Origins allowed to frame a preview and talk to its bridge |
 | `PREVIEW_EDGE_PORT` | 8790 | Edge port |
 | `PREVIEW_LIVE_IDLE_TIMEOUT` | 600 s | Stop a session nobody has viewed for this long |
-| `PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT` | 300 s | The same for a prewarmed session never opened |
-| `PREVIEW_LIVE_PREWARM_RECENT` | 1 | Projects prewarmed while the user is signed in |
+| `PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT` | 600 s | The same for a prewarmed session never opened |
+| `PREVIEW_LIVE_PREWARM_RECENT` | 3 | Most recently opened projects kept running while the user is signed in |
 | `PREVIEW_MEMORY_BUDGET_MB` | 2048 | Dev servers' measured memory, host-wide |
 | `PREVIEW_BROWSER_IDLE_TIMEOUT` | 120 s | Headless Chromium idle limit (the agent's preview tool only) |
 

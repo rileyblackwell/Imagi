@@ -778,7 +778,7 @@ def reap_idle_live_sessions() -> None:
     timeout = getattr(settings, 'PREVIEW_LIVE_IDLE_TIMEOUT', 600)
     if not timeout:
         return
-    prewarm_timeout = min(getattr(settings, 'PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT', 300) or timeout, timeout)
+    prewarm_timeout = min(getattr(settings, 'PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT', 600) or timeout, timeout)
     now = time.time()
     for prefix, state in _live_states():
         limit = prewarm_timeout if state.get('prewarmed') else timeout
@@ -826,11 +826,12 @@ _prewarm_lock = threading.Lock()
 
 
 def prewarm_recent(user) -> Optional[threading.Thread]:
-    """Start the owner's most recently opened project(s) in the background,
-    while an Imagi tab is open (the client's heartbeat)."""
+    """Keep the owner's most recently opened projects running while an Imagi
+    tab is open (the client's heartbeat): start the ones that are down, and
+    mark the running ones active so the idle reaper leaves them alone."""
     from apps.Imagi.ProjectManager.models import Project
 
-    limit = getattr(settings, 'PREVIEW_LIVE_PREWARM_RECENT', 1)
+    limit = getattr(settings, 'PREVIEW_LIVE_PREWARM_RECENT', 3)
     if not limit or not getattr(user, 'pk', None):
         return None
     projects = list(

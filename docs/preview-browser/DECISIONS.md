@@ -79,8 +79,10 @@ writes a migration file.
 
 **Decided:** sessions are capped by measured memory (`PREVIEW_MEMORY_BUDGET_MB`,
 2 GB), evicting least recently used first and prewarmed-but-unopened first of
-all; one viewed in the last 60 s is never evicted. Prewarm covers only the most
-recent project; idle sessions stop after 10 minutes (5 if never opened).
+all; one viewed in the last 60 s is never evicted. While the user is signed in
+with Imagi open, their 3 most recently opened projects stay running (Riley's
+rule, as in the screenshot preview); idle sessions, and one that drops out of
+those 3, stop after 10 minutes.
 
 **Why:** a dev-server pair measured about 280 MB on a small app and grows with the app; a count cannot tell a small app
 from a large one. Railway bills memory, and the brief caps spend at $20/month.
