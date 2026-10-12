@@ -255,6 +255,7 @@ class RecordUsageTests(APITestCase):
         self.assertEqual(event.cost_usd, Decimal('0.000150'))
 
 
+@override_settings(FREE_TIER_UNLIMITED=False)
 class UsageWindowTests(APITestCase):
     def setUp(self):
         self.user = make_user()
@@ -328,6 +329,7 @@ class FallbackRateTests(APITestCase):
         self.assertEqual(FALLBACK_OUTPUT_PRICE_PER_M, Decimal('50'))
 
 
+@override_settings(FREE_TIER_UNLIMITED=False)
 class CheckUsageAllowedTests(APITestCase):
     def setUp(self):
         self.user = make_user()
@@ -377,6 +379,39 @@ class CheckUsageAllowedTests(APITestCase):
         weekly = payload['windows']['weekly']
         self.assertEqual(weekly['limit_usd'], PLANS['max_10x']['weekly_usd'])
         self.assertGreater(weekly['limit_usd'], PLANS['pro']['weekly_usd'])
+
+
+@override_settings(FREE_TIER_UNLIMITED=True)
+class FreeTierUnlimitedTests(APITestCase):
+    """While FREE_TIER_UNLIMITED is on, Free has no allowance or project limit."""
+
+    def setUp(self):
+        self.user = make_user()
+
+    def test_free_usage_past_the_allowance_is_still_allowed(self):
+        record_usage(
+            self.user, 'gpt-5.6-terra', 1_000, 0,
+            cost_usd=PLANS['free']['weekly_usd'] * 10,
+        )
+        allowed, payload = check_usage_allowed(self.user)
+        self.assertTrue(allowed)
+        weekly = payload['windows']['weekly']
+        self.assertIsNone(weekly['limit_usd'])
+        self.assertGreater(weekly['used_usd'], 0)  # still metered
+        self.assertIsNone(payload['plan']['max_active_projects'])
+
+    def test_paid_plans_keep_their_allowance(self):
+        Subscription.objects.create(user=self.user, plan='pro')
+        record_usage(
+            self.user, 'gpt-5.6-terra', 1_000, 0,
+            cost_usd=PLANS['pro']['weekly_usd'],
+        )
+        allowed, _ = check_usage_allowed(self.user)
+        self.assertFalse(allowed)
+
+    def test_registry_keeps_free_limits_for_turning_them_back_on(self):
+        self.assertEqual(PLANS['free']['weekly_usd'], 3)
+        self.assertEqual(PLANS['free']['max_active_projects'], 1)
 
 
 # --------------------------------------------------------------------------- #

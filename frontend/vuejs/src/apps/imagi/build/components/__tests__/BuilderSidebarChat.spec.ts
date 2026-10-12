@@ -256,7 +256,7 @@ describe('BuilderSidebarChat dictation', () => {
     expect(readout(wrapper)).toBe('Medium')
     expect(effortGroup(wrapper).attributes('aria-describedby')).toBe('tune-effort-note')
     expect(wrapper.find('#tune-effort-note').text()).toBe(
-      "More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default."
+      "More reasoning helps with difficult problems but costs more per run. Medium is the default."
     )
 
     // Clicking hands the change to the workspace, and the menu follows it.

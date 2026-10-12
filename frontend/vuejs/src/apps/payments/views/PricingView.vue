@@ -1,9 +1,10 @@
 <!--
   Pricing — on the Spotlight stage.
 
-  A lit opener, then the three plans as cards standing in the light (the
+  A lit opener, then the plans as cards standing in the light (the
   recommended one edged with the same glowing gradient as the home page's
-  prompt bar), then how usage is measured. Light and dark come from
+  prompt bar), then how usage is measured. While PAID_PLANS_ENABLED is off,
+  the page holds the one open Free plan, centred. Light and dark come from
   shared/styles/spotlight.css; the editorial wrapper keeps the shared button
   and checklist markup, re-lit by its bridge.
 -->
@@ -20,10 +21,16 @@
             <span class="sl-pip" aria-hidden="true"></span>
             <span>Pricing</span>
           </p>
-          <h1 class="sl-display sl-h1 pricing-title pricing-rise">Choose your plan</h1>
-          <p class="sl-lede pricing-rise">
+          <h1 class="sl-display sl-h1 pricing-title pricing-rise">
+            {{ PAID_PLANS_ENABLED ? 'Choose your plan' : 'Imagi is free' }}
+          </h1>
+          <p v-if="PAID_PLANS_ENABLED" class="sl-lede pricing-rise">
             Start free, then upgrade as you grow. Every plan gives you an amount of AI usage
             per week, on a rolling window — no session limits, nothing to top up.
+          </p>
+          <p v-else class="sl-lede pricing-rise">
+            One plan, open to everyone. Build as much as you like, with as many projects as
+            you need. No card, nothing to top up.
           </p>
 
           <!-- Subscribers manage billing (card, invoices, cancelling) in Stripe's portal -->
@@ -75,7 +82,7 @@
         </p>
 
         <!-- Plans -->
-        <div class="tiers">
+        <div class="tiers" :class="{ 'tiers--single': tiers.length === 1 }">
           <SubscriptionTierCard
             v-for="tier in tiers"
             :key="tier.name"
@@ -87,12 +94,13 @@
             :weekly-limit="tier.weeklyLimit"
             :options="tier.options"
             :is-popular="tier.isPopular"
+            :flag="tier.flag"
             :current-plan-key="currentPlanKey"
             :loading="isTierLoading(tier)"
             @subscribe="(lookupKey) => handleSubscribe(tier, lookupKey)"
           />
         </div>
-        <p class="pricing-stripe">
+        <p v-if="PAID_PLANS_ENABLED" class="pricing-stripe">
           <i class="fas fa-lock" aria-hidden="true"></i>
           Payments are processed by Stripe. Secure and encrypted.
         </p>
@@ -104,9 +112,16 @@
         <div class="sl-wrap pricing-usage__inner">
           <div class="pricing-usage__head">
             <p class="sl-eyebrow"><span class="sl-grad-text">01</span><span>Usage</span></p>
-            <h2 class="sl-display pricing-usage__title">How usage is measured</h2>
+            <h2 class="sl-display pricing-usage__title">
+              {{ PAID_PLANS_ENABLED ? 'How usage is measured' : 'One safeguard' }}
+            </h2>
           </div>
-          <p class="sl-lede pricing-usage__lede">
+          <p v-if="!PAID_PLANS_ENABLED" class="sl-lede pricing-usage__lede">
+            There's no weekly limit. The one check is per run: a single run that reaches
+            $10 of AI work stops and asks you before it carries on, so a request that goes
+            in circles never runs away. The Usage panel in the builder shows your plan.
+          </p>
+          <p v-else class="sl-lede pricing-usage__lede">
             Your allowance is spent as you build, priced by the model you pick and how hard
             you ask it to think. Lighter models and lower reasoning effort go further; the
             flagship model at high effort goes fastest. The Usage panel in the builder shows
@@ -137,6 +152,12 @@ const loadingTier = ref<string | null>(null)
 const portalLoading = ref(false)
 const error = ref('')
 const notice = ref('')
+
+// Paid plans are off for now: Imagi is free and the page shows the one open
+// Free plan. Turning this on brings back Pro and Max (and their Stripe
+// checkout, still in test mode) as they were; pair it with
+// FREE_TIER_UNLIMITED=0 on the server so Free's limits return too.
+const PAID_PLANS_ENABLED = false
 
 // The Stripe lookup key of each paid plan, keyed by the backend plan id
 // (services/plans.py LOOKUP_KEY_TO_PLAN, inverted). Free has no price.
@@ -178,7 +199,24 @@ const pendingSwitch = ref<PendingSwitch | null>(null)
 // `price` is the Stripe subscription price, separate from the allowance.
 // The project limit and early access mirror the registry's
 // max_active_projects (Free holds one) and early_access (both Max tiers).
-const tiers: Tier[] = [
+// The Free plan while it's the only one: no weekly limit, no project limit
+// (the server's FREE_TIER_UNLIMITED).
+const openFreeTier: Tier = {
+  name: 'Free',
+  price: 0,
+  lookupKey: null,
+  cta: 'Start building',
+  weeklyLimit: 'Unlimited usage',
+  features: [
+    'The full AI builder',
+    'Unlimited projects',
+    'Sell, Market and Operate (beta)',
+  ],
+  isPopular: true,
+  flag: 'Open to everyone',
+}
+
+const paidPlanTiers: Tier[] = [
   {
     name: 'Free',
     price: 0,
@@ -247,10 +285,13 @@ interface TierOption {
   features: string[]
 }
 
+const tiers: Tier[] = PAID_PLANS_ENABLED ? paidPlanTiers : [openFreeTier]
+
 interface Tier {
   name: string
   cta: string
   isPopular: boolean
+  flag?: string
   // Single-option tiers set these directly; multi-option tiers use `options` instead.
   price?: number
   lookupKey?: string | null
@@ -447,6 +488,13 @@ const handleSubscribe = async (tier: Tier, lookupKey: string | null) => {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
   }
+}
+
+/* One open plan: a single card, centred at a card's width */
+.tiers.tiers--single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 26rem;
+  margin-inline: auto;
 }
 
 .pricing-stripe {

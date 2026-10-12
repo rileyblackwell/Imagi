@@ -40,7 +40,7 @@
       </div>
 
       <div class="hero-item hero-meta" style="animation-delay: 240ms">
-        <span>Start for free. Upgrade anytime.</span>
+        <span>Free to use. No card needed.</span>
         <span class="hero-meta__sep" aria-hidden="true"></span>
         <button type="button" class="hero-meta__link" @click="scrollToHowItWorks">
           <span>See how it works</span>

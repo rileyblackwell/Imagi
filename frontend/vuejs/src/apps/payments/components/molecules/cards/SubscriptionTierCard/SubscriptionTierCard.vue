@@ -3,7 +3,7 @@
     <!-- Name, and the one mark that distinguishes the recommended plan -->
     <div class="tier__head">
       <h3 class="tier__name">{{ name }}</h3>
-      <span v-if="isPopular" class="tier__flag">Most popular</span>
+      <span v-if="isPopular" class="tier__flag">{{ flag ?? 'Most popular' }}</span>
     </div>
 
     <!-- Price -->
@@ -80,6 +80,8 @@ const props = defineProps<{
   name: string
   cta?: string
   isPopular?: boolean
+  // The featured card's flag; "Most popular" unless the page names it.
+  flag?: string
   loading?: boolean
   // Single-option tiers pass these directly…
   price?: number
