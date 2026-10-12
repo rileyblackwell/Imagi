@@ -5,6 +5,7 @@ This module provides centralized definitions for all AI models used across the a
 ensuring that model information (IDs, names, costs, etc.) is maintained in a single location.
 """
 
+import time
 from typing import List, Optional, Tuple
 
 from django.conf import settings
@@ -231,9 +232,27 @@ def canonical_model_id(model_id: str) -> str:
 FAST_PRICING_SUFFIX = ':fast'
 
 
+# When the API refuses fast mode (an organization without fast-mode access
+# gets a 429 against a zero limit), runs fall back to standard speed and stop
+# asking for it, and pricing, for a while. Per process, like the API client.
+FAST_MODE_COOLDOWN_SECONDS = 3600
+_fast_mode_refused_until = 0.0
+
+
+def mark_fast_mode_unavailable(seconds: float = FAST_MODE_COOLDOWN_SECONDS) -> None:
+    """Stop asking for fast mode for ``seconds`` after the API refused it."""
+    global _fast_mode_refused_until
+    _fast_mode_refused_until = time.monotonic() + seconds
+
+
+def fast_mode_available() -> bool:
+    """False while a recent refusal has fast mode switched off."""
+    return time.monotonic() >= _fast_mode_refused_until
+
+
 def supports_fast_mode(model_id: str) -> bool:
-    """Whether a model can be served in fast mode (speed 'fast')."""
-    return bool((get_model_by_id(model_id) or {}).get('fast_mode'))
+    """Whether a model can be served in fast mode (speed 'fast') right now."""
+    return bool((get_model_by_id(model_id) or {}).get('fast_mode')) and fast_mode_available()
 
 
 def pricing_model_id(model_id: str, speed: Optional[str] = None) -> str:
