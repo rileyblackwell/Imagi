@@ -28,6 +28,7 @@ import os
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from apps.Imagi.Build.models import ProjectFile
 
@@ -142,18 +143,10 @@ def record_file(project, rel_path: str, content: str = None):
         return None
 
     if content is None:
-        full_path = os.path.join(project.project_path, rel_path)
-        try:
-            if os.path.getsize(full_path) > MAX_SYNCED_FILE_BYTES:
-                logger.warning(f"Skipping DB sync for oversized file: {rel_path}")
-                return None
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-        except (OSError, UnicodeDecodeError) as e:
-            logger.warning(f"Could not read {rel_path} for DB sync: {e}")
+        content = _read_syncable(os.path.join(project.project_path, rel_path), rel_path)
+        if content is None:
             return None
-
-    if len(content.encode('utf-8', errors='ignore')) > MAX_SYNCED_FILE_BYTES:
+    elif len(content.encode('utf-8', errors='ignore')) > MAX_SYNCED_FILE_BYTES:
         logger.warning(f"Skipping DB sync for oversized content: {rel_path}")
         return None
 
@@ -167,6 +160,23 @@ def record_file(project, rel_path: str, content: str = None):
         },
     )
     return row
+
+
+def _read_syncable(full_path: str, rel_path: str):
+    """A syncable file's text, or None when it is too large or unreadable."""
+    try:
+        if os.path.getsize(full_path) > MAX_SYNCED_FILE_BYTES:
+            logger.warning(f"Skipping DB sync for oversized file: {rel_path}")
+            return None
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except (OSError, UnicodeDecodeError) as e:
+        logger.warning(f"Could not read {rel_path} for DB sync: {e}")
+        return None
+    if len(content.encode('utf-8', errors='ignore')) > MAX_SYNCED_FILE_BYTES:
+        logger.warning(f"Skipping DB sync for oversized content: {rel_path}")
+        return None
+    return content
 
 
 def remove_file(project, rel_path: str) -> int:
@@ -239,29 +249,63 @@ def import_project_from_disk(project, prune: bool = True) -> dict:
     project_root = project.project_path
     if not project_root or not os.path.isdir(project_root):
         raise ValueError(f"Project {project.id} has no directory on disk to import from")
+    ensure_workspace_tier('sync a project from disk')
+    if mirror_suppressed(project):
+        return {'synced': 0, 'pruned': 0}
 
-    seen = set()
-    synced = 0
-    # Batch every per-file upsert into a single transaction. Without this each
-    # record_file() auto-commits on its own — one fsync per file — which makes
-    # importing a freshly scaffolded project (hundreds of files) needlessly
-    # slow, especially on SQLite. One commit at the end instead of hundreds.
+    # Read the whole tree first, then diff it against the mirror in one query
+    # and write only what changed, in bulk. Per-file upserts cost two round
+    # trips each, and a fresh project has well over a hundred files: against
+    # a networked Postgres that alone kept project creation, and every merge
+    # that re-syncs, waiting several seconds.
+    on_disk = {}
+    for root, dirs, filenames in os.walk(project_root):
+        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not d.startswith('.'))
+        for filename in sorted(filenames):
+            abs_path = os.path.join(root, filename)
+            rel_path = _normalize_rel_path(os.path.relpath(abs_path, project_root))
+            if not is_syncable_path(rel_path):
+                continue
+            content = _read_syncable(abs_path, rel_path)
+            if content is not None:
+                on_disk[rel_path] = content
+
+    now = timezone.now()
     with transaction.atomic():
-        for root, dirs, filenames in os.walk(project_root):
-            dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not d.startswith('.'))
-            for filename in sorted(filenames):
-                abs_path = os.path.join(root, filename)
-                rel_path = _normalize_rel_path(os.path.relpath(abs_path, project_root))
-                if not is_syncable_path(rel_path):
-                    continue
-                if record_file(project, rel_path) is not None:
-                    seen.add(rel_path)
-                    synced += 1
+        existing = {
+            row.path: row
+            for row in ProjectFile.objects.filter(project=project).only('id', 'path', 'content')
+        }
+        created = [
+            ProjectFile(
+                project=project, path=path, content=content,
+                file_type=_file_type_for(path),
+                size=len(content.encode('utf-8', errors='ignore')),
+            )
+            for path, content in on_disk.items() if path not in existing
+        ]
+        changed = []
+        for path, content in on_disk.items():
+            row = existing.get(path)
+            if row is not None and row.content != content:
+                row.content = content
+                row.file_type = _file_type_for(path)
+                row.size = len(content.encode('utf-8', errors='ignore'))
+                row.updated_at = now
+                changed.append(row)
+        if created:
+            ProjectFile.objects.bulk_create(created, batch_size=200)
+        if changed:
+            ProjectFile.objects.bulk_update(
+                changed, ['content', 'file_type', 'size', 'updated_at'], batch_size=200
+            )
 
         pruned = 0
         if prune:
-            stale = ProjectFile.objects.filter(project=project).exclude(path__in=seen)
-            pruned, _ = stale.delete()
+            stale = [row.id for path, row in existing.items() if path not in on_disk]
+            if stale:
+                pruned, _ = ProjectFile.objects.filter(id__in=stale).delete()
+    synced = len(on_disk)
 
     logger.info(f"Imported project {project.id} from disk: {synced} files synced, {pruned} stale rows pruned")
     return {'synced': synced, 'pruned': pruned}

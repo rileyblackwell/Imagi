@@ -368,6 +368,18 @@ def make_run_bounds_hook(
         # initial build ends that way on most runs — so the caller meters it
         # from here instead.
         last_usage = None
+        # (seconds, input tokens, output tokens) per model turn, for the
+        # first build's timing line.
+        turns = []
+        _turn_started = None
+        _turn_tokens = (0, 0)
+
+        def _token_counts(self, context):
+            usage = getattr(context, 'usage', None)
+            return (
+                getattr(usage, 'input_tokens', 0) or 0,
+                getattr(usage, 'output_tokens', 0) or 0,
+            )
 
         def _remember_usage(self, context):
             usage = getattr(context, 'usage', None)
@@ -399,6 +411,8 @@ def make_run_bounds_hook(
 
         async def on_llm_start(self, context, agent, system_prompt, input_items):  # noqa: ANN001
             self._remember_usage(context)
+            self._turn_started = time.monotonic()
+            self._turn_tokens = self._token_counts(context)
             # The previous turn's tools have run by now, so this is the first
             # moment a deferred stop costs nothing.
             if self.deferred_stop is not None:
@@ -408,6 +422,14 @@ def make_run_bounds_hook(
             # The SDK adds the turn's usage before calling this, so the
             # reading is complete through the turn that passes a bound.
             self._remember_usage(context)
+            if self._turn_started is not None:
+                tokens_in, tokens_out = self._token_counts(context)
+                self.turns.append((
+                    time.monotonic() - self._turn_started,
+                    tokens_in - self._turn_tokens[0],
+                    tokens_out - self._turn_tokens[1],
+                ))
+                self._turn_started = None
             if refresh_memory:
                 from .project_memory import refresh_context
                 run_context = getattr(context, 'context', None)
@@ -988,6 +1010,7 @@ class ImagiAgentService:
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
+        self.last_run_timing = None
         self.agent_kind = agent_kind
         self.service_tier = service_tier
         # The tier the current run asks for; set by _prepare_run.
@@ -2721,6 +2744,8 @@ class ImagiAgentService:
             if not user_input:
                 return {"success": False, "error": "Message is required"}
 
+            # Where a run's time went, read by the first build's timing line.
+            self.last_run_timing = {'started': time.monotonic(), 'turns': []}
             conversation, context, input_messages = self._prepare_run(
                 user_input=user_input,
                 user=user,
@@ -2731,6 +2756,7 @@ class ImagiAgentService:
                 reasoning_effort=reasoning_effort,
                 run_state=run_state,
             )
+            self.last_run_timing['prepared'] = time.monotonic()
 
             run_kwargs: Dict[str, Any] = {}
             bounds_hook = make_run_bounds_hook(
@@ -2738,6 +2764,7 @@ class ImagiAgentService:
             )
             if bounds_hook is not None:
                 run_kwargs["hooks"] = bounds_hook
+                self.last_run_timing['turns'] = getattr(bounds_hook, 'turns', [])
 
             openai_provider = websocket_provider_for(self.model)
             result = Runner.run_sync(
@@ -2748,6 +2775,7 @@ class ImagiAgentService:
                 run_config=self._run_config(user, openai_provider),
                 **run_kwargs,
             )
+            self.last_run_timing['ran'] = time.monotonic()
 
             response_content = result.final_output or ""
 
@@ -2817,6 +2845,8 @@ class ImagiAgentService:
             # back off the working tree instead.
             logger.info("Agent run capped for conversation %s: %s",
                         conversation.id if conversation else None, cap)
+            if self.last_run_timing is not None:
+                self.last_run_timing['ran'] = time.monotonic()
             files_changed = self._capped_run_files(conversation)
             capped_note = _capped_run_note(files_changed)
             # The SDK result that carries a run's usage is lost with the

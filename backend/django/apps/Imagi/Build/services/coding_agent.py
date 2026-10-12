@@ -8,8 +8,10 @@ OpenAI Codex CLI): search before reading, read before editing, targeted edits
 over full rewrites, and an explicit plan for multi-step work.
 """
 
+import json
 import logging
 import os
+import re
 from typing import Optional
 
 from django.conf import settings
@@ -17,9 +19,9 @@ from django.conf import settings
 from agents import Agent, RunContextWrapper
 
 try:  # Ends a run after a named tool call (task runs stop on ask_user)
-    from agents.agent import StopAtTools
+    from agents.agent import StopAtTools, ToolsToFinalOutputResult
 except ImportError:  # pragma: no cover - defensive fallback
-    StopAtTools = None
+    StopAtTools = ToolsToFinalOutputResult = None
 
 from apps.Imagi.Build.services.models_service import (
     get_backend_model_id,
@@ -115,9 +117,45 @@ You chat with the user about their app and edit its files directly. Tell them wh
 # The business itself arrives in the page's brief.
 INITIAL_BUILD_INSTRUCTIONS = f"""You are a thread in Imagi's build workspace, building one page of a brand-new app while other threads build the rest. {IMAGI_INTRO} Your brief names your page.
 
-Rewrite only that page's view file, in a single write, as a real, custom-looking page for this business. Touching any other file collides with the other threads, and a page that references a missing file is thrown away. There are no image files: use CSS and inline SVG. For header and footer links, import sitePages from '../site-pages' and loop over it. You have about {INITIAL_BUILD_TIME_BUDGET_S} seconds, so aim for 8 KB (under 10 KB), one light theme, and no payments or backend calls.
+Rewrite only that page's view file, in a single write, as a real, custom-looking page for this business. Touching any other file collides with the other threads, and a page that references a missing file is thrown away. There are no image files: use CSS and inline SVG. For header and footer links, import sitePages from '../site-pages' and loop over it. You have about {INITIAL_BUILD_TIME_BUDGET_S} seconds, so aim for 8 KB (under 10 KB), one light theme, and no payments or backend calls."""
 
-Then tell the founder in four to six plain sentences what the page offers a visitor."""
+# What a first-build page's write may be: the page's own view file.
+_PAGE_VIEW_RE = re.compile(r'(?:^|/)src/apps/[^/]+/views/([A-Za-z0-9]+)View\.vue$')
+
+
+def _page_label(view_name: str) -> str:
+    """'OpeningHours' -> 'opening hours'."""
+    return re.sub(r'(?<!^)(?=[A-Z])', ' ', view_name).lower()
+
+
+def _finish_after_page_write(context: RunContextWrapper, tool_results):
+    """End a first-build page's run the moment its page is written and whole.
+
+    The page is the whole job, and the founder may be waiting on it: another
+    model turn only to say it is done costs seconds and a full re-send of the
+    conversation. A write that left a dangling import doesn't end the run, so
+    the model can still put it right.
+    """
+    from .frontend_integrity import find_unresolved_imports
+
+    root = getattr(getattr(context, 'context', None), 'effective_project_path', None)
+    for result in tool_results:
+        if getattr(result.tool, 'name', '') not in ('update_file', 'create_file'):
+            continue
+        try:
+            output = json.loads(result.output) if isinstance(result.output, str) else result.output
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(output, dict) or not output.get('success'):
+            continue
+        match = _PAGE_VIEW_RE.search(str(output.get('path') or ''))
+        if not match or not root or find_unresolved_imports(root):
+            continue
+        return ToolsToFinalOutputResult(
+            is_final_output=True,
+            final_output=f"Your {_page_label(match.group(1))} page is built.",
+        )
+    return ToolsToFinalOutputResult(is_final_output=False, final_output=None)
 
 
 def load_project_memory(project_path: Optional[str]) -> Optional[str]:
@@ -279,6 +317,8 @@ def create_coding_agent(
         # One-shot first build of a new project: same full editing toolset as
         # chat, but framed as the initial build with explicit design direction.
         base_instructions = INITIAL_BUILD_INSTRUCTIONS
+        if ToolsToFinalOutputResult is not None:
+            kwargs['tool_use_behavior'] = _finish_after_page_write
     elif kind == 'task':
         tools.extend(TASK_AGENT_EXTRA_TOOLS)
         base_instructions = TASK_AGENT_INSTRUCTIONS

@@ -64,6 +64,7 @@ and every page that did not simply keeps its placeholder.
 """
 
 import logging
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -75,6 +76,8 @@ from django.utils import timezone
 from .auth_restyle_service import queue_auth_restyle
 
 logger = logging.getLogger(__name__)
+# One line per first build saying where the wait for its home page went.
+timing_logger = logging.getLogger('imagi.timing')
 
 # Shown in the workspace as the subagents' thread names.
 TASK_TITLE = 'Initial build'
@@ -181,7 +184,7 @@ def _more_threads_note(pages) -> str:
     noun = 'thread' if len(pages) == 1 else 'threads'
     return (
         f"I've also started {len(pages)} {noun} for the rest of your site: {listed}. "
-        "Each page shows up in your app's navigation as soon as it's finished."
+        "They're in your app's navigation already, and each one fills in as soon as it's finished."
     )
 
 
@@ -214,6 +217,7 @@ def build_initial_prompt(
     page: PageBrief = None,
     app_details: str = "",
     siblings=(),
+    current_view: str = "",
 ) -> str:
     """Compose one page subagent's brief from the founder's inputs.
 
@@ -228,6 +232,8 @@ def build_initial_prompt(
     the opening message of their main thread. ``siblings`` is the whole page
     plan when it is known (it is not yet when the home page starts), so a page
     can mention the others by name without linking to them by hand.
+    ``current_view`` is the page file as it stands, handed over so the thread
+    can write straight away instead of spending a model turn reading it.
     """
     page = page or PAGE_BRIEFS[0]
 
@@ -259,9 +265,9 @@ Read this as the app's functional brief. Before writing code, work out from it t
 Your page: {page.summary}.
 Rewrite '{page.view_path}' (routed at '{page.route}'), and no other file. Your siblings are building the other pages at the same time.{_sibling_line(page, siblings)}
 
-{page.requirements}
-
-When you're done, briefly summarize what you built."""
+{page.requirements}"""
+    if current_view.strip():
+        prompt += f"\n\nThe file as it stands now (no need to read it):\n```vue\n{current_view.strip()}\n```"
     return prompt
 
 
@@ -548,8 +554,11 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         from django.contrib.auth import get_user_model
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
 
+        thread_started = time.monotonic()
         project = Project.objects.get(pk=project_id)
         user = get_user_model().objects.get(pk=user_id)
+        # How long the project waited for this thread, from its creation.
+        queued_s = (timezone.now() - project.created_at).total_seconds()
 
         builder = getattr(settings, 'IMAGI_BUILDER', {})
         model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
@@ -560,6 +569,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             return build_initial_prompt(
                 project.name, project.description, design, page,
                 app_details=app_details, siblings=siblings,
+                current_view=_read_view(project.project_path, page.view_path),
             )
 
         # agent_kind pins the first-build persona (its prompt and design
@@ -588,7 +598,6 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         home_deadline = time.monotonic() + time_budget if time_budget else None
 
         applied = {}
-        ready = []
         with ThreadPoolExecutor(
             max_workers=max_parallel, thread_name_prefix=f'initial-build-{project_id}'
         ) as pool:
@@ -606,6 +615,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 service, lead, founder_brief, [home_task], planning=not fixed,
             )
             futures = {submit(home_task, home_deadline): home_task}
+            home_submitted = time.monotonic()
 
             # Plan the rest while the home page builds.
             if fixed:
@@ -617,8 +627,9 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 ) or list(PAGE_BRIEFS[1:])
             plan = [home] + rest
             if not fixed:
-                initial_page_plan.scaffold_pages(project.project_path, plan, [home])
-            ready = [home]
+                # Every planned page goes in the navigation now; the ones
+                # still building say so if a visitor gets there first.
+                initial_page_plan.scaffold_pages(project.project_path, plan, plan)
 
             rest_tasks = [
                 _create_build_task(
@@ -636,21 +647,21 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 applied[page.slug] = future.result()
                 if not applied[page.slug]:
                     continue
-                if page.slug != home.slug:
-                    # The finished page joins the navigation; the preview
-                    # hot-reloads it, so it appears while the rest build.
-                    ready = [p for p in plan if p is home or applied.get(p.slug)]
-                    if not fixed:
-                        initial_page_plan.publish_ready_pages(project.project_path, ready)
-                else:
+                if page.slug == home.slug:
                     # Open the project now rather than when the slowest page
                     # finishes: the founder lands on the home page, and the
                     # others merge into the running preview as they finish.
-                    _resync_project_files(project_id)
+                    # The founder is waiting on this flag, so it goes first;
+                    # the mirror catches up right after.
                     Project.objects.filter(pk=project_id).update(
                         generation_status='completed',
                         last_generated_at=timezone.now(),
                     )
+                    _log_home_timing(
+                        project_id, queued_s, thread_started, home_submitted,
+                        futures[future],
+                    )
+                    _resync_project_files(project_id)
                     logger.info(
                         "Initial AI build of project %s: home page applied, project ready",
                         project_id,
@@ -660,6 +671,13 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                     # (auth_restyle_service).
                     queue_auth_restyle(project_id, user_id)
 
+        missed_pages = [p for p in plan if p is not home and not applied.get(p.slug)]
+        if missed_pages and not fixed:
+            initial_page_plan.settle_unbuilt_pages(
+                project.project_path,
+                [p for p in plan if p is home or applied.get(p.slug)],
+                missed_pages,
+            )
         _resync_project_files(project_id)
 
         landed = [slug for slug, ok in applied.items() if ok]
@@ -693,6 +711,49 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             pass
     finally:
         close_old_connections()
+
+
+def _log_home_timing(project_id, queued_s, thread_started, home_submitted, task):
+    """Log where the wait for the home page went, as one imagi.timing line.
+
+    Times are seconds from the project's creation: when the build thread
+    started, when the home page's run was handed to its worker, then per run
+    (a repair is a second run) its set-up, each model turn with its tokens in
+    and out, and the merge and checks after it, and finally the moment the
+    project opened. Never raises.
+    """
+    try:
+        now = time.monotonic()
+        at = lambda t: queued_s + (t - thread_started)  # noqa: E731
+        runs = []
+        for timing in getattr(task, 'run_timings', []):
+            started = timing.get('started')
+            prepared = timing.get('prepared', started)
+            ran = timing.get('ran', prepared)
+            turns = ' '.join(
+                f'{s:.1f}s/{tokens_in}in/{tokens_out}out'
+                for s, tokens_in, tokens_out in timing.get('turns') or []
+            )
+            runs.append(
+                f'[start {at(started):.1f} setup {prepared - started:.2f}s '
+                f'turns {turns or "-"} merge {timing.get("finished", ran) - ran:.2f}s]'
+            )
+        timing_logger.info(
+            "first build project=%s home ready %.1fs after create: thread %.1f, "
+            "home queued %.1f, runs %s",
+            project_id, at(now), queued_s, at(home_submitted), ' '.join(runs) or '-',
+        )
+    except Exception:  # pragma: no cover - logging must never break the build
+        logger.debug("Could not log first-build timing", exc_info=True)
+
+
+def _read_view(project_path, view_path) -> str:
+    """A page's view file as it is on disk, or '' when it can't be read."""
+    try:
+        with open(os.path.join(project_path or '', view_path), encoding='utf-8') as f:
+            return f.read()
+    except OSError:
+        return ''
 
 
 def _pages_to_build(builder):
@@ -851,6 +912,10 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
             cost_budget_usd=cost_budget,
             deadline_at=deadline_at,
         )
+        run_timing = getattr(service, 'last_run_timing', None)
+        if run_timing:
+            run_timing['finished'] = time.monotonic()
+            task.run_timings = getattr(task, 'run_timings', []) + [run_timing]
         if not result.get('success'):
             logger.error(
                 "Initial AI build run failed for project %s: %s",

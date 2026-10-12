@@ -135,7 +135,7 @@ describe('Projects (Brief)', () => {
       app_details: DETAILS,
       design_preferences: 'Warm and minimal',
     })
-    expect(push).toHaveBeenCalledWith({ name: 'project-hub', params: { projectName: 'little-loaf' } })
+    expect(push).toHaveBeenCalledWith({ name: 'builder-workspace', params: { projectName: 'little-loaf' } })
   })
 
   it('won\'t create a project until it says how the app works', async () => {

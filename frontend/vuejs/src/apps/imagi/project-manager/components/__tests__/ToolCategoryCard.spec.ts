@@ -44,11 +44,15 @@ describe('ToolCategoryCard', () => {
     })
   })
 
-  it('locks Build while the first build is still running', () => {
+  it('shows Build building while the first build runs, and still opens it', () => {
+    // The workspace shows the home page being written and opens the app the
+    // moment it lands, so there's nothing to keep the founder out of.
     const wrapper = mountWith({ tool: tool('build'), buildStatus: 'generating' })
 
-    expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(false)
-    expect(wrapper.attributes('aria-disabled')).toBe('true')
+    expect(wrapper.findComponent(RouterLinkStub).props('to')).toEqual({
+      name: 'builder-workspace',
+      params: { projectName: 'ticker-insights' },
+    })
     expect(wrapper.classes()).toContain('module--building')
     expect(wrapper.find('.module__cta--waiting').text()).toBe('Building')
   })
@@ -65,7 +69,7 @@ describe('ToolCategoryCard', () => {
     }
   )
 
-  it('never locks a module other than Build', () => {
+  it('never shows another module as building', () => {
     // Only the app is half-written during a build; the business tools around it
     // are perfectly usable.
     const wrapper = mountWith({ tool: tool('operate'), buildStatus: 'generating' })
@@ -94,8 +98,7 @@ describe('ToolCategoryCard', () => {
     it('swaps the button for the building state while the first build runs', () => {
       const wrapper = mountWith({ tool: tool('build'), layout: 'feature', buildStatus: 'generating' })
 
-      expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(false)
-      expect(wrapper.attributes('aria-disabled')).toBe('true')
+      expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(true)
       expect(wrapper.find('.module__open').exists()).toBe(false)
       expect(wrapper.find('.module__track').exists()).toBe(true)
       expect(wrapper.find('.module__cta--waiting').text()).toBe('Building')

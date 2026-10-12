@@ -13,9 +13,10 @@ starts, written here rather than by any agent, so each thread still rewrites
 exactly one file it already owns and no two threads ever touch the router.
 
 The pages link to each other through one generated list, 'site-pages.ts' in
-the home app. It names only the pages that are ready, and it is rewritten as
-each page lands. The preview's dev server hot-reloads it, so a finished page
-shows up in the navigation while the rest are still being built.
+the home app. It names every planned page from the start, so the home page's
+navigation is whole the moment it lands; a page that is still being built
+shows a "still being generated" notice and swaps itself for the real page when
+that lands. Pages the build couldn't make are taken back out at the end.
 """
 
 import json
@@ -249,8 +250,65 @@ def views_index_ts(pages: Iterable) -> str:
     )
 
 
+# Marks a view as Imagi's stand-in rather than a built page.
+PLACEHOLDER_MARKER = 'imagi-page-placeholder'
+
+
 def placeholder_view(page) -> str:
-    """What a planned page shows until its thread lands: its name, on its own."""
+    """What a planned page shows until its thread lands.
+
+    The page is in the navigation from the start, so a visitor can click it
+    early; this says it is still being generated. It checks its own module
+    every few seconds and reloads once the real page has replaced it, so it
+    turns up even where the dev server's hot reload can't reach the browser.
+    """
+    label = _label(page)
+    return f"""<template>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col" data-{PLACEHOLDER_MARKER}>
+    <header class="w-full">
+      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-wrap items-center gap-4">
+        <router-link
+          v-for="p in sitePages"
+          :key="p.path"
+          :to="p.path"
+          class="text-sm font-medium text-gray-700 hover:text-gray-900"
+        >{{{{ p.label }}}}</router-link>
+      </nav>
+    </header>
+    <main class="flex-grow flex items-center">
+      <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div class="mx-auto mb-6 h-10 w-10 rounded-full border-4 border-gray-200 border-t-gray-700 animate-spin" aria-hidden="true"></div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-3">{label} is still being generated</h1>
+        <p class="text-lg text-gray-600">This page is still being built. It will appear here on its own as soon as it's ready.</p>
+        <router-link to="/" class="inline-block mt-8 text-sm font-medium text-gray-900 underline">Back to the home page</router-link>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {{ onBeforeUnmount, onMounted }} from 'vue'
+import {{ sitePages }} from '../site-pages'
+
+// Reload once the real page has been written over this one.
+let timer: number | undefined
+onMounted(() => {{
+  timer = window.setInterval(async () => {{
+    try {{
+      const source = await (await fetch(import.meta.url.split('?')[0], {{ cache: 'no-store' }})).text()
+      if (!source.includes('{PLACEHOLDER_MARKER}')) window.location.reload()
+    }} catch {{
+      // Offline for a moment; try again on the next tick.
+    }}
+  }}, 3000)
+}})
+onBeforeUnmount(() => window.clearInterval(timer))
+</script>
+"""
+
+
+def unbuilt_view(page) -> str:
+    """What a planned page shows when its thread could not build it."""
     label = _label(page)
     return f"""<template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
@@ -265,9 +323,9 @@ def placeholder_view(page) -> str:
       </nav>
     </header>
     <main class="flex-grow flex items-center">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <h1 class="text-5xl font-bold text-gray-900 mb-6">{label}</h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">This page is being built.</p>
+      <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <h1 class="text-3xl font-bold text-gray-900 mb-3">{label}</h1>
+        <p class="text-lg text-gray-600">This page isn't built yet.</p>
       </div>
     </main>
   </div>
@@ -341,15 +399,38 @@ def scaffold_pages(project_path: str, pages: List, ready: List) -> bool:
 
 
 def publish_ready_pages(project_path: str, ready: List) -> bool:
-    """Put the pages that are ready into the site's navigation.
+    """Set the site's navigation to these pages.
 
-    The preview's dev server hot-reloads the list, so the new page shows up
-    in the app without anyone reloading it.
+    The preview's dev server hot-reloads the list, so the change shows up in
+    the app without anyone reloading it.
     """
     if not project_path or not os.path.isdir(project_path):
         return False
     _locked_write(
         project_path, {SITE_PAGES_PATH: site_pages_ts(ready)},
-        message='Add finished pages to the navigation',
+        message='Update the navigation',
     )
+    return True
+
+
+def settle_unbuilt_pages(project_path: str, ready: List, unbuilt: List) -> bool:
+    """Take the pages the first build couldn't make out of the navigation.
+
+    Every planned page was listed from the start; one whose thread failed
+    would otherwise say "still being generated" forever. Its route stays, now
+    saying plainly that it isn't built, and the founder can ask for it.
+    """
+    if not unbuilt or not project_path or not os.path.isdir(project_path):
+        return False
+    files = {SITE_PAGES_PATH: site_pages_ts(ready)}
+    for page in unbuilt:
+        path = os.path.join(project_path, page.view_path)
+        try:
+            with open(path, encoding='utf-8') as f:
+                still_placeholder = PLACEHOLDER_MARKER in f.read()
+        except OSError:
+            still_placeholder = False
+        if still_placeholder:
+            files[page.view_path] = unbuilt_view(page)
+    _locked_write(project_path, files, message='Mark the pages that were not built')
     return True

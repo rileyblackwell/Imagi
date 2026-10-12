@@ -14,7 +14,6 @@ import os
 import shutil
 import subprocess
 import datetime
-import time
 from django.shortcuts import get_object_or_404
 from apps.Imagi.ProjectManager.models import Project as PMProject
 
@@ -112,66 +111,16 @@ class VersionControlService:
         self.project = project
         
     def _wait_for_file_system_sync(self, project_path, file_path=None, max_wait=5):
+        """Kept for callers; a no-op.
+
+        Every write that reaches git comes from this process (or a child it
+        waited on), so git already sees it: the kernel's page cache is shared.
+        This used to force os.sync() — flushing every disk on the host — and
+        poll `git status`, sleeping up to max_wait when a commit had nothing
+        new in it, on every commit and merge.
         """
-        Wait for file system operations to complete and ensure files are visible to git.
-        
-        Args:
-            project_path (str): Path to the project directory
-            file_path (str): Specific file path to check (optional)
-            max_wait (int): Maximum time to wait in seconds
-        """
-        start_time = time.time()
-        
-        while time.time() - start_time < max_wait:
-            try:
-                # Force file system sync on Unix systems
-                if hasattr(os, 'sync'):
-                    os.sync()
-                
-                # If a specific file was mentioned, verify it exists
-                if file_path and file_path != '/':
-                    # Remove leading slash and check if file exists
-                    clean_path = file_path.lstrip('/')
-                    full_path = os.path.join(project_path, clean_path)
-                    
-                    if os.path.exists(full_path):
-                        # File exists, check if git can see any changes
-                        status_result = subprocess.run(
-                            ['git', 'status', '--porcelain'],
-                            cwd=project_path,
-                            capture_output=True,
-                            text=True
-                        )
-                        
-                        if status_result.returncode == 0 and status_result.stdout.strip():
-                            # Git can see changes, we're good to go
-                            return True
-                
-                # For general sync or when no specific file is provided
-                # Just ensure git status command works and wait a bit
-                status_result = subprocess.run(
-                    ['git', 'status', '--porcelain'],
-                    cwd=project_path,
-                    capture_output=True,
-                    text=True
-                )
-                
-                if status_result.returncode == 0:
-                    # If there are changes or if we're not checking a specific file, we're good
-                    if not file_path or file_path == '/' or status_result.stdout.strip():
-                        time.sleep(0.1)  # Small additional buffer
-                        return True
-                
-                # Wait a bit before checking again
-                time.sleep(0.2)
-                
-            except Exception:
-                # If anything fails, just wait a bit more
-                time.sleep(0.2)
-        
-        # Return True after max wait time to avoid blocking forever
         return True
-        
+
     def initialize_repo(self, project_path):
         """
         Initialize a git repository for the project if it doesn't exist.

@@ -579,9 +579,10 @@ async function createProject() {
       idType: typeof newProject.id
     })
 
-    // Navigate immediately to the project hub for the newly created project
+    // Straight into the build workspace: it shows the home page being built
+    // and opens the app the moment it lands, while the other pages finish.
     router.push({
-      name: 'project-hub',
+      name: 'builder-workspace',
       params: { projectName: projectSlug(newProject) }
     })
 

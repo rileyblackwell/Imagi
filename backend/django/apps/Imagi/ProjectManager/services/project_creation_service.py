@@ -47,12 +47,17 @@ class ProjectCreationService:
             logger.info(f"Project successfully created at: {project_path}")
             
             # Ensure default apps (home, auth) are created
+            # Disk only: the mirror is filled in one bulk pass at the end
+            # (import_project_from_disk), not a database write per file.
+            project._suppress_db_mirror = True
             try:
-                create_app_service = CreateAppService(user=self.user)
+                create_app_service = CreateAppService(user=self.user, project=project)
                 default_result = create_app_service.ensure_default_apps(project_id=str(project.id))
                 logger.info(f"Default apps ensure result: {default_result}")
             except Exception as app_err:
                 logger.warning(f"Failed to ensure default apps: {app_err}")
+            finally:
+                project._suppress_db_mirror = False
 
             # Put the finished scaffold under git before anything else touches
             # it. The repo is created lazily otherwise, on whichever agent run

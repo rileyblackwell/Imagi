@@ -446,8 +446,15 @@ class LivePreviewService:
             state['prewarmed'] = bool(prewarm and (cold or state.get('prewarmed')))
             self._save_state(state)
         elapsed = time.monotonic() - started
+        stages = ''
+        if progress:
+            stages = ' ' + ' '.join(
+                f"{stage['key']}={stage['ms'] / 1000:.2f}s"
+                for stage in progress.stages.values() if 'ms' in stage
+            )
         timing_logger.info(
-            'live preview start project=%s cold=%s total=%.2fs', self.project.pk, cold, elapsed,
+            'live preview start project=%s cold=%s total=%.2fs%s',
+            self.project.pk, cold, elapsed, stages,
         )
         return {
             'running': True,
