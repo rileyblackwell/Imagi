@@ -5,7 +5,9 @@ import ThreadComposer from '../ThreadComposer.vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
 import type { AgentInstance } from '@/apps/imagi/build/types/services'
 
-vi.mock('@/apps/imagi/build/services/agentService', () => ({ AgentService: {} }))
+vi.mock('@/apps/imagi/build/services/agentService', () => ({
+  AgentService: { updateConversation: vi.fn(() => Promise.resolve({})) },
+}))
 
 function makeThread(overrides: Partial<AgentInstance> = {}): AgentInstance {
   return {

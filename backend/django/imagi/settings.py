@@ -373,6 +373,10 @@ IMAGI_BUILDER = {
     'INITIAL_BUILD_MODEL': 'claude-opus-5-5',
     'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
     'INITIAL_BUILD_HOME_SERVICE_TIER': 'ultrafast',
+    # GPT runs talk to OpenAI's Responses API over one WebSocket per run, as
+    # OpenAI recommends for its fast tiers (Riley, 2026-10-12). 'http' (or the
+    # OPENAI_RESPONSES_TRANSPORT environment variable) switches back to HTTPS.
+    'OPENAI_RESPONSES_TRANSPORT': 'websocket',
     # The project opens as soon as the home page lands; the other pages keep
     # building and merge as they finish. Tune once a live build has been timed.
     'INITIAL_BUILD_TIME_BUDGET_S': 120,

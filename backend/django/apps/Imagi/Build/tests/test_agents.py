@@ -1611,6 +1611,77 @@ class ServiceTierTests(TestCase):
         self.assertEqual(claude._pricing_model(), 'claude-opus-5-5')
 
 
+class ResponsesWebSocketTests(TestCase):
+    """GPT runs reach OpenAI over one WebSocket per run, as OpenAI recommends
+    for its fast tiers; Claude runs and the http setting leave the SDK's
+    default HTTPS transport in place."""
+
+    def test_a_gpt_run_gets_its_own_websocket_provider(self):
+        from agents.models.openai_responses import OpenAIResponsesWSModel
+        from apps.Imagi.Build.services.openai_transport import websocket_provider_for
+
+        first = websocket_provider_for('gpt-6.1-sol')
+        second = websocket_provider_for('gpt-6.1-sol')
+        self.assertIsNot(first, second)  # concurrent runs never share a socket
+
+        async def resolve():
+            return first.get_model('gpt-6.1-sol')
+
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'sk-test'}):
+            self.assertIsInstance(async_to_sync(resolve)(), OpenAIResponsesWSModel)
+
+    def test_claude_and_the_http_setting_keep_the_default_transport(self):
+        from apps.Imagi.Build.services.openai_transport import websocket_provider_for
+
+        self.assertIsNone(websocket_provider_for('claude-opus-5-5'))
+        self.assertIsNone(websocket_provider_for(None))
+        with patch.dict(os.environ, {'OPENAI_RESPONSES_TRANSPORT': 'http'}):
+            self.assertIsNone(websocket_provider_for('gpt-6.1-sol'))
+
+    def test_a_blocking_run_hands_the_sdk_its_provider_and_closes_it(self):
+        user = User.objects.create_user(username='ws', password='pw123456')
+        conversation = AgentConversation.objects.create(
+            user=user, model_name='gpt-6.1-sol', kind='lead',
+        )
+        service = ImagiAgentService(model='gpt-6.1-sol', service_tier='ultrafast')
+        provider = object()
+        seen = {}
+
+        def run_sync(*args, **kwargs):
+            seen['provider'] = kwargs['run_config'].model_provider
+            raise RuntimeError('stop here')
+
+        with patch.object(
+            service, '_prepare_run',
+            return_value=(conversation, SimpleNamespace(), [{'role': 'user', 'content': 'go'}]),
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.websocket_provider_for', return_value=provider,
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.close_provider_sync',
+        ) as close, patch(
+            'apps.Imagi.Build.services.base_agent.Runner.run_sync', side_effect=run_sync,
+        ):
+            service.process(user_input='go', user=user, project_id=1, conversation_id=conversation.id)
+
+        self.assertIs(seen['provider'], provider)
+        close.assert_called_once_with(provider)
+
+    def test_the_sync_close_runs_on_the_loop_run_sync_used(self):
+        import asyncio
+        from unittest.mock import AsyncMock
+        from apps.Imagi.Build.services.openai_transport import close_provider_sync
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            provider = SimpleNamespace(aclose=AsyncMock())
+            close_provider_sync(provider)
+            provider.aclose.assert_awaited_once()
+        finally:
+            asyncio.set_event_loop(None)
+            loop.close()
+
+
 class BuildModelSettingsTests(SimpleTestCase):
     """Request-level settings that ride on every model call."""
 
