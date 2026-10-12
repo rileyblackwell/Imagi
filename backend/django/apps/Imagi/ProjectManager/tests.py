@@ -1746,3 +1746,12 @@ class PageBriefCarriesItsFileTests(SimpleTestCase):
         self.assertIn('no need to read it', prompt)
         self.assertIn('<template><p>Hi</p></template>', prompt)
         self.assertNotIn('no need to read it', build_initial_prompt('Beanline', 'Coffee'))
+
+    def test_the_brief_hands_over_the_navigation_list(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import build_initial_prompt
+
+        prompt = build_initial_prompt(
+            'Beanline', 'Coffee', site_pages='export const sitePages = [{ path: "/", label: "Home" }]',
+        )
+        self.assertIn("'../site-pages' (no need to read it)", prompt)
+        self.assertIn('label: "Home"', prompt)

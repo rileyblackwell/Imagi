@@ -123,6 +123,9 @@ Rewrite only that page's view file, in a single write, as a real, custom-looking
 _PAGE_VIEW_RE = re.compile(r'(?:^|/)src/apps/[^/]+/views/([A-Za-z0-9]+)View\.vue$')
 
 
+INITIAL_BUILD_TOOL_NAMES = frozenset({'read_file', 'edit_file', 'update_file', 'create_file'})
+
+
 def _page_label(view_name: str) -> str:
     """'OpeningHours' -> 'opening hours'."""
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', view_name).lower()
@@ -317,6 +320,10 @@ def create_coding_agent(
         # One-shot first build of a new project: same full editing toolset as
         # chat, but framed as the initial build with explicit design direction.
         base_instructions = INITIAL_BUILD_INSTRUCTIONS
+        # Its brief carries the files it needs, so it gets only what it takes
+        # to write its page (and to read one if a repair needs to): every
+        # other tool was a model turn of exploring before the write.
+        tools = [t for t in tools if t.name in INITIAL_BUILD_TOOL_NAMES]
         if ToolsToFinalOutputResult is not None:
             kwargs['tool_use_behavior'] = _finish_after_page_write
     elif kind == 'task':
