@@ -1,9 +1,9 @@
 <!--
   Step 01 — Create.
   The first thing anyone does on Imagi: create a project. The four steps of
-  the real create form are named, then shown on stage: the brief with the
-  card that sums it up, and the starter-design step with its live preview of
-  the app's own name.
+  the real create form are named, then shown on stage: the first steps on
+  their rail, and the starter-design step with its live preview of the app's
+  own name.
 -->
 <template>
   <section id="how-it-works" class="sl-sec step scroll-mt-14">
@@ -26,14 +26,14 @@
       </ol>
 
       <!-- The create form itself, filled in for Ticker Insights -->
-      <div v-reveal="{ delay: 120 }" class="sl-stage">
+      <div v-reveal="{ delay: 120 }" class="sl-stage form-shot">
         <ProductShot
           src="/product/create-brief.webp"
-          alt="The Imagi create form for Ticker Insights: the app's name, what it is and how it works filled in, and beside them the card showing what the agent receives, with a Create project button."
-          :width="2400"
-          :height="1550"
+          alt="The Imagi create form for Ticker Insights: the app's name and what it is filled in, each step checked off on a lit rail, with How does it work? next."
+          :width="1568"
+          :height="1130"
           label="imagi — new project"
-          caption="Each answer fills in the card on the right, so you see exactly what the agent will get before you send it."
+          caption="Each step lights up once it has enough to build from. Then choose Create app."
         />
       </div>
 
@@ -150,6 +150,12 @@ export default defineComponent({
   font-size: 15px;
   color: var(--sl-muted);
   text-wrap: pretty;
+}
+
+/* The form shot is a narrow column, so it is shown near its own size */
+.form-shot {
+  max-width: 820px;
+  margin-inline: auto;
 }
 
 /* Set the look: the words on one side, its screenshot on the other */

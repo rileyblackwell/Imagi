@@ -71,7 +71,7 @@
             the look is your app's starter design: tap a style, a colour palette (or pick your own brand colour), a font
             style and light or dark, and add anything else in your own words. A small preview shows your app's name and
             description in that styling, a quick prototype before the build makes the full app. Skip it and Imagi picks
-            a look that fits. Then choose <strong class="ink-strong">Create project</strong>.
+            a look that fits. Then choose <strong class="ink-strong">Create app</strong>.
           </p>
           <div class="callout">
             <h4 class="callout__title">
