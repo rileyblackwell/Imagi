@@ -145,6 +145,7 @@ class PrewarmRecentPreviewsTests(_RecentProjects, TestCase):
         self.assertEqual(calls, ['a', 'b', 'c'])
 
 
+@override_settings(PREVIEW_V2=False)
 class LeastRecentlyUsedEvictionTests(_RecentProjects, TestCase):
     """The owner's previews beyond the three most recently used are stopped."""
 
@@ -268,6 +269,7 @@ class KeepAliveTests(_Root, SimpleTestCase):
 
 
 @override_settings(BROWSER_PREVIEW_IDLE_TIMEOUT=1800, BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT=600)
+@override_settings(PREVIEW_V2=False)
 class PrewarmedSessionReapingTests(_Root, SimpleTestCase):
     def setUp(self):
         self.user_dir = os.path.join(self.make_root(), '1')
@@ -292,6 +294,7 @@ class PrewarmedSessionReapingTests(_Root, SimpleTestCase):
         self.assertFalse(os.path.exists(opened))
 
 
+@override_settings(PREVIEW_V2=False)
 class PrewarmEndpointTests(_Root, APITestCase):
     def setUp(self):
         self.make_root()
@@ -333,6 +336,7 @@ class PrewarmEndpointTests(_Root, APITestCase):
         prewarm.assert_called_once_with(self.user, viewport=None, device_scale_factor=None)
 
 
+@override_settings(PREVIEW_V2=False)
 class OpeningAProjectRanksItTests(_Root, APITestCase):
     def test_starting_the_preview_records_when_it_was_opened(self):
         self.make_root()

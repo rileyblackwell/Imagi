@@ -63,6 +63,15 @@ class LiveApplyTests(GitRepoTestMixin, SimpleTestCase):
         self._edit('app.txt', None)
         self.assertIsNone(self._read(self.repo, 'app.txt'))
 
+    def test_a_new_migration_is_applied_to_the_running_app(self):
+        from apps.Imagi.Build.services import live_preview_service
+
+        with patch.object(live_preview_service, 'schedule_migrate') as migrate:
+            self._edit('backend/django/shop/models.py', 'class Order: pass')
+            migrate.assert_not_called()
+            self._edit('backend/django/shop/migrations/0002_order.py', '# migration')
+            migrate.assert_called_once_with(None)
+
     def test_a_file_someone_else_changed_waits_for_the_merge(self):
         self._write(self.repo, 'app.txt', 'another thread was here')
         outcome = self._edit('app.txt', 'mine')

@@ -378,10 +378,10 @@ function handleBridge(msg: BridgeMessage) {
       if (networkEntries.value.length > MAX_NETWORK) networkEntries.value.splice(0, networkEntries.value.length - MAX_NETWORK)
       break
     case 'hmr':
-      noteEdit(msg.files.length)
+      noteEdit(msg.files)
       break
     case 'full-reload':
-      noteEdit(0)
+      noteEdit([])
       loadingPage.value = true
       break
     case 'picked':
@@ -813,16 +813,26 @@ watch([drawerOpen, drawerTab], () => void pollLogs())
 // ---------------------------------------------------------------------------
 
 const editNote = ref('')
-let editFiles = 0
+const editFiles = new Set<string>()
 let editTimer: number | null = null
 let editHide: number | null = null
 
-function noteEdit(files: number) {
-  editFiles += files
+// Vite reports one update per module part, plus the stylesheet Tailwind
+// regenerates after any template change, so the note names the edited
+// source file, or counts them, and falls back to styles alone.
+function editSummary(files: Set<string>): string {
+  const sources = [...files].filter((f) => !/\.(css|scss|sass|less|postcss)$/i.test(f))
+  if (sources.length === 1) return `Updated ${sources[0]!.split('/').pop()}`
+  if (sources.length > 1) return `Updated ${sources.length} files`
+  return files.size ? 'Updated styles' : 'Reloaded after an edit'
+}
+
+function noteEdit(files: string[]) {
+  for (const f of files) editFiles.add(f.split('?')[0] ?? f)
   if (editTimer) window.clearTimeout(editTimer)
   editTimer = window.setTimeout(() => {
-    editNote.value = editFiles > 0 ? `Updated ${editFiles} ${editFiles === 1 ? 'file' : 'files'}` : 'Reloaded after an edit'
-    editFiles = 0
+    editNote.value = editSummary(editFiles)
+    editFiles.clear()
     if (editHide) window.clearTimeout(editHide)
     editHide = window.setTimeout(() => {
       editNote.value = ''
@@ -1062,6 +1072,12 @@ defineExpose({ reload: () => reload(false) })
   background: var(--sl-surface, #ffffff);
 }
 .dark .lp-address.is-focused { background: var(--sl-bg-deep, #0b0b0d); }
+/* The focus ring goes around the whole pill, not the bare input inside it. */
+.lp-address-input:focus-visible { outline: none; }
+.lp-address:has(.lp-address-input:focus-visible) {
+  outline: 2px solid var(--sl-focus, #4f8cff);
+  outline-offset: 2px;
+}
 
 .lp-address-lock {
   flex-shrink: 0;

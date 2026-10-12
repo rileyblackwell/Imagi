@@ -139,7 +139,18 @@ function forwardHeaders(req) {
 export function filterSetCookie(values) {
   if (!values) return values
   const list = Array.isArray(values) ? values : [values]
-  return list.filter((c) => !/;\s*domain\s*=/i.test(c))
+  return list.filter((c) => !/;\s*domain\s*=/i.test(c)).map(crossSiteCookie)
+}
+
+/** The preview is framed by the workspace on another site, so its cookies
+ *  are third-party. SameSite=None; Secure; Partitioned lets the app's own
+ *  cookies (CSRF, session) work inside that frame, kept in a jar that only
+ *  exists under the Imagi workspace. Browsers treat loopback http as secure,
+ *  so this holds in local development too. */
+export function crossSiteCookie(cookie) {
+  const parts = String(cookie).split(';').map((p) => p.trim()).filter(Boolean)
+  const kept = parts.filter((p, i) => i === 0 || !/^(samesite|secure|partitioned)(=|$)/i.test(p))
+  return kept.concat('SameSite=None', 'Secure', 'Partitioned').join('; ')
 }
 
 function securityHeaders(headers) {
