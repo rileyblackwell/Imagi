@@ -2822,6 +2822,16 @@ class FirstBuildPageRunEndsAtItsWriteTests(SimpleTestCase):
         ):
             return coding_agent._finish_after_page_write(self.context, [result])
 
+    def test_a_first_build_page_can_only_read_and_write_files(self):
+        # Its brief carries what it needs; exploring tools only cost turns.
+        from apps.Imagi.Build.services.coding_agent import create_coding_agent
+
+        agent = create_coding_agent('claude-opus-5-5', kind='initial_build')
+        self.assertEqual(
+            {t.name for t in agent.tools},
+            {'read_file', 'edit_file', 'update_file', 'create_file'},
+        )
+
     def test_the_page_write_ends_the_run_without_a_summary_turn(self):
         decision = self._decide('update_file', {'success': True, 'path': self.VIEW})
         self.assertTrue(decision.is_final_output)

@@ -672,6 +672,9 @@ async function pollStatus() {
   if (disposed || statusInFlight) return
   statusInFlight = true
   const outgoing = pendingErrors.splice(0, pendingErrors.length)
+  // A poll sent while the servers were still starting can answer after the
+  // start has: its "not running" is stale and must not stop the new session.
+  const sentFor = session.value
   try {
     const visible = !props.paused && !document.hidden
     const result = await LivePreviewService.status(props.projectId, outgoing, visible)
@@ -680,7 +683,7 @@ async function pollStatus() {
     if (result.progress?.stages) stages.value = result.progress.stages
     if (result.error_routing) errorRouting.value = result.error_routing
     followAgent(result.agent)
-    if (phase.value === 'ready' && result.running === false) {
+    if (phase.value === 'ready' && result.running === false && sentFor === session.value) {
       // The servers went away (idle shutdown, a deploy).
       phase.value = 'stopped'
       iframeSrc.value = ''
@@ -996,7 +999,7 @@ watch(
       currentPath.value = '/'
       addressText.value = '/'
       reload(true)
-    } else if (phase.value === 'error') {
+    } else if (phase.value === 'error' || phase.value === 'stopped') {
       buildVeil.value = false
     }
     // Otherwise the app is still starting; the veil stays until it loads.
@@ -1008,9 +1011,10 @@ watch(appReady, (ready) => {
   if (ready && !props.building) buildVeil.value = false
 })
 
-// A preview that fails to start shows its own error once the build is done.
+// A preview that fails to start, or stops, shows its own notice once the
+// build is done.
 watch(phase, (p) => {
-  if (p === 'error' && !props.building) buildVeil.value = false
+  if ((p === 'error' || p === 'stopped') && !props.building) buildVeil.value = false
 })
 
 // ---------------------------------------------------------------------------

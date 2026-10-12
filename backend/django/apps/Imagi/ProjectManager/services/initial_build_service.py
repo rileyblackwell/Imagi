@@ -218,6 +218,7 @@ def build_initial_prompt(
     app_details: str = "",
     siblings=(),
     current_view: str = "",
+    site_pages: str = "",
 ) -> str:
     """Compose one page subagent's brief from the founder's inputs.
 
@@ -233,7 +234,9 @@ def build_initial_prompt(
     plan when it is known (it is not yet when the home page starts), so a page
     can mention the others by name without linking to them by hand.
     ``current_view`` is the page file as it stands, handed over so the thread
-    can write straight away instead of spending a model turn reading it.
+    can write straight away instead of spending a model turn reading it;
+    ``site_pages`` is the navigation list the page loops over, for the same
+    reason.
     """
     page = page or PAGE_BRIEFS[0]
 
@@ -268,6 +271,8 @@ Rewrite '{page.view_path}' (routed at '{page.route}'), and no other file. Your s
 {page.requirements}"""
     if current_view.strip():
         prompt += f"\n\nThe file as it stands now (no need to read it):\n```vue\n{current_view.strip()}\n```"
+    if site_pages.strip():
+        prompt += f"\n\n'../site-pages' (no need to read it):\n```ts\n{site_pages.strip()}\n```"
     return prompt
 
 
@@ -570,6 +575,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 project.name, project.description, design, page,
                 app_details=app_details, siblings=siblings,
                 current_view=_read_view(project.project_path, page.view_path),
+                site_pages=_read_view(project.project_path, initial_page_plan.SITE_PAGES_PATH),
             )
 
         # agent_kind pins the first-build persona (its prompt and design

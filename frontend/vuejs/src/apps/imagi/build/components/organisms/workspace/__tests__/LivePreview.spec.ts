@@ -116,6 +116,28 @@ describe('LivePreview', () => {
     expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
   })
 
+  it("doesn't let a status poll sent before the app started stop it", async () => {
+    wrapper.unmount()
+    let started!: (s: typeof SESSION) => void
+    let answered!: (s: Record<string, unknown>) => void
+    start.mockReturnValue(new Promise((r) => { started = r }))
+    status.mockReturnValue(new Promise((r) => { answered = r }))
+    wrapper = mount(LivePreview, { props: { projectId: '7', building: true }, attachTo: document.body })
+    // The start-progress poll goes out while the servers are still coming up.
+    await new Promise((r) => setTimeout(r, 350))
+    await flushPromises()
+    expect(status).toHaveBeenCalled()
+    started(SESSION)
+    await settle()
+    answered({ running: false })
+    await settle()
+    expect(wrapper.find('iframe').exists()).toBe(true)
+    await wrapper.setProps({ building: false })
+    await settle()
+    await fromApp({ type: 'ready', path: '/', title: 'Demo' })
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
+  })
+
   it('keeps the building notice up when the home page lands before the app has started', async () => {
     wrapper.unmount()
     let started!: (s: typeof SESSION) => void
