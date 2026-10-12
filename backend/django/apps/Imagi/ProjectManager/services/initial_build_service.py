@@ -486,12 +486,7 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
 
         user = get_user_model().objects.get(pk=user_id)
         model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-        # Only the home page races the clock: the project opens when it lands.
-        # The other pages build behind it at standard speed, which costs half.
-        fast = page.slug == 'home' and builder.get('INITIAL_BUILD_SPEED') == 'fast'
-        service = ImagiAgentService(
-            model=model, agent_kind='initial_build', fast_mode=fast
-        )
+        service = ImagiAgentService(model=model, agent_kind='initial_build')
         return _build_and_apply(
             service, task, user, project_id, prompt, builder, deadline_at
         )
@@ -509,10 +504,9 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
 def _run_initial_build(project_id: int, user_id: int) -> None:
     """Thread body: build the home page first, plan the rest, land each page.
 
-    The home page starts the moment the project exists, in fast mode and on
-    its own deadline, and the project opens as soon as it lands. While it
+    The home page starts the moment the project exists, on its own deadline, and the project opens as soon as it lands. While it
     runs, the pages after it are planned for this business (initial_page_plan)
-    and routed, then built behind it at standard speed, a few at a time. Each
+    and routed, then built behind it, a few at a time. Each
     page merges itself as it finishes (the merge takes an exclusive lock on
     the project's git repo, so simultaneous finishes serialize safely) and
     joins the site's navigation, which the preview hot-reloads.

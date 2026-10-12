@@ -431,7 +431,6 @@ def build_model_settings(
     reasoning_effort: Optional[str] = None,
     parallel_tool_calls: Optional[bool] = None,
     service_tier: Optional[str] = None,
-    speed: Optional[str] = None,
 ):
     """
     Build ModelSettings for an agent, applying a reasoning effort level when one
@@ -445,8 +444,6 @@ def build_model_settings(
     the agent's requests. The SDK has no field for it, so it rides in
     extra_args, which the Responses model merges into every create() call.
 
-    speed='fast' asks for Claude's fast mode (Opus 5.5), also via extra_args.
-
     Returns None when ModelSettings is unavailable, so callers can omit the
     argument entirely and fall back to SDK defaults.
     """
@@ -458,10 +455,6 @@ def build_model_settings(
     extra_args = {}
     if service_tier:
         extra_args['service_tier'] = service_tier
-    if speed:
-        # Claude's fast mode; AnthropicModel turns it into the request's
-        # speed parameter and beta.
-        extra_args['speed'] = speed
     if extra_args:
         kwargs['extra_args'] = extra_args
     if reasoning_effort and Reasoning is not None:
@@ -972,7 +965,6 @@ class ImagiAgentService:
         model: str = DEFAULT_MODEL,
         reasoning_effort: Optional[str] = None,
         agent_kind: Optional[str] = None,
-        fast_mode: Optional[bool] = None,
     ):
         """
         Initialize the agent service.
@@ -987,16 +979,10 @@ class ImagiAgentService:
                 conversation stays an ordinary kind='task' — so it keeps the
                 worktree isolation, review lifecycle and check-in routing every
                 other dispatched task has. None follows the conversation.
-            fast_mode: The user's fast-mode switch for this run, saved on the
-                conversation so threads it dispatches inherit it. None keeps
-                whatever the conversation already has (thread runs).
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
         self.agent_kind = agent_kind
-        self.fast_mode = fast_mode
-        # Whether the current run asks for fast mode; set by _prepare_run.
-        self._run_fast = bool(fast_mode)
         # Agents cached per conversation kind: lead runs carry the delegation
         # tool, task runs carry ask_user (+ its stop behavior).
         self._agents: Dict[str, Agent] = {}
@@ -1040,15 +1026,8 @@ class ImagiAgentService:
             )
 
     def _pricing_model(self, model: Optional[str] = None) -> str:
-        """The id this run's tokens are priced under: the model's own, or its
-        fast-mode pricing id when the run's role asks for fast mode."""
-        from .coding_agent import run_speed
-        from .models_service import pricing_model_id
-
-        model = model or self.model
-        return pricing_model_id(
-            model, run_speed(self._run_kind or 'chat', model, self._run_fast)
-        )
+        """The id this run's tokens are priced under."""
+        return model or self.model
 
     @property
     def agent(self) -> Agent:
@@ -1059,13 +1038,12 @@ class ImagiAgentService:
         callers outside a run (tests, scripts) fall back to the plain agent.
         """
         kind = self._run_kind or 'chat'
-        key = f'{kind}:fast' if self._run_fast else kind
-        if key not in self._agents:
+        if kind not in self._agents:
             from .coding_agent import create_coding_agent
-            self._agents[key] = create_coding_agent(
-                self.model, self.reasoning_effort, kind=kind, fast_mode=self._run_fast
+            self._agents[kind] = create_coding_agent(
+                self.model, self.reasoning_effort, kind=kind
             )
-        return self._agents[key]
+        return self._agents[kind]
 
     # -------------------------------------------------------------------------
     # Conversation Management
@@ -1445,23 +1423,6 @@ class ImagiAgentService:
         # agent_kind wins: it selects the persona while the conversation keeps
         # its own kind for isolation and lifecycle.
         self._run_kind = self.agent_kind or conversation.kind
-        # The composer's fast-mode switch sticks to the conversation, so the
-        # threads it dispatches next inherit it; a thread run passes none and
-        # keeps its own.
-        # A pinned role (the first build) sets its own speed per run and
-        # leaves the conversation's setting alone, so a later follow-up to
-        # that thread runs at the speed the user chose.
-        if (
-            self.fast_mode is not None and self.agent_kind is None
-            and conversation.fast_mode != self.fast_mode
-        ):
-            conversation.fast_mode = self.fast_mode
-            AgentConversation.objects.filter(pk=conversation.pk).update(
-                fast_mode=self.fast_mode
-            )
-        self._run_fast = (
-            self.fast_mode if self.fast_mode is not None else conversation.fast_mode
-        )
         # The same for effort: what the composer sends is saved on the
         # conversation, and a run that names none (a thread the server
         # started) runs at the one saved there.

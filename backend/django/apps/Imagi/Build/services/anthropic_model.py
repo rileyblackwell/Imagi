@@ -37,7 +37,6 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from apps.Imagi.Build.services.api_keys import read_api_key
-from apps.Imagi.Build.services.models_service import fast_mode_available, mark_fast_mode_unavailable
 
 from agents.items import ModelResponse
 from agents.models.fake_id import FAKE_RESPONSES_ID
@@ -83,11 +82,6 @@ CLAUDE_EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max')
 # request, the API re-runs it on the fallback Anthropic recommends for that
 # refusal category instead of returning the refusal.
 REFUSAL_FALLBACK_BETA = 'server-side-fallback-2026-07-01'
-
-# Fast mode: the same model with faster output, at a higher price (see
-# models_service). Asked for per request with speed 'fast', which the agent's
-# ModelSettings carry in extra_args (base_agent.build_model_settings).
-FAST_MODE_BETA = 'fast-mode-2026-02-01'
 
 # Claude's server-side web search. Runs on Anthropic's side inside a single
 # response, so the harness never executes it. The current version filters
@@ -521,23 +515,6 @@ class _TurnUsage:
         )
 
 
-def _is_fast_mode_refusal(error: Exception) -> bool:
-    """A 429 or 403 from the API: fast mode is rate limited (zero for an
-    organization without access) or not allowed. Raised before any output."""
-    return getattr(error, 'status_code', None) in (403, 429)
-
-
-def without_fast_mode(request: Dict[str, Any]) -> Dict[str, Any]:
-    """The same request at standard speed."""
-    request = {k: v for k, v in request.items() if k != 'speed'}
-    betas = [b for b in request.get('betas', []) if b != FAST_MODE_BETA]
-    if betas:
-        request['betas'] = betas
-    else:
-        request.pop('betas', None)
-    return request
-
-
 class AnthropicModel(Model):
     """An Agents SDK model served by Claude through the Anthropic Messages API."""
 
@@ -623,10 +600,6 @@ class AnthropicModel(Model):
         if self.refusal_fallback:
             request['fallbacks'] = 'default'
             betas.append(REFUSAL_FALLBACK_BETA)
-        extra_args = getattr(model_settings, 'extra_args', None) or {}
-        if extra_args.get('speed') == 'fast' and fast_mode_available():
-            request['speed'] = 'fast'
-            betas.append(FAST_MODE_BETA)
         if betas:
             request['betas'] = betas
         return request
@@ -644,17 +617,14 @@ class AnthropicModel(Model):
         messages = list(request['messages'])
 
         for _ in range(MAX_PAUSE_CONTINUATIONS + 1):
-            try:
-                final = await self._stream_once(client, {**request, 'messages': messages}, on_text)
-            except Exception as e:
-                if request.get('speed') != 'fast' or not _is_fast_mode_refusal(e):
-                    raise
-                # The API refuses fast mode before any output, so the same
-                # turn re-runs at standard speed, and later runs stop asking.
-                logger.warning("Fast mode refused for %s, using standard speed: %s", self.model, e)
-                mark_fast_mode_unavailable()
-                request = without_fast_mode(request)
-                final = await self._stream_once(client, {**request, 'messages': messages}, on_text)
+            async with client.beta.messages.stream(**{**request, 'messages': messages}) as stream:
+                async for event in stream:
+                    if on_text is None or event.type != 'content_block_delta':
+                        continue
+                    delta = event.delta
+                    if getattr(delta, 'type', None) == 'text_delta' and delta.text:
+                        await on_text(delta.text)
+                final = await stream.get_final_message()
 
             usage.add(final.usage)
             content.extend(block.model_dump(mode='json', exclude_none=True) for block in final.content)
@@ -670,17 +640,6 @@ class AnthropicModel(Model):
         if stop_reason == 'refusal':
             logger.warning("Claude (%s) declined a request after fallbacks", self.model)
         return content, stop_reason, usage
-
-    async def _stream_once(self, client, request: Dict[str, Any], on_text=None):
-        """Stream one request, relaying text deltas; returns the final message."""
-        async with client.beta.messages.stream(**request) as stream:
-            async for event in stream:
-                if on_text is None or event.type != 'content_block_delta':
-                    continue
-                delta = event.delta
-                if getattr(delta, 'type', None) == 'text_delta' and delta.text:
-                    await on_text(delta.text)
-            return await stream.get_final_message()
 
     async def get_response(
         self,

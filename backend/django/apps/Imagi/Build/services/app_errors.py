@@ -233,7 +233,6 @@ def _start_fix_thread(user, project, brief: str):
         user=user,
         model_name=model_name,
         reasoning_effort=reasoning_effort,
-        fast_mode=lead.fast_mode,
         project_id=project.id,
         mode='agent',
         title=FIX_THREAD_TITLE,

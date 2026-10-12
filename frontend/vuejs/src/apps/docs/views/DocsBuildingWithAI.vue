@@ -79,8 +79,8 @@
             </h4>
             <p class="callout__body">
               As soon as you create a project, Imagi starts building a tailored first version from your brief, including
-              how you said the app should work. The home page comes first, built in fast mode so it's ready in about a
-              minute. While it's written, the Build card on your project hub reads "Imagi is writing your first version";
+              how you said the app should work. The home page comes first, so it's ready in a couple
+              of minutes. While it's written, the Build card on your project hub reads "Imagi is writing your first version";
               it unlocks as soon as the home page lands—click it to open the workspace. Meanwhile the AI works out which
               other pages your business needs (usually five to twenty in all) and puts a thread on each. Those pages
               show up in your app's navigation one by one as they finish, and you can follow each one's thread or keep
@@ -131,8 +131,7 @@
           </p>
           <p class="text-lg leading-relaxed">
             Before you send, you can choose which AI <strong class="ink-strong">model</strong>
-            and how much <strong class="ink-strong">reasoning effort</strong> to use from the chip in the message box—and,
-            on Opus 5.5, switch on <strong class="ink-strong">fast mode</strong> for quicker replies at twice the price.
+            and how much <strong class="ink-strong">reasoning effort</strong> to use from the chip in the message box.
             See <router-link to="/docs/models" class="text-[color:var(--accent)] font-medium hover:underline">Models &amp; Reasoning</router-link>
             for how to pick.
           </p>

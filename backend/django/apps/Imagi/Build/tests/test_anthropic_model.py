@@ -30,10 +30,7 @@ from apps.Imagi.Build.services.coding_agent import build_agent_model, create_cod
 from apps.Imagi.Build.services.models_service import (
     get_model_choices,
     get_model_provider,
-    mark_fast_mode_unavailable,
-    pricing_model_id,
     resolve_reasoning_effort,
-    supports_fast_mode,
 )
 
 CLAUDE_MODELS = ('claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1')
@@ -164,49 +161,6 @@ class ClaudeRequestTests(SimpleTestCase):
         self.assertNotIn('betas', request)
         self.assertNotIn('tools', request)
         self.assertNotIn('system', request)
-
-    def test_fast_mode_sends_speed_and_its_beta(self):
-        request = AnthropicModel('claude-opus-5-5').build_request(
-            None, 'hi', build_model_settings('low', speed='fast'), [], None,
-        )
-        self.assertEqual(request['speed'], 'fast')
-        self.assertIn('fast-mode-2026-02-01', request['betas'])
-        standard = AnthropicModel('claude-opus-5-5').build_request(
-            None, 'hi', build_model_settings('low'), [], None,
-        )
-        self.assertNotIn('speed', standard)
-
-    def test_a_refused_fast_mode_reruns_at_standard_speed_and_stays_off(self):
-        refused = Exception('rate limit of 0 fast mode input tokens per minute')
-        refused.status_code = 429
-        client = _FakeClient(refused, _message([{'type': 'text', 'text': 'Done.'}]))
-        model = AnthropicModel('claude-opus-5-5', client=client)
-        settings = build_model_settings('low', speed='fast')
-        self.addCleanup(mark_fast_mode_unavailable, 0)
-
-        content, _, _ = async_to_sync(model._run_turn)(
-            model.build_request(None, 'hi', settings, [], None)
-        )
-
-        self.assertEqual(content[0]['text'], 'Done.')
-        self.assertEqual(client.requests[0]['speed'], 'fast')
-        self.assertNotIn('speed', client.requests[1])
-        self.assertNotIn('betas', client.requests[1])
-        # Later runs neither ask for fast mode nor are priced as fast.
-        self.assertNotIn('speed', model.build_request(None, 'hi', settings, [], None))
-        self.assertFalse(supports_fast_mode('claude-opus-5-5'))
-        self.assertEqual(pricing_model_id('claude-opus-5-5', 'fast'), 'claude-opus-5-5')
-
-    def test_other_errors_in_fast_mode_are_not_retried(self):
-        broken = Exception('overloaded')
-        broken.status_code = 529
-        client = _FakeClient(broken)
-        model = AnthropicModel('claude-opus-5-5', client=client)
-        request = model.build_request(None, 'hi', build_model_settings('low', speed='fast'), [], None)
-        with self.assertRaises(Exception):
-            async_to_sync(model._run_turn)(request)
-        self.assertEqual(len(client.requests), 1)
-        self.assertTrue(supports_fast_mode('claude-opus-5-5'))
 
     def test_history_translates_into_alternating_messages(self):
         system, messages = to_anthropic_messages([

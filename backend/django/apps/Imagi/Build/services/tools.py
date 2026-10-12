@@ -807,7 +807,6 @@ def dispatch_task_impl(
             # the coordinator itself runs on; the user can change it after.
             model_name=thread_model,
             reasoning_effort=thread_effort,
-            fast_mode=parent.fast_mode,
             project_id=parent.project_id,
             mode='agent',
             title=provisional_title,
