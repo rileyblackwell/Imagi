@@ -83,11 +83,6 @@ CLAUDE_EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max')
 # refusal category instead of returning the refusal.
 REFUSAL_FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 
-# Fast mode: the same model with faster output, at a higher price (see
-# models_service). Asked for per request with speed 'fast', which the agent's
-# ModelSettings carry in extra_args (base_agent.build_model_settings).
-FAST_MODE_BETA = 'fast-mode-2026-02-01'
-
 # Claude's server-side web search. Runs on Anthropic's side inside a single
 # response, so the harness never executes it. The current version filters
 # results by running code (programmatic tool calling), which the API refuses
@@ -605,10 +600,6 @@ class AnthropicModel(Model):
         if self.refusal_fallback:
             request['fallbacks'] = 'default'
             betas.append(REFUSAL_FALLBACK_BETA)
-        extra_args = getattr(model_settings, 'extra_args', None) or {}
-        if extra_args.get('speed') == 'fast':
-            request['speed'] = 'fast'
-            betas.append(FAST_MODE_BETA)
         if betas:
             request['betas'] = betas
         return request

@@ -148,7 +148,6 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
           effort: clampEffortToModel(dto.thread_reasoning_effort),
         }
       : undefined,
-    fastMode: !!dto.fast_mode,
     selectedFile: null,
     conversation: [],
     isProcessing: !!dto.is_running,
@@ -1381,14 +1380,6 @@ export const useAgentStore = defineStore('agent', {
         AgentService.updateConversation(instance.conversationId, { reasoning_effort: next })
           .catch(e => console.error('Failed to persist effort:', e))
       }
-    },
-
-    // Fast mode rides along with each message; the server saves it on the
-    // conversation, so there is nothing to persist from here.
-    setInstanceFastMode(instanceId: string, on: boolean) {
-      const instance = this._findInstance(instanceId)
-      if (!instance) return
-      instance.fastMode = on
     },
 
     setInstanceFile(instanceId: string, file: ProjectFile | null) {

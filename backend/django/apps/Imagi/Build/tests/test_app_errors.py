@@ -100,6 +100,16 @@ class AppErrorRoutingTests(TestCase):
         self.lead.save(update_fields=['archived_at'])
         self.assertIsNone(self._route())
 
+    def test_the_previews_live_reload_socket_is_not_an_app_error(self):
+        self.assertIsNone(self._route(errors=(
+            "[vite] failed to connect to websocket.\nyour current setup: ...",
+            "WebSocket connection to 'wss://imagi-preview.up.railway.app/s/abc/?token=x1' failed: "
+            "Error during WebSocket handshake: Unexpected response code: 200",
+        )))
+        # The app's own sockets still count.
+        decision = self._route(errors=("WebSocket connection to 'wss://api.example.com/feed' failed",))
+        self.assertEqual(decision['to'], 'new_thread')
+
     def test_nothing_to_route_without_errors(self):
         self.assertIsNone(self._route(errors=()))
         self.assertIsNone(app_errors.route(self.user, self.project, [{'text': '  '}]))

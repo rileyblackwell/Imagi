@@ -49,7 +49,7 @@
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced · default</span></p>
             Thoughtful and dependable, with strong judgment on code and design—pages, features, fixes and questions
             alike. It's the default: start here, and switch only when a task calls for it. A new project's first build
-            runs on Opus 5.5, with the home page in fast mode, and opens as soon as that page is ready.
+            runs on Opus 5.5 and opens as soon as the home page is ready.
           </DocsCard>
           <DocsCard title="Fable 5.1">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Frontier</span></p>
@@ -66,16 +66,6 @@
             A menu opens with Haiku 5.5, Sonnet 5.5, Opus 5.5 and Fable 5.1, each with a short description, and a check next to the one in
             use—click another to switch. You can also use the arrow keys, and Escape closes the menu. Smarter models
             consume your usage faster.
-          </p>
-        </div>
-        <div class="bg-ink/[0.03] dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
-          <h4 class="callout__title">
-            Fast mode
-          </h4>
-          <p class="callout__body">
-            On Opus 5.5 the same menu has a Fast mode switch under Speed. Turn it on for noticeably quicker replies, at
-            twice the price, so it uses your plan's usage twice as fast. The chip adds "· Fast" while it's on, and threads
-            the coordinator starts follow its setting. Like the model, it's saved with the conversation. The other models don't offer it, so the switch is greyed out for them.
           </p>
         </div>
       </section>
