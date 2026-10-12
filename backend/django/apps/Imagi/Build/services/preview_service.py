@@ -4,6 +4,7 @@ Service for project preview operations in the Builder app.
 
 import contextlib
 import glob
+import errno
 import socket
 import subprocess
 import os
@@ -947,17 +948,23 @@ class PreviewService:
         return proc.connections()
 
     def _port_in_use(self, port):
-        """Check whether any process is listening on the given port."""
-        try:
-            for proc in psutil.process_iter(['pid', 'name']):
-                try:
-                    for conn in self._process_connections(proc):
-                        if hasattr(conn, 'laddr') and conn.laddr and conn.laddr.port == port:
-                            return True
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.Error):
-                    continue
-        except Exception:
-            pass
+        """Check whether anything holds the given port.
+
+        Tries to bind it, the way the dev server about to take it will. This
+        used to ask psutil for every process's connections, which on a host
+        running a dozen previews cost seconds per new project.
+        """
+        for family, host in ((socket.AF_INET, '0.0.0.0'), (socket.AF_INET6, '::')):
+            try:
+                with socket.socket(family, socket.SOCK_STREAM) as probe:
+                    probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    probe.bind((host, port))
+            except OSError as e:
+                if family == socket.AF_INET6 and e.errno in (
+                    errno.EAFNOSUPPORT, errno.EADDRNOTAVAIL,
+                ):
+                    continue  # No IPv6 on this host.
+                return True
         return False
 
     def stop_preview(self):

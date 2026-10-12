@@ -76,6 +76,8 @@ from django.utils import timezone
 from .auth_restyle_service import queue_auth_restyle
 
 logger = logging.getLogger(__name__)
+# One line per first build saying where the wait for its home page went.
+timing_logger = logging.getLogger('imagi.timing')
 
 # Shown in the workspace as the subagents' thread names.
 TASK_TITLE = 'Initial build'
@@ -552,8 +554,11 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         from django.contrib.auth import get_user_model
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
 
+        thread_started = time.monotonic()
         project = Project.objects.get(pk=project_id)
         user = get_user_model().objects.get(pk=user_id)
+        # How long the project waited for this thread, from its creation.
+        queued_s = (timezone.now() - project.created_at).total_seconds()
 
         builder = getattr(settings, 'IMAGI_BUILDER', {})
         model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
@@ -610,6 +615,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 service, lead, founder_brief, [home_task], planning=not fixed,
             )
             futures = {submit(home_task, home_deadline): home_task}
+            home_submitted = time.monotonic()
 
             # Plan the rest while the home page builds.
             if fixed:
@@ -650,6 +656,10 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                     Project.objects.filter(pk=project_id).update(
                         generation_status='completed',
                         last_generated_at=timezone.now(),
+                    )
+                    _log_home_timing(
+                        project_id, queued_s, thread_started, home_submitted,
+                        futures[future],
                     )
                     _resync_project_files(project_id)
                     logger.info(
@@ -701,6 +711,40 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             pass
     finally:
         close_old_connections()
+
+
+def _log_home_timing(project_id, queued_s, thread_started, home_submitted, task):
+    """Log where the wait for the home page went, as one imagi.timing line.
+
+    Times are seconds from the project's creation: when the build thread
+    started, when the home page's run was handed to its worker, then per run
+    (a repair is a second run) its set-up, each model turn with its tokens in
+    and out, and the merge and checks after it, and finally the moment the
+    project opened. Never raises.
+    """
+    try:
+        now = time.monotonic()
+        at = lambda t: queued_s + (t - thread_started)  # noqa: E731
+        runs = []
+        for timing in getattr(task, 'run_timings', []):
+            started = timing.get('started')
+            prepared = timing.get('prepared', started)
+            ran = timing.get('ran', prepared)
+            turns = ' '.join(
+                f'{s:.1f}s/{tokens_in}in/{tokens_out}out'
+                for s, tokens_in, tokens_out in timing.get('turns') or []
+            )
+            runs.append(
+                f'[start {at(started):.1f} setup {prepared - started:.2f}s '
+                f'turns {turns or "-"} merge {timing.get("finished", ran) - ran:.2f}s]'
+            )
+        timing_logger.info(
+            "first build project=%s home ready %.1fs after create: thread %.1f, "
+            "home queued %.1f, runs %s",
+            project_id, at(now), queued_s, at(home_submitted), ' '.join(runs) or '-',
+        )
+    except Exception:  # pragma: no cover - logging must never break the build
+        logger.debug("Could not log first-build timing", exc_info=True)
 
 
 def _read_view(project_path, view_path) -> str:
@@ -868,6 +912,10 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
             cost_budget_usd=cost_budget,
             deadline_at=deadline_at,
         )
+        run_timing = getattr(service, 'last_run_timing', None)
+        if run_timing:
+            run_timing['finished'] = time.monotonic()
+            task.run_timings = getattr(task, 'run_timings', []) + [run_timing]
         if not result.get('success'):
             logger.error(
                 "Initial AI build run failed for project %s: %s",
