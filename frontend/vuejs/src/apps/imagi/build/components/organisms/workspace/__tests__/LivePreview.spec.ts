@@ -97,6 +97,30 @@ describe('LivePreview', () => {
     expect(wrapper.find('[role=alert]').exists()).toBe(false)
   })
 
+  it('follows an agent using the app in its own browser, and says who', async () => {
+    // A status poll on demand: the page coming back into view asks for one.
+    const poll = async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await settle()
+    }
+    const post = vi.spyOn(frameWindow(), 'postMessage')
+    const ready = { running: true, backend: { state: 'ready' }, frontend: { state: 'ready' } }
+    status.mockResolvedValue({ ...ready, agent: { path: '/book', action: 'left_click', label: 'Coordinator', at: 1 } })
+    await poll()
+    expect(post).toHaveBeenCalledWith({ target: 'imagi-preview', cmd: 'navigate', path: '/book' }, ORIGIN)
+    expect(wrapper.find('[data-testid=agent-note]').text()).toBe('Coordinator is clicking')
+
+    // The same action again doesn't pull the person back if they moved on.
+    post.mockClear()
+    await fromApp({ type: 'nav', path: '/faq', title: 'FAQ', canGoBack: true, canGoForward: false })
+    await poll()
+    expect(post).not.toHaveBeenCalledWith(expect.objectContaining({ cmd: 'navigate' }), ORIGIN)
+
+    status.mockResolvedValue({ ...ready, agent: null })
+    await poll()
+    expect(wrapper.find('[data-testid=agent-note]').exists()).toBe(false)
+  })
+
   it('turns a picked element into context for the agent', async () => {
     await fromApp({
       type: 'picked', path: '/about',
