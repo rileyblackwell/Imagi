@@ -317,12 +317,19 @@ def _watch_state(conversation_id: int) -> Dict[str, Any]:
     ).first()
     if conversation is None:
         return {'exists': False}
+    from ..models import ThreadTask
+    from .scheduling import HELD_STATUSES
+
     started = conversation['run_started_at']
     last_row = AgentRunEvent.objects.filter(conversation_id=conversation_id).order_by('-id').first()
     return {
         'exists': True,
         'running': bool(started and timezone.now() - started < RUN_STALENESS_WINDOW),
-        'staged': bool((conversation['queued_prompt'] or '').strip()),
+        # Work held on the schedule is staged too, as far as a watcher cares:
+        # it will start, once what it waits for lands.
+        'staged': bool((conversation['queued_prompt'] or '').strip()) or ThreadTask.objects.filter(
+            thread_id=conversation_id, status__in=HELD_STATUSES
+        ).exists(),
         'review_status': conversation['review_status'],
         'archived': conversation['archived_at'] is not None,
         'last_row_id': last_row.id if last_row else 0,

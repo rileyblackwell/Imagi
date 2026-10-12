@@ -49,6 +49,16 @@ def _claim_waiting_threads(user) -> Dict[str, Any]:
     from ..models import AgentConversation
     from .usage_limits import check_usage_allowed
 
+    from .scheduling import release_waiting_tasks
+
+    # Work held on the coordinator's schedule joins the queue the moment what
+    # it waits for has landed — this runs on every pass, and a pass follows
+    # every run's end.
+    try:
+        release_waiting_tasks(user)
+    except Exception:  # pragma: no cover - best effort
+        logger.exception("Could not release scheduled work")
+
     now = timezone.now()
     stale = now - RUN_STALENESS_WINDOW
     not_running = Q(run_started_at__isnull=True) | Q(run_started_at__lt=stale)

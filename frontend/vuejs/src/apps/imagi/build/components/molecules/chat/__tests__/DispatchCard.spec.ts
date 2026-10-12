@@ -401,3 +401,48 @@ describe('DispatchCard question', () => {
     expect(wrapper.find('.dispatch-card__go').exists()).toBe(true)
   })
 })
+
+describe('DispatchCard on the schedule', () => {
+  const waitsOnMenu = {
+    task_id: 1, placement: 'new' as const, queued_after: 0, forked_from: null,
+    reason: 'Builds on the new menu',
+  }
+
+  it('shows a held thread as scheduled, with what it starts after and why', () => {
+    const wrapper = mountCard(makeTask({
+      schedule: {
+        ...waitsOnMenu, status: 'waiting',
+        waits_on: [{ id: 9, title: 'Adding a menu', review_status: 'active', status: 'running' }],
+      },
+    }))
+    expect(statusOf(wrapper)).toBe('Thread scheduled')
+    expect(wrapper.classes()).toContain('dispatch-card--scheduled')
+    expect(wrapper.find('.dispatch-card__plan').text()).toBe(
+      'Starts after Adding a menu · Builds on the new menu'
+    )
+  })
+
+  it('puts a thread on hold when what it waits on stopped', () => {
+    const wrapper = mountCard(makeTask({
+      schedule: {
+        ...waitsOnMenu, status: 'blocked',
+        waits_on: [{ id: 9, title: 'Adding a menu', review_status: 'failed', status: 'failed' }],
+      },
+    }))
+    expect(statusOf(wrapper)).toBe('On hold')
+    expect(wrapper.classes()).toContain('dispatch-card--asking')
+    expect(wrapper.find('.dispatch-card__plan').text()).toContain('Adding a menu stopped before finishing')
+  })
+
+  it('names the thread a fork started from once it runs', () => {
+    const wrapper = mountCard(makeTask({
+      isProcessing: true,
+      schedule: {
+        ...waitsOnMenu, status: 'running', placement: 'fork', waits_on: [],
+        forked_from: { id: 4, title: 'Redesigning home', review_status: 'active' },
+      },
+    }))
+    expect(statusOf(wrapper)).toBe('Thread working')
+    expect(wrapper.find('.dispatch-card__plan').text()).toBe('Forked from Redesigning home')
+  })
+})

@@ -57,6 +57,16 @@
          result means nothing without the job it answers. -->
     <p class="dispatch-card__job">{{ state.job }}</p>
 
+    <!-- How the coordinator placed it, when that is more than "alongside
+         everything else": what it starts after, what it is on hold for, or
+         the thread it was forked from — with the coordinator's reason. -->
+    <p v-if="plan" :class="['dispatch-card__plan', `dispatch-card__plan--${plan.kind}`]">
+      <i :class="[plan.icon, 'dispatch-card__plan-icon']" aria-hidden="true"></i>
+      <span>
+        {{ plan.text }}<span v-if="planReason" class="dispatch-card__why"> · {{ planReason }}</span>
+      </span>
+    </p>
+
     <!-- A question is answered on the card: the question in full, then the
          answers. The answer goes back to the thread as its next message. -->
     <div v-if="isQuestion" class="dispatch-card__ask">
@@ -130,6 +140,8 @@
 import { computed, ref } from 'vue'
 import QuestionChoices from './QuestionChoices.vue'
 import type { AgentInstance } from '../../../types/services'
+import { isHeldThread } from '../../../stores/agentStore'
+import { scheduleLine } from '../../../utils/threadSchedule'
 
 /** Ties each card's toggle to the paragraph it opens (aria-controls needs a
  *  document-unique id, and a chat holds many of these). */
@@ -210,6 +222,14 @@ const status = computed(() => {
       result: instance.overview,
     }
   }
+  // Scheduled by the coordinator to start once other threads' work lands.
+  // On hold (one of those stopped) is the user's to sort out, so it wears
+  // the needs-you tone; plain waiting is drawn but not lit, like starting.
+  if (isHeldThread(instance)) {
+    return instance.schedule?.status === 'blocked'
+      ? { tone: 'asking', icon: 'fas fa-pause', label: 'On hold', result: instance.overview }
+      : { tone: 'scheduled', icon: 'fas fa-link', label: 'Thread scheduled', result: instance.overview }
+  }
   switch (instance.reviewStatus) {
     case 'input':
       return {
@@ -272,6 +292,13 @@ const state = computed(() => ({
   // title is the standby for the moment before the instance loads.
   job: props.instance?.brief || props.title || 'Thread',
 }))
+
+/** The schedule line, and the coordinator's reason beside it while the
+ *  thread is held (once it runs, how it was placed is history). */
+const plan = computed(() => scheduleLine(props.instance?.schedule))
+const planReason = computed(() =>
+  plan.value && plan.value.kind !== 'forked' ? props.instance?.schedule?.reason || '' : ''
+)
 
 /** Waiting on the user's answer: the card that asks rather than reports. */
 const isQuestion = computed(
@@ -341,7 +368,9 @@ function sendAnswer(text: string) {
 
 /* ── States ─────────────────────────────────────────────────────────────── */
 
-/* Dispatched, run not yet fired: drawn but not lit. */
+/* Dispatched, run not yet fired: drawn but not lit. Scheduled work (held
+   until other threads land) is drawn the same way. */
+.dispatch-card--scheduled,
 .dispatch-card--starting {
   border-style: dashed;
   background: var(--sl-chip-bg, rgba(19, 26, 44, 0.035));
@@ -423,6 +452,7 @@ function sendAnswer(text: string) {
   box-shadow: 0 0 0 4px rgb(var(--app-canvas, 255 255 255));
 }
 
+.dispatch-card--scheduled .dispatch-card__chip,
 .dispatch-card--starting .dispatch-card__chip,
 .dispatch-card--settled .dispatch-card__chip {
   background: rgb(var(--app-canvas, 255 255 255));
@@ -478,6 +508,30 @@ function sendAnswer(text: string) {
   letter-spacing: -0.012em;
   color: var(--sl-text);
   overflow-wrap: anywhere;
+}
+
+/* The schedule line: small, muted, a glyph for how it was placed. On hold
+   takes the card's state colour, since that is what the user has to act on. */
+.dispatch-card__plan {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  margin-top: -0.0625rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--sl-muted);
+  overflow-wrap: anywhere;
+}
+
+.dispatch-card__plan-icon {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  color: var(--sl-faint);
+}
+
+.dispatch-card__plan--blocked,
+.dispatch-card__plan--blocked .dispatch-card__plan-icon {
+  color: var(--st);
 }
 
 /* The paragraph under the job, sized as prose: it is the part of the card

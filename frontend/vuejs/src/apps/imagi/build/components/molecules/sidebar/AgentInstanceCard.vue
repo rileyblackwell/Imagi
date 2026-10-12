@@ -54,9 +54,21 @@
         <span class="truncate">{{ status.label }}</span>
       </div>
 
-      <!-- Ledger line: when it last moved -->
+      <!-- Ledger line: where it came from on the schedule, what is lined up
+           behind it, and when it last moved -->
       <div class="agent-card__meta">
-        <span>{{ relativeTime(instance.updatedAt) }}</span>
+        <template v-if="forkedFrom">
+          <span class="agent-card__fork" :title="`Started from the conversation of ${forkedFrom}`">
+            <i class="fas fa-code-branch" aria-hidden="true"></i>
+            <span class="truncate">{{ forkedFrom }}</span>
+          </span>
+          <span aria-hidden="true">·</span>
+        </template>
+        <template v-if="queuedAfter > 0">
+          <span>{{ queuedAfter }} more lined up</span>
+          <span aria-hidden="true">·</span>
+        </template>
+        <span class="shrink-0">{{ relativeTime(instance.updatedAt) }}</span>
       </div>
     </div>
 
@@ -70,6 +82,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { AgentInstance } from '../../../types/services'
+import { isHeldThread } from '../../../stores/agentStore'
+import { heldStatus } from '../../../utils/threadSchedule'
 
 const props = withDefaults(
   defineProps<{
@@ -104,6 +118,16 @@ const status = computed(() => {
   if (instance.archivedAt) {
     return { state: 'settled' as const, label: 'Archived', icon: 'fas fa-box-archive' }
   }
+  // Placed by the coordinator to start after other threads' work lands. On
+  // hold (one of those stopped) wants the user, so it wears waiting's ink.
+  if (isHeldThread(instance)) {
+    const blocked = instance.schedule?.status === 'blocked'
+    return {
+      state: blocked ? 'waiting' as const : 'scheduled' as const,
+      label: heldStatus(instance.schedule),
+      icon: blocked ? 'fas fa-pause' : 'fas fa-link',
+    }
+  }
   switch (instance.reviewStatus) {
     case 'input':
       return { state: 'waiting' as const, label: 'Asked you a question', icon: 'fas fa-circle-question' }
@@ -126,6 +150,12 @@ const status = computed(() => {
       return { state: 'settled' as const, label: 'Idle', icon: 'fas fa-comments' }
   }
 })
+
+/** The thread this one was forked from, by its job. */
+const forkedFrom = computed(() => props.instance.schedule?.forked_from?.title || '')
+
+/** Jobs the coordinator lined up on this thread behind the current one. */
+const queuedAfter = computed(() => props.instance.schedule?.queued_after || 0)
 
 const emit = defineEmits<{ (e: 'select'): void }>()
 
@@ -316,7 +346,10 @@ function relativeTime(iso: string): string {
   --status: theme('colors.amber.200');
 }
 
-/* Dispatched but not yet running — the rail is drawn but not yet filled */
+/* Dispatched but not yet running — the rail is drawn but not yet filled.
+   Scheduled work (waiting for other threads to land) wears the same drawn
+   rail: it has a place in the line, not a run. */
+.agent-card--scheduled,
 .agent-card--starting {
   --rail: repeating-linear-gradient(
     180deg,
@@ -326,6 +359,7 @@ function relativeTime(iso: string): string {
   --status: rgba(19, 26, 44, 0.5);
 }
 
+.dark .agent-card--scheduled,
 .dark .agent-card--starting {
   --rail: repeating-linear-gradient(
     180deg,
@@ -455,6 +489,7 @@ function relativeTime(iso: string): string {
   display: flex;
   align-items: center;
   gap: 0.3125rem;
+  min-width: 0;
   margin-top: 0.125rem;
   font-size: 0.625rem;
   letter-spacing: 0.004em;
@@ -464,6 +499,18 @@ function relativeTime(iso: string): string {
 
 .dark .agent-card__meta {
   color: rgba(219, 234, 254, 0.35);
+}
+
+.agent-card__fork {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.agent-card__fork i {
+  flex-shrink: 0;
+  font-size: 0.5rem;
 }
 
 /* Quiet until hover — the row is clickable, but it does not advertise it */
