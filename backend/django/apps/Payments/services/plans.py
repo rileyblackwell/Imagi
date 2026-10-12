@@ -27,6 +27,8 @@ head to predict whether a run would be refused, and the weekly allowance alone
 is what actually bounds spend.
 """
 
+from django.conf import settings
+
 DEFAULT_PLAN_ID = 'free'
 
 
@@ -141,7 +143,12 @@ def get_plan_for_user(user):
     from ..models import Subscription
 
     subscription = Subscription.objects.filter(user=user).first()
-    return get_plan(subscription.plan if subscription else DEFAULT_PLAN_ID)
+    plan = get_plan(subscription.plan if subscription else DEFAULT_PLAN_ID)
+    if plan['id'] == DEFAULT_PLAN_ID and getattr(settings, 'FREE_TIER_UNLIMITED', False):
+        # Testing period (settings.FREE_TIER_UNLIMITED): Free gets no weekly
+        # allowance and no project limit. None means unlimited for both.
+        plan = {**plan, 'weekly_usd': None, 'max_active_projects': UNLIMITED_PROJECTS}
+    return plan
 
 
 def check_project_limit(user):

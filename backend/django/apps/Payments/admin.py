@@ -33,6 +33,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
     def get_weekly_usage(self, obj):
         weekly = get_usage_status(obj.user)['windows']['weekly']
+        if weekly['limit_usd'] is None:
+            return f"${weekly['used_usd']:.2f} (unlimited)"
         return f"${weekly['used_usd']:.2f} of ${weekly['limit_usd']:.2f}"
     get_weekly_usage.short_description = 'This week'
 
