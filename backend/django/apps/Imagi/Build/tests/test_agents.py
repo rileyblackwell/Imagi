@@ -1242,35 +1242,43 @@ class ComputeCostTests(SimpleTestCase):
 
 
 class ModelRegistryTests(SimpleTestCase):
-    """Four Claude tiers, Haiku to Fable, each mapped to its real API id;
-    retired GPT ids resolve to the Claude model for their tier."""
+    """Four Claude tiers, Haiku to Fable, and three GPT tiers, Luna to Astra,
+    each mapped to its real API id; retired GPT 5.6 ids resolve to the Claude
+    model for their tier."""
 
     LINEUP = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1']
+    OPENAI_LINEUP = ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra']
 
     def test_each_tier_resolves_to_its_api_id(self):
         for model in self.LINEUP:
             with self.subTest(model=model):
                 self.assertEqual(get_backend_model_id(model), model)
                 self.assertEqual(get_model_provider(model), 'anthropic')
+        for model in self.OPENAI_LINEUP:
+            with self.subTest(model=model):
+                self.assertEqual(get_backend_model_id(model), model)
+                self.assertEqual(get_model_provider(model), 'openai')
 
     def test_retired_gpt_ids_resolve_to_their_successors(self):
         # Stored conversations and older tabs still carry these ids.
         self.assertEqual(get_backend_model_id('gpt-5.6-sol'), 'claude-opus-5-5')
         self.assertEqual(get_backend_model_id('gpt-5.6-terra'), 'claude-opus-5-5')
         self.assertEqual(get_backend_model_id('gpt-5.6-luna'), 'claude-haiku-5-5')
-        self.assertEqual(get_backend_model_id('gpt-6-luna'), 'claude-haiku-5-5')
-        self.assertEqual(canonical_model_id('gpt-6-astra'), 'claude-fable-5-1')
+        # GPT 6 ids are offered again, so they are themselves.
+        self.assertEqual(canonical_model_id('gpt-6-astra'), 'gpt-6-astra')
         # Billed, named and served as the successor it now runs on.
         self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 4.0)
         self.assertEqual(get_model_display_name('gpt-5.6-terra'), 'Claude Opus 5.5')
-        self.assertEqual(get_model_provider('gpt-6-astra'), 'anthropic')
+        self.assertEqual(get_model_provider('gpt-5.6-sol'), 'anthropic')
         # Still valid stored values on the conversation's model_name field.
         ids = [model_id for model_id, _ in get_model_choices()]
-        self.assertIn('gpt-6-luna', ids)
+        self.assertIn('gpt-5.6-luna', ids)
+        self.assertIn('gpt-6.1-sol', ids)
 
     def test_the_request_path_upgrades_a_retired_id(self):
         from apps.Imagi.Build.api.views import resolve_model
-        self.assertEqual(resolve_model('gpt-6-luna'), 'claude-haiku-5-5')
+        self.assertEqual(resolve_model('gpt-5.6-luna'), 'claude-haiku-5-5')
+        self.assertEqual(resolve_model('gpt-6-luna'), 'gpt-6-luna')
         self.assertEqual(resolve_model('claude-opus-5-5'), 'claude-opus-5-5')
         self.assertEqual(resolve_model('gpt-oops'), 'claude-opus-5-5')
 
@@ -1544,6 +1552,134 @@ class SystemPromptAssemblyTests(SimpleTestCase):
     def test_the_coordinator_sees_its_threads(self):
         roster = 'Your threads (the number is what message_task takes):\n- 412 "Menu"'
         self.assertIn(roster, self._prompt('lead', task_roster=roster))
+
+
+class ServiceTierTests(TestCase):
+    """OpenAI's Fast and Ultrafast tiers: asked for only on a model that has
+    them, saved on the conversation, and billed at 2x and 6x."""
+
+    def test_tiers_price_at_their_multiplier(self):
+        from apps.Imagi.Build.services.models_service import pricing_model_id
+
+        standard = compute_cost_usd('gpt-6.1-sol', 1_000_000, 1_000_000)
+        self.assertEqual(standard, 12.0)
+        self.assertEqual(compute_cost_usd(pricing_model_id('gpt-6.1-sol', 'fast'), 1_000_000, 1_000_000), 24.0)
+        self.assertEqual(compute_cost_usd(pricing_model_id('gpt-6.1-sol', 'ultrafast'), 1_000_000, 1_000_000), 72.0)
+        # Luna has no Ultrafast, and Claude has neither.
+        self.assertEqual(pricing_model_id('gpt-6-luna', 'ultrafast'), 'gpt-6-luna')
+        self.assertEqual(pricing_model_id('claude-opus-5-5', 'fast'), 'claude-opus-5-5')
+
+    def test_long_context_rates_apply_on_a_tier_too(self):
+        from apps.Imagi.Build.services.models_service import long_context_threshold
+
+        self.assertEqual(long_context_threshold('gpt-6-astra:ultrafast'), 272_000)
+        cost = compute_cost_usd(
+            'gpt-6-astra:ultrafast', 300_000, 0, long_context_input_tokens=300_000,
+        )
+        self.assertEqual(cost, 36.0)  # 0.3M at $20 long context, times 6
+
+    def test_the_agent_asks_for_a_tier_only_on_a_model_that_has_it(self):
+        sol = create_coding_agent('gpt-6.1-sol', 'low', kind='chat', service_tier='ultrafast')
+        self.assertEqual(sol.model_settings.extra_args, {'service_tier': 'ultrafast'})
+        luna = create_coding_agent('gpt-6-luna', 'low', kind='chat', service_tier='ultrafast')
+        self.assertIsNone(luna.model_settings.extra_args)
+        opus = create_coding_agent('claude-opus-5-5', 'low', kind='chat', service_tier='fast')
+        self.assertIsNone(opus.model_settings.extra_args)
+
+    def test_openai_effort_tops_out_at_xhigh(self):
+        self.assertEqual(resolve_reasoning_effort('gpt-6-astra', 'max'), 'xhigh')
+        self.assertEqual(resolve_reasoning_effort('gpt-6-astra', 'high'), 'high')
+        self.assertEqual(resolve_reasoning_effort('claude-opus-5-5', 'max'), 'max')
+
+    def test_the_composer_s_tier_is_saved_and_priced(self):
+        user = User.objects.create_user(username='tiers', password='pw123456')
+        conversation = AgentConversation.objects.create(user=user, model_name='gpt-6.1-sol', kind='lead')
+        service = ImagiAgentService(model='gpt-6.1-sol', service_tier='fast')
+        service._prepare_run('Hi', user, conversation_id=conversation.id)
+        conversation.refresh_from_db()
+        self.assertEqual(conversation.service_tier, 'fast')
+        self.assertEqual(service._pricing_model(), 'gpt-6.1-sol:fast')
+
+        # A run that names none (a thread the server started) keeps it.
+        later = ImagiAgentService(model='gpt-6.1-sol')
+        later._prepare_run('Again', user, conversation_id=conversation.id)
+        self.assertEqual(later._pricing_model(), 'gpt-6.1-sol:fast')
+
+        # Switching to a Claude model prices at the standard rate.
+        claude = ImagiAgentService(model='claude-opus-5-5')
+        claude._prepare_run('Now Claude', user, conversation_id=conversation.id)
+        self.assertEqual(claude._pricing_model(), 'claude-opus-5-5')
+
+
+class ResponsesWebSocketTests(TestCase):
+    """GPT runs reach OpenAI over one WebSocket per run, as OpenAI recommends
+    for its fast tiers; Claude runs and the http setting leave the SDK's
+    default HTTPS transport in place."""
+
+    def test_a_gpt_run_gets_its_own_websocket_provider(self):
+        from agents.models.openai_responses import OpenAIResponsesWSModel
+        from apps.Imagi.Build.services.openai_transport import websocket_provider_for
+
+        first = websocket_provider_for('gpt-6.1-sol')
+        second = websocket_provider_for('gpt-6.1-sol')
+        self.assertIsNot(first, second)  # concurrent runs never share a socket
+
+        async def resolve():
+            return first.get_model('gpt-6.1-sol')
+
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'sk-test'}):
+            self.assertIsInstance(async_to_sync(resolve)(), OpenAIResponsesWSModel)
+
+    def test_claude_and_the_http_setting_keep_the_default_transport(self):
+        from apps.Imagi.Build.services.openai_transport import websocket_provider_for
+
+        self.assertIsNone(websocket_provider_for('claude-opus-5-5'))
+        self.assertIsNone(websocket_provider_for(None))
+        with patch.dict(os.environ, {'OPENAI_RESPONSES_TRANSPORT': 'http'}):
+            self.assertIsNone(websocket_provider_for('gpt-6.1-sol'))
+
+    def test_a_blocking_run_hands_the_sdk_its_provider_and_closes_it(self):
+        user = User.objects.create_user(username='ws', password='pw123456')
+        conversation = AgentConversation.objects.create(
+            user=user, model_name='gpt-6.1-sol', kind='lead',
+        )
+        service = ImagiAgentService(model='gpt-6.1-sol', service_tier='ultrafast')
+        provider = object()
+        seen = {}
+
+        def run_sync(*args, **kwargs):
+            seen['provider'] = kwargs['run_config'].model_provider
+            raise RuntimeError('stop here')
+
+        with patch.object(
+            service, '_prepare_run',
+            return_value=(conversation, SimpleNamespace(), [{'role': 'user', 'content': 'go'}]),
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.websocket_provider_for', return_value=provider,
+        ), patch(
+            'apps.Imagi.Build.services.base_agent.close_provider_sync',
+        ) as close, patch(
+            'apps.Imagi.Build.services.base_agent.Runner.run_sync', side_effect=run_sync,
+        ):
+            service.process(user_input='go', user=user, project_id=1, conversation_id=conversation.id)
+
+        self.assertIs(seen['provider'], provider)
+        close.assert_called_once_with(provider)
+
+    def test_the_sync_close_runs_on_the_loop_run_sync_used(self):
+        import asyncio
+        from unittest.mock import AsyncMock
+        from apps.Imagi.Build.services.openai_transport import close_provider_sync
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            provider = SimpleNamespace(aclose=AsyncMock())
+            close_provider_sync(provider)
+            provider.aclose.assert_awaited_once()
+        finally:
+            asyncio.set_event_loop(None)
+            loop.close()
 
 
 class BuildModelSettingsTests(SimpleTestCase):

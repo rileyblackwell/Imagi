@@ -40,7 +40,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from ..models import AgentConversation, AgentMessage, SystemPrompt
-from .models_service import compute_cost_usd
+from .models_service import compute_cost_usd, pricing_model_id, resolve_service_tier
+from .openai_transport import close_provider, close_provider_sync, websocket_provider_for
 
 # Load environment variables
 load_dotenv()
@@ -48,9 +49,9 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# API keys. Every model on offer is Claude, served through the Agents SDK by
-# AnthropicModel; the OpenAI key is only needed if GPT models come back (and
-# for dictation, which reads its own).
+# API keys. Claude models are served through the Agents SDK by AnthropicModel,
+# GPT models by the SDK's own Responses model over a WebSocket
+# (openai_transport), which reads OPENAI_API_KEY (dictation reads its own).
 ANTHROPIC_API_KEY = read_api_key('ANTHROPIC_KEY')
 OPENAI_API_KEY = read_api_key('OPENAI_KEY')
 
@@ -965,6 +966,7 @@ class ImagiAgentService:
         model: str = DEFAULT_MODEL,
         reasoning_effort: Optional[str] = None,
         agent_kind: Optional[str] = None,
+        service_tier: Optional[str] = None,
     ):
         """
         Initialize the agent service.
@@ -979,10 +981,17 @@ class ImagiAgentService:
                 conversation stays an ordinary kind='task' — so it keeps the
                 worktree isolation, review lifecycle and check-in routing every
                 other dispatched task has. None follows the conversation.
+            service_tier: The OpenAI processing tier for this run ('' for
+                Standard, 'fast', 'ultrafast'), saved on the conversation like
+                the effort. None keeps whatever the conversation already has
+                (thread runs). Ignored on a model without that tier.
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
         self.agent_kind = agent_kind
+        self.service_tier = service_tier
+        # The tier the current run asks for; set by _prepare_run.
+        self._run_tier = resolve_service_tier(model, service_tier)
         # Agents cached per conversation kind: lead runs carry the delegation
         # tool, task runs carry ask_user (+ its stop behavior).
         self._agents: Dict[str, Agent] = {}
@@ -1026,8 +1035,9 @@ class ImagiAgentService:
             )
 
     def _pricing_model(self, model: Optional[str] = None) -> str:
-        """The id this run's tokens are priced under."""
-        return model or self.model
+        """The id this run's tokens are priced under: the model's own, or its
+        tier's pricing id when the run asks for a faster tier."""
+        return pricing_model_id(model or self.model, self._run_tier)
 
     @property
     def agent(self) -> Agent:
@@ -1038,12 +1048,13 @@ class ImagiAgentService:
         callers outside a run (tests, scripts) fall back to the plain agent.
         """
         kind = self._run_kind or 'chat'
-        if kind not in self._agents:
+        key = f'{kind}:{self._run_tier}' if self._run_tier else kind
+        if key not in self._agents:
             from .coding_agent import create_coding_agent
-            self._agents[kind] = create_coding_agent(
-                self.model, self.reasoning_effort, kind=kind
+            self._agents[key] = create_coding_agent(
+                self.model, self.reasoning_effort, kind=kind, service_tier=self._run_tier
             )
-        return self._agents[kind]
+        return self._agents[key]
 
     # -------------------------------------------------------------------------
     # Conversation Management
@@ -1284,10 +1295,16 @@ class ImagiAgentService:
     # Main Processing
     # -------------------------------------------------------------------------
 
-    def _run_config(self, user) -> RunConfig:
+    def _run_config(self, user, model_provider=None) -> RunConfig:
+        """model_provider is the run's OpenAI WebSocket provider, if any
+        (see openai_transport); without one the SDK's default serves GPT runs."""
+        extra: Dict[str, Any] = {}
+        if model_provider is not None:
+            extra["model_provider"] = model_provider
         return RunConfig(
             workflow_name="imagi_agent",
             trace_metadata={"user_id": str(user.id)},
+            **extra,
         )
 
     def _prepare_run(
@@ -1427,6 +1444,21 @@ class ImagiAgentService:
         # conversation, and a run that names none (a thread the server
         # started) runs at the one saved there.
         self._sync_reasoning_effort(conversation, reasoning_effort)
+        # The tier the composer sends sticks to the conversation too. A pinned
+        # role (the first build) sets its own per run and leaves the
+        # conversation's alone.
+        if (
+            self.service_tier is not None and self.agent_kind is None
+            and conversation.service_tier != self.service_tier
+        ):
+            conversation.service_tier = self.service_tier
+            AgentConversation.objects.filter(pk=conversation.pk).update(
+                service_tier=self.service_tier
+            )
+        self._run_tier = resolve_service_tier(
+            model,
+            self.service_tier if self.service_tier is not None else conversation.service_tier,
+        )
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.
@@ -2346,6 +2378,8 @@ class ImagiAgentService:
         # but the marker may already be committed — cleanup resolves the
         # conversation through this holder instead.
         run_state: Dict[str, Any] = {}
+        # This run's OpenAI WebSocket, opened at its first GPT model call.
+        openai_provider = None
 
         try:
             if not project_id:
@@ -2384,6 +2418,7 @@ class ImagiAgentService:
             if bounds_hook is not None:
                 run_kwargs["hooks"] = bounds_hook
 
+            openai_provider = websocket_provider_for(self.model)
             # run_streamed returns immediately; the run advances as events are
             # consumed. Sync function tools are dispatched to worker threads by
             # the SDK, so their ORM writes stay off this event loop.
@@ -2392,7 +2427,7 @@ class ImagiAgentService:
                 input=input_messages,
                 context=context,
                 max_turns=self._max_turns_for(conversation),
-                run_config=self._run_config(user),
+                run_config=self._run_config(user, openai_provider),
                 **run_kwargs,
             )
 
@@ -2425,7 +2460,7 @@ class ImagiAgentService:
                     ],
                     context=context,
                     max_turns=self._max_turns_for(conversation),
-                    run_config=self._run_config(user),
+                    run_config=self._run_config(user, openai_provider),
                     **run_kwargs,
                 )
                 async for event in self._pump_stream_events(result, conversation, context, retry_parts):
@@ -2643,6 +2678,7 @@ class ImagiAgentService:
                 await sync_to_async(self._park_interrupted_task)(conversation)
             if conversation is not None:
                 await sync_to_async(self._clear_run_started)(conversation)
+            await close_provider(openai_provider)
 
     def process(
         self,
@@ -2680,6 +2716,7 @@ class ImagiAgentService:
         context = None
         run_state: Dict[str, Any] = {}
         bounds_hook = None
+        openai_provider = None
         try:
             if not user_input:
                 return {"success": False, "error": "Message is required"}
@@ -2702,12 +2739,13 @@ class ImagiAgentService:
             if bounds_hook is not None:
                 run_kwargs["hooks"] = bounds_hook
 
+            openai_provider = websocket_provider_for(self.model)
             result = Runner.run_sync(
                 self.agent,
                 input=input_messages,
                 context=context,
                 max_turns=max_turns or self._max_turns_for(conversation),
-                run_config=self._run_config(user),
+                run_config=self._run_config(user, openai_provider),
                 **run_kwargs,
             )
 
@@ -2732,7 +2770,7 @@ class ImagiAgentService:
                     ],
                     context=context,
                     max_turns=max_turns or self._max_turns_for(conversation),
-                    run_config=self._run_config(user),
+                    run_config=self._run_config(user, openai_provider),
                     **run_kwargs,
                 )
                 response_content = result.final_output or ""
@@ -2837,3 +2875,4 @@ class ImagiAgentService:
                 conversation = run_state.get("conversation")
             if conversation is not None:
                 self._clear_run_started(conversation)
+            close_provider_sync(openai_provider)

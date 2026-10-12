@@ -31,8 +31,8 @@
           The Models
         </h2>
         <p class="lede lede--section">
-          Imagi offers four Claude models, ordered from fastest to smartest. Every one has a large context window, so
-          it can hold a lot of your project in mind at once.
+          Imagi offers models from two families, Anthropic's Claude and OpenAI's GPT, each ordered from fastest to
+          smartest. Every one has a large context window, so it can hold a lot of your project in mind at once.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Haiku 5.5">
@@ -48,13 +48,28 @@
           <DocsCard title="Opus 5.5">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced · default</span></p>
             Thoughtful and dependable, with strong judgment on code and design—pages, features, fixes and questions
-            alike. It's the default: start here, and switch only when a task calls for it. A new project's first build
-            runs on Opus 5.5 and opens as soon as the home page is ready.
+            alike. It's the default: start here, and switch only when a task calls for it.
           </DocsCard>
           <DocsCard title="Fable 5.1">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Frontier</span></p>
             Frontier intelligence for the hardest, most complex work, where you want the best possible result and don't
             mind that it uses much more of your usage.
+          </DocsCard>
+        </div>
+        <h3 class="text-xl font-semibold ink-strong mt-10 mb-4">OpenAI</h3>
+        <div class="rule-cols rule-cols--2">
+          <DocsCard title="Luna">
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Fast</span></p>
+            GPT 6 Luna: fast and inexpensive, capable at most everyday edits.
+          </DocsCard>
+          <DocsCard title="Sol">
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced</span></p>
+            GPT 6.1 Sol: close to Astra's intelligence at a fifth of the price. A new project's home page is built on
+            Sol in Ultrafast, so your app opens sooner.
+          </DocsCard>
+          <DocsCard title="Astra">
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Frontier</span></p>
+            GPT 6 Astra: OpenAI's most capable model, for the hardest work.
           </DocsCard>
         </div>
         <div class="bg-ink/[0.03] dark:bg-blue-400/[0.08] border border-[color:var(--rule)] rounded-xl p-6 mt-6 transition-colors duration-300">
@@ -63,11 +78,26 @@
           </h4>
           <p class="callout__body">
             Click the model chip in the chat toolbar (it shows the current model and reasoning, like "Opus 5.5 · Medium").
-            A menu opens with Haiku 5.5, Sonnet 5.5, Opus 5.5 and Fable 5.1, each with a short description, and a check next to the one in
-            use—click another to switch. You can also use the arrow keys, and Escape closes the menu. Smarter models
-            consume your usage faster.
+            A menu opens on the family in use. The Anthropic and OpenAI toggle at its top switches the list, and each model
+            has a short description and a check next to the one in use. Click another to switch. You can also use the arrow
+            keys, and Escape closes the menu. Smarter models consume your usage faster.
           </p>
         </div>
+      </section>
+
+      <!-- Speed -->
+      <section class="mb-16">
+        <h2 class="display display--section">
+          Speed
+        </h2>
+        <p class="lede lede--section">
+          OpenAI models can also run faster. With one picked, the same menu shows a Speed choice. Standard is the
+          default. <strong class="ink-strong">Fast</strong> is about twice as fast at twice the price, on every OpenAI model.
+          <strong class="ink-strong">Ultrafast</strong> is up to eight times as fast at six times the price, on Sol and Astra.
+          The higher price uses your plan's usage that much faster, so save it for when waiting costs you more than usage does.
+          The chip shows the speed when it isn't Standard, like "Sol · Medium · Ultrafast". Each thread keeps its own,
+          and threads the coordinator starts begin at Standard.
+        </p>
       </section>
 
       <!-- Reasoning effort -->
@@ -77,8 +107,8 @@
         </h2>
         <p class="lede lede--section">
           Separate from which model you pick, reasoning effort controls how hard the model thinks before it answers. It sits
-          under the model list in the same menu as a row of five rising bars, from
-          <em class="font-display italic">Low → Max</em>—click a bar to set the level, and hover to see what
+          under the model list in the same menu as a row of rising bars, from
+          <em class="font-display italic">Low → Max</em> (OpenAI models stop at Extra High)—click a bar to set the level, and hover to see what
           each one means before you pick it. More reasoning
           helps on complex, multi-step tasks; less is snappier for simple ones. The default is
           <strong class="ink-strong">Medium</strong>.

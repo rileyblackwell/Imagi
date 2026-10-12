@@ -228,7 +228,7 @@ export default defineComponent({
       { title: 'A live preview', body: 'Your app runs beside the chat and changes as files are written. The agents click and type in it to check their own work.' },
       { title: 'Questions, not guesses', body: 'When a decision is yours, the agent asks in the chat, often with answers you can tap.' },
       { title: 'Errors get fixed', body: 'If your app throws an error, it goes back to the thread that caused it, or to a new thread that fixes it.' },
-      { title: 'Your choice of model', body: 'Pick one of four Claude models and five levels of effort. Opus 5.5 at Medium is the default.' }
+      { title: 'Your choice of model', body: 'Pick a Claude or OpenAI model and how hard it thinks, with faster speeds on OpenAI. Opus 5.5 at Medium is the default.' }
     ]
 
     const tools = [

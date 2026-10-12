@@ -14,6 +14,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from .services.models_service import (
     get_model_choices,
+    SERVICE_TIER_CHOICES,
     get_provider_choices,
     get_default_provider,
 )
@@ -157,6 +158,14 @@ class AgentConversation(models.Model):
     # ('' = the platform default). Saved so a thread the server starts on its
     # own runs at the effort the user chose for it.
     reasoning_effort = models.CharField(max_length=10, blank=True, default='')
+    # The OpenAI processing tier this conversation runs at, picked in its
+    # composer: '' (Standard), 'fast' (twice the price) or 'ultrafast' (six
+    # times). Only sent to a model that offers it. Threads the coordinator
+    # dispatches don't inherit it, so a faster tier is never paid for by
+    # surprise.
+    service_tier = models.CharField(
+        max_length=10, blank=True, default='', choices=SERVICE_TIER_CHOICES
+    )
     # On the coordinator only: the model and effort the threads it dispatches
     # start on, set in the workspace settings ('' = the platform default).
     # A thread keeps its own afterwards, so the user can still change one.

@@ -70,13 +70,25 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     },
     contextWindow: 1000000,
     capabilities: ['code_generation', 'chat', 'analysis']
-  }
+  },
+  ...Object.fromEntries(
+    ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'].map(id => [id, {
+      maxTokens: 1000000,
+      rateLimits: {
+        tokensPerMinute: 60000,
+        requestsPerMinute: 250
+      },
+      contextWindow: 1000000,
+      capabilities: ['code_generation', 'chat', 'analysis']
+    }])
+  )
 };
 
-// The four models on offer, all Claude, ordered faster → smarter — the order
-// the composer's intelligence slider runs in. Mirrors the backend registry,
-// including prices (Anthropic's list price, no markup). Opus 5.5 carries the
-// `default` flag: createInstance prefers it over list order.
+// The models on offer: four Claude, then three GPT, each family ordered
+// faster → smarter, the order the composer's model menu lists them in.
+// Mirrors the backend registry, including prices (the provider's list price,
+// no markup). Opus 5.5 carries the `default` flag: createInstance prefers it
+// over list order.
 export const AI_MODELS: AIModel[] = [
   {
     id: 'claude-haiku-5-5',
@@ -137,16 +149,97 @@ export const AI_MODELS: AIModel[] = [
     inputPricePerMTokens: 10,
     outputPricePerMTokens: 50,
     api_version: 'messages'
+  },
+  {
+    id: 'gpt-6-luna',
+    name: 'GPT 6 Luna',
+    provider: 'openai',
+    type: 'openai',
+    features: ['chat', 'code', 'analysis'],
+    default: false,
+    description: 'OpenAI | GPT 6 Luna — fast and inexpensive, capable at most everyday edits',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    inputPricePerMTokens: 0.1,
+    outputPricePerMTokens: 0.5,
+    api_version: 'responses'
+  },
+  {
+    id: 'gpt-6.1-sol',
+    name: 'GPT 6.1 Sol',
+    provider: 'openai',
+    type: 'openai',
+    features: ['chat', 'code', 'analysis'],
+    default: false,
+    description: 'OpenAI | GPT 6.1 Sol — near-Astra intelligence at a fraction of the price',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    inputPricePerMTokens: 2,
+    outputPricePerMTokens: 10,
+    api_version: 'responses'
+  },
+  {
+    id: 'gpt-6-astra',
+    name: 'GPT 6 Astra',
+    provider: 'openai',
+    type: 'openai',
+    features: ['chat', 'code', 'analysis'],
+    default: false,
+    description: "OpenAI | GPT 6 Astra — OpenAI's most capable model, for the hardest work",
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    inputPricePerMTokens: 10,
+    outputPricePerMTokens: 50,
+    api_version: 'responses'
   }
 ];
+
+/** Which family serves a model. Unknown ids read as Anthropic, the default
+ *  model's provider. */
+export function modelProvider(modelId?: string | null): 'anthropic' | 'openai' {
+  const id = canonicalModelId(modelId)
+  return AI_MODELS.find(m => m.id === id)?.provider === 'openai' ? 'openai' : 'anthropic'
+}
+
+/** OpenAI's processing tiers. '' is Standard; Fast and Ultrafast trade a
+ *  higher price per token for faster output. Mirrors the backend's
+ *  SERVICE_TIER_CHOICES and each model's `service_tiers`. */
+export type ServiceTier = '' | 'fast' | 'ultrafast';
+
+export interface ServiceTierOption {
+  id: ServiceTier;
+  name: string;
+  /** How many times the standard price it bills at. */
+  multiplier: number;
+  description: string;
+}
+
+export const SERVICE_TIERS: ServiceTierOption[] = [
+  { id: '', name: 'Standard', multiplier: 1, description: 'The normal speed and price' },
+  { id: 'fast', name: 'Fast', multiplier: 2, description: 'About twice as fast' },
+  { id: 'ultrafast', name: 'Ultrafast', multiplier: 6, description: 'Up to eight times as fast' },
+];
+
+/** The faster tiers each model offers. Claude models have none. */
+const MODEL_SERVICE_TIERS: Record<string, ServiceTier[]> = {
+  'gpt-6-luna': ['fast'],
+  'gpt-6.1-sol': ['fast', 'ultrafast'],
+  'gpt-6-astra': ['fast', 'ultrafast'],
+};
+
+export function supportsServiceTier(modelId: string | null | undefined, tier: string | null | undefined): boolean {
+  if (!modelId || !tier) return false
+  return (MODEL_SERVICE_TIERS[modelId] ?? []).includes(tier as ServiceTier)
+}
+
+/** The tier a request on this model carries: the chosen one when the model
+ *  offers it, otherwise Standard. */
+export function serviceTierForModel(modelId: string | null | undefined, tier: string | null | undefined): ServiceTier {
+  return supportsServiceTier(modelId, tier) ? (tier as ServiceTier) : ''
+}
 
 /** Models the platform used to offer, mapped to the current model for their
  *  tier. A stored conversation or an older tab can still carry one. Mirrors
  *  the backend's LEGACY_MODEL_ALIASES. */
 export const LEGACY_MODEL_ALIASES: Record<string, string> = {
-  'gpt-6-luna': 'claude-haiku-5-5',
   'gpt-5.6-luna': 'claude-haiku-5-5',
-  'gpt-6-astra': 'claude-fable-5-1',
   'gpt-5.6-terra': 'claude-opus-5-5',
   'gpt-5.6-sol': 'claude-opus-5-5',
 };
@@ -195,12 +288,12 @@ export const LEGACY_REASONING_EFFORT_ALIASES: Record<string, ReasoningEffort> = 
 };
 
 /** The effort options a model accepts, ordered faster → smarter. Every model
- *  shares the one ladder; the model id is accepted so callers read the same
- *  either way, and so a per-model difference has one place to land if a
- *  provider ever introduces one. */
+ *  shares the one ladder; OpenAI's stops at Extra High, since Max is
+ *  Claude's alone. */
 export function reasoningEffortsForModel(modelId?: string | null): ReasoningEffortOption[] {
-  void modelId; // every model, known or not, gets the same ladder
-  return REASONING_EFFORTS;
+  return modelProvider(modelId) === 'openai'
+    ? REASONING_EFFORTS.filter(option => option.id !== 'max')
+    : REASONING_EFFORTS;
 }
 
 /** Re-seat an effort onto the ladder: an effort already on it passes through,
@@ -216,6 +309,8 @@ export function clampEffortToModel(
   const options = reasoningEffortsForModel(modelId);
   const onLadder = options.find(option => option.id === effort);
   if (onLadder) return onLadder.id;
+  // Above the model's top rung (Max on an OpenAI model): its top rung.
+  if (REASONING_EFFORTS.some(option => option.id === effort)) return options[options.length - 1]!.id;
   return Object.prototype.hasOwnProperty.call(LEGACY_REASONING_EFFORT_ALIASES, effort)
     ? LEGACY_REASONING_EFFORT_ALIASES[effort]!
     : DEFAULT_REASONING_EFFORT;
@@ -371,6 +466,8 @@ export interface ConversationDto {
   model_name: string;
   /** The effort this conversation runs at (saved from its composer) */
   reasoning_effort?: string;
+  /** The OpenAI processing tier it runs at ('' = Standard) */
+  service_tier?: string;
   /** The coordinator's thread defaults, from the workspace settings: the
    *  model and effort its new threads start on */
   thread_model_name?: string;
@@ -424,6 +521,10 @@ export interface AgentInstance {
   totalTokens: number | null;
   selectedModelId: string | null;
   selectedEffort: ReasoningEffort;
+  /** The OpenAI processing tier picked in the composer ('' = Standard).
+   *  Saved on the conversation; only sent to a model that offers it, and
+   *  threads the coordinator starts don't inherit it. */
+  serviceTier?: ServiceTier;
   /** The coordinator only: the model and effort its new threads start on,
    *  as saved from the workspace settings. */
   threadDefaults?: { modelId: string; effort: ReasoningEffort };

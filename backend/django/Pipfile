@@ -15,6 +15,7 @@ requests = "*"
 cryptography = "*"
 websocket-client = "*"
 anthropic = "*"
+websockets = "<16,>=15.0"
 
 [dev-packages]
 

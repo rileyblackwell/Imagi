@@ -102,13 +102,15 @@ class ClaudeRegistryTests(SimpleTestCase):
             self.assertIn(model_id, ids)
             self.assertEqual(get_model_provider(model_id), 'anthropic')
             self.assertEqual(resolve_reasoning_effort(model_id, 'max'), 'max')
-        # A retired GPT id now runs on the Claude model for its tier.
-        self.assertEqual(get_model_provider('gpt-6-luna'), 'anthropic')
+        # A retired GPT 5.6 id runs on the Claude model for its tier.
+        self.assertEqual(get_model_provider('gpt-5.6-luna'), 'anthropic')
 
     def test_the_agent_is_served_by_the_provider_of_its_model(self):
-        retired = build_agent_model('gpt-6-astra')
+        retired = build_agent_model('gpt-5.6-terra')
         self.assertIsInstance(retired, AnthropicModel)
-        self.assertEqual(retired.model, 'claude-fable-5-1')
+        self.assertEqual(retired.model, 'claude-opus-5-5')
+        # GPT models are plain ids, which the SDK serves through Responses.
+        self.assertEqual(build_agent_model('gpt-6.1-sol'), 'gpt-6.1-sol')
         claude = build_agent_model('claude-opus-5-5')
         self.assertIsInstance(claude, AnthropicModel)
         self.assertEqual(claude.model, 'claude-opus-5-5')

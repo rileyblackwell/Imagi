@@ -471,6 +471,31 @@ def _create_build_task(user, lead, project_id, model, prompt, page):
     return task
 
 
+def _page_model(builder, page):
+    """The model and OpenAI service tier one page of the first build runs on.
+
+    The home page races the clock, since the project opens when it lands, so
+    it gets its own model and tier (GPT 6.1 Sol on Ultrafast; Riley,
+    2026-10-12). Every other page builds on INITIAL_BUILD_MODEL at standard
+    speed. Without an OpenAI key the home page falls back to that model too,
+    rather than failing the page the founder is waiting on.
+    """
+    model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
+    home_model = builder.get('INITIAL_BUILD_HOME_MODEL')
+    if page.slug != 'home' or not home_model:
+        return model, None
+    from apps.Imagi.Build.services.api_keys import read_api_key
+    from apps.Imagi.Build.services.models_service import get_model_provider
+
+    if get_model_provider(home_model) == 'openai' and not read_api_key('OPENAI_KEY'):
+        logger.warning(
+            "OPENAI_KEY is not set, so the first build's home page runs on %s instead of %s",
+            model, home_model,
+        )
+        return model, None
+    return home_model, builder.get('INITIAL_BUILD_HOME_SERVICE_TIER') or None
+
+
 def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at) -> bool:
     """Worker body: build one page and land it, on its own thread.
 
@@ -485,8 +510,10 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
         from apps.Imagi.Build.services.base_agent import ImagiAgentService
 
         user = get_user_model().objects.get(pk=user_id)
-        model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-        service = ImagiAgentService(model=model, agent_kind='initial_build')
+        model, service_tier = _page_model(builder, page)
+        service = ImagiAgentService(
+            model=model, agent_kind='initial_build', service_tier=service_tier
+        )
         return _build_and_apply(
             service, task, user, project_id, prompt, builder, deadline_at
         )
@@ -504,9 +531,11 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
 def _run_initial_build(project_id: int, user_id: int) -> None:
     """Thread body: build the home page first, plan the rest, land each page.
 
-    The home page starts the moment the project exists, on its own deadline, and the project opens as soon as it lands. While it
-    runs, the pages after it are planned for this business (initial_page_plan)
-    and routed, then built behind it, a few at a time. Each
+    The home page starts the moment the project exists, on its own model and
+    deadline (_page_model), and the project opens as soon as it lands. While
+    it runs, the pages after it are planned for this business
+    (initial_page_plan) and routed, then built alongside it, up to
+    INITIAL_BUILD_MAX_PARALLEL_PAGES at once. Each
     page merges itself as it finishes (the merge takes an exclusive lock on
     the project's git repo, so simultaneous finishes serialize safely) and
     joins the site's navigation, which the preview hot-reloads.
@@ -570,7 +599,8 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 )
 
             home_task = _create_build_task(
-                user, lead, project_id, model, prompt_for(home), home
+                user, lead, project_id, _page_model(builder, home)[0],
+                prompt_for(home), home,
             )
             _open_lead_thread(
                 service, lead, founder_brief, [home_task], planning=not fixed,

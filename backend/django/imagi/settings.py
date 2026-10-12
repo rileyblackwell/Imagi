@@ -362,11 +362,21 @@ IMAGI_BUILDER = {
     # them rather than just one. Wall clock is the slowest page; what scales
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
-    # The first build's pages run on Opus 5.5 at standard speed. Claude's fast
-    # mode was dropped (Riley, 2026-10-12): Anthropic doesn't grant it to every
-    # organization yet. The project's main thread still gets DEFAULT_MODEL —
-    # this only picks the page builders.
+    # The first build's pages run on Opus 5.5 at standard speed, except the
+    # home page (Riley, 2026-10-12): the project opens when it lands, so it
+    # runs on GPT 6.1 Sol in OpenAI's Ultrafast tier (up to 8x Sol's standard
+    # speed, at six times its price, metered as such in models_service). It
+    # falls back to INITIAL_BUILD_MODEL when OPENAI_KEY isn't set. Claude's
+    # fast mode was dropped earlier the same day: Anthropic doesn't grant it
+    # to every organization yet. The project's main thread still gets
+    # DEFAULT_MODEL — this only picks the page builders.
     'INITIAL_BUILD_MODEL': 'claude-opus-5-5',
+    'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
+    'INITIAL_BUILD_HOME_SERVICE_TIER': 'ultrafast',
+    # GPT runs talk to OpenAI's Responses API over one WebSocket per run, as
+    # OpenAI recommends for its fast tiers (Riley, 2026-10-12). 'http' (or the
+    # OPENAI_RESPONSES_TRANSPORT environment variable) switches back to HTTPS.
+    'OPENAI_RESPONSES_TRANSPORT': 'websocket',
     # The project opens as soon as the home page lands; the other pages keep
     # building and merge as they finish. Tune once a live build has been timed.
     'INITIAL_BUILD_TIME_BUDGET_S': 120,

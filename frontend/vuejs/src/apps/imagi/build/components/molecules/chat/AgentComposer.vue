@@ -43,6 +43,29 @@
         <span id="tune-model-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
           Model
         </span>
+        <!-- Which family's models the list shows. Switching it only changes
+             the list; picking a model is what changes the conversation. -->
+        <div
+          role="radiogroup"
+          aria-label="Model family"
+          class="family-toggle"
+          data-testid="model-family-toggle"
+          @keydown="onFamilyKeydown"
+        >
+          <button
+            v-for="f in MODEL_FAMILIES"
+            :key="f.id"
+            ref="familyButtons"
+            type="button"
+            role="radio"
+            :aria-checked="f.id === family"
+            :tabindex="f.id === family ? 0 : -1"
+            class="family-toggle__opt"
+            :class="{ 'family-toggle__opt--on': f.id === family }"
+            :data-testid="`model-family-${f.id}`"
+            @click="family = f.id"
+          >{{ f.name }}</button>
+        </div>
       </div>
       <div
         role="radiogroup"
@@ -51,13 +74,13 @@
         @keydown="onModelKeydown"
       >
         <button
-          v-for="(m, i) in orderedModels"
+          v-for="(m, i) in familyModels"
           :key="m.id"
           ref="modelRows"
           type="button"
           role="radio"
           :aria-checked="i === modelIndex"
-          :tabindex="i === modelIndex ? 0 : -1"
+          :tabindex="i === Math.max(modelIndex, 0) ? 0 : -1"
           :disabled="!instance"
           class="model-row"
           :class="{ 'model-row--on': i === modelIndex }"
@@ -123,6 +146,63 @@
       <p id="tune-effort-note" class="tune-note px-3 pt-1 pb-3">
         More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default.
       </p>
+
+      <!-- OpenAI's faster tiers. Only an OpenAI model has them, so the
+           section appears once one is picked. Each says its price beside
+           its name, and the note under them says what that does to usage. -->
+      <template v-if="currentProvider === 'openai'">
+        <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
+          <span id="tune-speed-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
+            Speed
+          </span>
+        </div>
+        <div
+          role="radiogroup"
+          aria-labelledby="tune-speed-heading"
+          aria-describedby="tune-speed-note"
+          class="p-1"
+          data-testid="speed-options"
+          @keydown="onSpeedKeydown"
+        >
+          <button
+            v-for="(t, i) in SERVICE_TIERS"
+            :key="t.id || 'standard'"
+            ref="speedRows"
+            type="button"
+            role="radio"
+            :aria-checked="t.id === currentTier"
+            :tabindex="t.id === currentTier ? 0 : -1"
+            :disabled="!instance || !tierOffered(t.id)"
+            class="model-row"
+            :class="{ 'model-row--on': t.id === currentTier }"
+            :data-testid="`speed-${t.id || 'standard'}`"
+            @click="pickTier(t.id)"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="model-row__name">
+                {{ t.name }}
+                <span class="model-row__tier">{{ t.multiplier === 1 ? 'Standard price' : `${t.multiplier}x price` }}</span>
+              </span>
+              <span class="model-row__blurb">
+                {{ tierOffered(t.id) ? t.description : `On ${tierModelsText(t.id)}` }}
+              </span>
+            </span>
+            <i
+              class="fas fa-check model-row__check"
+              :class="{ 'opacity-0': t.id !== currentTier }"
+              aria-hidden="true"
+            ></i>
+          </button>
+        </div>
+        <p
+          id="tune-speed-note"
+          class="tune-note px-3 pt-1 pb-3"
+          :class="{ 'tune-note--cost': currentTier !== '' }"
+          data-testid="speed-cost-note"
+        >
+          Fast costs twice the standard price and Ultrafast six times, so they use your plan's usage that much faster.
+        </p>
+      </template>
     </div>
   </div>
   </Transition>
@@ -373,8 +453,15 @@ import '../../../styles/workspace.css'
 import { useUsageStore, formatResetTime } from '@/shared/stores/usage'
 import { isBuiltInInput, useDictation } from '../../../composables/useDictation'
 import type { AIModel } from '../../../types/index'
-import type { AgentInstance, ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
-import { reasoningEffortsForModel } from '../../../types/services'
+import type { AgentInstance, ReasoningEffort, ReasoningEffortOption, ServiceTier } from '../../../types/services'
+import {
+  AI_MODELS,
+  SERVICE_TIERS,
+  modelProvider,
+  reasoningEffortsForModel,
+  serviceTierForModel,
+  supportsServiceTier,
+} from '../../../types/services'
 
 const props = withDefaults(
   defineProps<{
@@ -518,16 +605,19 @@ const modelOptions = computed<AIModel[]>(() => {
   const available = (store.availableModels || []).filter(model =>
     SELECTABLE_MODEL_PATTERN.test(model.id)
   )
-  if (available.length > 0) {
-    return available
-  }
-  return [
-    { id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', provider: 'anthropic' } as AIModel,
-    { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', provider: 'anthropic' } as AIModel,
-    { id: 'claude-opus-5-5', name: 'Claude Opus 5.5', provider: 'anthropic', default: true } as AIModel,
-    { id: 'claude-fable-5-1', name: 'Claude Fable 5.1', provider: 'anthropic' } as AIModel
-  ]
+  return available.length > 0 ? available : AI_MODELS
 })
+
+// The menu shows one family at a time, Anthropic's or OpenAI's, picked by
+// the toggle in its head. It opens on the family of the model in use.
+const MODEL_FAMILIES = [
+  { id: 'anthropic', name: 'Anthropic' },
+  { id: 'openai', name: 'OpenAI' },
+] as const
+type ModelFamily = (typeof MODEL_FAMILIES)[number]['id']
+const currentProvider = computed<ModelFamily>(() => modelProvider(instance.value?.selectedModelId))
+const family = ref<ModelFamily>(currentProvider.value)
+const familyButtons = ref<HTMLButtonElement[]>([])
 
 const effortOptions = computed<ReasoningEffortOption[]>(() =>
   reasoningEffortsForModel(instance.value?.selectedModelId)
@@ -541,22 +631,32 @@ const MODEL_RANK: Record<string, number> = {
   'claude-sonnet-5-5': 1,
   'claude-opus-5-5': 2,
   'claude-fable-5-1': 3,
+  'gpt-6-luna': 10,
+  'gpt-6.1-sol': 11,
+  'gpt-6-astra': 12,
 }
 const orderedModels = computed<AIModel[]>(() =>
   [...modelOptions.value].sort(
     (a, b) => (MODEL_RANK[a.id] ?? 99) - (MODEL_RANK[b.id] ?? 99)
   )
 )
-// A conversation on a model the menu does not offer shows the default
-// rather than an arbitrary end of the lineup.
-const modelIndex = computed(() => {
+const familyModels = computed<AIModel[]>(() =>
+  orderedModels.value.filter(m => modelProvider(m.id) === family.value)
+)
+// The model in use. A conversation on a model the menu does not offer shows
+// the default rather than an arbitrary end of the lineup.
+const currentModel = computed<AIModel | null>(() => {
   const models = orderedModels.value
-  const idx = models.findIndex(m => m.id === instance.value?.selectedModelId)
-  if (idx >= 0) return idx
-  const fallback = models.findIndex(m => m.default)
-  return fallback >= 0 ? fallback : 0
+  return models.find(m => m.id === instance.value?.selectedModelId)
+    ?? models.find(m => m.default)
+    ?? models[0]
+    ?? null
 })
-const currentModel = computed<AIModel | null>(() => orderedModels.value[modelIndex.value] ?? null)
+// Where the model in use sits in the family shown; -1 when it is in the
+// other family, so nothing here is checked.
+const modelIndex = computed(() =>
+  familyModels.value.findIndex(m => m.id === currentModel.value?.id)
+)
 
 /** The distinctive part of the model name for the chip
  *  ("Haiku 5.5", "Opus 5.5", "Fable 5.1"), dropping the "Claude" prefix. */
@@ -573,6 +673,9 @@ const MODEL_BLURBS: Record<string, string> = {
   'claude-sonnet-5-5': 'Quick and capable, a strong everyday builder at a modest price.',
   'claude-opus-5-5': 'Thoughtful and dependable, with strong judgment on code and design. The default.',
   'claude-fable-5-1': 'Frontier intelligence for the hardest, most complex work.',
+  'gpt-6-luna': 'Fast and inexpensive, capable at most everyday edits.',
+  'gpt-6.1-sol': 'Near-Astra intelligence at a fifth of the price.',
+  'gpt-6-astra': "OpenAI's most capable model, for the hardest work.",
 }
 const modelBlurb = (id: string) =>
   MODEL_BLURBS[id] ?? orderedModels.value.find(m => m.id === id)?.description ?? ''
@@ -594,13 +697,39 @@ const MODEL_TIERS: Record<string, string> = {
   'claude-sonnet-5-5': 'Quick',
   'claude-opus-5-5': 'Balanced',
   'claude-fable-5-1': 'Frontier',
+  'gpt-6-luna': 'Fast',
+  'gpt-6.1-sol': 'Balanced',
+  'gpt-6-astra': 'Frontier',
 }
 const modelTier = (id: string) => MODEL_TIERS[id] ?? ''
+
+// --- Speed (OpenAI's service tiers) ---
+
+/** The tier the next request carries: the one picked, if this model has it. */
+const currentTier = computed<ServiceTier>(() =>
+  serviceTierForModel(instance.value?.selectedModelId, instance.value?.serviceTier)
+)
+/** Standard always; a faster tier only on a model that offers it. */
+const tierOffered = (tier: ServiceTier) =>
+  tier === '' || supportsServiceTier(currentModel.value?.id, tier)
+/** "Sol and Astra": the models a tier runs on, for a row the current
+ *  model can't use. */
+function tierModelsText(tier: ServiceTier): string {
+  const names = orderedModels.value
+    .filter(m => supportsServiceTier(m.id, tier))
+    .map(m => modelShortName(m.id))
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? 'other models'
+}
+function pickTier(tier: ServiceTier) {
+  if (instance.value && tierOffered(tier)) store.setInstanceServiceTier(instance.value.id, tier)
+}
+const speedRows = ref<HTMLButtonElement[]>([])
 
 /** The chip reads "Opus 5.5 · Medium": the model's short name and the
  *  reasoning rung, so both settings are legible without opening anything. */
 const tuneLabel = computed(
   () => `${modelShortName(currentModel.value?.id)} · ${effortOptions.value[effortIndex.value]?.name ?? 'Reasoning'}`
+    + (currentTier.value ? ` · ${SERVICE_TIERS.find(t => t.id === currentTier.value)?.name}` : '')
 )
 
 function pickModel(id: string) {
@@ -642,11 +771,31 @@ function radioStep(key: string, current: number, count: number, upIsMore: boolea
 // Focus follows the choice, since the chosen option is its group's one tab
 // stop.
 function onModelKeydown(e: KeyboardEvent) {
-  const target = radioStep(e.key, modelIndex.value, orderedModels.value.length, false)
+  const target = radioStep(e.key, modelIndex.value, familyModels.value.length, false)
   if (target === null || !instance.value) return
   e.preventDefault()
-  pickModel(orderedModels.value[target]!.id)
+  pickModel(familyModels.value[target]!.id)
   void nextTick(() => modelRows.value[target]?.focus())
+}
+
+function onFamilyKeydown(e: KeyboardEvent) {
+  const current = MODEL_FAMILIES.findIndex(f => f.id === family.value)
+  const target = radioStep(e.key, current, MODEL_FAMILIES.length, false)
+  if (target === null) return
+  e.preventDefault()
+  family.value = MODEL_FAMILIES[target]!.id
+  void nextTick(() => familyButtons.value[target]?.focus())
+}
+
+function onSpeedKeydown(e: KeyboardEvent) {
+  const offered = SERVICE_TIERS.filter(t => tierOffered(t.id))
+  const current = offered.findIndex(t => t.id === currentTier.value)
+  const target = radioStep(e.key, current, offered.length, false)
+  if (target === null || !instance.value) return
+  e.preventDefault()
+  const tier = offered[target]!.id
+  pickTier(tier)
+  void nextTick(() => speedRows.value[SERVICE_TIERS.findIndex(t => t.id === tier)]?.focus())
 }
 
 function onEffortKeydown(e: KeyboardEvent) {
@@ -667,9 +816,12 @@ function closeTune() {
 }
 
 watch(tuneOpen, open => {
-  // Focus lands on the model in use, so the arrows work straight away.
-  if (open) void nextTick(() => modelRows.value[modelIndex.value]?.focus())
-  else effortPreview.value = null
+  // The menu opens on the model in use, in its family, with focus on it so
+  // the arrows work straight away.
+  if (open) {
+    family.value = currentProvider.value
+    void nextTick(() => modelRows.value[Math.max(modelIndex.value, 0)]?.focus())
+  } else effortPreview.value = null
 })
 
 // --- Dictation (holding the send button, or holding ⌘D) ---
@@ -1452,8 +1604,73 @@ function handleEffortSelect(effort: ReasoningEffort) {
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* With a faster tier picked, the price note takes the "needs you" amber so
+   the higher cost can't be missed. */
+.tune-note--cost,
+.dark .tune-note--cost {
+  color: var(--sl-wait);
+}
+
+/* Model family toggle: a small two-way segmented control in the menu's
+   head. The chosen family is lifted onto a white chip (glass in dark). */
+.family-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 9999px;
+  background: rgba(19, 26, 44, 0.06);
+}
+
+.dark .family-toggle {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.family-toggle__opt {
+  padding: 0.125rem 0.625rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.125rem;
+  color: rgba(19, 26, 44, 0.6);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--iw-dur-2) var(--iw-ease-out),
+    color var(--iw-dur-2) var(--iw-ease-out);
+}
+
+.dark .family-toggle__opt {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.family-toggle__opt:hover {
+  color: rgb(19, 26, 44);
+}
+
+.dark .family-toggle__opt:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.family-toggle__opt--on {
+  background: #fff;
+  color: rgb(19, 26, 44);
+  box-shadow: 0 1px 2px rgba(19, 26, 44, 0.12);
+}
+
+.dark .family-toggle__opt--on {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.95);
+  box-shadow: none;
+}
+
+.family-toggle__opt:focus-visible {
+  box-shadow: var(--iw-focus-ring);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .model-row,
+  .family-toggle__opt,
   .effort-bar__fill {
     transition: none;
   }

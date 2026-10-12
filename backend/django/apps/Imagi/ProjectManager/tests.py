@@ -983,9 +983,12 @@ class ParallelInitialBuildTests(TransactionTestCase):
             title = AgentConversation.objects.get(id=conversation_id).title
             return title.rsplit('—', 1)[-1].strip().split(' ')[0]
 
+        self.services = {}
+
         def fake_process(_self, **kwargs):
             slug = slug_of(kwargs['conversation_id'])
             calls.setdefault(slug, []).append(kwargs)
+            self.services[slug] = (_self.model, _self.service_tier)
             outcome = outcome_by_slug.get(slug, 'accept')
             if outcome == 'fail':
                 return {'success': False, 'error': 'model error'}
@@ -1002,6 +1005,27 @@ class ParallelInitialBuildTests(TransactionTestCase):
         ) as self.queue_auth_restyle:
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
+
+    def test_home_builds_on_sol_ultrafast_and_the_rest_on_opus(self):
+        from apps.Imagi.Build.models import AgentConversation
+
+        with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}):
+            calls = self._run()
+        self.assertEqual(self.services['home'], ('gpt-6.1-sol', 'ultrafast'))
+        others = [slug for slug in calls if slug != 'home']
+        self.assertTrue(others)
+        for slug in others:
+            self.assertEqual(self.services[slug], ('claude-opus-5-5', None))
+        home_task = AgentConversation.objects.get(
+            project_id=self.project.pk, kind='task', title__contains='home'
+        )
+        self.assertEqual(home_task.model_name, 'gpt-6.1-sol')
+
+    def test_home_falls_back_to_opus_without_an_openai_key(self):
+        env = {k: v for k, v in os.environ.items() if k != 'OPENAI_KEY'}
+        with patch.dict(os.environ, env, clear=True), self.settings(OPENAI_KEY=None):
+            self._run()
+        self.assertEqual(self.services['home'], ('claude-opus-5-5', None))
 
     def test_the_sign_in_restyle_starts_once_the_home_page_lands(self):
         self._run()
