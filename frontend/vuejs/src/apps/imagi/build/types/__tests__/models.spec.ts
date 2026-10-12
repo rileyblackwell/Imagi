@@ -6,18 +6,28 @@ import {
   LEGACY_REASONING_EFFORT_ALIASES,
   MODEL_CONFIGS,
   REASONING_EFFORTS,
+  SERVICE_TIERS,
   canonicalModelId,
   clampEffortToModel,
+  modelProvider,
   reasoningEffortsForModel,
+  serviceTierForModel,
+  supportsServiceTier,
 } from '../services'
 
 describe('the selectable model list', () => {
   it('offers one model per tier, faster to smarter', () => {
-    // All Claude for now: Haiku, Sonnet, Opus, Fable.
+    // Claude's Haiku, Sonnet, Opus, Fable, then OpenAI's Luna, Sol, Astra.
     expect(AI_MODELS.map(m => m.id)).toEqual([
       'claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1',
+      'gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra',
     ])
-    expect(new Set(AI_MODELS.map(m => m.provider))).toEqual(new Set(['anthropic']))
+    expect(AI_MODELS.filter(m => m.provider === 'openai').map(m => m.id)).toEqual([
+      'gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra',
+    ])
+    expect(modelProvider('gpt-6.1-sol')).toBe('openai')
+    expect(modelProvider('claude-opus-5-5')).toBe('anthropic')
+    expect(modelProvider('gpt-5.6-terra')).toBe('anthropic')
   })
 
   it('makes Opus 5.5 the default rather than the priciest model', () => {
@@ -28,28 +38,33 @@ describe('the selectable model list', () => {
 
   it('prices every tier at its list price, no markup, with the 1M window', () => {
     const prices = Object.fromEntries(
-      AI_MODELS.map(m => [m.id, [m.inputPricePerMTokens, m.outputPricePerMTokens, m.context_window]])
+      AI_MODELS.map(m => [m.id, [m.inputPricePerMTokens, m.outputPricePerMTokens]])
     )
     expect(prices).toEqual({
-      'claude-haiku-5-5': [0.1, 0.5, 1000000],
-      'claude-sonnet-5-5': [2, 10, 1000000],
-      'claude-opus-5-5': [4, 20, 1000000],
-      'claude-fable-5-1': [10, 50, 1000000],
+      'claude-haiku-5-5': [0.1, 0.5],
+      'claude-sonnet-5-5': [2, 10],
+      'claude-opus-5-5': [4, 20],
+      'claude-fable-5-1': [10, 50],
+      'gpt-6-luna': [0.1, 0.5],
+      'gpt-6.1-sol': [2, 10],
+      'gpt-6-astra': [10, 50],
     })
+    for (const model of AI_MODELS.filter(m => m.provider === 'anthropic')) {
+      expect(model.context_window).toBe(1000000)
+    }
   })
 
   it('carries a retired GPT model over to the current model for its tier', () => {
     // Stored conversations and older tabs still name these; mirrors the
     // backend's LEGACY_MODEL_ALIASES.
     expect(LEGACY_MODEL_ALIASES).toEqual({
-      'gpt-6-luna': 'claude-haiku-5-5',
       'gpt-5.6-luna': 'claude-haiku-5-5',
-      'gpt-6-astra': 'claude-fable-5-1',
       'gpt-5.6-terra': 'claude-opus-5-5',
       'gpt-5.6-sol': 'claude-opus-5-5',
     })
     expect(canonicalModelId('gpt-5.6-terra')).toBe('claude-opus-5-5')
-    expect(canonicalModelId('gpt-6-astra')).toBe('claude-fable-5-1')
+    // GPT 6 is offered again, so its ids are themselves.
+    expect(canonicalModelId('gpt-6-astra')).toBe('gpt-6-astra')
     expect(canonicalModelId('claude-sonnet-5-5')).toBe('claude-sonnet-5-5')
     expect(canonicalModelId(null)).toBeNull()
     expect(canonicalModelId('constructor')).toBe('constructor')
@@ -65,11 +80,15 @@ describe('the selectable model list', () => {
 describe('the reasoning effort ladder', () => {
   const ladder = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 
-  it('offers the same five rungs, faster to smarter, to every model', () => {
+  it('offers the five rungs to Claude, and all but Max to OpenAI', () => {
     expect(REASONING_EFFORTS.map(o => o.id)).toEqual(ladder)
     for (const model of AI_MODELS) {
-      expect(reasoningEffortsForModel(model.id).map(o => o.id)).toEqual(ladder)
+      expect(reasoningEffortsForModel(model.id).map(o => o.id)).toEqual(
+        model.provider === 'openai' ? ladder.slice(0, 4) : ladder
+      )
     }
+    // Max on an OpenAI model lands on its top rung.
+    expect(clampEffortToModel('max', 'gpt-6-astra')).toBe('xhigh')
   })
 
   it('names and describes each rung for the picker', () => {
@@ -88,7 +107,7 @@ describe('the reasoning effort ladder', () => {
 
   it('passes through a rung on the ladder for any model', () => {
     for (const model of AI_MODELS) {
-      for (const effort of ladder) {
+      for (const effort of reasoningEffortsForModel(model.id).map(o => o.id)) {
         expect(clampEffortToModel(effort, model.id)).toBe(effort)
       }
     }
@@ -111,5 +130,24 @@ describe('the reasoning effort ladder', () => {
     expect(clampEffortToModel('bogus', 'claude-opus-5-5')).toBe('medium')
     // Object prototype names are not aliases either.
     expect(clampEffortToModel('constructor', 'claude-opus-5-5')).toBe('medium')
+  })
+})
+
+describe('the OpenAI speed tiers', () => {
+  it('lists Standard, Fast and Ultrafast with their price multipliers', () => {
+    expect(SERVICE_TIERS.map(t => [t.id, t.multiplier])).toEqual([
+      ['', 1], ['fast', 2], ['ultrafast', 6],
+    ])
+  })
+
+  it('offers Ultrafast on Sol and Astra, Fast on every GPT model, and neither on Claude', () => {
+    expect(supportsServiceTier('gpt-6.1-sol', 'ultrafast')).toBe(true)
+    expect(supportsServiceTier('gpt-6-astra', 'ultrafast')).toBe(true)
+    expect(supportsServiceTier('gpt-6-luna', 'ultrafast')).toBe(false)
+    expect(supportsServiceTier('gpt-6-luna', 'fast')).toBe(true)
+    expect(supportsServiceTier('claude-opus-5-5', 'fast')).toBe(false)
+    expect(serviceTierForModel('gpt-6-luna', 'ultrafast')).toBe('')
+    expect(serviceTierForModel('gpt-6.1-sol', 'ultrafast')).toBe('ultrafast')
+    expect(serviceTierForModel('claude-opus-5-5', 'fast')).toBe('')
   })
 })

@@ -40,7 +40,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from ..models import AgentConversation, AgentMessage, SystemPrompt
-from .models_service import compute_cost_usd
+from .models_service import compute_cost_usd, pricing_model_id, resolve_service_tier
 
 # Load environment variables
 load_dotenv()
@@ -48,9 +48,9 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# API keys. Every model on offer is Claude, served through the Agents SDK by
-# AnthropicModel; the OpenAI key is only needed if GPT models come back (and
-# for dictation, which reads its own).
+# API keys. Claude models are served through the Agents SDK by AnthropicModel,
+# GPT models by the SDK's own Responses model, which reads OPENAI_API_KEY
+# (dictation reads its own).
 ANTHROPIC_API_KEY = read_api_key('ANTHROPIC_KEY')
 OPENAI_API_KEY = read_api_key('OPENAI_KEY')
 
@@ -965,6 +965,7 @@ class ImagiAgentService:
         model: str = DEFAULT_MODEL,
         reasoning_effort: Optional[str] = None,
         agent_kind: Optional[str] = None,
+        service_tier: Optional[str] = None,
     ):
         """
         Initialize the agent service.
@@ -979,10 +980,17 @@ class ImagiAgentService:
                 conversation stays an ordinary kind='task' — so it keeps the
                 worktree isolation, review lifecycle and check-in routing every
                 other dispatched task has. None follows the conversation.
+            service_tier: The OpenAI processing tier for this run ('' for
+                Standard, 'fast', 'ultrafast'), saved on the conversation like
+                the effort. None keeps whatever the conversation already has
+                (thread runs). Ignored on a model without that tier.
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
         self.agent_kind = agent_kind
+        self.service_tier = service_tier
+        # The tier the current run asks for; set by _prepare_run.
+        self._run_tier = resolve_service_tier(model, service_tier)
         # Agents cached per conversation kind: lead runs carry the delegation
         # tool, task runs carry ask_user (+ its stop behavior).
         self._agents: Dict[str, Agent] = {}
@@ -1026,8 +1034,9 @@ class ImagiAgentService:
             )
 
     def _pricing_model(self, model: Optional[str] = None) -> str:
-        """The id this run's tokens are priced under."""
-        return model or self.model
+        """The id this run's tokens are priced under: the model's own, or its
+        tier's pricing id when the run asks for a faster tier."""
+        return pricing_model_id(model or self.model, self._run_tier)
 
     @property
     def agent(self) -> Agent:
@@ -1038,12 +1047,13 @@ class ImagiAgentService:
         callers outside a run (tests, scripts) fall back to the plain agent.
         """
         kind = self._run_kind or 'chat'
-        if kind not in self._agents:
+        key = f'{kind}:{self._run_tier}' if self._run_tier else kind
+        if key not in self._agents:
             from .coding_agent import create_coding_agent
-            self._agents[kind] = create_coding_agent(
-                self.model, self.reasoning_effort, kind=kind
+            self._agents[key] = create_coding_agent(
+                self.model, self.reasoning_effort, kind=kind, service_tier=self._run_tier
             )
-        return self._agents[kind]
+        return self._agents[key]
 
     # -------------------------------------------------------------------------
     # Conversation Management
@@ -1427,6 +1437,21 @@ class ImagiAgentService:
         # conversation, and a run that names none (a thread the server
         # started) runs at the one saved there.
         self._sync_reasoning_effort(conversation, reasoning_effort)
+        # The tier the composer sends sticks to the conversation too. A pinned
+        # role (the first build) sets its own per run and leaves the
+        # conversation's alone.
+        if (
+            self.service_tier is not None and self.agent_kind is None
+            and conversation.service_tier != self.service_tier
+        ):
+            conversation.service_tier = self.service_tier
+            AgentConversation.objects.filter(pk=conversation.pk).update(
+                service_tier=self.service_tier
+            )
+        self._run_tier = resolve_service_tier(
+            model,
+            self.service_tier if self.service_tier is not None else conversation.service_tier,
+        )
 
         # Build (compacted) conversation history, excluding the message we
         # just persisted — it is appended as the current input below.

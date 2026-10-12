@@ -144,6 +144,21 @@ describe('useAgentRun', () => {
       )
     })
 
+    it('sends a speed tier only to a model that offers it', async () => {
+      script = async () => ({ response: 'ok' })
+      const sol = setup({ serviceTier: 'ultrafast', selectedModelId: 'gpt-6.1-sol' })
+      await sol.handlePrompt('Hi')
+      expect(agentService.streamAgent).toHaveBeenLastCalledWith(
+        '42', expect.objectContaining({ serviceTier: 'ultrafast' }), expect.any(Object), expect.any(AbortSignal),
+      )
+
+      const opus = setup({ serviceTier: 'ultrafast' })
+      await opus.handlePrompt('Hi')
+      expect(agentService.streamAgent).toHaveBeenLastCalledWith(
+        '42', expect.objectContaining({ serviceTier: '' }), expect.any(Object), expect.any(AbortSignal),
+      )
+    })
+
     it('uses the final text when the stream missed some of it', async () => {
       const { handlePrompt, live } = setup()
       script = async (h) => {

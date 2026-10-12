@@ -79,9 +79,11 @@ describe('WorkspaceSettings', () => {
 
   it('has no coordinator model: only the thread defaults, Opus 5.5 on Medium', async () => {
     await openWith([agent('lead1', 'lead', 'claude-opus-5-5')])
-    const [model, effort, ...rest] = groups()
+    const [family, model, effort, ...rest] = groups()
     expect(rest).toHaveLength(0)
     expect(panel()?.textContent).not.toContain('Coordinator')
+    expect(family!.getAttribute('aria-label')).toBe('Thread model family')
+    expect(checked(family!)).toBe('Anthropic')
     expect(model!.getAttribute('aria-label')).toBe('Thread model')
     expect(checked(model!)).toBe('Opus 5.5')
     expect(effort!.getAttribute('aria-label')).toBe('Thread effort')
@@ -91,7 +93,7 @@ describe('WorkspaceSettings', () => {
   it('saves the thread model and effort on the coordinator, leaving its own model alone', async () => {
     const { AgentService } = await import('@/apps/imagi/build/services/agentService')
     const store = await openWith([agent('lead1', 'lead', 'claude-opus-5-5')])
-    const [model, effort] = groups()
+    const [, model, effort] = groups()
     option(model!, 'Haiku').click()
     option(effort!, 'High').click()
     await nextTick()
@@ -100,6 +102,18 @@ describe('WorkspaceSettings', () => {
     expect(store.leadInstance?.selectedModelId).toBe('claude-opus-5-5')
     expect(AgentService.updateConversation).toHaveBeenCalledWith(1, { thread_model_name: 'claude-haiku-5-5' })
     expect(AgentService.updateConversation).toHaveBeenCalledWith(1, { thread_reasoning_effort: 'high' })
+  })
+
+  it('shows the OpenAI lineup behind the family toggle', async () => {
+    const store = await openWith([agent('lead1', 'lead', 'claude-opus-5-5')])
+    option(groups()[0]!, 'OpenAI').click()
+    await nextTick()
+    const model = groups()[1]!
+    expect([...model.querySelectorAll('[role="radio"]')].map(b => b.querySelector('.choice-segments__name')?.textContent))
+      .toEqual(['Luna', 'Sol', 'Astra'])
+    option(model, 'Sol').click()
+    await nextTick()
+    expect(store.threadModelId).toBe('gpt-6.1-sol')
   })
 
   it('switches the threads off the defaults, then says they all match', async () => {

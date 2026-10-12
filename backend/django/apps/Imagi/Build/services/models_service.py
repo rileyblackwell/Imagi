@@ -13,16 +13,21 @@ from django.conf import settings
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
-# The build workspace runs on Anthropic's Claude models only, four of them,
-# ordered faster → smarter:
+# The build workspace offers two families, each ordered faster → smarter.
+# Anthropic's Claude:
 #   Haiku 5.5   - fast and inexpensive, capable at most everyday edits
 #   Sonnet 5.5  - quick and strong at everyday coding
 #   Opus 5.5    - thoughtful all-rounder (default)
 #   Fable 5.1   - Anthropic's most capable model, for the hardest work
+# OpenAI's GPT (Riley, 2026-10-12, mainly for their faster service tiers):
+#   GPT 6 Luna   - fast and inexpensive
+#   GPT 6.1 Sol  - near-Astra intelligence at a fifth of the price
+#   GPT 6 Astra  - OpenAI's most capable model
 #
 # `backend_model` is the real provider model id a public id maps to at
 # runtime; for every current model the two coincide. Every model runs through
-# the Agents SDK on the Anthropic Messages API (services/anthropic_model.py).
+# the Agents SDK: Claude on the Anthropic Messages API
+# (services/anthropic_model.py), GPT on the OpenAI Responses API.
 #
 # Prices are the provider's list price per million tokens, with no markup:
 # a run draws down a user's allowance by what it actually costs (see
@@ -35,8 +40,13 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 # Anthropic's 1.25x premium on writing the cache (those tokens bill at the
 # plain input rate).
 #
-# Every model climbs the same five-rung effort ladder — see
-# REASONING_EFFORT_CHOICES below — so no entry spells out its own.
+# `service_tiers` lists the faster OpenAI processing tiers a model offers
+# (the request's service_tier), each with the multiplier it puts on every
+# price line: Fast is twice the standard price, Ultrafast six times. A run
+# with no tier is Standard.
+#
+# Every model climbs the same effort ladder — see REASONING_EFFORT_CHOICES
+# below — up to its `max_reasoning_effort` (OpenAI's stops at xhigh).
 MODELS = {
     'claude-haiku-5-5': {
         'id': 'claude-haiku-5-5',
@@ -115,48 +125,70 @@ MODELS = {
     },
 }
 
-# OpenAI's models, switched off while the workspace runs on Anthropic only.
-# Their definitions are kept so they can come back: list one in MODELS again
-# and the Agents SDK serves it through the Responses API as before
-# (coding_agent.build_agent_model picks the model class by provider).
-OPENAI_MODELS = {
-    'gpt-6-luna': {
-        'id': 'gpt-6-luna',
-        'name': 'GPT 6 Luna',
+# OpenAI's long-context pricing: a request whose prompt is over 272K tokens
+# bills input (cached too) at twice the short-context rate and output at one
+# and a half times, the pattern OpenAI's GPT 6 price table follows.
+OPENAI_LONG_CONTEXT_THRESHOLD = 272_000
+
+
+def _openai_model(model_id, name, description, input_price, cached_price, output_price, service_tiers):
+    return {
+        'id': model_id,
+        'name': name,
         'provider': 'openai',
         'type': 'openai',
-        'backend_model': 'gpt-6-luna',
-        'input_price_per_m_tokens': 0.1,
-        'cached_input_price_per_m_tokens': 0.01,
-        'output_price_per_m_tokens': 0.5,
+        'backend_model': model_id,
+        'description': description,
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'input_price_per_m_tokens': input_price,
+        'cached_input_price_per_m_tokens': cached_price,
+        'output_price_per_m_tokens': output_price,
+        'long_context_threshold_tokens': OPENAI_LONG_CONTEXT_THRESHOLD,
+        'long_context_input_price_per_m_tokens': input_price * 2,
+        'long_context_cached_input_price_per_m_tokens': cached_price * 2,
+        'long_context_output_price_per_m_tokens': output_price * 1.5,
         'api_version': 'responses',
         'supports_reasoning': True,
-    },
-    'gpt-6-astra': {
-        'id': 'gpt-6-astra',
-        'name': 'GPT 6 Astra',
-        'provider': 'openai',
-        'type': 'openai',
-        'backend_model': 'gpt-6-astra',
-        'input_price_per_m_tokens': 10,
-        'cached_input_price_per_m_tokens': 1,
-        'output_price_per_m_tokens': 50,
-        'api_version': 'responses',
-        'supports_reasoning': True,
-    },
-}
+        'max_reasoning_effort': 'xhigh',
+        'service_tiers': service_tiers,
+    }
+
+
+MODELS.update({
+    'gpt-6-luna': _openai_model(
+        'gpt-6-luna', 'GPT 6 Luna',
+        'OpenAI | GPT 6 Luna — fast and inexpensive, capable at most everyday edits',
+        0.1, 0.01, 0.5, {'fast': 2},
+    ),
+    'gpt-6.1-sol': _openai_model(
+        'gpt-6.1-sol', 'GPT 6.1 Sol',
+        'OpenAI | GPT 6.1 Sol — near-Astra intelligence at a fraction of the price',
+        2, 0.2, 10, {'fast': 2, 'ultrafast': 6},
+    ),
+    'gpt-6-astra': _openai_model(
+        'gpt-6-astra', 'GPT 6 Astra',
+        "OpenAI | GPT 6 Astra — OpenAI's most capable model, for the hardest work",
+        10, 1, 50, {'fast': 2, 'ultrafast': 6},
+    ),
+})
 
 # Models the platform used to offer, re-seated onto the current model for
 # their tier. Conversations, dispatched threads and open client tabs can still
-# carry these ids. The OpenAI models map to the Claude model at the same price
-# point: Luna to Haiku, Astra to Fable.
+# carry these ids. They were re-seated onto Claude while the workspace ran on
+# Anthropic only, and stay there so a conversation doesn't change provider.
 LEGACY_MODEL_ALIASES = {
-    'gpt-6-luna': 'claude-haiku-5-5',
-    'gpt-6-astra': 'claude-fable-5-1',
     'gpt-5.6-luna': 'claude-haiku-5-5',
     'gpt-5.6-terra': 'claude-opus-5-5',
     'gpt-5.6-sol': 'claude-opus-5-5',
 }
+
+# OpenAI's processing tiers, faster → pricier. '' is Standard, the default.
+SERVICE_TIER_CHOICES = [
+    ('', 'Standard'),
+    ('fast', 'Fast'),
+    ('ultrafast', 'Ultrafast'),
+]
+SERVICE_TIER_IDS = [tier for tier, _ in SERVICE_TIER_CHOICES if tier]
 
 # The effort ladder, ordered faster → smarter: Claude's output_config.effort
 # levels, the same for every model. Keep in step with the frontend's
@@ -222,6 +254,39 @@ def canonical_model_id(model_id: str) -> str:
     """The current id for a model: a retired id maps to its successor."""
     return LEGACY_MODEL_ALIASES.get(model_id, model_id)
 
+# A pricing id for a request made on a faster service tier:
+# '<model id>:<tier>'. Only cost accounting sees it; the conversation still
+# records the public model id.
+TIER_PRICING_SEPARATOR = ':'
+
+
+def supports_service_tier(model_id: str, tier: Optional[str]) -> bool:
+    """Whether a model can be served on a faster tier ('fast', 'ultrafast')."""
+    return bool(tier) and tier in ((get_model_by_id(model_id) or {}).get('service_tiers') or {})
+
+
+def resolve_service_tier(model_id: str, tier: Optional[str]) -> Optional[str]:
+    """The tier a run on this model asks for: the requested one when the
+    model offers it, otherwise None (Standard)."""
+    return tier if supports_service_tier(model_id, tier) else None
+
+
+def split_pricing_id(pricing_id: str) -> Tuple[str, Optional[str]]:
+    """A pricing id's model id and tier (None for Standard)."""
+    if pricing_id and TIER_PRICING_SEPARATOR in pricing_id:
+        model_id, tier = pricing_id.split(TIER_PRICING_SEPARATOR, 1)
+        return model_id, tier
+    return pricing_id, None
+
+
+def pricing_model_id(model_id: str, tier: Optional[str] = None) -> str:
+    """The id compute_cost_usd prices a run under: the model's own, or its
+    tier's pricing id when the run asked for a tier the model has."""
+    if supports_service_tier(model_id, tier):
+        return f"{model_id}{TIER_PRICING_SEPARATOR}{tier}"
+    return model_id
+
+
 def get_model_by_id(model_id: str) -> dict:
     """
     Get a model definition by its ID. A retired id resolves to its
@@ -238,7 +303,7 @@ def get_model_by_id(model_id: str) -> dict:
 def get_model_provider(model_id: str) -> str:
     """
     The provider that serves a model. Unknown ids report 'anthropic', the
-    only provider the workspace runs on.
+    default model's provider.
     """
     model = get_model_by_id(model_id)
     return model.get('provider', 'anthropic') if model else 'anthropic'
@@ -276,9 +341,9 @@ def get_backend_model_id(model_id: str) -> str:
     return model_id
 
 def long_context_threshold(model_id: str):
-    """The prompt size above which a model bills at its long-context rates,
-    or None when it has no such tier."""
-    model = get_model_by_id(model_id)
+    """The prompt size above which a model (or a pricing id) bills at its
+    long-context rates, or None when it has no such tier."""
+    model = get_model_by_id(split_pricing_id(model_id)[0])
     return (model or {}).get('long_context_threshold_tokens')
 
 
@@ -295,7 +360,8 @@ def compute_cost_usd(
     Compute the USD cost of a run at the model's list price.
 
     Args:
-        model_id: The public model ID (e.g. 'claude-opus-5-5')
+        model_id: The public model ID (e.g. 'claude-opus-5-5'), or a tier
+            pricing id from pricing_model_id ('gpt-6.1-sol:ultrafast')
         input_tokens: All input tokens the run consumed, cached ones included
         output_tokens: Output tokens produced by the run
         cached_input_tokens: How many of input_tokens were served from the
@@ -308,9 +374,11 @@ def compute_cost_usd(
         float or None: The cost in USD, or None when the model (or its
         pricing) is unknown so callers can omit cost cleanly.
     """
+    model_id, tier = split_pricing_id(model_id)
     model = get_model_by_id(model_id)
     if not model:
         return None
+    multiplier = (model.get('service_tiers') or {}).get(tier, 1)
     input_price = model.get('input_price_per_m_tokens')
     output_price = model.get('output_price_per_m_tokens')
     if input_price is None or output_price is None:
@@ -344,7 +412,7 @@ def compute_cost_usd(
             )
             + long_out * model['long_context_output_price_per_m_tokens']
         )
-    return round(cost / 1_000_000, 6)
+    return round(cost * multiplier / 1_000_000, 6)
 
 def is_valid_reasoning_effort(effort: str) -> bool:
     """Whether the given reasoning effort level is on the platform ladder."""
@@ -367,6 +435,14 @@ def model_supports_reasoning(model_id: str) -> bool:
         return False
     return model.get('supports_reasoning', False)
 
+def _cap_effort(model_id: str, effort: str) -> str:
+    """An effort no higher than the model's top rung ('max' is Claude's
+    alone; OpenAI's ladder stops at xhigh)."""
+    top = (get_model_by_id(model_id) or {}).get('max_reasoning_effort')
+    if top and REASONING_EFFORT_IDS.index(effort) > REASONING_EFFORT_IDS.index(top):
+        return top
+    return effort
+
 def resolve_reasoning_effort(model_id: str, effort: str) -> str:
     """
     Resolve the reasoning effort to apply for a request.
@@ -388,6 +464,6 @@ def resolve_reasoning_effort(model_id: str, effort: str) -> str:
     """
     if not model_supports_reasoning(model_id):
         return None
-    if effort and is_valid_reasoning_effort(effort):
-        return effort
-    return LEGACY_REASONING_EFFORT_ALIASES.get(effort, DEFAULT_REASONING_EFFORT)
+    if not (effort and is_valid_reasoning_effort(effort)):
+        effort = LEGACY_REASONING_EFFORT_ALIASES.get(effort, DEFAULT_REASONING_EFFORT)
+    return _cap_effort(model_id, effort)

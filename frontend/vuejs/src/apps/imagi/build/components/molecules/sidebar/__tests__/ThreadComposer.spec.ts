@@ -97,6 +97,52 @@ describe('ThreadComposer', () => {
     expect(setModel).toHaveBeenCalledWith('inst-thread', 'claude-fable-5-1')
   })
 
+  it('shows one family at a time, switched from the menu head', async () => {
+    const { store, wrapper } = mountFor(makeThread())
+    const setModel = vi.spyOn(store, 'setInstanceModel').mockImplementation(() => {})
+    await wrapper.find('button[aria-label="Model and reasoning"]').trigger('click')
+    const rows = () => wrapper.findAll('#tune-panel button.model-row').map(r => r.text())
+    expect(rows().some(r => r.includes('Opus'))).toBe(true)
+    expect(rows().some(r => r.includes('Sol'))).toBe(false)
+    // No speed choice on a Claude model.
+    expect(wrapper.find('[data-testid="speed-options"]').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="model-family-openai"]').trigger('click')
+    expect(rows().map(r => r.split(' ')[0])).toEqual(['Luna', 'Sol', 'Astra'])
+    expect(setModel).not.toHaveBeenCalled()
+    const sol = wrapper.findAll('#tune-panel button.model-row').find(r => r.text().includes('Sol'))!
+    await sol.trigger('click')
+    expect(setModel).toHaveBeenCalledWith('inst-thread', 'gpt-6.1-sol')
+  })
+
+  it('offers Fast and Ultrafast on an OpenAI model, with what they cost', async () => {
+    const { store, wrapper } = mountFor(makeThread({ selectedModelId: 'gpt-6.1-sol' }))
+    const setTier = vi.spyOn(store, 'setInstanceServiceTier')
+    await wrapper.find('button[aria-label="Model and reasoning"]').trigger('click')
+    const speed = wrapper.find('[data-testid="speed-options"]')
+    expect(speed.text()).toContain('2x price')
+    expect(speed.text()).toContain('6x price')
+    const note = wrapper.find('[data-testid="speed-cost-note"]')
+    expect(note.text()).toContain('six times')
+    expect(note.classes()).not.toContain('tune-note--cost')
+
+    await wrapper.find('[data-testid="speed-ultrafast"]').trigger('click')
+    expect(setTier).toHaveBeenCalledWith('inst-thread', 'ultrafast')
+    expect(note.classes()).toContain('tune-note--cost')
+    expect(wrapper.find('button[aria-label="Model and reasoning"]').text()).toContain('Sol · Medium · Ultrafast')
+    // Max is Claude's alone.
+    expect(wrapper.findAll('.effort-bar')).toHaveLength(4)
+  })
+
+  it('keeps Ultrafast off a model that lacks it', async () => {
+    const { wrapper } = mountFor(makeThread({ selectedModelId: 'gpt-6-luna', serviceTier: 'ultrafast' }))
+    await wrapper.find('button[aria-label="Model and reasoning"]').trigger('click')
+    const ultrafast = wrapper.find('[data-testid="speed-ultrafast"]')
+    expect(ultrafast.attributes('disabled')).toBeDefined()
+    expect(ultrafast.text()).toContain('On Sol and Astra')
+    expect(wrapper.find('[data-testid="speed-standard"]').attributes('aria-checked')).toBe('true')
+  })
+
   it('stops this thread, not the coordinator, from a tap mid-run', async () => {
     const { store, wrapper } = mountFor(makeThread({ reviewStatus: 'active', isProcessing: true }))
     const abort = vi.spyOn(store, 'abortInstanceRun').mockImplementation(() => {})

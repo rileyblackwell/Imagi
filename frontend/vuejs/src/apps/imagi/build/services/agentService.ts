@@ -369,6 +369,7 @@ export const AgentService = {
       prompt: string;
       model: string;
       reasoningEffort?: string;
+      serviceTier?: string;
       file?: any;
       conversationId?: number | string | null;
     },
@@ -411,6 +412,7 @@ export const AgentService = {
         message: data.prompt,
         model: data.model,
         reasoning_effort: data.reasoningEffort,
+        service_tier: data.serviceTier,
         project_id: String(projectId),
         conversation_id: data.conversationId ?? undefined,
         current_file: currentFile,
@@ -587,6 +589,7 @@ export const AgentService = {
     title?: string
     model_name?: string
     reasoning_effort?: string
+    service_tier?: string
     thread_model_name?: string
     thread_reasoning_effort?: string
     archived?: boolean

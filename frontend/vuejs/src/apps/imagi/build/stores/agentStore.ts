@@ -9,9 +9,10 @@ import type {
   ConversationDto,
   ConversationKind,
   DispatchedTaskDto,
-  ReasoningEffort
+  ReasoningEffort,
+  ServiceTier
 } from '../types/services'
-import { AI_MODELS, DEFAULT_REASONING_EFFORT, canonicalModelId, clampEffortToModel } from '../types/services'
+import { AI_MODELS, DEFAULT_REASONING_EFFORT, SERVICE_TIERS, canonicalModelId, clampEffortToModel } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { ProjectFile } from '../types/components'
 import { AgentService } from '../services/agentService'
@@ -141,7 +142,8 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     totalTokens: typeof dto.total_tokens === 'number' ? dto.total_tokens : null,
     // A conversation stored on a retired model reopens on its successor.
     selectedModelId: canonicalModelId(dto.model_name) || fallbackModelId,
-    selectedEffort: clampEffortToModel(dto.reasoning_effort),
+    selectedEffort: clampEffortToModel(dto.reasoning_effort, canonicalModelId(dto.model_name)),
+    serviceTier: SERVICE_TIERS.find(t => t.id === dto.service_tier)?.id ?? '',
     threadDefaults: dto.kind === 'lead'
       ? {
           modelId: threadModelOrDefault(dto.thread_model_name),
@@ -1379,6 +1381,18 @@ export const useAgentStore = defineStore('agent', {
       if (instance.conversationId) {
         AgentService.updateConversation(instance.conversationId, { reasoning_effort: next })
           .catch(e => console.error('Failed to persist effort:', e))
+      }
+    },
+
+    // Saved on the conversation like the effort, so the next run (and one
+    // the server starts) asks for it.
+    setInstanceServiceTier(instanceId: string, tier: ServiceTier) {
+      const instance = this._findInstance(instanceId)
+      if (!instance || (instance.serviceTier ?? '') === tier) return
+      instance.serviceTier = tier
+      if (instance.conversationId) {
+        AgentService.updateConversation(instance.conversationId, { service_tier: tier })
+          .catch(e => console.error('Failed to persist speed:', e))
       }
     },
 

@@ -172,7 +172,7 @@ class ThreadDefaultsTests(TestCase):
         self.assertEqual(thread.reasoning_effort, 'high')
 
     def test_a_retired_or_unknown_setting_falls_back_sensibly(self):
-        self.lead.thread_model_name = 'gpt-6-luna'
+        self.lead.thread_model_name = 'gpt-5.6-luna'
         self.lead.thread_reasoning_effort = 'minimal'
         self.assertEqual(thread_defaults(self.lead), ('claude-haiku-5-5', 'low'))
         self.lead.thread_model_name = 'nope'
@@ -240,7 +240,15 @@ class ConversationSettingsEndpointTests(TestCase):
         self.assertEqual(self.lead.thread_reasoning_effort, 'high')
         self.assertEqual(self.lead.reasoning_effort, 'low')
 
+    def test_the_service_tier_is_saved_and_reported(self):
+        self.assertEqual(self.client.get(self.url).json()['service_tier'], '')
+        response = self._patch({'model_name': 'gpt-6.1-sol', 'service_tier': 'ultrafast'})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['service_tier'], 'ultrafast')
+        self.assertEqual(self._patch({'service_tier': ''}).json()['service_tier'], '')
+
     def test_unknown_values_are_refused(self):
         self.assertEqual(self._patch({'thread_model_name': 'gpt-2'}).status_code, 400)
         self.assertEqual(self._patch({'reasoning_effort': 'turbo'}).status_code, 400)
+        self.assertEqual(self._patch({'service_tier': 'warp'}).status_code, 400)
 

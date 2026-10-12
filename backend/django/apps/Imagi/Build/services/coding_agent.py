@@ -26,6 +26,7 @@ from apps.Imagi.Build.services.models_service import (
     get_model_by_id,
     get_model_provider,
     resolve_reasoning_effort,
+    resolve_service_tier,
 )
 from .base_agent import build_model_settings
 from .tools import (
@@ -57,11 +58,6 @@ INITIAL_BUILD_REASONING_EFFORT = _BUILDER_SETTINGS.get(
 # the cap that actually stops it.
 INITIAL_BUILD_TIME_BUDGET_S = _BUILDER_SETTINGS.get('INITIAL_BUILD_TIME_BUDGET_S', 24)
 
-# The OpenAI service tier the first build requests (IMAGI_BUILDER in settings).
-# A page write is one long streamed tool call, so its wall clock is output
-# throughput, and the 'fast' tier (GPT 6's name for what earlier models
-# called 'priority') roughly doubles it. None leaves the account default.
-INITIAL_BUILD_SERVICE_TIER = _BUILDER_SETTINGS.get('INITIAL_BUILD_SERVICE_TIER')
 
 
 # Project memory files, in priority order (Codex reads AGENTS.md,
@@ -231,6 +227,7 @@ def create_coding_agent(
     model: str = DEFAULT_MODEL,
     reasoning_effort: Optional[str] = None,
     kind: str = 'chat',
+    service_tier: Optional[str] = None,
 ) -> Agent:
     """
     Create the Imagi agent for a given conversation role.
@@ -249,6 +246,9 @@ def create_coding_agent(
             plus dispatch_task (new work) and message_task (follow-ups to a
             subagent it already has), with no file-editing tools — it delegates
             all building to subagents.
+        service_tier: The OpenAI processing tier to ask for ('fast',
+            'ultrafast'); ignored on a model that doesn't offer it. The first
+            build's home page and the user's composer choice set it.
 
     Returns:
         Agent: The configured agent for that role
@@ -331,15 +331,12 @@ def create_coding_agent(
     # the lead calls its tools one at a time and sees each result before the
     # next. Builders are unaffected: their parallel reads and edits are wanted.
     #
-    # The first build alone asks for a faster OpenAI service tier: it is the
-    # one run a person is watching a clock on, and the tier is priced per token.
+    # A faster OpenAI tier rides on every request when the run asks for one
+    # the model offers; it is priced per token (models_service).
     model_settings = build_model_settings(
         effort,
         parallel_tool_calls=False if kind == 'lead' else None,
-        service_tier=(
-            INITIAL_BUILD_SERVICE_TIER
-            if kind == 'initial_build' and get_model_provider(model) == 'openai' else None
-        ),
+        service_tier=resolve_service_tier(model, service_tier),
     )
     if model_settings is not None:
         kwargs['model_settings'] = model_settings

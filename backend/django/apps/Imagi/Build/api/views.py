@@ -49,6 +49,7 @@ from ..services.models_service import (
     DEFAULT_REASONING_EFFORT,
     canonical_model_id,
     canonical_reasoning_effort,
+    SERVICE_TIER_IDS,
     get_model_by_id,
 )
 from ..services.transcription_service import (
@@ -1091,6 +1092,11 @@ async def agent_stream(request):
 
     model = resolve_model(payload.get('model', DEFAULT_MODEL))
     reasoning_effort = payload.get('reasoning_effort')
+    # Absent means "leave the conversation's tier as it is"; anything that
+    # isn't a tier is Standard.
+    service_tier = payload.get('service_tier')
+    if service_tier is not None and service_tier not in SERVICE_TIER_IDS:
+        service_tier = ''
 
     # Busy guard, scoped by what the run will edit. Chat/lead runs edit the
     # shared canonical tree, so only one of those may be live per project;
@@ -1162,7 +1168,9 @@ async def agent_stream(request):
     if not allowed:
         return JsonResponse(limit_payload, status=429)
 
-    agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
+    agent_service = ImagiAgentService(
+        model=model, reasoning_effort=reasoning_effort, service_tier=service_tier
+    )
 
     async def event_stream():
         # The run is started here, as the response begins, but it does not
@@ -1545,6 +1553,7 @@ def _serialize_conversation(conversation):
         'title': conversation.title or '',
         'model_name': conversation.model_name,
         'reasoning_effort': conversation.reasoning_effort or DEFAULT_REASONING_EFFORT,
+        'service_tier': conversation.service_tier or '',
         # The coordinator's thread defaults (workspace settings); every other
         # kind reports the platform default, which is what it would dispatch.
         'thread_model_name': resolve_model(conversation.thread_model_name),
@@ -1786,6 +1795,12 @@ def conversation_detail(request, conversation_id):
                 )
             setattr(conversation, field, effort)
             updated_fields.append(field)
+    if 'service_tier' in request.data:
+        tier = request.data.get('service_tier') or ''
+        if tier and tier not in SERVICE_TIER_IDS:
+            return create_error_response('Invalid service_tier', status.HTTP_400_BAD_REQUEST)
+        conversation.service_tier = tier
+        updated_fields.append('service_tier')
     if 'thread_model_name' in request.data:
         requested = request.data.get('thread_model_name')
         if not (requested and get_model_by_id(requested)):
