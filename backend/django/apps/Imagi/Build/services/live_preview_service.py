@@ -57,6 +57,7 @@ BRIDGE_SCRIPT = os.path.join(RUNTIME_DIR, 'bridge.js')
 LIVE_STATE_SUFFIX = '_live.json'
 CONSOLE_SUFFIX = '_console.json'
 PROGRESS_SUFFIX = '_progress.json'
+AGENT_SUFFIX = '_agent.json'
 
 TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{32,64}$')
 # A session someone viewed this recently is never evicted.
@@ -64,6 +65,8 @@ IN_USE_SECONDS = 60
 # What a session is assumed to need before it has been measured.
 DEFAULT_SESSION_MB = 400
 MAX_CONSOLE_ENTRIES = 50
+# How long after an agent's last browser action the viewer still shows it.
+AGENT_ACTIVITY_FRESH_S = 12
 LOG_TAIL_BYTES = 64 * 1024
 MAX_LOG_LINES = 400
 
@@ -400,6 +403,7 @@ class LivePreviewService:
         self.state_file = os.path.join(self.pid_dir, f'{stem}{LIVE_STATE_SUFFIX}')
         self.console_file = os.path.join(self.pid_dir, f'{stem}{CONSOLE_SUFFIX}')
         self.progress_file = os.path.join(self.pid_dir, f'{stem}{PROGRESS_SUFFIX}')
+        self.agent_file = os.path.join(self.pid_dir, f'{stem}{AGENT_SUFFIX}')
 
     # -- lifecycle -----------------------------------------------------------
 
@@ -462,7 +466,7 @@ class LivePreviewService:
         remove_route(state.get('token'))
         remove_route(ports.get('live_token'))
         result = self.servers.stop_preview()
-        for path in (self.state_file, self.progress_file):
+        for path in (self.state_file, self.progress_file, self.agent_file):
             try:
                 os.remove(path)
             except OSError:
@@ -515,6 +519,7 @@ class LivePreviewService:
             'frontend': frontend,
             'progress': progress,
             'started_at': state.get('started_at'),
+            'agent': self.agent_activity(),
         }
 
     def _server_state(self, port, pid_file, log_file, reload_marker, ready_marker) -> Dict:
@@ -630,6 +635,32 @@ class LivePreviewService:
         except OSError:
             pass
         return clean
+
+    def record_agent_activity(self, path: str, action: str, label: str) -> None:
+        """Note what an agent just did in its own browser on this app.
+
+        Agents act in the headless preview browser (preview_browser_tool),
+        which the user doesn't see in the live preview. The status poll hands
+        this on, so the user's frame follows the agent to the page it is on
+        and says who is using the app.
+        """
+        activity = {'path': path or '/', 'action': action, 'label': label, 'at': time.time()}
+        try:
+            with open(self.agent_file, 'w') as f:
+                json.dump(activity, f)
+        except OSError:
+            pass
+
+    def agent_activity(self) -> Optional[Dict]:
+        """The latest agent browser action, while it is recent."""
+        activity = self._read_json(self.agent_file)
+        if not isinstance(activity, dict):
+            return None
+        try:
+            fresh = time.time() - float(activity.get('at') or 0) <= AGENT_ACTIVITY_FRESH_S
+        except (TypeError, ValueError):
+            return None
+        return activity if fresh else None
 
     def console_errors_since(self, since_ms: int) -> List[str]:
         entries = self._read_json(self.console_file) or []
@@ -754,7 +785,7 @@ def shut_down_live(prefix: str) -> None:
     _kill_pid_file(prefix + BROWSER_PID_SUFFIX)
     _kill_pid_file(prefix + '_frontend.pid')
     _kill_pid_file(prefix + '_backend.pid')
-    for leftover in (state_file, prefix + '_preview_ports.json', prefix + PROGRESS_SUFFIX):
+    for leftover in (state_file, prefix + '_preview_ports.json', prefix + PROGRESS_SUFFIX, prefix + AGENT_SUFFIX):
         try:
             os.remove(leftover)
         except OSError:
