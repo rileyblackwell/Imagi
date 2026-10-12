@@ -20,6 +20,7 @@ console, so it always reaches an agent fenced and labelled as data.
 import hashlib
 import logging
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 
@@ -63,11 +64,23 @@ def record_live_edit(project_id, conversation_id, file_path) -> None:
     )
 
 
+# Messages about the preview's own plumbing, not the app: Vite's live-reload
+# socket failing to connect through the preview's proxy. No thread can fix
+# these by changing the app, so they never start one.
+_PREVIEW_NOISE = re.compile(
+    r"\[vite\] (failed to connect to websocket|server connection lost)"
+    r"|WebSocket connection to '[^']*[?&]token=[^']*' failed",
+    re.IGNORECASE,
+)
+
+
 def _clean(errors) -> List[str]:
     texts = []
     for error in errors or []:
         text = error.get('text') if isinstance(error, dict) else error
         text = str(text or '').strip()[:MAX_ERROR_CHARS]
+        if text and _PREVIEW_NOISE.search(text):
+            continue
         if text and text not in texts:
             texts.append(text)
     return texts[:MAX_ERRORS]
@@ -220,7 +233,6 @@ def _start_fix_thread(user, project, brief: str):
         user=user,
         model_name=model_name,
         reasoning_effort=reasoning_effort,
-        fast_mode=lead.fast_mode,
         project_id=project.id,
         mode='agent',
         title=FIX_THREAD_TITLE,

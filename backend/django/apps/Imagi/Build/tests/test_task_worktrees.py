@@ -1562,14 +1562,6 @@ class DispatchTaskToolTests(TestCase):
         self.assertEqual(task.queued_prompt, 'Build a pricing page')
         self.assertEqual(result['dispatched_tasks'][0]['conversation_id'], task.id)
 
-    def test_a_thread_inherits_the_coordinators_fast_mode(self):
-        self.lead.fast_mode = True
-        self.lead.save(update_fields=['fast_mode'])
-
-        dispatch_task_impl(self._context(self.lead), 'Build a pricing page')
-
-        self.assertTrue(AgentConversation.objects.get(kind='task').fast_mode)
-
     def test_multiple_drafts_share_a_variant_group(self):
         self._asks('Show me three different directions for the hero.')
         dispatch_task_impl(self._context(self.lead), 'Try a hero section', drafts=3)

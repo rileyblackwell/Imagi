@@ -153,10 +153,6 @@ class AgentConversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     model_name = models.CharField(max_length=50, choices=get_model_choices())
-    # Claude's fast mode (faster output at a higher per-token price), switched
-    # on by the user in the composer. Threads the coordinator dispatches
-    # inherit it, so turning it on speeds up the whole job, not just the reply.
-    fast_mode = models.BooleanField(default=False)
     # The reasoning effort this conversation runs at, picked in its composer
     # ('' = the platform default). Saved so a thread the server starts on its
     # own runs at the effort the user chose for it.

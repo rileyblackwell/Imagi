@@ -362,24 +362,20 @@ IMAGI_BUILDER = {
     # them rather than just one. Wall clock is the slowest page; what scales
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
-    # The first build's pages run on Opus 5.5, and the home page alone runs
-    # in fast mode (Riley, 2026-10-08): the project opens when home lands, so
-    # that is the one page worth paying for speed. Fast mode bills at twice
-    # the list price ($8 / $40 per M tokens, metered as such in
-    # models_service); the other pages build behind it at standard speed. The project's main thread still gets
-    # DEFAULT_MODEL — this only picks the page builders.
+    # The first build's pages run on Opus 5.5 at standard speed. Claude's fast
+    # mode was dropped (Riley, 2026-10-12): Anthropic doesn't grant it to every
+    # organization yet. The project's main thread still gets DEFAULT_MODEL —
+    # this only picks the page builders.
     'INITIAL_BUILD_MODEL': 'claude-opus-5-5',
-    'INITIAL_BUILD_SPEED': 'fast',
     # The project opens as soon as the home page lands; the other pages keep
-    # building and merge as they finish. Not yet measured on Opus fast mode —
-    # tune once a live build has been timed.
-    'INITIAL_BUILD_TIME_BUDGET_S': 45,
+    # building and merge as they finish. Tune once a live build has been timed.
+    'INITIAL_BUILD_TIME_BUDGET_S': 120,
     # The pages after home are planned per business (Riley, 2026-10-08):
     # one quick call picks usually 5 to 20 pages in all, never more than 20
     # (initial_page_plan.MAX_PAGES). Setting INITIAL_BUILD_PAGES to a list of
     # PAGE_BRIEFS slugs skips the plan and builds exactly those.
     'INITIAL_BUILD_PLANNER_MODEL': 'claude-sonnet-5-5',
-    # Planned pages build behind home at standard speed, this many at once,
+    # Planned pages build behind home, this many at once,
     # each with its own time budget counted from when it starts.
     'INITIAL_BUILD_MAX_PARALLEL_PAGES': 6,
     'INITIAL_BUILD_PAGE_TIME_BUDGET_S': 120,
@@ -392,7 +388,7 @@ IMAGI_BUILDER = {
     # time budget stops a normal build long before either binds. Both are PER
     # PAGE, so the ceiling for a whole build is this times the page count.
     # The cost figure is metered at list price (models_service); at Opus 5.5
-    # fast-mode rates a page is roughly $0.20–0.50, so this stays well above
+    # rates a page is roughly $0.10–0.25, so this stays well above
     # real expected spend. Sized so it never cuts a build short on its own;
     # time does that.
     'INITIAL_BUILD_COST_BUDGET_USD': 1.50,

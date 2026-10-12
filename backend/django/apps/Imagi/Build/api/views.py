@@ -1091,9 +1091,6 @@ async def agent_stream(request):
 
     model = resolve_model(payload.get('model', DEFAULT_MODEL))
     reasoning_effort = payload.get('reasoning_effort')
-    # Absent means "leave the conversation's setting as it is".
-    fast_mode = payload.get('fast_mode')
-    fast_mode = None if fast_mode is None else bool(fast_mode)
 
     # Busy guard, scoped by what the run will edit. Chat/lead runs edit the
     # shared canonical tree, so only one of those may be live per project;
@@ -1165,9 +1162,7 @@ async def agent_stream(request):
     if not allowed:
         return JsonResponse(limit_payload, status=429)
 
-    agent_service = ImagiAgentService(
-        model=model, reasoning_effort=reasoning_effort, fast_mode=fast_mode
-    )
+    agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
     async def event_stream():
         # The run is started here, as the response begins, but it does not
@@ -1549,7 +1544,6 @@ def _serialize_conversation(conversation):
         'id': conversation.id,
         'title': conversation.title or '',
         'model_name': conversation.model_name,
-        'fast_mode': conversation.fast_mode,
         'reasoning_effort': conversation.reasoning_effort or DEFAULT_REASONING_EFFORT,
         # The coordinator's thread defaults (workspace settings); every other
         # kind reports the platform default, which is what it would dispatch.

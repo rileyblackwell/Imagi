@@ -377,8 +377,6 @@ class AuthRestyleServiceTests(TransactionTestCase):
         self.assertEqual(task.kind, 'task')
         self.assertEqual(task.parent_id, lead.id)
         self.assertEqual(task.model_name, settings.IMAGI_BUILDER['DEFAULT_MODEL'])
-        # Normal speed: only the first build's home page runs in fast mode.
-        self.assertFalse(task.fast_mode)
         self.assertIn('styles/auth.css', task.queued_prompt)
         self.assertIsNone(task.run_started_at)
         start.assert_called_once()

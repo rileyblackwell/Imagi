@@ -636,7 +636,7 @@ class InitialBuildServiceTests(TransactionTestCase):
         )
 
     def test_main_thread_runs_on_the_default_model_not_the_build_model(self):
-        # The pages race the clock in fast mode; the main thread is where the
+        # The pages race the clock; the main thread is where the
         # founder keeps working afterwards, so it gets the everyday default.
         from apps.Imagi.Build.models import AgentConversation
 
@@ -1155,36 +1155,6 @@ class ParallelInitialBuildTests(TransactionTestCase):
         self.assertEqual(seen, {'about': True, 'contact': True})
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'completed')
-
-    def test_only_the_home_page_runs_in_fast_mode(self):
-        # The project opens when home lands, so home alone pays for speed;
-        # the other pages build behind it at standard speed.
-        from apps.Imagi.Build.models import AgentConversation
-        from apps.Imagi.Build.services.base_agent import ImagiAgentService
-        from apps.Imagi.ProjectManager.services import initial_build_service
-
-        fast_by_slug = {}
-
-        def fake_process(_self, **kwargs):
-            title = AgentConversation.objects.get(id=kwargs['conversation_id']).title
-            slug = title.rsplit('—', 1)[-1].strip().split(' ')[0]
-            fast_by_slug[slug] = _self.fast_mode
-            AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
-                review_status='accepted'
-            )
-            return {'success': True, 'files_changed': []}
-
-        with patch.object(ImagiAgentService, 'process', fake_process), patch(
-            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
-            return_value=[],
-        ):
-            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
-
-        self.assertEqual(fast_by_slug, {'home': True, 'about': False, 'contact': False})
-        # The page threads keep the standard speed for later follow-ups.
-        self.assertFalse(
-            AgentConversation.objects.filter(kind='task', fast_mode=True).exists()
-        )
 
     def test_the_build_fails_only_when_no_page_lands(self):
         self._run({'home': 'fail', 'about': 'fail', 'contact': 'fail'})
