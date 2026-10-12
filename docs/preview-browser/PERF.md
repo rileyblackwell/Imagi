@@ -41,8 +41,8 @@ Measured on the demo project (process tree RSS); larger apps grow mostly in Vite
 | Headless Chromium | none for viewing; only while the agent uses its preview tool, 120 s idle limit |
 
 Budget: `PREVIEW_MEMORY_BUDGET_MB` (2 GB) across all sessions, measured from
-the process trees' RSS. Idle sessions stop after 10 minutes (5 if prewarmed
-and never opened); only the most recently opened project is prewarmed.
+the process trees' RSS. Idle sessions stop after 10 minutes; while a user is
+signed in, their 3 most recently opened projects stay running.
 
 Railway bills about $10 per GB-month of memory. One user previewing for a few
 hours a day keeps well under 1 GB-month; the 2 GB ceiling held for a whole

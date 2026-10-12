@@ -257,6 +257,33 @@ class LiveApiTests(_Root, APITestCase):
         with override_settings(PREVIEW_V2=False):
             self.assertEqual(self.client.get('/api/v1/builder/preview/config/').json(), {'mode': 'stream'})
 
+    def test_keeps_the_three_most_recently_opened_projects_running(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        now = timezone.now()
+        projects = []
+        for age in (4, 1, 3, 2):
+            project = Project.objects.create(user=self.user, name=f'P{age}', project_dir=f'p{age}')
+            Project.objects.filter(pk=project.pk).update(last_opened_at=now - timedelta(hours=age))
+            projects.append(project)
+        started = []
+
+        class FakeService:
+            def __init__(self, project):
+                self.project = project
+
+            def is_running(self):
+                return False
+
+            def start(self, prewarm=False):
+                started.append((self.project.name, prewarm))
+
+        with patch.object(live, 'LivePreviewService', FakeService), \
+                patch('apps.Imagi.Build.services.project_files_service.ensure_working_copy'):
+            live.prewarm_recent(self.user).join(5)
+        self.assertEqual(started, [('P1', True), ('P2', True), ('P3', True)])
+
     def test_live_endpoints_are_off_without_the_flag(self):
         url = f'/api/v1/builder/{self.project.id}/preview/status/'
         with override_settings(PREVIEW_V2=False):

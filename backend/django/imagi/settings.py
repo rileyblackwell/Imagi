@@ -532,9 +532,11 @@ PREVIEW_FRAME_ANCESTORS = os.environ.get(
 PREVIEW_ROUTES_DIR = os.environ.get('PREVIEW_ROUTES_DIR', '')
 # A live preview nobody has looked at for this long stops (seconds).
 PREVIEW_LIVE_IDLE_TIMEOUT = int(os.environ.get('PREVIEW_LIVE_IDLE_TIMEOUT', '600'))
-PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT = int(os.environ.get('PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT', '300'))
-# Prewarm this many of the owner's most recent projects while Imagi is open.
-PREVIEW_LIVE_PREWARM_RECENT = int(os.environ.get('PREVIEW_LIVE_PREWARM_RECENT', '1'))
+PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT = int(os.environ.get('PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT', '600'))
+# Keep this many of the owner's most recently opened projects running while
+# Imagi is open, so the workspace opens onto a running preview. One that drops
+# out of them stops after PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT.
+PREVIEW_LIVE_PREWARM_RECENT = int(os.environ.get('PREVIEW_LIVE_PREWARM_RECENT', '3'))
 # Live previews on one host share this much memory; starting one past it
 # stops the least recently used first (measured RSS of Django + Vite).
 PREVIEW_MEMORY_BUDGET_MB = int(os.environ.get('PREVIEW_MEMORY_BUDGET_MB', '2048'))
