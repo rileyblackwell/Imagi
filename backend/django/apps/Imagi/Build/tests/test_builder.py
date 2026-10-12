@@ -862,6 +862,7 @@ class PreviewScrollMetricsTests(TestCase):
         self.assertEqual(methods, ['Emulation.setScrollbarsHidden', 'Emulation.setDeviceMetricsOverride'])
 
 
+@override_settings(PREVIEW_V2=False)
 class PreviewEndpointTests(APITestCase):
     """The async preview endpoints: auth, method handling, and error shapes."""
 

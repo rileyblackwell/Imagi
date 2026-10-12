@@ -259,6 +259,7 @@ class PreviewStartLockTests(SimpleTestCase):
             self.assertEqual(entered, [True])
 
 
+@override_settings(PREVIEW_V2=False)
 class PreviewWarmupTests(SimpleTestCase):
     def _project(self):
         return SimpleNamespace(pk=5, id=5, name='P')

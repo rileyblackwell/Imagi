@@ -1703,6 +1703,9 @@ def start_preview_warmup(project):
     """
     if not getattr(settings, 'BROWSER_PREVIEW_PREWARM_ON_CREATE', True):
         return None
+    if getattr(settings, 'PREVIEW_V2', False):
+        from .live_preview_service import warm_up_new_project
+        return warm_up_new_project(project)
 
     def run():
         close_old_connections()
@@ -1965,6 +1968,11 @@ def ensure_idle_reaper():
                     reap_idle_sessions()
                 except Exception:
                     logger.warning("Idle preview reaping failed", exc_info=True)
+                try:
+                    from .live_preview_service import reap_idle_live_sessions
+                    reap_idle_live_sessions()
+                except Exception:
+                    logger.warning("Idle live preview reaping failed", exc_info=True)
 
         _reaper_thread = threading.Thread(target=loop, name='preview-idle-reaper', daemon=True)
         _reaper_thread.start()
@@ -1978,6 +1986,10 @@ def reap_idle_sessions():
     every user's projects.
     """
     timeout = getattr(settings, 'BROWSER_PREVIEW_IDLE_TIMEOUT', 1800)
+    if getattr(settings, 'PREVIEW_V2', False):
+        # The user's preview is the live one; a headless browser only serves
+        # the agent's browser tool, and goes as soon as it falls quiet.
+        timeout = getattr(settings, 'PREVIEW_BROWSER_IDLE_TIMEOUT', 120)
     if not timeout:
         return
     # A session prewarmed at sign-in that the owner never opened goes sooner.
@@ -2011,6 +2023,22 @@ def _shut_down_session(state_file):
     prefix = state_file[:-len(BROWSER_STATE_SUFFIX)]
     # Browser first, then the dev servers recorded by PreviewService.
     _kill_pid_file(prefix + BROWSER_PID_SUFFIX)
+    from .live_preview_service import live_session_active, remove_route
+    if live_session_active(prefix):
+        # The owner is looking at these servers in the live preview: only
+        # the agent's browser goes.
+        for leftover in (state_file, prefix + BACKDROP_CACHE_SUFFIX):
+            try:
+                os.remove(leftover)
+            except OSError:
+                pass
+        shutil.rmtree(prefix + BROWSER_PROFILE_SUFFIX, ignore_errors=True)
+        return
+    try:
+        with open(prefix + '_preview_ports.json') as f:
+            remove_route((json.load(f) or {}).get('live_token'))
+    except (OSError, ValueError, AttributeError):
+        pass
     _kill_pid_file(prefix + '_frontend.pid')
     _kill_pid_file(prefix + '_backend.pid')
     for leftover in (state_file, prefix + '_preview_ports.json', prefix + BACKDROP_CACHE_SUFFIX):

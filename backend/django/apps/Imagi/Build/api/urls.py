@@ -14,8 +14,12 @@ from .views import (
     # Builder workspace views
     CreateFileView, DeleteFileView,
     FileContentView,
+    PreviewConfigView,
     PreviewPrewarmView,
     PreviewSessionView,
+    preview_action,
+    preview_logs,
+    preview_status,
     ProjectPagesView,
     preview_backdrop,
     preview_frame,
@@ -60,6 +64,12 @@ builder_patterns = [
     path('<int:project_id>/preview/input/', preview_input, name='api-preview-input'),
     path('<int:project_id>/preview/navigate/', preview_navigate, name='api-preview-navigate'),
     path('<int:project_id>/preview/resize/', preview_resize, name='api-preview-resize'),
+    # Live preview (PREVIEW_V2): the app itself in an iframe on the preview
+    # origin; these carry its status, server logs and server actions.
+    path('preview/config/', PreviewConfigView.as_view(), name='api-preview-config'),
+    path('<int:project_id>/preview/status/', preview_status, name='api-preview-status'),
+    path('<int:project_id>/preview/logs/', preview_logs, name='api-preview-logs'),
+    path('<int:project_id>/preview/action/', preview_action, name='api-preview-action'),
 
     # File management endpoints
     path('<int:project_id>/files/create/', CreateFileView.as_view(), name='api-create-file'),

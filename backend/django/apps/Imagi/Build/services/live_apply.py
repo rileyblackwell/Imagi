@@ -131,6 +131,11 @@ def mirror(context, file_path: str, previous: Optional[bytes]) -> Dict:
     record_live_edit(
         getattr(context, 'project_id', None), getattr(context, 'conversation_id', None), file_path,
     )
+    from .live_preview_service import is_migration_file, schedule_migrate
+
+    if is_migration_file(file_path):
+        # runserver reloads on the new file but never applies it.
+        schedule_migrate(getattr(context, 'project_id', None))
     return {'live': True}
 
 
@@ -202,8 +207,13 @@ def preview_errors(context, mark: Mark, settle: Optional[float] = None) -> List[
 def _console_errors_since(context, since_ms: int) -> List[str]:
     from apps.Imagi.ProjectManager.models import Project
     from .browser_preview_service import BrowserPreviewService
+    from . import live_preview_service
 
     project = Project.objects.get(id=context.project_id)
+    if live_preview_service.enabled():
+        # The page runs in the owner's browser, which reports its console
+        # errors back through the live preview's status poll.
+        return live_preview_service.LivePreviewService(project).console_errors_since(since_ms)
     service = BrowserPreviewService(project)
     state = service._load_state()
     if not state or not service._browser_alive(state):

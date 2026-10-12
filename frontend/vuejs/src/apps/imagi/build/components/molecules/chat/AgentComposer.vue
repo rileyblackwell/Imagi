@@ -1069,7 +1069,13 @@ function setPromptText(text: string) {
   })
 }
 
-defineExpose({ setPromptText })
+// Context added from elsewhere in the workspace (an element picked in the
+// preview) goes after whatever the user has already typed.
+function appendPromptText(text: string) {
+  setPromptText(prompt.value.trim() ? `${prompt.value.trimEnd()}\n${text}` : text)
+}
+
+defineExpose({ setPromptText, appendPromptText })
 
 async function handlePrompt() {
   if (!prompt.value.trim() || !instance.value) return

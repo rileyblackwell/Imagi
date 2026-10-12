@@ -340,8 +340,11 @@ const composer = ref<InstanceType<typeof AgentComposer> | null>(null)
 function setPromptText(text: string) {
   composer.value?.setPromptText(text)
 }
+function appendPromptText(text: string) {
+  composer.value?.appendPromptText(text)
+}
 
-defineExpose({ setPromptText })
+defineExpose({ setPromptText, appendPromptText })
 
 /** The coordinator's next message. Mid-run it is held (one per instance — a
  *  second submit replaces it) and sent when the run finishes. */

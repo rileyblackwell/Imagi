@@ -508,6 +508,44 @@ BROWSER_PREVIEW_PREWARM_IDLE_TIMEOUT = int(os.environ.get('BROWSER_PREVIEW_PREWA
 # How often each workspace process sweeps for idle sessions, in seconds.
 BROWSER_PREVIEW_REAP_INTERVAL = int(os.environ.get('BROWSER_PREVIEW_REAP_INTERVAL', '60'))
 
+# Live preview (PREVIEW_V2; docs/preview-browser/). The workspace shows the
+# project's real Vite dev server in an iframe on a separate origin, served by
+# the preview edge (Build/services/preview_runtime/edge.mjs), instead of
+# screenshots of a headless Chromium. Off until the cutover.
+PREVIEW_V2 = os.environ.get('PREVIEW_V2', '0').lower() in ('1', 'true', 'yes')
+# Port the edge listens on. On Railway the preview domain targets it.
+PREVIEW_EDGE_PORT = int(os.environ.get('PREVIEW_EDGE_PORT', '8790'))
+# The origin previews are served from, e.g. https://imagi-preview.up.railway.app.
+# Must be another site than Imagi's own. Empty: http://127.0.0.1:<edge port>,
+# for local development.
+PREVIEW_PUBLIC_ORIGIN = os.environ.get('PREVIEW_PUBLIC_ORIGIN', '')
+# Imagi origins allowed to frame a preview and talk to its bridge script.
+PREVIEW_PARENT_ORIGINS = [
+    o.strip() for o in os.environ.get('PREVIEW_PARENT_ORIGINS', FRONTEND_URL).split(',') if o.strip()
+]
+# Local development serves Imagi from whichever port the dev server got.
+PREVIEW_PARENT_ORIGIN_RE = os.environ.get(
+    'PREVIEW_PARENT_ORIGIN_RE',
+    r'^http://(localhost|127\.0\.0\.1)(:\d+)?$' if DEBUG else '',
+)
+PREVIEW_FRAME_ANCESTORS = os.environ.get(
+    'PREVIEW_FRAME_ANCESTORS',
+    'http://localhost:* http://127.0.0.1:*' if DEBUG else '',
+)
+# Where the edge reads which ports each session token reaches.
+PREVIEW_ROUTES_DIR = os.environ.get('PREVIEW_ROUTES_DIR', '')
+# A live preview nobody has looked at for this long stops (seconds).
+PREVIEW_LIVE_IDLE_TIMEOUT = int(os.environ.get('PREVIEW_LIVE_IDLE_TIMEOUT', '600'))
+PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT = int(os.environ.get('PREVIEW_LIVE_PREWARM_IDLE_TIMEOUT', '300'))
+# Prewarm this many of the owner's most recent projects while Imagi is open.
+PREVIEW_LIVE_PREWARM_RECENT = int(os.environ.get('PREVIEW_LIVE_PREWARM_RECENT', '1'))
+# Live previews on one host share this much memory; starting one past it
+# stops the least recently used first (measured RSS of Django + Vite).
+PREVIEW_MEMORY_BUDGET_MB = int(os.environ.get('PREVIEW_MEMORY_BUDGET_MB', '2048'))
+# With the live preview on, a headless browser only serves the agent's
+# browser tool, and stops after this many idle seconds.
+PREVIEW_BROWSER_IDLE_TIMEOUT = int(os.environ.get('PREVIEW_BROWSER_IDLE_TIMEOUT', '120'))
+
 
 # Marketing / Twilio
 # Public base URL Twilio uses for webhooks (delivery status callbacks and
