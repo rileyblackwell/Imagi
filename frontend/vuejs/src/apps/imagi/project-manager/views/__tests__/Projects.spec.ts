@@ -61,9 +61,9 @@ const DESCRIPTION = 'Neighbourhood sourdough bakery taking weekend pre-orders.'
 const DETAILS = 'People can order bread for Saturday.'
 
 /**
- * The create form is a four-step brief. What matters is that the steps and
- * the brief card follow what is typed, and that the button still sends the
- * same three fields under the same rules as before.
+ * The create form is a four-step brief. What matters is that the steps
+ * follow what is typed, and that the Create app button under them still sends
+ * the same fields under the same rules as before.
  */
 describe('Projects (Brief)', () => {
   beforeEach(() => {
@@ -81,46 +81,41 @@ describe('Projects (Brief)', () => {
     expect(steps[0].classes()).toContain('is-current')
     expect(wrapper.findAll('.step.is-done')).toHaveLength(0)
     expect(wrapper.find('.meter__label').text()).toBe('At least 20 characters')
-    expect(wrapper.find('.brief__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
   })
 
-  it('asks about the app, and mentions the business tools as what comes after', async () => {
+  it('asks about the app, with one Create app button and no summary card', async () => {
     const wrapper = mountPage()
     await flushPromises()
     expect(wrapper.find('h1').text()).toBe('Brief the agent on a new app')
     expect(wrapper.find('label[for="project-description"]').text()).toBe('What is your app?')
     expect(wrapper.find('label[for="project-details"]').text()).toBe('How does it work?')
-    expect(wrapper.find('.brief__name').text()).toBe('Your app')
-    expect(wrapper.find('.brief__facts').text()).toContain('Sell, Market and Operate')
+    expect(wrapper.find('.create-submit').text()).toBe('Create app')
+    expect(wrapper.text()).not.toContain('What the agent receives')
   })
 
-  it('moves along the rail and fills the brief card as the answers come in', async () => {
+  it('moves along the rail as the answers come in', async () => {
     const wrapper = mountPage()
     await wrapper.find('#project-name').setValue('Little Loaf')
     expect(wrapper.findAll('.step')[0].classes()).toContain('is-done')
     expect(wrapper.findAll('.step')[1].classes()).toContain('is-current')
-    expect(wrapper.find('.brief__name').text()).toBe('Little Loaf')
 
     await wrapper.find('#project-description').setValue('Sourdough bakery')
     expect(wrapper.find('#project-description-meter').text()).toBe('4 more characters')
-    expect(wrapper.find('.brief__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
 
     await wrapper.find('#project-description').setValue(DESCRIPTION)
     expect(wrapper.find('#project-description-meter').text()).toBe('Enough to start')
-    expect(wrapper.find('.brief__desc').text()).toBe(DESCRIPTION)
-    const facts = wrapper.findAll('.brief__facts dd').map((d) => d.text())
-    expect(facts[0]).toBe('Shows up here as you describe it')
-    expect(facts[1]).toBe('Imagi picks one')
     // What the app does is required too.
     expect(wrapper.findAll('.step')[2].classes()).toContain('is-current')
-    expect(wrapper.find('.brief__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
 
     await wrapper.find('#project-details').setValue('People order')
     expect(wrapper.find('#project-details-meter').text()).toBe('8 more characters')
     await wrapper.find('#project-details').setValue(DETAILS)
     expect(wrapper.find('#project-details-meter').text()).toBe('Enough to start')
     expect(wrapper.findAll('.step')[2].classes()).toContain('is-done')
-    expect(wrapper.find('.brief__submit').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('.create-submit').attributes('disabled')).toBeUndefined()
   })
 
   it('sends every answer, trimmed, and opens the new project', async () => {
@@ -130,8 +125,8 @@ describe('Projects (Brief)', () => {
     await wrapper.find('#project-description').setValue(DESCRIPTION)
     await wrapper.find('#project-details').setValue(` ${DETAILS} `)
     await wrapper.find('#project-design').setValue('Warm and minimal')
-    // The button sits in the brief card, outside the form, and submits it by id.
-    expect(wrapper.find('.brief__submit').attributes('form')).toBe('create-project')
+    // The button sits inside the form, under the last step.
+    expect(wrapper.find('form#create-project button[type="submit"].create-submit').exists()).toBe(true)
     await wrapper.find('form#create-project').trigger('submit')
     await flushPromises()
     expect(store.createProject).toHaveBeenCalledWith({
@@ -174,8 +169,6 @@ describe('Projects (Brief)', () => {
     await wrapper.find('#project-design').setValue('Use our green logo')
     expect(chip('Forest').attributes('aria-pressed')).toBe('true')
     expect(wrapper.findAll('.step')[3].classes()).toContain('is-done')
-    expect(wrapper.findAll('.brief__facts dd')[1].text())
-      .toBe('Warm and friendly, Forest colours, classic type, light mode. Use our green logo')
 
     // A second tap undoes a preset.
     await chip('Light').trigger('click')
@@ -211,11 +204,11 @@ describe('Projects (Brief)', () => {
     store.projects = [{ id: 1, name: 'Little Loaf', updated_at: '2026-10-01T00:00:00Z' }]
     const wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.find('button.brief__submit').exists()).toBe(false)
+    expect(wrapper.find('button.create-submit').exists()).toBe(false)
     const link = wrapper.findComponent(RouterLinkStub)
     expect(link.props('to')).toBe('/payments/pricing')
     expect(link.text()).toBe('See plans')
-    expect(wrapper.find('.brief__note--limit').text()).toBe(
+    expect(wrapper.find('.create-note--limit').text()).toBe(
       'Your Free plan includes one project. Pro and Max include unlimited projects.',
     )
   })
@@ -224,13 +217,13 @@ describe('Projects (Brief)', () => {
     usage.plan = { id: 'free', name: 'Free', maxActiveProjects: 1, earlyAccess: false }
     let wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.find('button.brief__submit').exists()).toBe(true)
+    expect(wrapper.find('button.create-submit').exists()).toBe(true)
 
     usage.plan = { id: 'pro', name: 'Pro', maxActiveProjects: null, earlyAccess: false }
     store.projects = [1, 2, 3].map((id) => ({ id, name: `App ${id}`, updated_at: '2026-10-01T00:00:00Z' }))
     wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.find('button.brief__submit').exists()).toBe(true)
-    expect(wrapper.find('.brief__note--limit').exists()).toBe(false)
+    expect(wrapper.find('button.create-submit').exists()).toBe(true)
+    expect(wrapper.find('.create-note--limit').exists()).toBe(false)
   })
 })

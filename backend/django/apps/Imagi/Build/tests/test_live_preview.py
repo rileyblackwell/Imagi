@@ -158,6 +158,16 @@ class SessionFilesTests(_Root, SimpleTestCase):
         with self.assertRaises(ValueError):
             self.service.action('rm -rf')
 
+    def test_an_agents_browser_action_is_shown_while_recent(self):
+        self.assertIsNone(self.service.agent_activity())
+        self.service.record_agent_activity('/book', 'left_click', 'Coordinator')
+        self.assertEqual(
+            {k: v for k, v in self.service.agent_activity().items() if k != 'at'},
+            {'path': '/book', 'action': 'left_click', 'label': 'Coordinator'},
+        )
+        with patch.object(live.time, 'time', return_value=time.time() + live.AGENT_ACTIVITY_FRESH_S + 1):
+            self.assertIsNone(self.service.agent_activity())
+
 
 class HostPolicyTests(_Root, SimpleTestCase):
     """Idle shutdown and the memory budget."""

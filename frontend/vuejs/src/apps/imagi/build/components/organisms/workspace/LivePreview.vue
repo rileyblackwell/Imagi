@@ -166,6 +166,15 @@
         <p v-if="editNote" class="lp-edit-note" role="status">{{ editNote }}</p>
       </transition>
 
+      <!-- An agent using the app in its own browser: the frame follows it
+           to its page, and this says who it is and what it is doing. -->
+      <transition name="lp-fade">
+        <p v-if="agentNote && !editNote" class="lp-edit-note lp-edit-note--agent" role="status" data-testid="agent-note">
+          <span class="lp-dot is-work" aria-hidden="true"></span>
+          {{ agentNote }}
+        </p>
+      </transition>
+
       <!-- Picking: say how to get out of it. -->
       <p v-if="picking" class="lp-edit-note lp-edit-note--pick" role="status">Click anything in your app to ask the agent about it. Esc cancels.</p>
 
@@ -283,6 +292,7 @@ import PreviewDrawer, { type DrawerTab, type LogLine } from './PreviewDrawer.vue
 import { PreviewService, type PreviewApp } from '../../../services/previewService'
 import {
   LivePreviewService,
+  describeAgentAction,
   normalizeAddress,
   parseBridgeMessage,
   type BridgeCommand,
@@ -669,6 +679,7 @@ async function pollStatus() {
     status.value = result
     if (result.progress?.stages) stages.value = result.progress.stages
     if (result.error_routing) errorRouting.value = result.error_routing
+    followAgent(result.agent)
     if (phase.value === 'ready' && result.running === false) {
       // The servers went away (idle shutdown, a deploy).
       phase.value = 'stopped'
@@ -682,6 +693,27 @@ async function pollStatus() {
     statusInFlight = false
     if (phase.value === 'ready' || phase.value === 'starting') scheduleStatus(phase.value === 'starting' ? 400 : undefined)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Agents using the app
+// ---------------------------------------------------------------------------
+
+// Agents act in a browser of their own on the server, so runs carry on with
+// this tab closed. While one is active, this frame goes where it goes.
+const agentNote = ref('')
+let agentSeenAt = 0
+
+function followAgent(activity: LiveStatus['agent']) {
+  if (!activity) {
+    agentNote.value = ''
+    return
+  }
+  agentNote.value = `${activity.label} is ${describeAgentAction(activity.action)}`
+  if (activity.at === agentSeenAt) return
+  agentSeenAt = activity.at
+  const path = normalizeAddress(activity.path || '/')
+  if (path !== currentPath.value && phase.value === 'ready') navigateTo(path)
 }
 
 // ---------------------------------------------------------------------------
@@ -997,6 +1029,8 @@ function resetForProject() {
   stages.value = []
   currentPath.value = '/'
   addressText.value = '/'
+  agentNote.value = ''
+  agentSeenAt = 0
   consoleEntries.value = []
   networkEntries.value = []
   logLines.value = []
@@ -1416,6 +1450,12 @@ defineExpose({ reload: () => reload(false) })
 }
 .dark .lp-edit-note { background: color-mix(in srgb, var(--sl-surface-2, #1a1d28) 94%, transparent); }
 .lp-edit-note--pick { color: var(--sl-text, #14151c); }
+.lp-edit-note--agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--sl-text, #14151c);
+}
 
 .lp-fade-enter-active,
 .lp-fade-leave-active { transition: opacity 0.2s var(--lp-ease), transform 0.2s var(--lp-ease); }

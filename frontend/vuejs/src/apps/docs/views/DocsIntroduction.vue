@@ -119,9 +119,9 @@
             Build your product and run marketing, sales, and operations from a single platform. No more stitching
             together a dozen separate subscriptions to keep your business running.
           </DocsCard>
-          <DocsCard title="Affordable & Transparent">
-            Get started for a fraction of the cost of hiring developers or a full software stack. AI usage is metered
-            at the AI providers' own list prices with no markup, and a free plan lets you try everything first.
+          <DocsCard title="Free to Use">
+            Imagi is free, with one open plan and no weekly limit on AI usage. Usage is metered at the AI providers'
+            own list prices with no markup, so you can see what your work actually costs.
           </DocsCard>
           <DocsCard title="Built to Move Fast">
             Go from idea to a working app and paying customers quickly. Every feature is designed to help you
@@ -161,7 +161,7 @@
           <DocsNavigationCard
             to="/docs/plans"
             title="Plans & Usage"
-            description="Understand plans, usage allowances, and billing."
+            description="See what the free plan includes and how AI usage works."
           />
         </div>
       </section>

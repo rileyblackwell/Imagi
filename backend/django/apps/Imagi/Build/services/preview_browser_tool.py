@@ -364,9 +364,12 @@ class PreviewBrowserToolset:
             return f"Error: {name} is not supported in the preview.", True
         if not isinstance(tool_input, dict):
             return "Error: the action's input must be an object.", True
+        context = getattr(wrapper, 'context', None)
         try:
-            session = _PreviewSession.open(getattr(wrapper, 'context', None))
-            return handler(session, tool_input), False
+            session = _PreviewSession.open(context)
+            content = handler(session, tool_input)
+            _note_activity(session, context, name)
+            return content, False
         except BrowserActionError as e:
             return str(e), True
         except Exception as e:
@@ -778,7 +781,9 @@ class _PreviewSession:
         """The app path a navigate url names, or an error for anything else."""
         if url.startswith('/') and not url.startswith('//'):
             try:
-                return service_cls._normalize_path(url)
+                return self._strip_base(service_cls._normalize_path(url))
+            except BrowserActionError:
+                raise
             except Exception as e:
                 raise BrowserActionError(f'Error: {e}')
         candidate = url if '://' in url else 'https://' + url
@@ -792,11 +797,20 @@ class _PreviewSession:
                 "Error: Navigation refused. The preview only opens this app's own pages — "
                 'pass a path such as /about.'
             )
-        path = parts.path or '/'
+        path = self._strip_base(parts.path or '/')
         if parts.query:
             path += '?' + parts.query
         if parts.fragment:
             path += '#' + parts.fragment
+        return path
+
+    def _strip_base(self, path):
+        """A path without the base the app is served under (the live
+        preview's /s/<token>/). A URL copied from the page carries it, and
+        navigate adds app_url, which already ends in it."""
+        base = urlsplit(self.app_url).path.rstrip('/')
+        if base and (path == base or path.startswith(base + '/') or path.startswith(base + '?')):
+            return path[len(base):] or '/'
         return path
 
     def _settle_animations(self, conn):
@@ -843,6 +857,50 @@ class _PreviewSession:
 
     def console_errors(self):
         return self.run(self.service._collect_console_errors)
+
+
+def _note_activity(session, context, action):
+    """Tell the user's live preview what the agent just did, best-effort.
+
+    With the live preview on, the user watches their own browser, not the
+    headless one the agent drives; this lets their frame follow the agent to
+    its page and say who is using the app (live_preview_service).
+    """
+    from . import live_preview_service as live_preview
+
+    try:
+        if not live_preview.enabled():
+            return
+        url, _title = session.run(session._location)
+        path = '/'
+        if url.startswith(session.app_url):
+            path = url[len(session.app_url):] or '/'
+            if not path.startswith('/'):
+                path = '/' + path
+        live_preview.LivePreviewService(session.service.project).record_agent_activity(
+            path, action, _agent_label(context),
+        )
+    except Exception:
+        logger.debug("Could not record the agent's preview activity", exc_info=True)
+
+
+def _agent_label(context):
+    """Who is using the preview, in the user's words: the coordinator, or a
+    thread by its title."""
+    if getattr(context, 'conversation_kind', None) == 'lead':
+        return 'Coordinator'
+    conversation_id = getattr(context, 'conversation_id', None)
+    if conversation_id:
+        from apps.Imagi.Build.models import AgentConversation
+
+        title = (
+            AgentConversation.objects.filter(pk=conversation_id)
+            .values_list('title', flat=True)
+            .first()
+        )
+        if title:
+            return title
+    return 'A thread'
 
 
 def preview_browser_tool():

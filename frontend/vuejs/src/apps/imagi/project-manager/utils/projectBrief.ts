@@ -116,21 +116,3 @@ export function composeDesignPreferences(d: StarterDesign): string {
   if (notes) lines.push(lines.length ? `Also: ${notes}` : notes)
   return lines.join('\n')
 }
-
-/** A short, readable summary of the starter design for the brief card. */
-export function summarizeDesign(d: StarterDesign): string {
-  const font = FONTS.find(f => f.id === d.font)
-  const palette = PALETTES.find(p => p.id === d.palette)
-  const theme = THEMES.find(t => t.id === d.theme)
-  const parts = [
-    STYLES.find(s => s.id === d.style)?.label,
-    d.palette === CUSTOM_PALETTE_ID ? 'your brand colour' : palette && `${palette.label} colours`,
-    font && `${font.label.toLowerCase()} type`,
-    theme && `${theme.label.toLowerCase()} mode`,
-  ].filter(Boolean) as string[]
-  const summary = parts.join(', ')
-  const notes = d.notes.trim()
-  if (!summary) return notes
-  const sentence = summary.charAt(0).toUpperCase() + summary.slice(1)
-  return notes ? `${sentence}. ${notes}` : sentence
-}

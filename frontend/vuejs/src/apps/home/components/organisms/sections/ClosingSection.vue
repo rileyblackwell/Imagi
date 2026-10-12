@@ -45,7 +45,7 @@ export default defineComponent({
     primaryButtonText: { type: String, default: 'Start building' },
     secondaryButtonText: { type: String, default: 'See pricing' },
     secondaryButtonTo: { type: [String, Object], default: '/payments/pricing' },
-    footnote: { type: String, default: 'Start for free. Upgrade anytime as you grow.' }
+    footnote: { type: String, default: 'Free to use. No card needed.' }
   }
 })
 </script>

@@ -144,7 +144,7 @@
         </div>
       </div>
       <p id="tune-effort-note" class="tune-note px-3 pt-1 pb-3">
-        More reasoning helps with difficult problems but uses more of your plan's usage. Medium is the default.
+        More reasoning helps with difficult problems but costs more per run. Medium is the default.
       </p>
 
       <!-- OpenAI's faster tiers. Only an OpenAI model has them, so the
@@ -200,7 +200,7 @@
           :class="{ 'tune-note--cost': currentTier !== '' }"
           data-testid="speed-cost-note"
         >
-          Fast costs twice the standard price and Ultrafast six times, so they use your plan's usage that much faster.
+          Fast costs twice the standard price and Ultrafast six times, so each run costs that much more.
         </p>
       </template>
     </div>
@@ -585,16 +585,21 @@ const usageMeters = computed(() => {
   const rows = [
     { key: 'week', label: 'Weekly limit', win: usageStore.weekly, percent: usageStore.weeklyPercent },
   ]
-  return rows.map(({ key, label, win, percent }) => ({
-    key,
-    label,
-    percent,
-    // How much of the window's allowance is gone, on a 0-100 scale — the
-    // dollar figures behind it stay out of the workspace. Unknown usage
-    // stays an em-dash, never 0%.
-    usedText: percent !== null ? `${percent}% used` : '—',
-    resetsAt: formatResetTime(win?.resetsAt ?? null),
-  }))
+  return rows.map(({ key, label, win, percent }) => {
+    // Known usage with no limit is an unlimited plan (Free while the
+    // server's FREE_TIER_UNLIMITED is on): nothing to fill or reset.
+    const unlimited = !!win && win.usedUsd !== null && win.limitUsd === null
+    return {
+      key,
+      label,
+      percent,
+      // How much of the window's allowance is gone, on a 0-100 scale — the
+      // dollar figures behind it stay out of the workspace. Unknown usage
+      // stays an em-dash, never 0%.
+      usedText: unlimited ? 'Unlimited' : percent !== null ? `${percent}% used` : '—',
+      resetsAt: unlimited ? null : formatResetTime(win?.resetsAt ?? null),
+    }
+  })
 })
 
 // The models offered in the composer, one per tier. SELECTABLE_MODEL_PATTERN

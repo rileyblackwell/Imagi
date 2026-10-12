@@ -4,6 +4,7 @@ toolset, carried out on the project's headless preview).
 """
 
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
@@ -63,6 +64,15 @@ class NavigationScopeTests(SimpleTestCase):
         self.assertEqual(self._path('http://127.0.0.1:5199/shop?x=1#top'), '/shop?x=1#top')
         self.assertEqual(self._path('localhost:5199/'), '/')
 
+    def test_the_live_previews_base_path_is_not_doubled(self):
+        # The live preview serves the app under /s/<token>/, and app_url ends
+        # in it; a URL or path the page itself reported already carries it.
+        session = _session(app_url='http://127.0.0.1:5199/s/tok')
+        self.assertEqual(session._app_path('http://127.0.0.1:5199/s/tok/book', BrowserPreviewService), '/book')
+        self.assertEqual(session._app_path('/s/tok/book?x=1', BrowserPreviewService), '/book?x=1')
+        self.assertEqual(session._app_path('http://127.0.0.1:5199/s/tok', BrowserPreviewService), '/')
+        self.assertEqual(session._app_path('/s/token-other', BrowserPreviewService), '/s/token-other')
+
     def test_anything_off_the_app_is_refused(self):
         for url in (
             'https://example.com', '//evil.com/x', 'http://127.0.0.1:8000/admin',
@@ -71,6 +81,36 @@ class NavigationScopeTests(SimpleTestCase):
             with self.subTest(url=url):
                 with self.assertRaises(BrowserActionError):
                     self._path(url)
+
+
+class ActivityTests(SimpleTestCase):
+    """What the user's live preview hears about an agent's browser actions."""
+
+    def _record(self, url, context, enabled=True):
+        from apps.Imagi.Build.services import preview_browser_tool as tool
+        from apps.Imagi.Build.services import live_preview_service as live
+
+        session = _session(app_url='http://127.0.0.1:5199/s/tok')
+        session.service = SimpleNamespace(project=SimpleNamespace(pk=7))
+        session.run = lambda body: (url, 'Title')
+        recorded = []
+        with patch.object(live, 'enabled', return_value=enabled), \
+                patch.object(live, 'LivePreviewService') as service:
+            service.return_value.record_agent_activity.side_effect = lambda *a: recorded.append(a)
+            tool._note_activity(session, context, 'left_click')
+        return recorded
+
+    def test_the_agents_page_and_name_reach_the_live_preview(self):
+        lead = SimpleNamespace(conversation_kind='lead', conversation_id=1)
+        self.assertEqual(
+            self._record('http://127.0.0.1:5199/s/tok/book?step=2', lead),
+            [('/book?step=2', 'left_click', 'Coordinator')],
+        )
+        self.assertEqual(self._record('http://127.0.0.1:5199/s/tok', lead), [('/', 'left_click', 'Coordinator')])
+
+    def test_nothing_is_recorded_without_the_live_preview(self):
+        lead = SimpleNamespace(conversation_kind='lead', conversation_id=1)
+        self.assertEqual(self._record('http://127.0.0.1:5199/s/tok/book', lead, enabled=False), [])
 
 
 class CoordinateTests(SimpleTestCase):

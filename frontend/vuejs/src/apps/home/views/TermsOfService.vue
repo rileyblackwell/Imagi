@@ -21,7 +21,7 @@
             <p class="sl-lede legal-rise">
               The agreement between you and Imagi covering accounts, acceptable use, payment, and the limits of the service.
             </p>
-            <p class="legal-updated legal-rise">Last updated: October 9, 2026</p>
+            <p class="legal-updated legal-rise">Last updated: October 12, 2026</p>
           </div>
         </section>
 
@@ -124,16 +124,12 @@ export default defineComponent({
         badge: '7. Plans and Payment',
         items: [
           {
-            title: '7.1 Plans and Usage',
-            text: 'Imagi offers a Free plan and paid plans. Each plan includes a weekly allowance of AI usage; when it runs out, AI work pauses until the allowance resets or you change plans. Current plans and prices are shown on our pricing page.'
+            title: '7.1 Free Plan',
+            text: 'Imagi currently has one plan, Free, and charges nothing to use it. It has no weekly limit on AI usage, but a single run that reaches a set amount of AI work stops and asks you before it continues. We may add usage limits to it later.'
           },
           {
-            title: '7.2 Billing',
-            text: 'Paid plans are billed monthly in advance through Stripe and renew automatically until you cancel. Plan changes may be prorated as shown when you make them. Prices exclude taxes unless stated. We may change prices, and a change applies to you from your next billing period after we tell you about it.'
-          },
-          {
-            title: '7.3 Cancelling and Refunds',
-            text: 'You can cancel anytime from the billing portal. Your plan stays active until the end of the period you paid for. Payments are non-refundable except where the law requires otherwise.'
+            title: '7.2 Paid Plans',
+            text: 'We may offer paid plans in the future. We will update these terms before we do, and nothing will be charged to you unless you choose a paid plan.'
           }
         ]
       },

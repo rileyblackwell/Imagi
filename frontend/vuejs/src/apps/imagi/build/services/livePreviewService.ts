@@ -51,6 +51,27 @@ export interface LiveStatus {
   /** Console errors the server accepted from this poll. */
   console_errors?: ConsoleEntry[]
   error_routing?: { to: 'thread' | 'new_thread'; conversation_id: number } | null
+  /** The latest action an agent took in its own browser on this app, while
+   *  recent: the page it is on, the toolset member, and who it is. */
+  agent?: AgentActivity | null
+}
+
+export interface AgentActivity {
+  path: string
+  action: string
+  label: string
+  at: number
+}
+
+/** What an agent's browser action looks like to the person watching. */
+export function describeAgentAction(action: string): string {
+  if (action === 'navigate') return 'opening a page'
+  if (/click|mouse|hover|drag/.test(action)) return 'clicking'
+  if (action === 'type' || action === 'key' || action === 'form_input') return 'typing'
+  if (action === 'scroll' || action === 'scroll_to') return 'scrolling'
+  if (action === 'read_console') return 'checking for errors'
+  if (action === 'wait') return 'waiting'
+  return 'looking'
 }
 
 export interface LogChunk {

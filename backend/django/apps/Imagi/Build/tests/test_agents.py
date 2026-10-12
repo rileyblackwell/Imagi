@@ -19,7 +19,7 @@ from unittest.mock import PropertyMock, patch
 from agents import MaxTurnsExceeded
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
-from django.test import SimpleTestCase, TestCase, TransactionTestCase
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
@@ -761,6 +761,7 @@ class AgentStreamEndpointTests(TestCase):
         self.assertEqual(resp.status_code, 409)
         self.assertEqual(resp.json()['detail'], 'agent_busy')
 
+    @override_settings(FREE_TIER_UNLIMITED=False)
     def test_rejects_run_when_over_usage_limit(self):
         # Free-plan weekly window exhausted -> refused before the stream opens,
         # with the same pre-stream JSON contract as agent_busy. The user has no

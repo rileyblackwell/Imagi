@@ -1519,7 +1519,7 @@ class ProjectNameValidationTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
+@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT, FREE_TIER_UNLIMITED=False)
 @patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
 @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
 @patch(
@@ -1575,6 +1575,29 @@ class ProjectLimitTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Project.objects.filter(user=self.user, is_active=True).count(), 2)
+
+
+@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT, FREE_TIER_UNLIMITED=True)
+@patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
+@patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
+@patch(
+    'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project',
+    side_effect=lambda project: project,
+)
+class FreeTierUnlimitedProjectTests(APITestCase):
+    """While FREE_TIER_UNLIMITED is on, Free has no project limit."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.client.force_authenticate(user=self.user)
+
+    def test_free_plan_creates_more_than_one_project(self, *_):
+        for name in ('Shop One', 'Shop Two', 'Shop Three'):
+            resp = self.client.post(
+                reverse('project_manager:project-create'),
+                {'name': name, 'description': VALID_DESCRIPTION},
+            )
+            self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
 
 class FounderBriefTests(SimpleTestCase):
