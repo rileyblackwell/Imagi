@@ -601,6 +601,11 @@ def _live_task_briefs(parent) -> list:
         if not brief:
             first = task.messages.filter(role='user').order_by('created_at').first()
             brief = first.content if first else ''
+        if not brief:
+            # Held on the schedule: nothing staged or run yet, so the brief
+            # is only on its task.
+            scheduled = task.tasks.order_by('id').first()
+            brief = scheduled.brief if scheduled else ''
         if brief:
             pairs.append((task, brief))
     return pairs
@@ -678,7 +683,7 @@ def thread_defaults(lead) -> tuple:
 
 def dispatch_task_impl(
     ctx, description: str, goal: str = '', overview: str = '', title: str = '',
-    drafts: int = 1,
+    drafts: int = 1, after=None, fork_from=None, reason: str = '',
 ) -> dict:
     """Create background task conversations from the lead thread.
 
@@ -746,6 +751,30 @@ def dispatch_task_impl(
             ),
         }
 
+    from apps.Imagi.Build.services import scheduling
+
+    # Placement: what this job needs from work already under way. after names
+    # threads whose results it builds on (it waits until they land); fork_from
+    # names a thread whose conversation it starts from (it runs alongside).
+    depends_on = scheduling.resolve_dependencies(
+        parent.user, parent, after if isinstance(after, (list, tuple)) else ([after] if after else []),
+    )
+    source = None
+    if fork_from not in (None, '', 0):
+        try:
+            source_id = int(fork_from)
+        except (TypeError, ValueError):
+            raise ValueError("fork_from takes a thread number from your roster")
+        source = AgentConversation.objects.filter(
+            id=source_id, user_id=ctx.user_id, kind='task', parent=parent,
+        ).first()
+        if source is None:
+            raise ValueError(f"There is no thread {fork_from} under you to fork.")
+    fork_point = None
+    if source is not None:
+        last = source.messages.order_by('-id').values_list('id', flat=True).first()
+        fork_point = last
+
     try:
         count = int(drafts or 1)
     except (TypeError, ValueError):
@@ -764,6 +793,12 @@ def dispatch_task_impl(
     provisional_title = ((title or '').strip() or brief).splitlines()[0][:80]
     thread_model, thread_effort = thread_defaults(parent)
 
+    if source is not None:
+        # A fork carries on its source's conversation, so it keeps the
+        # source's model and effort too.
+        thread_model = source.model_name or thread_model
+        thread_effort = source.reasoning_effort or thread_effort
+
     dispatched = []
     for _ in range(count):
         conversation = AgentConversation.objects.create(
@@ -780,12 +815,20 @@ def dispatch_task_impl(
             parent=parent,
             review_status='active',
             variant_group=variant_group,
-            queued_prompt=brief,
             goal=user_goal,
             overview=user_overview,
+            forked_from=source,
+            fork_point=fork_point,
         )
         SystemPrompt.objects.create(
             conversation=conversation, content=CODING_AGENT_INSTRUCTIONS
+        )
+        # Staged on the thread now, or held on the schedule until the work
+        # it builds on has landed.
+        task = scheduling.schedule_work(
+            lead=parent, thread=conversation, brief=brief,
+            placement='fork' if source is not None else 'new',
+            reason=reason, depends_on=depends_on,
         )
         dispatched.append({
             'conversation_id': conversation.id,
@@ -796,6 +839,12 @@ def dispatch_task_impl(
             'variant_group': variant_group,
             'parent': parent.id,
             'model_name': conversation.model_name,
+            'placement': task.placement,
+            # Held: the client must not start it; the server stages it when
+            # the threads it waits on land.
+            'waiting': task.status in scheduling.HELD_STATUSES,
+            'depends_on_threads': sorted({d.thread_id for d in depends_on}),
+            'forked_from': source.id if source is not None else None,
         })
 
     # Also recorded on the run context so the harness can surface the
@@ -804,6 +853,20 @@ def dispatch_task_impl(
     tracked = getattr(ctx, 'dispatched_tasks', None)
     if isinstance(tracked, list):
         tracked.extend(dispatched)
+
+    if depends_on:
+        waits = ', '.join(str(t) for t in dispatched[0]['depends_on_threads'])
+        return {
+            'success': True,
+            'dispatched_tasks': dispatched,
+            'instruction': (
+                f"Scheduled. It starts on its own once thread(s) {waits} have "
+                "landed in the app (if one of them stops, it waits and your "
+                "roster says so). Reply with ONE short sentence telling the "
+                "user what it will do and that it starts after that work, then "
+                "end your turn."
+            ),
+        }
 
     return {
         'success': True,
@@ -873,6 +936,8 @@ def lead_task_roster(lead) -> str:
             conversation__in=tasks, kind='question', status='pending'
         )
     }
+    from apps.Imagi.Build.services import scheduling
+
     lines = []
     for task in tasks:
         job = (task.goal or task.title or '').strip() or 'Untitled job'
@@ -880,11 +945,35 @@ def lead_task_roster(lead) -> str:
             task.run_started_at
             and timezone.now() - task.run_started_at < LEAD_ROSTER_RUN_FRESHNESS
         )
-        if task.review_status == 'active' and task.queued_prompt and not running:
+        schedule = scheduling.thread_schedule(task) or {}
+        waits = [str(w['id']) for w in schedule.get('waits_on') or []]
+        if schedule.get('status') in scheduling.HELD_STATUSES and waits:
+            stuck = [
+                str(w['id']) for w in schedule['waits_on']
+                if w.get('status') in scheduling.STUCK_STATUSES
+            ]
+            state = (
+                f"held: thread {', '.join(stuck)} stopped or was discarded, "
+                "so it cannot start"
+                if stuck else f"waiting for thread {', '.join(waits)} to land"
+            )
+        elif task.review_status == 'active' and task.queued_prompt and not running:
             state = 'about to start'
         else:
             state = _ROSTER_STATUS[task.review_status]
         line = f'- Thread {task.id}: "{job}" — {state}'
+        if schedule.get('forked_from'):
+            line += f"; forked from thread {schedule['forked_from']['id']}"
+        if schedule.get('queued_after'):
+            line += f"; {schedule['queued_after']} more job(s) lined up after this"
+        if running or task.review_status in ('input', 'failed'):
+            # What it has touched so far, so overlapping work can be placed
+            # after it rather than beside it.
+            touched = _thread_changed_files(task)
+            if touched:
+                more = len(touched) - LEAD_ROSTER_MAX_FILES
+                shown = ', '.join(touched[:LEAD_ROSTER_MAX_FILES])
+                line += f"; changed so far: {shown}" + (f" (+{more} more)" if more > 0 else '')
         question = ' '.join((questions.get(task.id) or '').split())
         if question:
             if len(question) > LEAD_ROSTER_QUESTION_MAX_CHARS:
@@ -895,6 +984,23 @@ def lead_task_roster(lead) -> str:
         "Your threads (most recent first; the number is the id message_task "
         "takes):\n" + "\n".join(lines)
     )
+
+
+LEAD_ROSTER_MAX_FILES = 6
+
+
+def _thread_changed_files(task) -> list:
+    """Files a thread's copy of the project differs in from where it forked."""
+    if not task.worktree_path:
+        return []
+    try:
+        from apps.Imagi.Build.services.version_control_service import (
+            VersionControlService,
+        )
+        return VersionControlService().task_changed_files(task.worktree_path, task.id)
+    except Exception as e:  # pragma: no cover - best effort
+        logger.warning(f"Could not list thread {task.id}'s changes: {e}")
+        return []
 
 
 def message_task_impl(ctx, task_id, message: str) -> dict:
@@ -947,23 +1053,22 @@ def message_task_impl(ctx, task_id, message: str) -> dict:
             "follow up on. Use dispatch_task to start it fresh."
         )
 
-    # Persisted like a dispatch brief, so a reload before the message is
-    # delivered still finds it waiting (the client re-fires staged prompts on
-    # load), and consumed the same way: the run that delivers it clears it.
-    # A message that arrives while an earlier one is still waiting joins it
-    # rather than replacing it — the subagent should hear both.
-    queued = task.queued_prompt.strip()
-    task.queued_prompt = f"{queued}\n\n{text}" if queued else text
-    fields = ['queued_prompt']
-    # A finished or stopped thread is reopened here, not only when a browser
-    # delivers the message, so the server's thread scheduler picks it up
-    # (it starts active threads with a staged prompt) and the follow-up runs
-    # with nobody watching. Its run forks a fresh worktree from the app as it
-    # is now and applies again when it finishes.
-    if task.review_status in ('accepted', 'failed'):
-        task.review_status = 'active'
-        fields.append('review_status')
-    task.save(update_fields=fields)
+    # The 'append' placement: serial on the thread that has the job, after
+    # whatever it is doing now. Staged like a dispatch brief (a message
+    # already waiting is joined, and a finished or stopped thread reopens so
+    # the server's scheduler picks it up with nobody watching); recorded on
+    # the schedule so the user can see it lined up. A thread still held on
+    # the schedule hears it once that work is released.
+    from apps.Imagi.Build.services import scheduling
+
+    if scheduling.thread_is_held(task):
+        held = task.tasks.filter(status__in=scheduling.HELD_STATUSES).order_by('id').first()
+        held.brief = f"{held.brief}\n\n{text}"
+        held.save(update_fields=['brief'])
+    else:
+        scheduling.schedule_work(
+            lead=lead, thread=task, brief=text, placement='append',
+        )
 
     payload = {
         'conversation_id': task.id,
@@ -1289,6 +1394,9 @@ def dispatch_task(
     overview: str = "",
     title: str = "",
     drafts: int = 1,
+    after: Optional[List[int]] = None,
+    fork_from: Optional[int] = None,
+    reason: str = "",
 ) -> str:
     """Dispatch a self-contained task to a background thread that builds it in an isolated copy of the project, in parallel with this conversation.
 
@@ -1336,11 +1444,21 @@ def dispatch_task(
             ("give me a couple of versions", "show me two directions") — a
             request to design or redesign something is not such an ask, and a
             fan-out nobody asked for is ignored and built as one task.
+        after: Thread numbers whose results this job builds on. It waits,
+            unstarted, until all of them have landed in the app, then starts
+            from the app with their work in it. Leave empty when it needs
+            nothing from other threads (it runs in parallel). For work that
+            builds on a single thread, message_task that thread instead.
+        fork_from: A thread number whose conversation this job should start
+            from: it inherits what that thread was asked, learned and decided,
+            and runs in parallel with it without waiting for its result.
+        reason: One short line for the user on why it is placed this way
+            ("Builds on the new menu", "Same look as the home page thread").
     """
     try:
         result = dispatch_task_impl(
             ctx.context, description, goal=goal, overview=overview, title=title,
-            drafts=drafts,
+            drafts=drafts, after=after, fork_from=fork_from, reason=reason,
         )
         return json.dumps(result)
     except Exception as e:
@@ -1361,6 +1479,8 @@ def message_task(ctx: RunContextWrapper, task_id: int, message: str) -> str:
     apply the follow-up the same way they applied the original work.
 
     Use dispatch_task instead only for genuinely new work no thread has.
+    This is also how to schedule work that needs one thread's result: the
+    thread runs it next, after its current job.
 
     Args:
         task_id: The thread's number, from the roster in your instructions.
@@ -1414,6 +1534,85 @@ def ask_user(
     return text
 
 
+@function_tool
+def remember(ctx: RunContextWrapper, key: str, value: str) -> str:
+    """Save a fact to the project's shared memory, which you, the coordinator and every thread read.
+
+    For what later work should follow or know: a decision the user made, a
+    convention, a fact about the app, what a finished job built (key
+    "Brand colors", value "Navy #1B2A4A with coral accents"). Not for
+    progress notes. Saving a key again replaces it. A thread's entry is
+    saved when its work lands in the app.
+
+    Args:
+        key: A few words naming the topic.
+        value: The fact itself, in a sentence or two.
+    """
+    from apps.Imagi.Build.models import AgentConversation
+    from apps.Imagi.Build.services import project_memory
+
+    context = ctx.context
+    try:
+        conversation = AgentConversation.objects.filter(
+            id=getattr(context, 'conversation_id', None), user_id=context.user_id
+        ).first()
+        if conversation is None or conversation.project_id is None:
+            raise ValueError("Project memory needs a project")
+        if conversation.kind == 'task':
+            project_memory.propose_entry(conversation, key, value)
+            return json.dumps({
+                'success': True,
+                'saved': 'when your work lands in the app',
+            })
+        project_memory.write_entry(
+            context.user_id, conversation.project_id, key, value,
+            author='coordinator', source=conversation,
+        )
+        project_memory.refresh_context(context)
+        return json.dumps({'success': True, 'saved': 'now'})
+    except Exception as e:
+        logger.error(f"Error saving project memory: {e}")
+        return _error_result(str(e))
+
+
+@function_tool
+def forget(ctx: RunContextWrapper, key: str) -> str:
+    """Remove an entry from the project's shared memory, when it no longer holds.
+
+    Args:
+        key: The entry's key, as it appears in project memory.
+    """
+    from apps.Imagi.Build.services import project_memory
+
+    context = ctx.context
+    try:
+        removed = project_memory.forget_entry(context.user_id, context.project_id, key)
+        project_memory.refresh_context(context)
+        return json.dumps({'success': True, 'removed': removed})
+    except Exception as e:
+        logger.error(f"Error forgetting project memory: {e}")
+        return _error_result(str(e))
+
+
+@function_tool
+def recall(ctx: RunContextWrapper, query: str = "") -> str:
+    """Read full entries from the project's shared memory, when the summary in your instructions shortened them.
+
+    Args:
+        query: Words to look for in keys and values; empty returns everything.
+    """
+    from apps.Imagi.Build.services import project_memory
+
+    context = ctx.context
+    try:
+        return json.dumps({
+            'entries': project_memory.recall(context.user_id, context.project_id, query),
+        })
+    except Exception as e:
+        logger.error(f"Error reading project memory: {e}")
+        return _error_result(str(e))
+
+
 def _question_details(options, visual) -> dict:
     """Clean ask_user's extras: at most four short, distinct choices, and a
     sketch only when it is a reasonably sized SVG. Anything else is dropped
@@ -1464,5 +1663,5 @@ LEAD_AGENT_READONLY_TOOLS = [
 # lead builds on LEAD_AGENT_READONLY_TOOLS (above). The lead can delegate new
 # work or follow up with a subagent it already has, and a task subagent can
 # hand a question back to the user.
-LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task, ask_user]
-TASK_AGENT_EXTRA_TOOLS = [ask_user]
+LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task, ask_user, remember, forget, recall]
+TASK_AGENT_EXTRA_TOOLS = [ask_user, remember, recall]

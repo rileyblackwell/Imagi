@@ -1,6 +1,6 @@
 // Types used in stores
 import type { ProjectFile } from './components'
-import type { AIModel, AgentInstance, CheckInDto, ReasoningEffort } from './services'
+import type { AIModel, AgentInstance, CheckInDto, ProjectMemoryEntry, ReasoningEffort } from './services'
 
 /**
  * Agent store state interface
@@ -28,4 +28,8 @@ export interface AgentState {
    *  on Medium unless the user picks otherwise. */
   threadModelId: string;
   threadEffort: ReasoningEffort;
+  /** The project's shared memory, as the memory view shows it: active
+   *  entries and threads' pending proposals. */
+  memoryEntries: ProjectMemoryEntry[];
+  memoryLoaded: boolean;
 }

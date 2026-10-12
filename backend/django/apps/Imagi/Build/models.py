@@ -210,6 +210,19 @@ class AgentConversation(models.Model):
     # this is how a Stop reaches it: the run's watcher sees the flag and
     # cancels it, whichever server process it is running in.
     cancel_requested_at = models.DateTimeField(null=True, blank=True)
+    # A forked thread: the thread whose conversation it starts from, and the
+    # last message of that thread it inherits (the fork point). The fork reads
+    # the source's history up to there as its own opening context, then
+    # diverges; nothing after the fork flows back. SET_NULL: deleting the
+    # source leaves the fork with its own messages only.
+    forked_from = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL, related_name='forks'
+    )
+    fork_point = models.PositiveIntegerField(null=True, blank=True)
+    # How many times in a row this thread has been sent back to reconcile its
+    # work with changes that landed while it ran (a merge conflict). Reset when
+    # its work merges; past the limit a conflict goes to the user instead.
+    merge_retries = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         db_table = 'Agents_agentconversation'
@@ -364,3 +377,136 @@ class AgentRunEvent(models.Model):
 
     def __str__(self):
         return f"Run events up to {self.seq_end} for conversation {self.conversation_id}"
+
+
+# Where the coordinator put a unit of work, and why that placement fits.
+PLACEMENT_CHOICES = (
+    ('new', 'New thread'),      # unrelated to anything running: in parallel
+    ('append', 'Same thread'),  # needs a thread's result: serial, after it
+    ('fork', 'Forked thread'),  # needs a thread's context, not its result
+)
+
+# A task's place in the schedule. 'waiting' is held back on dependencies that
+# have not landed; 'blocked' is held back on one that failed or was discarded
+# (it frees again if that one is retried and lands). 'queued' is staged on its
+# thread and waits only for a free slot or for the thread's current run.
+TASK_STATUS_CHOICES = (
+    ('waiting', 'Waiting on other work'),
+    ('blocked', 'Blocked'),
+    ('queued', 'Queued'),
+    ('running', 'Running'),
+    ('input', 'Needs the user'),
+    ('done', 'Done'),
+    ('failed', 'Failed'),
+    ('cancelled', 'Cancelled'),
+)
+
+# Statuses a task never leaves on its own.
+TASK_TERMINAL_STATUSES = ('done', 'cancelled')
+
+
+class ThreadTask(models.Model):
+    """One unit of work the coordinator placed on a thread.
+
+    The schedule the coordinator keeps, as rows: what the job is, which
+    thread runs it, how it was placed there and why, what it waits for, and
+    how it ended. Threads are where work runs (one at a time inside a thread,
+    in parallel across threads); tasks are what the coordinator decided, and
+    they are what make a dependency explicit — a task with depends_on stays
+    off its thread until every one of those has landed in the app.
+
+    Delivery still goes through the thread's queued_prompt (services.scheduling
+    stages a task there once it is free to run), so a thread's runs, its
+    worktree and its check-ins behave exactly as they did before tasks
+    existed.
+    """
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name='thread_tasks'
+    )
+    project_id = models.IntegerField(null=True, blank=True)
+    # The coordinator that placed it. SET_NULL: the schedule outlives a lead.
+    coordinator = models.ForeignKey(
+        AgentConversation, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='scheduled_tasks'
+    )
+    thread = models.ForeignKey(
+        AgentConversation, on_delete=models.CASCADE, related_name='tasks'
+    )
+    brief = models.TextField()
+    placement = models.CharField(max_length=10, choices=PLACEMENT_CHOICES, default='new')
+    # The coordinator's one line on why it placed the work this way, for the
+    # user ("Builds on the menu the other thread is adding").
+    reason = models.CharField(max_length=200, blank=True, default='')
+    depends_on = models.ManyToManyField(
+        'self', symmetrical=False, blank=True, related_name='dependents'
+    )
+    status = models.CharField(max_length=10, choices=TASK_STATUS_CHOICES, default='queued')
+    # How it ended, for the coordinator to read: {summary, files, outcome}.
+    result = models.JSONField(blank=True, default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'Agents_threadtask'
+        ordering = ['id']
+        indexes = [
+            models.Index(fields=['user', 'project_id', 'status']),
+            models.Index(fields=['thread', 'status']),
+        ]
+
+    def __str__(self):
+        return f"ThreadTask {self.id} ({self.placement}, {self.status}) on thread {self.thread_id}"
+
+
+MEMORY_STATUS_CHOICES = (
+    ('active', 'Active'),
+    ('proposed', 'Proposed'),
+)
+
+MEMORY_AUTHOR_CHOICES = (
+    ('user', 'User'),
+    ('coordinator', 'Coordinator'),
+    ('thread', 'Thread'),
+)
+
+
+class ProjectMemory(models.Model):
+    """One entry in a project's shared memory.
+
+    Every thread and the coordinator read the project's active entries, so a
+    decision made once (a convention, a fact about the app, what a finished
+    job produced) reaches work started later without anyone re-pasting it.
+
+    Writes are disciplined: the user and the coordinator write entries
+    directly, while a thread only proposes one. A proposal becomes active when
+    that thread's work lands in the app — the coordinator's merge is the
+    commit — and is dropped if the work is discarded, so a thread that went
+    wrong never leaves its notes behind. One active entry per key: writing a
+    key again replaces it.
+    """
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name='project_memories'
+    )
+    project_id = models.IntegerField()
+    key = models.CharField(max_length=80)
+    value = models.TextField()
+    status = models.CharField(max_length=10, choices=MEMORY_STATUS_CHOICES, default='active')
+    author = models.CharField(max_length=12, choices=MEMORY_AUTHOR_CHOICES, default='coordinator')
+    # The thread that wrote or proposed it. SET_NULL: the entry outlives it.
+    source = models.ForeignKey(
+        AgentConversation, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='memory_entries'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'Build_projectmemory'
+        ordering = ['key', 'id']
+        indexes = [
+            models.Index(fields=['user', 'project_id', 'status']),
+        ]
+
+    def __str__(self):
+        return f"Memory {self.key!r} ({self.status}) for project {self.project_id}"

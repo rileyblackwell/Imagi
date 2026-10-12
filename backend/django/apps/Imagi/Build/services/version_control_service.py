@@ -493,6 +493,81 @@ class VersionControlService:
                 paths.append(entry)
         return paths
 
+    def task_changed_files(self, worktree_path, conversation_id):
+        """Every path a task's worktree has changed since it forked.
+
+        Committed and uncommitted alike (each run checkpoints its worktree),
+        measured from the task's recorded fork point; without one, only the
+        uncommitted changes are known. Best-effort, like the listing above.
+        """
+        if not worktree_path or not os.path.isdir(worktree_path):
+            return []
+        try:
+            base = subprocess.run(
+                ['git', 'rev-parse', '--verify', '--quiet', task_base_ref(conversation_id)],
+                cwd=worktree_path, capture_output=True, text=True
+            )
+            if base.returncode != 0:
+                return self.list_worktree_changes(worktree_path)
+            tracked = subprocess.run(
+                ['git', 'diff', '--name-only', base.stdout.strip()],
+                cwd=worktree_path, capture_output=True, text=True
+            )
+            untracked = subprocess.run(
+                ['git', 'ls-files', '--others', '--exclude-standard'],
+                cwd=worktree_path, capture_output=True, text=True
+            )
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not list task changes in {worktree_path}: {e}")
+            return []
+        paths = []
+        for line in (tracked.stdout + '\n' + untracked.stdout).splitlines():
+            line = line.strip().strip('"')
+            if line and line not in paths:
+                paths.append(line)
+        return paths
+
+    def merge_base_into_task(self, project_path, conversation_id):
+        """Bring what landed in the app into a task's worktree, for the task
+        to reconcile.
+
+        Merges the canonical HEAD into the task branch inside its worktree.
+        A clean merge needs nothing more; a conflicted one is left in place,
+        markers and all, for the thread to resolve (its next commit concludes
+        the merge). Returns {'success', 'conflicts': [paths], 'message'}.
+        """
+        worktree_path = task_worktree_path(project_path, conversation_id)
+        if not os.path.isdir(worktree_path):
+            return {'success': False, 'conflicts': [], 'message': 'Task worktree does not exist'}
+        commit = self.commit_changes(worktree_path, f'Task {conversation_id} changes')
+        if not commit.get('success'):
+            return {'success': False, 'conflicts': [], 'message': commit.get('message', '')}
+        with canonical_repo_lock(project_path):
+            self.commit_changes(
+                project_path, f'Checkpoint before reconciling task {conversation_id}'
+            )
+            head = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'], cwd=project_path, capture_output=True, text=True
+            )
+            if head.returncode != 0:
+                return {'success': False, 'conflicts': [], 'message': head.stderr}
+            merge = subprocess.run(
+                ['git', 'merge', '--no-edit', head.stdout.strip()],
+                cwd=worktree_path, capture_output=True, text=True
+            )
+        if merge.returncode == 0:
+            return {'success': True, 'conflicts': [], 'message': 'Merged cleanly'}
+        unmerged = subprocess.run(
+            ['git', 'diff', '--name-only', '--diff-filter=U'],
+            cwd=worktree_path, capture_output=True, text=True
+        )
+        conflicts = [p for p in unmerged.stdout.splitlines() if p.strip()]
+        if not conflicts:
+            subprocess.run(['git', 'merge', '--abort'], cwd=worktree_path,
+                           capture_output=True, text=True)
+            return {'success': False, 'conflicts': [], 'message': merge.stderr or merge.stdout}
+        return {'success': True, 'conflicts': conflicts, 'message': 'Conflicts left for the task'}
+
     # ------------------------------------------------------------------
     # Per-task worktrees (one isolated checkout per task conversation)
     # ------------------------------------------------------------------

@@ -100,17 +100,19 @@ The user chats with you about their app. You never edit files: all building goes
 
 For each message:
 - A question or conversation: answer it yourself.
-- New work: start a thread with dispatch_task, one thread per job, with a brief a developer who hasn't seen this chat could work from. Ask for several drafts only when the user wants options to compare. Then reply in one short sentence.
+- New work: start a thread with dispatch_task, one thread per job, with a brief a developer who hasn't seen this chat could work from. Place it by what it needs from other threads: nothing, it runs in parallel; one thread's result, message_task that thread so it runs next; several threads' results, set after; only a thread's context, set fork_from. Ask for several drafts only when the user wants options to compare. Then reply in one short sentence.
 - Anything about a job a thread already has (a change, more detail, an answer to its question): send it to that thread with message_task, even if it has finished or stopped.
 - If what the user wants is unclear, ask with ask_user, with short options when you can.
 
 Each thread shows as a card in this chat while it works. When it ends, a [Thread report] here gives its own words and how it ended: finished and applied, waiting for the user to pick a draft, stopped to ask the user a question, or stopped before finishing. The user already sees each report and question on the card and can answer there or open the thread, so don't repeat them. If the user answers a thread's question here, pass it on with message_task. If a thread stopped before finishing, say so plainly and offer to send it back to work. Errors the app reports go to a thread automatically. Your thread list below shows where each one stands now.
 
+Project memory is shared with every thread: save decisions later work should follow with remember.
+
 Keep your replies short and plain, with no code or file names. Sign-in and payments come prebuilt; the user adds payments from the Sell console."""
 
 TASK_AGENT_INSTRUCTIONS = f"""You are a thread in Imagi's build workspace. {IMAGI_INTRO}
 
-The coordinator handed you one job from the user; see it through. You work in your own copy of the project, and your changes go into the live app the user is watching as you make them, so check your work in the preview. Later messages here, from the coordinator or from the user directly, steer the same job. An [App error] message means the app reported errors after your change: find out whether you caused them and fix them if so. When a decision is really the user's, call ask_user with one question and short options; it ends your turn and their answer arrives as the next message. Otherwise pick a sensible default and mention it.
+The coordinator handed you one job from the user; see it through. You work in your own copy of the project, and your changes go into the live app the user is watching as you make them, so check your work in the preview. Later messages here, from the coordinator or from the user directly, steer the same job. An [App error] message means the app reported errors after your change: find out whether you caused them and fix them if so. When a decision is really the user's, call ask_user with one question and short options; it ends your turn and their answer arrives as the next message. Otherwise pick a sensible default and mention it. Save lasting decisions to project memory with remember.
 
 {APP_GUIDANCE}"""
 
@@ -208,6 +210,12 @@ def get_dynamic_coding_instructions(
     roster = getattr(ctx, 'task_roster', '')
     if roster:
         instructions += "\n\n" + roster
+
+    # The project's shared memory, which every thread and the coordinator
+    # read (refreshed between model turns, so it stays current mid-run).
+    shared = getattr(ctx, 'project_memory', '')
+    if shared:
+        instructions += "\n\n" + shared
 
     memory = load_project_memory(getattr(ctx, 'project_path', None))
     if memory:

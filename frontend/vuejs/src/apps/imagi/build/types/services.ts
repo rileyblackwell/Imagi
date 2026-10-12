@@ -301,6 +301,12 @@ export interface DispatchedTaskDto {
    *  that existing task instead of staging a new one, so it is linked on the
    *  reply but its run is NOT started again. */
   already_running?: boolean;
+  /** Held on the schedule until the threads it waits on land: the server
+   *  starts it then, so the client must not. */
+  waiting?: boolean;
+  placement?: ThreadPlacement;
+  depends_on_threads?: number[];
+  forked_from?: number | null;
   /** Not a new subagent: the lead forwarded a follow-up to one it already has.
    *  `brief` is that message, delivered as the subagent's next turn (after its
    *  current run, if it is mid-run) instead of a fresh dispatch. */
@@ -319,6 +325,52 @@ export interface AgentQuestion {
 export interface DispatchedTaskRef {
   conversationId: number;
   title: string;
+}
+
+/** Where a thread stands on the coordinator's schedule. */
+export type ThreadTaskStatus =
+  | 'waiting' | 'blocked' | 'queued' | 'running' | 'input' | 'done' | 'failed' | 'cancelled'
+
+/** How the coordinator placed a unit of work: on a new thread in parallel,
+ *  after a thread's current job on that same thread, or on a fork of a
+ *  thread that inherits its conversation. */
+export type ThreadPlacement = 'new' | 'append' | 'fork'
+
+/** Another thread, as a schedule line names it. */
+export interface ScheduleThreadRef {
+  id: number
+  /** The job in the user's language */
+  title: string
+  review_status: TaskReviewStatus
+  /** That thread's own task status (on waits_on entries) */
+  status?: ThreadTaskStatus
+}
+
+/** A thread's place on the schedule: its current task, how and why it was
+ *  placed, what it waits for, and what it was forked from. */
+export interface ThreadScheduleDto {
+  task_id: number | null
+  status: ThreadTaskStatus | ''
+  placement: ThreadPlacement
+  /** The coordinator's one line on why it was placed this way */
+  reason: string
+  /** Threads whose work must land before this one starts */
+  waits_on: ScheduleThreadRef[]
+  /** Jobs lined up on this thread behind the current one */
+  queued_after: number
+  forked_from: ScheduleThreadRef | null
+}
+
+/** One entry in a project's shared memory. */
+export interface ProjectMemoryEntry {
+  id: number
+  key: string
+  value: string
+  /** 'proposed': a thread's entry, saved when its work lands */
+  status: 'active' | 'proposed'
+  author: 'user' | 'coordinator' | 'thread'
+  source: { id: number; title: string } | null
+  updated_at: string
 }
 
 export interface ConversationDto {
@@ -363,6 +415,8 @@ export interface ConversationDto {
   /** A dispatched task's brief, waiting for its run to fire (cleared server-side
    *  when the run starts). Empty for everything else. */
   queued_prompt?: string;
+  /** Threads only: where it stands on the coordinator's schedule */
+  schedule?: ThreadScheduleDto | null;
 }
 
 export interface AgentInstance {
@@ -414,6 +468,8 @@ export interface AgentInstance {
   /** A dispatched brief this task has not started running yet. Cleared when
    *  the client fires the run (the backend clears its own copy then too). */
   pendingBrief?: string | null;
+  /** Threads only: its place on the coordinator's schedule */
+  schedule?: ThreadScheduleDto | null;
 }
 
 /**

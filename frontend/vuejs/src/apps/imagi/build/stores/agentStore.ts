@@ -163,8 +163,22 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     hasUnread: false,
     queuedPrompt: null,
     pendingBrief: dto.queued_prompt || null,
+    schedule: dto.schedule ?? null,
   }
 }
+
+/** Held on the coordinator's schedule: waiting on other threads' work to
+ *  land (or blocked because one of them stopped), with no run of its own. */
+export function isHeldThread(instance: AgentInstance): boolean {
+  const status = instance.schedule?.status
+  return instance.kind === 'task' && !instance.isProcessing &&
+    instance.reviewStatus === 'active' && (status === 'waiting' || status === 'blocked')
+}
+
+/** The brief a held thread was dispatched with, kept for the moment the
+ *  server releases it: the tab then follows its run with that brief as the
+ *  opening message, as it does for any dispatch. */
+const heldBriefs = new Map<number, string>()
 
 export const useAgentStore = defineStore('agent', {
   state: (): AgentState => ({
@@ -180,6 +194,8 @@ export const useAgentStore = defineStore('agent', {
     checkInsLoaded: false,
     threadModelId: DEFAULT_MODEL_ID,
     threadEffort: DEFAULT_REASONING_EFFORT,
+    memoryEntries: [],
+    memoryLoaded: false,
   }),
 
   getters: {
@@ -266,8 +282,16 @@ export const useAgentStore = defineStore('agent', {
      *  about to start one. Newest first. */
     workingThreads(): AgentInstance[] {
       return this.activeAgentInstances.filter(
-        i => i.isProcessing || i.reviewStatus === 'active'
+        i => i.isProcessing || (i.reviewStatus === 'active' && !isHeldThread(i))
       )
+    },
+
+    /** Threads the coordinator scheduled to start after other threads' work
+     *  lands, oldest first — the order they were placed in. */
+    scheduledThreads(): AgentInstance[] {
+      return this.activeAgentInstances
+        .filter(isHeldThread)
+        .sort((a, b) => (a.conversationId ?? 0) - (b.conversationId ?? 0))
     },
 
     /** Threads waiting on the user: one asked a question, one of several
@@ -320,7 +344,11 @@ export const useAgentStore = defineStore('agent', {
 
   actions: {
     setProjectId(id: string | null) {
-      if (id !== this.projectId) this.checkInsLoaded = false
+      if (id !== this.projectId) {
+        this.checkInsLoaded = false
+        this.memoryEntries = []
+        this.memoryLoaded = false
+      }
       this.projectId = id
     },
 
@@ -478,6 +506,8 @@ export const useAgentStore = defineStore('agent', {
       this.stopCheckInPolling()
       checkInTimer = setInterval(() => {
         void this.loadCheckIns()
+        // Held threads start on the server when what they wait on lands.
+        void this.syncHeldThreads()
         // A subagent whose run the backend refused is waiting on a slot it
         // cannot see free (another project's runs count too), so its retry
         // rides this tick rather than a signal from this tab.
@@ -623,6 +653,27 @@ export const useAgentStore = defineStore('agent', {
           // The server started it on the thread defaults; the dispatch
           // carries the model, and the effort is the default it was given.
           instance.selectedEffort = this.threadEffort
+        }
+        if (task.waiting) {
+          // Held on the schedule: the server stages and starts it once the
+          // threads it waits on have landed. Until then it has no run.
+          heldBriefs.set(task.conversation_id, task.brief)
+          instance.pendingBrief = null
+          instance.schedule = {
+            task_id: null,
+            status: 'waiting',
+            placement: task.placement || 'new',
+            reason: '',
+            waits_on: (task.depends_on_threads || []).map(id => {
+              const dep = this.instances.find(i => i.conversationId === id)
+              return { id, title: dep?.brief || dep?.title || 'Another thread', review_status: dep?.reviewStatus || 'active' }
+            }),
+            queued_after: 0,
+            forked_from: null,
+          }
+          // The reason and the dependencies' own states come from the server.
+          void this.refreshInstanceFromServer(instance.id)
+          continue
         }
         // The lead re-dispatched work this subagent already has: the server
         // handed back the running task rather than staging a new one, so it is
@@ -1127,8 +1178,93 @@ export const useAgentStore = defineStore('agent', {
         // yet).
         if (dto.brief) instance.brief = dto.brief
         if (dto.overview) instance.overview = dto.overview
+        instance.schedule = dto.schedule ?? null
       } catch (e) {
         console.error('Failed to refresh conversation', instance.conversationId, e)
+      }
+    },
+
+    /**
+     * Catch up on threads held on the coordinator's schedule.
+     *
+     * The server releases a held thread on its own the moment the work it
+     * waits on lands, and starts it. This tab hears about that here, on the
+     * check-in poll: a thread that is no longer held is followed like any
+     * dispatch (its brief as the opening message, its run watched live), or,
+     * if it is already running and its brief is not in hand, picked up by the
+     * resync poll that follows server-side runs.
+     */
+    async syncHeldThreads() {
+      const held = this.instances.filter(isHeldThread)
+      await Promise.all(held.map(async (instance) => {
+        const conversationId = instance.conversationId
+        if (conversationId == null) return
+        try {
+          const dto = await AgentService.getConversation(conversationId)
+          instance.schedule = dto.schedule ?? null
+          instance.updatedAt = dto.updated_at
+          this._setTaskReviewStatus(instance, dto.review_status || '')
+          if (isHeldThread(instance)) return
+          const brief = dto.queued_prompt || heldBriefs.get(conversationId) || ''
+          heldBriefs.delete(conversationId)
+          if (dto.is_running && !dto.queued_prompt && !brief) {
+            instance.isProcessing = true
+            instance.statusText = 'Working…'
+            this.resyncRunningInstances()
+            return
+          }
+          if (brief) {
+            instance.pendingBrief = brief
+            this.firePendingDispatches()
+          }
+        } catch (e) {
+          console.error('Failed to check a scheduled thread', conversationId, e)
+        }
+      }))
+    },
+
+    // --- Project memory (shared by the coordinator and every thread) ---
+
+    async loadMemory() {
+      if (!this.projectId) return
+      try {
+        this.memoryEntries = await AgentService.listMemory(this.projectId)
+        this.memoryLoaded = true
+      } catch (e) {
+        console.error('Failed to load project memory', e)
+      }
+    },
+
+    async addMemory(key: string, value: string) {
+      if (!this.projectId) return
+      const entry = await AgentService.addMemory(this.projectId, key, value)
+      // Saving a key again replaces it, so drop any entry it replaced.
+      this.memoryEntries = [
+        ...this.memoryEntries.filter(
+          e => !(e.status === 'active' && e.key.toLowerCase() === entry.key.toLowerCase())
+        ),
+        entry,
+      ]
+    },
+
+    async editMemory(entryId: number, key: string, value: string) {
+      const entry = await AgentService.updateMemory(entryId, { key, value })
+      this.memoryEntries = this.memoryEntries
+        .filter(e => e.id === entryId || !(
+          entry.status === 'active' && e.status === 'active' &&
+          e.key.toLowerCase() === entry.key.toLowerCase()
+        ))
+        .map(e => (e.id === entryId ? entry : e))
+    },
+
+    async removeMemory(entryId: number) {
+      const before = this.memoryEntries
+      this.memoryEntries = before.filter(e => e.id !== entryId)
+      try {
+        await AgentService.deleteMemory(entryId)
+      } catch (e) {
+        this.memoryEntries = before
+        throw e
       }
     },
 

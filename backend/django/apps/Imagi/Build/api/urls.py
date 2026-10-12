@@ -39,6 +39,9 @@ from .views import (
     conversation_messages,
     check_ins_list,
     check_in_resolve,
+    project_schedule,
+    project_memory_list,
+    project_memory_detail,
 )
 
 builder_patterns = [
@@ -92,6 +95,11 @@ agents_patterns = [
     # when they finish, need an answer, or fail.
     path('checkins/', check_ins_list, name='check_ins_list'),
     path('checkins/<int:check_in_id>/resolve/', check_in_resolve, name='check_in_resolve'),
+    # The coordinator's schedule (the task graph) and the project's shared
+    # memory, which every thread reads and the user can edit.
+    path('schedule/', project_schedule, name='project_schedule'),
+    path('memory/', project_memory_list, name='project_memory_list'),
+    path('memory/<int:entry_id>/', project_memory_detail, name='project_memory_detail'),
 ]
 
 urlpatterns = [

@@ -31,6 +31,7 @@ from django.utils.decorators import method_decorator
 
 from ..models import (
     AgentCheckIn,
+    ProjectMemory,
     AgentConversation,
     AgentMessage,
     CANONICAL_TREE_KINDS,
@@ -39,6 +40,7 @@ from ..models import (
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
 from ..services.detached_runs import start_detached_run, watch_conversation
 from ..services.thread_scheduler import start_waiting_threads
+from ..services import project_memory, scheduling
 from ..services.usage_limits import check_usage_allowed, record_usage
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
@@ -1254,7 +1256,11 @@ def _park_stranded_tasks(user, project_id):
     ).filter(
         Q(run_started_at__isnull=True)
         | Q(run_started_at__lt=now - RUN_STALENESS_WINDOW)
-    )
+    ).exclude(
+        # Held on the coordinator's schedule (waiting for other work to land):
+        # no run yet is exactly what it should have.
+        tasks__status__in=scheduling.HELD_STATUSES,
+    ).distinct()
     tasks = list(stranded)
     if not tasks:
         return
@@ -1451,6 +1457,12 @@ def _serialize_conversation(conversation):
         # A dispatched-but-not-yet-run task's brief: the client fires the run
         # with it (and _prepare_run clears it when that run starts).
         'queued_prompt': conversation.queued_prompt or '',
+        # Where this thread stands on the coordinator's schedule: how its work
+        # was placed and why, what it waits for, and what it was forked from.
+        'schedule': (
+            scheduling.thread_schedule(conversation)
+            if conversation.kind == 'task' else None
+        ),
     }
 
 
@@ -1630,6 +1642,8 @@ def conversation_detail(request, conversation_id):
         # A task's worktree would otherwise leak beside the project dir.
         _take_back_live_edits(conversation)
         _remove_conversation_worktree(conversation)
+        if conversation.kind == 'task':
+            project_memory.drop_proposals(conversation)
         conversation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -1685,6 +1699,8 @@ def conversation_detail(request, conversation_id):
             )
         conversation.archived_at = timezone.now() if archived else None
         updated_fields.append('archived_at')
+        if archived and conversation.kind == 'task':
+            scheduling.cancel_thread_tasks(conversation)
 
     if updated_fields:
         conversation.save(update_fields=updated_fields + ['updated_at'])
@@ -1907,6 +1923,11 @@ def conversation_accept(request, conversation_id):
 
     # Accepting consumes the task's queue slot in the main thread.
     _resolve_conversation_check_ins(conversation)
+    # The work landed: the schedule records it (work waiting on it is
+    # released on the scheduler's next pass) and its memory proposals commit.
+    scheduling.thread_landed(conversation)
+    scheduling.release_waiting_tasks(request.user)
+    project_memory.commit_proposals(conversation)
 
     return Response({'status': 'accepted'}, status=status.HTTP_200_OK)
 
@@ -1944,6 +1965,11 @@ def conversation_dismiss(request, conversation_id):
     conversation.save(update_fields=['review_status', 'worktree_path', 'updated_at'])
     # Dismissing consumes the task's queue slot in the main thread.
     _resolve_conversation_check_ins(conversation)
+    # Its work will never land: the schedule says so (work waiting on it is
+    # held as blocked), and nothing it proposed for memory survives.
+    scheduling.cancel_thread_tasks(conversation)
+    scheduling.release_waiting_tasks(request.user)
+    project_memory.drop_proposals(conversation)
 
     return Response({'status': 'dismissed'}, status=status.HTTP_200_OK)
 
@@ -2157,3 +2183,71 @@ def agent_transcribe(request):
         logger.exception('Failed to record transcription usage')
 
     return Response({'text': text}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# The coordinator's schedule and the project's shared memory
+# ---------------------------------------------------------------------------
+
+def _project_id_param(request):
+    raw = request.query_params.get('project_id') or request.data.get('project_id')
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_schedule(request):
+    """The coordinator's schedule for a project: every recent task, with its
+    thread, placement, reason, dependencies, status and result."""
+    project_id = _project_id_param(request)
+    if project_id is None:
+        return create_error_response('project_id is required', status.HTTP_400_BAD_REQUEST)
+    return Response(
+        {'tasks': scheduling.project_schedule(request.user, project_id)},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def project_memory_list(request):
+    """A project's shared memory: list it, or add an entry (the user's own)."""
+    project_id = _project_id_param(request)
+    if project_id is None:
+        return create_error_response('project_id is required', status.HTTP_400_BAD_REQUEST)
+    if not PMProject.objects.filter(id=project_id, user=request.user).exists():
+        return create_error_response('Project not found', status.HTTP_404_NOT_FOUND)
+    if request.method == 'POST':
+        try:
+            entry = project_memory.write_entry(
+                request.user.id, project_id,
+                request.data.get('key'), request.data.get('value'), author='user',
+            )
+        except ValueError as e:
+            return create_error_response(str(e), status.HTTP_400_BAD_REQUEST)
+        return Response(project_memory.serialize_entry(entry), status=status.HTTP_201_CREATED)
+    return Response(
+        {'entries': project_memory.project_entries(request.user, project_id)},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def project_memory_detail(request, entry_id):
+    """Edit or remove one memory entry. Editing a thread's pending proposal
+    keeps it pending; editing an entry makes it the user's."""
+    entry = get_object_or_404(ProjectMemory, id=entry_id, user=request.user)
+    if request.method == 'DELETE':
+        entry.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    key = request.data.get('key', entry.key)
+    value = request.data.get('value', entry.value)
+    try:
+        entry = project_memory.edit_entry(entry, key, value)
+    except ValueError as e:
+        return create_error_response(str(e), status.HTTP_400_BAD_REQUEST)
+    return Response(project_memory.serialize_entry(entry), status=status.HTTP_200_OK)

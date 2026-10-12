@@ -15,7 +15,7 @@
          back the other way on the return. The leaving pane is taken out of
          flow (see .pane-nav-leave-active) so the two cross in place rather
          than one waiting for the other to finish. -->
-    <Transition :name="opened ? 'pane-nav-push' : 'pane-nav-pop'">
+    <Transition :name="opened || memoryOpen ? 'pane-nav-push' : 'pane-nav-pop'">
     <!-- Reading (and steering) one thread. It happens here rather than in the
          chat pane on purpose: opening a thread must not displace the
          coordinator chat and its draft. -->
@@ -49,6 +49,21 @@
       <ThreadComposer :instance="opened" @back="closeOpened" />
     </div>
 
+    <!-- The project's shared memory: what every thread reads. Opened from
+         this pane's header, because it is the one thing the threads share. -->
+    <div v-else-if="memoryOpen" key="memory" class="pane-nav-view flex flex-col h-full">
+      <WorkspacePaneHeader
+        title="Project memory"
+        :status="memoryStatus"
+        state="idle"
+        :switches="[{ id: 'back', icon: 'fas fa-layer-group', label: 'Threads', direction: 'back' }]"
+        @switch="memoryOpen = false"
+      />
+      <div class="iw-scroll flex-1 min-h-0 overflow-y-auto">
+        <ProjectMemoryPanel />
+      </div>
+    </div>
+
     <div v-else key="list" class="pane-nav-view flex flex-col h-full">
     <!-- Header: the same plate the chat pane wears, switching back the other
          way. The status line reports the fleet, which is what the removed
@@ -69,12 +84,17 @@
         count: store.waitingCheckIns.length,
         direction: 'back',
       }, {
+        id: 'memory',
+        icon: 'fas fa-book-open',
+        label: 'Project memory',
+        iconOnly: true,
+      }, {
         id: 'settings',
         icon: 'fas fa-gear',
         label: 'Workspace settings',
         iconOnly: true,
       }]"
-      @switch="id => id === 'settings' ? openSettings() : emit('collapse')"
+      @switch="onListSwitch"
     />
 
     <!-- Fleet meter: the same numbers as the status line, drawn. Segments are
@@ -202,6 +222,9 @@ import InstanceCard from '../../molecules/sidebar/AgentInstanceCard.vue'
 import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue'
 import FoldTransition from '../../molecules/common/FoldTransition.vue'
 import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
+import ProjectMemoryPanel from '../../molecules/sidebar/ProjectMemoryPanel.vue'
+import { heldStatus } from '../../../utils/threadSchedule'
+import { isHeldThread } from '../../../stores/agentStore'
 import { useWorkspaceSettings } from '../../../composables/useWorkspaceSettings'
 import { ChatConversation } from '../../organisms/chat'
 import type { AgentInstance } from '../../../types/services'
@@ -218,6 +241,19 @@ const store = useAgentStore()
 const { openSettings } = useWorkspaceSettings()
 const showHistory = ref(false)
 const opened = computed(() => store.openedThread)
+const memoryOpen = ref(false)
+
+function onListSwitch(id: string) {
+  if (id === 'settings') openSettings()
+  else if (id === 'memory') memoryOpen.value = true
+  else emit('collapse')
+}
+
+const memoryStatus = computed(() => {
+  const saved = store.memoryEntries.filter(e => e.status === 'active').length
+  if (!store.memoryLoaded) return ''
+  return saved === 1 ? '1 entry, shared by every thread' : `${saved} entries, shared by every thread`
+})
 
 // Already newest-first. The coordinator's own chat is the chat pane, so it is
 // deliberately absent here — this panel is only about the threads.
@@ -234,6 +270,8 @@ const finishedHidden = computed(() =>
 const sections = computed(() => [
   { key: 'waiting', label: 'Waiting on you', items: store.waitingThreads },
   { key: 'working', label: 'Working', items: store.workingThreads },
+  // Placed by the coordinator to start once other threads' work lands.
+  { key: 'scheduled', label: 'Scheduled', items: store.scheduledThreads },
   {
     key: 'finished',
     label: 'Finished',
@@ -251,12 +289,16 @@ const workingCount = computed(() => store.workingThreads.length)
 const fleetStatus = computed(() => {
   const working = workingCount.value
   const waiting = store.waitingThreads.length
+  const scheduled = store.scheduledThreads.length
   if (working === 0 && waiting === 0) {
+    if (scheduled > 0) return `${scheduled} scheduled`
     return store.finishedThreads.length > 0 ? 'All threads finished' : 'No threads yet'
   }
-  if (waiting === 0) return `${working} ${working === 1 ? 'thread' : 'threads'} working`
-  if (working === 0) return `${waiting} waiting on you`
-  return `${working} working · ${waiting} waiting on you`
+  const parts = []
+  if (working > 0) parts.push(waiting === 0 ? `${working} ${working === 1 ? 'thread' : 'threads'} working` : `${working} working`)
+  if (waiting > 0) parts.push(`${waiting} waiting on you`)
+  if (scheduled > 0) parts.push(`${scheduled} scheduled`)
+  return parts.join(' · ')
 })
 
 /** The dot beside that line. Live work outranks the rest — the same precedence
@@ -278,7 +320,7 @@ const fleetSegments = computed(() => {
   return [
     { key: 'working', count: working },
     { key: 'waiting', count: waiting },
-    { key: 'starting', count: starting },
+    { key: 'starting', count: starting + store.scheduledThreads.length },
   ].filter(s => s.count > 0)
 })
 
@@ -311,6 +353,7 @@ const openedStatus = computed(() => {
   const instance = opened.value
   if (!instance) return ''
   if (instance.isProcessing) return ''
+  if (isHeldThread(instance)) return heldStatus(instance.schedule)
   switch (instance.reviewStatus) {
     case 'input': return 'Asked you a question'
     case 'ready': return 'Thread complete — one of your options'
@@ -324,6 +367,9 @@ const openedStatus = computed(() => {
 /** …and the dot that leads it, keyed the same way its card is. Never
  *  'working': there is no line here while a run is live. */
 const openedState = computed<'waiting' | 'idle'>(() => {
+  if (opened.value && isHeldThread(opened.value)) {
+    return opened.value.schedule?.status === 'blocked' ? 'waiting' : 'idle'
+  }
   const status = opened.value?.reviewStatus
   // A failed run wants the user too — it is holding a worktree until they
   // dismiss it — so it leads with the same mark.

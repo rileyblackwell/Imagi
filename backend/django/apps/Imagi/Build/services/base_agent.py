@@ -132,6 +132,13 @@ RUN_HEARTBEAT_INTERVAL = 60
 # Claude Code) so long-running conversations keep working instead of growing
 # without bound.
 HISTORY_MAX_CHARS = 60_000
+# How many forks back a thread's inherited context reaches.
+FORK_MAX_DEPTH = 3
+# How many times in a row a thread whose work clashed with changes that landed
+# meanwhile is sent back to reconcile them itself before the user is asked.
+MERGE_RETRY_LIMIT = 1
+# A line git writes where two changes met and it could not choose.
+CONFLICT_MARKER_RE = re.compile(r'^(<{7}|>{7})( |$)', re.MULTILINE)
 COMPACTED_SNIPPET_CHARS = 120
 
 # How many pages a capped run's note names before summarizing the rest.
@@ -319,8 +326,13 @@ def make_run_bounds_hook(
     model_id: str,
     budget_usd: Optional[float] = None,
     deadline_at: Optional[float] = None,
+    refresh_memory: bool = False,
 ):
     """A RunHooks that stops a run at its cost and/or wall-clock bound.
+
+    With refresh_memory it also re-reads the project's shared memory after
+    each model turn, so an entry another thread committed mid-run reaches
+    this one on its next step (project_memory.refresh_context).
 
     Both are checked after each model turn — the only point the SDK hands us
     control — so a run overshoots by at most the turn in flight.
@@ -340,7 +352,7 @@ def make_run_bounds_hook(
     """
     has_budget = bool(budget_usd) and budget_usd > 0
     has_deadline = deadline_at is not None
-    if RunHooks is None or not (has_budget or has_deadline):
+    if RunHooks is None or not (has_budget or has_deadline or refresh_memory):
         return None
 
     # The hook is built immediately before its run, so this is the run's start.
@@ -395,6 +407,11 @@ def make_run_bounds_hook(
             # The SDK adds the turn's usage before calling this, so the
             # reading is complete through the turn that passes a bound.
             self._remember_usage(context)
+            if refresh_memory:
+                from .project_memory import refresh_context
+                run_context = getattr(context, 'context', None)
+                if run_context is not None:
+                    await sync_to_async(refresh_context)(run_context)
             # Reached only on an SDK without on_llm_start: the deferred turn's
             # tools have long since run, so stop here rather than never.
             if self.deferred_stop is not None:
@@ -931,6 +948,10 @@ class AgentContext:
     # project the preview serves, so the user and the thread see it at once
     # (live_apply). Off for drafts and the first build's pages.
     live_apply: bool = False
+    # The project's shared memory, as the summary every coordinator and
+    # thread prompt carries (project_memory.memory_summary). Built in
+    # _prepare_run and refreshed between model turns.
+    project_memory: str = ''
     # What this run's Haiku helpers (web_search, explore_project) have cost.
     # They are metered on their own; this lets the run's cost ceiling count
     # them too.
@@ -1198,7 +1219,7 @@ class ImagiAgentService:
         their work turn by turn; with it, the lead can answer "what did you
         change?" and know who changed it.
         """
-        messages = []
+        messages = self._forked_history(conversation)
 
         history_messages = AgentMessage.objects.filter(
             conversation=conversation
@@ -1211,6 +1232,37 @@ class ImagiAgentService:
             })
 
         return compact_history(messages)
+
+    def _forked_history(self, conversation, depth: int = 0) -> List[Dict[str, str]]:
+        """A forked thread's inherited context: its source's conversation up
+        to the fork point (and, for a fork of a fork, that source's too).
+
+        Referenced rather than copied, so a fork costs no storage; and since
+        the whole history is compacted together, a long source costs a fork
+        no more than any long thread does.
+        """
+        source = getattr(conversation, 'forked_from', None) if getattr(
+            conversation, 'forked_from_id', None
+        ) else None
+        if source is None or depth >= FORK_MAX_DEPTH:
+            return []
+        inherited = self._forked_history(source, depth + 1)
+        source_messages = AgentMessage.objects.filter(conversation=source)
+        if conversation.fork_point:
+            source_messages = source_messages.filter(id__lte=conversation.fork_point)
+        job = (source.goal or source.title or '').strip()
+        inherited.append({
+            "role": "user",
+            "content": (
+                f"[Forked thread] You start from another thread's conversation"
+                + (f' ("{job}")' if job else '')
+                + ". It follows as your context; your own job comes after it, "
+                "and that thread carries on separately."
+            ),
+        })
+        for msg in source_messages.order_by('created_at', 'id'):
+            inherited.append({"role": msg.role, "content": _label_task_report(msg)})
+        return inherited
 
     def get_project_info(self, project_id: Optional[int], user) -> Dict[str, Any]:
         """Get project information."""
@@ -1367,6 +1419,19 @@ class ImagiAgentService:
                 and self.agent_kind != 'initial_build'
             ),
         )
+        if conversation.kind in ('lead', 'task') and self.agent_kind is None:
+            try:
+                from .project_memory import memory_summary
+                context.project_memory = memory_summary(user.id, project_id)
+            except Exception as e:  # pragma: no cover - best effort
+                logger.warning(f"Could not read project memory: {e}")
+        if conversation.kind == 'task':
+            # The schedule: the tasks this run delivers are running now.
+            try:
+                from .scheduling import task_run_started
+                task_run_started(conversation, user_input)
+            except Exception as e:  # pragma: no cover - best effort
+                logger.warning(f"Could not mark thread {conversation.id}'s tasks running: {e}")
         if conversation.kind == 'lead':
             # Best-effort: a lead that cannot see its roster still works, it
             # just routes follow-ups less well.
@@ -1627,6 +1692,7 @@ class ImagiAgentService:
                 conversation.save(update_fields=["review_status"])
             except Exception as e:  # pragma: no cover - best effort
                 logger.warning(f"Could not park the failed task: {e}")
+        self._record_task_outcome(conversation, 'failed')
         self._file_check_in(conversation, 'error', note)
 
     def _max_turns_for(self, conversation) -> int:
@@ -1704,6 +1770,7 @@ class ImagiAgentService:
                 return
             conversation.review_status = 'input'
             conversation.save(update_fields=["review_status"])
+            self._record_task_outcome(conversation, 'input')
             # The card names the task above this text and the thread's
             # dispatch card carries the goal, so the body says only what the
             # user has to decide.
@@ -1743,6 +1810,7 @@ class ImagiAgentService:
         question = (getattr(context, 'pending_question', None) or '').strip() if context else ''
         if question:
             self._park_task(conversation, 'input')
+            self._record_task_outcome(conversation, 'input')
             self._file_check_in(
                 conversation, 'question', question,
                 details=question_details(context) or {},
@@ -1753,18 +1821,36 @@ class ImagiAgentService:
         # be picked between. Everything else applies itself.
         if getattr(conversation, 'variant_group', ''):
             self._park_task(conversation, 'ready')
+            self._record_task_outcome(conversation, 'input')
             self._file_check_in(conversation, 'ready', response_content)
             return
 
+        # What the work touched, read before the merge removes the worktree:
+        # the task's structured result.
+        files = self._task_files(conversation)
         # _auto_apply_task sets review_status='accepted' on a clean merge and
         # hands back why it could not on anything else.
+        self._last_apply_error = ''
         blocked = self._auto_apply_task(conversation)
         if not blocked:
+            # Landed: the schedule records it (releasing work that waited on
+            # it), and what the thread proposed for project memory is
+            # committed with it.
+            self._record_task_outcome(conversation, 'done', response_content, files)
+            self._commit_memory(conversation)
+            if getattr(conversation, 'merge_retries', 0):
+                AgentConversation.objects.filter(pk=conversation.pk).update(merge_retries=0)
             # Already in the app. The check-in is how the user hears about it —
             # they read it and clear it, with nothing to decide. Any queue
             # entry an earlier run of this task left behind is stale now, and
             # _file_check_in resolves it as it files this one.
             self._file_check_in(conversation, 'done', response_content)
+            return
+
+        # Its work clashes with changes that landed while it ran. The thread
+        # knows its own change best, so it reconciles the two itself first;
+        # only when that fails too does the user hear about it.
+        if self._last_apply_error == 'merge_conflict' and self._send_back_to_reconcile(conversation):
             return
 
         # Finished, but the work could not go in. That is not a "do you want
@@ -1776,12 +1862,123 @@ class ImagiAgentService:
             getattr(conversation, 'id', None), blocked,
         )
         self._park_task(conversation, 'input')
+        self._record_task_outcome(conversation, 'input')
         self._file_check_in(
             conversation, 'question',
             f"I finished this, but I could not put it into your app just yet — "
             f"{blocked} Say \"try again\" and I will pick it up from here, or "
             f"tell me what to change. Your app is untouched in the meantime."
         )
+
+    def _record_task_outcome(self, conversation, outcome: str, summary: str = '', files=None) -> None:
+        """Best-effort: record a run's ending on the coordinator's schedule."""
+        try:
+            from .scheduling import task_run_ended
+            task_run_ended(conversation, outcome, summary, files)
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not record thread {getattr(conversation, 'id', None)}'s outcome: {e}")
+
+    def _commit_memory(self, conversation) -> None:
+        """Best-effort: a thread's work landed, so its memory proposals do too."""
+        try:
+            from .project_memory import commit_proposals
+            commit_proposals(conversation)
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not commit thread {getattr(conversation, 'id', None)}'s memory: {e}")
+
+    def _task_files(self, conversation) -> List[str]:
+        """Files a thread's worktree changed since it forked (best-effort)."""
+        path = getattr(conversation, 'worktree_path', '')
+        if not path:
+            return []
+        try:
+            from .version_control_service import VersionControlService
+            return VersionControlService().task_changed_files(path, conversation.id)
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not list thread files: {e}")
+            return []
+
+    def _worktree_conflict_markers(self, conversation) -> List[str]:
+        """Changed files still holding merge conflict markers.
+
+        A thread sent back to reconcile its work gets the conflicted files with
+        git's markers in them; work that still has any must not reach the app.
+        """
+        path = getattr(conversation, 'worktree_path', '')
+        if not path or not os.path.isdir(path):
+            return []
+        marked = []
+        for rel in self._task_files(conversation):
+            full = os.path.join(path, rel)
+            try:
+                with open(full, 'r', encoding='utf-8', errors='ignore') as f:
+                    text = f.read()
+            except OSError:
+                continue
+            if CONFLICT_MARKER_RE.search(text):
+                marked.append(rel)
+        return marked
+
+    def _send_back_to_reconcile(self, conversation) -> bool:
+        """Hand a clashing thread what landed meanwhile, for it to reconcile.
+
+        Merges the app as it is now into the thread's copy, leaving any
+        conflicting spots marked, and stages a note telling the thread which
+        files to settle. Its next run picks up from there and merges again
+        when it finishes. Once per clash: a thread that comes back still
+        clashing is handed to the user instead. Returns whether it was sent.
+        """
+        retries = getattr(conversation, 'merge_retries', 0) or 0
+        if retries >= MERGE_RETRY_LIMIT:
+            return False
+        try:
+            from ..api.views import _conversation_project
+            from .scheduling import stage_on_thread
+            from .version_control_service import VersionControlService
+
+            project = _conversation_project(conversation)
+            if project is None or not getattr(project, 'project_path', ''):
+                return False
+            merged = VersionControlService().merge_base_into_task(
+                project.project_path, conversation.id
+            )
+            if not merged.get('success'):
+                logger.warning(
+                    "Could not bring the app into thread %s's copy: %s",
+                    conversation.id, merged.get('message'),
+                )
+                return False
+            conflicts = merged.get('conflicts') or []
+            AgentConversation.objects.filter(pk=conversation.pk).update(
+                merge_retries=retries + 1
+            )
+            conversation.merge_retries = retries + 1
+            if conflicts:
+                note = (
+                    "[Reconcile] Other work landed in the app while you were on "
+                    "this, and it overlaps your changes. Your copy now has both; "
+                    "the overlapping spots are marked with <<<<<<<, ======= and "
+                    ">>>>>>> in: " + ', '.join(conflicts[:20]) + ". Settle each "
+                    "one so both changes survive, remove the markers, check the "
+                    "app still works, then sign off as before."
+                )
+            else:
+                note = (
+                    "[Reconcile] Other work landed in the app while you were on "
+                    "this. Your copy now includes it; check your change still "
+                    "fits and works alongside it, then sign off as before."
+                )
+            self._park_task(conversation, 'active')
+            # The task keeps running: this is the same job, finishing.
+            stage_on_thread(conversation, note)
+            logger.info(
+                "Thread %s clashed with landed work; sent back to reconcile %s file(s)",
+                conversation.id, len(conflicts),
+            )
+            return True
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not send thread back to reconcile: {e}")
+            return False
 
     def _park_task(self, conversation, review_status: str) -> None:
         """Best-effort: move a task to the lifecycle state its ending calls for."""
@@ -1821,6 +2018,8 @@ class ImagiAgentService:
             return 'the links between your pages came out wrong, so putting it in would have broken your site.'
         if self._worktree_auth_link_problems(conversation):
             return 'your sign-in and sign-up links went missing from the page.'
+        if self._worktree_conflict_markers(conversation):
+            return 'it still has unfinished spots where its changes meet changes made meanwhile.'
         try:
             from ..api.views import _apply_task_worktree, _conversation_project
             project = _conversation_project(conversation)
@@ -1829,6 +2028,7 @@ class ImagiAgentService:
             outcome = _apply_task_worktree(conversation, project)
             if outcome.get('ok'):
                 return ''
+            self._last_apply_error = outcome.get('error') or ''
             logger.warning(
                 "Could not merge task %s: %s (%s)",
                 getattr(conversation, 'id', None),
@@ -2213,7 +2413,13 @@ class ImagiAgentService:
             yield start_event
 
             run_kwargs: Dict[str, Any] = {}
-            bounds_hook = make_run_bounds_hook(self._pricing_model(model), cost_budget_usd)
+            bounds_hook = make_run_bounds_hook(
+                self._pricing_model(model), cost_budget_usd,
+                refresh_memory=(
+                    getattr(conversation, 'kind', '') in ('lead', 'task')
+                    and self.agent_kind is None
+                ),
+            )
             if bounds_hook is not None:
                 run_kwargs["hooks"] = bounds_hook
 

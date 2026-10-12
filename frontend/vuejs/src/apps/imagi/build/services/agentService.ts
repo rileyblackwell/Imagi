@@ -9,6 +9,7 @@ import type {
   ConversationKind,
   DispatchedTaskDto,
   DispatchedTaskRef,
+  ProjectMemoryEntry,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -711,6 +712,38 @@ export const AgentService = {
       params: { project_id: String(projectId) }
     })
     return response.data as CheckInDto[]
+  },
+
+  /** The coordinator's schedule for a project (the task graph). */
+  async getSchedule(projectId: string | number): Promise<{ tasks: any[] }> {
+    const response = await api.get('/v1/agents/schedule/', {
+      params: { project_id: String(projectId) }
+    })
+    return response.data
+  },
+
+  /** The project's shared memory: entries and threads' pending proposals. */
+  async listMemory(projectId: string | number): Promise<ProjectMemoryEntry[]> {
+    const response = await api.get('/v1/agents/memory/', {
+      params: { project_id: String(projectId) }
+    })
+    return (response.data?.entries ?? []) as ProjectMemoryEntry[]
+  },
+
+  async addMemory(projectId: string | number, key: string, value: string): Promise<ProjectMemoryEntry> {
+    const response = await api.post('/v1/agents/memory/', {
+      project_id: Number(projectId), key, value,
+    })
+    return response.data as ProjectMemoryEntry
+  },
+
+  async updateMemory(entryId: number, patch: { key?: string; value?: string }): Promise<ProjectMemoryEntry> {
+    const response = await api.patch(`/v1/agents/memory/${entryId}/`, patch)
+    return response.data as ProjectMemoryEntry
+  },
+
+  async deleteMemory(entryId: number): Promise<void> {
+    await api.delete(`/v1/agents/memory/${entryId}/`)
   },
 
   /**
