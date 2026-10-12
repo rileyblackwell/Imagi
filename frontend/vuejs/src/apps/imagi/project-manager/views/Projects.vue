@@ -13,9 +13,8 @@
   Design: "Brief" on the Spotlight stage. Starting an app is four numbered
   steps on a lit rail (name it, what the app is, how it works, set the look),
   written for people who are not technical. Step 4 is a starter design system
-  with a live preview (see components/molecules/brief/StarterDesign.vue), with a card beside them
-  showing the brief the agent will receive and the button that sends it. The
-  copy is app-first: the business tools are mentioned as what the same project
+  with a live preview (see components/molecules/brief/StarterDesign.vue), and the
+  Create app button sits under it. The copy is app-first: the business tools are mentioned as what the same project
   offers once someone wants to turn the app into a business. The projects you
   already have follow as a numbered list. The editorial
   markup is re-lit by the bridge in shared/styles/spotlight.css.
@@ -88,9 +87,9 @@
           </section>
 
           <template v-else>
-            <!-- The brief: three steps on a rail, and what the agent will get -->
+            <!-- The brief: four steps on a rail, and the button that sends it -->
             <section class="relative brief-section">
-              <div class="sl-wrap brief-cols">
+              <div class="sl-wrap">
 
                 <form id="create-project" class="steps rise-item" style="animation-delay: 90ms" @submit.prevent="createProject">
                   <!-- 01 — Name it -->
@@ -207,66 +206,39 @@
                       @blur="focusedStep = null"
                     />
                   </div>
-                </form>
-
-                <!-- What the agent receives, and the button that sends it -->
-                <aside class="brief rise-item" style="animation-delay: 160ms" aria-label="Project brief">
-                  <div class="brief__card">
-                    <p class="brief__head">
-                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5c.5 4.6 2.4 6.9 7 7.5-4.6.6-6.5 2.9-7 7.5-.5-4.6-2.4-6.9-7-7.5 4.6-.6 6.5-2.9 7-7.5Z" /></svg>
-                      <span>What the agent receives</span>
+                  <!-- The button that sends it, under the last step -->
+                  <div v-if="atProjectLimit" class="create-foot">
+                    <router-link to="/payments/pricing" class="btn-primary group create-submit">
+                      <span>See plans</span>
+                      <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </router-link>
+                    <p class="create-note create-note--limit">
+                      Your {{ usageStore.plan?.name }} plan includes one project. Pro and Max include unlimited projects.
                     </p>
-                    <div class="brief__body">
-                      <p class="brief__name" :class="{ 'is-empty': !nameDone }">
-                        {{ newProjectName.trim() || 'Your app' }}
-                      </p>
-                      <p class="brief__desc" :class="{ 'is-empty': !newProjectDescription.trim() }">
-                        {{ newProjectDescription.trim() || 'What your app does shows up here as you describe it.' }}
-                      </p>
-                      <dl class="brief__facts">
-                        <dt>How it works</dt>
-                        <dd class="brief__clamp" :class="{ 'is-empty': !newProjectDetails.trim() }">{{ newProjectDetails.trim() || 'Shows up here as you describe it' }}</dd>
-                        <dt>Look</dt>
-                        <dd>{{ designSummary || 'Imagi picks one' }}</dd>
-                        <dt>First build</dt>
-                        <dd>A web app you can preview</dd>
-                        <dt>Business tools</dt>
-                        <dd>Sell, Market and Operate, ready when you want them</dd>
-                      </dl>
-                    </div>
-                    <div v-if="atProjectLimit" class="brief__foot">
-                      <router-link to="/payments/pricing" class="btn-primary group brief__submit">
-                        <span>See plans</span>
+                  </div>
+                  <div v-else class="create-foot">
+                    <button
+                      type="submit"
+                      class="btn-primary group create-submit"
+                      :disabled="!canCreate || isCreating"
+                    >
+                      <template v-if="isCreating">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span>Creating&hellip;</span>
+                      </template>
+                      <template v-else>
+                        <span>Create app</span>
                         <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
-                      </router-link>
-                      <p class="brief__note brief__note--limit">
-                        Your {{ usageStore.plan?.name }} plan includes one project. Pro and Max include unlimited projects.
-                      </p>
-                    </div>
-                    <div v-else class="brief__foot">
-                      <button
-                        type="submit"
-                        form="create-project"
-                        class="btn-primary group brief__submit"
-                        :disabled="!canCreate || isCreating"
-                      >
-                        <template v-if="isCreating">
-                          <span class="spinner" aria-hidden="true"></span>
-                          <span>Creating&hellip;</span>
-                        </template>
-                        <template v-else>
-                          <span>Create project</span>
-                          <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                          </svg>
-                        </template>
-                      </button>
-                      <p class="brief__note">You can change everything later in the workspace.</p>
-                    </div>
+                      </template>
+                    </button>
+                    <p class="create-note">You can change everything later in the workspace.</p>
                   </div>
-                </aside>
+                </form>
+
 
               </div>
             </section>
@@ -403,7 +375,6 @@ import { useUsageStore } from '@/shared/stores/usage'
 import {
   emptyDesign,
   designIsSet,
-  summarizeDesign,
   composeDesignPreferences,
   type StarterDesign as StarterDesignValue,
 } from '../utils/projectBrief'
@@ -422,7 +393,6 @@ const newProjectDescription = ref('')
 // Optional: the starter design (style, colours, fonts, theme, notes). Nothing
 // chosen is fine — the build carries strong default design direction.
 const newProjectDesign = ref<StarterDesignValue>(emptyDesign())
-const designSummary = computed(() => summarizeDesign(newProjectDesign.value))
 // Required: how the app works, in plain words. The initial build reads it as
 // the app's functional brief.
 const newProjectDetails = ref('')
@@ -435,7 +405,7 @@ const projectNameInput = ref<HTMLInputElement | null>(null)
 const MIN_DESCRIPTION_LENGTH = 20
 const MIN_DETAILS_LENGTH = 20
 // The plan's project limit (Free holds one). Once the projects list has
-// loaded and the plan is full, the brief's button becomes a way to upgrade
+// loaded and the plan is full, the Create app button becomes a way to upgrade
 // instead of a create that the server would refuse. The server still enforces
 // the limit; this only says so before the form is sent.
 const usageStore = useUsageStore()
@@ -836,23 +806,11 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 /* --- Brief ----------------------------------------------------------------
-   The steps on the left, the card that sums them up on the right. */
+   The four steps, then the button that sends them. Kept to a readable
+   measure rather than the full page width. */
 
 .brief-section {
   padding-bottom: clamp(72px, 9vw, 112px);
-}
-
-.brief-cols {
-  display: grid;
-  gap: 48px;
-}
-
-@media (min-width: 1024px) {
-  .brief-cols {
-    grid-template-columns: minmax(0, 1fr) 380px;
-    gap: 56px;
-    align-items: start;
-  }
 }
 
 /* The rail: a line down the left that each step's node sits on. The segment
@@ -860,6 +818,7 @@ input[type='search']::-webkit-search-cancel-button {
 .steps {
   display: grid;
   min-width: 0;
+  max-width: 46rem;
 }
 
 .step {
@@ -1047,124 +1006,31 @@ input[type='search']::-webkit-search-cancel-button {
   height: 0.85rem;
 }
 
-/* The brief card. It stays in view while the steps are filled in. */
-.brief {
-  min-width: 0;
-}
-
-@media (min-width: 1024px) {
-  .brief {
-    position: sticky;
-    top: 5.5rem;
-  }
-}
-
-.brief__card {
-  border: 1px solid var(--sl-line);
-  border-radius: 1.25rem;
-  background: var(--sl-card-bg);
-  box-shadow: var(--sl-card-shadow);
-  overflow: hidden;
-}
-
-.brief__head {
+/* Under the last step, lined up with the steps' text rather than the rail. */
+.create-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.9rem 1.25rem;
-  border-bottom: 1px solid var(--sl-line);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sl-faint);
-}
-
-.brief__head svg {
-  width: 0.85rem;
-  height: 0.85rem;
-  color: var(--sl-amber);
-}
-
-.brief__body {
-  padding: 1.25rem 1.4rem 1.35rem;
-}
-
-.brief__name {
-  font-family: var(--sl-font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: var(--sl-text);
-  overflow-wrap: anywhere;
-}
-
-.brief__desc {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--sl-muted);
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.brief__name.is-empty,
-.brief__desc.is-empty {
-  color: var(--sl-faint);
-}
-
-.brief__facts {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.5rem 1rem;
-  margin-top: 1.1rem;
-  font-size: 0.8rem;
-}
-
-.brief__facts dt {
-  color: var(--sl-faint);
-}
-
-.brief__facts dd {
-  margin: 0;
-  color: var(--sl-text);
-  overflow-wrap: anywhere;
-}
-
-.brief__facts .brief__clamp {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.brief__foot {
-  padding: 1rem 1.25rem 1.1rem;
-  border-top: 1px solid var(--sl-line);
+  gap: 0.75rem 1.25rem;
+  margin-top: 2.5rem;
+  padding-left: 3.5rem;
 }
 
 /* Two selectors so this beats `.editorial .btn-primary`'s padding. */
-.brief .brief__submit {
-  width: 100%;
-  justify-content: center;
-  padding: 0.8rem 1.35rem;
+.create-foot .create-submit {
+  padding: 0.8rem 1.6rem;
   font-size: 0.95rem;
 }
 
-.brief__note {
-  margin-top: 0.75rem;
-  text-align: center;
+.create-note {
   font-size: 0.78rem;
   color: var(--sl-faint);
 }
 
 /* The upgrade prompt is something to read, not a footnote: `faint` misses
    4.5:1, so it takes `muted`. */
-.brief__note--limit {
+.create-note--limit {
+  max-width: 34ch;
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--sl-muted);

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   composeDesignPreferences,
-  summarizeDesign,
   designIsSet,
   emptyDesign,
   CUSTOM_PALETTE_ID,
@@ -11,7 +10,6 @@ describe('projectBrief', () => {
   it('sends nothing for the look when nothing was chosen', () => {
     expect(designIsSet(emptyDesign())).toBe(false)
     expect(composeDesignPreferences(emptyDesign())).toBe('')
-    expect(summarizeDesign(emptyDesign())).toBe('')
   })
 
   it('sends notes on their own when no preset was picked', () => {
@@ -25,7 +23,6 @@ describe('projectBrief', () => {
     expect(composeDesignPreferences(design)).toBe(
       'Colours: build the palette around the brand colour #AB12CD.\nTheme: dark mode.',
     )
-    expect(summarizeDesign(design)).toBe('Your brand colour, dark mode')
   })
 
   it('leaves the light background out of a dark palette', () => {
