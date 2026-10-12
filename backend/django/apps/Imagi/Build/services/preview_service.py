@@ -3,6 +3,7 @@ Service for project preview operations in the Builder app.
 """
 
 import contextlib
+import glob
 import socket
 import subprocess
 import os
@@ -223,6 +224,12 @@ def preview_start_lock(pid_dir, stem, timeout=PREVIEW_START_LOCK_TIMEOUT):
 PID_SUFFIXES = ('_frontend.pid', '_backend.pid', '_server.pid', '_browser.pid')  # _server.pid predates dual-stack
 LOG_SUFFIXES = ('_frontend.log', '_backend.log', '_browser.log')
 PORTS_SUFFIX = '_preview_ports.json'
+RUNTIME_SUFFIX = '_runtime'
+MIGRATE_STAMP_SUFFIX = '_migrate.stamp'
+# Generous: a first migrate of a project with many apps on a loaded host.
+MIGRATE_TIMEOUT = 120
+# Vite's heap ceiling, so one runaway dev server can't take the host down.
+VITE_MAX_OLD_SPACE_MB = 768
 BROWSER_STATE_SUFFIX = '_browser.json'
 BROWSER_PROFILE_SUFFIX = '_browser_profile'
 
@@ -278,15 +285,34 @@ class PreviewService:
         # draining would freeze the servers once the pipe buffer fills.
         self.frontend_log_file = os.path.join(self.pid_dir, f"{stem}_frontend.log")
         self.backend_log_file = os.path.join(self.pid_dir, f"{stem}_backend.log")
+        # Generated wrapper configs for live mode (see live_preview_service)
+        # and the stamp of the last migrate that succeeded.
+        self.runtime_dir = os.path.join(self.pid_dir, f"{stem}{RUNTIME_SUFFIX}")
+        self.migrate_stamp_file = os.path.join(self.pid_dir, f"{stem}{MIGRATE_STAMP_SUFFIX}")
+        # Set per start: the live session config (None outside live mode)
+        # and the start-progress reporter.
+        self.live = None
+        self.progress = None
 
-    def ensure_preview(self):
+    def ensure_preview(self, live=None, progress=None):
         """Start the dev servers only if a healthy preview is not already up.
 
         start_preview() always tears down and relaunches; this variant lets
         callers (the browser preview, a workspace re-mount) reattach to a
         running session instead of paying the restart cost.
+
+        ``live`` (a live_preview_service.LiveConfig) asks for servers wired
+        for the live preview under that session token; running servers
+        without it are restarted with it. With PREVIEW_V2 on, a caller that
+        passes none (the agent's headless browser) gets live-mode servers
+        too, reusing the running session's token, so both views share one
+        set of servers.
         """
         state = self._load_port_state()
+        if live is None:
+            live = self._default_live_config(state)
+        if state and live is not None and state.get('live_token') != live.token:
+            state = None  # running, but not wired for this session
         if state:
             backend_port = state.get('backend_port')
             frontend_port = state.get('frontend_port')
@@ -303,12 +329,32 @@ class PreviewService:
                 port = frontend_port or backend_port
                 return {
                     'success': True,
-                    'preview_url': f"http://localhost:{port}",
+                    'preview_url': f"http://localhost:{port}{self._base_path(state.get('live_token'))}",
                     'message': 'Development servers already running',
                 }
-        return self.start_preview()
+        return self.start_preview(live=live, progress=progress)
 
-    def start_preview(self):
+    @staticmethod
+    def _default_live_config(state):
+        from . import live_preview_service as live_preview
+        if not live_preview.enabled():
+            return None
+        token = (state or {}).get('live_token') or live_preview.mint_token()
+        return live_preview.config_for(token)
+
+    @staticmethod
+    def _base_path(token):
+        """The URL path the app is served under ('' outside live mode)."""
+        return f"/s/{token}" if token else ''
+
+    def stack_paths(self):
+        """(backend_path, frontend_path) of a dual-stack project."""
+        return (
+            os.path.join(self.project.project_path, 'backend', 'django'),
+            os.path.join(self.project.project_path, 'frontend', 'vuejs'),
+        )
+
+    def start_preview(self, live=None, progress=None):
         """Start both frontend and backend development servers."""
         try:
             logger.info(f"Starting preview for project: {self.project.name} (ID: {self.project.id})")
@@ -324,10 +370,13 @@ class PreviewService:
             # Repair the project skeleton if it went missing (generated projects
             # aren't tracked by Imagi's git repo, so a clean checkout can lose
             # everything but the DB record and the per-app files).
+            if progress:
+                progress('files', 'running')
             self._ensure_scaffold()
 
             # Stop any existing servers for this project
             self.stop_preview()
+            self.live = live
 
             # Check if project has the new dual-stack structure
             frontend_path = os.path.join(self.project.project_path, 'frontend', 'vuejs')
@@ -339,7 +388,9 @@ class PreviewService:
             if os.path.exists(frontend_path) and os.path.exists(backend_path):
                 # New dual-stack structure
                 logger.info("Detected dual-stack project structure")
-                return self._start_dual_stack_preview(frontend_path, backend_path)
+                if progress:
+                    progress('files', 'done')
+                return self._start_dual_stack_preview(frontend_path, backend_path, progress=progress)
             else:
                 # Legacy single Django project
                 logger.info("Detected legacy Django project structure")
@@ -365,9 +416,10 @@ class PreviewService:
         except Exception as e:
             raise Exception(f"Project scaffold repair failed: {e}")
 
-    def _start_dual_stack_preview(self, frontend_path, backend_path):
+    def _start_dual_stack_preview(self, frontend_path, backend_path, progress=None):
         """Start both VueJS frontend and Django backend servers."""
         logger.info("Starting dual-stack preview (VueJS + Django)")
+        self.progress = progress
 
         # Django and Vite don't depend on each other to boot — Vite only needs
         # to know which port Django will be on, to proxy /api there — so they
@@ -392,7 +444,8 @@ class PreviewService:
 
         self._save_port_state()
 
-        frontend_url = f"http://localhost:{self.frontend_port}"
+        base = self._base_path(self.live.token if self.live else None)
+        frontend_url = f"http://localhost:{self.frontend_port}{base}"
 
         # Note: Browser opening is handled by the frontend client via window.open()
         # Do not use webbrowser.open() here to avoid opening duplicate tabs
@@ -405,6 +458,125 @@ class PreviewService:
             'message': 'Full-stack development servers started successfully'
         }
 
+    # -- live-mode helpers (called by LivePreviewService) --------------------
+
+    def start_backend(self, backend_path, live, port=None):
+        """Start Django alone, in live mode. Returns None or error text."""
+        self.live = live
+        return self._start_django_backend(backend_path, port=port)
+
+    def start_frontend(self, frontend_path, live):
+        """Start Vite alone, in live mode. Returns None or error text."""
+        self.live = live
+        return self._start_vuejs_frontend(frontend_path)
+
+    def _report(self, stage, state, detail=''):
+        if self.progress:
+            try:
+                self.progress(stage, state, detail)
+            except Exception:  # pragma: no cover - progress is cosmetic
+                pass
+
+    def _settings_module(self, backend_path):
+        """The project's own settings module name, or None."""
+        project_dirs = sorted(
+            d for d in os.listdir(backend_path)
+            if os.path.isdir(os.path.join(backend_path, d))
+            and os.path.exists(os.path.join(backend_path, d, 'settings.py'))
+        )
+        return f"{project_dirs[0]}.settings" if project_dirs else None
+
+    def _backend_env(self, backend_path):
+        """(env, error) for a process running the project's manage.py.
+
+        In live mode the settings module is a generated wrapper (see
+        live_preview_service.django_wrapper_source) that imports the
+        project's own and adds the preview host, so nothing in the project
+        has to change for the preview to work.
+        """
+        settings_module = self._settings_module(backend_path)
+        if not settings_module:
+            return None, f"no Django settings module found under {backend_path}"
+        extra = {}
+        if self.live is not None:
+            from .live_preview_service import django_wrapper_source
+            os.makedirs(self.runtime_dir, exist_ok=True)
+            with open(os.path.join(self.runtime_dir, 'imagi_preview_settings.py'), 'w') as f:
+                f.write(django_wrapper_source(settings_module, self.live))
+            extra['PYTHONPATH'] = self.runtime_dir
+            settings_module = 'imagi_preview_settings'
+        env = child_env(
+            DJANGO_SETTINGS_MODULE=settings_module,
+            **project_payments_env(self.project),
+            **extra,
+        )
+        return env, None
+
+    def _migrations_stamp(self, backend_path):
+        """What the project's migrations look like on disk, as one string.
+
+        Skipping migrate when nothing changed keeps it off a warm start's
+        path; a new, edited or deleted migration file (or a missing
+        database) changes the stamp.
+        """
+        entries = []
+        for root, dirs, files in os.walk(backend_path):
+            dirs[:] = [d for d in dirs if d not in ('node_modules', '.venv', 'venv', '__pycache__', 'media')]
+            if os.path.basename(root) != 'migrations':
+                continue
+            for name in files:
+                if name.endswith('.py'):
+                    try:
+                        st = os.stat(os.path.join(root, name))
+                    except OSError:
+                        continue
+                    entries.append(f"{os.path.relpath(os.path.join(root, name), backend_path)}:{st.st_size}:{int(st.st_mtime)}")
+        dbs = sorted(os.path.basename(p) for p in glob.glob(os.path.join(backend_path, '*.sqlite3')))
+        return '|'.join(sorted(entries) + ['db:' + ','.join(dbs)])
+
+    def run_migrations(self, backend_path, env=None, force=False):
+        """Apply the project's migrations. Returns None or error text.
+
+        runserver never migrates, so without this a fresh project (and any
+        model an agent adds) runs against missing tables. Output goes to the
+        backend log, where the agent's error routing reads it.
+        """
+        if env is None:
+            env, error = self._backend_env(backend_path)
+            if error:
+                return error
+        stamp = self._migrations_stamp(backend_path)
+        if not force:
+            try:
+                with open(self.migrate_stamp_file) as f:
+                    if f.read() == stamp:
+                        return None
+            except OSError:
+                pass
+        try:
+            result = subprocess.run(
+                [sys.executable, 'manage.py', 'migrate', '--noinput'],
+                cwd=backend_path, env=env, capture_output=True, text=True,
+                timeout=MIGRATE_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            return f"migrate timed out after {MIGRATE_TIMEOUT}s"
+        output = (result.stdout or '') + (result.stderr or '')
+        try:
+            with open(self.backend_log_file, 'a') as log:
+                log.write(output)
+        except OSError:
+            pass
+        if result.returncode != 0:
+            return output.strip()[-2000:] or f"migrate exited with code {result.returncode}"
+        try:
+            with open(self.migrate_stamp_file, 'w') as f:
+                # Re-read: the migrate itself may have created the database.
+                f.write(self._migrations_stamp(backend_path))
+        except OSError:
+            pass
+        return None
+
     def _start_django_backend(self, backend_path, port=None):
         """Start Django backend server. Returns None on success, error text on failure.
 
@@ -415,45 +587,37 @@ class PreviewService:
         try:
             logger.info(f"Attempting to start Django backend in: {backend_path}")
 
-            # Find manage.py
             manage_py = os.path.join(backend_path, 'manage.py')
             if not os.path.exists(manage_py):
                 logger.error(f"manage.py not found in {backend_path}")
                 return f"manage.py not found in {backend_path}"
 
-            logger.info(f"Found manage.py at: {manage_py}")
-
-            # Get project name for Django settings
-            project_dirs = [d for d in os.listdir(backend_path)
-                          if os.path.isdir(os.path.join(backend_path, d))
-                          and os.path.exists(os.path.join(backend_path, d, 'settings.py'))]
-
-            logger.info(f"Found project directories with settings.py: {project_dirs}")
-
-            if not project_dirs:
-                logger.error("No Django project directory found")
-                return f"no Django settings module found under {backend_path}"
-
-            project_name = project_dirs[0]
-            logger.info(f"Using Django project: {project_name}")
-
-            # Set up environment
-            env = child_env(
-                DJANGO_SETTINGS_MODULE=f"{project_name}.settings",
-                **project_payments_env(self.project),
-            )
+            env, error = self._backend_env(backend_path)
+            if error:
+                logger.error(error)
+                return error
 
             # Find available port for backend (avoiding conflict with main project on 8000)
             self.backend_port = port or self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
-            logger.info(f"Starting Django backend on port {self.backend_port}")
-
-            # Ensure PID file directory exists
             os.makedirs(os.path.dirname(self.backend_pid_file), exist_ok=True)
+            # A fresh log per start; migrate output lands at its top.
+            open(self.backend_log_file, 'w').close()
 
+            # Migrate first, so the app never serves against missing tables.
+            # A failure is reported, not fatal: runserver still starts, and
+            # the error is in the log for the user and the agent to see.
+            self._report('migrate', 'running')
+            migrate_error = self.run_migrations(backend_path, env=env)
+            self._report('migrate', 'failed' if migrate_error else 'done', migrate_error or '')
+            if migrate_error:
+                logger.warning(f"migrate failed for project {self.project.pk}: {migrate_error[-300:]}")
+
+            self._report('django', 'running')
+            logger.info(f"Starting Django backend on port {self.backend_port}")
             # Start Django development server. sys.executable is the
             # interpreter running Imagi itself, which is guaranteed to exist
             # and to have Django/DRF installed (a bare 'python' may be neither).
-            with open(self.backend_log_file, 'w') as log_fh:
+            with open(self.backend_log_file, 'a') as log_fh:
                 process = subprocess.Popen(
                     [sys.executable, 'manage.py', 'runserver', f'127.0.0.1:{self.backend_port}'],
                     cwd=backend_path,
@@ -462,7 +626,6 @@ class PreviewService:
                     env=env
                 )
 
-            # Save the PID
             with open(self.backend_pid_file, 'w') as f:
                 f.write(str(process.pid))
 
@@ -474,74 +637,105 @@ class PreviewService:
             except TimeoutError as e:
                 output = self._read_log_tail(self.backend_log_file)
                 logger.error(f"Django backend never started listening: {e}")
+                self._report('django', 'failed', output)
                 return f"Django did not start listening within {DJANGO_LISTEN_TIMEOUT}s: {output}"
             if exit_code is not None:
                 output = self._read_log_tail(self.backend_log_file)
-                logger.error(f"Django backend process terminated unexpectedly")
-                logger.error(f"Return code: {exit_code}")
-                logger.error(f"Output: {output}")
+                logger.error(f"Django backend process terminated unexpectedly (code {exit_code}): {output}")
+                self._report('django', 'failed', output)
                 return f"process exited with code {exit_code}: {output}"
 
+            self._report('django', 'done')
             return None
 
         except Exception as e:
             logger.error(f"Error starting Django backend: {e}")
             import traceback
             logger.error(f"Stack trace: {traceback.format_exc()}")
+            self._report('django', 'failed', str(e))
             return str(e)
+
+    def _vite_command(self, frontend_path, npm):
+        """The command that starts Vite on self.frontend_port.
+
+        In live mode Vite runs its own binary with a generated wrapper
+        config (live_preview_service.vite_wrapper_source) that loads the
+        project's vite.config and adds the preview's base path, allowed host
+        and bridge script.
+        """
+        port_args = ['--port', str(self.frontend_port), '--host', '127.0.0.1']
+        if self.live is None:
+            # Bind to loopback only: the preview is consumed on this same
+            # host, never directly by the user's machine.
+            return [npm, 'run', 'dev', '--'] + port_args
+        from .live_preview_service import vite_wrapper_source
+        user_config = next(
+            (os.path.join(frontend_path, name) for name in (
+                'vite.config.ts', 'vite.config.js', 'vite.config.mts', 'vite.config.mjs',
+            ) if os.path.exists(os.path.join(frontend_path, name))),
+            None,
+        )
+        os.makedirs(self.runtime_dir, exist_ok=True)
+        wrapper = os.path.join(self.runtime_dir, 'vite.preview.config.mjs')
+        source = vite_wrapper_source(user_config, self.live) if user_config else (
+            vite_wrapper_source(os.path.join(self.runtime_dir, 'empty.vite.config.mjs'), self.live)
+        )
+        if not user_config:
+            with open(os.path.join(self.runtime_dir, 'empty.vite.config.mjs'), 'w') as f:
+                f.write('export default {}\n')
+        with open(wrapper, 'w') as f:
+            f.write(source)
+        vite_bin = os.path.join(frontend_path, 'node_modules', '.bin', 'vite')
+        head = [vite_bin] if os.path.exists(vite_bin) else [npm, 'exec', '--', 'vite']
+        return head + ['--config', wrapper, '--strictPort'] + port_args
 
     def _start_vuejs_frontend(self, frontend_path):
         """Start VueJS frontend server. Returns None on success, error text on failure."""
         try:
             logger.info(f"Attempting to start VueJS frontend in: {frontend_path}")
 
-            # Check if package.json exists
             package_json = os.path.join(frontend_path, 'package.json')
             if not os.path.exists(package_json):
                 logger.error(f"package.json not found in {frontend_path}")
                 return f"package.json not found in {frontend_path}"
-
-            logger.info(f"Found package.json at: {package_json}")
 
             npm = shutil.which('npm')
             if not npm:
                 logger.error("npm command not found on PATH")
                 return "npm is not installed or not on PATH"
 
+            self._report('vite', 'running')
             # Install dependencies if they are missing (e.g. after a scaffold
             # repair, or when the original background install never finished).
             deps_error = self._ensure_frontend_dependencies(frontend_path, npm)
             if deps_error:
+                self._report('vite', 'failed', deps_error)
                 return deps_error
 
             # Find available port for frontend (avoiding conflict with Imagi itself on 5173)
             self.frontend_port = self._find_available_port_excluding(5174, 5200, exclude_ports=[5173])
             logger.info(f"Starting VueJS frontend on port {self.frontend_port}")
 
-            # Set up environment for Vite. VITE_BACKEND_URL points the generated
-            # app's /api proxy at its own Django backend rather than the default.
+            # VITE_BACKEND_URL points the generated app's /api proxy at its
+            # own Django backend rather than the default.
             env = child_env(
                 PORT=str(self.frontend_port),
                 VITE_BACKEND_URL=f"http://localhost:{self.backend_port}",
+                NODE_OPTIONS=f"--max-old-space-size={VITE_MAX_OLD_SPACE_MB}",
             )
 
-            # Ensure PID file directory exists
             os.makedirs(os.path.dirname(self.frontend_pid_file), exist_ok=True)
+            command = self._vite_command(frontend_path, npm)
 
-            # Start Vite development server
             with open(self.frontend_log_file, 'w') as log_fh:
                 process = subprocess.Popen(
-                    # Bind to loopback only: the preview is consumed by the
-                    # headless browser running on this same host, never
-                    # directly by the user's machine.
-                    [npm, 'run', 'dev', '--', '--port', str(self.frontend_port), '--host', '127.0.0.1'],
+                    command,
                     cwd=frontend_path,
                     stdout=log_fh,
                     stderr=subprocess.STDOUT,
                     env=env
                 )
 
-            # Save the PID
             with open(self.frontend_pid_file, 'w') as f:
                 f.write(str(process.pid))
 
@@ -553,20 +747,22 @@ class PreviewService:
             except TimeoutError as e:
                 output = self._read_log_tail(self.frontend_log_file)
                 logger.error(f"VueJS frontend never started listening: {e}")
+                self._report('vite', 'failed', output)
                 return f"Vite did not start listening within {VITE_LISTEN_TIMEOUT}s: {output}"
             if exit_code is not None:
                 output = self._read_log_tail(self.frontend_log_file)
-                logger.error(f"VueJS frontend process terminated unexpectedly")
-                logger.error(f"Return code: {exit_code}")
-                logger.error(f"Output: {output}")
+                logger.error(f"VueJS frontend process terminated unexpectedly (code {exit_code}): {output}")
+                self._report('vite', 'failed', output)
                 return f"process exited with code {exit_code}: {output}"
 
+            self._report('vite', 'done')
             return None
 
         except Exception as e:
             logger.error(f"Error starting VueJS frontend: {e}")
             import traceback
             logger.error(f"Stack trace: {traceback.format_exc()}")
+            self._report('vite', 'failed', str(e))
             return str(e)
 
     def _ensure_frontend_dependencies(self, frontend_path, npm):
@@ -637,6 +833,7 @@ class PreviewService:
                 json.dump({
                     'frontend_port': self.frontend_port,
                     'backend_port': self.backend_port,
+                    'live_token': self.live.token if self.live else None,
                 }, f)
         except OSError as e:
             logger.warning(f"Could not save preview port state: {e}")
@@ -771,6 +968,9 @@ class PreviewService:
             # Only sweep the ports this preview actually recorded; killing by
             # default port numbers could take down unrelated dev servers.
             port_state = self._load_port_state() or {}
+            if port_state.get('live_token'):
+                from .live_preview_service import remove_route
+                remove_route(port_state['live_token'])
 
             # Stop frontend server
             if self._stop_vuejs_frontend(port=port_state.get('frontend_port')):

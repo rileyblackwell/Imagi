@@ -86,8 +86,23 @@
                  replaces the panes and the top bar's sidebar toggle is hidden,
                  so the toolbar's pill is the only way back; on desktop that
                  toggle is right there and owns the job. -->
+            <!-- The live preview (the app itself in an iframe) where the
+                 server has it on; the screenshot preview otherwise. -->
+            <LivePreview
+              v-if="projectId && previewMode === 'live'"
+              ref="previewRef"
+              :project-id="projectId"
+              :paused="isMobile && !isSidebarCollapsed"
+              :can-return-to-chat="isMobile && isSidebarCollapsed"
+              :return-count="store.checkIns.length"
+              class="flex-1 min-h-0"
+              :class="isSidebarCollapsed ? '' : 'max-md:invisible'"
+              @fix-error="handleFixError"
+              @pick-element="handlePickElement"
+              @return-to-chat="showPane('chat', setSidebarCollapsed)"
+            />
             <WorkspacePreview
-              v-if="projectId"
+              v-else-if="projectId && previewMode === 'stream'"
               ref="previewRef"
               :project-id="projectId"
               :paused="isMobile && !isSidebarCollapsed"
@@ -118,6 +133,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useUsageStore } from '@/shared/stores/usage'
 import { useNotification } from '@/shared/composables/useNotification'
 import { useIsMobile } from '../composables/useWindowSize'
+import { LivePreviewService, type PreviewMode } from '../services/livePreviewService'
 import { useConfirm } from '../composables/useConfirm'
 import { useSidebarPane } from '../composables/useSidebarPane'
 import { useAgentRun } from '../composables/useAgentRun'
@@ -132,6 +148,7 @@ import { DashboardLayout } from '@/shared/layouts'
 
 // Atomic Components
 import {
+  LivePreview,
   WorkspaceError,
   WorkspacePreview,
   WorkspaceSettings,
@@ -155,7 +172,30 @@ const projectId = ref<string>('')
 // Hosts the one ConfirmModal instance the whole workspace shares.
 const confirmModal = useConfirm()
 // The embedded preview pane; exposes reload.
-const previewRef = ref<InstanceType<typeof WorkspacePreview> | null>(null)
+const previewRef = ref<InstanceType<typeof WorkspacePreview> | InstanceType<typeof LivePreview> | null>(null)
+// Which preview this deployment serves: remembered from last time so the
+// pane can mount at once, then confirmed with the server.
+const previewMode = ref<PreviewMode>(rememberedPreviewMode())
+function rememberedPreviewMode(): PreviewMode {
+  try {
+    return localStorage.getItem('imagi_preview_mode') === 'live' ? 'live' : 'stream'
+  } catch {
+    return 'stream'
+  }
+}
+async function confirmPreviewMode() {
+  try {
+    const mode = await LivePreviewService.mode()
+    previewMode.value = mode
+    try {
+      localStorage.setItem('imagi_preview_mode', mode)
+    } catch {
+      // storage may be unavailable
+    }
+  } catch {
+    // keep the remembered mode
+  }
+}
 // The chat panel; exposes setPromptText for the checkpoint-restore flow.
 const chatRef = ref<InstanceType<typeof BuilderSidebarChat> | null>(null)
 const {
@@ -365,6 +405,11 @@ function handleFixError(errorText: string) {
   )
 }
 
+/** An element picked in the live preview: context for the next message. */
+function handlePickElement(text: string) {
+  chatRef.value?.appendPromptText(text)
+}
+
 // Ensure default apps exist for every new project
 async function ensureDefaultApps() {
   try {
@@ -472,6 +517,7 @@ async function loadProjectFiles(force = false) {
 
 // Lifecycle hooks
 onMounted(async () => {
+  void confirmPreviewMode()
   // Queued prompts (typed mid-run) re-enter through the normal prompt path
   // when the blocking run finishes; the store skips this after a user stop.
   store.setQueuedPromptSender((instanceId, queuedText) => {

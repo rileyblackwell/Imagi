@@ -57,6 +57,7 @@ from ..services.transcription_service import (
     transcribe_audio,
 )
 from ..services.safe_paths import resolve_safe
+from ..services import live_preview_service as live_preview
 from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
@@ -221,6 +222,11 @@ class PreviewSessionView(BrowserPreviewBaseView):
     """Start / query / stop a project's browser preview session."""
 
     def get(self, request, project_id):
+        if live_preview.enabled():
+            service = live_preview.LivePreviewService(self.get_project(project_id))
+            payload = service.status(touch=False)
+            payload['mode'] = 'live'
+            return Response(payload)
         service = self.get_service(project_id)
         if not service.is_running():
             return Response({'running': False})
@@ -243,6 +249,19 @@ class PreviewSessionView(BrowserPreviewBaseView):
         # update() rather than save(): opening a project isn't an edit, so
         # updated_at stays put.
         PMProject.objects.filter(pk=project.pk).update(last_opened_at=timezone.now())
+
+        if live_preview.enabled():
+            try:
+                payload = live_preview.LivePreviewService(project).start()
+                evict_least_recent_previews(request.user)
+                return Response(payload)
+            except Exception as e:
+                logger.exception("Error starting live preview")
+                return Response({
+                    'running': False,
+                    'mode': 'live',
+                    'error': f'Preview failed to start: {str(e)}',
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         viewport = request.data.get('viewport') or {}
         try:
@@ -267,6 +286,9 @@ class PreviewSessionView(BrowserPreviewBaseView):
 
     def delete(self, request, project_id):
         try:
+            if live_preview.enabled():
+                result = live_preview.LivePreviewService(self.get_project(project_id)).stop()
+                return Response(result)
             service = self.get_service(project_id)
             result = service.stop()
             return Response(result)
@@ -296,6 +318,9 @@ class PreviewPrewarmView(APIView):
         if not cache.add(key, True, timeout=self.PREWARM_THROTTLE_SECONDS):
             return Response({'started': False, 'reason': 'recently prewarmed'},
                             status=status.HTTP_202_ACCEPTED)
+        if live_preview.enabled():
+            started = live_preview.prewarm_recent(request.user) is not None
+            return Response({'started': started}, status=status.HTTP_202_ACCEPTED)
         # The size the owner's preview pane had last time, so a prewarmed
         # preview can go on screen without a resize. start() clamps both.
         viewport = request.data.get('viewport') or {}
@@ -511,6 +536,107 @@ async def preview_resize(request, project_id):
             device_scale_factor=data.get('device_scale_factor'),
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Live preview endpoints (PREVIEW_V2)
+# ---------------------------------------------------------------------------
+
+
+class PreviewConfigView(APIView):
+    """Which preview the workspace should show: 'live' (the app in an
+    iframe) or 'stream' (screenshots of a headless browser)."""
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(never_cache)
+    def get(self, request):
+        return Response({'mode': 'live' if live_preview.enabled() else 'stream'})
+
+
+async def _run_live_call(request, project_id, call, after=None):
+    """Like _run_preview_call, for the live preview's service."""
+    if not live_preview.enabled():
+        return JsonResponse({'error': 'The live preview is not enabled.'}, status=404)
+    user = await _authenticate_stream_request(request)
+    if user is None:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    project = await sync_to_async(_preview_project)(user, project_id)
+    if project is None:
+        return JsonResponse({'detail': 'Project not found'}, status=404)
+    try:
+        payload = await sync_to_async(
+            lambda: call(live_preview.LivePreviewService(project)), thread_sensitive=False
+        )()
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    if after is not None:
+        try:
+            await after(user, project, payload)
+        except Exception as e:  # pragma: no cover - never fail a status poll over it
+            logger.warning(f"Live preview follow-up failed for project {project_id}: {e}")
+    return JsonResponse(payload)
+
+
+def _console_entries(data):
+    entries = data.get('console_errors') if isinstance(data, dict) else None
+    return entries if isinstance(entries, list) else []
+
+
+@csrf_exempt
+@never_cache
+async def preview_status(request, project_id):
+    """The status pill's poll, which doubles as the viewer heartbeat.
+
+    The body carries console errors the page reported since the last poll;
+    they are kept for the agent's live edits to read back, and routed to a
+    thread that can fix them, along with new dev-server log errors.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    data = _preview_json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    entries = _console_entries(data)[:20]
+
+    def call(service):
+        payload = service.status(touch=data.get('visible') is not False)
+        payload['console_errors'] = service.record_console(entries)
+        return payload
+
+    return await _run_live_call(request, project_id, call, after=_route_app_errors)
+
+
+@csrf_exempt
+@never_cache
+async def preview_logs(request, project_id):
+    """New Django and Vite log lines since the given byte offsets."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    offsets = {}
+    for name in ('backend', 'frontend'):
+        raw = request.GET.get(name)
+        if raw is not None:
+            try:
+                offsets[name] = max(0, int(raw))
+            except ValueError:
+                return JsonResponse({'error': f'Bad {name} offset'}, status=400)
+    return await _run_live_call(request, project_id, lambda service: service.logs(offsets))
+
+
+@csrf_exempt
+@never_cache
+async def preview_action(request, project_id):
+    """Server actions: restart either server or both, migrate, reset the
+    dev database."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    data = _preview_json_body(request)
+    if data is None:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    name = data.get('action')
+    if name not in live_preview.LivePreviewService.ACTIONS:
+        return JsonResponse({'error': 'Unknown action'}, status=400)
+    return await _run_live_call(request, project_id, lambda service: service.action(name))
 
 @method_decorator(never_cache, name='dispatch')
 class CreateFileView(APIView):
