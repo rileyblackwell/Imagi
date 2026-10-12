@@ -161,6 +161,37 @@ class BulkSyncTests(ProjectFilesTestCase):
             ['backend/django/manage.py', 'frontend/vuejs/src/App.vue'],
         )
 
+    def test_import_writes_only_what_changed_in_a_fixed_number_of_queries(self):
+        # Creating a project and every merge re-sync the mirror; against a
+        # networked database a round trip per file cost seconds, so the sync
+        # diffs in bulk however many files there are.
+        for i in range(40):
+            self._write_disk_file(f'frontend/vuejs/src/views/Page{i}.vue', f'<template>{i}</template>')
+        with self.assertNumQueries(4):  # one read and one bulk insert, in a transaction
+            project_files_service.import_project_from_disk(self.project)
+        self.assertEqual(self.project.files.count(), 40)
+
+        self._write_disk_file('frontend/vuejs/src/views/Page3.vue', '<template>new</template>')
+        untouched = ProjectFile.objects.get(project=self.project, path='frontend/vuejs/src/views/Page4.vue')
+        result = project_files_service.import_project_from_disk(self.project)
+
+        self.assertEqual(result, {'synced': 40, 'pruned': 0})
+        self.assertEqual(self._db_content('frontend/vuejs/src/views/Page3.vue'), '<template>new</template>')
+        self.assertEqual(
+            ProjectFile.objects.get(pk=untouched.pk).updated_at, untouched.updated_at,
+            'unchanged files are not rewritten',
+        )
+
+    def test_import_leaves_the_mirror_alone_for_a_worktree_run(self):
+        self._write_disk_file('frontend/vuejs/src/App.vue', '<template/>')
+        ProjectFile.objects.create(project=self.project, path='frontend/vuejs/src/Kept.vue', content='x')
+        self.project._suppress_db_mirror = True
+
+        result = project_files_service.import_project_from_disk(self.project)
+
+        self.assertEqual(result, {'synced': 0, 'pruned': 0})
+        self.assertEqual(list(self.project.files.values_list('path', flat=True)), ['frontend/vuejs/src/Kept.vue'])
+
     def test_hydrate_project_materializes_files_from_db(self):
         ProjectFile.objects.create(
             project=self.project, path='frontend/vuejs/src/App.vue', content='<template/>'

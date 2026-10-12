@@ -1093,7 +1093,7 @@ class ParallelInitialBuildTests(TransactionTestCase):
             [home.id],
         )
 
-    def test_a_planned_build_routes_every_page_and_lists_them_as_they_land(self):
+    def _run_planned(self, outcome_by_slug=None):
         from apps.Imagi.ProjectManager.services import initial_page_plan
         from apps.Imagi.ProjectManager.services.initial_build_service import PageBrief
 
@@ -1103,24 +1103,31 @@ class ParallelInitialBuildTests(TransactionTestCase):
             {'slug': 'visit-us', 'label': 'Visit', 'summary': 'the visit page — where we are',
              'requirements': 'Show the hours.'},
         ], PageBrief)
-        published = []
         with patch.object(initial_page_plan, 'plan_pages', return_value=planned), \
                 patch.object(initial_page_plan, 'scaffold_pages') as scaffold, \
-                patch.object(
-                    initial_page_plan, 'publish_ready_pages',
-                    side_effect=lambda _path, ready: published.append([p.slug for p in ready]),
-                ):
-            calls = self._run()
+                patch.object(initial_page_plan, 'settle_unbuilt_pages') as settle:
+            calls = self._run(outcome_by_slug)
+        return calls, scaffold, settle
+
+    def test_a_planned_build_routes_and_lists_every_page_up_front(self):
+        calls, scaffold, settle = self._run_planned()
 
         self.assertEqual(set(calls), {'home', 'menu', 'visit-us'})
-        plan = scaffold.call_args[0][1]
+        _path, plan, listed = scaffold.call_args[0]
         self.assertEqual([p.slug for p in plan], ['home', 'menu', 'visit-us'])
+        # The navigation names every planned page before any has landed, so
+        # home's links are whole and an early click says "still generating".
+        self.assertEqual([p.slug for p in listed], ['home', 'menu', 'visit-us'])
         self.assertIn("'/menu'", calls['menu'][0]['user_input'])
         self.assertIn('VisitUsView.vue', calls['visit-us'][0]['user_input'])
-        # Each landed page is added to the navigation, home always first.
-        self.assertEqual(len(published), 2)
-        self.assertTrue(all(slugs[0] == 'home' for slugs in published))
-        self.assertEqual(set(published[-1]), {'home', 'menu', 'visit-us'})
+        settle.assert_not_called()
+
+    def test_a_page_that_could_not_be_built_leaves_the_navigation(self):
+        _calls, _scaffold, settle = self._run_planned({'menu': 'fail'})
+
+        _path, ready, unbuilt = settle.call_args[0]
+        self.assertEqual([p.slug for p in ready], ['home', 'visit-us'])
+        self.assertEqual([p.slug for p in unbuilt], ['menu'])
 
     def test_a_page_that_fails_does_not_stop_its_siblings(self):
         # Pages stand alone: one agent erroring out must not cost the founder
@@ -1644,7 +1651,7 @@ class InitialPagePlanTests(SimpleTestCase):
             pages = initial_page_plan.plan_pages('Beanline', 'Coffee', page_brief_cls=PageBrief)
         self.assertEqual([p.slug for p in pages], ['menu'])
 
-    def test_scaffold_routes_every_page_and_lists_only_ready_ones(self):
+    def test_scaffold_routes_every_page_and_lists_the_ones_given(self):
         import subprocess
         from apps.Imagi.ProjectManager.services import initial_page_plan
         from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
@@ -1680,9 +1687,39 @@ class InitialPagePlanTests(SimpleTestCase):
         self.assertEqual(find_unresolved_imports(root), [])
         self.assertEqual(find_router_contract_problems(root), [])
 
+        # A page still being built says so, and swaps itself out once real.
+        menu_view = open(os.path.join(root, plan[1].view_path)).read()
+        self.assertIn('still being generated', menu_view)
+        self.assertIn(initial_page_plan.PLACEHOLDER_MARKER, menu_view)
+
         initial_page_plan.publish_ready_pages(root, [home, plan[1]])
         nav = open(os.path.join(root, initial_page_plan.SITE_PAGES_PATH)).read()
         self.assertIn('{ path: "/menu", label: "Menu" }', nav)
+
+        # A page that never got built leaves the navigation and stops saying
+        # it is on its way.
+        initial_page_plan.settle_unbuilt_pages(root, [home, plan[1]], [plan[2]])
+        nav = open(os.path.join(root, initial_page_plan.SITE_PAGES_PATH)).read()
+        self.assertNotIn('/visit-us', nav)
+        visit_view = open(os.path.join(root, plan[2].view_path)).read()
+        self.assertNotIn(initial_page_plan.PLACEHOLDER_MARKER, visit_view)
+        self.assertIn("isn't built yet", visit_view)
         status = subprocess.run(['git', 'status', '--porcelain'], cwd=root,
                                 capture_output=True, text=True).stdout
         self.assertEqual(status, '', 'scaffold changes are committed')
+
+
+class PageBriefCarriesItsFileTests(SimpleTestCase):
+    def test_the_brief_hands_over_the_page_as_it_stands(self):
+        # So the thread can write straight away instead of reading it first.
+        from apps.Imagi.ProjectManager.services.initial_build_service import (
+            PAGE_BRIEFS,
+            build_initial_prompt,
+        )
+
+        prompt = build_initial_prompt(
+            'Beanline', 'Coffee', page=PAGE_BRIEFS[0], current_view='<template><p>Hi</p></template>',
+        )
+        self.assertIn('no need to read it', prompt)
+        self.assertIn('<template><p>Hi</p></template>', prompt)
+        self.assertNotIn('no need to read it', build_initial_prompt('Beanline', 'Coffee'))

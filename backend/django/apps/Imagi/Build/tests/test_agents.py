@@ -2799,3 +2799,51 @@ class AskUserChoicesTests(TestCase):
     def test_the_coordinator_can_ask_too(self):
         agent = create_coding_agent(kind='lead')
         self.assertIn('ask_user', [t.name for t in agent.tools])
+
+
+class FirstBuildPageRunEndsAtItsWriteTests(SimpleTestCase):
+    """A first-build page's run ends once its page is written and whole."""
+
+    VIEW = 'frontend/vuejs/src/apps/home/views/OpeningHoursView.vue'
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.context = SimpleNamespace(context=SimpleNamespace(effective_project_path=self.root))
+
+    def _decide(self, name, output, unresolved=()):
+        from apps.Imagi.Build.services import coding_agent
+
+        result = SimpleNamespace(tool=SimpleNamespace(name=name), output=json.dumps(output))
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_unresolved_imports',
+            return_value=list(unresolved),
+        ):
+            return coding_agent._finish_after_page_write(self.context, [result])
+
+    def test_the_page_write_ends_the_run_without_a_summary_turn(self):
+        decision = self._decide('update_file', {'success': True, 'path': self.VIEW})
+        self.assertTrue(decision.is_final_output)
+        self.assertEqual(decision.final_output, 'Your opening hours page is built.')
+
+    def test_a_write_that_leaves_a_dangling_import_keeps_the_run_going(self):
+        decision = self._decide(
+            'update_file', {'success': True, 'path': self.VIEW},
+            unresolved=[{'file': self.VIEW, 'import': './Missing.vue'}],
+        )
+        self.assertFalse(decision.is_final_output)
+
+    def test_reads_failed_writes_and_other_files_keep_the_run_going(self):
+        self.assertFalse(self._decide('read_file', {'success': True, 'path': self.VIEW}).is_final_output)
+        self.assertFalse(self._decide('update_file', {'success': False, 'path': self.VIEW}).is_final_output)
+        self.assertFalse(self._decide(
+            'create_file', {'success': True, 'path': 'frontend/vuejs/src/apps/home/components/Hero.vue'}
+        ).is_final_output)
+
+    def test_only_the_first_build_ends_at_a_write(self):
+        from apps.Imagi.Build.services import coding_agent
+
+        agent = coding_agent.create_coding_agent('claude-opus-5-5', kind='initial_build')
+        self.assertIs(agent.tool_use_behavior, coding_agent._finish_after_page_write)
+        chat = coding_agent.create_coding_agent('claude-opus-5-5', kind='chat')
+        self.assertIsNot(chat.tool_use_behavior, coding_agent._finish_after_page_write)

@@ -15,13 +15,11 @@
   rather than as navigation.
 -->
 <template>
-  <component
-    :is="isBuildLocked ? 'div' : 'router-link'"
-    :to="isBuildLocked ? undefined : target"
+  <router-link
+    :to="target"
     class="sl-card module"
-    :class="[`module--${layout}`, { 'module--building': isBuildLocked }]"
-    :title="isBuildLocked ? 'Imagi is building your app — this module unlocks the moment the build finishes' : tool.name"
-    :aria-disabled="isBuildLocked ? 'true' : undefined"
+    :class="[`module--${layout}`, { 'module--building': isBuilding }]"
+    :title="isBuilding ? 'Imagi is building your app. Open the workspace to watch it.' : tool.name"
   >
     <!-- ==================== FEATURE (Build) ==================== -->
     <template v-if="layout === 'feature'">
@@ -29,7 +27,7 @@
         <span class="sl-card__icon module__icon"><LineIcon :name="tool.lineIcon" /></span>
         <div>
           <h3 class="sl-card__title">{{ tool.name }}</h3>
-          <p class="sl-card__body">{{ isBuildLocked ? 'Imagi is writing your first version' : tool.tagline }}</p>
+          <p class="sl-card__body">{{ isBuilding ? 'Imagi is writing your first version' : tool.tagline }}</p>
         </div>
       </div>
 
@@ -46,7 +44,7 @@
       </div>
 
       <div class="module__foot">
-        <template v-if="isBuildLocked">
+        <template v-if="isBuilding">
           <!-- The accent sweeping along a hairline reports the work in progress. -->
           <div class="module__track" aria-hidden="true"><span class="module__bar"></span></div>
           <p class="module__cta--waiting">Building</p>
@@ -74,7 +72,7 @@
           <StatusBadge v-if="tool.beta" tone="neutral" label="Beta" />
         </div>
         <p class="sl-card__body">{{ tool.tagline }}</p>
-        <p v-if="isBuildLocked" class="module__cta--waiting">Building</p>
+        <p v-if="isBuilding" class="module__cta--waiting">Building</p>
         <ul v-else class="module__features module__inline">
           <li v-for="feature in tool.features" :key="feature.name">{{ feature.name }}</li>
         </ul>
@@ -85,7 +83,7 @@
         </svg>
       </span>
     </template>
-  </component>
+  </router-link>
 </template>
 
 <script setup lang="ts">
@@ -107,16 +105,14 @@ const props = withDefaults(
 )
 
 /**
- * The initial AI build is still running. While it is, the Build module is
- * locked: it shows a dedicated building state and cannot navigate into the
- * workspace, so users never enter a half-built project. Only Build is gated.
+ * The initial AI build is still running. The Build module says so, and still
+ * opens: the workspace shows the home page being written and the app the
+ * moment it lands. Only Build has this state.
  *
- * We lock strictly on 'generating' — the status the backend sets synchronously
- * the moment a build starts, before the create response returns. 'pending' is
- * deliberately excluded: it's the transient/legacy default, and locking on it
- * would trap older projects whose build never ran out of their own workspace.
+ * Strictly 'generating', the status the backend sets synchronously the moment
+ * a build starts. 'pending' is the transient/legacy default.
  */
-const isBuildLocked = computed(
+const isBuilding = computed(
   () => props.tool.id === 'build' && props.buildStatus === 'generating'
 )
 
@@ -423,15 +419,7 @@ const target = computed<RouteLocationRaw>(() => {
 
 /* --- Building ------------------------------------------------------------
    The one module that can be busy. It keeps the card's shape and swaps the
-   capabilities and button for the reason it can't be opened yet. */
-
-.module--building {
-  cursor: progress;
-}
-
-.spotlight .module--building:hover {
-  transform: none;
-}
+   capabilities and button for the work in progress; it still opens. */
 
 .module--building .module__icon {
   animation: module-pulse 2.4s ease-in-out infinite;

@@ -97,6 +97,43 @@ describe('LivePreview', () => {
     expect(wrapper.find('[role=alert]').exists()).toBe(false)
   })
 
+  it('keeps the app behind a building notice until the home page lands, then loads it fresh', async () => {
+    await wrapper.setProps({ building: true })
+    await settle()
+    const veil = wrapper.find('[data-testid=building-veil]')
+    expect(veil.exists()).toBe(true)
+    expect(veil.text()).toContain('Building your home page')
+    // The servers came up underneath meanwhile.
+    expect(veil.findAll('.lp-stage-row')[1]!.classes()).toContain('is-done')
+
+    const before = wrapper.find('iframe').element
+    await wrapper.setProps({ building: false })
+    await settle()
+    // A fresh frame for the finished page; the notice stays until it loads.
+    expect(wrapper.find('iframe').element).not.toBe(before)
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(true)
+    await fromApp({ type: 'ready', path: '/', title: 'Demo' })
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
+  })
+
+  it('keeps the building notice up when the home page lands before the app has started', async () => {
+    wrapper.unmount()
+    let started!: (s: typeof SESSION) => void
+    start.mockReturnValue(new Promise((r) => { started = r }))
+    wrapper = mount(LivePreview, { props: { projectId: '7', building: true }, attachTo: document.body })
+    await settle()
+    await wrapper.setProps({ building: false })
+    await settle()
+    const veil = wrapper.find('[data-testid=building-veil]')
+    expect(veil.exists()).toBe(true)
+    expect(veil.findAll('.lp-stage-row')[0]!.classes()).toContain('is-done')
+
+    started(SESSION)
+    await settle()
+    await fromApp({ type: 'ready', path: '/', title: 'Demo' })
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
+  })
+
   it('turns a picked element into context for the agent', async () => {
     await fromApp({
       type: 'picked', path: '/about',

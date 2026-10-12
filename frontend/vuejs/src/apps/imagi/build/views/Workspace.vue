@@ -95,6 +95,7 @@
               :paused="isMobile && !isSidebarCollapsed"
               :can-return-to-chat="isMobile && isSidebarCollapsed"
               :return-count="store.checkIns.length"
+              :building="buildingHome"
               class="flex-1 min-h-0"
               :class="isSidebarCollapsed ? '' : 'max-md:invisible'"
               @fix-error="handleFixError"
@@ -196,6 +197,43 @@ async function confirmPreviewMode() {
     // keep the remembered mode
   }
 }
+// The first build is still writing the home page. Polled briskly, since the
+// founder is watching for the moment it lands.
+const buildingHome = ref(false)
+const FIRST_BUILD_POLL_MS = 1000
+let firstBuildTimer: number | null = null
+let firstBuildProject = ''
+
+function stopWatchingFirstBuild() {
+  if (firstBuildTimer) window.clearTimeout(firstBuildTimer)
+  firstBuildTimer = null
+}
+
+async function watchFirstBuild(id: string) {
+  stopWatchingFirstBuild()
+  firstBuildProject = id
+  try {
+    const status = await ProjectService.getProjectStatus(id)
+    if (firstBuildProject !== id) return
+    buildingHome.value = status.generation_status === 'generating'
+  } catch (e) {
+    // Never trap the user behind the notice: open the app as it is.
+    console.warn('Could not check the first build; showing the app as it is:', e)
+    buildingHome.value = false
+  }
+  if (buildingHome.value && firstBuildProject === id) {
+    firstBuildTimer = window.setTimeout(() => void watchFirstBuild(id), FIRST_BUILD_POLL_MS)
+  }
+}
+
+// A new project opens here straight from Create, while its first build is
+// still writing the home page. The preview says so and opens the app the
+// moment it lands; everything else in the workspace loads meanwhile.
+watch(projectId, (id) => {
+  if (id) void watchFirstBuild(id)
+  else stopWatchingFirstBuild()
+})
+
 // The chat panel; exposes setPromptText for the checkpoint-restore flow.
 const chatRef = ref<InstanceType<typeof BuilderSidebarChat> | null>(null)
 const {
@@ -596,30 +634,6 @@ onMounted(async () => {
     // Set the project ID from the found project
     projectId.value = String(foundProject.id);
 
-    // Gate: the workspace must not open while the initial AI build is still
-    // running, or the user would land in a half-built project. Check the
-    // authoritative status and, if it's still generating, bounce back to the
-    // project hub where the "Building your app" state is shown. This is the
-    // backstop for direct URLs / refreshes; the hub's Build card also blocks
-    // navigation while building.
-    try {
-      const status = await ProjectService.getProjectStatus(projectId.value)
-      if (status.generation_status === 'generating') {
-        const { showNotification } = useNotification()
-        showNotification({
-          type: 'info',
-          message: `Imagi is still building "${foundProject.name}". We'll open the workspace as soon as it's ready.`,
-          duration: 4000
-        })
-        router.replace({ name: 'project-hub', params: { projectName: projectNameSlug } })
-        return
-      }
-    } catch (e) {
-      // If the status check fails, don't block entry — fall through and load
-      // the workspace as normal rather than trapping the user.
-      console.warn('Could not verify initial build status; opening workspace anyway:', e)
-    }
-
     // Critical request - project must be loaded first and only once
     try {
       const project = await executeOnce('fetchProject', () => {
@@ -743,6 +757,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  stopWatchingFirstBuild()
+  firstBuildProject = ''
   // The panel's open flag outlives the view; leaving the workspace shuts it.
   closeSettings()
   // These close over this view's handlePrompt; they must not outlive it.

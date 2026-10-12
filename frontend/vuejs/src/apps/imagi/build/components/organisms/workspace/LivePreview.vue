@@ -186,8 +186,34 @@
         </button>
       </div>
 
+      <!-- A new project's first build: the app opens here the moment its
+           home page lands. The servers start underneath meanwhile. -->
+      <div v-if="buildVeil" class="lp-veil" data-testid="building-veil">
+        <div class="lp-notice">
+          <h3 class="lp-notice-title">Building your home page</h3>
+          <p class="lp-notice-body">Your app opens here as soon as it's ready. The other pages keep building after that.</p>
+          <ol class="lp-stages" aria-live="polite">
+            <li :class="['lp-stage-row', building ? 'is-running' : 'is-done']">
+              <span class="lp-stage-mark" aria-hidden="true">
+                <i v-if="!building" class="fas fa-check"></i>
+                <span v-else class="lp-dot is-work"></span>
+              </span>
+              <span class="lp-stage-label">Writing your home page</span>
+            </li>
+            <li :class="['lp-stage-row', appStarted ? 'is-done' : phase === 'error' ? 'is-failed' : 'is-running']">
+              <span class="lp-stage-mark" aria-hidden="true">
+                <i v-if="appStarted" class="fas fa-check"></i>
+                <span v-else class="lp-dot is-work"></span>
+              </span>
+              <span class="lp-stage-label">Starting your app</span>
+            </li>
+          </ol>
+          <p class="lp-clock">{{ buildElapsedLabel }}</p>
+        </div>
+      </div>
+
       <!-- Starting: the real stages, as they happen. -->
-      <div v-if="phase === 'starting' || (phase === 'ready' && !appReady && !iframeSrc)" class="lp-veil">
+      <div v-else-if="phase === 'starting' || (phase === 'ready' && !appReady && !iframeSrc)" class="lp-veil">
         <div class="lp-notice">
           <h3 class="lp-notice-title">Starting your app</h3>
           <ol class="lp-stages" aria-live="polite">
@@ -277,6 +303,8 @@ const props = defineProps<{
   /** Phones: the preview replaced the chat, so offer the way back. */
   canReturnToChat?: boolean
   returnCount?: number
+  /** The project's first build is still writing its home page. */
+  building?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -897,6 +925,63 @@ function onVisibility() {
 }
 
 // ---------------------------------------------------------------------------
+// First build
+// ---------------------------------------------------------------------------
+
+// Shown from when the workspace opens on a project still building its home
+// page until the app has loaded the finished page.
+const buildVeil = ref(!!props.building)
+const buildElapsed = ref(0)
+let buildTimer: number | null = null
+const buildElapsedLabel = computed(
+  () => `${Math.floor(buildElapsed.value / 60)}:${String(buildElapsed.value % 60).padStart(2, '0')}`
+)
+const appStarted = computed(() => phase.value === 'ready' && appReady.value)
+
+function stopBuildClock() {
+  if (buildTimer) window.clearInterval(buildTimer)
+  buildTimer = null
+}
+
+watch(
+  () => props.building,
+  (building) => {
+    if (building) {
+      buildVeil.value = true
+      const startedAt = Date.now()
+      buildElapsed.value = 0
+      stopBuildClock()
+      buildTimer = window.setInterval(() => {
+        buildElapsed.value = Math.floor((Date.now() - startedAt) / 1000)
+      }, 1000)
+      return
+    }
+    stopBuildClock()
+    if (!buildVeil.value) return
+    void refreshPages()
+    if (session.value && iframeSrc.value) {
+      // Load the finished home page fresh; the veil lifts once it has.
+      currentPath.value = '/'
+      addressText.value = '/'
+      reload(true)
+    } else if (phase.value === 'error') {
+      buildVeil.value = false
+    }
+    // Otherwise the app is still starting; the veil stays until it loads.
+  },
+  { immediate: true }
+)
+
+watch(appReady, (ready) => {
+  if (ready && !props.building) buildVeil.value = false
+})
+
+// A preview that fails to start shows its own error once the build is done.
+watch(phase, (p) => {
+  if (p === 'error' && !props.building) buildVeil.value = false
+})
+
+// ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
@@ -942,6 +1027,7 @@ onBeforeUnmount(() => {
   for (const t of [statusTimer, logsTimer, errorFlushTimer, editTimer, editHide]) if (t) window.clearTimeout(t)
   if (elapsedTimer) window.clearInterval(elapsedTimer)
   if (tickTimer) window.clearInterval(tickTimer)
+  stopBuildClock()
   stopHello()
 })
 

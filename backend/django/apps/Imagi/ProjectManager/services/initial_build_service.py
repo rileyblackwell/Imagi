@@ -64,6 +64,7 @@ and every page that did not simply keeps its placeholder.
 """
 
 import logging
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -181,7 +182,7 @@ def _more_threads_note(pages) -> str:
     noun = 'thread' if len(pages) == 1 else 'threads'
     return (
         f"I've also started {len(pages)} {noun} for the rest of your site: {listed}. "
-        "Each page shows up in your app's navigation as soon as it's finished."
+        "They're in your app's navigation already, and each one fills in as soon as it's finished."
     )
 
 
@@ -214,6 +215,7 @@ def build_initial_prompt(
     page: PageBrief = None,
     app_details: str = "",
     siblings=(),
+    current_view: str = "",
 ) -> str:
     """Compose one page subagent's brief from the founder's inputs.
 
@@ -228,6 +230,8 @@ def build_initial_prompt(
     the opening message of their main thread. ``siblings`` is the whole page
     plan when it is known (it is not yet when the home page starts), so a page
     can mention the others by name without linking to them by hand.
+    ``current_view`` is the page file as it stands, handed over so the thread
+    can write straight away instead of spending a model turn reading it.
     """
     page = page or PAGE_BRIEFS[0]
 
@@ -259,9 +263,9 @@ Read this as the app's functional brief. Before writing code, work out from it t
 Your page: {page.summary}.
 Rewrite '{page.view_path}' (routed at '{page.route}'), and no other file. Your siblings are building the other pages at the same time.{_sibling_line(page, siblings)}
 
-{page.requirements}
-
-When you're done, briefly summarize what you built."""
+{page.requirements}"""
+    if current_view.strip():
+        prompt += f"\n\nThe file as it stands now (no need to read it):\n```vue\n{current_view.strip()}\n```"
     return prompt
 
 
@@ -560,6 +564,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             return build_initial_prompt(
                 project.name, project.description, design, page,
                 app_details=app_details, siblings=siblings,
+                current_view=_read_view(project.project_path, page.view_path),
             )
 
         # agent_kind pins the first-build persona (its prompt and design
@@ -588,7 +593,6 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         home_deadline = time.monotonic() + time_budget if time_budget else None
 
         applied = {}
-        ready = []
         with ThreadPoolExecutor(
             max_workers=max_parallel, thread_name_prefix=f'initial-build-{project_id}'
         ) as pool:
@@ -617,8 +621,9 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 ) or list(PAGE_BRIEFS[1:])
             plan = [home] + rest
             if not fixed:
-                initial_page_plan.scaffold_pages(project.project_path, plan, [home])
-            ready = [home]
+                # Every planned page goes in the navigation now; the ones
+                # still building say so if a visitor gets there first.
+                initial_page_plan.scaffold_pages(project.project_path, plan, plan)
 
             rest_tasks = [
                 _create_build_task(
@@ -636,21 +641,17 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 applied[page.slug] = future.result()
                 if not applied[page.slug]:
                     continue
-                if page.slug != home.slug:
-                    # The finished page joins the navigation; the preview
-                    # hot-reloads it, so it appears while the rest build.
-                    ready = [p for p in plan if p is home or applied.get(p.slug)]
-                    if not fixed:
-                        initial_page_plan.publish_ready_pages(project.project_path, ready)
-                else:
+                if page.slug == home.slug:
                     # Open the project now rather than when the slowest page
                     # finishes: the founder lands on the home page, and the
                     # others merge into the running preview as they finish.
-                    _resync_project_files(project_id)
+                    # The founder is waiting on this flag, so it goes first;
+                    # the mirror catches up right after.
                     Project.objects.filter(pk=project_id).update(
                         generation_status='completed',
                         last_generated_at=timezone.now(),
                     )
+                    _resync_project_files(project_id)
                     logger.info(
                         "Initial AI build of project %s: home page applied, project ready",
                         project_id,
@@ -660,6 +661,13 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                     # (auth_restyle_service).
                     queue_auth_restyle(project_id, user_id)
 
+        missed_pages = [p for p in plan if p is not home and not applied.get(p.slug)]
+        if missed_pages and not fixed:
+            initial_page_plan.settle_unbuilt_pages(
+                project.project_path,
+                [p for p in plan if p is home or applied.get(p.slug)],
+                missed_pages,
+            )
         _resync_project_files(project_id)
 
         landed = [slug for slug, ok in applied.items() if ok]
@@ -693,6 +701,15 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             pass
     finally:
         close_old_connections()
+
+
+def _read_view(project_path, view_path) -> str:
+    """A page's view file as it is on disk, or '' when it can't be read."""
+    try:
+        with open(os.path.join(project_path or '', view_path), encoding='utf-8') as f:
+            return f.read()
+    except OSError:
+        return ''
 
 
 def _pages_to_build(builder):
