@@ -128,6 +128,20 @@ describe('usage store plan perks', () => {
     expect(store.canCreateProject(5)).toBe(true)
   })
 
+  it('lets an unlimited Free plan create projects and never reports exhaustion', async () => {
+    apiMock.get.mockResolvedValue({
+      data: {
+        plan: { id: 'free', name: 'Free', max_active_projects: null, early_access: false },
+        windows: { weekly: { used_usd: 30, limit_usd: null, resets_at: null } },
+      },
+    })
+    const store = useUsageStore()
+    await store.fetchUsage()
+    expect(store.canCreateProject(10)).toBe(true)
+    expect(store.weeklyPercent).toBeNull()
+    expect(store.exceededWindow).toBeNull()
+  })
+
   it('reads a missing early_access as no early access', async () => {
     apiMock.get.mockResolvedValue({ data: { plan: { id: 'pro', name: 'Pro' } } })
     const store = useUsageStore()

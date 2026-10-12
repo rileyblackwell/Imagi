@@ -288,6 +288,12 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_CONNECT_WEBHOOK_SECRET = os.environ.get('STRIPE_CONNECT_WEBHOOK_SECRET', '')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
+# Testing period: the Free plan has no weekly usage allowance and no project
+# limit. Usage is still metered and recorded; only enforcement is lifted.
+# Set FREE_TIER_UNLIMITED=0 (on Backend and Workspace) to restore Free's
+# limits from Payments' services/plans.py. The per-run spend cap still applies.
+FREE_TIER_UNLIMITED = os.environ.get('FREE_TIER_UNLIMITED', '1').lower() in ('1', 'true', 'yes')
+
 
 # Products / Imagi builder
 #

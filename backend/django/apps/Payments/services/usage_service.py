@@ -148,7 +148,8 @@ def check_usage_allowed(user):
     status = get_usage_status(user)
     plan_name = status['plan']['name']
     window = status['windows']['weekly']
-    if window['used_usd'] >= window['limit_usd']:
+    # A None limit is an unlimited allowance (Free while FREE_TIER_UNLIMITED).
+    if window['limit_usd'] is not None and window['used_usd'] >= window['limit_usd']:
         return False, {
             'error': 'usage_limit_exceeded',
             'detail': (

@@ -22,6 +22,6 @@ describe('ClosingSection', () => {
   it('keeps pricing one quiet link away, with the free-plan footnote', () => {
     const w = wrapper()
     expect(w.find('a').attributes('href')).toBe('/payments/pricing')
-    expect(w.text()).toContain('Start for free. Upgrade anytime as you grow.')
+    expect(w.text()).toContain('Free to use. No card needed.')
   })
 })
