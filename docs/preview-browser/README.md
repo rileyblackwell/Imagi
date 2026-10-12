@@ -104,3 +104,18 @@ screenshot preview on its next load. The domain can stay.
 | `PREVIEW_LIVE_PREWARM_RECENT` | 1 | Projects prewarmed while the user is signed in |
 | `PREVIEW_MEMORY_BUDGET_MB` | 2048 | Dev servers' measured memory, host-wide |
 | `PREVIEW_BROWSER_IDLE_TIMEOUT` | 120 s | Headless Chromium idle limit (the agent's preview tool only) |
+
+## Screenshots
+
+| Before (screenshot stream) | After (live preview) |
+| --- | --- |
+| ![Before](screenshots/before-dark.webp) | ![After](screenshots/after-dark.webp) |
+
+Pages in the address bar, an app error with Fix it, the server-log drawer, the
+element picker (light theme), and a phone:
+
+![Address bar pages](screenshots/address-pages-dark.webp)
+![Error banner](screenshots/error-banner-dark.webp)
+![Server logs](screenshots/drawer-logs-dark.webp)
+![Picker](screenshots/picker-light.webp)
+![Phone](screenshots/phone-dark.webp)
