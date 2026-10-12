@@ -714,7 +714,13 @@ let errorFlushTimer: number | null = null
 
 const errorCount = computed(() => consoleEntries.value.filter((e) => e.level === 'error').length)
 
+// Vite's own live-reload socket failing (a proxy or network that drops
+// WebSocket upgrades) isn't the app breaking: keep it in the console as a
+// warning, out of the banner and the error routing.
+const DEV_SERVER_NOISE = /^\[vite\] (failed to connect to websocket|server connection lost)|^WebSocket connection to .* failed/i
+
 function addConsole(entry: ConsoleEntry) {
+  if (entry.level === 'error' && DEV_SERVER_NOISE.test(entry.text)) entry = { ...entry, level: 'warn' }
   consoleEntries.value.push(entry)
   if (consoleEntries.value.length > MAX_CONSOLE) consoleEntries.value.splice(0, consoleEntries.value.length - MAX_CONSOLE)
   if (entry.level !== 'error') return

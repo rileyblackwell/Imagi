@@ -92,6 +92,11 @@ describe('LivePreview', () => {
     expect(wrapper.emitted('fix-error')?.[0]?.[0]).toContain('TypeError: boom')
   })
 
+  it("doesn't treat a dropped live-reload socket as the app breaking", async () => {
+    await fromApp({ type: 'console', level: 'error', text: '[vite] failed to connect to websocket.', ts: Date.now() })
+    expect(wrapper.find('[role=alert]').exists()).toBe(false)
+  })
+
   it('turns a picked element into context for the agent', async () => {
     await fromApp({
       type: 'picked', path: '/about',
