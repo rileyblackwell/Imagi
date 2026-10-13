@@ -248,6 +248,50 @@ class MigrateStampTests(_Root, SimpleTestCase):
             self.assertEqual(run.call_count, 3)
 
 
+class MigratedDatabaseCopyTests(_Root, SimpleTestCase):
+    """A new project starts from a copy of a database already migrated for
+    the same migrations, rather than spending a cold start on migrate."""
+
+    def _project(self, root, name):
+        backend = os.path.join(root, name, 'backend')
+        os.makedirs(os.path.join(backend, 'shop', 'migrations'))
+        with open(os.path.join(backend, 'shop', 'migrations', '0001_initial.py'), 'w') as f:
+            f.write('# the scaffold\n')
+        servers = PreviewService.__new__(PreviewService)
+        servers.migrate_stamp_file = os.path.join(root, name, 'stamp')
+        servers.backend_log_file = os.path.join(root, name, 'backend.log')
+        return backend, servers
+
+    def test_the_second_project_copies_the_first_ones_fresh_database(self):
+        root = self.make_root()
+
+        def migrate(cmd, cwd, **kwargs):
+            with open(os.path.join(cwd, 'db.sqlite3'), 'w') as f:
+                f.write('migrated')
+            return SimpleNamespace(returncode=0, stdout='OK\n', stderr='')
+
+        with self.settings(PROJECTS_ROOT=root), patch(
+            'apps.Imagi.Build.services.preview_service.subprocess.run', side_effect=migrate,
+        ) as run:
+            first, first_servers = self._project(root, 'a')
+            self.assertIsNone(first_servers.run_migrations(first, env={}))
+            second, second_servers = self._project(root, 'b')
+            self.assertIsNone(second_servers.run_migrations(second, env={}))
+            self.assertEqual(run.call_count, 1)
+            with open(os.path.join(second, 'db.sqlite3')) as f:
+                self.assertEqual(f.read(), 'migrated')
+            # And the copy counts as migrated.
+            second_servers.run_migrations(second, env={})
+            self.assertEqual(run.call_count, 1)
+
+            # Different migrations get no copy.
+            third, third_servers = self._project(root, 'c')
+            with open(os.path.join(third, 'shop', 'migrations', '0002_order.py'), 'w') as f:
+                f.write('# more\n')
+            third_servers.run_migrations(third, env={})
+            self.assertEqual(run.call_count, 2)
+
+
 class LiveApiTests(_Root, APITestCase):
     def setUp(self):
         self.make_root()

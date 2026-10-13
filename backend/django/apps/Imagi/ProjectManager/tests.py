@@ -1779,3 +1779,74 @@ class PageBriefCarriesItsFileTests(SimpleTestCase):
         )
         self.assertIn("'../site-pages' (no need to read it)", prompt)
         self.assertIn('label: "Home"', prompt)
+
+
+class QuickHomeTests(TransactionTestCase):
+    """The quick home page goes up while the full one is written, and only
+    over the untouched scaffold."""
+
+    COPY = {
+        'headline': 'Clean clothes, no trip', 'subheadline': 'We pick up and drop off.',
+        'cta_label': 'Book a pickup', 'accent': '#0e7490', 'background': 'not a colour',
+        'features_title': 'Why us', 'features': [{'title': 'Fast', 'body': 'Two days.'}] * 3,
+        'steps_title': 'How it works', 'steps': [{'title': 'Book', 'body': 'Pick a time.'}] * 3,
+        'closing_headline': 'Ready?', 'closing_body': 'Start today.',
+    }
+
+    def setUp(self):
+        import tempfile
+        from concurrent.futures import Future
+        from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
+
+        _wait_out_sqlite_table_locks(self)
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        src = os.path.join(self.root, 'frontend', 'vuejs', 'src', 'apps')
+        os.makedirs(os.path.join(src, 'auth'))
+        os.makedirs(os.path.join(src, 'home', 'views'))
+        self.view = os.path.join(src, 'home', 'views', 'HomeView.vue')
+        with open(self.view, 'w') as f:
+            f.write(HOME_VIEW_VUE)
+        self.project = Project.objects.create(
+            user=self.user, name='Puddle Lane', description=VALID_DESCRIPTION,
+            project_path=self.root, generation_status='generating',
+        )
+        future = Future()
+        future.set_result(dict(self.COPY))
+        from apps.Imagi.ProjectManager.services import initial_build_service
+        self.ibs = initial_build_service
+        self.ibs._quick_copy[self.project.pk] = (future, 'gpt-6.1-sol:ultrafast', self.user.pk)
+
+    def _land(self, home_landed=None):
+        landed = {}
+        self.ibs._land_quick_home(
+            self.project.pk, self.project.name, self.root, home_landed or {}, landed,
+        )
+        self.project.refresh_from_db()
+        return landed
+
+    def test_it_goes_up_over_the_scaffold_and_opens_the_project(self):
+        from apps.Imagi.Build.services.frontend_integrity import find_auth_link_problems
+        from apps.Imagi.ProjectManager.services.quick_home import QUICK_HOME_MARKER
+
+        self.assertIn('quick', self._land())
+        with open(self.view) as f:
+            page = f.read()
+        self.assertIn('Clean clothes, no trip', page)
+        self.assertIn(QUICK_HOME_MARKER, page)
+        # A colour that isn't one falls back to the default.
+        self.assertIn("const background = '#f8fafc'", page)
+        self.assertEqual(self.project.generation_status, 'completed')
+        self.assertEqual(find_auth_link_problems(self.root), [])
+
+    def test_it_stays_down_once_the_full_page_is_there(self):
+        with open(self.view, 'w') as f:
+            f.write('<template><p>The full page</p></template>')
+        self.assertEqual(self._land(), {})
+        with open(self.view) as f:
+            self.assertIn('The full page', f.read())
+        self.assertEqual(self.project.generation_status, 'generating')
+
+    def test_it_stays_down_when_the_full_page_already_opened_the_project(self):
+        self.assertEqual(self._land({'at': 1.0}), {})

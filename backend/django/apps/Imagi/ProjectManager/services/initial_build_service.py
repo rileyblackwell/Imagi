@@ -379,7 +379,88 @@ def start_home_page_early(project) -> bool:
         app_details=getattr(project, 'app_details', ''),
         current_view=HOME_VIEW_VUE, site_pages=SITE_PAGES_TS,
     )
-    return head_start.begin(project.pk, model, service_tier, prompt)
+    sent = head_start.begin(project.pk, model, service_tier, prompt)
+    if sent and builder.get('INITIAL_BUILD_QUICK_HOME', True):
+        from . import quick_home
+
+        from apps.Imagi.Build.services.models_service import pricing_model_id
+
+        _quick_copy[project.pk] = (quick_home.request_copy(
+            model, service_tier, project.name, project.description,
+            getattr(project, 'app_details', ''), getattr(project, 'design_preferences', ''),
+        ), pricing_model_id(model, service_tier), project.user_id)
+    return sent
+
+
+# The quick home page's words, asked for at Create (quick_home), by project.
+_quick_copy = {}
+
+
+def _meter_quick_home(user_id, pricing_id, usage):
+    """The quick page's words draw on the plan allowance like any run."""
+    from django.contrib.auth import get_user_model
+    from apps.Imagi.Build.services.base_agent import usage_payload
+    from apps.Imagi.Build.services.usage_limits import record_usage
+
+    payload = usage_payload(usage, pricing_id)
+    if not payload:
+        return
+    try:
+        record_usage(
+            get_user_model().objects.get(pk=user_id), pricing_id,
+            payload['input_tokens'], payload['output_tokens'],
+            cost_usd=payload.get('cost_usd'),
+        )
+    except Exception as e:
+        logger.warning("Could not meter the quick home page: %s", e)
+
+
+def _land_quick_home(project_id, project_name, project_path, home_landed, landed_at):
+    """Put the quick home page up while the full one is still being written.
+
+    Waits for its words (a couple of seconds), and gives up quietly if they
+    don't come, or if the full page got there first. Writes straight into the
+    project the preview serves; the full page's merge goes over it.
+    """
+    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
+    from apps.Imagi.Build.services.version_control_service import canonical_repo_lock
+    from ..models import Project
+    from . import quick_home
+
+    pending = _quick_copy.pop(project_id, None)
+    if pending is None:
+        return
+    future, pricing_id, user_id = pending
+    try:
+        copy = future.result(timeout=20)
+    except Exception as e:
+        logger.warning("No quick home page for project %s: %s", project_id, e)
+        return
+    _meter_quick_home(user_id, pricing_id, copy.get('_usage'))
+    view = os.path.join(project_path, PAGE_BRIEFS[0].view_path)
+    try:
+        with canonical_repo_lock(project_path):
+            if home_landed:
+                return
+            with open(view, encoding='utf-8') as f:
+                if f.read() != HOME_VIEW_VUE:
+                    return
+            tmp = f'{view}.imagi-quick'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                f.write(quick_home.render(project_name, copy))
+            os.replace(tmp, view)
+        Project.objects.filter(pk=project_id).update(
+            generation_status='completed', last_generated_at=timezone.now(),
+        )
+        landed_at['quick'] = time.monotonic()
+        timing_logger.info(
+            "first build project=%s quick home up (words took %.1fs)",
+            project_id, copy.get('_seconds', 0),
+        )
+    except Exception:
+        logger.exception("Could not put up the quick home page for project %s", project_id)
+    finally:
+        close_old_connections()
 
 
 def start_initial_build(project, user) -> bool:
@@ -677,6 +758,13 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             )
             futures = {submit(home_task, home_deadline, land_home): home_task}
             home_submitted = time.monotonic()
+            quick_landed = {}
+            if project_id in _quick_copy:
+                threading.Thread(
+                    target=_land_quick_home,
+                    args=(project_id, project.name, project.project_path, home_landed, quick_landed),
+                    name=f'initial-build-{project_id}-quick', daemon=True,
+                ).start()
 
             # Plan the rest while the home page builds.
             if fixed:
