@@ -251,10 +251,6 @@
               <p class="pv-alert-detail">{{ latestConsoleError.text }}</p>
               <p v-if="errorRoutingNote" class="pv-alert-detail" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
             </div>
-            <button v-if="!errorRouting" type="button" @click="onFixConsoleError" class="pv-btn pv-btn--ink shrink-0">
-              <i class="fas fa-wand-magic-sparkles"></i>
-              Fix it
-            </button>
             <button
               type="button"
               @click="dismissConsoleBanner"
@@ -345,8 +341,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  /** "Fix it" pressed on the console-error banner; text is the raw error. */
-  (e: 'fix-error', text: string): void
+  /** Errors the page reported went to an agent: which one. */
+  (e: 'errors-routed', routing: NonNullable<PreviewFrame['error_routing']>): void
   /** Take me back to the main agent (the toolbar's return pill). */
   (e: 'return-to-chat'): void
 }>()
@@ -460,6 +456,7 @@ function applyFrame(f: PreviewFrame, seq: number): boolean {
   if (Array.isArray(f.console_errors)) {
     consoleErrors.value = f.console_errors
     errorRouting.value = f.console_errors.length ? (f.error_routing ?? errorRouting.value) : null
+    if (f.error_routing?.new) emit('errors-routed', f.error_routing)
   }
   return true
 }
@@ -477,14 +474,15 @@ function applyStatus(f: PreviewFrame, seq: number) {
 // ---------------------------------------------------------------------------
 
 const consoleErrors = ref<PreviewConsoleError[]>([])
-// Set once the server has sent the current errors to a thread to fix (the
-// one that just changed that part of the app, or a new one); the banner then says so instead of offering "Fix it".
+// Set once the server has sent the current errors on to be fixed (to the
+// thread that just changed that part of the app, or to the coordinator); the
+// banner then says so.
 const errorRouting = ref<PreviewFrame['error_routing']>(null)
 const errorRoutingNote = computed(() =>
   errorRouting.value?.to === 'thread'
     ? 'Sent to the thread that just changed this part of your app.'
-    : errorRouting.value?.to === 'new_thread'
-      ? 'A new thread is fixing it.'
+    : errorRouting.value?.to === 'coordinator'
+      ? 'Sent to the coordinator, which is getting it fixed.'
       : ''
 )
 // Key of the error the user dismissed; the banner stays hidden until a
@@ -514,14 +512,6 @@ const consoleBannerVisible = computed(() =>
 
 function dismissConsoleBanner() {
   if (latestConsoleError.value) dismissedErrorKey.value = consoleErrorKey(latestConsoleError.value)
-}
-
-function onFixConsoleError() {
-  const err = latestConsoleError.value
-  if (!err) return
-  emit('fix-error', err.text)
-  // The agent is on it; don't keep nagging about this same error.
-  dismissConsoleBanner()
 }
 
 async function startPreview() {

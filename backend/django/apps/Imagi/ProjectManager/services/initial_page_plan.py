@@ -19,6 +19,7 @@ shows a "still being generated" notice and swaps itself for the real page when
 that lands. Pages the build couldn't make are taken back out at the end.
 """
 
+import html
 import json
 import logging
 import os
@@ -254,6 +255,12 @@ def views_index_ts(pages: Iterable) -> str:
 PLACEHOLDER_MARKER = 'imagi-page-placeholder'
 
 
+def _template_text(text: str) -> str:
+    """A page label as literal template text: HTML-escaped, and with no
+    ``{{`` for Vue to read as an interpolation."""
+    return html.escape(text, quote=False).replace('{', '&#123;').replace('}', '&#125;')
+
+
 def placeholder_view(page) -> str:
     """What a planned page shows until its thread lands.
 
@@ -262,7 +269,7 @@ def placeholder_view(page) -> str:
     every few seconds and reloads once the real page has replaced it, so it
     turns up even where the dev server's hot reload can't reach the browser.
     """
-    label = _label(page)
+    label = _template_text(_label(page))
     return f"""<template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col" data-{PLACEHOLDER_MARKER}>
     <header class="w-full">
@@ -309,7 +316,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
 def unbuilt_view(page) -> str:
     """What a planned page shows when its thread could not build it."""
-    label = _label(page)
+    label = _template_text(_label(page))
     return f"""<template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
     <header class="w-full">

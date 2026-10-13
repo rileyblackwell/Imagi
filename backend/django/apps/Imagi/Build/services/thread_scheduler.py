@@ -9,7 +9,8 @@ is open. Browsers only watch (detached_runs.watch_conversation).
 
 It is called whenever a slot may have freed or new work may be waiting: the
 coordinator dispatching, any run ending, a message arriving for a thread,
-and a watcher waiting on a thread that has not started.
+and a watcher waiting on a thread that has not started. The coordinator is
+started here too, when the app reported errors for it (app_errors).
 
 Every start is claimed with one conditional UPDATE on the run marker, so
 two server processes (or two calls racing in one) can never start the same
@@ -151,8 +152,111 @@ def _thread_events(user, item: Dict[str, Any]):
     return events()
 
 
+def _claim_waiting_coordinators(user) -> List[Dict[str, Any]]:
+    """Claim coordinators with staged work ([App error] messages) whose
+    project has no coordinator or chat run going.
+
+    A coordinator edits nothing itself, but its run holds the project's one
+    canonical-tree slot, so it waits for that slot like a message the user
+    sends would, and for the user's allowance.
+    """
+    from ..models import AgentConversation
+    from ..api.views import (
+        CANONICAL_TREE_KINDS,
+        MAX_CONCURRENT_CANONICAL_RUNS_PER_USER,
+        _project_has_running_conversation,
+        _user_running_run_count,
+    )
+    from .usage_limits import check_usage_allowed
+
+    waiting = list(
+        AgentConversation.objects.filter(
+            user=user, kind='lead', archived_at__isnull=True,
+        ).exclude(queued_prompt='').order_by('id')
+    )
+    if not waiting:
+        return []
+    allowed, _payload = check_usage_allowed(user)
+    if not allowed:
+        return []
+    room = MAX_CONCURRENT_CANONICAL_RUNS_PER_USER - _user_running_run_count(
+        user, kinds=CANONICAL_TREE_KINDS,
+    )
+    now = timezone.now()
+    stale = now - RUN_STALENESS_WINDOW
+    not_running = Q(run_started_at__isnull=True) | Q(run_started_at__lt=stale)
+    claimed: List[Dict[str, Any]] = []
+    for lead in waiting:
+        if room <= 0:
+            break
+        prompt = lead.queued_prompt
+        if not prompt.strip() or _project_has_running_conversation(user, lead.project_id):
+            continue
+        won = AgentConversation.objects.filter(
+            id=lead.id, queued_prompt=prompt,
+        ).filter(not_running).update(
+            queued_prompt='', run_started_at=now, cancel_requested_at=None,
+        )
+        if not won:
+            continue
+        room -= 1
+        claimed.append({
+            'conversation_id': lead.id,
+            'prompt': prompt,
+            'model': lead.model_name,
+            'project_id': lead.project_id,
+        })
+    return claimed
+
+
+def _release_unstarted_coordinator(conversation_id: int, prompt: str) -> None:
+    """A claimed coordinator whose run never got going: free it, and put its
+    work back for the next pass."""
+    from ..models import AgentConversation
+
+    conversation = AgentConversation.objects.filter(id=conversation_id).first()
+    if conversation is None:
+        return
+    queued = (conversation.queued_prompt or '').strip()
+    conversation.queued_prompt = f"{prompt}\n\n{queued}" if queued else prompt
+    conversation.run_started_at = None
+    conversation.save(update_fields=['queued_prompt', 'run_started_at'])
+
+
+def _coordinator_events(user, item: Dict[str, Any]):
+    """The coordinator's run on staged work. The message it reads is marked
+    as the app's, so the chat shows it as such rather than as the user's."""
+    from .base_agent import ImagiAgentService
+    from ..api.views import resolve_model
+
+    async def events():
+        model = resolve_model(item['model'])
+        service = ImagiAgentService(model=model)
+        service.user_message_metadata = {'app_error': True}
+        started = False
+        try:
+            async for event in service.process_stream(
+                user_input=item['prompt'],
+                user=user,
+                model=model,
+                project_id=item['project_id'],
+                conversation_id=item['conversation_id'],
+            ):
+                if event.get('type') == 'start':
+                    started = True
+                yield event
+        finally:
+            if not started:
+                await sync_to_async(_release_unstarted_coordinator)(
+                    item['conversation_id'], item['prompt'],
+                )
+
+    return events()
+
+
 async def start_waiting_threads(user) -> Dict[str, Any]:
-    """Start every thread that has staged work and a free slot, on this server.
+    """Start every thread that has staged work and a free slot, on this
+    server, and every coordinator with app errors waiting for it.
 
     Returns {'started': n, 'blocked': None | 'usage'}.
     """
@@ -163,6 +267,14 @@ async def start_waiting_threads(user) -> Dict[str, Any]:
         logger.info("Starting thread %s on the server", item['conversation_id'])
         start_detached_run(
             lambda item=item: _thread_events(user, item),
+            user=user,
+            conversation_id=item['conversation_id'],
+        )
+    coordinators = await sync_to_async(_claim_waiting_coordinators)(user)
+    for item in coordinators:
+        logger.info("Starting coordinator %s on app errors", item['conversation_id'])
+        start_detached_run(
+            lambda item=item: _coordinator_events(user, item),
             user=user,
             conversation_id=item['conversation_id'],
         )

@@ -50,7 +50,6 @@
             <i class="fas fa-circle-exclamation pd-lvl"></i>
             <span class="pd-text">{{ err.text }}</span>
             <span v-if="err.count > 1" class="pd-times">×{{ err.count }}</span>
-            <button type="button" class="pd-fix" @click="emit('fix', err.text)">Fix it</button>
           </div>
         </div>
         <p v-if="!filteredConsole.length" class="pd-empty">Nothing logged yet. Your app's console messages show up here.</p>
@@ -99,7 +98,6 @@
         >
           <span class="pd-src">{{ line.source === 'backend' ? 'Backend' : 'Frontend' }}</span>
           <span class="pd-text">{{ line.text }}</span>
-          <button v-if="isErrorLine(line.text)" type="button" class="pd-fix" @click="emit('fix', line.text)">Fix it</button>
         </div>
       </template>
     </div>
@@ -129,8 +127,6 @@ const emit = defineEmits<{
   (e: 'update:height', height: number): void
   (e: 'clear', tab: DrawerTab): void
   (e: 'close'): void
-  /** "Fix it" on one error: its text goes to the agent. */
-  (e: 'fix', text: string): void
 }>()
 
 const filter = ref('')
@@ -329,8 +325,7 @@ function onGripDown(e: PointerEvent) {
 
 .pd-tab:focus-visible,
 .pd-icon:focus-visible,
-.pd-chip:focus-visible,
-.pd-fix:focus-visible {
+.pd-chip:focus-visible {
   outline: 2px solid var(--sl-focus, #d9730d);
   outline-offset: 2px;
 }
@@ -374,18 +369,6 @@ function onGripDown(e: PointerEvent) {
 .pd-text { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
 .pd-times { flex-shrink: 0; color: var(--sl-faint, #8a8fa0); }
 
-.pd-fix {
-  flex-shrink: 0;
-  height: 1.375rem;
-  padding: 0 0.625rem;
-  border-radius: 9999px;
-  border: 1px solid currentColor;
-  font-family: var(--sl-font-body, inherit);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.pd-fix:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
 
 .pd-empty {
   padding: 1rem 0.75rem;
@@ -432,6 +415,6 @@ function onGripDown(e: PointerEvent) {
 .pd-num { text-align: right; font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pd-tab, .pd-filter, .pd-fix { transition: none; }
+  .pd-tab, .pd-filter { transition: none; }
 }
 </style>

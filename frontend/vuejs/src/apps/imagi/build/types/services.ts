@@ -595,6 +595,8 @@ export interface AIMessage {
    * control (conversation and files rewind together).
    */
   checkpoint?: string;
+  /** A user-role message the running app sent (its errors), not the user. */
+  appError?: boolean;
 }
 
 /**
