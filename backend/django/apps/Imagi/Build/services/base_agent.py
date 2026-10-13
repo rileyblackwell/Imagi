@@ -454,6 +454,7 @@ def build_model_settings(
     reasoning_effort: Optional[str] = None,
     parallel_tool_calls: Optional[bool] = None,
     service_tier: Optional[str] = None,
+    tool_choice: Optional[str] = None,
 ):
     """
     Build ModelSettings for an agent, applying a reasoning effort level when one
@@ -475,6 +476,8 @@ def build_model_settings(
     kwargs = {}
     if parallel_tool_calls is not None:
         kwargs['parallel_tool_calls'] = parallel_tool_calls
+    if tool_choice:
+        kwargs['tool_choice'] = tool_choice
     extra_args = {}
     if service_tier:
         extra_args['service_tier'] = service_tier
