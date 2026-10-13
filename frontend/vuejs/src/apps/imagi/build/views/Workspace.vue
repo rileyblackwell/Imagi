@@ -200,7 +200,7 @@ async function confirmPreviewMode() {
 // The first build is still writing the home page. Polled briskly, since the
 // founder is watching for the moment it lands.
 const buildingHome = ref(false)
-const FIRST_BUILD_POLL_MS = 500
+const FIRST_BUILD_POLL_MS = 250
 let firstBuildTimer: number | null = null
 let firstBuildProject = ''
 

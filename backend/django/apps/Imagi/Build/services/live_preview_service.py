@@ -42,6 +42,7 @@ from django.db import close_old_connections
 
 from .preview_service import (
     PreviewService,
+    backend_booting,
     port_accepting,
     preview_start_lock,
     sidecar_stem,
@@ -490,7 +491,9 @@ class LivePreviewService:
             return False
         frontend = ports.get('frontend_port')
         backend = ports.get('backend_port')
-        return bool(frontend and backend and port_accepting(frontend) and port_accepting(backend))
+        return bool(frontend and backend and port_accepting(frontend) and (
+            port_accepting(backend) or backend_booting(self.servers.backend_pid_file)
+        ))
 
     # -- status, logs, console -------------------------------------------------
 

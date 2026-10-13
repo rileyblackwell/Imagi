@@ -383,12 +383,15 @@ def start_home_page_early(project) -> bool:
     if sent and builder.get('INITIAL_BUILD_QUICK_HOME', True):
         from . import quick_home
 
-        from apps.Imagi.Build.services.models_service import pricing_model_id
-
-        _quick_copy[project.pk] = (quick_home.request_copy(
-            model, service_tier, project.name, project.description,
+        candidates = [(model, service_tier)]
+        if quick_home.RACE_MODEL[0] != model:
+            candidates.append(quick_home.RACE_MODEL)
+        user_id = project.user_id
+        _quick_copy[project.pk] = quick_home.request_copy(
+            candidates, project.name, project.description,
             getattr(project, 'app_details', ''), getattr(project, 'design_preferences', ''),
-        ), pricing_model_id(model, service_tier), project.user_id)
+            meter=lambda m, tier, usage: _meter_quick_home(user_id, m, tier, usage),
+        )
     return sent
 
 
@@ -396,12 +399,14 @@ def start_home_page_early(project) -> bool:
 _quick_copy = {}
 
 
-def _meter_quick_home(user_id, pricing_id, usage):
+def _meter_quick_home(user_id, model, service_tier, usage):
     """The quick page's words draw on the plan allowance like any run."""
     from django.contrib.auth import get_user_model
     from apps.Imagi.Build.services.base_agent import usage_payload
+    from apps.Imagi.Build.services.models_service import pricing_model_id
     from apps.Imagi.Build.services.usage_limits import record_usage
 
+    pricing_id = pricing_model_id(model, service_tier)
     payload = usage_payload(usage, pricing_id)
     if not payload:
         return
@@ -413,6 +418,8 @@ def _meter_quick_home(user_id, pricing_id, usage):
         )
     except Exception as e:
         logger.warning("Could not meter the quick home page: %s", e)
+    finally:
+        close_old_connections()
 
 
 def _land_quick_home(project_id, project_name, project_path, home_landed, landed_at):
@@ -430,13 +437,11 @@ def _land_quick_home(project_id, project_name, project_path, home_landed, landed
     pending = _quick_copy.pop(project_id, None)
     if pending is None:
         return
-    future, pricing_id, user_id = pending
     try:
-        copy = future.result(timeout=20)
+        copy = pending.result(timeout=20)
     except Exception as e:
         logger.warning("No quick home page for project %s: %s", project_id, e)
         return
-    _meter_quick_home(user_id, pricing_id, copy.get('_usage'))
     view = os.path.join(project_path, PAGE_BRIEFS[0].view_path)
     try:
         with canonical_repo_lock(project_path):
@@ -454,8 +459,8 @@ def _land_quick_home(project_id, project_name, project_path, home_landed, landed
         )
         landed_at['quick'] = time.monotonic()
         timing_logger.info(
-            "first build project=%s quick home up (words took %.1fs)",
-            project_id, copy.get('_seconds', 0),
+            "first build project=%s quick home up (words took %.1fs on %s)",
+            project_id, copy.get('_seconds', 0), copy.get('_model'),
         )
     except Exception:
         logger.exception("Could not put up the quick home page for project %s", project_id)
