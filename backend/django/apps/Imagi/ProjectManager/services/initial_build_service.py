@@ -350,6 +350,38 @@ def build_repair_prompt(problems, router_problems=(), auth_problems=()) -> str:
     return "\n\n".join(sections)
 
 
+def start_home_page_early(project) -> bool:
+    """Send the home page's first model call now, before the project is set up.
+
+    That call (the page, written in one go) is nearly all of the founder's
+    wait, and it needs nothing but what they typed: the scaffold it rewrites
+    is the same for every project. So it goes out as soon as the project row
+    exists, and the project's files, the build thread and its worktree are
+    set up while the page is being written (head_start). Best-effort, and
+    only for a home page on a GPT model.
+    """
+    from apps.Imagi.Build.services import head_start
+    from apps.Imagi.Build.services.base_agent import ANTHROPIC_API_KEY
+    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import (
+        HOME_VIEW_VUE,
+        SITE_PAGES_TS,
+    )
+
+    if not ANTHROPIC_API_KEY:
+        return False
+    builder = getattr(settings, 'IMAGI_BUILDER', {})
+    home = (_pages_to_build(builder) if builder.get('INITIAL_BUILD_PAGES') else PAGE_BRIEFS)[0]
+    if home.slug != 'home':
+        return False
+    model, service_tier = _page_model(builder, home)
+    prompt = build_initial_prompt(
+        project.name, project.description, getattr(project, 'design_preferences', ''), home,
+        app_details=getattr(project, 'app_details', ''),
+        current_view=HOME_VIEW_VUE, site_pages=SITE_PAGES_TS,
+    )
+    return head_start.begin(project.pk, model, service_tier, prompt)
+
+
 def start_initial_build(project, user) -> bool:
     """Kick off the initial AI build for a freshly created project.
 
@@ -507,7 +539,8 @@ def _page_model(builder, page):
     return home_model, builder.get('INITIAL_BUILD_HOME_SERVICE_TIER') or None
 
 
-def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at) -> bool:
+def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at,
+                  on_page_written=None) -> bool:
     """Worker body: build one page and land it, on its own thread.
 
     Gets its own agent service and its own database connection — neither is
@@ -525,6 +558,7 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at)
         service = ImagiAgentService(
             model=model, agent_kind='initial_build', service_tier=service_tier
         )
+        service.on_page_written = on_page_written
         return _build_and_apply(
             service, task, user, project_id, prompt, builder, deadline_at
         )
@@ -607,20 +641,41 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         with ThreadPoolExecutor(
             max_workers=max_parallel, thread_name_prefix=f'initial-build-{project_id}'
         ) as pool:
-            def submit(task, deadline_at=None):
+            def submit(task, deadline_at=None, on_page_written=None):
                 return pool.submit(
                     _run_one_page, task.page, task, user_id, project_id,
-                    task.queued_prompt, builder, deadline_at,
+                    task.queued_prompt, builder, deadline_at, on_page_written,
                 )
+
+            # The home page's first request may already be out (sent when
+            # Create was clicked); its run must ask with the same prompt.
+            from apps.Imagi.Build.services import head_start
 
             home_task = _create_build_task(
                 user, lead, project_id, _page_model(builder, home)[0],
-                prompt_for(home), home,
+                head_start.prompt_for(project_id) or prompt_for(home), home,
             )
+            home_landed = {}
+
+            def land(context, path):
+                try:
+                    if _land_page_early(project_id, project.project_path, context, path):
+                        home_landed['at'] = time.monotonic()
+                finally:
+                    close_old_connections()
+
+            def land_home(context, path):
+                # Called from inside the run's event loop, where the ORM
+                # refuses to run, so on a thread of its own.
+                landing = threading.Thread(
+                    target=land, args=(context, path), name=f'initial-build-{project_id}-land',
+                )
+                landing.start()
+                landing.join()
             _open_lead_thread(
                 service, lead, founder_brief, [home_task], planning=not fixed,
             )
-            futures = {submit(home_task, home_deadline): home_task}
+            futures = {submit(home_task, home_deadline, land_home): home_task}
             home_submitted = time.monotonic()
 
             # Plan the rest while the home page builds.
@@ -651,6 +706,17 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             for future in as_completed(futures):
                 page = futures[future].page
                 applied[page.slug] = future.result()
+                if page.slug == home.slug and home_landed:
+                    # Opened the moment it was written (_land_page_early);
+                    # its merge has caught up now.
+                    applied[page.slug] = True
+                    _log_home_timing(
+                        project_id, queued_s, thread_started, home_submitted,
+                        futures[future], ready_at=home_landed['at'],
+                    )
+                    _resync_project_files(project_id)
+                    queue_auth_restyle(project_id, user_id)
+                    continue
                 if not applied[page.slug]:
                     continue
                 if page.slug == home.slug:
@@ -719,7 +785,8 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
         close_old_connections()
 
 
-def _log_home_timing(project_id, queued_s, thread_started, home_submitted, task):
+def _log_home_timing(project_id, queued_s, thread_started, home_submitted, task,
+                     ready_at=None):
     """Log where the wait for the home page went, as one imagi.timing line.
 
     Times are seconds from the project's creation: when the build thread
@@ -729,10 +796,16 @@ def _log_home_timing(project_id, queued_s, thread_started, home_submitted, task)
     project opened. Never raises.
     """
     try:
-        now = time.monotonic()
+        now = ready_at or time.monotonic()
         at = lambda t: queued_s + (t - thread_started)  # noqa: E731
         runs = []
         for timing in getattr(task, 'run_timings', []):
+            early = timing.get('head_start')
+            if early is not None:
+                runs.append(
+                    f'[sent early at {at(early.sent_at):.1f}, answered at '
+                    f'{at(early.answered_at) if early.answered_at else float("nan"):.1f}]'
+                )
             started = timing.get('started')
             prepared = timing.get('prepared', started)
             ran = timing.get('ran', prepared)
@@ -745,12 +818,51 @@ def _log_home_timing(project_id, queued_s, thread_started, home_submitted, task)
                 f'turns {turns or "-"} merge {timing.get("finished", ran) - ran:.2f}s]'
             )
         timing_logger.info(
-            "first build project=%s home ready %.1fs after create: thread %.1f, "
+            "first build project=%s home ready %.1fs after create%s: thread %.1f, "
             "home queued %.1f, runs %s",
-            project_id, at(now), queued_s, at(home_submitted), ' '.join(runs) or '-',
+            project_id, at(now), ' (landed at its write)' if ready_at else '',
+            queued_s, at(home_submitted), ' '.join(runs) or '-',
         )
     except Exception:  # pragma: no cover - logging must never break the build
         logger.debug("Could not log first-build timing", exc_info=True)
+
+
+def _land_page_early(project_id, project_path, context, path) -> bool:
+    """Put the home page into the project as soon as it is written.
+
+    The run still commits and merges it afterwards, the same as always, but
+    the founder doesn't wait on that: the page is copied into the project the
+    preview serves, and the project opens. Only when it passes the same
+    checks the merge makes (its imports resolve, which the run has just
+    checked, the app routers still export their routes, and the page still
+    links to the auth pages). Returns whether it landed.
+    """
+    from apps.Imagi.Build.services.frontend_integrity import (
+        find_auth_link_problems,
+        find_router_contract_problems,
+    )
+    from apps.Imagi.Build.services.version_control_service import canonical_repo_lock
+    from ..models import Project
+
+    worktree = getattr(context, 'effective_project_path', None)
+    if not worktree or not project_path or not path:
+        return False
+    if find_router_contract_problems(worktree) or find_auth_link_problems(worktree):
+        return False
+    source = os.path.join(worktree, path)
+    target = os.path.join(project_path, path)
+    with open(source, 'rb') as f:
+        content = f.read()
+    with canonical_repo_lock(project_path):
+        tmp = f'{target}.imagi-early'
+        with open(tmp, 'wb') as f:
+            f.write(content)
+        os.replace(tmp, target)
+    Project.objects.filter(pk=project_id).update(
+        generation_status='completed', last_generated_at=timezone.now(),
+    )
+    logger.info("Initial AI build of project %s: home page landed at its write", project_id)
+    return True
 
 
 def _read_view(project_path, view_path) -> str:

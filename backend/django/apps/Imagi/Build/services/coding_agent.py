@@ -154,6 +154,12 @@ def _finish_after_page_write(context: RunContextWrapper, tool_results):
         match = _PAGE_VIEW_RE.search(str(output.get('path') or ''))
         if not match or not root or find_unresolved_imports(root):
             continue
+        landed = getattr(context.context, 'on_page_written', None)
+        if landed is not None:
+            try:
+                landed(context.context, output.get('path'))
+            except Exception:
+                logger.exception("Could not land a first-build page early")
         return ToolsToFinalOutputResult(
             is_final_output=True,
             final_output=f"Your {_page_label(match.group(1))} page is built.",

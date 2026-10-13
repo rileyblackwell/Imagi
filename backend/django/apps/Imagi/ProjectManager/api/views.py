@@ -10,7 +10,12 @@ from django.db import transaction
 from apps.Payments.services.plans import check_project_limit
 from apps.Payments.services.usage_service import check_usage_allowed
 from apps.Imagi.Build.services.browser_preview_service import start_preview_warmup
-from ..services import ProjectCreationService, ProjectManagementService, start_initial_build
+from ..services import (
+    ProjectCreationService,
+    ProjectManagementService,
+    start_home_page_early,
+    start_initial_build,
+)
 from .serializers import (
     ProjectSerializer,
     ProjectCreateSerializer
@@ -54,6 +59,13 @@ class ProjectCreateView(generics.CreateAPIView):
                 if not allowed:
                     return Response(limit_payload, status=status.HTTP_403_FORBIDDEN)
                 project = serializer.save()  # Don't pass user here, handle it in serializer
+            # The home page's first model call is nearly all of the founder's
+            # wait and needs only what they typed, so it goes out now; the
+            # project is set up while it runs.
+            try:
+                start_home_page_early(project)
+            except Exception:
+                logger.exception("Failed to start the home page early for project %s", project.id)
             service = ProjectCreationService(request.user)
             service.create_project(project)
 
