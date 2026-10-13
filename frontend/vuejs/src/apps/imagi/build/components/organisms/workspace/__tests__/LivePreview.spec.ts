@@ -116,6 +116,22 @@ describe('LivePreview', () => {
     expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
   })
 
+  it('opens as soon as the home page is hot-swapped in, without reloading the frame', async () => {
+    await wrapper.setProps({ building: true })
+    await settle()
+    const before = wrapper.find('iframe').element
+    // Another file changing doesn't open it.
+    await fromApp({ type: 'hmr', files: ['/src/apps/home/site-pages.ts'] })
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(true)
+    await fromApp({ type: 'hmr', files: ['/src/apps/home/views/HomeView.vue'] })
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
+    // The build's status catching up leaves the open app alone.
+    await wrapper.setProps({ building: false })
+    await settle()
+    expect(wrapper.find('iframe').element).toBe(before)
+    expect(wrapper.find('[data-testid=building-veil]').exists()).toBe(false)
+  })
+
   it("doesn't let a status poll sent before the app started stop it", async () => {
     wrapper.unmount()
     let started!: (s: typeof SESSION) => void

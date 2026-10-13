@@ -1803,7 +1803,6 @@ class QuickHomeTests(TransactionTestCase):
 
     def setUp(self):
         import tempfile
-        from concurrent.futures import Future
         from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
 
         _wait_out_sqlite_table_locks(self)
@@ -1820,11 +1819,12 @@ class QuickHomeTests(TransactionTestCase):
             user=self.user, name='Puddle Lane', description=VALID_DESCRIPTION,
             project_path=self.root, generation_status='generating',
         )
-        future = Future()
-        future.set_result(dict(self.COPY))
-        from apps.Imagi.ProjectManager.services import initial_build_service
+        from apps.Imagi.ProjectManager.services import initial_build_service, quick_home
         self.ibs = initial_build_service
-        self.ibs._quick_copy[self.project.pk] = future
+        self.copy = quick_home.QuickCopy()
+        self.copy.hero.set_result({k: self.COPY[k] for k in quick_home.HERO_FIELDS})
+        self.copy.full.set_result(dict(self.COPY))
+        self.ibs._quick_copy[self.project.pk] = self.copy
 
     def _land(self, home_landed=None):
         landed = {}
@@ -1859,45 +1859,83 @@ class QuickHomeTests(TransactionTestCase):
     def test_it_stays_down_when_the_full_page_already_opened_the_project(self):
         self.assertEqual(self._land({'at': 1.0}), {})
 
-    def test_the_words_come_from_whichever_model_answers_first(self):
+    def test_the_hero_goes_up_first_and_the_rest_follows(self):
+        from concurrent.futures import Future
+        from apps.Imagi.ProjectManager.services import quick_home
+
+        self.copy.full = Future()
+        self.copy.full.set_exception(RuntimeError('stream cut off'))
+        self.assertIn('quick', self._land())
+        with open(self.view) as f:
+            page = f.read()
+        # The hero alone still opens the project.
+        self.assertIn('Clean clothes, no trip', page)
+        self.assertNotIn('Why us', page)
+        self.assertEqual(self.project.generation_status, 'completed')
+
+        # With the rest in, the page has every section.
+        self.copy = quick_home.QuickCopy()
+        self.copy.hero.set_result({'headline': 'Clean clothes, no trip'})
+        self.copy.full.set_result(dict(self.COPY))
+        self.ibs._quick_copy[self.project.pk] = self.copy
+        with open(self.view, 'w') as f:
+            from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
+            f.write(HOME_VIEW_VUE)
+        self._land()
+        with open(self.view) as f:
+            self.assertIn('Why us', f.read())
+
+    def test_the_words_stream_in_hero_first(self):
         import json
-        import threading
         from types import SimpleNamespace
         from apps.Imagi.ProjectManager.services import quick_home
 
-        sol_may_answer = threading.Event()
-        metered = []
+        answer = json.dumps(dict(self.COPY, headline='Clean "clothes", no trip'))
+        cut = answer.index('"features_title"')
+        events = [
+            SimpleNamespace(type='response.output_text.delta', delta=answer[:20]),
+            SimpleNamespace(type='response.output_text.delta', delta=answer[20:cut]),
+            SimpleNamespace(type='response.output_text.delta', delta=answer[cut:]),
+            SimpleNamespace(type='response.completed', response=SimpleNamespace(usage='usage')),
+        ]
+        import threading
+        heroes, asked, box = [], threading.Event(), []
 
-        def create(**kwargs):
-            if kwargs['model'] == 'gpt-6.1-sol':
-                sol_may_answer.wait(5)
-                raise RuntimeError('too slow anyway')
-            copy = dict(self.COPY, headline='From Luna')
-            return SimpleNamespace(output_text=json.dumps(copy), usage='luna usage')
+        def stream(**kwargs):
+            self.assertTrue(kwargs['stream'])
+            asked.wait(5)
+            for event in events:
+                yield event
+                if hasattr(event, 'delta'):
+                    heroes.append(box[0].hero.done())
 
         client = mock.Mock()
-        client.responses.create.side_effect = create
+        client.responses.create.side_effect = stream
+        metered = []
         with mock.patch('openai.OpenAI', return_value=client), \
                 mock.patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='k'):
-            future = quick_home.request_copy(
-                [('gpt-6.1-sol', 'ultrafast', 'low'), ('gpt-6-luna', 'fast', 'low')], 'Puddle Lane', 'Laundry',
+            copy = quick_home.request_copy(
+                'gpt-6.1-sol', 'ultrafast', 'Puddle Lane', 'Laundry',
                 meter=lambda *args: metered.append(args),
             )
-            copy = future.result(timeout=5)
-            sol_may_answer.set()
-        self.assertEqual(copy['headline'], 'From Luna')
-        self.assertEqual(copy['_model'], 'gpt-6-luna low')
-        self.assertEqual(metered, [('gpt-6-luna', 'fast', 'luna usage')])
+            box.append(copy)
+            asked.set()
+            full = copy.full.result(timeout=5)
+        # The hero was ready before the features had streamed in.
+        self.assertEqual(heroes, [False, True, True])
+        self.assertEqual(copy.hero.result()['headline'], 'Clean "clothes", no trip')
+        self.assertNotIn('features', copy.hero.result())
+        self.assertEqual(full['features_title'], 'Why us')
+        self.assertEqual(metered, [('gpt-6.1-sol', 'ultrafast', 'usage')])
 
-    def test_the_words_fail_only_when_every_model_does(self):
+    def test_a_failed_request_fails_both_futures(self):
         from apps.Imagi.ProjectManager.services import quick_home
 
         client = mock.Mock()
         client.responses.create.side_effect = RuntimeError('down')
         with mock.patch('openai.OpenAI', return_value=client), \
                 mock.patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='k'):
-            future = quick_home.request_copy(
-                [('gpt-6.1-sol', 'ultrafast', 'low'), ('gpt-6-luna', 'fast', 'low')], 'Puddle Lane', 'Laundry',
-            )
-            with self.assertRaises(RuntimeError):
-                future.result(timeout=5)
+            copy = quick_home.request_copy('gpt-6.1-sol', 'ultrafast', 'Puddle Lane', 'Laundry')
+            for future in (copy.hero, copy.full):
+                with self.assertRaises(RuntimeError):
+                    future.result(timeout=5)

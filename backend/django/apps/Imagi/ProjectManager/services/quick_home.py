@@ -1,11 +1,13 @@
 """
-A first home page in about two seconds, while the real one is written.
+A first home page in a few seconds, while the real one is written.
 
 The home page Sol writes from scratch takes it over ten seconds, and the
 founder waits on it. So alongside that call, a much smaller one asks the same
 model only for the words and colours of a landing page (a few hundred tokens
-of JSON), and they are dropped into a ready-made layout. That page goes up
-and the project opens; the full page replaces it when it lands, and the
+of JSON), and they are dropped into a ready-made layout. The answer is
+streamed: the hero goes up (and the project opens) as soon as its words are
+in, and the rest of the sections follow. The full page replaces it when it
+lands, and the
 quick page reloads itself into it (QUICK_HOME_MARKER, the same way an
 unbuilt page's placeholder does).
 """
@@ -71,26 +73,46 @@ _SCHEMA = {
 }
 
 
-# The words are asked several ways at once and whichever answers first is
-# used: the home page's own model with a little reasoning and with none, and a
-# small fast model. A few hundred tokens of copy don't need much thought, and
-# no one of these is reliably the fastest. Each is (model, tier, effort); a
-# None tier or effort means the home page's own.
-RACERS = (
-    (None, None, 'low'),
-    (None, None, 'none'),
-    ('gpt-6-luna', 'fast', 'low'),
-)
+# The hero's fields, which the schema puts first so they stream in first.
+HERO_FIELDS = ('headline', 'subheadline', 'cta_label', 'accent', 'background')
 
 
-def request_copy(candidates, name, description, app_details='', design='',
-                 meter: Optional[Callable] = None) -> Future:
-    """Ask for the landing page's words and colours, on threads of their own.
+class QuickCopy:
+    """The words, as they arrive: ``hero`` resolves as soon as the hero's
+    fields have streamed in, ``full`` once the whole answer has."""
 
-    ``candidates`` is a list of (model, service_tier, reasoning effort);
-    each is asked at once and the future holds the first good answer.
-    ``meter(model, service_tier, usage)`` is called for every answer, the
-    losers' too, since each is paid for.
+    def __init__(self):
+        self.hero: Future = Future()
+        self.full: Future = Future()
+
+
+def _string_field(text: str, key: str) -> Optional[str]:
+    """A top-level string field from partial JSON, once its value is complete."""
+    match = re.search(r'"%s"\s*:\s*"((?:[^"\\]|\\.)*)"' % re.escape(key), text)
+    if not match:
+        return None
+    try:
+        return json.loads(f'"{match.group(1)}"')
+    except ValueError:
+        return None
+
+
+def hero_from(text: str) -> Optional[Dict]:
+    """The hero's fields from a partial answer, or None until all are in."""
+    hero = {}
+    for key in HERO_FIELDS:
+        value = _string_field(text, key)
+        if value is None:
+            return None
+        hero[key] = value
+    return hero
+
+
+def request_copy(model: str, service_tier: Optional[str], name, description,
+                 app_details='', design='', meter: Optional[Callable] = None) -> QuickCopy:
+    """Ask for the landing page's words and colours, streamed, on a thread.
+
+    ``meter(model, service_tier, usage)`` is called with the answer's usage.
     """
     from apps.Imagi.Build.services.api_keys import read_api_key
     from apps.Imagi.Build.services.models_service import get_backend_model_id
@@ -101,62 +123,69 @@ def request_copy(candidates, name, description, app_details='', design='',
     if (design or '').strip():
         brief += f"\n\nStyle the founder asked for:\n{design.strip()}"
 
+    copy = QuickCopy()
     started = time.monotonic()
 
-    def ask(model, service_tier, effort):
+    def ask():
         from openai import OpenAI
 
         client = OpenAI(api_key=read_api_key('OPENAI_KEY'))
         kwargs = {}
         if service_tier:
             kwargs['service_tier'] = service_tier
-        response = client.responses.create(
+        stream = client.responses.create(
             model=get_backend_model_id(model),
             instructions=_INSTRUCTIONS,
             input=brief,
-            reasoning={'effort': effort},
+            reasoning={'effort': 'low'},
             text={'format': {
                 'type': 'json_schema', 'name': 'landing_page', 'strict': True, 'schema': _SCHEMA,
             }},
+            stream=True,
             **kwargs,
         )
-        if meter is not None:
+        text, usage, first_at = '', None, None
+        for event in stream:
+            kind = getattr(event, 'type', '')
+            if kind == 'response.output_text.delta':
+                first_at = first_at or time.monotonic()
+                text += event.delta
+                if not copy.hero.done():
+                    hero = hero_from(text)
+                    if hero is not None:
+                        hero['_seconds'] = time.monotonic() - started
+                        copy.hero.set_result(hero)
+            elif kind == 'response.completed':
+                usage = getattr(event.response, 'usage', None)
+        if meter is not None and usage is not None:
             try:
-                meter(model, service_tier, getattr(response, 'usage', None))
+                meter(model, service_tier, usage)
             except Exception as e:
                 logger.warning("Could not meter the quick home words: %s", e)
-        copy = json.loads(response.output_text)
-        copy['_seconds'] = time.monotonic() - started
-        copy['_model'] = f'{model} {effort}'
-        return copy
-
-    future: Future = Future()
-    lock = threading.Lock()
-    outcomes = []
-
-    def run(model, service_tier, effort):
-        try:
-            result, error = ask(model, service_tier, effort), None
-        except Exception as e:  # the full page still comes; this was a bonus
-            result, error = None, e
+        answer = json.loads(text)
+        answer['_seconds'] = time.monotonic() - started
         timing_logger.info(
-            'quick home words %s %s %s: %s in %.1fs', model, service_tier, effort,
-            'failed (%s)' % str(error)[:160] if error else 'answered', time.monotonic() - started,
+            'quick home words: first token %.1fs, hero %.1fs, all %.1fs, %s output tokens',
+            (first_at or started) - started,
+            copy.hero.result().get('_seconds', 0) if copy.hero.done() else answer['_seconds'],
+            answer['_seconds'], getattr(usage, 'output_tokens', '?'),
         )
-        with lock:
-            outcomes.append(error)
-            if future.done():
-                return
-            if error is None:
-                future.set_result(result)
-            elif len(outcomes) == len(candidates):
-                future.set_exception(error)
+        return answer
 
-    for model, service_tier, effort in candidates:
-        threading.Thread(
-            target=run, args=(model, service_tier, effort), name='quick-home', daemon=True,
-        ).start()
-    return future
+    def run():
+        try:
+            answer = ask()
+        except Exception as e:  # the full page still comes; this was a bonus
+            for future in (copy.hero, copy.full):
+                if not future.done():
+                    future.set_exception(e)
+            return
+        if not copy.hero.done():
+            copy.hero.set_result(answer)
+        copy.full.set_result(answer)
+
+    threading.Thread(target=run, name='quick-home', daemon=True).start()
+    return copy
 
 
 def _colour(value, fallback):
@@ -234,7 +263,7 @@ QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full
         </div>
       </section>
 
-      <section class="bg-white/70 border-y border-slate-200/70">
+      <section v-if="content.features.length" class="bg-white/70 border-y border-slate-200/70">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <h2 class="text-2xl sm:text-3xl font-bold text-center">{{ content.featuresTitle }}</h2>
           <div class="mt-10 grid gap-6 sm:grid-cols-3">
@@ -247,7 +276,7 @@ QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full
         </div>
       </section>
 
-      <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section v-if="content.steps.length" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h2 class="text-2xl sm:text-3xl font-bold text-center">{{ content.stepsTitle }}</h2>
         <ol class="mt-10 grid gap-6 sm:grid-cols-3">
           <li v-for="(step, i) in content.steps" :key="step.title" class="flex gap-4">
@@ -260,7 +289,7 @@ QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full
         </ol>
       </section>
 
-      <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <section v-if="content.closingHeadline" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div class="rounded-3xl px-8 py-14 text-center text-white" :style="{ backgroundColor: accent }">
           <h2 class="text-3xl font-bold">{{ content.closingHeadline }}</h2>
           <p class="mt-4 text-lg opacity-90 max-w-2xl mx-auto">{{ content.closingBody }}</p>

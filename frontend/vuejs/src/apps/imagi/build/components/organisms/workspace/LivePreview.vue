@@ -417,6 +417,7 @@ function handleBridge(msg: BridgeMessage) {
       break
     case 'hmr':
       noteEdit(msg.files)
+      homeArrived(msg.files)
       break
     case 'full-reload':
       noteEdit([])
@@ -992,7 +993,11 @@ watch(
       return
     }
     stopBuildClock()
-    if (!buildVeil.value) return
+    if (!buildVeil.value) {
+      // Already open: the home page was hot-swapped in (homeArrived).
+      if (session.value) void refreshPages()
+      return
+    }
     void refreshPages()
     if (session.value && iframeSrc.value) {
       // Load the finished home page fresh; the veil lifts once it has.
@@ -1010,6 +1015,17 @@ watch(
 watch(appReady, (ready) => {
   if (ready && !props.building) buildVeil.value = false
 })
+
+// The home page landing in a frame that's already open: Vite hot-swaps it in
+// place, which is quicker than the build's status catching up and the frame
+// reloading. With the veil down, that status change has nothing left to do.
+const HOME_VIEW = '/src/apps/home/views/HomeView.vue'
+function homeArrived(files: unknown) {
+  if (!buildVeil.value || !Array.isArray(files)) return
+  if (files.some((f) => typeof f === 'string' && (f.split('?')[0] ?? '').endsWith(HOME_VIEW))) {
+    buildVeil.value = false
+  }
+}
 
 // A preview that fails to start, or stops, shows its own notice once the
 // build is done.

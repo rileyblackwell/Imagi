@@ -383,14 +383,9 @@ def start_home_page_early(project) -> bool:
     if sent and builder.get('INITIAL_BUILD_QUICK_HOME', True):
         from . import quick_home
 
-        candidates = []
-        for racer_model, racer_tier, effort in quick_home.RACERS:
-            racer = (racer_model or model, racer_tier if racer_model else service_tier, effort)
-            if racer not in candidates:
-                candidates.append(racer)
         user_id = project.user_id
         _quick_copy[project.pk] = quick_home.request_copy(
-            candidates, project.name, project.description,
+            model, service_tier, project.name, project.description,
             getattr(project, 'app_details', ''), getattr(project, 'design_preferences', ''),
             meter=lambda m, tier, usage: _meter_quick_home(user_id, m, tier, usage),
         )
@@ -427,9 +422,11 @@ def _meter_quick_home(user_id, model, service_tier, usage):
 def _land_quick_home(project_id, project_name, project_path, home_landed, landed_at):
     """Put the quick home page up while the full one is still being written.
 
-    Waits for its words (a couple of seconds), and gives up quietly if they
-    don't come, or if the full page got there first. Writes straight into the
-    project the preview serves; the full page's merge goes over it.
+    The hero goes up as soon as its words are in (and opens the project),
+    then the page again with every section once the rest have streamed in.
+    Gives up quietly if the words don't come, or once the full page got there
+    first. Writes straight into the project the preview serves; the full
+    page's merge goes over it.
     """
     from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
     from apps.Imagi.Build.services.version_control_service import canonical_repo_lock
@@ -439,31 +436,45 @@ def _land_quick_home(project_id, project_name, project_path, home_landed, landed
     pending = _quick_copy.pop(project_id, None)
     if pending is None:
         return
-    try:
-        copy = pending.result(timeout=20)
-    except Exception as e:
-        logger.warning("No quick home page for project %s: %s", project_id, e)
-        return
     view = os.path.join(project_path, PAGE_BRIEFS[0].view_path)
-    try:
+
+    def put_up(copy, over):
+        """Write the quick page if the view is still ``over`` allows."""
         with canonical_repo_lock(project_path):
             if home_landed:
-                return
+                return False
             with open(view, encoding='utf-8') as f:
-                if f.read() != HOME_VIEW_VUE:
-                    return
+                if not over(f.read()):
+                    return False
             tmp = f'{view}.imagi-quick'
             with open(tmp, 'w', encoding='utf-8') as f:
                 f.write(quick_home.render(project_name, copy))
             os.replace(tmp, view)
+        return True
+
+    try:
+        try:
+            hero = pending.hero.result(timeout=20)
+        except Exception as e:
+            logger.warning("No quick home page for project %s: %s", project_id, e)
+            return
+        if not put_up(hero, lambda current: current == HOME_VIEW_VUE):
+            return
         Project.objects.filter(pk=project_id).update(
             generation_status='completed', last_generated_at=timezone.now(),
         )
         landed_at['quick'] = time.monotonic()
         timing_logger.info(
-            "first build project=%s quick home up (words took %.1fs on %s)",
-            project_id, copy.get('_seconds', 0), copy.get('_model'),
+            "first build project=%s quick home up (hero words took %.1fs)",
+            project_id, hero.get('_seconds', 0),
         )
+        try:
+            full = pending.full.result(timeout=20)
+        except Exception as e:
+            logger.warning("Quick home page for project %s stays a hero: %s", project_id, e)
+            return
+        if full is not hero:
+            put_up(full, lambda current: quick_home.QUICK_HOME_MARKER in current)
     except Exception:
         logger.exception("Could not put up the quick home page for project %s", project_id)
     finally:
