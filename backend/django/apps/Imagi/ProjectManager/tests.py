@@ -1939,3 +1939,49 @@ class QuickHomeTests(TransactionTestCase):
             for future in (copy.hero, copy.full):
                 with self.assertRaises(RuntimeError):
                     future.result(timeout=5)
+
+
+class FirstBuildPagesThatDoNotCompileTests(SimpleTestCase):
+    """A first-build page Vite can't compile never reaches the app: it was
+    the "Invalid end tag" errors a new project opened onto."""
+
+    VIEW = 'frontend/vuejs/src/apps/home/views/HomeView.vue'
+
+    def setUp(self):
+        self.worktree = tempfile.mkdtemp(prefix='imagi-wt-')
+        self.project = tempfile.mkdtemp(prefix='imagi-proj-')
+        for root in (self.worktree, self.project):
+            self.addCleanup(shutil.rmtree, root, True)
+        os.makedirs(os.path.join(self.worktree, os.path.dirname(self.VIEW)))
+        os.makedirs(os.path.join(self.project, os.path.dirname(self.VIEW)))
+        with open(os.path.join(self.worktree, self.VIEW), 'w') as f:
+            f.write('<template>\n  <section>\n  </div>\n</template>\n')
+        with open(os.path.join(self.project, self.VIEW), 'w') as f:
+            f.write('<template><p>quick page</p></template>\n')
+
+    def test_the_home_page_does_not_land_early_while_it_does_not_compile(self):
+        from types import SimpleNamespace
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        context = SimpleNamespace(effective_project_path=self.worktree)
+        with patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_router_contract_problems', return_value=[],
+        ), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_auth_link_problems', return_value=[],
+        ), patch(
+            'apps.Imagi.Build.services.frontend_integrity.find_sfc_problems',
+            return_value=[{'file': self.VIEW, 'error': 'Invalid end tag. (line 3)'}],
+        ) as check:
+            landed = initial_build_service._land_page_early(1, self.project, context, self.VIEW)
+
+        self.assertFalse(landed)
+        check.assert_called_once_with(self.worktree, [self.VIEW], fallback_roots=[self.project])
+        with open(os.path.join(self.project, self.VIEW)) as f:
+            self.assertIn('quick page', f.read())
+
+    def test_the_repair_run_is_told_what_does_not_compile(self):
+        from apps.Imagi.ProjectManager.services.initial_build_service import build_repair_prompt
+
+        prompt = build_repair_prompt([], sfc_problems=[{'file': self.VIEW, 'error': 'Invalid end tag. (line 3)'}])
+        self.assertIn("don't compile", prompt)
+        self.assertIn(f'- {self.VIEW}: Invalid end tag. (line 3)', prompt)

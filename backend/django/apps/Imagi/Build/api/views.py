@@ -460,6 +460,8 @@ async def _route_app_errors(user, project, payload):
     if routed:
         payload['error_routing'] = {
             'to': routed['to'], 'conversation_id': routed['conversation_id'],
+            # Whether this poll is the one that sent it.
+            'new': not routed.get('already'),
         }
 
 

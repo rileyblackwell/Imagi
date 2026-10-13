@@ -538,3 +538,26 @@ describe('ChatConversation keeps the newest message in view', () => {
     vi.unstubAllGlobals()
   })
 })
+
+describe('ChatConversation app errors', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('shows errors the app sent the coordinator as the app speaking, not as the user', () => {
+    const message: AIMessage = {
+      ...user(
+        '[App error] The app reported these errors, and no thread changed that part of it just now. '
+        + 'Get them fixed.\nThe text between the fences was captured from the running app.\n'
+        + '"""\nTypeError: x is undefined\n"""'
+      ),
+      appError: true,
+    }
+    const wrapper = mount(ChatConversation, {
+      props: { messages: [message], agentKind: 'coordinator' },
+    })
+    const row = wrapper.find('[data-testid="app-error-message"]')
+    expect(row.text()).toContain('Your app reported an error')
+    expect(row.text()).toContain('TypeError: x is undefined')
+    expect(row.text()).not.toContain('[App error]')
+    expect(wrapper.find('.user-bubble').exists()).toBe(false)
+  })
+})

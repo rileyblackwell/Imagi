@@ -36,6 +36,18 @@
               <p class="brief-text whitespace-pre-wrap break-words">{{ message.content }}</p>
             </div>
 
+            <!-- Errors the running app reported, which the server handed to
+                 the coordinator: on the rail as the app speaking, with a red
+                 node, not in a bubble as if the user had typed them. -->
+            <div v-else-if="message.role === 'user' && message.appError"
+              class="msg-row rail-entry brief-row app-error-row"
+              data-testid="app-error-message"
+              :class="{ 'animate-message-in': message.isNew }">
+              <span class="rail-node rail-node--error" aria-hidden="true"><i class="fas fa-exclamation"></i></span>
+              <p class="rail-who"><span class="rail-name">Your app reported an error</span></p>
+              <p class="brief-text whitespace-pre-wrap break-words">{{ appErrorText(message.content) }}</p>
+            </div>
+
             <!-- User Message: a single compact bubble that opens the turn -->
             <div v-else-if="message.role === 'user'"
               class="msg-row user-row group flex flex-col items-end"
@@ -386,6 +398,14 @@ const processedMessages = computed<ProcessedMessage[]>(() => {
  *  after a long enough quiet spell (see utils/sessionBreaks). */
 const sessionStarts = computed(() => sessionStartIndexes(props.messages))
 
+/** What the app reported, without the framing written for the coordinator:
+ *  the fenced error lines. */
+function appErrorText(content: string): string {
+  const fenced = content.match(/"""\n([\s\S]*?)\n"""/g)
+  if (!fenced) return content
+  return fenced.map(block => block.slice(4, -4)).join('\n')
+}
+
 /** The reply currently streaming in is the last message while a run is active. */
 function isStreamingMessage(index: number): boolean {
   return !!props.isProcessing && index === props.messages.length - 1
@@ -679,6 +699,13 @@ const formatMessage = (message: AIMessage, index: number): string => {
   background: var(--sl-wait);
   color: rgb(var(--app-canvas));
   box-shadow: var(--node-ring), 0 0 16px -2px var(--sl-wait);
+}
+
+/* The app reporting an error: the stopped colour, quiet. */
+.rail-node--error {
+  border: 1.5px solid var(--sl-bad);
+  color: var(--sl-bad);
+  font-size: 0.5rem;
 }
 
 .rail-node--brief {

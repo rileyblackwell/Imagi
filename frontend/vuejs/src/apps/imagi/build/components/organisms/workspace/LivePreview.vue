@@ -178,7 +178,9 @@
       <!-- Picking: say how to get out of it. -->
       <p v-if="picking" class="lp-edit-note lp-edit-note--pick" role="status">Click anything in your app to ask the agent about it. Esc cancels.</p>
 
-      <!-- The newest error, with a way to hand it to the agent. -->
+      <!-- The newest error. It has already gone to the agents (the status
+           poll carries it to the coordinator, or to the thread that just
+           changed that part of the app), so this only says so. -->
       <div v-if="bannerVisible && latestError" class="lp-alert" role="alert">
         <span class="lp-alert-mark" aria-hidden="true"><i class="fas fa-exclamation"></i></span>
         <div class="lp-alert-body">
@@ -186,10 +188,6 @@
           <p class="lp-alert-detail">{{ latestError.text }}</p>
           <p v-if="errorRoutingNote" class="lp-alert-detail" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
         </div>
-        <button v-if="!errorRouting" type="button" class="lp-cta" @click="fixError(latestError.text)">
-          <i class="fas fa-wand-magic-sparkles"></i>
-          Fix it
-        </button>
         <button type="button" class="lp-alert-close" title="Dismiss" aria-label="Dismiss" @click="dismissBanner">
           <i class="fas fa-times"></i>
         </button>
@@ -251,11 +249,7 @@
           <p class="lp-notice-body">{{ failedStage ? `It stopped at "${failedStage.label}".` : 'The preview server reported a problem.' }}</p>
           <pre class="lp-code">{{ failureText }}</pre>
           <div class="lp-notice-actions">
-            <button type="button" class="lp-cta" @click="fixError(failureText)">
-              <i class="fas fa-wand-magic-sparkles"></i>
-              Fix it
-            </button>
-            <button type="button" class="lp-ghost" @click="startPreview">Try again</button>
+            <button type="button" class="lp-cta" @click="startPreview">Try again</button>
           </div>
         </div>
       </div>
@@ -281,7 +275,6 @@
       @update:height="setDrawerHeight"
       @clear="clearDrawer"
       @close="drawerOpen = false"
-      @fix="fixError"
     />
   </div>
 </template>
@@ -318,7 +311,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'fix-error', text: string): void
+  /** Errors the app reported went to an agent: which one. */
+  (e: 'errors-routed', routing: NonNullable<LiveStatus['error_routing']>): void
   (e: 'return-to-chat'): void
   /** An element picked in the app, as a line of context for the agent. */
   (e: 'pick-element', text: string): void
@@ -682,7 +676,10 @@ async function pollStatus() {
     if (disposed) return
     status.value = result
     if (result.progress?.stages) stages.value = result.progress.stages
-    if (result.error_routing) errorRouting.value = result.error_routing
+    if (result.error_routing) {
+      errorRouting.value = result.error_routing
+      if (result.error_routing.new) emit('errors-routed', result.error_routing)
+    }
     followAgent(result.agent)
     if (phase.value === 'ready' && result.running === false && sentFor === session.value) {
       // The servers went away (idle shutdown, a deploy).
@@ -758,6 +755,8 @@ async function startPreview() {
     if (disposed) return
     phase.value = 'error'
     startError.value = e instanceof Error ? e.message : 'The preview could not start.'
+    // Goes to the agents like any error the app reports.
+    if (failureText.value) pendingErrors.push({ level: 'error', text: failureText.value, ts: Date.now() })
     void pollStatus()
   } finally {
     if (elapsedTimer) window.clearInterval(elapsedTimer)
@@ -799,8 +798,8 @@ const errorRouting = ref<LiveStatus['error_routing']>(null)
 const errorRoutingNote = computed(() =>
   errorRouting.value?.to === 'thread'
     ? 'Sent to the thread that just changed this part of your app.'
-    : errorRouting.value?.to === 'new_thread'
-      ? 'A new thread is fixing it.'
+    : errorRouting.value?.to === 'coordinator'
+      ? 'Sent to the coordinator, which is getting it fixed.'
       : ''
 )
 const dismissedError = ref<string | null>(null)
@@ -817,12 +816,6 @@ const bannerVisible = computed(
 
 function dismissBanner() {
   if (latestError.value) dismissedError.value = latestError.value.text
-}
-
-function fixError(text: string) {
-  if (!text) return
-  emit('fix-error', text)
-  dismissedError.value = text
 }
 
 const drawerOpen = ref(false)

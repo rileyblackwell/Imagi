@@ -17,7 +17,9 @@ from apps.Imagi.Build.services.version_control_service import (
 from apps.Imagi.Build.tests.test_task_worktrees import GitRepoTestMixin, _git
 
 
-class LiveApplyTests(GitRepoTestMixin, SimpleTestCase):
+class LiveApplyRepoMixin(GitRepoTestMixin):
+    """A project repo with thread 5's worktree, as live apply sees them."""
+
     def setUp(self):
         self.repo = self._make_repo()
         self.vcs = VersionControlService()
@@ -41,6 +43,8 @@ class LiveApplyTests(GitRepoTestMixin, SimpleTestCase):
         path = os.path.join(root, name)
         return open(path).read() if os.path.exists(path) else None
 
+
+class LiveApplyTests(LiveApplyRepoMixin, SimpleTestCase):
     def _edit(self, name, content):
         """A thread's edit, as the file tools make it."""
         previous = live_apply.snapshot(self.ctx, name)
@@ -130,3 +134,38 @@ class LiveApplyTests(GitRepoTestMixin, SimpleTestCase):
             "[browser console] TypeError: Cannot read properties of undefined (reading 'name')",
         ])
         self.assertIn('fix them', result['instruction'])
+
+
+class CompileCheckOnWriteTests(LiveApplyRepoMixin, SimpleTestCase):
+    """A thread's component that doesn't compile is answered with the errors
+    and kept out of the app, which keeps its last good version."""
+
+    def setUp(self):
+        from apps.Imagi.Build.tests.test_frontend_integrity import _compiler_available
+
+        if not _compiler_available():
+            self.skipTest('node and @vue/compiler-sfc are not installed')
+        super().setUp()
+        self.ctx.live_held_back = {}
+
+    def _tool_edit(self, name, content):
+        import json
+        from apps.Imagi.Build.services import tools
+
+        before = tools._live_start(self.ctx, name)
+        self._write(self.worktree, name, content)
+        return json.loads(tools._live_finish(self.ctx, name, before, {'success': True, 'path': name}))
+
+    def test_a_broken_component_is_answered_with_its_errors_and_held_back(self):
+        result = self._tool_edit('src/Menu.vue', '<template><section></div></section></template>')
+        self.assertEqual(result['compile_errors'], ['Invalid end tag. (line 1)'])
+        self.assertFalse(result['applied_to_app'])
+        self.assertIn('Fix these errors', result['instruction'])
+        self.assertIsNone(self._read(self.repo, 'src/Menu.vue'))
+
+    def test_the_fixed_component_then_goes_live(self):
+        self._tool_edit('src/Menu.vue', '<template><section></div></section></template>')
+        result = self._tool_edit('src/Menu.vue', '<template><section>Menu</section></template>')
+        self.assertNotIn('compile_errors', result)
+        self.assertTrue(result['applied_to_app'])
+        self.assertEqual(self._read(self.repo, 'src/Menu.vue'), '<template><section>Menu</section></template>')

@@ -967,6 +967,11 @@ class AgentContext:
     # project the preview serves, so the user and the thread see it at once
     # (live_apply). Off for drafts and the first build's pages.
     live_apply: bool = False
+    # Live apply: files whose latest write didn't compile and so was kept out
+    # of the app, with what the app still holds of each (the thread's last
+    # copy that did go in), so its next, fixed write is still recognised as
+    # its own (tools._live_start).
+    live_held_back: Dict[str, Optional[bytes]] = field(default_factory=dict)
     # The project's shared memory, as the summary every coordinator and
     # thread prompt carries (project_memory.memory_summary). Built in
     # _prepare_run and refreshed between model turns.
@@ -1435,7 +1440,12 @@ class ImagiAgentService:
             except Exception as e:
                 logger.warning(f"Could not create pre-run checkpoint: {e}")
 
-        # Add user message to conversation, stamped with its checkpoint
+        # Add user message to conversation, stamped with its checkpoint (and
+        # with whatever the caller says about it: a message the app sent is
+        # shown as the app's, not the user's)
+        extra_metadata = getattr(self, 'user_message_metadata', None)
+        if extra_metadata:
+            user_message_metadata = {**(user_message_metadata or {}), **extra_metadata}
         user_message = self.add_user_message(
             conversation, user_input, metadata=user_message_metadata
         )
@@ -2059,6 +2069,8 @@ class ImagiAgentService:
             return 'a piece of the page it built is still missing, so putting it in would have broken your site.'
         if self._worktree_router_problems(conversation):
             return 'the links between your pages came out wrong, so putting it in would have broken your site.'
+        if self._worktree_sfc_problems(conversation):
+            return 'a page it built has a mistake in its layout code, so putting it in would have broken your site.'
         if self._worktree_auth_link_problems(conversation):
             return 'your sign-in and sign-up links went missing from the page.'
         if self._worktree_conflict_markers(conversation):
@@ -2130,6 +2142,31 @@ class ImagiAgentService:
                 len(problems),
                 problems[0]['file'],
                 problems[0]['import'],
+            )
+        return problems
+
+    def _worktree_sfc_problems(self, conversation) -> List[Dict[str, str]]:
+        """Components the task changed that Vite would fail to compile.
+
+        Only the task's own files are checked, so a component broken in the
+        app already never holds up an unrelated thread's merge. Best-effort,
+        like the checks around it.
+        """
+        worktree_path = getattr(conversation, 'worktree_path', '') or ''
+        if not worktree_path:
+            return []
+        try:
+            from .frontend_integrity import find_sfc_problems
+            problems = find_sfc_problems(worktree_path, self._task_files(conversation))
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not compile-check components before applying: {e}")
+            return []
+        if problems:
+            logger.warning(
+                "Not auto-applying conversation %s: %d component compile error(s), "
+                "first is %s: %s",
+                getattr(conversation, 'id', None), len(problems),
+                problems[0]['file'], problems[0]['error'],
             )
         return problems
 

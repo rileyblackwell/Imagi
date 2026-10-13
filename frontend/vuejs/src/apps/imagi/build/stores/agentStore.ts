@@ -1055,6 +1055,7 @@ export const useAgentStore = defineStore('agent', {
           usage: m.usage,
           dbId: m.id,
           checkpoint: m.checkpoint,
+          appError: m.appError,
         } as AIMessage))
         instance.messagesLoaded = true
       } catch (e) {

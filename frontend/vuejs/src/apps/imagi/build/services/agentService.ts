@@ -177,6 +177,8 @@ interface PersistedMessageMetadata {
   question?: AgentQuestion
   /** Pre-run project snapshot, stamped on user messages only */
   checkpoint?: string
+  /** The message is the app's errors, sent to the coordinator by the server */
+  app_error?: boolean
 }
 
 /** One conversation message with its persisted telemetry hydrated. */
@@ -192,6 +194,7 @@ export interface ConversationMessageDto {
   question?: AgentQuestion
   usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
   checkpoint?: string
+  appError?: boolean
 }
 
 /**
@@ -695,6 +698,7 @@ export const AgentService = {
       if (typeof meta.checkpoint === 'string' && meta.checkpoint) {
         dto.checkpoint = meta.checkpoint
       }
+      if (meta.app_error) dto.appError = true
       return dto
     })
   },
