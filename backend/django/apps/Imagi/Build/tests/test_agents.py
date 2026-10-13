@@ -2832,6 +2832,21 @@ class FirstBuildPageRunEndsAtItsWriteTests(SimpleTestCase):
             {'read_file', 'edit_file', 'update_file', 'create_file'},
         )
 
+    def test_a_gpt_first_build_page_opens_with_its_write(self):
+        # Reading the file its brief already holds was a whole Sol turn before
+        # the home page; the SDK lifts the forced choice after that first call.
+        from apps.Imagi.Build.services.coding_agent import create_coding_agent
+
+        agent = create_coding_agent('gpt-6.1-sol', kind='initial_build')
+        self.assertEqual(agent.model_settings.tool_choice, 'update_file')
+        self.assertTrue(agent.reset_tool_choice)
+        # Claude can't be forced to a tool while thinking, and other roles
+        # choose their own tools.
+        claude = create_coding_agent('claude-opus-5-5', kind='initial_build')
+        self.assertIsNone(claude.model_settings.tool_choice)
+        chat = create_coding_agent('gpt-6.1-sol', kind='chat')
+        self.assertIsNone(chat.model_settings.tool_choice)
+
     def test_the_page_write_ends_the_run_without_a_summary_turn(self):
         decision = self._decide('update_file', {'success': True, 'path': self.VIEW})
         self.assertTrue(decision.is_final_output)

@@ -380,10 +380,23 @@ def create_coding_agent(
     #
     # A faster OpenAI tier rides on every request when the run asks for one
     # the model offers; it is priced per token (models_service).
+    #
+    # A GPT first-build page is made to open with its write: its brief already
+    # holds the file, and a look at it first was a whole extra model turn
+    # before the page the founder is waiting on. The SDK lifts the forced
+    # choice after that call, so a repair can still read. (Claude can't be
+    # forced to a tool while it is thinking, and its pages run in the
+    # background.)
+    first_tool = (
+        'update_file'
+        if kind == 'initial_build' and get_model_provider(model) == 'openai'
+        else None
+    )
     model_settings = build_model_settings(
         effort,
         parallel_tool_calls=False if kind == 'lead' else None,
         service_tier=resolve_service_tier(model, service_tier),
+        tool_choice=first_tool,
     )
     if model_settings is not None:
         kwargs['model_settings'] = model_settings
