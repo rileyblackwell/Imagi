@@ -181,6 +181,10 @@ export function isHeldThread(instance: AgentInstance): boolean {
  *  opening message, as it does for any dispatch. */
 const heldBriefs = new Map<number, string>()
 
+/** Finished-thread notices being cleared right now, so a poll that lands
+ *  mid-request does not clear the same one twice. */
+const clearingNotices = new Set<number>()
+
 export const useAgentStore = defineStore('agent', {
   state: (): AgentState => ({
     projectId: null,
@@ -193,6 +197,7 @@ export const useAgentStore = defineStore('agent', {
     instancesLoading: false,
     checkIns: [],
     checkInsLoaded: false,
+    deferredCheckIns: [],
     threadModelId: DEFAULT_MODEL_ID,
     threadEffort: DEFAULT_REASONING_EFFORT,
     memoryEntries: [],
@@ -319,6 +324,21 @@ export const useAgentStore = defineStore('agent', {
      *  read, not a request, so it never counts as waiting. */
     waitingCheckIns(state): CheckInDto[] {
       return state.checkIns.filter(c => c.kind !== 'done')
+    },
+
+    /** The queue above the coordinator's composer: only what the user has to
+     *  answer — a thread's question, or a pick between takes they asked to
+     *  compare. Finished and stopped threads are reported on their cards in
+     *  the chat and stay there as history. Cards put off with "Later" go to
+     *  the back, in the order they were put off. */
+    queuedCheckIns(state): CheckInDto[] {
+      const asks = state.checkIns.filter(c => c.kind === 'question' || c.kind === 'ready')
+      const deferred = state.deferredCheckIns
+      const rank = (c: CheckInDto) => deferred.indexOf(c.id)
+      return [
+        ...asks.filter(c => rank(c) < 0),
+        ...asks.filter(c => rank(c) >= 0).sort((a, b) => rank(a) - rank(b)),
+      ]
     },
 
     /** Archived threads, legacy plain chats and any duplicate live lead (a
@@ -486,6 +506,23 @@ export const useAgentStore = defineStore('agent', {
         // something else.
         if (lead && lead.id !== this.activeInstanceId) lead.hasUnread = true
       }
+      // A finish is news, not a request: its card in the chat has already
+      // turned complete with the thread's own summary, and that card is the
+      // history. So the notice is cleared once it has done its job (telling
+      // this tab to refresh that card) rather than waiting on a "Got it".
+      // Quietly: a failed clear just leaves it pending on the server, out of
+      // the queue, and the next poll tries again.
+      const done = this.checkIns.filter(c => c.kind === 'done')
+      if (!done.length) return
+      this.checkIns = this.checkIns.filter(c => c.kind !== 'done')
+      for (const checkIn of done) {
+        if (clearingNotices.has(checkIn.id)) continue
+        clearingNotices.add(checkIn.id)
+        Promise.resolve()
+          .then(() => AgentService.resolveCheckIn(checkIn.id))
+          .catch(e => console.error('Failed to clear a finished thread notice', e))
+          .finally(() => clearingNotices.delete(checkIn.id))
+      }
     },
 
     /** Add one thread the server knows about and this tab does not. */
@@ -527,6 +564,11 @@ export const useAgentStore = defineStore('agent', {
      *  happened, or is happening as a side effect of accept/dismiss/answer). */
     removeCheckIn(checkInId: number) {
       this.checkIns = this.checkIns.filter(c => c.id !== checkInId)
+    },
+
+    /** "Later": keep a question but move it to the back of the queue. */
+    deferCheckIn(checkInId: number) {
+      this.deferredCheckIns = [...this.deferredCheckIns.filter(id => id !== checkInId), checkInId]
     },
 
     /** Clear one queue entry the user has simply dealt with. */

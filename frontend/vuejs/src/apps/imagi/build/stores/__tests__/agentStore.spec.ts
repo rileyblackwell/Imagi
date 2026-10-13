@@ -955,6 +955,40 @@ describe('agent store subagent outcomes', () => {
       .toBe('Your home page now opens with a clear offer.')
   })
 
+  it('clears a finished thread\'s notice instead of queueing it', async () => {
+    // A finish is history on its card in the chat, not a card to dismiss.
+    const { store, task } = workspace()
+    agentService.listCheckIns.mockResolvedValue([
+      checkIn(51, task.conversationId!, 'done', 'accepted'),
+      checkIn(52, 99, 'question', 'input'),
+    ])
+    agentService.getConversation.mockResolvedValue(
+      conversationDto(task.conversationId!, 'accepted')
+    )
+    agentService.resolveCheckIn.mockResolvedValue({})
+
+    await store.loadCheckIns()
+    await Promise.resolve()
+
+    expect(store.checkIns.map(c => c.id)).toEqual([52])
+    expect(store.queuedCheckIns.map(c => c.id)).toEqual([52])
+    expect(agentService.resolveCheckIn).toHaveBeenCalledWith(51)
+    expect(agentService.resolveCheckIn).not.toHaveBeenCalledWith(52)
+  })
+
+  it('queues only questions and picks, with ones put off at the back', () => {
+    const store = useAgentStore()
+    store.checkIns = [
+      checkIn(1, 11, 'question', 'input'),
+      checkIn(2, 12, 'error', 'failed'),
+      checkIn(3, 13, 'question', 'input'),
+      checkIn(4, 14, 'ready', 'ready'),
+    ] as never
+    store.deferCheckIn(1)
+
+    expect(store.queuedCheckIns.map(c => c.id)).toEqual([3, 4, 1])
+  })
+
   it('refreshes the project once when a subagent applies its work', async () => {
     const { store, task } = workspace()
     const applied = vi.fn()

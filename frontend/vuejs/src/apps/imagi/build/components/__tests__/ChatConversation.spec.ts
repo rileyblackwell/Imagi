@@ -254,19 +254,9 @@ describe('ChatConversation dispatch card', () => {
     expect(card.find('.dispatch-card__result').text()).toBe('Built two takes on the pricing table.')
   })
 
-  it('asks a blocked thread\'s question right on its card', () => {
-    // The question is answered where it is shown, not in the thread: the card
-    // carries it whole, with the thread's one-tap answers from its check-in.
-    const store = useAgentStore()
-    store.checkIns = [{
-      id: 1, kind: 'question', body: 'Should the form email you or open a ticket?',
-      options: ['Email me', 'Open a ticket'], visual: '', status: 'pending',
-      created_at: '', resolved_at: null, project_id: null, lead_id: null,
-      task: {
-        id: 7, title: 'Contact page', goal: JOB, kind: 'task', review_status: 'input',
-        variant_group: '', has_worktree: false, is_running: false,
-      },
-    }] as typeof store.checkIns
+  it('shows a blocked thread\'s question and points to the queue for the answer', () => {
+    // Every open question is answered in one place, the queue above the
+    // composer. The card keeps the question as history and says where to go.
     const wrapper = withSubagent({
       reviewStatus: 'input',
       brief: JOB,
@@ -278,22 +268,20 @@ describe('ChatConversation dispatch card', () => {
     expect(card.text()).toContain('Needs an answer from you')
     expect(card.find('.dispatch-card__question').text())
       .toBe('Should the form email you or open a ticket?')
-    expect(card.findAll('.question-option').map(o => o.text())).toEqual(['Email me', 'Open a ticket'])
+    expect(card.text()).toContain('Answer it in the queue below.')
+    expect(card.find('textarea').exists()).toBe(false)
+    expect(card.find('.dispatch-card__go').exists()).toBe(true)
   })
 
-  it('sends an answer given on the card back to that thread', async () => {
-    const wrapper = withSubagent({
-      reviewStatus: 'input',
-      brief: JOB,
-      lastMessagePreview: 'Should the form email you or open a ticket?',
-    })
+  it('lets the user discard a stopped thread from its card', async () => {
+    const wrapper = withSubagent({ reviewStatus: 'failed', brief: JOB })
     const store = useAgentStore()
-    const steer = vi.spyOn(store, 'steerThread').mockReturnValue(true)
+    const dismiss = vi.spyOn(store, 'dismissTaskInstance').mockResolvedValue()
 
-    await wrapper.find('.dispatch-card textarea').setValue('Email me, please')
-    await wrapper.find('.dispatch-card form').trigger('submit')
+    const discard = wrapper.findAll('.dispatch-card button').find(b => b.text().trim() === 'Discard')!
+    await discard.trigger('click')
 
-    expect(steer).toHaveBeenCalledWith('inst-1', 'Email me, please')
+    expect(dismiss).toHaveBeenCalledWith('inst-1')
   })
 
   it('falls back to starting when the store has no instance yet', () => {
@@ -309,6 +297,34 @@ describe('ChatConversation dispatch card', () => {
     const card = wrapper.find('.dispatch-card')
     expect(card.text()).toContain('Contact page')
     expect(card.text()).toContain('Thread starting')
+  })
+})
+
+describe('ChatConversation session breaks', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  const at = (role: 'user' | 'assistant', id: string, timestamp: string): AIMessage =>
+    ({ role, content: id, timestamp, id })
+
+  it('opens with the time the sitting started, and marks each return after a break', () => {
+    const wrapper = mount(ChatConversation, {
+      props: {
+        messages: [
+          at('user', 'm1', '2026-01-01T10:00:00Z'),
+          at('assistant', 'm2', '2026-01-01T10:01:00Z'),
+          // 20 minutes later: same sitting
+          at('user', 'm3', '2026-01-01T10:21:00Z'),
+          // Back two hours later: a new sitting
+          at('user', 'm4', '2026-01-01T12:30:00Z'),
+          at('assistant', 'm5', '2026-01-01T12:31:00Z'),
+        ],
+      },
+    })
+
+    const breaks = wrapper.findAll('.session-break')
+    expect(breaks).toHaveLength(2)
+    expect(breaks.map(b => b.find('time').attributes('datetime')))
+      .toEqual(['2026-01-01T10:00:00.000Z', '2026-01-01T12:30:00.000Z'])
   })
 })
 

@@ -355,42 +355,17 @@ describe('DispatchCard question', () => {
   const QUESTION = 'Should the reviews come from your Google listing, or would you rather type them in?'
   const asking = () => makeTask({ reviewStatus: 'input', lastAssistantSummary: QUESTION })
 
-  it('shows the question whole, at rest, with nowhere else to go', () => {
-    // The card asks rather than reports: the question is the point, and
-    // nothing in the thread is needed to answer it.
+  it('shows the question whole and points to the queue, where it is answered', () => {
+    // Every open question waits in one queue above the coordinator's
+    // composer; the card is its history, with the way into the thread.
     const wrapper = mountCard(asking())
 
     expect(statusOf(wrapper)).toBe('Needs an answer from you')
     expect(wrapper.find('.dispatch-card__question').text()).toBe(QUESTION)
-    expect(wrapper.find('.dispatch-card__go').exists()).toBe(false)
+    expect(wrapper.find('.dispatch-card__hint').text()).toBe('Answer it in the queue below.')
+    expect(wrapper.find('textarea').exists()).toBe(false)
+    expect(wrapper.find('.dispatch-card__go').exists()).toBe(true)
     expect(wrapper.find('.dispatch-card__toggle').exists()).toBe(false)
-  })
-
-  it('sends a typed answer back from the card', async () => {
-    const wrapper = mountCard(asking())
-    const send = wrapper.find('.dispatch-card__send')
-
-    expect(send.attributes('disabled')).toBeDefined()
-    await wrapper.find('textarea').setValue('  Type them in myself  ')
-    await wrapper.find('form').trigger('submit')
-
-    expect(wrapper.emitted('answer')).toEqual([['Type them in myself']])
-    expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('')
-  })
-
-  it('offers the thread\'s one-tap answers and sends the one picked', async () => {
-    const wrapper = mount(DispatchCard, {
-      props: {
-        title: 'Add reviews',
-        instance: asking(),
-        questionOptions: ['From Google', 'I will type them'],
-      },
-    })
-
-    const options = wrapper.findAll('.question-option')
-    expect(options.map(o => o.text())).toEqual(['From Google', 'I will type them'])
-    await options[0]!.trigger('click')
-    expect(wrapper.emitted('answer')).toEqual([['From Google']])
   })
 
   it('goes back to reporting once the thread picks the job up again', async () => {
@@ -399,6 +374,18 @@ describe('DispatchCard question', () => {
 
     expect(wrapper.find('.dispatch-card__question').exists()).toBe(false)
     expect(wrapper.find('.dispatch-card__go').exists()).toBe(true)
+  })
+})
+
+describe('DispatchCard stopped', () => {
+  it('offers Try again and Discard', async () => {
+    const wrapper = mountCard(makeTask({ reviewStatus: 'failed' }))
+
+    await wrapper.find('.dispatch-card__retry').trigger('click')
+    await wrapper.find('.dispatch-card__discard').trigger('click')
+
+    expect(wrapper.emitted('retry')).toHaveLength(1)
+    expect(wrapper.emitted('dismiss')).toHaveLength(1)
   })
 })
 
