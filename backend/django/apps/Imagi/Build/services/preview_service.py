@@ -535,6 +535,64 @@ class PreviewService:
         dbs = sorted(os.path.basename(p) for p in glob.glob(os.path.join(backend_path, '*.sqlite3')))
         return '|'.join(sorted(entries) + ['db:' + ','.join(dbs)])
 
+    @staticmethod
+    def _migrations_key(backend_path):
+        """What the project's migrations say, as a hash: every new project
+        starts from the same scaffold, so most share one."""
+        import hashlib
+        import django
+
+        digest = hashlib.sha256(django.get_version().encode())
+        for root, dirs, files in sorted(os.walk(backend_path)):
+            dirs[:] = sorted(d for d in dirs if d not in ('node_modules', '.venv', 'venv', '__pycache__', 'media'))
+            if os.path.basename(root) != 'migrations':
+                continue
+            for name in sorted(f for f in files if f.endswith('.py')):
+                path = os.path.join(root, name)
+                digest.update(os.path.relpath(path, backend_path).encode())
+                try:
+                    with open(path, 'rb') as f:
+                        digest.update(f.read())
+                except OSError:
+                    return None
+        return digest.hexdigest()[:32]
+
+    @staticmethod
+    def _migrated_db_cache(key):
+        return os.path.join(settings.PROJECTS_ROOT, '.migrated-db', f'{key}.sqlite3')
+
+    def _copy_migrated_db(self, backend_path):
+        """Give a project with no database yet a copy of one already migrated
+        for the same migrations, instead of running migrate (seconds of a cold
+        start). Returns whether it did."""
+        if glob.glob(os.path.join(backend_path, '*.sqlite3')):
+            return False
+        key = self._migrations_key(backend_path)
+        cached = key and self._migrated_db_cache(key)
+        if not cached or not os.path.exists(cached):
+            return False
+        try:
+            shutil.copyfile(cached, os.path.join(backend_path, 'db.sqlite3'))
+        except OSError:
+            return False
+        return True
+
+    def _keep_migrated_db(self, backend_path, key):
+        """Keep a freshly migrated database for the next project like it."""
+        source = os.path.join(backend_path, 'db.sqlite3')
+        if not key or not os.path.exists(source):
+            return
+        target = self._migrated_db_cache(key)
+        if os.path.exists(target):
+            return
+        try:
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            tmp = f'{target}.{os.getpid()}.tmp'
+            shutil.copyfile(source, tmp)
+            os.replace(tmp, target)
+        except OSError as e:
+            logger.warning("Could not keep the migrated database: %s", e)
+
     def run_migrations(self, backend_path, env=None, force=False):
         """Apply the project's migrations. Returns None or error text.
 
@@ -554,6 +612,18 @@ class PreviewService:
                         return None
             except OSError:
                 pass
+            if self._copy_migrated_db(backend_path):
+                try:
+                    with open(self.migrate_stamp_file, 'w') as f:
+                        f.write(self._migrations_stamp(backend_path))
+                except OSError:
+                    pass
+                return None
+        # A database migrate creates from nothing can start the next project.
+        fresh_key = (
+            None if glob.glob(os.path.join(backend_path, '*.sqlite3'))
+            else self._migrations_key(backend_path)
+        )
         try:
             result = subprocess.run(
                 [sys.executable, 'manage.py', 'migrate', '--noinput'],
@@ -570,6 +640,7 @@ class PreviewService:
             pass
         if result.returncode != 0:
             return output.strip()[-2000:] or f"migrate exited with code {result.returncode}"
+        self._keep_migrated_db(backend_path, fresh_key)
         try:
             with open(self.migrate_stamp_file, 'w') as f:
                 # Re-read: the migrate itself may have created the database.
