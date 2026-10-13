@@ -73,6 +73,14 @@ describe('PreviewService', () => {
       })
     })
 
+    it('asks as a probe when it only wants to know whether a session is up', async () => {
+      apiGet.mockResolvedValue({ data: { running: false } })
+
+      await PreviewService.frame('7', undefined, { probe: true })
+
+      expect(apiGet).toHaveBeenCalledWith('/v1/builder/7/preview/frame/', { params: { probe: '1' } })
+    })
+
     it('gives start a long timeout, since a first start can npm install', async () => {
       apiPost.mockResolvedValue({ data: { running: true } })
 

@@ -409,7 +409,7 @@ def _preview_json_body(request):
     return data if isinstance(data, dict) else None
 
 
-async def _run_preview_call(request, project_id, call, after=None):
+async def _run_preview_call(request, project_id, call, after=None, not_running_status=409):
     """Authenticate, resolve the project, then run ``call(service)``.
 
     ORM work (token auth, project fetch) stays on sync_to_async's default
@@ -436,7 +436,7 @@ async def _run_preview_call(request, project_id, call, after=None):
     except BrowserNotRunning as e:
         # Session died (browser killed, container restarted): 409 tells the
         # client to offer a restart rather than showing a hard failure.
-        return JsonResponse({'running': False, 'error': str(e)}, status=409)
+        return JsonResponse({'running': False, 'error': str(e)}, status=not_running_status)
     except BrowserPreviewError as e:
         return JsonResponse({'error': str(e)}, status=400)
     if after is not None:
@@ -468,13 +468,18 @@ async def _route_app_errors(user, project, payload):
 @csrf_exempt
 @never_cache
 async def preview_frame(request, project_id):
-    """Poll the latest screenshot; `etag` elides an unchanged frame."""
+    """Poll the latest screenshot; `etag` elides an unchanged frame.
+
+    `probe=1` asks whether a session is already up: nothing running is then
+    an answer (200, running false), not an error in the browser console.
+    """
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     etag = request.GET.get('etag')
     return await _run_preview_call(
         request, project_id, lambda service: service.frame(etag=etag),
         after=_route_app_errors,
+        not_running_status=200 if request.GET.get('probe') == '1' else 409,
     )
 
 

@@ -552,11 +552,11 @@ async function startPreview() {
 // a recent visit) goes on screen straight away: the frame endpoint answers
 // without waiting behind start(), which still runs to claim the session and
 // sync its viewport. Only a frame rendered at this pane's size is shown — one
-// at another size would flash stretched until the resize lands — and a 409
-// just means there is nothing running yet for start() to reattach to.
+// at another size would flash stretched until the resize lands. It is asked
+// as a probe, so nothing running yet comes back as an answer, not an error.
 function showRunningSession(size: { width: number; height: number }) {
   const seq = ++requestSeq
-  PreviewService.frame(props.projectId)
+  PreviewService.frame(props.projectId, undefined, { probe: true })
     .then((f) => {
       if (disposed || phase.value !== 'starting' || !f.frame) return
       const [w, h] = f.viewport || [0, 0]
