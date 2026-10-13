@@ -19,6 +19,7 @@ from concurrent.futures import Future
 from typing import Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
+timing_logger = logging.getLogger('imagi.timing')
 
 QUICK_HOME_MARKER = 'imagi-quick-home'
 
@@ -70,20 +71,26 @@ _SCHEMA = {
 }
 
 
-# The words are asked of the home page's own model and of a small fast one at
-# once, and whichever answers first is used: a few hundred tokens of copy
-# don't need the bigger model, but neither model is reliably the faster.
-RACE_MODEL = ('gpt-6-luna', 'fast')
+# The words are asked several ways at once and whichever answers first is
+# used: the home page's own model with a little reasoning and with none, and a
+# small fast model. A few hundred tokens of copy don't need much thought, and
+# no one of these is reliably the fastest. Each is (model, tier, effort); a
+# None tier or effort means the home page's own.
+RACERS = (
+    (None, None, 'low'),
+    (None, None, 'none'),
+    ('gpt-6-luna', 'fast', 'low'),
+)
 
 
 def request_copy(candidates, name, description, app_details='', design='',
                  meter: Optional[Callable] = None) -> Future:
     """Ask for the landing page's words and colours, on threads of their own.
 
-    ``candidates`` is a list of (model, service_tier); each is asked at once
-    and the future holds the first good answer. ``meter(model, service_tier,
-    usage)`` is called for every answer, the losers' too, since each is paid
-    for.
+    ``candidates`` is a list of (model, service_tier, reasoning effort);
+    each is asked at once and the future holds the first good answer.
+    ``meter(model, service_tier, usage)`` is called for every answer, the
+    losers' too, since each is paid for.
     """
     from apps.Imagi.Build.services.api_keys import read_api_key
     from apps.Imagi.Build.services.models_service import get_backend_model_id
@@ -96,7 +103,7 @@ def request_copy(candidates, name, description, app_details='', design='',
 
     started = time.monotonic()
 
-    def ask(model, service_tier):
+    def ask(model, service_tier, effort):
         from openai import OpenAI
 
         client = OpenAI(api_key=read_api_key('OPENAI_KEY'))
@@ -107,7 +114,7 @@ def request_copy(candidates, name, description, app_details='', design='',
             model=get_backend_model_id(model),
             instructions=_INSTRUCTIONS,
             input=brief,
-            reasoning={'effort': 'low'},
+            reasoning={'effort': effort},
             text={'format': {
                 'type': 'json_schema', 'name': 'landing_page', 'strict': True, 'schema': _SCHEMA,
             }},
@@ -120,18 +127,22 @@ def request_copy(candidates, name, description, app_details='', design='',
                 logger.warning("Could not meter the quick home words: %s", e)
         copy = json.loads(response.output_text)
         copy['_seconds'] = time.monotonic() - started
-        copy['_model'] = model
+        copy['_model'] = f'{model} {effort}'
         return copy
 
     future: Future = Future()
     lock = threading.Lock()
     outcomes = []
 
-    def run(model, service_tier):
+    def run(model, service_tier, effort):
         try:
-            result, error = ask(model, service_tier), None
+            result, error = ask(model, service_tier, effort), None
         except Exception as e:  # the full page still comes; this was a bonus
             result, error = None, e
+        timing_logger.info(
+            'quick home words %s %s %s: %s in %.1fs', model, service_tier, effort,
+            'failed (%s)' % str(error)[:160] if error else 'answered', time.monotonic() - started,
+        )
         with lock:
             outcomes.append(error)
             if future.done():
@@ -141,9 +152,9 @@ def request_copy(candidates, name, description, app_details='', design='',
             elif len(outcomes) == len(candidates):
                 future.set_exception(error)
 
-    for model, service_tier in candidates:
+    for model, service_tier, effort in candidates:
         threading.Thread(
-            target=run, args=(model, service_tier), name='quick-home', daemon=True,
+            target=run, args=(model, service_tier, effort), name='quick-home', daemon=True,
         ).start()
     return future
 

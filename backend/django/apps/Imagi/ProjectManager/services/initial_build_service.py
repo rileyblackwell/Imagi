@@ -383,9 +383,11 @@ def start_home_page_early(project) -> bool:
     if sent and builder.get('INITIAL_BUILD_QUICK_HOME', True):
         from . import quick_home
 
-        candidates = [(model, service_tier)]
-        if quick_home.RACE_MODEL[0] != model:
-            candidates.append(quick_home.RACE_MODEL)
+        candidates = []
+        for racer_model, racer_tier, effort in quick_home.RACERS:
+            racer = (racer_model or model, racer_tier if racer_model else service_tier, effort)
+            if racer not in candidates:
+                candidates.append(racer)
         user_id = project.user_id
         _quick_copy[project.pk] = quick_home.request_copy(
             candidates, project.name, project.description,
