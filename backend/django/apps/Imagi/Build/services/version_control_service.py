@@ -149,23 +149,11 @@ class VersionControlService:
                 check=True
             )
             
-            # Set git config for the repository
-            subprocess.run(
-                ['git', 'config', 'user.name', 'Imagi'],
-                cwd=project_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            
-            subprocess.run(
-                ['git', 'config', 'user.email', 'system@imagi.ai'],
-                cwd=project_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            
+            # The repository's identity, written straight into its config
+            # rather than with two more git processes on project creation.
+            with open(os.path.join(git_dir, 'config'), 'a') as f:
+                f.write('[user]\n\tname = Imagi\n\temail = system@imagi.ai\n')
+
             # Create .gitignore file
             gitignore_path = os.path.join(project_path, '.gitignore')
             if not os.path.exists(gitignore_path):

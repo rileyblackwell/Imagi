@@ -66,8 +66,18 @@ class ProjectCreateView(generics.CreateAPIView):
                 start_home_page_early(project)
             except Exception:
                 logger.exception("Failed to start the home page early for project %s", project.id)
+            # Bring the preview up the moment the scaffold is on disk,
+            # alongside the build, so the workspace opens onto a live session
+            # rather than paying the boot after the founder has already
+            # waited. Best-effort, like the build kickoff.
+            def warm_up(project):
+                try:
+                    start_preview_warmup(project)
+                except Exception:
+                    logger.exception("Failed to start preview warm-up for project %s", project.id)
+
             service = ProjectCreationService(request.user)
-            service.create_project(project)
+            service.create_project(project, on_files_ready=warm_up)
 
             # Hand the business name + description to the coding agent as the
             # first build prompt. Runs in the background; creation succeeds
@@ -76,15 +86,6 @@ class ProjectCreateView(generics.CreateAPIView):
                 start_initial_build(project, request.user)
             except Exception:
                 logger.exception("Failed to start initial AI build for project %s", project.id)
-            # Bring the preview up now, alongside the build, so the workspace
-            # opens onto a live session rather than paying the boot after the
-            # founder has already waited on the build. Best-effort, like the
-            # build kickoff.
-            try:
-                start_preview_warmup(project)
-            except Exception:
-                logger.exception("Failed to start preview warm-up for project %s", project.id)
-
             response_serializer = ProjectSerializer(project)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         except Exception:

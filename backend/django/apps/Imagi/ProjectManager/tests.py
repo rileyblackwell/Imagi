@@ -32,6 +32,13 @@ from apps.Imagi.ProjectManager.services.project_management_service import (
 
 User = get_user_model()
 
+
+def _scaffolded(project, on_files_ready=None):
+    """Stands in for ProjectCreationService.create_project."""
+    if on_files_ready is not None:
+        on_files_ready(project)
+    return project
+
 # A business description long enough to pass the create serializer's
 # MIN_DESCRIPTION_LENGTH validation (the description seeds the initial AI build).
 VALID_DESCRIPTION = (
@@ -343,7 +350,7 @@ class ProjectManagerAPITests(APITestCase):
         'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
     )
     def test_create_project(self, mock_create, mock_build, mock_warmup):
-        mock_create.side_effect = lambda project: project
+        mock_create.side_effect = _scaffolded
         resp = self.client.post(
             reverse('project_manager:project-create'),
             {'name': 'Brand New App', 'description': VALID_DESCRIPTION},
@@ -376,7 +383,7 @@ class ProjectManagerAPITests(APITestCase):
     def test_create_succeeds_when_initial_build_kickoff_fails(
         self, mock_create, mock_build, mock_warmup
     ):
-        mock_create.side_effect = lambda project: project
+        mock_create.side_effect = _scaffolded
         resp = self.client.post(
             reverse('project_manager:project-create'),
             {'name': 'Resilient App', 'description': VALID_DESCRIPTION},
@@ -1549,7 +1556,7 @@ class ProjectNameValidationTests(APITestCase):
 @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
 @patch(
     'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project',
-    side_effect=lambda project: project,
+    side_effect=_scaffolded,
 )
 class ProjectLimitTests(APITestCase):
     """The plan's active-project limit is enforced when a project is created."""
@@ -1607,7 +1614,7 @@ class ProjectLimitTests(APITestCase):
 @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
 @patch(
     'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project',
-    side_effect=lambda project: project,
+    side_effect=_scaffolded,
 )
 class FreeTierUnlimitedProjectTests(APITestCase):
     """While FREE_TIER_UNLIMITED is on, Free has no project limit."""
@@ -1873,13 +1880,13 @@ class QuickHomeTests(TransactionTestCase):
         with mock.patch('openai.OpenAI', return_value=client), \
                 mock.patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='k'):
             future = quick_home.request_copy(
-                [('gpt-6.1-sol', 'ultrafast'), ('gpt-6-luna', 'fast')], 'Puddle Lane', 'Laundry',
+                [('gpt-6.1-sol', 'ultrafast', 'low'), ('gpt-6-luna', 'fast', 'low')], 'Puddle Lane', 'Laundry',
                 meter=lambda *args: metered.append(args),
             )
             copy = future.result(timeout=5)
             sol_may_answer.set()
         self.assertEqual(copy['headline'], 'From Luna')
-        self.assertEqual(copy['_model'], 'gpt-6-luna')
+        self.assertEqual(copy['_model'], 'gpt-6-luna low')
         self.assertEqual(metered, [('gpt-6-luna', 'fast', 'luna usage')])
 
     def test_the_words_fail_only_when_every_model_does(self):
@@ -1890,7 +1897,7 @@ class QuickHomeTests(TransactionTestCase):
         with mock.patch('openai.OpenAI', return_value=client), \
                 mock.patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='k'):
             future = quick_home.request_copy(
-                [('gpt-6.1-sol', 'ultrafast'), ('gpt-6-luna', 'fast')], 'Puddle Lane', 'Laundry',
+                [('gpt-6.1-sol', 'ultrafast', 'low'), ('gpt-6-luna', 'fast', 'low')], 'Puddle Lane', 'Laundry',
             )
             with self.assertRaises(RuntimeError):
                 future.result(timeout=5)

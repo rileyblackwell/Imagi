@@ -21,10 +21,14 @@ class ProjectCreationService:
         self.base_directory = os.path.join(settings.PROJECTS_ROOT, str(user.id))
         os.makedirs(self.base_directory, exist_ok=True)
 
-    def create_project(self, name_or_project):
+    def create_project(self, name_or_project, on_files_ready=None):
         """
         Create a new project.
         Can accept either a project name (string) or a Project instance.
+
+        ``on_files_ready(project)`` is called once the scaffold is on disk,
+        before it is put under git and mirrored to the database, so the
+        preview can start booting alongside that bookkeeping.
         """
         try:
             # Handle both string name and Project instance
@@ -58,6 +62,12 @@ class ProjectCreationService:
                 logger.warning(f"Failed to ensure default apps: {app_err}")
             finally:
                 project._suppress_db_mirror = False
+
+            if on_files_ready is not None:
+                try:
+                    on_files_ready(project)
+                except Exception as ready_err:
+                    logger.warning(f"Files-ready hook failed: {ready_err}")
 
             # Put the finished scaffold under git before anything else touches
             # it. The repo is created lazily otherwise, on whichever agent run
