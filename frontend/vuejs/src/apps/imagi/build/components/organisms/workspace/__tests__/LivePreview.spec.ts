@@ -84,12 +84,22 @@ describe('LivePreview', () => {
     expect(post).toHaveBeenCalledWith({ target: 'imagi-preview', cmd: 'navigate', path: '/contact' }, ORIGIN)
   })
 
-  it('offers to fix an error the app logs', async () => {
+  it('sends an error the app logs straight on, with no Fix it button', async () => {
+    status.mockResolvedValue({
+      running: true, backend: { state: 'ready' }, frontend: { state: 'ready' },
+      error_routing: { to: 'coordinator', conversation_id: 5, new: true },
+    })
     await fromApp({ type: 'console', level: 'error', text: 'TypeError: boom', ts: Date.now() })
+    await new Promise((r) => setTimeout(r, 350))
+    await flushPromises()
+    // The error went out with the next status poll, nobody pressing anything.
+    const sent = status.mock.calls.map((call) => call[1]).flat()
+    expect(sent.some((e: { text: string }) => e?.text === 'TypeError: boom')).toBe(true)
+    expect(wrapper.emitted('errors-routed')?.[0]?.[0]).toEqual({ to: 'coordinator', conversation_id: 5, new: true })
     const banner = wrapper.find('[role=alert]')
     expect(banner.text()).toContain('TypeError: boom')
-    await banner.find('button').trigger('click')
-    expect(wrapper.emitted('fix-error')?.[0]?.[0]).toContain('TypeError: boom')
+    expect(banner.text()).toContain('Sent to the coordinator')
+    expect(banner.text()).not.toContain('Fix it')
   })
 
   it("doesn't treat a dropped live-reload socket as the app breaking", async () => {

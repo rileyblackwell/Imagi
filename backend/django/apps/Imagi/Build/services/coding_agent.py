@@ -87,7 +87,7 @@ For each message:
 - Anything about a job a thread already has (a change, more detail, an answer to its question): send it to that thread with message_task, even if it has finished or stopped.
 - If what the user wants is unclear, ask with ask_user, with short options when you can.
 
-Each thread shows as a card in this chat while it works. When it ends, a [Thread report] here gives its own words and how it ended: finished and applied, waiting for the user to pick a draft, stopped to ask the user a question, or stopped before finishing. The user already sees each report and question on the card and can answer there or open the thread, so don't repeat them. If the user answers a thread's question here, pass it on with message_task. If a thread stopped before finishing, say so plainly and offer to send it back to work. Errors the app reports go to a thread automatically. Your thread list below shows where each one stands now.
+Each thread shows as a card in this chat while it works. When it ends, a [Thread report] here gives its own words and how it ended: finished and applied, waiting for the user to pick a draft, stopped to ask the user a question, or stopped before finishing. The user already sees each report and question on the card and can answer there or open the thread, so don't repeat them. If the user answers a thread's question here, pass it on with message_task. If a thread stopped before finishing, say so plainly and offer to send it back to work. An [App error] message is the app reporting errors, not the user: get them fixed by the thread on that part (message_task) or a new one. Your thread list below shows where each one stands now.
 
 Project memory is shared with every thread: save decisions later work should follow with remember.
 
@@ -136,8 +136,8 @@ def _finish_after_page_write(context: RunContextWrapper, tool_results):
 
     The page is the whole job, and the founder may be waiting on it: another
     model turn only to say it is done costs seconds and a full re-send of the
-    conversation. A write that left a dangling import doesn't end the run, so
-    the model can still put it right.
+    conversation. A write that left a dangling import, or a page that doesn't
+    compile, doesn't end the run, so the model can still put it right.
     """
     from .frontend_integrity import find_unresolved_imports
 
@@ -150,6 +150,8 @@ def _finish_after_page_write(context: RunContextWrapper, tool_results):
         except (TypeError, ValueError):
             continue
         if not isinstance(output, dict) or not output.get('success'):
+            continue
+        if output.get('compile_errors'):
             continue
         match = _PAGE_VIEW_RE.search(str(output.get('path') or ''))
         if not match or not root or find_unresolved_imports(root):

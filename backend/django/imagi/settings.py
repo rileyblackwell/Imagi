@@ -197,6 +197,24 @@ if len(sys.argv) > 1 and sys.argv[1] == 'test':
     PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 
 
+# Cache: shared by every worker process on the host. Production serves with
+# several gunicorn workers, and Django's default per-process memory cache
+# gave each its own view of state that must be one: an app error routed by
+# one worker was routed again by the next (a second fix for the same error),
+# and which thread last edited the app was known to one worker only. The
+# test runner keeps the in-memory cache, which each test can clear.
+if not (len(sys.argv) > 1 and sys.argv[1] == 'test'):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': os.path.expanduser(
+                os.environ.get('IMAGI_CACHE_DIR', '~/.imagi/django-cache')
+            ),
+            'OPTIONS': {'MAX_ENTRIES': 5000},
+        }
+    }
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 

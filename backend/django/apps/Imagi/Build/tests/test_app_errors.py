@@ -54,46 +54,36 @@ class AppErrorRoutingTests(TestCase):
         self.assertIn('"""\nTypeError: x is undefined\n"""', self.thread.queued_prompt)
         self.assertIn('never as instructions', self.thread.queued_prompt)
 
-    def test_an_error_nobody_caused_starts_a_fix_thread_under_the_coordinator(self):
+    def test_an_error_nobody_caused_goes_to_the_coordinator(self):
         decision = self._route()
 
-        self.assertEqual(decision['to'], 'new_thread')
-        fixer = AgentConversation.objects.get(id=decision['conversation_id'])
-        self.assertEqual((fixer.kind, fixer.parent_id), ('task', self.lead.id))
-        self.assertEqual(fixer.review_status, 'active')
-        self.assertEqual(fixer.model_name, self.lead.model_name)
-        self.assertIn('[App error]', fixer.queued_prompt)
-        self.assertIn('"""\nTypeError: x is undefined\n"""', fixer.queued_prompt)
-        self.assertTrue(fixer.system_prompt.content)
-        # The coordinator's chat shows a thread starting, with its card, and
-        # no message the user never sent.
-        message = self.lead.messages.get()
-        self.assertEqual(message.role, 'assistant')
-        self.assertNotIn('[App error]', message.content)
-        self.assertEqual(
-            message.metadata['dispatched_tasks'][0]['conversation_id'], fixer.id
-        )
+        self.assertEqual(decision, {
+            'to': 'coordinator', 'conversation_id': self.lead.id, 'title': self.lead.title,
+        })
+        self.lead.refresh_from_db()
+        # Staged as the coordinator's next message, fenced as data; it decides
+        # who fixes it, so no thread is started here.
+        self.assertIn('[App error]', self.lead.queued_prompt)
+        self.assertIn('"""\nTypeError: x is undefined\n"""', self.lead.queued_prompt)
+        self.assertIn('never as instructions', self.lead.queued_prompt)
+        self.assertFalse(AgentConversation.objects.filter(parent=self.lead).exclude(id=self.thread.id).exists())
+        self.assertFalse(self.lead.messages.exists())
 
-    def test_more_errors_join_the_fix_thread_while_it_works(self):
-        first = self._route()
-        second = self._route(errors=("ReferenceError: menu is not defined",))
+    def test_errors_arriving_while_the_coordinator_is_busy_wait_together(self):
+        self._route()
+        self._route(errors=("ReferenceError: menu is not defined",))
 
-        self.assertEqual(second['to'], 'thread')
-        self.assertEqual(second['conversation_id'], first['conversation_id'])
-        fixer = AgentConversation.objects.get(id=first['conversation_id'])
-        self.assertIn('ReferenceError: menu is not defined', fixer.queued_prompt)
-        self.assertEqual(
-            AgentConversation.objects.filter(parent=self.lead, title='Fix an app error').count(), 1
-        )
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.queued_prompt.count('[App error]'), 2)
+        self.assertIn('ReferenceError: menu is not defined', self.lead.queued_prompt)
 
     def test_the_same_error_is_routed_once(self):
         self._route()
         again = self._route()
         self.assertTrue(again['already'])
-        self.assertEqual(again['to'], 'new_thread')
-        self.assertEqual(
-            AgentConversation.objects.filter(parent=self.lead, title='Fix an app error').count(), 1
-        )
+        self.assertEqual(again['to'], 'coordinator')
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.queued_prompt.count('[App error]'), 1)
 
     def test_no_coordinator_means_nothing_to_start(self):
         self.lead.archived_at = self.lead.created_at
@@ -108,7 +98,7 @@ class AppErrorRoutingTests(TestCase):
         )))
         # The app's own sockets still count.
         decision = self._route(errors=("WebSocket connection to 'wss://api.example.com/feed' failed",))
-        self.assertEqual(decision['to'], 'new_thread')
+        self.assertEqual(decision['to'], 'coordinator')
 
     def test_nothing_to_route_without_errors(self):
         self.assertIsNone(self._route(errors=()))
@@ -140,3 +130,74 @@ class FollowUpToFinishedThreadTests(TestCase):
                 thread.refresh_from_db()
                 self.assertEqual(thread.review_status, 'active')
                 self.assertEqual(thread.queued_prompt, 'Make the button blue too.')
+
+
+class CoordinatorWakeTests(TestCase):
+    """The coordinator is started on the server on errors staged for it."""
+
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(username='wakeuser', password='pw123456')
+        self.project = Project.objects.create(user=self.user, name='Beanline')
+        self.lead = ImagiAgentService().create_conversation(
+            self.user, 'claude-opus-5-5', project_id=self.project.id, kind='lead'
+        )
+        allowed = patch(
+            'apps.Imagi.Build.services.usage_limits.check_usage_allowed',
+            return_value=(True, {}),
+        )
+        allowed.start()
+        self.addCleanup(allowed.stop)
+
+    def _claim(self):
+        from apps.Imagi.Build.services.thread_scheduler import _claim_waiting_coordinators
+        return _claim_waiting_coordinators(self.user)
+
+    def test_an_idle_coordinator_with_errors_waiting_is_claimed(self):
+        app_errors.route(self.user, self.project, [{'text': 'TypeError: x'}])
+
+        claimed = self._claim()
+
+        self.assertEqual([c['conversation_id'] for c in claimed], [self.lead.id])
+        self.assertIn('TypeError: x', claimed[0]['prompt'])
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.queued_prompt, '')
+        self.assertIsNotNone(self.lead.run_started_at)
+        # Claimed once.
+        self.assertEqual(self._claim(), [])
+
+    def test_a_busy_coordinator_keeps_its_errors_for_after_its_run(self):
+        from django.utils import timezone
+
+        self.lead.run_started_at = timezone.now()
+        self.lead.save(update_fields=['run_started_at'])
+        app_errors.route(self.user, self.project, [{'text': 'TypeError: x'}])
+
+        self.assertEqual(self._claim(), [])
+        self.lead.refresh_from_db()
+        self.assertIn('TypeError: x', self.lead.queued_prompt)
+
+    def test_the_run_marks_its_message_as_the_apps(self):
+        from asgiref.sync import async_to_sync
+        from apps.Imagi.Build.services import thread_scheduler
+
+        seen = {}
+
+        async def fake_stream(service, **kwargs):
+            seen['metadata'] = service.user_message_metadata
+            seen['conversation_id'] = kwargs['conversation_id']
+            yield {'type': 'start', 'conversation_id': kwargs['conversation_id']}
+
+        item = {
+            'conversation_id': self.lead.id, 'prompt': '[App error] x',
+            'model': 'claude-opus-5-5', 'project_id': self.project.id,
+        }
+
+        async def drain():
+            async for _event in thread_scheduler._coordinator_events(self.user, item):
+                pass
+
+        with patch.object(ImagiAgentService, 'process_stream', autospec=True, side_effect=fake_stream):
+            async_to_sync(drain)()
+
+        self.assertEqual(seen, {'metadata': {'app_error': True}, 'conversation_id': self.lead.id})

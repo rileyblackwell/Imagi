@@ -28,15 +28,25 @@ them:
    page with no sign-in link still beats the untouched scaffold — so it feeds
    a repair run, and the caller decides what an unrepaired one is worth.
 
+4. Components that don't compile. A model's page with one stray ``</div>``
+   reaches Vite as an "Invalid end tag" internal server error, the route's
+   module fails to import, and the founder's console fills with errors the
+   moment the page lands. find_sfc_problems runs Vue's own SFC compiler
+   (the one Vite uses) over the files, so such a page is caught, and handed
+   back to the agent that wrote it, before it gets that far.
+
 Every scan runs without booting anything, so a run's output can be checked
 before it reaches the tree the preview serves. They are deliberately
 conservative: a clean project always scans clean, because a false positive
 discards a build that was actually fine.
 """
 
+import json
 import logging
 import os
 import re
+import shutil
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -350,6 +360,117 @@ def describe_auth_link_problems(problems):
     lines = [
         f"- nothing links to '{p['path']}' any more" for p in shown
     ]
+    if len(problems) > len(shown):
+        lines.append(f"- ... and {len(problems) - len(shown)} more")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Vue SFC compile check
+# ---------------------------------------------------------------------------
+
+SFC_CHECK_SCRIPT = os.path.join(os.path.dirname(__file__), 'preview_runtime', 'sfc_check.mjs')
+SFC_CHECK_TIMEOUT_S = 20
+_COMPILER_PACKAGE = os.path.join('@vue', 'compiler-sfc', 'package.json')
+_compiler_node_modules = None
+
+
+def _has_compiler(node_modules):
+    return bool(node_modules) and os.path.isfile(os.path.join(node_modules, _COMPILER_PACKAGE))
+
+
+def _find_compiler(roots):
+    """A node_modules holding Vue's SFC compiler: the project's own first,
+    then the shared dependency store, then Imagi's own frontend."""
+    global _compiler_node_modules
+    for root in roots:
+        candidate = os.path.join(root or '', 'frontend', 'vuejs', 'node_modules')
+        if root and _has_compiler(candidate):
+            return candidate
+    if _has_compiler(_compiler_node_modules):
+        return _compiler_node_modules
+    candidates = []
+    try:
+        from .frontend_dependencies import store_root
+        store = store_root()
+        if os.path.isdir(store):
+            candidates += [
+                os.path.join(store, slot, 'node_modules') for slot in sorted(os.listdir(store))
+            ]
+    except Exception:  # pragma: no cover - best effort
+        pass
+    try:
+        from django.conf import settings
+        base = str(getattr(settings, 'BASE_DIR', '') or '')
+        candidates.append(os.path.join(base, '..', '..', 'frontend', 'vuejs', 'node_modules'))
+    except Exception:  # pragma: no cover - best effort
+        pass
+    for candidate in candidates:
+        if _has_compiler(candidate):
+            _compiler_node_modules = candidate
+            return candidate
+    return None
+
+
+def find_sfc_problems(root, paths=None, fallback_roots=()):
+    """Vue components under ``root`` that Vite would fail to compile.
+
+    ``paths`` (project-relative) narrows the check to those files; without
+    it every component under the frontend's src is checked. Non-.vue paths
+    and missing files are skipped. Like the other scans this is
+    conservative: when the compiler can't be found or run it reports no
+    problems rather than blocking work that may well be fine.
+
+    Returns:
+        list[dict]: ``{'file': <project-relative path>, 'error': <message>}``.
+    """
+    if not root or not os.path.isdir(root):
+        return []
+    if paths is None:
+        src_root = os.path.join(root, FRONTEND_SRC)
+        paths = [
+            os.path.relpath(f, root) for f in _iter_source_files(src_root)
+            if f.endswith('.vue')
+        ]
+    files = []
+    for rel in paths:
+        if not str(rel).endswith('.vue'):
+            continue
+        try:
+            with open(os.path.join(root, rel), encoding='utf-8') as f:
+                files.append({'path': rel, 'source': f.read()})
+        except OSError:
+            continue
+    if not files:
+        return []
+    node = shutil.which('node')
+    node_modules = _find_compiler([root, *fallback_roots])
+    if not node or not node_modules:
+        logger.info("Skipping the Vue compile check: no node or compiler found")
+        return []
+    try:
+        result = subprocess.run(
+            [node, SFC_CHECK_SCRIPT, node_modules],
+            input=json.dumps({'files': files}),
+            capture_output=True, text=True, timeout=SFC_CHECK_TIMEOUT_S,
+        )
+        report = json.loads(result.stdout or '{}')
+    except (OSError, subprocess.SubprocessError, ValueError) as e:
+        logger.warning("Could not run the Vue compile check: %s", e)
+        return []
+    if not report.get('ok'):
+        logger.warning("Vue compile check unavailable: %s", report.get('error'))
+        return []
+    return [
+        {'file': p.get('file', ''), 'error': str(p.get('error', ''))[:300]}
+        for p in report.get('problems') or []
+    ]
+
+
+def describe_sfc_problems(problems):
+    """Render compile errors as a bulleted list for an agent prompt."""
+    shown = problems[:MAX_REPORTED_PROBLEMS]
+    lines = [f"- {p['file']}: {p['error']}" for p in shown]
     if len(problems) > len(shown):
         lines.append(f"- ... and {len(problems) - len(shown)} more")
     return "\n".join(lines)
