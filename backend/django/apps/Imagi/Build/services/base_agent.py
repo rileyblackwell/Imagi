@@ -975,6 +975,9 @@ class AgentContext:
     # They are metered on their own; this lets the run's cost ceiling count
     # them too.
     helper_cost_usd: float = 0.0
+    # First-build pages only: called with (context, path) the moment the
+    # page is written and its imports resolve, before the run's merge.
+    on_page_written: Optional[Any] = None
 
 
 class ImagiAgentService:
@@ -1016,6 +1019,8 @@ class ImagiAgentService:
         self.last_run_timing = None
         self.agent_kind = agent_kind
         self.service_tier = service_tier
+        # See AgentContext.on_page_written.
+        self.on_page_written = None
         # The tier the current run asks for; set by _prepare_run.
         self._run_tier = resolve_service_tier(model, service_tier)
         # Agents cached per conversation kind: lead runs carry the delegation
@@ -1333,6 +1338,24 @@ class ImagiAgentService:
             **extra,
         )
 
+    def _with_head_start(self, agent, run_config, project_id, user_input):
+        """The agent, answering its first request with one sent ahead.
+
+        A first-build page's opening request can go out before its run is
+        set up (head_start); this run picks that answer up when its prompt
+        is the one sent.
+        """
+        if self.agent_kind != 'initial_build' or not isinstance(agent.model, str):
+            return agent
+        from . import head_start
+
+        early = head_start.claim(project_id, user_input)
+        if early is None:
+            return agent
+        self.last_run_timing['head_start'] = early
+        inner = run_config.model_provider.get_model(agent.model)
+        return agent.clone(model=head_start.HeadStartModel(inner, early))
+
     def _prepare_run(
         self,
         user_input: str,
@@ -1440,6 +1463,7 @@ class ImagiAgentService:
                 and self.agent_kind != 'initial_build'
             ),
         )
+        context.on_page_written = self.on_page_written
         if conversation.kind in ('lead', 'task') and self.agent_kind is None:
             try:
                 from .project_memory import memory_summary
@@ -2770,12 +2794,15 @@ class ImagiAgentService:
                 self.last_run_timing['turns'] = getattr(bounds_hook, 'turns', [])
 
             openai_provider = websocket_provider_for(self.model)
+            run_config = self._run_config(user, openai_provider)
+            agent = self._with_head_start(agent=self.agent, run_config=run_config,
+                                          project_id=project_id, user_input=user_input)
             result = Runner.run_sync(
-                self.agent,
+                agent,
                 input=input_messages,
                 context=context,
                 max_turns=max_turns or self._max_turns_for(conversation),
-                run_config=self._run_config(user, openai_provider),
+                run_config=run_config,
                 **run_kwargs,
             )
             self.last_run_timing['ran'] = time.monotonic()

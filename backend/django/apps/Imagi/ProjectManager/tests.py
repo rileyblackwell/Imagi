@@ -990,6 +990,10 @@ class ParallelInitialBuildTests(TransactionTestCase):
             calls.setdefault(slug, []).append(kwargs)
             self.services[slug] = (_self.model, _self.service_tier)
             outcome = outcome_by_slug.get(slug, 'accept')
+            if outcome == 'written' and _self.on_page_written:
+                # The page was written and checked, then its merge failed.
+                _self.on_page_written(object(), 'frontend/vuejs/src/apps/home/views/HomeView.vue')
+                outcome = 'leave'
             if outcome == 'fail':
                 return {'success': False, 'error': 'model error'}
             AgentConversation.objects.filter(id=kwargs['conversation_id']).update(
@@ -1029,6 +1033,26 @@ class ParallelInitialBuildTests(TransactionTestCase):
 
     def test_the_sign_in_restyle_starts_once_the_home_page_lands(self):
         self._run()
+        self.queue_auth_restyle.assert_called_once_with(self.project.pk, self.user.pk)
+
+    def test_home_asks_with_the_prompt_sent_when_create_was_clicked(self):
+        from apps.Imagi.Build.services import head_start
+
+        head_start._pending[self.project.pk] = head_start.HeadStart('The early brief', None)
+        try:
+            calls = self._run()
+        finally:
+            head_start._pending.clear()
+        self.assertEqual(calls['home'][0]['user_input'], 'The early brief')
+
+    def test_the_project_opens_when_the_home_page_is_written_not_merged(self):
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        with patch.object(initial_build_service, '_land_page_early', return_value=True) as land:
+            self._run({'home': 'written'})
+        land.assert_called_once()
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
         self.queue_auth_restyle.assert_called_once_with(self.project.pk, self.user.pk)
 
     def test_no_sign_in_restyle_without_a_home_page_to_match(self):
