@@ -20,14 +20,13 @@
   is asking. Open one and it stays open, including through the flip to
   complete.
 
-  A thread waiting on an answer is a different card, because it is asking
-  for something rather than reporting. Its question is shown whole and is
-  answered right here — one-tap choices when the thread offered them, or a
-  typed answer — and the answer goes straight back to the thread, which picks
-  the job up again. There is no "Go to thread" on it: nothing in the thread
-  is needed to answer, and a way off the card only competes with the answer.
+  A thread waiting on an answer shows its question whole, in the needs-you
+  colour, but is not answered here: every question waits in one queue above
+  the coordinator's composer, so the user works through them in one place.
+  The card is the history; once answered it flips back to working.
 
-  A stopped card carries the way back ("Try again"). A run that died is never
+  A stopped card carries the way back ("Try again") and the way out
+  ("Discard", which frees what the run was holding). A run that died is never
   retried on its own — a failure that quietly restarts itself is a loop — so
   the reader decides.
 
@@ -67,34 +66,11 @@
       </span>
     </p>
 
-    <!-- A question is answered on the card: the question in full, then the
-         answers. The answer goes back to the thread as its next message. -->
+    <!-- A question in full. It is answered in the queue above the
+         composer, which is where every open question waits. -->
     <div v-if="isQuestion" class="dispatch-card__ask">
       <p class="dispatch-card__question">{{ state.result }}</p>
-      <QuestionChoices
-        v-if="questionOptions.length || questionVisual"
-        :options="questionOptions"
-        :visual="questionVisual"
-        @pick="sendAnswer"
-      />
-      <form class="dispatch-card__answer" @submit.prevent="sendAnswer(answer)">
-        <textarea
-          v-model="answer"
-          rows="1"
-          class="dispatch-card__input"
-          :placeholder="questionOptions.length ? 'Or type your own answer…' : 'Type your answer…'"
-          aria-label="Your answer"
-          @keydown.enter.exact.prevent="sendAnswer(answer)"
-        ></textarea>
-        <button
-          type="submit"
-          class="dispatch-card__send"
-          :disabled="!answer.trim()"
-          aria-label="Send answer"
-        >
-          <i class="fas fa-arrow-up" aria-hidden="true"></i>
-        </button>
-      </form>
+      <p class="dispatch-card__hint">Answer it in the queue below.</p>
     </div>
 
     <template v-else>
@@ -104,41 +80,48 @@
       <Transition name="dispatch-reveal">
         <p v-if="showResult" :id="bodyId" class="dispatch-card__result">{{ state.result }}</p>
       </Transition>
-
-      <div class="dispatch-card__foot">
-        <button
-          v-if="retryable"
-          type="button"
-          class="dispatch-card__retry"
-          @click="emit('retry')"
-        >
-          <i class="fas fa-rotate-right" aria-hidden="true"></i>
-          Try again
-        </button>
-        <button
-          v-else-if="expandable"
-          type="button"
-          class="dispatch-card__toggle"
-          :aria-expanded="expanded"
-          :aria-controls="bodyId"
-          @click="expanded = !expanded"
-        >
-          {{ expanded ? 'Hide details' : 'Details' }}
-          <i class="fas fa-chevron-down dispatch-card__caret" aria-hidden="true"></i>
-        </button>
-
-        <button type="button" class="dispatch-card__go" @click="emit('open')">
-          Go to thread
-          <span class="dispatch-card__orb" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
-        </button>
-      </div>
     </template>
+
+    <div class="dispatch-card__foot">
+      <button
+        v-if="retryable"
+        type="button"
+        class="dispatch-card__retry"
+        @click="emit('retry')"
+      >
+        <i class="fas fa-rotate-right" aria-hidden="true"></i>
+        Try again
+      </button>
+      <button
+        v-if="retryable"
+        type="button"
+        class="dispatch-card__discard"
+        @click="emit('dismiss')"
+      >
+        Discard
+      </button>
+      <button
+        v-else-if="expandable"
+        type="button"
+        class="dispatch-card__toggle"
+        :aria-expanded="expanded"
+        :aria-controls="bodyId"
+        @click="expanded = !expanded"
+      >
+        {{ expanded ? 'Hide details' : 'Details' }}
+        <i class="fas fa-chevron-down dispatch-card__caret" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="dispatch-card__go" @click="emit('open')">
+        Go to thread
+        <span class="dispatch-card__orb" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+      </button>
+    </div>
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import QuestionChoices from './QuestionChoices.vue'
 import type { AgentInstance } from '../../../types/services'
 import { isHeldThread } from '../../../stores/agentStore'
 import { scheduleLine } from '../../../utils/threadSchedule'
@@ -154,19 +137,15 @@ const props = withDefaults(defineProps<{
   title: string
   /** The live thread behind this card, when the store knows about it. */
   instance?: AgentInstance | null
-  /** The one-tap answers the thread offered with its question, if any */
-  questionOptions?: string[]
-  /** The sketch the thread offered with its question, if any */
-  questionVisual?: string
-}>(), { instance: null, questionOptions: () => [], questionVisual: '' })
+}>(), { instance: null })
 
 const emit = defineEmits<{
   /** Go to this thread */
   (e: 'open'): void
   /** Run this failed thread again — the user's call, never the card's */
   (e: 'retry'): void
-  /** The user answered the thread's question, here on the card */
-  (e: 'answer', text: string): void
+  /** Discard this stopped thread, freeing what its run was holding */
+  (e: 'dismiss'): void
 }>()
 
 /**
@@ -312,20 +291,12 @@ const retryable = computed(
 
 /** Nothing to open when the run has said nothing yet: a discarded card, or
  *  a thread still starting on a dispatch that carried no overview. */
-const expandable = computed(() => !!state.value.result)
+const expandable = computed(() => !!state.value.result && !isQuestion.value)
 
 /** A stopped card shows what happened without a fold — the Try again button
  *  takes the fold's place, and the reader needs both. */
 const showResult = computed(() => !!state.value.result && (retryable.value || expanded.value))
 
-const answer = ref('')
-
-function sendAnswer(text: string) {
-  const reply = text.trim()
-  if (!reply) return
-  answer.value = ''
-  emit('answer', reply)
-}
 </script>
 
 <style scoped>
@@ -559,7 +530,8 @@ function sendAnswer(text: string) {
 }
 
 /* The fold, named. Small and quiet — it is an offer, not the news. */
-.dispatch-card__toggle {
+.dispatch-card__toggle,
+.dispatch-card__discard {
   display: inline-flex;
   align-items: center;
   gap: 0.3125rem;
@@ -575,7 +547,8 @@ function sendAnswer(text: string) {
   transition: color var(--iw-dur-2) var(--iw-ease-out);
 }
 
-.dispatch-card__toggle:hover {
+.dispatch-card__toggle:hover,
+.dispatch-card__discard:hover {
   color: var(--sl-text);
 }
 
@@ -671,78 +644,25 @@ function sendAnswer(text: string) {
   transform: scale(0.97);
 }
 
-/* ── The answer ─────────────────────────────────────────────────────────── */
+/* ── The question ───────────────────────────────────────────────────────── */
 
 .dispatch-card__ask {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.25rem;
 }
 
-.dispatch-card__answer {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.375rem;
-  margin-top: 0.5rem;
-  padding: 0.25rem 0.25rem 0.25rem 0.625rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--sl-line-strong, rgba(19, 26, 44, 0.15));
-  background: var(--sl-surface, #ffffff);
-  transition: border-color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card__answer:focus-within {
-  border-color: color-mix(in srgb, var(--sl-wait) 55%, transparent);
-}
-
-.dispatch-card__input {
-  flex: 1;
-  min-width: 0;
-  min-height: 1.75rem;
-  max-height: 8rem;
-  padding: 0.3125rem 0;
-  border: none;
-  background: none;
-  resize: none;
-  field-sizing: content;
-  font: inherit;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--sl-text);
-  outline: none;
-}
-
-.dispatch-card__input::placeholder {
-  color: var(--sl-faint);
-}
-
-.dispatch-card__send {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  border: none;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  font-size: 0.6875rem;
-  cursor: pointer;
-  box-shadow: 0 4px 12px -4px rgba(236, 90, 50, 0.6);
-  transition: opacity var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card__send:disabled {
-  cursor: default;
-  background: var(--sl-chip-bg-hover, rgba(19, 26, 44, 0.065));
-  color: var(--sl-faint);
-  box-shadow: none;
+/* Where to answer it, quietly, in the needs-you colour. */
+.dispatch-card__hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--sl-wait);
 }
 
 .dispatch-card__toggle:focus-visible,
+.dispatch-card__discard:focus-visible,
 .dispatch-card__go:focus-visible,
-.dispatch-card__retry:focus-visible,
-.dispatch-card__send:focus-visible {
+.dispatch-card__retry:focus-visible {
   outline: none;
   box-shadow: var(--iw-focus-ring);
 }

@@ -75,7 +75,7 @@ PROJECT_MEMORY_MAX_CHARS = 6000
 IMAGI_INTRO = """Imagi lets people, most of them not technical, build a web app for their idea or business by chatting with AI, then run the business with Imagi's Sell, Market and Operate tools."""
 
 # The app every project starts from, for the roles that edit it.
-APP_GUIDANCE = """The app is a Vue 3 + TypeScript frontend in frontend/vuejs/ and a Django REST API in backend/django/; all UI is Vue. Sign-in and payments are prebuilt by Imagi, so don't build your own (the user adds payments from the Sell console), and never submit real payments or personal data in the preview."""
+APP_GUIDANCE = """The app is a Vue 3 + TypeScript frontend in frontend/vuejs/ and a Django REST API in backend/django/; all UI is Vue. Every page should fit any screen, phone to desktop, with nothing running off the side. Sign-in and payments are prebuilt by Imagi, so don't build your own (the user adds payments from the Sell console), and never submit real payments or personal data in the preview."""
 
 LEAD_AGENT_INSTRUCTIONS = f"""You are the coordinator in Imagi's build workspace. {IMAGI_INTRO}
 
@@ -117,7 +117,7 @@ You chat with the user about their app and edit its files directly. Tell them wh
 # The business itself arrives in the page's brief.
 INITIAL_BUILD_INSTRUCTIONS = f"""You are a thread in Imagi's build workspace, building one page of a brand-new app while other threads build the rest. {IMAGI_INTRO} Your brief names your page.
 
-Rewrite only that page's view file, in a single write of the whole file, as a real, custom-looking page for this business: a complete Vue single-file component that compiles, with every tag closed. Touching any other file collides with the other threads, and a page that references a missing file is thrown away. There are no image files: use CSS and inline SVG. For header and footer links, import sitePages from '../site-pages' and loop over it. You have about {INITIAL_BUILD_TIME_BUDGET_S} seconds, so aim for 8 KB (under 10 KB), one light theme, and no payments or backend calls."""
+Rewrite only that page's view file, in a single write of the whole file, as a real, custom-looking page for this business: a complete Vue single-file component that compiles, with every tag closed. Touching any other file collides with the other threads, and a page that references a missing file is thrown away. There are no image files: use CSS and inline SVG. For header and footer links, import sitePages from '../site-pages' and loop over it. The page must fit any screen, phone to desktop, with nothing running off the side, so fold the header links into a menu button on narrow screens. You have about {INITIAL_BUILD_TIME_BUDGET_S} seconds, so aim for 8 KB (under 10 KB), one light theme, and no payments or backend calls."""
 
 # What a first-build page's write may be: the page's own view file.
 _PAGE_VIEW_RE = re.compile(r'(?:^|/)src/apps/[^/]+/views/([A-Za-z0-9]+)View\.vue$')

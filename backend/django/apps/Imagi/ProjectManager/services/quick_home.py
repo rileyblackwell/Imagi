@@ -220,28 +220,43 @@ QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full
 <template>
   <div class="min-h-screen flex flex-col text-slate-900" :style="{ backgroundColor: background }">
     <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-wrap items-center justify-between gap-4">
-        <router-link to="/" class="text-xl font-bold tracking-tight">{{ content.name }}</router-link>
-        <div class="flex flex-wrap items-center gap-4">
-          <router-link
-            v-for="p in sitePages.filter((p) => p.path !== '/')"
-            :key="p.path"
-            :to="p.path"
-            class="text-sm font-medium text-slate-600 hover:text-slate-900"
-          >{{ p.label }}</router-link>
-          <template v-if="authStore.isAuthenticated">
-            <span class="text-sm text-slate-600">{{ authStore.user?.username }}</span>
-            <button class="text-sm font-medium text-slate-700 hover:text-slate-900" @click="authStore.logout($router)">
-              Sign out
-            </button>
-          </template>
+      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div class="flex items-center justify-between gap-4">
+          <router-link to="/" class="min-w-0 truncate lg:shrink-0 text-xl font-bold tracking-tight">{{ content.name }}</router-link>
+          <div class="hidden lg:flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
+            <router-link v-for="p in links" :key="p.path" :to="p.path" class="text-sm font-medium text-slate-600 hover:text-slate-900">{{ p.label }}</router-link>
+            <template v-if="authStore.isAuthenticated">
+              <span class="text-sm text-slate-600">{{ authStore.user?.username }}</span>
+              <button class="text-sm font-medium text-slate-700 hover:text-slate-900" @click="authStore.logout($router)">Sign out</button>
+            </template>
+            <template v-else>
+              <router-link to="/auth/signin" class="text-sm font-medium text-slate-700 hover:text-slate-900">Sign in</router-link>
+              <router-link
+                to="/auth/register"
+                class="text-sm font-semibold px-4 py-2 rounded-lg text-white shadow-sm hover:opacity-90"
+                :style="{ backgroundColor: accent }"
+              >Create account</router-link>
+            </template>
+          </div>
+          <button
+            type="button"
+            class="lg:hidden -mr-2 p-2 rounded-lg hover:bg-slate-900/5"
+            :aria-expanded="menuOpen"
+            aria-label="Menu"
+            @click="menuOpen = !menuOpen"
+          >
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path v-if="menuOpen" d="M6 6l12 12M18 6L6 18" />
+              <path v-else d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+        </div>
+        <div v-if="menuOpen" class="lg:hidden mt-4 flex flex-col gap-1 rounded-xl bg-white p-2 shadow-lg ring-1 ring-slate-900/5" @click="menuOpen = false">
+          <router-link v-for="p in links" :key="p.path" :to="p.path" class="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-50">{{ p.label }}</router-link>
+          <button v-if="authStore.isAuthenticated" class="rounded-lg px-3 py-2 text-left font-medium text-slate-700 hover:bg-slate-50" @click="authStore.logout($router)">Sign out</button>
           <template v-else>
-            <router-link to="/auth/signin" class="text-sm font-medium text-slate-700 hover:text-slate-900">Sign in</router-link>
-            <router-link
-              to="/auth/register"
-              class="text-sm font-semibold px-4 py-2 rounded-lg text-white shadow-sm hover:opacity-90"
-              :style="{ backgroundColor: accent }"
-            >Create account</router-link>
+            <router-link to="/auth/signin" class="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-50">Sign in</router-link>
+            <router-link to="/auth/register" class="rounded-lg px-3 py-2 text-center font-semibold text-white" :style="{ backgroundColor: accent }">Create account</router-link>
           </template>
         </div>
       </nav>
@@ -307,11 +322,13 @@ QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAuthStore } from '../../auth/stores/index'
 import { sitePages } from '../site-pages'
 
 const authStore = useAuthStore()
+const menuOpen = ref(false)
+const links = sitePages.filter((p) => p.path !== '/')
 const accent = '__ACCENT__'
 const background = '__BACKGROUND__'
 const content = __CONTENT__

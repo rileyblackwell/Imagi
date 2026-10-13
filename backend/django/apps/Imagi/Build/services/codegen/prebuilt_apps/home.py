@@ -27,34 +27,59 @@ from .shared import _frontend_scaffold, _backend_scaffold
 
 HOME_VIEW_VUE = """<template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
-    <!-- Header with auth links -->
+    <!-- Header with auth links. It fits any width: the links fold into a
+         menu button below the lg breakpoint, so nothing runs off the side. -->
     <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
-        <router-link to="/" class="text-xl font-bold text-gray-900">Home</router-link>
-        <div class="flex items-center gap-4">
-          <router-link to="/about" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-            About
-          </router-link>
-          <router-link to="/contact" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-            Contact
+      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div class="flex items-center justify-between gap-4">
+          <router-link to="/" class="min-w-0 truncate lg:shrink-0 text-xl font-bold text-gray-900">Home</router-link>
+          <div class="hidden lg:flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
+            <router-link v-for="p in links" :key="p.path" :to="p.path" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+              {{ p.label }}
+            </router-link>
+            <template v-if="authStore.isAuthenticated">
+              <span class="text-sm text-gray-600">{{ authStore.user?.username }}</span>
+              <button class="text-sm font-medium text-gray-700 hover:text-gray-900" @click="authStore.logout($router)">
+                Sign out
+              </button>
+            </template>
+            <template v-else>
+              <router-link to="/auth/signin" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                Sign in
+              </router-link>
+              <router-link
+                to="/auth/register"
+                class="text-sm font-medium px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors"
+              >
+                Create account
+              </router-link>
+            </template>
+          </div>
+          <button
+            type="button"
+            class="lg:hidden -mr-2 p-2 rounded-lg text-gray-900 hover:bg-gray-900/5"
+            :aria-expanded="menuOpen"
+            aria-label="Menu"
+            @click="menuOpen = !menuOpen"
+          >
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path v-if="menuOpen" d="M6 6l12 12M18 6L6 18" />
+              <path v-else d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+        </div>
+        <div v-if="menuOpen" class="lg:hidden mt-4 flex flex-col gap-1 rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5" @click="menuOpen = false">
+          <router-link v-for="p in links" :key="p.path" :to="p.path" class="rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
+            {{ p.label }}
           </router-link>
           <template v-if="authStore.isAuthenticated">
-            <span class="text-sm text-gray-600">{{ authStore.user?.username }}</span>
-            <button
-              class="text-sm font-medium text-gray-700 hover:text-gray-900"
-              @click="authStore.logout($router)"
-            >
+            <button class="rounded-lg px-3 py-2 text-left font-medium text-gray-700 hover:bg-gray-50" @click="authStore.logout($router)">
               Sign out
             </button>
           </template>
           <template v-else>
-            <router-link to="/auth/signin" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-              Sign in
-            </router-link>
-            <router-link
-              to="/auth/register"
-              class="text-sm font-medium px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors"
-            >
+            <router-link to="/auth/signin" class="rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Sign in</router-link>
+            <router-link to="/auth/register" class="rounded-lg px-3 py-2 text-center font-medium bg-gray-900 text-white hover:bg-gray-700">
               Create account
             </router-link>
           </template>
@@ -65,11 +90,11 @@ HOME_VIEW_VUE = """<template>
     <!-- Hero -->
     <main class="flex-grow flex items-center">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <h1 class="text-5xl font-bold text-gray-900 mb-6">Welcome</h1>
+        <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">Welcome</h1>
         <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
           Welcome to your new project. Sign in or create an account to get started.
         </p>
-        <div class="flex items-center justify-center gap-4">
+        <div class="flex flex-wrap items-center justify-center gap-4">
           <router-link
             to="/auth/register"
             class="px-8 py-4 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-700 transition-colors"
@@ -89,9 +114,13 @@ HOME_VIEW_VUE = """<template>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useAuthStore } from '../../auth/stores/index'
+import { sitePages } from '../site-pages'
 
 const authStore = useAuthStore()
+const menuOpen = ref(false)
+const links = sitePages.filter((p) => p.path !== '/')
 </script>
 """
 

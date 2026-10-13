@@ -79,12 +79,12 @@
             </h4>
             <p class="callout__body">
               As soon as you create a project, Imagi starts building a tailored first version from your brief, including
-              how you said the app should work. The home page comes first, so it's ready in a couple
-              of minutes. While it's written, the Build card on your project hub reads "Imagi is writing your first version";
-              it unlocks as soon as the home page lands—click it to open the workspace. Meanwhile the AI works out which
+              how you said the app should work. The workspace opens right away, and your app's home page is on screen in
+              the live preview in about five seconds; a fuller version of it replaces that first look moments later.
+              Meanwhile the AI works out which
               other pages your business needs (usually five to twenty in all) and puts a thread on each. Those pages
               show up in your app's navigation one by one as they finish, and you can follow each one's thread or keep
-              chatting while they build. The whole first build usually takes about 10 minutes.
+              chatting while they build. The whole first build usually takes a few minutes.
             </p>
           </div>
           <div class="section-rule my-6" aria-hidden="true"></div>

@@ -1941,6 +1941,31 @@ class QuickHomeTests(TransactionTestCase):
                     future.result(timeout=5)
 
 
+class StarterPagesFitAnyScreenTests(SimpleTestCase):
+    """The pages a new project starts from fit a phone or a tablet's preview
+    pane: the header folds into a menu instead of running off the side."""
+
+    def test_the_starter_homes_fold_their_links_into_a_menu(self):
+        from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
+        from apps.Imagi.ProjectManager.services import quick_home
+
+        quick = quick_home.render('Puddle Lane', {'headline': 'Clean clothes'})
+        for name, page in (('scaffold home', HOME_VIEW_VUE), ('quick home', quick)):
+            with self.subTest(page=name):
+                self.assertIn('aria-label="Menu"', page)
+                self.assertIn('hidden lg:flex', page)
+                self.assertIn('v-if="menuOpen" class="lg:hidden', page)
+                # Every way in is in the folded menu too.
+                menu = page[page.index('v-if="menuOpen"'):page.index('</nav>')]
+                self.assertIn('/auth/register', menu)
+                self.assertIn('/auth/signin', menu)
+
+    def test_a_new_app_never_scrolls_sideways(self):
+        from apps.Imagi.ProjectManager.services.codegen.templates import vue_main_css
+
+        self.assertIn('overflow-x: clip;', vue_main_css())
+
+
 class FirstBuildPagesThatDoNotCompileTests(SimpleTestCase):
     """A first-build page Vite can't compile never reaches the app: it was
     the "Invalid end tag" errors a new project opened onto."""

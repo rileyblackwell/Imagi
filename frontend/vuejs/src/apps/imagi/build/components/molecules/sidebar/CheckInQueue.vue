@@ -1,29 +1,25 @@
 <!--
-  CheckInQueue.vue — the main thread's processing queue.
+  CheckInQueue.vue — what the coordinator needs the user to answer.
 
-  Background subagents never interrupt the user. Everything one has to say on
-  its way out arrives here instead, above the lead thread's composer, and the
-  user works through the pile one card at a time (FIFO) so they stay
+  Threads never interrupt the user. When one needs something only the user
+  can give, it lands here, above the coordinator's composer, and the user
+  works through the pile one card at a time (FIFO) so they stay
   single-threaded.
 
-  Not every card is a decision, and the difference is the point. A subagent
-  that finished has ALREADY put its work in the app — that is what handing the
-  job over means — so its card is news: what it did, in its own words, and a
-  button that says nothing more than "read it". The one thing a subagent
-  genuinely needs back is an answer to a question, which is why that card has a
-  field in it. The two leftovers are a run that died, and a take on a brief the
-  user asked to see options for — the only place finished work still waits on a
-  choice.
+  Only asks queue: a thread's question, or a pick between takes on a brief
+  the user asked to compare. A thread that finished or stopped is reported on
+  its own card in the coordinator chat, which turns complete (or stopped,
+  with Try again) in place and stays there as history, so nothing about it
+  waits here to be cleared.
 
-  Same language as the Subagents pane: a status rail spines the card, the job
-  keeps its serif byline, and parallel takes carry the n/m marker — a check-in
-  is the same subagent the user just saw over there, so it should look like it.
+  Same language as the Threads pane: a status rail spines the card, the job
+  keeps its byline, and parallel takes carry the n/m marker.
 -->
 <template>
   <div v-if="queue.length> 0" class="mb-1.5">
     <!-- Queue depth: only worth showing once something is waiting behind -->
     <div v-if="queue.length> 1" class="queue-head">
-      <span class="queue-head__label">From your threads</span>
+      <span class="queue-head__label">Waiting on you</span>
       <span class="queue-head__count">{{ queue.length }}</span>
       <span class="queue-head__rule"></span>
     </div>
@@ -37,7 +33,7 @@
         queue.length > 2 ? 'is-deep' : ''
       ]"
     >
-      <article :key="current.id" :class="['check-in iw-surface', `check-in--${tone}`]">
+      <article :key="current.id" class="check-in iw-surface">
         <span class="check-in__rail" aria-hidden="true"></span>
 
         <div class="check-in__body">
@@ -53,8 +49,8 @@
             >{{ siblingIndex }}/{{ siblingCount }}</span>
             <button
               type="button"
-              title="Open this task"
-              aria-label="Open this task"
+              title="Open this thread"
+              aria-label="Open this thread"
               class="check-in__open iw-press"
               @click="emit('view', current)"
             >
@@ -67,7 +63,7 @@
             <span>{{ kindLabel }}</span>
           </div>
 
-          <!-- Body: the question, the sign-off, or the error. Shown whole —
+          <!-- Body: the question, or the take's sign-off. Shown whole —
                a question with its end clipped off cannot be answered, and a
                four-to-six-sentence account of what changed in someone's app is
                the part of this card worth reading. The server caps bodies at
@@ -76,7 +72,7 @@
             {{ current.body }}
           </p>
 
-          <!-- A question is answered in place: the answer restarts the subagent
+          <!-- A question is answered in place: the answer restarts the thread
                in the background, so the user never leaves this thread. -->
           <div v-if="current.kind === 'question'" class="mt-2">
             <!-- One-tap answers and a sketch, when the thread offered them -->
@@ -107,42 +103,23 @@
               >
                 Send answer
               </button>
+              <!-- Only worth offering when there is a card to move behind -->
               <button
+                v-if="queue.length > 1"
                 type="button"
-                title="Deal with this later"
+                title="Move this to the back of the queue"
                 class="btn-ghost iw-press rounded-full px-2.5 py-1 text-[11px] font-medium"
-                @click="emit('skip', current)"
+                @click="emit('later', current)"
               >
                 Later
               </button>
             </div>
           </div>
 
-          <!-- Finished, and already in the app. There is nothing to approve
-               here and never will be — the whole point of handing a job to a
-               subagent is that its work lands on its own — so the only button
-               is the one that says "read". -->
-          <div v-else-if="current.kind === 'done'" class="flex items-center gap-1.5 mt-2">
-            <button
-              type="button"
-              class="btn-primary btn-primary--active iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-paper dark:text-ink"
-              @click="emit('skip', current)"
-            >
-              Got it
-            </button>
-            <button
-              type="button"
-              class="btn-ghost iw-press rounded-full px-2.5 py-1 text-[11px] font-medium"
-              @click="emit('view', current)"
-            >
-              See the work
-            </button>
-          </div>
-
           <!-- One of several takes on a brief the user asked to compare: the
-               only card left where finished work waits on a choice. A solo
-               subagent applies its own work and never gets here. -->
-          <div v-else-if="current.kind === 'ready'" class="flex items-center gap-1.5 mt-2">
+               only place finished work waits on a choice. A solo thread
+               applies its own work and never gets here. -->
+          <div v-else class="flex items-center gap-1.5 mt-2">
             <button
               type="button"
               :disabled="busy"
@@ -159,46 +136,6 @@
               @click="emit('dismiss', current)"
             >
               Discard
-            </button>
-          </div>
-
-          <!-- A task whose run died. There is nothing to merge, but the task
-               is not finished with either: it still holds the worktree its run
-               was editing, so Dismiss dismisses the TASK (the same call the
-               ready card's Discard makes) rather than just clearing this card.
-               Clearing the card alone would leave the subagent stranded —
-               stuck mid-run in the Subagents pane, with its worktree, and no
-               way left to reach it.
-
-               Try again runs the same subagent again, from where it stopped.
-               It leads, because it is what most people reading this want to
-               do next — and a run never restarts on its own, so this is the
-               one place that decision gets made. -->
-          <div v-else class="flex items-center gap-1.5 mt-2">
-            <button
-              type="button"
-              :disabled="busy"
-              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium disabled:opacity-50"
-              @click="emit('retry', current)"
-            >
-              <i class="fas fa-rotate-right text-[10px] mr-1" aria-hidden="true"></i>
-              Try again
-            </button>
-            <button
-              type="button"
-              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-              @click="emit('view', current)"
-            >
-              See what happened
-            </button>
-            <button
-              type="button"
-              :disabled="busy"
-              class="btn-ghost iw-press flex-1 rounded-full px-2.5 py-1 text-[11px] font-medium disabled:opacity-50"
-              @click="emit('dismiss', current)"
-            >
-              <i v-if="busy" class="fas fa-circle-notch fa-spin text-[10px]"></i>
-              <span v-else>Dismiss</span>
             </button>
           </div>
         </div>
@@ -223,12 +160,10 @@ const emit = defineEmits<{
   (e: 'dismiss', checkIn: CheckInDto): void
   /** Answer a subagent's question — restarts it in the background */
   (e: 'answer', checkIn: CheckInDto, answer: string): void
-  /** Clear this entry without acting on it */
-  (e: 'skip', checkIn: CheckInDto): void
-  /** Open the task's (read-only) thread */
+  /** Put this card off: it moves to the back of the queue */
+  (e: 'later', checkIn: CheckInDto): void
+  /** Open the thread */
   (e: 'view', checkIn: CheckInDto): void
-  /** Run a failed subagent again, from where it stopped */
-  (e: 'retry', checkIn: CheckInDto): void
 }>()
 
 const answer = ref('')
@@ -266,39 +201,13 @@ const jobName = computed(
   () => current.value?.task.goal || current.value?.task.title || 'Thread'
 )
 
-const kindIcon = computed(() => {
-  switch (current.value?.kind) {
-    case 'question': return 'fas fa-circle-question'
-    case 'error': return 'fas fa-triangle-exclamation'
-    default: return 'fas fa-check'
-  }
-})
+const kindIcon = computed(() =>
+  current.value?.kind === 'question' ? 'fas fa-circle-question' : 'fas fa-check'
+)
 
-const kindLabel = computed(() => {
-  switch (current.value?.kind) {
-    case 'question': return 'Needs your answer'
-    case 'error': return 'Stopped early'
-    // Said as a fact, and only the fact: by the time this card exists the
-    // changes are already live in the project, and the green rail and the
-    // "Got it" button below already say so — the label needs no clause on
-    // the end of it.
-    case 'ready': return 'Thread complete — one of your options'
-    default: return 'Thread complete'
-  }
-})
-
-/**
- * The rail's reading, in the chat rail's colours: a card that wants something
- * is amber, a finished thread takes the green its card in the chat just
- * turned, and a failed run is red.
- */
-const tone = computed(() => {
-  switch (current.value?.kind) {
-    case 'error': return 'error'
-    case 'done': return 'done'
-    default: return 'waiting'
-  }
-})
+const kindLabel = computed(() =>
+  current.value?.kind === 'question' ? 'Needs your answer' : 'Pick one of your options'
+)
 
 function sendAnswer() {
   const text = answer.value.trim()
@@ -427,8 +336,7 @@ function sendAnswer() {
 
 /* ── The card ───────────────────────────────────────────────────────────── */
 
-/* Every colour comes from --st, the same state colours the chat rail and its
-   dispatch cards use: amber waiting on you, green finished, red stopped. */
+/* Every colour comes from --st: amber, the chat rail's "waiting on you". */
 .check-in {
   --st: var(--sl-wait);
   --rail: var(--st);
@@ -448,14 +356,6 @@ function sendAnswer() {
   transition:
     border-color var(--iw-dur-3) var(--iw-ease-out),
     background-color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.check-in--error {
-  --st: var(--sl-bad);
-}
-
-.check-in--done {
-  --st: var(--sl-ok);
 }
 
 .check-in__rail {
@@ -650,15 +550,6 @@ function sendAnswer() {
 .dark .btn-ghost:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.95);
-}
-
-/* An error card sits on a red wash, so the ghost outline takes its colour */
-.check-in--error .btn-ghost {
-  border-color: color-mix(in srgb, var(--st) 40%, transparent);
-}
-
-.check-in--error .btn-ghost:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--st) 12%, transparent);
 }
 
 /* Focus is a ring rather than a border swap: the field's edge stays where it

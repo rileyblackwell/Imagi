@@ -861,10 +861,10 @@ describe('BuilderSidebarChat dictation', () => {
 describe('BuilderSidebarChat check-in queue', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('leaves thread questions to their cards in the chat', () => {
-    // A question is asked and answered on its thread's card, so the queue
-    // above the composer would only be a second copy of it.
-    const checkIn = (id: number, kind: 'question' | 'done') => ({
+  it('queues questions only; finished and stopped threads stay in the chat', () => {
+    // Only what the user has to answer waits above the composer. A thread
+    // that finished or stopped says so on its own card in the chat.
+    const checkIn = (id: number, kind: 'question' | 'done' | 'error' | 'ready') => ({
       id, kind, body: '', status: 'pending', created_at: '', resolved_at: null,
       project_id: null, lead_id: null,
       task: {
@@ -873,11 +873,36 @@ describe('BuilderSidebarChat check-in queue', () => {
       },
     })
     const store = useAgentStore()
-    store.$patch({ checkIns: [checkIn(1, 'question'), checkIn(2, 'done')] as never })
+    store.$patch({
+      checkIns: [
+        checkIn(1, 'done'), checkIn(2, 'question'), checkIn(3, 'error'), checkIn(4, 'ready'),
+      ] as never,
+    })
     const wrapper = mountWith()
 
     const queue = wrapper.findComponent({ name: 'CheckInQueue' })
-    expect((queue.props('queue') as { id: number }[]).map(c => c.id)).toEqual([2])
+    expect((queue.props('queue') as { id: number }[]).map(c => c.id)).toEqual([2, 4])
+    wrapper.unmount()
+  })
+
+  it('moves a question put off with "Later" to the back of the queue', async () => {
+    const checkIn = (id: number) => ({
+      id, kind: 'question', body: '', status: 'pending', created_at: '', resolved_at: null,
+      project_id: null, lead_id: null,
+      task: {
+        id, title: '', goal: '', kind: 'task', review_status: 'input',
+        variant_group: '', has_worktree: false, is_running: false,
+      },
+    })
+    const store = useAgentStore()
+    store.$patch({ checkIns: [checkIn(1), checkIn(2), checkIn(3)] as never })
+    const wrapper = mountWith()
+
+    const queue = wrapper.findComponent({ name: 'CheckInQueue' })
+    queue.vm.$emit('later', store.checkIns[0])
+    await wrapper.vm.$nextTick()
+
+    expect((queue.props('queue') as { id: number }[]).map(c => c.id)).toEqual([2, 3, 1])
     wrapper.unmount()
   })
 })
