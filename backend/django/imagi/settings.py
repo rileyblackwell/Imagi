@@ -195,6 +195,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # every test that creates or signs in a user take seconds.
 if len(sys.argv) > 1 and sys.argv[1] == 'test':
     PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+    # Nor does a test ever call a paid model: with real keys in the
+    # environment, page planning and the home page's model changed under
+    # the tests and spent money.
+    for _key in ('ANTHROPIC_KEY', 'OPENAI_KEY'):
+        os.environ.pop(_key, None)
 
 
 # Cache: shared by every worker process on the host. Production serves with

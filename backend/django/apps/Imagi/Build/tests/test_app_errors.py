@@ -201,3 +201,33 @@ class CoordinatorWakeTests(TestCase):
             async_to_sync(drain)()
 
         self.assertEqual(seen, {'metadata': {'app_error': True}, 'conversation_id': self.lead.id})
+
+
+class PreviewFrameProbeTests(TestCase):
+    """The workspace asks whether a preview is already up before starting
+    one; nothing running yet is an answer, not a red line in the console."""
+
+    def setUp(self):
+        from rest_framework.authtoken.models import Token
+
+        self.user = User.objects.create_user(username='probeuser', password='pw123456')
+        self.project = Project.objects.create(user=self.user, name='Beanline')
+        self.auth = {'HTTP_AUTHORIZATION': f'Token {Token.objects.create(user=self.user).key}'}
+
+    def _frame(self, query=''):
+        from apps.Imagi.Build.services.browser_preview_service import BrowserNotRunning
+
+        url = f'/api/v1/builder/{self.project.id}/preview/frame/{query}'
+        with patch(
+            'apps.Imagi.Build.api.views.BrowserPreviewService.frame',
+            side_effect=BrowserNotRunning('not running'),
+        ), patch('apps.Imagi.Build.api.views.BrowserPreviewService.__init__', return_value=None):
+            return self.client.get(url, **self.auth)
+
+    def test_a_probe_answers_nothing_running_with_200(self):
+        response = self._frame('?probe=1')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()['running'])
+
+    def test_a_poll_still_answers_409_so_the_client_offers_a_restart(self):
+        self.assertEqual(self._frame().status_code, 409)

@@ -1985,3 +1985,69 @@ class FirstBuildPagesThatDoNotCompileTests(SimpleTestCase):
         prompt = build_repair_prompt([], sfc_problems=[{'file': self.VIEW, 'error': 'Invalid end tag. (line 3)'}])
         self.assertIn("don't compile", prompt)
         self.assertIn(f'- {self.VIEW}: Invalid end tag. (line 3)', prompt)
+
+
+class HomePageModelFallbackTests(SimpleTestCase):
+    """The home page runs on its own model (Sol, on OpenAI); when that run is
+    refused outright, e.g. an exhausted OpenAI balance, the page is built on
+    the usual model instead of leaving the founder on a placeholder."""
+
+    def _task(self):
+        from types import SimpleNamespace
+
+        task = SimpleNamespace(id=9, review_status='accepted', worktree_path='/nowhere')
+        task.refresh_from_db = lambda: None
+        return task
+
+    def _service(self, model, result):
+        from unittest.mock import MagicMock
+
+        service = MagicMock(model=model, last_run_timing=None)
+        service.process.return_value = result
+        return service
+
+    def test_a_refused_run_is_retried_once_on_the_fallback_model(self):
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        sol = self._service('gpt-6.1-sol', {'success': False, 'error': 'insufficient_quota'})
+        opus = self._service('claude-opus-5-5', {'success': True})
+        landed = initial_build_service._build_and_apply(
+            sol, self._task(), None, 1, 'Build the home page', {}, fallback=lambda: opus,
+        )
+        self.assertTrue(landed)
+        sol.process.assert_called_once()
+        opus.process.assert_called_once()
+        self.assertEqual(opus.process.call_args.kwargs['user_input'], 'Build the home page')
+
+    def test_without_a_fallback_a_refused_run_fails_the_page(self):
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        sol = self._service('gpt-6.1-sol', {'success': False, 'error': 'insufficient_quota'})
+        self.assertFalse(initial_build_service._build_and_apply(
+            sol, self._task(), None, 1, 'Build the home page', {},
+        ))
+
+    def test_only_a_page_on_its_own_model_gets_a_fallback(self):
+        from types import SimpleNamespace
+        from apps.Imagi.ProjectManager.services import initial_build_service
+
+        builder = {'INITIAL_BUILD_MODEL': 'claude-opus-5-5', 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol'}
+        seen = {}
+
+        def build_and_apply(service, *args, fallback=None, **kwargs):
+            seen[service.model] = fallback
+            return True
+
+        user = SimpleNamespace(pk=1)
+        with patch.object(initial_build_service, '_build_and_apply', side_effect=build_and_apply), \
+                patch('django.contrib.auth.get_user_model') as get_user_model, \
+                patch('apps.Imagi.Build.services.base_agent.ImagiAgentService',
+                      side_effect=lambda model, **kw: SimpleNamespace(model=model)), \
+                patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='sk-test'):
+            get_user_model.return_value.objects.get.return_value = user
+            for slug in ('home', 'about'):
+                page = SimpleNamespace(slug=slug)
+                initial_build_service._run_one_page(page, self._task(), 1, 1, 'p', builder, None)
+
+        self.assertEqual(seen['gpt-6.1-sol']().model, 'claude-opus-5-5')
+        self.assertIsNone(seen['claude-opus-5-5'])

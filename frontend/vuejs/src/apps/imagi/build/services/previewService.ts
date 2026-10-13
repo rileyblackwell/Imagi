@@ -158,11 +158,16 @@ export const PreviewService = {
     }
   },
 
-  /** Poll the latest frame; pass the previous etag to skip unchanged frames. */
-  async frame(projectId: string, etag?: string): Promise<PreviewFrame> {
+  /** Poll the latest frame; pass the previous etag to skip unchanged frames.
+   *  `probe` asks whether a session is up: nothing running answers with
+   *  `running: false` instead of a 409. */
+  async frame(projectId: string, etag?: string, opts: { probe?: boolean } = {}): Promise<PreviewFrame> {
     try {
+      const params: Record<string, string> = {}
+      if (etag) params.etag = etag
+      if (opts.probe) params.probe = '1'
       const response = await api.get(`/v1/builder/${projectId}/preview/frame/`, {
-        params: etag ? { etag } : undefined,
+        params: Object.keys(params).length ? params : undefined,
       })
       return response.data
     } catch (error) {

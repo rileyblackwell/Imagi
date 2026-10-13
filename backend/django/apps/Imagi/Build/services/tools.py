@@ -280,6 +280,8 @@ def _compile_problems(ctx, file_path: str) -> list:
     except Exception as e:  # pragma: no cover - never fail a written edit
         logger.warning(f"Compile check of {file_path} failed: {e}")
         return []
+    if problems:
+        logger.warning("Agent wrote %s, which doesn't compile: %s", file_path, problems[:3])
     return [p['error'] for p in problems]
 
 

@@ -663,12 +663,22 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at,
 
         user = get_user_model().objects.get(pk=user_id)
         model, service_tier = _page_model(builder, page)
-        service = ImagiAgentService(
-            model=model, agent_kind='initial_build', service_tier=service_tier
-        )
-        service.on_page_written = on_page_written
+
+        def service_on(model, service_tier=None):
+            service = ImagiAgentService(
+                model=model, agent_kind='initial_build', service_tier=service_tier
+            )
+            service.on_page_written = on_page_written
+            return service
+
+        # A page on its own model (home, on OpenAI) falls back to the build's
+        # usual model when that run fails outright, e.g. an exhausted OpenAI
+        # balance, rather than leaving the founder on a placeholder.
+        default_model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
+        fallback = (lambda: service_on(default_model)) if model != default_model else None
         return _build_and_apply(
-            service, task, user, project_id, prompt, builder, deadline_at
+            service_on(model, service_tier), task, user, project_id, prompt, builder,
+            deadline_at, fallback=fallback,
         )
     except Exception:
         logger.exception(
@@ -1094,7 +1104,8 @@ def _apply_despite_lost_auth_links(service, task, user, project_id, auth_problem
     return True
 
 
-def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_at=None):
+def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_at=None,
+                     fallback=None):
     """Run one page's build, repairing what stands between it and the project.
 
     Each run ends in the usual task finalization, which merges the worktree
@@ -1118,6 +1129,9 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
     total. When too little time is left for a repair to plausibly finish, it is
     skipped — starting one that gets killed mid-edit tends to leave more
     dangling references than it fixes.
+
+    ``fallback`` makes the service for another model: a run that fails
+    outright (the provider refused it) is retried once on it.
     """
     from apps.Imagi.Build.services.frontend_integrity import (
         find_auth_link_problems,
@@ -1154,6 +1168,22 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
         if run_timing:
             run_timing['finished'] = time.monotonic()
             task.run_timings = getattr(task, 'run_timings', []) + [run_timing]
+        if not result.get('success') and fallback is not None:
+            failed_model = getattr(service, 'model', None)
+            service, fallback = fallback(), None
+            logger.warning(
+                "Initial AI build run on %s failed for project %s (%s); trying %s",
+                failed_model, project_id, result.get('error'), getattr(service, 'model', None),
+            )
+            result = service.process(
+                user_input=user_input,
+                user=user,
+                project_id=project_id,
+                conversation_id=task.id,
+                max_turns=max_turns,
+                cost_budget_usd=cost_budget,
+                deadline_at=deadline_at,
+            )
         if not result.get('success'):
             logger.error(
                 "Initial AI build run failed for project %s: %s",
