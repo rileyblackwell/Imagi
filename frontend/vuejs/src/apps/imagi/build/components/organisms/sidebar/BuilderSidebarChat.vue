@@ -62,8 +62,8 @@
       :submit="submitToCoordinator"
       @stop="emit('stop')"
     >
-      <!-- Check-in queue: threads reporting back, one card at a time —
-           a question to answer, or the news that one finished -->
+      <!-- The questions queue: what threads need the user to answer, one
+           card at a time. Finishes stay on their cards in the chat. -->
       <CheckInQueue
         v-if="isLeadThread"
         :queue="queueCards"
@@ -71,9 +71,8 @@
         @accept="emit('check-in-accept', $event)"
         @dismiss="emit('check-in-dismiss', $event)"
         @answer="onAnswerCheckIn"
-        @skip="onSkipCheckIn"
+        @later="onLaterCheckIn"
         @view="onViewCheckIn"
-        @retry="onRetryCheckIn"
       />
     </AgentComposer>
   </div>
@@ -199,17 +198,11 @@ const headerStatus = computed(() => {
       default: return ''
     }
   }
-  // Not everything in the queue is owed an answer: a subagent that finished
-  // put its work in the app on its own, so its card is news to read. Saying
-  // "1 agent is waiting on you" over a card with nothing to decide sends the
-  // user looking for a decision that does not exist.
+  // Only what owes the user something is counted. A thread that finished
+  // says so on its own card in the chat; it is not waiting on anyone.
   const waiting = store.waitingCheckIns.length
   if (waiting > 0) {
     return `${waiting} ${waiting === 1 ? 'thread is' : 'threads are'} waiting on you`
-  }
-  const finished = store.checkIns.length
-  if (finished > 0) {
-    return `${finished} ${finished === 1 ? 'thread' : 'threads'} finished`
   }
   // Nothing running and nothing waiting: the plate is just the thread's name.
   // "Ready when you are" was a line spent saying that no line was needed.
@@ -231,11 +224,8 @@ const headerState = computed<'waiting' | 'idle'>(() => {
   return store.checkIns.some(c => c.kind !== 'done') ? 'waiting' : 'idle'
 })
 
-/** What the queue above the composer still carries. A thread's question is
- *  not one of them: it is asked and answered on that thread's own card in the
- *  chat, where the job it belongs to is named, so the queue would only be a
- *  second copy of the same question. */
-const queueCards = computed(() => store.checkIns.filter(c => c.kind !== 'question'))
+/** The queue above the composer: questions (and picks between takes) only. */
+const queueCards = computed(() => store.queuedCheckIns)
 
 async function goToLead() {
   const lead = store.leadInstance
@@ -259,21 +249,14 @@ function onAnswerQuestion(option: string) {
   void props.onPromptSubmit(option)
 }
 
-/** Clear an entry the user has dealt with (or wants out of the way). */
-function onSkipCheckIn(checkIn: CheckInDto) {
-  void store.resolveCheckIn(checkIn.id)
+/** "Later": the card goes to the back of the queue, still unanswered. */
+function onLaterCheckIn(checkIn: CheckInDto) {
+  store.deferCheckIn(checkIn.id)
 }
 
 /** Open the task's read-only thread to see what it actually did. */
 function onViewCheckIn(checkIn: CheckInDto) {
   emit('open-task', checkIn.task.id)
-}
-
-/** Run a failed subagent again. The store drops this card as it goes: the
- *  run's start retires the error server-side, and the run end files whatever
- *  comes next. */
-function onRetryCheckIn(checkIn: CheckInDto) {
-  store.retryTask(checkIn.task.id)
 }
 
 /** A dispatch card in the transcript was clicked — open that subagent's

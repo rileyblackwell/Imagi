@@ -23,6 +23,9 @@ export interface AgentState {
   /** The check-in queue has been read from the server at least once, so
    *  anything that appears in it from now on is news. */
   checkInsLoaded: boolean;
+  /** Queue cards put off with "Later", in the order they were put off — they
+   *  wait at the back of the queue. This tab only. */
+  deferredCheckIns: number[];
   /** The model and effort new threads start on — the workspace settings,
    *  saved on the coordinator so the server dispatches with them. Opus 5.5
    *  on Medium unless the user picks otherwise. */

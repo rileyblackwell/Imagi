@@ -17,6 +17,14 @@
              agent's story, the bubbles are the user's. -->
         <div class="rail-feed max-w-3xl mx-auto">
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
+            <!-- When a sitting started: before the first message, and again
+                 whenever the user comes back after a break. -->
+            <div v-if="sessionStarts.has(index)" class="session-break" role="separator">
+              <span class="session-break__label">
+                <time :datetime="sessionIso(message.timestamp)">{{ formatSessionStart(message.timestamp) }}</time>
+              </span>
+            </div>
+
             <!-- A thread opens on the coordinator's hand-off, not on something
                  the user typed, so it hangs on the rail as the brief rather
                  than sitting in a user bubble. -->
@@ -108,11 +116,9 @@
                   :key="task.conversationId"
                   :title="task.title"
                   :instance="dispatchInstance(task.conversationId)"
-                  :question-options="threadQuestion(task.conversationId)?.options || []"
-                  :question-visual="threadQuestion(task.conversationId)?.visual || ''"
                   @open="emit('open-task', task.conversationId)"
                   @retry="agentStore.retryTask(task.conversationId)"
-                  @answer="answerThread(task.conversationId, $event)"
+                  @dismiss="discardThread(task.conversationId)"
                 />
               </div>
               <!-- The hand-back. A subagent working is only half the news; the
@@ -185,6 +191,7 @@ import AgentPlanChecklist from '@/apps/imagi/build/components/molecules/chat/Age
 import DispatchCard from '@/apps/imagi/build/components/molecules/chat/DispatchCard.vue'
 import QuestionChoices from '@/apps/imagi/build/components/molecules/chat/QuestionChoices.vue'
 import { useAgentStore } from '@/apps/imagi/build/stores/agentStore'
+import { sessionStartIndexes, formatSessionStart, sessionIso } from '@/apps/imagi/build/utils/sessionBreaks'
 
 marked.setOptions({
   gfm: true,
@@ -294,17 +301,16 @@ function dispatchInstance(conversationId: number): AgentInstance | null {
   return agentStore.instances.find(i => i.conversationId === conversationId) ?? null
 }
 
-/** The question a thread is waiting on, as its check-in carries it — the
- *  one-tap answers and sketch its card offers. */
-function threadQuestion(conversationId: number) {
-  return agentStore.checkIns.find(c => c.kind === 'question' && c.task.id === conversationId)
-}
-
-/** An answer typed or tapped on a thread's card goes straight back to that
- *  thread as its next message; the user never has to leave the coordinator. */
-function answerThread(conversationId: number, text: string) {
+/** A stopped thread the user is done with: dismissing it frees the
+ *  worktree its run was holding. Nothing it did reached the app. */
+async function discardThread(conversationId: number) {
   const instance = dispatchInstance(conversationId)
-  if (instance) agentStore.steerThread(instance.id, text)
+  if (!instance) return
+  try {
+    await agentStore.dismissTaskInstance(instance.id)
+  } catch (e) {
+    console.error('Failed to discard thread', e)
+  }
 }
 
 /**
@@ -375,6 +381,10 @@ const processedMessages = computed<ProcessedMessage[]>(() => {
     };
   });
 });
+
+/** Where each sitting starts: the first message, and any message that comes
+ *  after a long enough quiet spell (see utils/sessionBreaks). */
+const sessionStarts = computed(() => sessionStartIndexes(props.messages))
 
 /** The reply currently streaming in is the last message while a run is active. */
 function isStreamingMessage(index: number): boolean {
@@ -515,6 +525,16 @@ const formatMessage = (message: AIMessage, index: number): string => {
   margin-top: 2rem;
 }
 
+/* A new sitting gets more room than a new turn, and its first message sits
+   just under the time. */
+.msg-row + .session-break {
+  margin-top: 2rem;
+}
+
+.session-break + .msg-row {
+  margin-top: 0.75rem;
+}
+
 /* Quiet until the turn is hovered, then it fades up in place. */
 .restore-chip {
   transition:
@@ -557,6 +577,39 @@ const formatMessage = (message: AIMessage, index: number): string => {
   background-color: var(--sl-surface-2, #1a1d28);
   border-color: var(--sl-line-strong, rgba(255, 255, 255, 0.14));
   color: var(--sl-text, #eef0f6);
+}
+
+/* ── Session breaks ─────────────────────────────────────────────────────
+   When a sitting started, centred between two hairlines. It sits on the
+   canvas over the rail, so the rail breaks where the user stepped away and
+   picks up again with the next sitting. The time is in `faint`, the token
+   kept for timestamps. */
+.session-break {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+  background: rgb(var(--app-canvas));
+}
+
+.session-break::before,
+.session-break::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sl-line, rgba(19, 26, 44, 0.09));
+}
+
+.session-break__label {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--sl-faint, rgba(19, 26, 44, 0.45));
 }
 
 /* ── The rail ───────────────────────────────────────────────────────────
