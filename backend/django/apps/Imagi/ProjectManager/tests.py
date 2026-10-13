@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 import threading
+from unittest import mock
 from unittest.mock import patch
 
 from django.conf import settings
@@ -1816,7 +1817,7 @@ class QuickHomeTests(TransactionTestCase):
         future.set_result(dict(self.COPY))
         from apps.Imagi.ProjectManager.services import initial_build_service
         self.ibs = initial_build_service
-        self.ibs._quick_copy[self.project.pk] = (future, 'gpt-6.1-sol:ultrafast', self.user.pk)
+        self.ibs._quick_copy[self.project.pk] = future
 
     def _land(self, home_landed=None):
         landed = {}
@@ -1850,3 +1851,46 @@ class QuickHomeTests(TransactionTestCase):
 
     def test_it_stays_down_when_the_full_page_already_opened_the_project(self):
         self.assertEqual(self._land({'at': 1.0}), {})
+
+    def test_the_words_come_from_whichever_model_answers_first(self):
+        import json
+        import threading
+        from types import SimpleNamespace
+        from apps.Imagi.ProjectManager.services import quick_home
+
+        sol_may_answer = threading.Event()
+        metered = []
+
+        def create(**kwargs):
+            if kwargs['model'] == 'gpt-6.1-sol':
+                sol_may_answer.wait(5)
+                raise RuntimeError('too slow anyway')
+            copy = dict(self.COPY, headline='From Luna')
+            return SimpleNamespace(output_text=json.dumps(copy), usage='luna usage')
+
+        client = mock.Mock()
+        client.responses.create.side_effect = create
+        with mock.patch('openai.OpenAI', return_value=client), \
+                mock.patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='k'):
+            future = quick_home.request_copy(
+                [('gpt-6.1-sol', 'ultrafast'), ('gpt-6-luna', 'fast')], 'Puddle Lane', 'Laundry',
+                meter=lambda *args: metered.append(args),
+            )
+            copy = future.result(timeout=5)
+            sol_may_answer.set()
+        self.assertEqual(copy['headline'], 'From Luna')
+        self.assertEqual(copy['_model'], 'gpt-6-luna')
+        self.assertEqual(metered, [('gpt-6-luna', 'fast', 'luna usage')])
+
+    def test_the_words_fail_only_when_every_model_does(self):
+        from apps.Imagi.ProjectManager.services import quick_home
+
+        client = mock.Mock()
+        client.responses.create.side_effect = RuntimeError('down')
+        with mock.patch('openai.OpenAI', return_value=client), \
+                mock.patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='k'):
+            future = quick_home.request_copy(
+                [('gpt-6.1-sol', 'ultrafast'), ('gpt-6-luna', 'fast')], 'Puddle Lane', 'Laundry',
+            )
+            with self.assertRaises(RuntimeError):
+                future.result(timeout=5)

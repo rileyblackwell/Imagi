@@ -16,7 +16,7 @@ import re
 import threading
 import time
 from concurrent.futures import Future
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +70,21 @@ _SCHEMA = {
 }
 
 
-def request_copy(model: str, service_tier: Optional[str], name, description,
-                 app_details='', design='') -> Future:
-    """Ask for the landing page's words and colours, on a thread of its own."""
+# The words are asked of the home page's own model and of a small fast one at
+# once, and whichever answers first is used: a few hundred tokens of copy
+# don't need the bigger model, but neither model is reliably the faster.
+RACE_MODEL = ('gpt-6-luna', 'fast')
+
+
+def request_copy(candidates, name, description, app_details='', design='',
+                 meter: Optional[Callable] = None) -> Future:
+    """Ask for the landing page's words and colours, on threads of their own.
+
+    ``candidates`` is a list of (model, service_tier); each is asked at once
+    and the future holds the first good answer. ``meter(model, service_tier,
+    usage)`` is called for every answer, the losers' too, since each is paid
+    for.
+    """
     from apps.Imagi.Build.services.api_keys import read_api_key
     from apps.Imagi.Build.services.models_service import get_backend_model_id
 
@@ -82,10 +94,11 @@ def request_copy(model: str, service_tier: Optional[str], name, description,
     if (design or '').strip():
         brief += f"\n\nStyle the founder asked for:\n{design.strip()}"
 
-    def ask():
+    started = time.monotonic()
+
+    def ask(model, service_tier):
         from openai import OpenAI
 
-        started = time.monotonic()
         client = OpenAI(api_key=read_api_key('OPENAI_KEY'))
         kwargs = {}
         if service_tier:
@@ -100,20 +113,38 @@ def request_copy(model: str, service_tier: Optional[str], name, description,
             }},
             **kwargs,
         )
+        if meter is not None:
+            try:
+                meter(model, service_tier, getattr(response, 'usage', None))
+            except Exception as e:
+                logger.warning("Could not meter the quick home words: %s", e)
         copy = json.loads(response.output_text)
         copy['_seconds'] = time.monotonic() - started
-        copy['_usage'] = getattr(response, 'usage', None)
+        copy['_model'] = model
         return copy
 
     future: Future = Future()
+    lock = threading.Lock()
+    outcomes = []
 
-    def run():
+    def run(model, service_tier):
         try:
-            future.set_result(ask())
+            result, error = ask(model, service_tier), None
         except Exception as e:  # the full page still comes; this was a bonus
-            future.set_exception(e)
+            result, error = None, e
+        with lock:
+            outcomes.append(error)
+            if future.done():
+                return
+            if error is None:
+                future.set_result(result)
+            elif len(outcomes) == len(candidates):
+                future.set_exception(error)
 
-    threading.Thread(target=run, name='quick-home', daemon=True).start()
+    for model, service_tier in candidates:
+        threading.Thread(
+            target=run, args=(model, service_tier), name='quick-home', daemon=True,
+        ).start()
     return future
 
 

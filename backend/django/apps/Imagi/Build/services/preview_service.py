@@ -11,6 +11,7 @@ import os
 import sys
 import shutil
 import psutil
+import threading
 import time
 import logging
 import json
@@ -164,6 +165,24 @@ def wait_for_listener(process, port, timeout, poll_interval=LISTEN_POLL_INTERVAL
         if time.monotonic() >= deadline:
             raise TimeoutError(f"no listener on port {port} after {timeout:.0f}s")
         time.sleep(poll_interval)
+
+
+def backend_booting(pid_file, timeout=DJANGO_LISTEN_TIMEOUT):
+    """Whether a Django server was launched moments ago and is still alive.
+
+    A live preview hands the app over once Vite listens, while runserver is
+    still importing the project (the page doesn't need the API to render).
+    Until it listens, a started-but-quiet Django counts as up, so nothing
+    mistakes the boot for a dead server and starts the preview over.
+    """
+    try:
+        if time.time() - os.path.getmtime(pid_file) > timeout:
+            return False
+        with open(pid_file) as f:
+            pid = int(f.read().strip())
+        return psutil.Process(pid).status() != psutil.STATUS_ZOMBIE
+    except (OSError, ValueError, psutil.Error):
+        return False
 
 
 # Lock directory beside a project's preview sidecar files while its preview
@@ -320,7 +339,9 @@ class PreviewService:
             # A TCP connect, not _port_in_use: that scans every process's
             # sockets, which cost most of a second per check on a host
             # running several previews, on every workspace open.
-            backend_ok = bool(backend_port) and port_accepting(backend_port)
+            backend_ok = bool(backend_port) and (
+                port_accepting(backend_port) or backend_booting(self.backend_pid_file)
+            )
             # Legacy single-Django projects have no frontend server.
             frontend_ok = not frontend_port or port_accepting(frontend_port)
             if backend_ok and frontend_ok:
@@ -429,9 +450,14 @@ class PreviewService:
         # start reads the database (the project's Sell key), which stays on
         # the request's own thread and connection.
         self.backend_port = self._find_available_port_excluding(8080, 8100, exclude_ports=[8000])
+        # In live mode the app is handed over once Vite listens: the page
+        # renders without the API, and runserver (about two seconds of
+        # imports) finishes booting behind it.
         with ThreadPoolExecutor(max_workers=1, thread_name_prefix='preview-vite') as pool:
             frontend_future = pool.submit(self._start_vuejs_frontend, frontend_path)
-            backend_error = self._start_django_backend(backend_path, port=self.backend_port)
+            backend_error = self._start_django_backend(
+                backend_path, port=self.backend_port, wait=self.live is None,
+            )
             frontend_error = frontend_future.result()
 
         if backend_error:
@@ -649,12 +675,14 @@ class PreviewService:
             pass
         return None
 
-    def _start_django_backend(self, backend_path, port=None):
+    def _start_django_backend(self, backend_path, port=None, wait=True):
         """Start Django backend server. Returns None on success, error text on failure.
 
         ``port`` is one the caller already chose (the dual-stack start picks it
         up front so Vite can be pointed at it while Django boots); without it a
-        free one is found here.
+        free one is found here. With ``wait`` False it returns once runserver
+        is launched and watches it come up on a thread of its own; a failure
+        then shows in the progress and the server's status, not the return.
         """
         try:
             logger.info(f"Attempting to start Django backend in: {backend_path}")
@@ -703,6 +731,24 @@ class PreviewService:
 
             logger.info(f"Django backend started with PID {process.pid}")
 
+            if not wait:
+                threading.Thread(
+                    target=self._watch_django_boot, args=(process,),
+                    name=f'django-boot-{self.project.pk}', daemon=True,
+                ).start()
+                return None
+            return self._watch_django_boot(process)
+
+        except Exception as e:
+            logger.error(f"Error starting Django backend: {e}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            self._report('django', 'failed', str(e))
+            return str(e)
+
+    def _watch_django_boot(self, process):
+        """Wait for runserver to listen. Returns None, or error text."""
+        try:
             # Wait for it to listen — as long as that takes and no longer.
             try:
                 exit_code = wait_for_listener(process, self.backend_port, DJANGO_LISTEN_TIMEOUT)

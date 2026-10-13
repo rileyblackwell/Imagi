@@ -121,7 +121,7 @@ class DualStackStartTests(SimpleTestCase):
             result = service._start_dual_stack_preview('/fe', '/be')
         self.assertTrue(result['success'])
         # Vite is pointed at Django's port before Django has bound it.
-        django.assert_called_once_with('/be', port=8081)
+        django.assert_called_once_with('/be', port=8081, wait=True)
         self.assertEqual(service.backend_port, 8081)
 
     def test_a_backend_that_fails_takes_the_frontend_down_with_it(self):

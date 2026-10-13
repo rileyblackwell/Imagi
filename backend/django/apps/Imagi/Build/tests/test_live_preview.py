@@ -292,6 +292,28 @@ class MigratedDatabaseCopyTests(_Root, SimpleTestCase):
             self.assertEqual(run.call_count, 2)
 
 
+class BackendBootingTests(SimpleTestCase):
+    """The app is handed over once Vite listens; a Django launched moments
+    ago and still alive counts as up until it listens too."""
+
+    def test_a_fresh_live_django_is_booting_and_a_stale_or_dead_one_is_not(self):
+        from apps.Imagi.Build.services.preview_service import backend_booting
+
+        pid_file = os.path.join(tempfile.mkdtemp(), 'backend.pid')
+        self.addCleanup(shutil.rmtree, os.path.dirname(pid_file), True)
+        with open(pid_file, 'w') as f:
+            f.write(str(os.getpid()))
+        self.assertTrue(backend_booting(pid_file))
+        old = time.time() - 120
+        os.utime(pid_file, (old, old))
+        self.assertFalse(backend_booting(pid_file))
+
+        with open(pid_file, 'w') as f:
+            f.write('999999999')
+        self.assertFalse(backend_booting(pid_file))
+        self.assertFalse(backend_booting(pid_file + '.missing'))
+
+
 class LiveApiTests(_Root, APITestCase):
     def setUp(self):
         self.make_root()
