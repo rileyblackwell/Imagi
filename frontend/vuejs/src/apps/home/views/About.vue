@@ -216,10 +216,10 @@ export default defineComponent({
     ]
 
     const firstBuild = [
-      { when: 'A couple of minutes', title: 'The home page', body: 'Built first, so you can step into the workspace soon.' },
+      { when: 'About 5 seconds', title: 'The home page', body: 'Your app opens in the workspace with its home page on screen, and a fuller version replaces it moments later.' },
       { when: 'Side by side', title: 'The rest of the plan', body: 'Imagi works out the other pages your app needs, usually five to twenty, and builds them at once.' },
       { when: 'Built in', title: 'Secure sign-in', body: 'Sign-in and register pages come prebuilt and tested, then get restyled to match your home page.' },
-      { when: 'About 10 minutes', title: 'A first version', body: 'Pages appear in your app as they finish. From there you keep shaping it by chatting.' }
+      { when: 'A few minutes', title: 'A first version', body: 'Pages appear in your app as they finish. From there you keep shaping it by chatting.' }
     ]
 
     const workspace = [
