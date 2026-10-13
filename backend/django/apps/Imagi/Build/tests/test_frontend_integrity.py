@@ -344,3 +344,66 @@ class AuthLinkTests(TestCase):
         # that never existed.
         self._write('apps/home/views/HomeView.vue', "<template><h1>Beanline</h1></template>\n")
         self.assertEqual(find_auth_link_problems(self.root), [])
+
+
+def _compiler_available():
+    import shutil as _shutil
+    from apps.Imagi.Build.services.frontend_integrity import _find_compiler
+
+    return bool(_shutil.which('node') and _find_compiler([]))
+
+
+class SfcCompileCheckTests(TestCase):
+    """Vue's own SFC compiler over the files, as Vite would run it."""
+
+    VIEW = 'frontend/vuejs/src/apps/home/views/ContactView.vue'
+
+    def setUp(self):
+        if not _compiler_available():
+            self.skipTest('node and @vue/compiler-sfc are not installed')
+        self.root = tempfile.mkdtemp(prefix='imagi-sfc-')
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+    def _write(self, rel, content):
+        path = os.path.join(self.root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as f:
+            f.write(content)
+
+    def test_a_stray_closing_tag_is_caught_with_its_line(self):
+        from apps.Imagi.Build.services.frontend_integrity import find_sfc_problems
+
+        self._write(self.VIEW, '<template>\n  <section>\n    <p>Hi</p>\n  </div>\n  </section>\n</template>\n')
+        problems = find_sfc_problems(self.root, [self.VIEW])
+        self.assertEqual(problems, [{'file': self.VIEW, 'error': 'Invalid end tag. (line 4)'}])
+
+    def test_script_and_expression_errors_are_caught(self):
+        from apps.Imagi.Build.services.frontend_integrity import find_sfc_problems
+
+        self._write('frontend/vuejs/src/A.vue', '<template><div /></template>\n<script setup lang="ts">\nconst a = ;\n</script>\n')
+        self._write('frontend/vuejs/src/B.vue', '<template><div>{{ a. }}</div></template>\n')
+        problems = find_sfc_problems(self.root)
+        self.assertEqual(sorted(p['file'] for p in problems), [
+            'frontend/vuejs/src/A.vue', 'frontend/vuejs/src/B.vue',
+        ])
+
+    def test_a_sound_component_and_other_files_pass(self):
+        from apps.Imagi.Build.services.frontend_integrity import find_sfc_problems
+
+        self._write(self.VIEW, (
+            '<template>\n  <main class="p-4">\n    <h1>{{ title }}</h1>\n'
+            '    <router-link v-for="p in pages" :key="p" :to="p">{{ p }}</router-link>\n'
+            '  </main>\n</template>\n\n<script setup lang="ts">\nimport { ref } from \'vue\'\n'
+            "const title = ref<string>('Contact')\nconst pages = ['/', '/about']\n</script>\n"
+        ))
+        self._write('frontend/vuejs/src/main.ts', 'this is not even valid ts {')
+        self.assertEqual(find_sfc_problems(self.root), [])
+        self.assertEqual(find_sfc_problems(self.root, ['frontend/vuejs/src/main.ts', 'missing.vue']), [])
+
+    def test_no_compiler_means_no_problems_rather_than_a_blocked_build(self):
+        from unittest.mock import patch
+        from apps.Imagi.Build.services import frontend_integrity
+
+        self._write(self.VIEW, '<template></div></template>')
+        with patch.object(frontend_integrity, '_find_compiler', return_value=None):
+            self.assertEqual(frontend_integrity.find_sfc_problems(self.root, [self.VIEW]), [])

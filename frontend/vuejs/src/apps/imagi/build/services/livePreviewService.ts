@@ -50,7 +50,7 @@ export interface LiveStatus {
   started_at?: number
   /** Console errors the server accepted from this poll. */
   console_errors?: ConsoleEntry[]
-  error_routing?: { to: 'thread' | 'new_thread'; conversation_id: number } | null
+  error_routing?: { to: 'thread' | 'coordinator'; conversation_id: number; new?: boolean } | null
   /** The latest action an agent took in its own browser on this app, while
    *  recent: the page it is on, the toolset member, and who it is. */
   agent?: AgentActivity | null

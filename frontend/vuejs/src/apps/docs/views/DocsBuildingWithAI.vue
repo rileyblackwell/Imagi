@@ -169,12 +169,12 @@
             screen to check their own changes, and you watch them do it right there (the activity feed notes it as
             "Looked at your app in the preview" or "Tried out your app in the preview"). A small dock floats above it with back,
             forward, refresh, and home buttons, plus the name of the page you're on: click it to see every page in your
-            app and jump to one. If something in your app throws an error, Imagi sends it to be fixed on its own: back to
-            the thread whose change caused it, or, if no thread did, to a new "Fix an app error" thread the coordinator
-            starts for you (more errors that turn up while it works join that same thread). The banner over the preview
-            then reads "Imagi is fixing something in your app". If an error can't be sent on, the banner reads
-            "Something broke in your app" with a <strong class="ink-strong">Fix it</strong> button that hands the details
-            to the agent. If the preview sits idle for a while it dozes off—choose "Wake it up" to bring it back.
+            app and jump to one. If something in your app throws an error, Imagi sends it to be fixed on its own, with
+            nothing for you to press: back to the thread whose change caused it, or, if no thread did, to the
+            coordinator, which hands it to the thread working on that part of your app or starts a new one. The error
+            shows in the coordinator's chat as "Your app reported an error", and the banner over the preview reads
+            "Imagi is fixing something in your app". If the preview sits idle for a while it dozes off—choose "Wake it
+            up" to bring it back.
           </p>
         </DocsStepCard>
       </section>

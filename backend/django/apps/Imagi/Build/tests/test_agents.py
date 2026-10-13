@@ -2859,6 +2859,12 @@ class FirstBuildPageRunEndsAtItsWriteTests(SimpleTestCase):
         )
         self.assertFalse(decision.is_final_output)
 
+    def test_a_page_that_does_not_compile_keeps_the_run_going(self):
+        decision = self._decide('update_file', {
+            'success': True, 'path': self.VIEW, 'compile_errors': ['Invalid end tag. (line 4)'],
+        })
+        self.assertFalse(decision.is_final_output)
+
     def test_reads_failed_writes_and_other_files_keep_the_run_going(self):
         self.assertFalse(self._decide('read_file', {'success': True, 'path': self.VIEW}).is_final_output)
         self.assertFalse(self._decide('update_file', {'success': False, 'path': self.VIEW}).is_final_output)

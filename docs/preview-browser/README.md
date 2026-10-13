@@ -111,7 +111,7 @@ screenshot preview on its next load. The domain can stay.
 | --- | --- |
 | ![Before](screenshots/before-dark.webp) | ![After](screenshots/after-dark.webp) |
 
-Pages in the address bar, an app error with Fix it, the server-log drawer, the
+Pages in the address bar, an app error banner, the server-log drawer, the
 element picker (light theme), and a phone:
 
 ![Address bar pages](screenshots/address-pages-dark.webp)

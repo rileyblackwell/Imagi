@@ -284,21 +284,30 @@ def _sibling_line(page, siblings) -> str:
     return f" The site's other pages: {listed}."
 
 
-def build_repair_prompt(problems, router_problems=(), auth_problems=()) -> str:
+def build_repair_prompt(problems, router_problems=(), auth_problems=(), sfc_problems=()) -> str:
     """Ask the subagent to fix what is keeping its build from being applied.
 
-    Covers the two blocking defects — references to files that were never
-    created, and an app router that stopped handing its routes to the root
-    router — plus the one advisory defect: a home page that no longer links to
+    Covers the three blocking defects — references to files that were never
+    created, components that don't compile, and an app router that stopped
+    handing its routes to the root router — plus the one advisory defect: a home page that no longer links to
     the prebuilt sign-in and register pages.
     """
     from apps.Imagi.Build.services.frontend_integrity import (
         describe_auth_link_problems,
         describe_router_contract_problems,
+        describe_sfc_problems,
         describe_unresolved_imports,
     )
 
     sections = ["Your build is not finished and cannot be shown to the founder yet."]
+
+    if sfc_problems:
+        sections.append(
+            "These components don't compile, so Vite answers the page with an "
+            f"error instead of showing it:\n\n{describe_sfc_problems(sfc_problems)}"
+            "\n\nFix the markup or code at each spot (most often a closing tag "
+            "with no matching opening tag, or one left unclosed)."
+        )
 
     if problems:
         sections.append(
@@ -940,12 +949,13 @@ def _land_page_early(project_id, project_path, context, path) -> bool:
     the founder doesn't wait on that: the page is copied into the project the
     preview serves, and the project opens. Only when it passes the same
     checks the merge makes (its imports resolve, which the run has just
-    checked, the app routers still export their routes, and the page still
-    links to the auth pages). Returns whether it landed.
+    checked, it compiles, the app routers still export their routes, and the
+    page still links to the auth pages). Returns whether it landed.
     """
     from apps.Imagi.Build.services.frontend_integrity import (
         find_auth_link_problems,
         find_router_contract_problems,
+        find_sfc_problems,
     )
     from apps.Imagi.Build.services.version_control_service import canonical_repo_lock
     from ..models import Project
@@ -954,6 +964,8 @@ def _land_page_early(project_id, project_path, context, path) -> bool:
     if not worktree or not project_path or not path:
         return False
     if find_router_contract_problems(worktree) or find_auth_link_problems(worktree):
+        return False
+    if find_sfc_problems(worktree, [path], fallback_roots=[project_path]):
         return False
     source = os.path.join(worktree, path)
     target = os.path.join(project_path, path)
@@ -1110,8 +1122,10 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
     from apps.Imagi.Build.services.frontend_integrity import (
         find_auth_link_problems,
         find_router_contract_problems,
+        find_sfc_problems,
         find_unresolved_imports,
     )
+    from apps.Imagi.Build.services.version_control_service import VersionControlService
 
     attempts = builder.get('INITIAL_BUILD_REPAIR_ATTEMPTS', 2)
     min_repair_seconds = builder.get('INITIAL_BUILD_MIN_REPAIR_SECONDS', 12)
@@ -1159,7 +1173,11 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
         problems = find_unresolved_imports(task.worktree_path)
         router_problems = find_router_contract_problems(task.worktree_path)
         auth_problems = find_auth_link_problems(task.worktree_path)
-        found = len(problems) + len(router_problems) + len(auth_problems)
+        sfc_problems = find_sfc_problems(
+            task.worktree_path,
+            VersionControlService().task_changed_files(task.worktree_path, task.id),
+        )
+        found = len(problems) + len(router_problems) + len(auth_problems) + len(sfc_problems)
         if not found:
             logger.error(
                 "Initial AI build for project %s finished but could not be applied "
@@ -1174,17 +1192,19 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
         out_of_time = remaining is not None and remaining < min_repair_seconds
         if out_of_attempts or out_of_time:
             # Only the blocking defects are worth losing the build over.
-            if auth_problems and not problems and not router_problems:
+            if auth_problems and not problems and not router_problems and not sfc_problems:
                 return _apply_despite_lost_auth_links(
                     service, task, user, project_id, auth_problems
                 )
             if out_of_attempts:
                 logger.error(
                     "Initial AI build for project %s still has %d unresolved "
-                    "import(s) and %d router problem(s) after %d repair attempt(s)",
+                    "import(s), %d router problem(s) and %d compile error(s) "
+                    "after %d repair attempt(s)",
                     project_id,
                     len(problems),
                     len(router_problems),
+                    len(sfc_problems),
                     attempts,
                 )
             else:
@@ -1210,7 +1230,7 @@ def _build_and_apply(service, task, user, project_id, prompt, builder, deadline_
             attempts,
             f"{remaining:.1f}s" if remaining is not None else "no limit",
         )
-        user_input = build_repair_prompt(problems, router_problems, auth_problems)
+        user_input = build_repair_prompt(problems, router_problems, auth_problems, sfc_problems)
         max_turns = builder.get('INITIAL_BUILD_REPAIR_MAX_TURNS')
         cost_budget = builder.get('INITIAL_BUILD_REPAIR_COST_BUDGET_USD')
 

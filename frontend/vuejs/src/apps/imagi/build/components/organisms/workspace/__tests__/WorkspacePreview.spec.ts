@@ -448,10 +448,10 @@ describe('WorkspacePreview error banner', () => {
     await settle()
   }
 
-  it('offers Fix it while nobody has the error yet', async () => {
+  it('shows the error with no Fix it button while nobody has it yet', async () => {
     await mountWith({})
     expect(wrapper.find('.pv-alert').text()).toContain('Something broke in your app')
-    expect(wrapper.find('.pv-alert').text()).toContain('Fix it')
+    expect(wrapper.find('.pv-alert').text()).not.toContain('Fix it')
   })
 
   it('says who is fixing an error the server already sent on', async () => {
@@ -462,10 +462,10 @@ describe('WorkspacePreview error banner', () => {
     expect(banner.text()).not.toContain('Fix it')
   })
 
-  it('says a new thread is fixing an error no thread owned', async () => {
-    await mountWith({ error_routing: { to: 'new_thread', conversation_id: 13 } })
-    expect(wrapper.find('[data-testid="error-routing-note"]').text()).toBe('A new thread is fixing it.')
-    expect(wrapper.find('.pv-alert').text()).not.toContain('Fix it')
+  it('says the coordinator has an error no thread owned, and tells the workspace once', async () => {
+    await mountWith({ error_routing: { to: 'coordinator', conversation_id: 13, new: true } })
+    expect(wrapper.find('[data-testid="error-routing-note"]').text()).toBe('Sent to the coordinator, which is getting it fixed.')
+    expect(wrapper.emitted('errors-routed')).toEqual([[{ to: 'coordinator', conversation_id: 13, new: true }]])
   })
 })
 

@@ -258,7 +258,29 @@ def _live_start(ctx, file_path: str):
 
     if not live_apply.applies_to(ctx):
         return None, None
+    held = getattr(ctx, 'live_held_back', None) or {}
+    if file_path in held:
+        # Its last write didn't compile and never went in: the app still has
+        # the version before that.
+        return held[file_path], live_apply.Mark(ctx)
     return live_apply.snapshot(ctx, file_path), live_apply.Mark(ctx)
+
+
+def _compile_problems(ctx, file_path: str) -> list:
+    """Errors Vite would hit compiling the component just written (.vue)."""
+    if not str(file_path).endswith('.vue'):
+        return []
+    from .frontend_integrity import find_sfc_problems
+
+    root = getattr(ctx, 'effective_project_path', None) or getattr(ctx, 'project_path', None)
+    try:
+        problems = find_sfc_problems(
+            root, [file_path], fallback_roots=[getattr(ctx, 'project_path', None)],
+        )
+    except Exception as e:  # pragma: no cover - never fail a written edit
+        logger.warning(f"Compile check of {file_path} failed: {e}")
+        return []
+    return [p['error'] for p in problems]
 
 
 def _live_finish(ctx, file_path: str, before, result: dict) -> str:
@@ -267,6 +289,24 @@ def _live_finish(ctx, file_path: str, before, result: dict) -> str:
     from . import live_apply
 
     previous, mark = before
+    problems = _compile_problems(ctx, file_path) if result.get('success') else []
+    if problems:
+        # The app keeps its last good version: Vite would only answer this
+        # one with an error page and a console full of failed imports.
+        result['compile_errors'] = problems
+        result['instruction'] = (
+            "This component doesn't compile, so the app can't show it. Fix "
+            "these errors in it now, before anything else."
+        )
+        if mark is not None:
+            result['applied_to_app'] = False
+            held = getattr(ctx, 'live_held_back', None)
+            if held is not None:
+                held[file_path] = previous
+        return json.dumps(result)
+    held = getattr(ctx, 'live_held_back', None)
+    if held:
+        held.pop(file_path, None)
     if mark is not None:
         try:
             result.update(live_apply.apply_edit(ctx, file_path, previous, mark))
