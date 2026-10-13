@@ -1124,6 +1124,9 @@ defineExpose({ reload: () => reload(false) })
   min-height: 0;
   background: var(--sl-bg, #f8f7f4);
   color: var(--sl-text, #14151c);
+  /* The toolbar fits the pane, not the screen: beside the chat on a tablet
+     the pane is phone-narrow even though the screen isn't. */
+  container: lp / inline-size;
 }
 
 /* --- Toolbar ------------------------------------------------------------ */
@@ -1438,16 +1441,22 @@ defineExpose({ reload: () => reload(false) })
 
 /* --- Stage ------------------------------------------------------------- */
 
+/* Clipped, so nothing the app or its notes do can widen the pane. */
 .lp-stage {
   position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   background: var(--sl-bg-deep, #f0eee9);
 }
 
+/* width 1px + min-width 100%, not width 100%: iOS Safari grows an iframe to
+   its page's width, so an app wider than the pane pushed the frame past it
+   and the page slid sideways under a finger. This holds it to the pane. */
 .lp-frame {
   display: block;
-  width: 100%;
+  width: 1px;
+  min-width: 100%;
   height: 100%;
   border: 0;
   background: #fff;
@@ -1669,8 +1678,8 @@ defineExpose({ reload: () => reload(false) })
   color: var(--sl-muted, #5c6172);
 }
 
-/* Phones: fewer controls, same row. */
-@media (max-width: 640px) {
+/* Narrow panes: fewer controls, same row. */
+@container lp (max-width: 560px) {
   .lp-btn--home,
   .lp-btn--newtab,
   .lp-status-label { display: none; }

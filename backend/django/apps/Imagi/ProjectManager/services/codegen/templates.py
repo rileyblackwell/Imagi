@@ -879,6 +879,13 @@ def vue_main_css() -> str:
   html {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
+
+  /* Pages never scroll sideways: a stray wide element can't make the whole
+     app slide left and right under a finger. */
+  html,
+  body {
+    overflow-x: clip;
+  }
 }
 
 @layer components {
