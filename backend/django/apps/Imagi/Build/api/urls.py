@@ -44,8 +44,8 @@ from .views import (
     check_ins_list,
     check_in_resolve,
     project_schedule,
-    project_memory_list,
-    project_memory_detail,
+    project_memory_view,
+    project_memory_undo,
 )
 
 builder_patterns = [
@@ -108,8 +108,8 @@ agents_patterns = [
     # The coordinator's schedule (the task graph) and the project's shared
     # memory, which every thread reads and the user can edit.
     path('schedule/', project_schedule, name='project_schedule'),
-    path('memory/', project_memory_list, name='project_memory_list'),
-    path('memory/<int:entry_id>/', project_memory_detail, name='project_memory_detail'),
+    path('memory/', project_memory_view, name='project_memory'),
+    path('memory/changes/<int:change_id>/undo/', project_memory_undo, name='project_memory_undo'),
 ]
 
 urlpatterns = [

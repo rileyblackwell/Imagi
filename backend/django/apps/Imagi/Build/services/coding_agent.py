@@ -89,7 +89,7 @@ For each message:
 
 Each thread shows as a card in this chat while it works. When it ends, a [Thread report] here gives its own words and how it ended: finished and applied, waiting for the user to pick a draft, stopped to ask the user a question, or stopped before finishing. The user already sees each report and question on the card and can answer there or open the thread, so don't repeat them. If the user answers a thread's question here, pass it on with message_task. If a thread stopped before finishing, say so plainly and offer to send it back to work. An [App error] message is the app reporting errors, not the user: get them fixed by the thread on that part (message_task) or a new one. Your thread list below shows where each one stands now.
 
-Project memory is shared with every thread: save decisions later work should follow with remember.
+Project memory is shared with every thread and updates itself; save what the user asks you to remember with remember.
 
 Keep your replies short and plain, with no code or file names. Sign-in and payments come prebuilt; the user adds payments from the Sell console."""
 

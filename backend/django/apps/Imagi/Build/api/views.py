@@ -31,7 +31,7 @@ from django.utils.decorators import method_decorator
 
 from ..models import (
     AgentCheckIn,
-    ProjectMemory,
+    ProjectMemoryChange,
     AgentConversation,
     AgentMessage,
     CANONICAL_TREE_KINDS,
@@ -1778,8 +1778,6 @@ def conversation_detail(request, conversation_id):
         # A task's worktree would otherwise leak beside the project dir.
         _take_back_live_edits(conversation)
         _remove_conversation_worktree(conversation)
-        if conversation.kind == 'task':
-            project_memory.drop_proposals(conversation)
         conversation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -2066,10 +2064,10 @@ def conversation_accept(request, conversation_id):
     # Accepting consumes the task's queue slot in the main thread.
     _resolve_conversation_check_ins(conversation)
     # The work landed: the schedule records it (work waiting on it is
-    # released on the scheduler's next pass) and its memory proposals commit.
+    # released on the scheduler's next pass) and its memory notes are saved.
     scheduling.thread_landed(conversation)
     scheduling.release_waiting_tasks(request.user)
-    project_memory.commit_proposals(conversation)
+    project_memory.thread_landed(conversation)
 
     return Response({'status': 'accepted'}, status=status.HTTP_200_OK)
 
@@ -2108,10 +2106,10 @@ def conversation_dismiss(request, conversation_id):
     # Dismissing consumes the task's queue slot in the main thread.
     _resolve_conversation_check_ins(conversation)
     # Its work will never land: the schedule says so (work waiting on it is
-    # held as blocked), and nothing it proposed for memory survives.
+    # held as blocked), and nothing it noted for memory survives.
     scheduling.cancel_thread_tasks(conversation)
     scheduling.release_waiting_tasks(request.user)
-    project_memory.drop_proposals(conversation)
+    project_memory.thread_discarded(conversation)
 
     return Response({'status': 'dismissed'}, status=status.HTTP_200_OK)
 
@@ -2353,43 +2351,52 @@ def project_schedule(request):
     )
 
 
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
-def project_memory_list(request):
-    """A project's shared memory: list it, or add an entry (the user's own)."""
+def project_memory_view(request):
+    """A project's shared memory: read it, or save the user's edit of it.
+
+    A save carries the version and content it was edited from; if the memory
+    changed since (the capture pass or a thread saved a line), the edit is
+    merged into it line by line, so nothing saved meanwhile is lost. Without
+    the content it was edited from, that case is refused with the memory as
+    it is now."""
     project_id = _project_id_param(request)
     if project_id is None:
         return create_error_response('project_id is required', status.HTTP_400_BAD_REQUEST)
     if not PMProject.objects.filter(id=project_id, user=request.user).exists():
         return create_error_response('Project not found', status.HTTP_404_NOT_FOUND)
-    if request.method == 'POST':
+    if request.method == 'PUT':
         try:
-            entry = project_memory.write_entry(
-                request.user.id, project_id,
-                request.data.get('key'), request.data.get('value'), author='user',
+            version = int(request.data.get('version'))
+        except (TypeError, ValueError):
+            return create_error_response('version is required', status.HTTP_400_BAD_REQUEST)
+        try:
+            project_memory.save_document(
+                request.user.id, project_id, request.data.get('content') or '', version,
+                base_content=request.data.get('base_content'),
             )
         except ValueError as e:
             return create_error_response(str(e), status.HTTP_400_BAD_REQUEST)
-        return Response(project_memory.serialize_entry(entry), status=status.HTTP_201_CREATED)
+        except project_memory.MemoryConflict:
+            return Response(
+                {'error': 'changed', **project_memory.workspace_view(request.user, project_id)},
+                status=status.HTTP_409_CONFLICT,
+            )
     return Response(
-        {'entries': project_memory.project_entries(request.user, project_id)},
-        status=status.HTTP_200_OK,
+        project_memory.workspace_view(request.user, project_id), status=status.HTTP_200_OK,
     )
 
 
-@api_view(['PATCH', 'DELETE'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def project_memory_detail(request, entry_id):
-    """Edit or remove one memory entry. Editing a thread's pending proposal
-    keeps it pending; editing an entry makes it the user's."""
-    entry = get_object_or_404(ProjectMemory, id=entry_id, user=request.user)
-    if request.method == 'DELETE':
-        entry.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    key = request.data.get('key', entry.key)
-    value = request.data.get('value', entry.value)
+def project_memory_undo(request, change_id):
+    """Undo one change to the memory: its added lines go, its removed ones return."""
+    change = get_object_or_404(ProjectMemoryChange, id=change_id, user=request.user)
     try:
-        entry = project_memory.edit_entry(entry, key, value)
+        project_memory.undo_change(change)
     except ValueError as e:
         return create_error_response(str(e), status.HTTP_400_BAD_REQUEST)
-    return Response(project_memory.serialize_entry(entry), status=status.HTTP_200_OK)
+    return Response(
+        project_memory.workspace_view(request.user, change.project_id), status=status.HTTP_200_OK,
+    )

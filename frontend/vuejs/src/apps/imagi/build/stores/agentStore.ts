@@ -55,6 +55,25 @@ const RESYNC_INTERVAL_MS = 5000
 // being watched.
 let checkInTimer: ReturnType<typeof setInterval> | null = null
 const CHECK_IN_INTERVAL_MS = 6000
+// Memory is refreshed every this many check-in ticks while it is closed.
+const MEMORY_REFRESH_TICKS = 5
+
+/** The memory version last seen in this browser, per project. */
+function readSeenMemoryVersion(projectId: string): number {
+  try {
+    return Number(localStorage.getItem(`imagi.memorySeen.${projectId}`)) || 0
+  } catch {
+    return 0
+  }
+}
+
+function writeSeenMemoryVersion(projectId: string, version: number) {
+  try {
+    localStorage.setItem(`imagi.memorySeen.${projectId}`, String(version))
+  } catch {
+    // Storage blocked: the dot just shows again next visit.
+  }
+}
 
 // Conversation ids whose dispatched run this tab already fired. Module scope
 // and non-reactive: a re-dispatch of the same task (stream backstop, a
@@ -200,11 +219,17 @@ export const useAgentStore = defineStore('agent', {
     deferredCheckIns: [],
     threadModelId: DEFAULT_MODEL_ID,
     threadEffort: DEFAULT_REASONING_EFFORT,
-    memoryEntries: [],
-    memoryLoaded: false,
+    memory: null,
+    memorySeenVersion: 0,
+    memoryViewing: false,
   }),
 
   getters: {
+    /** Memory saved something since the user last looked at it. */
+    memoryFresh(state): boolean {
+      return !!state.memory && state.memory.version > state.memorySeenVersion
+    },
+
     activeInstance(state): AgentInstance | null {
       if (!state.activeInstanceId) return null
       return state.instances.find(i => i.id === state.activeInstanceId) || null
@@ -367,8 +392,8 @@ export const useAgentStore = defineStore('agent', {
     setProjectId(id: string | null) {
       if (id !== this.projectId) {
         this.checkInsLoaded = false
-        this.memoryEntries = []
-        this.memoryLoaded = false
+        this.memory = null
+        this.memorySeenVersion = 0
       }
       this.projectId = id
     },
@@ -542,8 +567,15 @@ export const useAgentStore = defineStore('agent', {
 
     startCheckInPolling() {
       this.stopCheckInPolling()
+      let ticks = 0
+      void this.loadMemory()
       checkInTimer = setInterval(() => {
         void this.loadCheckIns()
+        // Memory saves itself after turns and as threads land: refreshed
+        // every tick while it is open, and now and then otherwise so the
+        // book icon can say something new was saved.
+        ticks += 1
+        if (this.memoryViewing || ticks % MEMORY_REFRESH_TICKS === 0) void this.loadMemory()
         // Held threads start on the server when what they wait on lands.
         void this.syncHeldThreads()
         // A subagent whose run the backend refused is waiting on a slot it
@@ -1271,44 +1303,41 @@ export const useAgentStore = defineStore('agent', {
 
     async loadMemory() {
       if (!this.projectId) return
+      const projectId = this.projectId
       try {
-        this.memoryEntries = await AgentService.listMemory(this.projectId)
-        this.memoryLoaded = true
+        const memory = await AgentService.getMemory(projectId)
+        if (this.projectId !== projectId) return
+        this.memory = memory
+        this.memorySeenVersion = readSeenMemoryVersion(projectId)
+        if (this.memoryViewing) this.markMemorySeen()
       } catch (e) {
         console.error('Failed to load project memory', e)
       }
     },
 
-    async addMemory(key: string, value: string) {
+    async saveMemory(content: string, base: { version: number; content: string }) {
       if (!this.projectId) return
-      const entry = await AgentService.addMemory(this.projectId, key, value)
-      // Saving a key again replaces it, so drop any entry it replaced.
-      this.memoryEntries = [
-        ...this.memoryEntries.filter(
-          e => !(e.status === 'active' && e.key.toLowerCase() === entry.key.toLowerCase())
-        ),
-        entry,
-      ]
+      this.memory = await AgentService.saveMemory(this.projectId, content, base)
+      this.markMemorySeen()
     },
 
-    async editMemory(entryId: number, key: string, value: string) {
-      const entry = await AgentService.updateMemory(entryId, { key, value })
-      this.memoryEntries = this.memoryEntries
-        .filter(e => e.id === entryId || !(
-          entry.status === 'active' && e.status === 'active' &&
-          e.key.toLowerCase() === entry.key.toLowerCase()
-        ))
-        .map(e => (e.id === entryId ? entry : e))
+    async undoMemoryChange(changeId: number) {
+      this.memory = await AgentService.undoMemoryChange(changeId)
+      this.markMemorySeen()
     },
 
-    async removeMemory(entryId: number) {
-      const before = this.memoryEntries
-      this.memoryEntries = before.filter(e => e.id !== entryId)
-      try {
-        await AgentService.deleteMemory(entryId)
-      } catch (e) {
-        this.memoryEntries = before
-        throw e
+    /** The user has looked at the memory as it is now. */
+    markMemorySeen() {
+      if (!this.projectId || !this.memory) return
+      this.memorySeenVersion = this.memory.version
+      writeSeenMemoryVersion(this.projectId, this.memory.version)
+    },
+
+    setMemoryViewing(viewing: boolean) {
+      this.memoryViewing = viewing
+      if (viewing) {
+        this.markMemorySeen()
+        void this.loadMemory()
       }
     },
 

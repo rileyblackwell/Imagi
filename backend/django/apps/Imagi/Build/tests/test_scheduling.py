@@ -22,7 +22,7 @@ from apps.Imagi.Build.api.views import _park_stranded_tasks
 from apps.Imagi.Build.models import (
     AgentConversation,
     AgentMessage,
-    ProjectMemory,
+    ProjectMemoryChange,
     ThreadTask,
 )
 from apps.Imagi.Build.services import project_memory, scheduling
@@ -339,15 +339,45 @@ class WaitsForResultsTests(_ScheduleTestCase):
         self.assertEqual(tasks[waiting.id]['status'], 'waiting')
 
 
-class ProjectMemoryTests(_ScheduleTestCase):
-    def test_coordinator_writes_and_every_prompt_reads_it(self):
-        project_memory.write_entry(self.user.id, self.project.id, 'Brand colors', 'Navy and coral')
-        project_memory.write_entry(self.user.id, self.project.id, 'brand colors', 'Navy and gold')
+class _FakeCaptureModel:
+    """Stands in for the Anthropic client: records the prompt it was given and
+    answers with the update_memory call it was set up with."""
 
-        entries = ProjectMemory.objects.filter(status='active')
-        self.assertEqual([(e.key, e.value) for e in entries], [('brand colors', 'Navy and gold')])
+    def __init__(self, changes):
+        self.changes = changes
+        self.prompts = []
+        self.messages = self
+
+    def create(self, **kwargs):
+        from types import SimpleNamespace
+        self.prompts.append(kwargs['messages'][0]['content'])
+        return SimpleNamespace(
+            content=[SimpleNamespace(type='tool_use', input={'changes': self.changes})],
+            usage=SimpleNamespace(input_tokens=900, output_tokens=60),
+        )
+
+
+class ProjectMemoryTests(_ScheduleTestCase):
+    def _doc(self):
+        return project_memory.read_document(self.user.id, self.project.id)
+
+    def test_lines_go_under_their_section_once_and_every_prompt_reads_them(self):
+        project_memory.remember(self.user.id, self.project.id, 'Brand colours are navy and coral')
+        project_memory.remember(self.user.id, self.project.id, '- brand colours are navy and coral.')
+        project_memory.remember(
+            self.user.id, self.project.id, 'A bakery in Grand Rapids', section='About the app'
+        )
+
+        doc = self._doc()
+        self.assertEqual(doc.count('navy and coral'), 1)
+        self.assertLess(doc.index('## About the app'), doc.index('A bakery'))
+        self.assertLess(doc.index('## Decisions'), doc.index('Brand colours'))
+        self.assertEqual(ProjectMemoryChange.objects.count(), 2)
+
         summary = project_memory.memory_summary(self.user.id, self.project.id)
-        self.assertIn('- brand colors: Navy and gold', summary)
+        self.assertIn('- Brand colours are navy and coral', summary)
+        # Empty sections stay out of the prompt.
+        self.assertNotIn("How it's built", summary)
 
         from agents import RunContextWrapper
         from apps.Imagi.Build.services.coding_agent import create_coding_agent
@@ -355,62 +385,165 @@ class ProjectMemoryTests(_ScheduleTestCase):
             agent = create_coding_agent(kind=kind)
             ctx = AgentContext(user_id=self.user.id, project_id=self.project.id,
                                conversation_kind=kind, project_memory=summary)
-            self.assertIn('Navy and gold', agent.instructions(RunContextWrapper(context=ctx), agent))
+            self.assertIn('navy and coral', agent.instructions(RunContextWrapper(context=ctx), agent))
 
-    def test_a_threads_proposal_lands_with_its_work_and_not_otherwise(self):
+    def test_forget_removes_the_matching_line_only(self):
+        project_memory.remember(self.user.id, self.project.id, 'Menu is sticky on every page')
+        project_memory.remember(self.user.id, self.project.id, 'Footer shows opening hours')
+        self.assertIsNotNone(project_memory.forget(self.user.id, self.project.id, 'sticky'))
+        self.assertNotIn('sticky', self._doc())
+        self.assertIn('Footer shows opening hours', self._doc())
+        # Ambiguous or missing: nothing is removed.
+        project_memory.remember(self.user.id, self.project.id, 'Footer is dark')
+        self.assertIsNone(project_memory.forget(self.user.id, self.project.id, 'footer'))
+        self.assertIsNone(project_memory.forget(self.user.id, self.project.id, 'pricing'))
+
+    def test_a_threads_notes_land_with_its_work_and_not_otherwise(self):
         _, kept = self._dispatch('Add a menu')
         _, dropped = self._dispatch('Add a footer')
-        project_memory.propose_entry(kept, 'Menu', 'Sticky, top of every page')
-        project_memory.propose_entry(dropped, 'Footer', 'Dark, with hours')
+        project_memory.add_thread_note(kept, 'Menu is sticky at the top of every page', "How it's built")
+        project_memory.add_thread_note(dropped, 'Footer is dark, with hours')
         self.assertEqual(project_memory.memory_summary(self.user.id, self.project.id), '')
-
-        project_memory.commit_proposals(kept)
-        project_memory.drop_proposals(dropped)
-
         self.assertEqual(
-            list(ProjectMemory.objects.values_list('key', 'status', 'author')),
-            [('Menu', 'active', 'thread')],
+            [p['thread']['id'] for p in project_memory.pending_notes(self.user, self.project.id)],
+            [kept.id, dropped.id],
         )
 
-    def test_a_running_thread_sees_an_entry_committed_mid_run(self):
+        project_memory.thread_landed(kept, capture=False)
+        project_memory.thread_discarded(dropped)
+
+        doc = self._doc()
+        self.assertIn('Menu is sticky', doc)
+        self.assertNotIn('Footer', doc)
+        change = ProjectMemoryChange.objects.get()
+        self.assertEqual((change.author, change.source_id), ('thread', kept.id))
+        self.assertEqual(project_memory.pending_notes(self.user, self.project.id), [])
+
+    def test_a_running_thread_sees_a_line_saved_mid_run(self):
         ctx = AgentContext(user_id=self.user.id, project_id=self.project.id)
         self.assertIsNone(project_memory.refresh_context(ctx))
-        project_memory.write_entry(self.user.id, self.project.id, 'Tone', 'Friendly')
-        self.assertIn('Tone: Friendly', project_memory.refresh_context(ctx))
+        project_memory.remember(self.user.id, self.project.id, 'Tone is friendly')
+        self.assertIn('Tone is friendly', project_memory.refresh_context(ctx))
         self.assertIsNone(project_memory.refresh_context(ctx))
 
-    def test_summary_shortens_long_memory_and_points_to_recall(self):
-        project_memory.write_entry(self.user.id, self.project.id, 'Story', 'x' * 900)
+    def test_the_prompt_carries_at_most_the_cap(self):
+        for i in range(40):
+            project_memory.remember(self.user.id, self.project.id, f'Fact {i} ' + 'x' * 300)
         summary = project_memory.memory_summary(self.user.id, self.project.id)
-        self.assertIn('…', summary)
-        self.assertIn('recall', summary)
-        self.assertEqual(
-            project_memory.recall(self.user.id, self.project.id, 'story')[0]['value'], 'x' * 900
-        )
+        self.assertLess(len(summary), project_memory.MEMORY_MAX_CHARS + 200)
+        self.assertTrue(summary.endswith('…'))
 
-    def test_the_user_views_and_edits_memory_over_the_api(self):
+    def test_capture_reads_a_coordinator_turn_and_applies_its_changes(self):
+        project_memory.remember(self.user.id, self.project.id, 'Colours are navy and gold')
+        AgentMessage.objects.create(conversation=self.lead, role='user',
+                                    content='Actually make it navy and coral, and keep it calm.')
+        AgentMessage.objects.create(conversation=self.lead, role='assistant',
+                                    content='On it.', metadata={})
+        model = _FakeCaptureModel([
+            {'action': 'remove', 'text': 'Colours are navy and gold'},
+            {'action': 'add', 'section': 'Decisions', 'text': 'Colours are navy and coral'},
+            {'action': 'add', 'section': 'How the user likes to work', 'text': 'Prefers a calm tone'},
+        ])
+
+        change = project_memory.capture(self.lead.id, client=model)
+
+        self.assertIn('Colours are navy and gold', model.prompts[0])
+        self.assertIn('User: Actually make it navy and coral', model.prompts[0])
+        doc = self._doc()
+        self.assertNotIn('gold', doc)
+        self.assertIn('- Colours are navy and coral', doc)
+        self.assertIn('## How the user likes to work\n- Prefers a calm tone', doc)
+        self.assertEqual((change.author, change.source_id), ('auto', self.lead.id))
+        # The turn was read once: a second pass has nothing new.
+        self.assertIsNone(project_memory.capture(self.lead.id, client=model))
+        self.assertEqual(len(model.prompts), 1)
+
+    def test_capture_skips_turns_with_nothing_from_the_user(self):
+        AgentMessage.objects.create(conversation=self.lead, role='user',
+                                    content='[App error] The app reported these errors…')
+        AgentMessage.objects.create(
+            conversation=self.lead, role='assistant', content='The menu thread finished.',
+            metadata={'task_report': {'kind': 'done'}},
+        )
+        model = _FakeCaptureModel([{'action': 'add', 'text': 'Should not be saved'}])
+        self.assertIsNone(project_memory.capture(self.lead.id, client=model))
+        self.assertEqual(model.prompts, [])
+
+    def test_capture_of_a_landed_thread_reads_its_brief_and_files(self):
+        _, thread = self._dispatch('Add a menu page with the dishes from the PDF')
+        AgentMessage.objects.create(conversation=thread, role='user',
+                                    content='Add a menu page with the dishes from the PDF')
+        AgentMessage.objects.create(
+            conversation=thread, role='assistant', content='Your menu page is live.',
+            metadata={'files_changed': ['frontend/vuejs/src/apps/menu/views/MenuView.vue']},
+        )
+        model = _FakeCaptureModel([])
+        self.assertIsNone(project_memory.capture(thread.id, client=model))
+        self.assertIn('Brief from the coordinator: Add a menu page', model.prompts[0])
+        self.assertIn('MenuView.vue', model.prompts[0])
+
+    def test_undo_puts_lines_back(self):
+        project_memory.remember(self.user.id, self.project.id, 'Colours are navy and gold')
+        change = project_memory.apply_changes(self.user.id, self.project.id, [
+            {'action': 'remove', 'text': 'Colours are navy and gold'},
+            {'action': 'add', 'section': 'Decisions', 'text': 'Colours are navy and coral'},
+        ], author='auto')
+        project_memory.undo_change(change)
+        doc = self._doc()
+        self.assertIn('navy and gold', doc)
+        self.assertNotIn('coral', doc)
+        change.refresh_from_db()
+        self.assertIsNotNone(change.undone_at)
+        with self.assertRaises(ValueError):
+            project_memory.undo_change(change)
+
+    def test_the_user_views_edits_and_undoes_memory_over_the_api(self):
         token = Token.objects.create(user=self.user)
         auth = {'HTTP_AUTHORIZATION': f'Token {token.key}'}
-        created = self.client.post(
-            reverse('project_memory_list'),
-            {'project_id': self.project.id, 'key': 'Audience', 'value': 'Local families'},
+        url = reverse('project_memory') + f'?project_id={self.project.id}'
+        viewed = self.client.get(url, **auth).json()
+        self.assertEqual(viewed['version'], 0)
+        self.assertIn('## About the app', viewed['content'])
+
+        content = viewed['content'].replace('## Decisions', '## Decisions\n- Audience is local families')
+        saved = self.client.put(
+            url, {'content': content, 'version': 0}, content_type='application/json', **auth,
+        )
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json()['version'], 1)
+        change = saved.json()['changes'][0]
+        self.assertEqual(change['author'], 'user')
+        self.assertEqual(change['lines'], [
+            {'op': 'add', 'section': 'Decisions', 'text': 'Audience is local families'},
+        ])
+
+        # An edit of an older copy is merged into the memory as it is now:
+        # the line saved meanwhile stays, and the edit's own line is added.
+        stale = self.client.put(
+            url,
+            {'content': viewed['content'].replace('## Decisions', '## Decisions\n- Opens at 7am'),
+             'version': 0, 'base_content': viewed['content']},
             content_type='application/json', **auth,
         )
-        self.assertEqual(created.status_code, 201)
-        entry_id = created.json()['id']
-        edited = self.client.patch(
-            reverse('project_memory_detail', args=[entry_id]),
-            {'value': 'Local families and offices'},
+        self.assertEqual(stale.status_code, 200)
+        self.assertIn('Audience is local families', stale.json()['content'])
+        self.assertIn('Opens at 7am', stale.json()['content'])
+        # Without the copy it started from, it is refused with the memory as it is.
+        refused = self.client.put(
+            url, {'content': '## Decisions\n- Something else', 'version': 0},
             content_type='application/json', **auth,
         )
-        self.assertEqual(edited.json()['value'], 'Local families and offices')
-        listed = self.client.get(
-            reverse('project_memory_list') + f'?project_id={self.project.id}', **auth
+        self.assertEqual(refused.status_code, 409)
+        self.assertIn('Opens at 7am', refused.json()['content'])
+
+        undone = self.client.post(
+            reverse('project_memory_undo', args=[change['id']]), **auth,
         )
-        self.assertEqual([e['key'] for e in listed.json()['entries']], ['Audience'])
-        self.assertEqual(
-            self.client.delete(reverse('project_memory_detail', args=[entry_id]), **auth).status_code,
-            204,
+        self.assertEqual(undone.status_code, 200)
+        self.assertNotIn('Audience', undone.json()['content'])
+        self.assertIn('Opens at 7am', undone.json()['content'])
+        self.assertTrue(
+            next(c for c in undone.json()['changes'] if c['id'] == change['id'])['undone']
         )
 
 

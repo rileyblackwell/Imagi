@@ -1,21 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import type { AgentInstance, ThreadScheduleDto } from '../../types/services'
+import type { AgentInstance, ProjectMemory, ProjectMemoryChange, ThreadScheduleDto } from '../../types/services'
 
 // Mock the services the store talks to (no network in unit tests).
 const agentService = vi.hoisted(() => ({
   getConversation: vi.fn(),
   listCheckIns: vi.fn(),
-  listMemory: vi.fn(),
-  addMemory: vi.fn(),
-  updateMemory: vi.fn(),
-  deleteMemory: vi.fn(),
+  getMemory: vi.fn(),
+  saveMemory: vi.fn(),
+  undoMemoryChange: vi.fn(),
 }))
 vi.mock('../../services/agentService', () => ({ AgentService: agentService }))
 vi.mock('../../services/fileService', () => ({ FileService: { getProjectFiles: vi.fn() } }))
 
 import { useAgentStore, isHeldThread } from '@/apps/imagi/build/stores/agentStore'
 import { heldStatus, scheduleLine } from '@/apps/imagi/build/utils/threadSchedule'
+import { changeByline, memoryLineCount, parseMemory } from '@/apps/imagi/build/utils/projectMemory'
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 0))
 
@@ -162,30 +162,77 @@ describe('project memory', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     Object.values(agentService).forEach((fn) => fn.mockReset())
+    localStorage.clear()
   })
 
-  it('replaces an entry saved again under the same topic', async () => {
+  function memory(overrides: Partial<ProjectMemory> = {}): ProjectMemory {
+    return {
+      content: '## Decisions\n- Colours are navy and coral\n',
+      version: 3,
+      updated_at: null,
+      sections: ['About the app', 'Decisions', "How it's built", 'How the user likes to work'],
+      max_chars: 6000,
+      changes: [],
+      pending: [],
+      ...overrides,
+    }
+  }
+
+  it('shows the book as fresh until the memory has been looked at', async () => {
     const store = useAgentStore()
     store.projectId = '5'
-    store.memoryEntries = [
-      { id: 1, key: 'Brand colors', value: 'Navy', status: 'active', author: 'user', source: null, updated_at: '' },
-    ]
-    agentService.addMemory.mockResolvedValue(
-      { id: 2, key: 'brand colors', value: 'Navy and coral', status: 'active', author: 'user', source: null, updated_at: '' },
-    )
+    agentService.getMemory.mockResolvedValue(memory())
 
-    await store.addMemory('brand colors', 'Navy and coral')
+    await store.loadMemory()
+    expect(store.memoryFresh).toBe(true)
 
-    expect(store.memoryEntries.map(e => e.value)).toEqual(['Navy and coral'])
+    store.setMemoryViewing(true)
+    expect(store.memoryFresh).toBe(false)
+    // Remembered per project in this browser.
+    expect(localStorage.getItem('imagi.memorySeen.5')).toBe('3')
+
+    store.setMemoryViewing(false)
+    agentService.getMemory.mockResolvedValue(memory({ version: 4 }))
+    await store.loadMemory()
+    expect(store.memoryFresh).toBe(true)
   })
 
-  it('puts an entry back when removing it fails', async () => {
+  it('saves an edit against the copy it was made from', async () => {
     const store = useAgentStore()
-    const entry = { id: 3, key: 'Tone', value: 'Friendly', status: 'active' as const, author: 'user' as const, source: null, updated_at: '' }
-    store.memoryEntries = [entry]
-    agentService.deleteMemory.mockRejectedValue(new Error('offline'))
+    store.projectId = '5'
+    store.memory = memory()
+    const saved = memory({ version: 4, content: '## Decisions\n- Colours are navy\n' })
+    agentService.saveMemory.mockResolvedValue(saved)
 
-    await expect(store.removeMemory(3)).rejects.toThrow('offline')
-    expect(store.memoryEntries).toEqual([entry])
+    await store.saveMemory('## Decisions\n- Colours are navy\n', { version: 3, content: store.memory.content })
+
+    expect(agentService.saveMemory).toHaveBeenCalledWith(
+      '5', '## Decisions\n- Colours are navy\n',
+      { version: 3, content: '## Decisions\n- Colours are navy and coral\n' },
+    )
+    expect(store.memory).toEqual(saved)
+    expect(store.memoryFresh).toBe(false)
+  })
+})
+
+describe('reading the memory document', () => {
+  it('splits it into sections of facts', () => {
+    const { preamble, sections } = parseMemory(
+      '# Project memory\nA note\n\n## About the app\n- A bakery\n* Opens at 7\n\n## Decisions\n',
+    )
+    expect(preamble).toEqual(['A note'])
+    expect(sections).toEqual([
+      { title: 'About the app', lines: ['A bakery', 'Opens at 7'] },
+      { title: 'Decisions', lines: [] },
+    ])
+    expect(memoryLineCount('## A\n- one\n- two\n')).toBe(2)
+  })
+
+  it('names who made a change', () => {
+    const change = (author: ProjectMemoryChange['author'], source: ProjectMemoryChange['source'] = null): ProjectMemoryChange =>
+      ({ id: 1, author, source, lines: [], created_at: '', undone: false })
+    expect(changeByline(change('auto', { id: 1, kind: 'lead', title: '' }))).toBe('Saved from your chat')
+    expect(changeByline(change('auto', { id: 2, kind: 'task', title: 'Menu page' }))).toBe('Saved from thread · Menu page')
+    expect(changeByline(change('user'))).toBe('You')
   })
 })

@@ -1856,6 +1856,10 @@ class ImagiAgentService:
         Either way the task never interrupts the user directly.
         """
         # getattr: test doubles stand in for the conversation here.
+        if getattr(conversation, 'kind', 'chat') == 'lead':
+            # Anything from this turn later work should know goes into
+            # project memory, read in the background.
+            self._capture_memory(conversation)
         if getattr(conversation, 'kind', 'chat') != 'task':
             return
         question = (getattr(context, 'pending_question', None) or '').strip() if context else ''
@@ -1885,10 +1889,9 @@ class ImagiAgentService:
         blocked = self._auto_apply_task(conversation)
         if not blocked:
             # Landed: the schedule records it (releasing work that waited on
-            # it), and what the thread proposed for project memory is
-            # committed with it.
+            # it), and its notes for project memory are saved with it.
             self._record_task_outcome(conversation, 'done', response_content, files)
-            self._commit_memory(conversation)
+            self._land_memory(conversation)
             if getattr(conversation, 'merge_retries', 0):
                 AgentConversation.objects.filter(pk=conversation.pk).update(merge_retries=0)
             # Already in the app. The check-in is how the user hears about it —
@@ -1929,13 +1932,23 @@ class ImagiAgentService:
         except Exception as e:  # pragma: no cover - best effort
             logger.warning(f"Could not record thread {getattr(conversation, 'id', None)}'s outcome: {e}")
 
-    def _commit_memory(self, conversation) -> None:
-        """Best-effort: a thread's work landed, so its memory proposals do too."""
+    def _land_memory(self, conversation) -> None:
+        """Best-effort: a thread's work landed, so its memory notes are saved
+        and its work is read for anything else worth keeping (not for the
+        first build's pages, which only build the app the user described)."""
         try:
-            from .project_memory import commit_proposals
-            commit_proposals(conversation)
+            from .project_memory import thread_landed
+            thread_landed(conversation, capture=self.agent_kind != 'initial_build')
         except Exception as e:  # pragma: no cover - best effort
-            logger.warning(f"Could not commit thread {getattr(conversation, 'id', None)}'s memory: {e}")
+            logger.warning(f"Could not save thread {getattr(conversation, 'id', None)}'s memory: {e}")
+
+    def _capture_memory(self, conversation) -> None:
+        """Best-effort: read a coordinator turn for project memory."""
+        try:
+            from .project_memory import schedule_capture
+            schedule_capture(conversation.id)
+        except Exception as e:  # pragma: no cover - best effort
+            logger.warning(f"Could not capture memory for {getattr(conversation, 'id', None)}: {e}")
 
     def _task_files(self, conversation) -> List[str]:
         """Files a thread's worktree changed since it forked (best-effort)."""
