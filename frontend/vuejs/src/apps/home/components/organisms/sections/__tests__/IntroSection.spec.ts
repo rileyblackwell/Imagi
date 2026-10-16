@@ -16,7 +16,7 @@ describe('IntroSection (what Imagi is)', () => {
     expect(labels).toEqual(['Price', 'Your app is built in under', 'Made for'])
     const values = wrapper().findAll('.fact__value').map((v) => v.text())
     expect(values[0]).toBe('Free')
-    expect(values[1]).toContain('10')
+    expect(values[1]).toContain('5')
     expect(values[1]).toContain('sec')
     expect(values[2]).toContain('Founders')
   })
