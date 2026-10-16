@@ -3,8 +3,8 @@
      DefaultLayout.
 
      The links sit to the left, after the wordmark: the Product menu (Imagi, to
-     the projects page), Docs, Pricing and About, the same for visitors and the
-     signed-in. The page you are on is set in full ink. On the right, visitors
+     the projects page) and Pricing, the same for visitors and the signed-in.
+     Docs and About are in the footer. The page you are on is set in full ink. On the right, visitors
      get a quiet Sign in and the ink Start building pill; signed in, a quiet Sign
      out. The coral light stays with the page. Below md the links fold into a
      Menu sheet.
@@ -101,11 +101,6 @@
             Pricing
           </router-link>
         </div>
-        <div class="site-sheet__group">
-          <p class="site-sheet__label">Learn</p>
-          <router-link to="/docs" class="site-sheet__link" :class="{ 'is-active': isActive('/docs') }">Docs</router-link>
-          <router-link to="/about" class="site-sheet__link" :class="{ 'is-active': isActive('/about') }">About</router-link>
-        </div>
 
         <div class="site-sheet__actions">
           <template v-if="isAuthenticated">
@@ -136,12 +131,11 @@ defineOptions({ name: 'SiteNavbar', inheritAttrs: false })
 // wordmark (the docs' sidebar toggle)
 defineSlots<{ 'left-leading'?: () => unknown }>()
 
-// `match` is the path prefix that marks the link as the current page, so the
-// docs' sub-pages (/docs/building, /docs/models, ...) still light Docs.
+// `match` is the path prefix that marks the link as the current page, so
+// every page under it (/payments/...) still lights the link. Docs and About
+// live in the footer.
 const links = [
-  { label: 'Docs', to: '/docs', match: '/docs' },
-  { label: 'Pricing', to: '/payments/pricing', match: '/payments' },
-  { label: 'About', to: '/about', match: '/about' }
+  { label: 'Pricing', to: '/payments/pricing', match: '/payments' }
 ]
 
 const router = useRouter()

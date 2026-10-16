@@ -21,8 +21,8 @@ const stubs = {
 }
 
 /**
- * The bar is the same for everyone in the middle (Product, Docs, Pricing,
- * About) and changes only on the right: visitors can sign in or start
+ * The bar is the same for everyone on the left (Product and Pricing; Docs
+ * and About live in the footer) and changes only on the right: visitors can sign in or start
  * building, the signed-in can sign out. The current page reads in full ink,
  * and below md everything folds into a Menu sheet.
  */
@@ -40,7 +40,9 @@ describe('SiteNavbar', () => {
     const w = mountBar()
     const desktop = w.find('nav')
     expect(desktop.text()).toContain('Product')
-    for (const label of ['Docs', 'Pricing', 'About']) expect(desktop.text()).toContain(label)
+    expect(desktop.text()).toContain('Pricing')
+    expect(desktop.text()).not.toContain('Docs')
+    expect(desktop.text()).not.toContain('About')
     expect(w.find('a[href="/auth/signin"]').text()).toBe('Sign in')
     expect(w.find('a.site-nav-cta[href="/auth/register"]').text()).toBe('Start building')
     expect(desktop.text()).not.toContain('Sign out')
@@ -56,13 +58,15 @@ describe('SiteNavbar', () => {
     expect(logout).toHaveBeenCalled()
   })
 
-  it('marks the current page, docs sub-pages included', () => {
-    route.path = '/docs/building'
+  it('marks the current page, sub-pages included', () => {
+    route.path = '/payments/pricing'
     const w = mountBar()
-    const docs = w.find('a.site-nav-link[href="/docs"]')
-    expect(docs.classes()).toContain('is-active')
-    expect(docs.attributes('aria-current')).toBe('page')
-    expect(w.find('a.site-nav-link[href="/about"]').classes()).not.toContain('is-active')
+    const pricing = w.find('a.site-nav-link[href="/payments/pricing"]')
+    expect(pricing.classes()).toContain('is-active')
+    expect(pricing.attributes('aria-current')).toBe('page')
+
+    route.path = '/docs/building'
+    expect(mountBar().find('a.site-nav-link[href="/payments/pricing"]').classes()).not.toContain('is-active')
   })
 
   it('lights Product on the projects pages, and its menu holds Imagi', () => {
@@ -81,12 +85,13 @@ describe('SiteNavbar', () => {
     await menuBtn.trigger('click')
     expect(menuBtn.attributes('aria-expanded')).toBe('true')
     const sheet = w.find('#site-nav-sheet')
-    for (const label of ['Imagi', 'Pricing', 'Docs', 'About', 'Start building', 'Sign in']) {
+    for (const label of ['Imagi', 'Pricing', 'Start building', 'Sign in']) {
       expect(sheet.text()).toContain(label)
     }
+    expect(sheet.text()).not.toContain('Docs')
 
-    route.path = '/docs'
-    route.fullPath = '/docs'
+    route.path = '/payments/pricing'
+    route.fullPath = '/payments/pricing'
     await w.vm.$nextTick()
     await w.vm.$nextTick()
     expect(w.find('#site-nav-sheet').exists()).toBe(false)
