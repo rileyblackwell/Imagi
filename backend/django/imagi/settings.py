@@ -359,8 +359,9 @@ IMAGI_BUILDER = {
     # every project. Working in parallel is the point of dispatching them —
     # each builds in its own git worktree and merges itself when it finishes —
     # so this is only a bound on how far a burst of them can overshoot the plan
-    # allowance (which is read before a run and debited after it).
-    'MAX_CONCURRENT_TASK_RUNS': 5,
+    # allowance (which is read before a run and debited after it). 20 lets a
+    # first build run every page at once (Riley, 2026-10-16).
+    'MAX_CONCURRENT_TASK_RUNS': 20,
     # The same bound for the threads the user actually types in. Counted
     # separately from the subagents on purpose: a busy set of background agents
     # must never make the main thread unusable. One live run per project is
@@ -392,15 +393,16 @@ IMAGI_BUILDER = {
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
     # Every page of the first build, home included, runs on GPT 6 Luna at its
-    # top reasoning effort, at standard speed (Riley, 2026-10-16): GPT 6.1 Sol
-    # on Ultrafast for home cost too much. The quick home page's words ride the
-    # same model. A page whose GPT run fails outright (no OPENAI_KEY, an
+    # top reasoning effort in OpenAI's Fast tier (Riley, 2026-10-16): GPT 6.1
+    # Sol on Ultrafast for home cost too much. The quick home page's words and
+    # the sign-in page restyle ride the same model and tier. A page whose GPT run fails outright (no OPENAI_KEY, an
     # exhausted OpenAI balance) is built again on INITIAL_BUILD_FALLBACK_MODEL.
     # INITIAL_BUILD_HOME_MODEL / INITIAL_BUILD_HOME_SERVICE_TIER, when set, put
     # the home page alone on another model and OpenAI speed tier. The
     # project's main thread still gets DEFAULT_MODEL; this only picks the page
     # builders.
     'INITIAL_BUILD_MODEL': 'gpt-6-luna',
+    'INITIAL_BUILD_SERVICE_TIER': 'fast',
     'INITIAL_BUILD_FALLBACK_MODEL': 'claude-opus-5-5',
     # GPT runs talk to OpenAI's Responses API over one WebSocket per run, as
     # OpenAI recommends for its fast tiers (Riley, 2026-10-12). 'http' (or the
@@ -414,9 +416,10 @@ IMAGI_BUILDER = {
     # (initial_page_plan.MAX_PAGES). Setting INITIAL_BUILD_PAGES to a list of
     # PAGE_BRIEFS slugs skips the plan and builds exactly those.
     'INITIAL_BUILD_PLANNER_MODEL': 'claude-sonnet-5-5',
-    # Planned pages build behind home, this many at once,
-    # each with its own time budget counted from when it starts.
-    'INITIAL_BUILD_MAX_PARALLEL_PAGES': 6,
+    # Planned pages build behind home, this many at once (20, the most a plan
+    # makes, so every page starts together), each with its own time budget
+    # counted from when it starts.
+    'INITIAL_BUILD_MAX_PARALLEL_PAGES': 20,
     'INITIAL_BUILD_PAGE_TIME_BUDGET_S': 120,
     # Luna is small, so its pages run at OpenAI's top effort, xhigh (Riley,
     # 2026-10-16). Claude's 'max' would be capped to xhigh on a GPT model.

@@ -49,11 +49,11 @@ RESERVED_SLUGS = frozenset({
 
 _SLUG_RE = re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')
 
-# Appended to every planned page's own requirements: only the home page
-# carries the sign-in wiring.
+# Appended to every planned page's own requirements: the shared layout
+# carries the header (with the sign-in links) and the footer.
 PAGE_RULES = (
-    "Do not add the auth header or sign-in calls to action, which the home page "
-    "owns, and do not import the auth store."
+    "Do not add a header, navigation, footer or sign-in links, which the site's "
+    "shared layout provides, and do not import the auth store."
 )
 
 PLAN_SCHEMA = {
@@ -217,6 +217,7 @@ def _label(page) -> str:
 
 
 def router_ts(pages: Iterable) -> str:
+    """The home router: every page nested under the shared SiteLayout."""
     pages = list(pages)
     imports = '\n'.join(
         f"import {view_name(p.slug) if p.slug != 'home' else 'HomeView'} from "
@@ -224,19 +225,28 @@ def router_ts(pages: Iterable) -> str:
         for p in pages
     )
     routes = ',\n'.join(
-        f"""  {{
-    path: {json.dumps(p.route)},
-    name: '{p.slug}-view',
-    component: {os.path.splitext(os.path.basename(p.view_path))[0]},
-    meta: {{ requiresAuth: false, title: {json.dumps(_label(p))} }}
-  }}"""
+        f"""      {{
+        path: {json.dumps(p.route)},
+        name: '{p.slug}-view',
+        component: {os.path.splitext(os.path.basename(p.view_path))[0]},
+        meta: {{ requiresAuth: false, title: {json.dumps(_label(p))} }}
+      }}"""
         for p in pages
     )
     return f"""import type {{ RouteRecordRaw }} from 'vue-router'
+import SiteLayout from '../layouts/SiteLayout.vue'
 {imports}
 
+// Every page renders inside SiteLayout, which holds the shared header,
+// navigation and footer.
 const routes: RouteRecordRaw[] = [
+  {{
+    path: '/',
+    component: SiteLayout,
+    children: [
 {routes}
+    ]
+  }}
 ]
 
 export {{ routes }}
@@ -271,31 +281,16 @@ def placeholder_view(page) -> str:
     """
     label = _template_text(_label(page))
     return f"""<template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col" data-{PLACEHOLDER_MARKER}>
-    <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-wrap items-center gap-4">
-        <router-link
-          v-for="p in sitePages"
-          :key="p.path"
-          :to="p.path"
-          class="text-sm font-medium text-gray-700 hover:text-gray-900"
-        >{{{{ p.label }}}}</router-link>
-      </nav>
-    </header>
-    <main class="flex-grow flex items-center">
-      <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <div class="mx-auto mb-6 h-10 w-10 rounded-full border-4 border-gray-200 border-t-gray-700 animate-spin" aria-hidden="true"></div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-3">{label} is still being generated</h1>
-        <p class="text-lg text-gray-600">This page is still being built. It will appear here on its own as soon as it's ready.</p>
-        <router-link to="/" class="inline-block mt-8 text-sm font-medium text-gray-900 underline">Back to the home page</router-link>
-      </div>
-    </main>
-  </div>
+  <section class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center" data-{PLACEHOLDER_MARKER}>
+    <div class="mx-auto mb-6 h-10 w-10 rounded-full border-4 animate-spin" style="border-color: var(--site-border); border-top-color: var(--site-accent)" aria-hidden="true"></div>
+    <h1 class="text-3xl font-bold mb-3" style="font-family: var(--site-font-heading)">{label} is still being generated</h1>
+    <p class="text-lg" style="color: var(--site-muted)">This page is still being built. It will appear here on its own as soon as it's ready.</p>
+    <router-link to="/" class="inline-block mt-8 text-sm font-medium underline">Back to the home page</router-link>
+  </section>
 </template>
 
 <script setup lang="ts">
 import {{ onBeforeUnmount, onMounted }} from 'vue'
-import {{ sitePages }} from '../site-pages'
 
 // Reload once the real page has been written over this one.
 let timer: number | undefined
@@ -318,28 +313,13 @@ def unbuilt_view(page) -> str:
     """What a planned page shows when its thread could not build it."""
     label = _template_text(_label(page))
     return f"""<template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
-    <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-wrap items-center gap-4">
-        <router-link
-          v-for="p in sitePages"
-          :key="p.path"
-          :to="p.path"
-          class="text-sm font-medium text-gray-700 hover:text-gray-900"
-        >{{{{ p.label }}}}</router-link>
-      </nav>
-    </header>
-    <main class="flex-grow flex items-center">
-      <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <h1 class="text-3xl font-bold text-gray-900 mb-3">{label}</h1>
-        <p class="text-lg text-gray-600">This page isn't built yet.</p>
-      </div>
-    </main>
-  </div>
+  <section class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+    <h1 class="text-3xl font-bold mb-3" style="font-family: var(--site-font-heading)">{label}</h1>
+    <p class="text-lg" style="color: var(--site-muted)">This page isn't built yet.</p>
+  </section>
 </template>
 
 <script setup lang="ts">
-import {{ sitePages }} from '../site-pages'
 </script>
 """
 

@@ -364,7 +364,45 @@ class AuthRestyleServiceTests(TransactionTestCase):
         self.assertIn('Beanline', brief)
         self.assertIn('Warm and earthy', brief)
 
+    def test_runs_on_the_first_builds_model_tier_and_effort(self):
+        from apps.Imagi.Build.models import AgentConversation
+        from apps.Imagi.ProjectManager.services import auth_restyle_service
+
+        self._lead()
+        builder = settings.IMAGI_BUILDER
+        with patch.object(auth_restyle_service, '_start_threads'), \
+                patch('apps.Imagi.Build.services.api_keys.read_api_key', return_value='sk-test'):
+            task = auth_restyle_service.queue_auth_restyle(self.project.pk, self.user.pk)
+        task = AgentConversation.objects.get(pk=task.pk)
+        self.assertEqual(task.model_name, builder['INITIAL_BUILD_MODEL'])
+        self.assertEqual(task.service_tier, builder['INITIAL_BUILD_SERVICE_TIER'])
+        self.assertEqual(task.reasoning_effort, builder['INITIAL_BUILD_REASONING_EFFORT'])
+
+    def test_a_started_run_outlives_the_call_that_started_it(self):
+        # The first build calls this from a thread with no loop; the run it
+        # starts must keep going after the call returns.
+        import asyncio
+        import threading
+
+        from apps.Imagi.Build.services import detached_runs
+        from apps.Imagi.ProjectManager.services import auth_restyle_service
+
+        finished = threading.Event()
+
+        async def fake_start(user):
+            async def drive():
+                await asyncio.sleep(0.2)
+                finished.set()
+            task = asyncio.get_running_loop().create_task(drive())
+            detached_runs._running.add(task)
+            task.add_done_callback(detached_runs._running.discard)
+
+        with patch('apps.Imagi.Build.services.thread_scheduler.start_waiting_threads', fake_start):
+            auth_restyle_service._start_threads(self.user)
+            self.assertTrue(finished.wait(5))
+
     def test_queues_a_thread_under_the_main_thread_on_the_everyday_model(self):
+        # Without an OpenAI key the GPT build model can't run it.
         from apps.Imagi.Build.models import AgentConversation
         from apps.Imagi.ProjectManager.services import auth_restyle_service
 
