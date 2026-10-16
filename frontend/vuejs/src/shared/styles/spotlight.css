@@ -241,6 +241,11 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  /* Tight tracking pulls the box in past the last letter, and the gradient
+     only paints inside the box. Paint a little further without moving
+     anything, so the last letter isn't sliced off. */
+  padding-inline-end: 0.08em;
+  margin-inline-end: -0.08em;
 }
 
 /* Centered section header: eyebrow, headline, lede */

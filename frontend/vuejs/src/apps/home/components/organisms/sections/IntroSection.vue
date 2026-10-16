@@ -41,7 +41,7 @@ export default defineComponent({
       type: Array,
       default: () => [
         { label: 'Price', value: 'Free', lit: true, caption: 'Try it in free mode and build your app without paying a thing.' },
-        { label: 'Your app is built in under', value: '10', unit: 'sec', lit: true, caption: 'From Create to your home page on screen. The other pages keep building in the background.' },
+        { label: 'Your app is built in under', value: '5', unit: 'sec', lit: true, caption: 'From Create to your home page on screen. The other pages keep building in the background.' },
         { label: 'Made for', value: 'Founders, small businesses and teams', caption: 'And anyone else with an idea worth trying.' }
       ]
     }
