@@ -11,6 +11,7 @@ import contextlib
 import fcntl
 import logging
 import os
+import re
 import shutil
 import subprocess
 import datetime
@@ -36,6 +37,19 @@ class StaleForkPoint(Exception):
     the merge is refused before touching the canonical tree. The API maps
     this to a 409 stale_base.
     """
+
+
+# Git's conflict markers: seven or more, since a merge that nests one
+# conflict inside another marks the inner one with longer markers.
+CONFLICT_MARKER_RE = re.compile(r'^(<{7,}|>{7,})( |$)', re.MULTILINE)
+
+
+def has_conflict_markers(path: str) -> bool:
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            return bool(CONFLICT_MARKER_RE.search(f.read()))
+    except OSError:
+        return False
 
 
 def task_worktree_path(project_path: str, conversation_id: int) -> str:
@@ -479,19 +493,27 @@ class VersionControlService:
         commit = self.commit_changes(worktree_path, f'Task {conversation_id} changes')
         if not commit.get('success'):
             return {'success': False, 'conflicts': [], 'message': commit.get('message', '')}
+        from . import live_apply
+
         with canonical_repo_lock(project_path):
-            self.commit_changes(
-                project_path, f'Checkpoint before reconciling task {conversation_id}'
-            )
-            head = subprocess.run(
-                ['git', 'rev-parse', 'HEAD'], cwd=project_path, capture_output=True, text=True
-            )
-            if head.returncode != 0:
-                return {'success': False, 'conflicts': [], 'message': head.stderr}
-            merge = subprocess.run(
-                ['git', 'merge', '--no-edit', head.stdout.strip()],
-                cwd=worktree_path, capture_output=True, text=True
-            )
+            # The thread's own live copies aren't work that landed meanwhile:
+            # keep them out of the checkpoint it merges, then put them back.
+            set_aside = live_apply.set_aside_own_copies(project_path, conversation_id)
+            try:
+                self.commit_changes(
+                    project_path, f'Checkpoint before reconciling task {conversation_id}'
+                )
+                head = subprocess.run(
+                    ['git', 'rev-parse', 'HEAD'], cwd=project_path, capture_output=True, text=True
+                )
+                if head.returncode != 0:
+                    return {'success': False, 'conflicts': [], 'message': head.stderr}
+                merge = subprocess.run(
+                    ['git', 'merge', '--no-edit', head.stdout.strip()],
+                    cwd=worktree_path, capture_output=True, text=True
+                )
+            finally:
+                live_apply.put_back(project_path, set_aside)
         if merge.returncode == 0:
             return {'success': True, 'conflicts': [], 'message': 'Merged cleanly'}
         unmerged = subprocess.run(
@@ -499,6 +521,15 @@ class VersionControlService:
             cwd=worktree_path, capture_output=True, text=True
         )
         conflicts = [p for p in unmerged.stdout.splitlines() if p.strip()]
+        # A rename that collides leaves nested markers in files git may not
+        # list as unmerged, so look for markers in everything the merge touched.
+        touched = subprocess.run(
+            ['git', 'diff', '--name-only', 'HEAD'],
+            cwd=worktree_path, capture_output=True, text=True
+        )
+        for rel in touched.stdout.splitlines():
+            if rel.strip() and rel not in conflicts and has_conflict_markers(os.path.join(worktree_path, rel)):
+                conflicts.append(rel)
         if not conflicts:
             subprocess.run(['git', 'merge', '--abort'], cwd=worktree_path,
                            capture_output=True, text=True)
@@ -632,6 +663,9 @@ class VersionControlService:
                         ['git', 'update-ref', '-d', task_base_ref(conversation_id)],
                         cwd=project_path, capture_output=True, text=True
                     )
+                    from . import live_apply
+
+                    live_apply.forget_own_copies(project_path, conversation_id)
                     subprocess.run(
                         ['git', 'worktree', 'prune'],
                         cwd=project_path, capture_output=True, text=True
@@ -694,11 +728,19 @@ class VersionControlService:
                         'restore.'
                     )
 
+            # The thread's own live copies (live_apply) are earlier drafts of
+            # what it is merging, not someone else's work: set them aside so
+            # the checkpoint below doesn't carry them and clash with it.
+            from . import live_apply
+
+            set_aside = live_apply.set_aside_own_copies(project_path, conversation_id)
+
             # And any pending canonical edits, so the merge target is clean.
             canonical_commit = self.commit_changes(
                 project_path, f'Checkpoint before merging task {conversation_id}'
             )
             if not canonical_commit.get('success'):
+                live_apply.put_back(project_path, set_aside)
                 return {
                     'success': False,
                     'message': canonical_commit.get('message', 'Could not commit canonical changes'),
@@ -713,11 +755,13 @@ class VersionControlService:
                     ['git', 'merge', '--abort'],
                     cwd=project_path, capture_output=True, text=True
                 )
+                live_apply.put_back(project_path, set_aside)
                 detail = (merge.stdout or '').strip() or (merge.stderr or '').strip()
                 raise MergeConflict(
                     detail or f'Task {conversation_id} conflicts with the current project state'
                 )
 
+            live_apply.forget_own_copies(project_path, conversation_id)
             hash_result = subprocess.run(
                 ['git', 'rev-parse', 'HEAD'],
                 cwd=project_path, capture_output=True, text=True

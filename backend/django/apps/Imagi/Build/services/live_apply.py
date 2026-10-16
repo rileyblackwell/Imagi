@@ -14,6 +14,12 @@ edit: the file as the thread forked it, or the thread's own last copy. If
 anyone else changed it since, the copy is skipped and the thread's version
 waits for the merge at the end, where git reconciles the two.
 
+Every copy a thread makes is also recorded (own_copies), so the app still
+holding any version the thread itself put there counts as the thread's own:
+its next edit goes straight through, and when the thread merges, those
+copies are set aside first, so git weighs the thread's finished work against
+what others changed rather than against its own earlier drafts.
+
 After a copy, the preview gets a moment to reload, and any new console error
 or dev-server error is handed back in the thread's own tool result. An error
 an edit causes therefore reaches the thread that made it, while it can still
@@ -24,6 +30,8 @@ first build's page threads are not copied: drafts would overwrite each other,
 and a first-build page is checked before it is allowed into the project.
 """
 
+import hashlib
+import json
 import logging
 import os
 import re
@@ -106,7 +114,10 @@ def mirror(context, file_path: str, previous: Optional[bytes]) -> Dict:
             current = _read(target)
             if current == content:
                 return {'live': True}
-            if current != previous:
+            conversation_id = getattr(context, 'conversation_id', None)
+            if current != previous and not _is_own_copy(
+                context.project_path, conversation_id, file_path, current
+            ):
                 return {
                     'live': False,
                     'reason': (
@@ -123,6 +134,7 @@ def mirror(context, file_path: str, previous: Optional[bytes]) -> Dict:
                 with open(tmp, 'wb') as f:
                     f.write(content)
                 os.replace(tmp, target)
+            _record_own_copy(context.project_path, conversation_id, file_path, content)
     except OSError as e:
         logger.warning("Could not apply %s to the project live: %s", file_path, e)
         return {'live': False, 'reason': 'It could not be copied into the app; it goes in when you finish.'}
@@ -137,6 +149,117 @@ def mirror(context, file_path: str, previous: Optional[bytes]) -> Dict:
         # runserver reloads on the new file but never applies it.
         schedule_migrate(getattr(context, 'project_id', None))
     return {'live': True}
+
+
+# --- A thread's own copies -----------------------------------------------------
+
+def _own_copies_file(project_path: str, conversation_id) -> str:
+    return os.path.join(project_path, '.git', 'imagi-live', f'{conversation_id}.json')
+
+
+def _digest(content: Optional[bytes]) -> str:
+    return '-' if content is None else hashlib.sha1(content).hexdigest()
+
+
+def own_copies(project_path: str, conversation_id) -> Dict[str, List[str]]:
+    """{path: digests of every version this thread copied into the app}."""
+    if not (project_path and conversation_id):
+        return {}
+    try:
+        with open(_own_copies_file(project_path, conversation_id)) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _is_own_copy(project_path, conversation_id, file_path, content) -> bool:
+    return _digest(content) in own_copies(project_path, conversation_id).get(file_path, [])
+
+
+def _record_own_copy(project_path, conversation_id, file_path, content) -> None:
+    """Called with the repo lock held."""
+    if not (project_path and conversation_id):
+        return
+    copies = own_copies(project_path, conversation_id)
+    digests = copies.setdefault(file_path, [])
+    if _digest(content) not in digests:
+        digests.append(_digest(content))
+    path = _own_copies_file(project_path, conversation_id)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as f:
+            json.dump(copies, f)
+    except OSError as e:
+        logger.warning("Could not record thread %s's copy of %s: %s", conversation_id, file_path, e)
+
+
+def forget_own_copies(project_path: str, conversation_id) -> None:
+    try:
+        os.remove(_own_copies_file(project_path, conversation_id))
+    except OSError:
+        pass
+
+
+def set_aside_own_copies(project_path: str, conversation_id) -> Dict[str, Optional[bytes]]:
+    """Before a thread's merge: put each file that still holds one of the
+    thread's own live copies back as it was when the thread forked.
+
+    Without this, the checkpoint the merge commits first would carry the
+    thread's live copies as if someone else had made them, and wherever the
+    thread's finished file differs from an earlier copy, it would clash with
+    itself. Called with the repo lock held. Returns what was set aside, for
+    put_back if the merge doesn't go through.
+    """
+    from .version_control_service import task_base_ref
+
+    copies = own_copies(project_path, conversation_id)
+    if not copies:
+        return {}
+    base = subprocess.run(
+        ['git', 'rev-parse', '--verify', '--quiet', task_base_ref(conversation_id)],
+        cwd=project_path, capture_output=True,
+    )
+    if base.returncode != 0:
+        return {}
+    fork = base.stdout.decode().strip()
+    set_aside = {}
+    for rel, digests in copies.items():
+        target = os.path.join(project_path, rel)
+        current = _read(target)
+        if _digest(current) not in digests:
+            continue  # changed since by someone else: a real overlap
+        original = subprocess.run(['git', 'show', f'{fork}:{rel}'], cwd=project_path, capture_output=True)
+        try:
+            if original.returncode == 0:
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(target, 'wb') as f:
+                    f.write(original.stdout)
+            elif current is not None:
+                os.remove(target)
+            else:
+                continue
+        except OSError as e:
+            logger.warning("Could not set aside %s before merging thread %s: %s", rel, conversation_id, e)
+            continue
+        set_aside[rel] = current
+    return set_aside
+
+
+def put_back(project_path: str, set_aside: Dict[str, Optional[bytes]]) -> None:
+    """Undo set_aside_own_copies, so the app shows the thread's work again."""
+    for rel, content in set_aside.items():
+        target = os.path.join(project_path, rel)
+        try:
+            if content is None:
+                if os.path.exists(target):
+                    os.remove(target)
+            else:
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(target, 'wb') as f:
+                    f.write(content)
+        except OSError as e:
+            logger.warning("Could not put %s back after a merge: %s", rel, e)
 
 
 def apply_edit(context, file_path: str, previous: Optional[bytes], mark: Optional[Mark]) -> Dict:

@@ -19,7 +19,9 @@ import json
 import logging
 import os
 import re
+import threading
 import time
+from contextlib import contextmanager
 from datetime import timedelta
 from typing import List, Optional
 from typing_extensions import TypedDict
@@ -249,6 +251,32 @@ def _sync_db_mirror(project, file_path: str, should_exist: bool) -> None:
             project_files_service.remove_file(project, file_path)
     except Exception as e:
         logger.warning(f"Could not sync database mirror for {file_path}: {e}")
+
+
+_write_locks_guard = threading.Lock()
+
+
+@contextmanager
+def _one_write_at_a_time(ctx):
+    """Run one of this run's file writes at a time.
+
+    The Agents SDK runs a model turn's tool calls concurrently, each on its
+    own worker thread, and models often send several edits to one file in
+    one turn. Unserialized, two edits both read the file before either
+    writes, so one is lost; and live apply snapshots the file before each
+    edit, so the copy in the app falls out of step with the thread's own and
+    every later edit to that file is held back as "someone else's change".
+    """
+    if ctx is None:
+        yield
+        return
+    with _write_locks_guard:
+        lock = getattr(ctx, 'write_lock', None)
+        if lock is None:
+            lock = threading.RLock()
+            setattr(ctx, 'write_lock', lock)
+    with lock:
+        yield
 
 
 def _live_start(ctx, file_path: str):
@@ -1270,11 +1298,12 @@ def edit_file(
         replace_all: Replace every occurrence instead of requiring old_string to be unique.
     """
     try:
-        project = _get_project(ctx.context)
-        before = _live_start(ctx.context, normalize_file_path(project, file_path))
-        result = edit_file_impl(project, file_path, old_string, new_string, replace_all)
-        _sync_db_mirror(project, result["path"], should_exist=True)
-        return _live_finish(ctx.context, result["path"], before, result)
+        with _one_write_at_a_time(ctx.context):
+            project = _get_project(ctx.context)
+            before = _live_start(ctx.context, normalize_file_path(project, file_path))
+            result = edit_file_impl(project, file_path, old_string, new_string, replace_all)
+            _sync_db_mirror(project, result["path"], should_exist=True)
+            return _live_finish(ctx.context, result["path"], before, result)
     except Exception as e:
         logger.error(f"Error editing file {file_path}: {e}")
         return _error_result(str(e))
@@ -1289,19 +1318,20 @@ def update_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
         content: The complete new content for the file.
     """
     try:
-        project = _get_project(ctx.context)
-        file_path = normalize_file_path(project, file_path)
-        _refuse_protected(file_path)
-        full_path = resolve_safe_path(project, file_path)
-        before = _live_start(ctx.context, file_path)
-        service = ViewFileService(project=project)
-        result = service.update_file(file_path, content)
+        with _one_write_at_a_time(ctx.context):
+            project = _get_project(ctx.context)
+            file_path = normalize_file_path(project, file_path)
+            _refuse_protected(file_path)
+            full_path = resolve_safe_path(project, file_path)
+            before = _live_start(ctx.context, file_path)
+            service = ViewFileService(project=project)
+            result = service.update_file(file_path, content)
 
-        if not os.path.isfile(full_path):
-            return _error_result(f"update_file appeared to succeed but file not found at {file_path}")
+            if not os.path.isfile(full_path):
+                return _error_result(f"update_file appeared to succeed but file not found at {file_path}")
 
-        _sync_db_mirror(project, file_path, should_exist=True)
-        return _live_finish(ctx.context, file_path, before, {"success": True, "path": file_path, "message": result.get("message", "File updated successfully")})
+            _sync_db_mirror(project, file_path, should_exist=True)
+            return _live_finish(ctx.context, file_path, before, {"success": True, "path": file_path, "message": result.get("message", "File updated successfully")})
     except Exception as e:
         logger.error(f"Error updating file {file_path}: {e}")
         return _error_result(str(e))
@@ -1316,22 +1346,23 @@ def create_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
         content: The content for the new file.
     """
     try:
-        project = _get_project(ctx.context)
-        file_path = normalize_file_path(project, file_path)
-        _refuse_protected(file_path)
-        resolve_safe_path(project, file_path)
-        before = _live_start(ctx.context, file_path)
-        file_type = infer_file_type(file_path)
-        service = CreateFileService(project=project)
-        result = service.create_file({"name": file_path, "content": content, "type": file_type})
+        with _one_write_at_a_time(ctx.context):
+            project = _get_project(ctx.context)
+            file_path = normalize_file_path(project, file_path)
+            _refuse_protected(file_path)
+            resolve_safe_path(project, file_path)
+            before = _live_start(ctx.context, file_path)
+            file_type = infer_file_type(file_path)
+            service = CreateFileService(project=project)
+            result = service.create_file({"name": file_path, "content": content, "type": file_type})
 
-        full_path = os.path.join(project.project_path, file_path)
-        if not os.path.isfile(full_path):
-            return _error_result(f"create_file appeared to succeed but file not found at {file_path}")
+            full_path = os.path.join(project.project_path, file_path)
+            if not os.path.isfile(full_path):
+                return _error_result(f"create_file appeared to succeed but file not found at {file_path}")
 
-        actual_path = result.get("path", file_path)
-        _sync_db_mirror(project, actual_path, should_exist=True)
-        return _live_finish(ctx.context, actual_path, before, {"success": True, "path": actual_path, "message": f"File created at {actual_path}"})
+            actual_path = result.get("path", file_path)
+            _sync_db_mirror(project, actual_path, should_exist=True)
+            return _live_finish(ctx.context, actual_path, before, {"success": True, "path": actual_path, "message": f"File created at {actual_path}"})
     except Exception as e:
         logger.error(f"Error creating file {file_path}: {e}")
         return _error_result(str(e))
@@ -1345,19 +1376,20 @@ def delete_file(ctx: RunContextWrapper, file_path: str) -> str:
         file_path: The relative path to the file within the project (e.g. 'frontend/vuejs/src/components/OldComponent.vue').
     """
     try:
-        project = _get_project(ctx.context)
-        file_path = normalize_file_path(project, file_path)
-        _refuse_protected(file_path)
-        full_path = resolve_safe_path(project, file_path)
-        before = _live_start(ctx.context, file_path)
-        service = DeleteFileService(project=project)
-        service.delete_file(file_path)
+        with _one_write_at_a_time(ctx.context):
+            project = _get_project(ctx.context)
+            file_path = normalize_file_path(project, file_path)
+            _refuse_protected(file_path)
+            full_path = resolve_safe_path(project, file_path)
+            before = _live_start(ctx.context, file_path)
+            service = DeleteFileService(project=project)
+            service.delete_file(file_path)
 
-        if os.path.isfile(full_path):
-            return _error_result(f"delete_file appeared to succeed but file still exists at {file_path}")
+            if os.path.isfile(full_path):
+                return _error_result(f"delete_file appeared to succeed but file still exists at {file_path}")
 
-        _sync_db_mirror(project, file_path, should_exist=False)
-        return _live_finish(ctx.context, file_path, before, {"success": True, "path": file_path, "message": "File deleted successfully"})
+            _sync_db_mirror(project, file_path, should_exist=False)
+            return _live_finish(ctx.context, file_path, before, {"success": True, "path": file_path, "message": "File deleted successfully"})
     except Exception as e:
         logger.error(f"Error deleting file {file_path}: {e}")
         return _error_result(str(e))
@@ -1390,13 +1422,14 @@ def delete_directory(ctx: RunContextWrapper, dir_path: str) -> str:
         dir_path: The relative path to the directory within the project (e.g. 'frontend/vuejs/src/components/OldFeature').
     """
     try:
-        project = _get_project(ctx.context)
-        dir_path = normalize_file_path(project, dir_path)
-        _refuse_protected(dir_path, directory=True)
-        resolve_safe_path(project, dir_path)
-        service = DirectoryService(project=project)
-        result = service.delete_directory(dir_path, recursive=True)
-        return json.dumps({"success": True, "path": dir_path, "message": result.get("message", "Directory deleted successfully")})
+        with _one_write_at_a_time(ctx.context):
+            project = _get_project(ctx.context)
+            dir_path = normalize_file_path(project, dir_path)
+            _refuse_protected(dir_path, directory=True)
+            resolve_safe_path(project, dir_path)
+            service = DirectoryService(project=project)
+            result = service.delete_directory(dir_path, recursive=True)
+            return json.dumps({"success": True, "path": dir_path, "message": result.get("message", "Directory deleted successfully")})
     except Exception as e:
         logger.error(f"Error deleting directory {dir_path}: {e}")
         return _error_result(str(e))

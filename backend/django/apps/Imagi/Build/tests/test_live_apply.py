@@ -7,7 +7,7 @@ import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TransactionTestCase
 
 from apps.Imagi.Build.services import live_apply
 from apps.Imagi.Build.services.version_control_service import (
@@ -26,7 +26,7 @@ class LiveApplyRepoMixin(GitRepoTestMixin):
         self.assertTrue(self.vcs.create_task_worktree(self.repo, 5)['success'])
         self.worktree = task_worktree_path(self.repo, 5)
         self.ctx = SimpleNamespace(
-            project_id=None, project_path=self.repo,
+            project_id=None, conversation_id=5, project_path=self.repo,
             effective_project_path=self.worktree, live_apply=True,
         )
         no_logs = patch.object(live_apply, '_log_files', return_value=[])
@@ -89,6 +89,57 @@ class LiveApplyTests(LiveApplyRepoMixin, SimpleTestCase):
         self.assertTrue(result['success'], result)
         self.assertEqual(self._read(self.repo, 'app.txt'), 'blue header')
         self.assertEqual(_git(self.repo, 'status', '--porcelain').stdout, '')
+
+    def test_the_app_still_holding_the_threads_own_copy_counts_as_its_own(self):
+        self._edit('app.txt', 'blue header')
+        # The thread's copy moves on without reaching the app (a write lost to
+        # a race, say): the app still has the thread's earlier copy.
+        self._write(self.worktree, 'app.txt', 'drifted')
+        outcome = self._edit('app.txt', 'bluer header')
+        self.assertEqual(outcome, {'live': True})
+        self.assertEqual(self._read(self.repo, 'app.txt'), 'bluer header')
+
+    def test_a_thread_never_clashes_with_its_own_live_copies(self):
+        self._edit('app.txt', 'first draft')
+        self._edit('src/Page.vue', '<template>draft</template>')
+        # Its finished files differ from what reached the app.
+        self._write(self.worktree, 'app.txt', 'final')
+        self._write(self.worktree, 'src/Page.vue', '<template>final</template>')
+
+        result = self.vcs.merge_task_worktree(self.repo, 5)
+
+        self.assertTrue(result['success'], result)
+        self.assertEqual(self._read(self.repo, 'app.txt'), 'final')
+        self.assertEqual(self._read(self.repo, 'src/Page.vue'), '<template>final</template>')
+        self.assertEqual(_git(self.repo, 'status', '--porcelain').stdout, '')
+        self.assertEqual(live_apply.own_copies(self.repo, 5), {})
+
+    def test_another_threads_change_still_clashes_and_the_app_keeps_both(self):
+        from apps.Imagi.Build.services.version_control_service import MergeConflict
+
+        self._edit('app.txt', 'mine')
+        self._edit('src/new.vue', '<template>mine</template>')
+        self._write(self.repo, 'app.txt', 'another thread was here')
+        self._write(self.worktree, 'app.txt', 'mine, finished')
+
+        with self.assertRaises(MergeConflict):
+            self.vcs.merge_task_worktree(self.repo, 5)
+
+        # Nothing was lost: the other thread's change and this thread's live
+        # copy are both still what the app shows.
+        self.assertEqual(self._read(self.repo, 'app.txt'), 'another thread was here')
+        self.assertEqual(self._read(self.repo, 'src/new.vue'), '<template>mine</template>')
+
+    def test_reconciling_leaves_out_the_threads_own_copies(self):
+        self._edit('app.txt', 'first draft')
+        self._write(self.worktree, 'app.txt', 'final')
+
+        result = self.vcs.merge_base_into_task(self.repo, 5)
+
+        self.assertEqual(result['conflicts'], [])
+        self.assertEqual(self._read(self.worktree, 'app.txt'), 'final')
+        # The app keeps showing the thread's work meanwhile.
+        self.assertEqual(self._read(self.repo, 'app.txt'), 'first draft')
 
     def test_drafts_and_canonical_runs_are_not_copied(self):
         for ctx in (
@@ -169,3 +220,75 @@ class CompileCheckOnWriteTests(LiveApplyRepoMixin, SimpleTestCase):
         self.assertNotIn('compile_errors', result)
         self.assertTrue(result['applied_to_app'])
         self.assertEqual(self._read(self.repo, 'src/Menu.vue'), '<template><section>Menu</section></template>')
+
+
+class ConcurrentWritesTests(LiveApplyRepoMixin, TransactionTestCase):
+    """The Agents SDK runs one model turn's tool calls at the same time, and
+    models often send several edits to one file in one turn."""
+
+    def setUp(self):
+        super().setUp()
+        from django.contrib.auth.models import User
+        from apps.Imagi.ProjectManager.models import Project
+
+        user = User.objects.create_user(username='racer', password='pw123456')
+        project = Project.objects.create(user=user, name='P', project_path=self.repo, is_active=True)
+        self._write(self.repo, 'views.py', 'import a\n\nclass View(A): pass\n')
+        _git(self.repo, 'add', '.')
+        _git(self.repo, 'commit', '-m', 'views')
+        self.vcs.remove_task_worktree(self.repo, 5)
+        self.assertTrue(self.vcs.create_task_worktree(self.repo, 5)['success'])
+        from apps.Imagi.Build.services.base_agent import AgentContext
+
+        self.ctx = AgentContext(
+            user_id=user.id, project_id=project.id, conversation_id=5,
+            project_path=self.repo, effective_project_path=self.worktree, live_apply=True,
+        )
+
+    def test_two_edits_to_one_file_in_one_turn_both_land_in_the_app(self):
+        import asyncio
+        import json
+        import threading
+        from agents.tool_context import ToolContext
+        from apps.Imagi.Build.services import tools
+
+        inside, most_inside = [0], [0]
+        meet = threading.Barrier(2, timeout=1)
+        real_edit = tools.edit_file_impl
+
+        def edit(*args, **kwargs):
+            inside[0] += 1
+            most_inside[0] = max(most_inside[0], inside[0])
+            try:
+                meet.wait()  # both edits at once, unless writes take turns
+            except threading.BrokenBarrierError:
+                pass
+            try:
+                return real_edit(*args, **kwargs)
+            finally:
+                inside[0] -= 1
+
+        async def turn():
+            calls = [
+                {'file_path': 'views.py', 'old_string': 'import a', 'new_string': 'import b'},
+                {'file_path': 'views.py', 'old_string': '(A)', 'new_string': '(B)'},
+            ]
+            return await asyncio.gather(*[
+                tools.edit_file.on_invoke_tool(
+                    ToolContext(context=self.ctx, tool_name='edit_file', tool_call_id=str(i),
+                                tool_arguments=json.dumps(args)),
+                    json.dumps(args),
+                )
+                for i, args in enumerate(calls)
+            ])
+
+        with patch.object(tools, 'edit_file_impl', edit), \
+                patch.object(live_apply, 'SETTLE_SECONDS', 0):
+            results = [json.loads(r) for r in asyncio.run(turn())]
+
+        self.assertEqual(most_inside[0], 1)
+        for result in results:
+            self.assertTrue(result['success'], result)
+            self.assertTrue(result['applied_to_app'], result)
+        self.assertEqual(self._read(self.worktree, 'views.py'), 'import b\n\nclass View(B): pass\n')
+        self.assertEqual(self._read(self.repo, 'views.py'), 'import b\n\nclass View(B): pass\n')
