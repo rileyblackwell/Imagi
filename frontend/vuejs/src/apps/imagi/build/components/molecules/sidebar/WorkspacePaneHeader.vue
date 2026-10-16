@@ -128,6 +128,7 @@
           <span class="pane-switch-icon-wrap">
             <i :class="[s.icon, 'pane-switch-icon']"></i>
             <span v-if="s.live" class="pane-switch-pulse" aria-hidden="true"></span>
+            <span v-else-if="s.fresh" class="pane-switch-fresh" aria-hidden="true"></span>
           </span>
           <!-- The word is the first thing to go when the pane runs out of room
                (see the narrow rungs in the styles), which is what the icon and
@@ -184,6 +185,9 @@ withDefaults(
        * there, so a button to "go to" it would be a button to go nowhere.
        */
       mobileOnly?: boolean
+      /** Something changed over there since it was last opened (project
+       *  memory saved new lines): a still dot, quieter than `live`. */
+      fresh?: boolean
       /** A control rather than a destination (workspace settings): the icon
        *  alone, with `label` as its accessible name and tooltip. */
       iconOnly?: boolean
@@ -618,6 +622,18 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 
 /* Same dot as the status line, sized down for the switch icon — the link to a
    working subagent reads as live without stealing attention. */
+/* New since last opened: the info tone, still, so it never reads as work. */
+.pane-switch-fresh {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--sl-cool);
+  box-shadow: 0 0 0 2px rgba(var(--iw-surface), 0.9);
+}
+
 .pane-switch-pulse {
   position: absolute;
   top: -2px;

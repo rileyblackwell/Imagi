@@ -1,6 +1,6 @@
 // Types used in stores
 import type { ProjectFile } from './components'
-import type { AIModel, AgentInstance, CheckInDto, ProjectMemoryEntry, ReasoningEffort } from './services'
+import type { AIModel, AgentInstance, CheckInDto, ProjectMemory, ReasoningEffort } from './services'
 
 /**
  * Agent store state interface
@@ -31,8 +31,12 @@ export interface AgentState {
    *  on Medium unless the user picks otherwise. */
   threadModelId: string;
   threadEffort: ReasoningEffort;
-  /** The project's shared memory, as the memory view shows it: active
-   *  entries and threads' pending proposals. */
-  memoryEntries: ProjectMemoryEntry[];
-  memoryLoaded: boolean;
+  /** The project's shared memory, its recent changes and threads' notes
+   *  waiting to land; null until loaded. */
+  memory: ProjectMemory | null;
+  /** The memory version the user last saw (per project, this browser), so
+   *  the book icon can say when something new was saved. */
+  memorySeenVersion: number;
+  /** The memory view is open: refresh it on every poll tick. */
+  memoryViewing: boolean;
 }

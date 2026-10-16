@@ -9,7 +9,7 @@ import type {
   ConversationKind,
   DispatchedTaskDto,
   DispatchedTaskRef,
-  ProjectMemoryEntry,
+  ProjectMemory,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -728,28 +728,37 @@ export const AgentService = {
     return response.data
   },
 
-  /** The project's shared memory: entries and threads' pending proposals. */
-  async listMemory(projectId: string | number): Promise<ProjectMemoryEntry[]> {
+  /** The project's shared memory, its recent changes and threads' notes. */
+  async getMemory(projectId: string | number): Promise<ProjectMemory> {
     const response = await api.get('/v1/agents/memory/', {
       params: { project_id: String(projectId) }
     })
-    return (response.data?.entries ?? []) as ProjectMemoryEntry[]
+    return response.data as ProjectMemory
   },
 
-  async addMemory(projectId: string | number, key: string, value: string): Promise<ProjectMemoryEntry> {
-    const response = await api.post('/v1/agents/memory/', {
-      project_id: Number(projectId), key, value,
+  /**
+   * Save the user's edit of the memory. `base` is the copy they edited: if
+   * the memory changed since, the server merges their edit into it line by
+   * line rather than replacing what was saved meanwhile.
+   */
+  async saveMemory(
+    projectId: string | number,
+    content: string,
+    base: { version: number; content: string },
+  ): Promise<ProjectMemory> {
+    const response = await api.put('/v1/agents/memory/', {
+      project_id: Number(projectId),
+      content,
+      version: base.version,
+      base_content: base.content,
     })
-    return response.data as ProjectMemoryEntry
+    return response.data as ProjectMemory
   },
 
-  async updateMemory(entryId: number, patch: { key?: string; value?: string }): Promise<ProjectMemoryEntry> {
-    const response = await api.patch(`/v1/agents/memory/${entryId}/`, patch)
-    return response.data as ProjectMemoryEntry
-  },
-
-  async deleteMemory(entryId: number): Promise<void> {
-    await api.delete(`/v1/agents/memory/${entryId}/`)
+  /** Undo one change: its added lines go, its removed lines come back. */
+  async undoMemoryChange(changeId: number): Promise<ProjectMemory> {
+    const response = await api.post(`/v1/agents/memory/changes/${changeId}/undo/`)
+    return response.data as ProjectMemory
   },
 
   /**

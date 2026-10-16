@@ -23,7 +23,7 @@ import threading
 import time
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import List, Optional
+from typing import List, Literal, Optional
 from typing_extensions import TypedDict
 
 from agents import RunContextWrapper, function_tool
@@ -1632,19 +1632,21 @@ def ask_user(
     return text
 
 
-@function_tool
-def remember(ctx: RunContextWrapper, key: str, value: str) -> str:
-    """Save a fact to the project's shared memory, which you, the coordinator and every thread read.
+MemorySection = Literal['About the app', 'Decisions', "How it's built", 'How the user likes to work']
 
-    For what later work should follow or know: a decision the user made, a
-    convention, a fact about the app, what a finished job built (key
-    "Brand colors", value "Navy #1B2A4A with coral accents"). Not for
-    progress notes. Saving a key again replaces it. A thread's entry is
-    saved when its work lands in the app.
+
+@function_tool
+def remember(ctx: RunContextWrapper, note: str, section: MemorySection = 'Decisions') -> str:
+    """Save a line to the project memory that you, the coordinator and every thread read.
+
+    Memory also saves what matters from each turn on its own, so use this
+    when the user asks you to remember something, or for a decision or
+    convention later work must follow. A thread's line is saved when its
+    work lands in the app.
 
     Args:
-        key: A few words naming the topic.
-        value: The fact itself, in a sentence or two.
+        note: One short, self-contained fact, e.g. "Brand colours are navy #1B2A4A with coral accents".
+        section: Where it belongs.
     """
     from apps.Imagi.Build.models import AgentConversation
     from apps.Imagi.Build.services import project_memory
@@ -1657,13 +1659,10 @@ def remember(ctx: RunContextWrapper, key: str, value: str) -> str:
         if conversation is None or conversation.project_id is None:
             raise ValueError("Project memory needs a project")
         if conversation.kind == 'task':
-            project_memory.propose_entry(conversation, key, value)
-            return json.dumps({
-                'success': True,
-                'saved': 'when your work lands in the app',
-            })
-        project_memory.write_entry(
-            context.user_id, conversation.project_id, key, value,
+            project_memory.add_thread_note(conversation, note, section)
+            return json.dumps({'success': True, 'saved': 'when your work lands in the app'})
+        project_memory.remember(
+            context.user_id, conversation.project_id, note, section,
             author='coordinator', source=conversation,
         )
         project_memory.refresh_context(context)
@@ -1674,40 +1673,21 @@ def remember(ctx: RunContextWrapper, key: str, value: str) -> str:
 
 
 @function_tool
-def forget(ctx: RunContextWrapper, key: str) -> str:
-    """Remove an entry from the project's shared memory, when it no longer holds.
+def forget(ctx: RunContextWrapper, line: str) -> str:
+    """Remove a line from the project memory, when it no longer holds.
 
     Args:
-        key: The entry's key, as it appears in project memory.
+        line: The line as it appears in project memory (or enough of it to match only that line).
     """
     from apps.Imagi.Build.services import project_memory
 
     context = ctx.context
     try:
-        removed = project_memory.forget_entry(context.user_id, context.project_id, key)
+        change = project_memory.forget(context.user_id, context.project_id, line)
         project_memory.refresh_context(context)
-        return json.dumps({'success': True, 'removed': removed})
+        return json.dumps({'success': True, 'removed': change is not None})
     except Exception as e:
         logger.error(f"Error forgetting project memory: {e}")
-        return _error_result(str(e))
-
-
-@function_tool
-def recall(ctx: RunContextWrapper, query: str = "") -> str:
-    """Read full entries from the project's shared memory, when the summary in your instructions shortened them.
-
-    Args:
-        query: Words to look for in keys and values; empty returns everything.
-    """
-    from apps.Imagi.Build.services import project_memory
-
-    context = ctx.context
-    try:
-        return json.dumps({
-            'entries': project_memory.recall(context.user_id, context.project_id, query),
-        })
-    except Exception as e:
-        logger.error(f"Error reading project memory: {e}")
         return _error_result(str(e))
 
 
@@ -1762,5 +1742,5 @@ LEAD_AGENT_READONLY_TOOLS = [
 # lead builds on LEAD_AGENT_READONLY_TOOLS (above). The lead can delegate new
 # work or follow up with a subagent it already has, and a task subagent can
 # hand a question back to the user.
-LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task, ask_user, remember, forget, recall]
-TASK_AGENT_EXTRA_TOOLS = [ask_user, remember, recall]
+LEAD_AGENT_EXTRA_TOOLS = [dispatch_task, message_task, ask_user, remember, forget]
+TASK_AGENT_EXTRA_TOOLS = [ask_user, remember]

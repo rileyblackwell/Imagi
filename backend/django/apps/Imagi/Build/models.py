@@ -228,6 +228,12 @@ class AgentConversation(models.Model):
     # work with changes that landed while it ran (a merge conflict). Reset when
     # its work merges; past the limit a conflict goes to the user instead.
     merge_retries = models.PositiveSmallIntegerField(default=0)
+    # Project memory. On a thread: what it saved with remember, held until
+    # its work lands in the app (discarded work takes its notes with it).
+    # On a coordinator or thread: the last message the memory capture pass
+    # has read, so each pass reads only what is new.
+    memory_notes = models.JSONField(blank=True, default=list)
+    memory_cursor = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'Agents_agentconversation'
@@ -464,54 +470,74 @@ class ThreadTask(models.Model):
         return f"ThreadTask {self.id} ({self.placement}, {self.status}) on thread {self.thread_id}"
 
 
-MEMORY_STATUS_CHOICES = (
-    ('active', 'Active'),
-    ('proposed', 'Proposed'),
-)
-
 MEMORY_AUTHOR_CHOICES = (
     ('user', 'User'),
     ('coordinator', 'Coordinator'),
     ('thread', 'Thread'),
+    # The capture pass: what it noticed in a coordinator turn or in a
+    # thread's work as it landed.
+    ('auto', 'Automatic'),
 )
 
 
-class ProjectMemory(models.Model):
-    """One entry in a project's shared memory.
+class ProjectMemoryDocument(models.Model):
+    """A project's shared memory: one short markdown document.
 
-    Every thread and the coordinator read the project's active entries, so a
-    decision made once (a convention, a fact about the app, what a finished
-    job produced) reaches work started later without anyone re-pasting it.
-
-    Writes are disciplined: the user and the coordinator write entries
-    directly, while a thread only proposes one. A proposal becomes active when
-    that thread's work lands in the app — the coordinator's merge is the
-    commit — and is dropped if the work is discarded, so a thread that went
-    wrong never leaves its notes behind. One active entry per key: writing a
-    key again replaces it.
+    Every thread and the coordinator carry it in their instructions, so a
+    decision made once (something the user chose, a convention, what the app
+    is and how it is built) reaches work started later without anyone
+    re-pasting it. It is kept current mostly on its own: after each
+    coordinator turn, and when a thread's work lands, a small model reads what
+    just happened and adds, rewrites or removes lines
+    (services/project_memory.py). The user can read and edit all of it.
     """
     user = models.ForeignKey(
-        get_user_model(), on_delete=models.CASCADE, related_name='project_memories'
+        get_user_model(), on_delete=models.CASCADE, related_name='project_memory_documents'
     )
     project_id = models.IntegerField()
-    key = models.CharField(max_length=80)
-    value = models.TextField()
-    status = models.CharField(max_length=10, choices=MEMORY_STATUS_CHOICES, default='active')
-    author = models.CharField(max_length=12, choices=MEMORY_AUTHOR_CHOICES, default='coordinator')
-    # The thread that wrote or proposed it. SET_NULL: the entry outlives it.
-    source = models.ForeignKey(
-        AgentConversation, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='memory_entries'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
+    content = models.TextField(blank=True, default='')
+    # Bumped on every write, so an edit made against an older copy is caught
+    # instead of silently replacing lines saved in the meantime.
+    version = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'Build_projectmemory'
-        ordering = ['key', 'id']
-        indexes = [
-            models.Index(fields=['user', 'project_id', 'status']),
+        db_table = 'Build_projectmemorydocument'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'project_id'], name='one_memory_document_per_project'
+            ),
         ]
 
     def __str__(self):
-        return f"Memory {self.key!r} ({self.status}) for project {self.project_id}"
+        return f"Memory for project {self.project_id} (v{self.version})"
+
+
+class ProjectMemoryChange(models.Model):
+    """One write to a project's memory: who made it and which lines it added
+    or removed, so the user can see where a line came from and undo it."""
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name='project_memory_changes'
+    )
+    project_id = models.IntegerField()
+    author = models.CharField(max_length=12, choices=MEMORY_AUTHOR_CHOICES)
+    # The coordinator or thread conversation it came from. SET_NULL: the
+    # change's record outlives the thread.
+    source = models.ForeignKey(
+        AgentConversation, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='memory_changes'
+    )
+    # [{'op': 'add' | 'remove', 'section': str, 'text': str}, ...]
+    lines = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+    undone_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'Build_projectmemorychange'
+        ordering = ['-id']
+        indexes = [
+            models.Index(fields=['user', 'project_id', '-id']),
+        ]
+
+    def __str__(self):
+        return f"Memory change {self.id} by {self.author} for project {self.project_id}"

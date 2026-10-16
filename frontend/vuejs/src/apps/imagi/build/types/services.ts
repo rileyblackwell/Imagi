@@ -448,16 +448,39 @@ export interface ThreadScheduleDto {
   forked_from: ScheduleThreadRef | null
 }
 
-/** One entry in a project's shared memory. */
-export interface ProjectMemoryEntry {
+/** One line a memory change added or removed. */
+export interface ProjectMemoryLine {
+  op: 'add' | 'remove'
+  section: string
+  text: string
+}
+
+/** One write to the project's memory, newest first in the memory view. */
+export interface ProjectMemoryChange {
   id: number
-  key: string
-  value: string
-  /** 'proposed': a thread's entry, saved when its work lands */
-  status: 'active' | 'proposed'
-  author: 'user' | 'coordinator' | 'thread'
-  source: { id: number; title: string } | null
-  updated_at: string
+  /** 'auto': the capture pass, reading a coordinator turn or a landed thread */
+  author: 'user' | 'coordinator' | 'thread' | 'auto'
+  source: { id: number; kind: string; title: string } | null
+  lines: ProjectMemoryLine[]
+  created_at: string
+  undone: boolean
+}
+
+/** The project's shared memory: one markdown document every agent reads. */
+export interface ProjectMemory {
+  content: string
+  /** Bumped on every write */
+  version: number
+  updated_at: string | null
+  sections: string[]
+  /** What prompts carry; the capture pass keeps the document under it */
+  max_chars: number
+  changes: ProjectMemoryChange[]
+  /** Threads' notes, saved when each thread's work lands */
+  pending: Array<{
+    thread: { id: number; title: string }
+    notes: Array<{ section: string; text: string }>
+  }>
 }
 
 export interface ConversationDto {

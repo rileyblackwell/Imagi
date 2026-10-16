@@ -88,6 +88,7 @@
         icon: 'fas fa-book-open',
         label: 'Project memory',
         iconOnly: true,
+        fresh: store.memoryFresh,
       }, {
         id: 'settings',
         icon: 'fas fa-gear',
@@ -223,6 +224,7 @@ import WorkspacePaneHeader from '../../molecules/sidebar/WorkspacePaneHeader.vue
 import FoldTransition from '../../molecules/common/FoldTransition.vue'
 import ThreadComposer from '../../molecules/sidebar/ThreadComposer.vue'
 import ProjectMemoryPanel from '../../molecules/sidebar/ProjectMemoryPanel.vue'
+import { timeAgo } from '../../../utils/projectMemory'
 import { heldStatus } from '../../../utils/threadSchedule'
 import { isHeldThread } from '../../../stores/agentStore'
 import { useWorkspaceSettings } from '../../../composables/useWorkspaceSettings'
@@ -250,9 +252,9 @@ function onListSwitch(id: string) {
 }
 
 const memoryStatus = computed(() => {
-  const saved = store.memoryEntries.filter(e => e.status === 'active').length
-  if (!store.memoryLoaded) return ''
-  return saved === 1 ? '1 entry, shared by every thread' : `${saved} entries, shared by every thread`
+  if (!store.memory) return ''
+  const updated = timeAgo(store.memory.updated_at)
+  return updated ? `Shared by every thread · updated ${updated}` : 'Shared by every thread'
 })
 
 // Already newest-first. The coordinator's own chat is the chat pane, so it is
