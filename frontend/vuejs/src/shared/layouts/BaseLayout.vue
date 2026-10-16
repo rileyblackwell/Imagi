@@ -29,8 +29,14 @@
          arbitrary variants, which scoped them to this slot: a modal teleported
          to <body> fell outside the focus rule, and the notification toast had
          no focus treatment at all as a result. Both now come from
-         shared/styles/tokens.css, where there is one definition of each. -->
-    <div class="app-scroll" :class="appShell ? 'app-shell-frame h-full min-h-0' : 'overflow-auto'">
+         shared/styles/tokens.css, where there is one definition of each.
+
+         On ordinary pages the document scrolls, not this box, so it must not
+         be a scroll container either: one would capture position: sticky
+         (the create page's pinned preview) and pin nothing, since this box
+         never scrolls. overflow-x: clip still keeps a too-wide child from
+         adding page-level sideways scroll, without building a scroller. -->
+    <div class="app-scroll" :class="appShell ? 'app-shell-frame h-full min-h-0' : 'overflow-x-clip'">
       <slot></slot>
     </div>
   </div>

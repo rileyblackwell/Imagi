@@ -5,6 +5,7 @@ import {
   designIsSet,
   emptyDesign,
   inkOn,
+  previewTextFor,
   schemeFor,
   CUSTOM_SCHEME_ID,
   SCHEMES,
@@ -62,5 +63,14 @@ describe('projectBrief', () => {
     expect(STYLES).toHaveLength(9)
     expect(SCHEMES).toHaveLength(8)
     expect(SCHEMES.filter((s) => s.dark).map((s) => s.id)).toEqual(['midnight', 'ember'])
+  })
+
+  it('previews the first sentence of what the app is, cut short', () => {
+    expect(previewTextFor('  A stock tracker. With charts. ')).toBe('A stock tracker.')
+    expect(previewTextFor('')).toBe('')
+    expect(previewTextFor(undefined)).toBe('')
+    const long = previewTextFor('a'.repeat(200))
+    expect(long).toHaveLength(110)
+    expect(long.endsWith('…')).toBe(true)
   })
 })

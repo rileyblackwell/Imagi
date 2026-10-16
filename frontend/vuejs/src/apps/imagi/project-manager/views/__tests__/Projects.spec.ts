@@ -61,9 +61,10 @@ const DESCRIPTION = 'Neighbourhood sourdough bakery taking weekend pre-orders.'
 const DETAILS = 'People can order bread for Saturday.'
 
 /**
- * The create form is a four-step brief. What matters is that the steps
- * follow what is typed, and that the Create app button under them still sends
- * the same fields under the same rules as before.
+ * The create form ("Studio") is the app's name on top, then three numbered
+ * steps beside a pinned preview of the app. What matters is that the steps
+ * follow what is typed, and that the Create app button under the preview
+ * still sends the same fields under the same rules as before.
  */
 describe('Projects (Brief)', () => {
   beforeEach(() => {
@@ -77,17 +78,26 @@ describe('Projects (Brief)', () => {
     const wrapper = mountPage()
     await flushPromises()
     const steps = wrapper.findAll('.step')
-    expect(steps).toHaveLength(4)
+    expect(steps).toHaveLength(3)
     expect(steps[0].classes()).toContain('is-current')
     expect(wrapper.findAll('.step.is-done')).toHaveLength(0)
     expect(wrapper.find('.meter__label').text()).toBe('At least 20 characters')
     expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
   })
 
+  it('asks for the name first, outside the numbered steps', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    const name = wrapper.find('#project-name')
+    expect(name.attributes('placeholder')).toBe('Name your app')
+    expect(name.element.closest('.step')).toBeNull()
+    expect(wrapper.findAll('.step__node').map((n) => n.text())).toEqual(['01', '02', '03'])
+  })
+
   it('asks about the app, with one Create app button and no summary card', async () => {
     const wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.find('h1').text()).toBe('Brief the agent on a new app')
+    expect(wrapper.find('h1').text()).toBe('Start a new app')
     expect(wrapper.find('label[for="project-description"]').text()).toBe('What is your app?')
     expect(wrapper.find('label[for="project-details"]').text()).toBe('How does it work?')
     expect(wrapper.find('.create-submit').text()).toBe('Create app')
@@ -97,8 +107,8 @@ describe('Projects (Brief)', () => {
   it('moves along the rail as the answers come in', async () => {
     const wrapper = mountPage()
     await wrapper.find('#project-name').setValue('Little Loaf')
-    expect(wrapper.findAll('.step')[0].classes()).toContain('is-done')
-    expect(wrapper.findAll('.step')[1].classes()).toContain('is-current')
+    expect(wrapper.find('.app-name').classes()).toContain('is-filled')
+    expect(wrapper.findAll('.step')[0].classes()).toContain('is-current')
 
     await wrapper.find('#project-description').setValue('Sourdough bakery')
     expect(wrapper.find('#project-description-meter').text()).toBe('4 more characters')
@@ -106,15 +116,16 @@ describe('Projects (Brief)', () => {
 
     await wrapper.find('#project-description').setValue(DESCRIPTION)
     expect(wrapper.find('#project-description-meter').text()).toBe('Enough to start')
+    expect(wrapper.findAll('.step')[0].classes()).toContain('is-done')
     // What the app does is required too.
-    expect(wrapper.findAll('.step')[2].classes()).toContain('is-current')
+    expect(wrapper.findAll('.step')[1].classes()).toContain('is-current')
     expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
 
     await wrapper.find('#project-details').setValue('People order')
     expect(wrapper.find('#project-details-meter').text()).toBe('8 more characters')
     await wrapper.find('#project-details').setValue(DETAILS)
     expect(wrapper.find('#project-details-meter').text()).toBe('Enough to start')
-    expect(wrapper.findAll('.step')[2].classes()).toContain('is-done')
+    expect(wrapper.findAll('.step')[1].classes()).toContain('is-done')
     expect(wrapper.find('.create-submit').attributes('disabled')).toBeUndefined()
   })
 
@@ -126,8 +137,8 @@ describe('Projects (Brief)', () => {
     await wrapper.find('#project-details').setValue(` ${DETAILS} `)
     await wrapper.find('.note-btn').trigger('click')
     await wrapper.find('#project-design').setValue('Warm and minimal')
-    // The button sits inside the form, under the last step.
-    expect(wrapper.find('form#create-project button[type="submit"].create-submit').exists()).toBe(true)
+    // The button sits inside the form, under the pinned preview.
+    expect(wrapper.find('form#create-project .studio__side button[type="submit"].create-submit').exists()).toBe(true)
     await wrapper.find('form#create-project').trigger('submit')
     await flushPromises()
     expect(store.createProject).toHaveBeenCalledWith({
@@ -159,6 +170,25 @@ describe('Projects (Brief)', () => {
     expect(tile().find('.pv-text').text()).toBe('A pre-order site for my bakery.')
   })
 
+  it('pins one large preview beside the steps that follows the name, words and picks', async () => {
+    const wrapper = mountPage()
+    const pinned = () => wrapper.find('.studio__preview')
+    // Shown from the start (a neutral app until a look is picked), and only
+    // once: Set the look leaves its own large preview out.
+    expect(pinned().find('.pv-title').text()).toBe('Your app')
+    expect(pinned().text()).toContain('Imagi picks the look if you skip it')
+    expect(wrapper.find('.design .preview').exists()).toBe(false)
+
+    await wrapper.find('#project-name').setValue('Little Loaf')
+    await wrapper.find('#project-description').setValue('A pre-order site for my bakery. Customers pick loaves for Saturday.')
+    expect(pinned().find('.pv-title').text()).toBe('Little Loaf')
+    expect(pinned().find('.pv-text').text()).toBe('A pre-order site for my bakery.')
+
+    await wrapper.findAll('.design .tile')[2].trigger('click')
+    expect(pinned().find('.pv').attributes('data-style')).toBe('friendly')
+    expect(pinned().text()).not.toContain('Imagi picks the look if you skip it')
+  })
+
   it('builds a starter design from a style, a colour scheme and a note', async () => {
     store.createProject.mockResolvedValue({ id: 9, name: 'Little Loaf' })
     const wrapper = mountPage()
@@ -173,7 +203,7 @@ describe('Projects (Brief)', () => {
     await wrapper.find('#project-design').setValue('Use our green logo')
     expect(style('Friendly').attributes('aria-checked')).toBe('true')
     expect(colour('Ocean').attributes('aria-checked')).toBe('true')
-    expect(wrapper.findAll('.step')[3].classes()).toContain('is-done')
+    expect(wrapper.findAll('.step')[2].classes()).toContain('is-done')
 
     // A second tap undoes a pick.
     await colour('Ocean').trigger('click')
@@ -197,10 +227,11 @@ describe('Projects (Brief)', () => {
   it('clears the look when Imagi is left to choose', async () => {
     const wrapper = mountPage()
     await wrapper.find('.design .tile').trigger('click')
-    expect(wrapper.find('.design .preview').exists()).toBe(true)
+    expect(wrapper.findAll('.step')[2].classes()).toContain('is-done')
     await wrapper.find('.step__link').trigger('click')
-    expect(wrapper.find('.design .preview').exists()).toBe(false)
-    expect(wrapper.findAll('.step')[3].classes()).not.toContain('is-done')
+    expect(wrapper.find('.design .tile[aria-checked="true"]').exists()).toBe(false)
+    expect(wrapper.findAll('.step')[2].classes()).not.toContain('is-done')
+    expect(wrapper.find('.studio__preview').text()).toContain('Imagi picks the look if you skip it')
   })
 
   it('numbers the projects, most recently updated first', async () => {

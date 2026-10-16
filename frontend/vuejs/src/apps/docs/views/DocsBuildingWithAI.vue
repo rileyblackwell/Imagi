@@ -62,7 +62,7 @@
 
         <DocsStepCard :number="1" title="Create a Project">
           <p class="text-lg leading-relaxed mb-6">
-            From your Projects page, brief the agent in four steps: <strong class="ink-strong">Name it</strong>,
+            From your Projects page, type your app's name at the top, then answer three steps:
             <strong class="ink-strong">What is your app?</strong>, <strong class="ink-strong">How does it
             work?</strong>, and, optionally, <strong class="ink-strong">Set the look</strong>. Under What is your app?,
             say in a few sentences what your app is, who it's for, and what it should help them do. Under How does it
@@ -70,8 +70,8 @@
             track of. Imagi turns your answer into the plan for your app. Both answers need at least 20 characters. Set
             the look is your app's starter design, and it asks for two things: a style (such as Professional, Friendly
             or Retro, each shown as a small picture of your app) and a colour scheme (light or dark, or one built around
-            your own brand colour). Fonts and shapes come with the style. A large preview shows your app's name and
-            description in that look, a quick prototype before the build makes the full app, and you can add a note in
+            your own brand colour). Fonts and shapes come with the style. A preview beside the steps shows your app's
+            name and description in that look as you go, a quick prototype before the build makes the full app, and you can add a note in
             your own words. Skip it and Imagi picks a look that fits. Then choose <strong class="ink-strong">Create app</strong>.
           </p>
           <div class="callout">

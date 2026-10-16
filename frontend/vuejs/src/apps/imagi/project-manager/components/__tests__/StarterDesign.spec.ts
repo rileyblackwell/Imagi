@@ -49,6 +49,17 @@ describe('StarterDesign', () => {
     expect(mountWith({ scheme: 'ocean' }).find('.preview').exists()).toBe(true)
   })
 
+  it('leaves the large preview to the page when asked, and drops tile lines when compact', () => {
+    const w = mount(StarterDesign, {
+      props: { modelValue: { ...emptyDesign(), style: 'bold' }, hidePreview: true, compact: true },
+    })
+    expect(w.find('.preview').exists()).toBe(false)
+    expect(w.text()).not.toContain('Imagi chooses a look')
+    expect(w.find('.design').classes()).toContain('design--compact')
+    const picked = mount(StarterDesign, { props: { modelValue: { ...emptyDesign(), scheme: 'forest' }, compact: true } })
+    expect(picked.find('#design-colour-label').text()).toContain('Forest')
+  })
+
   it('opens the brand colour picker for Your colour', async () => {
     const w = mountWith()
     expect(w.find('.brand').exists()).toBe(false)

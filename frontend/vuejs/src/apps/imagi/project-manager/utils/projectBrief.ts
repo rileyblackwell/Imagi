@@ -225,6 +225,16 @@ export const schemeFor = (d: Pick<StarterDesign, 'scheme' | 'brandColor'>): Colo
   return SCHEMES.find((s) => s.id === d.scheme) ?? null
 }
 
+// The sample screen shows the founder's own words: the first sentence of what
+// the app is, cut short so it stays a one-glance preview.
+const PREVIEW_TEXT_MAX = 110
+export const previewTextFor = (description: string | undefined): string => {
+  const text = (description ?? '').trim()
+  if (!text) return ''
+  const first = text.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? text
+  return first.length > PREVIEW_TEXT_MAX ? `${first.slice(0, PREVIEW_TEXT_MAX - 1).trimEnd()}…` : first
+}
+
 /**
  * The starter design as the text the build reads, one line per answer. Empty
  * when nothing was chosen, so the build picks a look itself.

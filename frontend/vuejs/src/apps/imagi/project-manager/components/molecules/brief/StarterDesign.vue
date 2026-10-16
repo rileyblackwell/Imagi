@@ -1,12 +1,14 @@
 <!--
-  StarterDesign.vue — step 4 of the projects page's brief: the app's first
-  design system, as two choices.
+  StarterDesign.vue — step 03 of the create page: the app's first design
+  system, as two choices.
 
   Style is a grid of tiles, each a small picture of the founder's own app in
   that style (StarterPreview), so nobody has to imagine what "Elegant" means.
   Colours are one row of dots, two of them dark schemes, plus the founder's
   own brand colour. Fonts, corners and light or dark come with the picks. A
-  large preview below follows both, and a quiet "Add a note" opens a box for
+  large preview below follows both (unless the page shows its own, as the
+  create page's pinned Studio preview does, with hide-preview), and a quiet
+  "Add a note" opens a box for
   anything the presets don't cover. Each pick is undone by tapping it again,
   and "let Imagi choose" (in the step's hint, see Projects.vue) clears them.
 
@@ -14,7 +16,7 @@
   composeDesignPreferences (utils/projectBrief.ts).
 -->
 <template>
-  <div class="design">
+  <div class="design" :class="{ 'design--compact': compact }">
     <div class="design__group">
       <p id="design-style-label" class="design__label">
         Style
@@ -45,7 +47,10 @@
     </div>
 
     <div class="design__group">
-      <p id="design-colour-label" class="design__label">Colours</p>
+      <p id="design-colour-label" class="design__label">
+        Colours
+        <span v-if="compact && selectedScheme" class="design__label-note">{{ selectedScheme.label }}</span>
+      </p>
       <div class="swatches" role="radiogroup" aria-labelledby="design-colour-label">
         <button
           v-for="option in schemeOptions"
@@ -66,7 +71,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
           </span>
           <span v-else class="swatch__dot" :style="{ background: dotFill(option) }" aria-hidden="true"></span>
-          <span class="swatch__name">{{ option.label }}</span>
+          <span class="swatch__name" :class="{ 'sr-only': compact }">{{ option.label }}</span>
         </button>
       </div>
       <label v-if="isCustom" class="brand">
@@ -82,7 +87,7 @@
       </label>
     </div>
 
-    <figure v-if="modelValue.style || modelValue.scheme" class="design__group preview">
+    <figure v-if="!hidePreview && (modelValue.style || modelValue.scheme)" class="design__group preview">
       <figcaption class="design__label">Your app</figcaption>
       <StarterPreview
         :style-id="modelValue.style"
@@ -91,7 +96,7 @@
         :app-text="previewText"
       />
     </figure>
-    <p v-else class="design__auto">Nothing picked yet. Imagi chooses a look that fits your app.</p>
+    <p v-else-if="!hidePreview" class="design__auto">Nothing picked yet. Imagi chooses a look that fits your app.</p>
 
     <div v-if="notesOpen" class="design__group">
       <label class="design__label" for="project-design">Anything else about the look?</label>
@@ -127,6 +132,7 @@ import {
   customScheme,
   schemeFor,
   type ColourScheme,
+  previewTextFor,
   type StarterDesign,
 } from '../../../utils/projectBrief'
 
@@ -136,6 +142,11 @@ const props = defineProps<{
   /** What the app is (step 2), shown as the sample screen's intro text. */
   appDescription?: string
   disabled?: boolean
+  /** The page shows the large preview itself, so leave it out here. */
+  hidePreview?: boolean
+  /** Narrow column: tiles show their names only, and the colour dots fit
+   * one row with the picked scheme named beside the Colours label. */
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -153,6 +164,7 @@ const toggle = (key: 'style' | 'scheme', id: string) =>
 
 const selectedStyle = computed(() => STYLES.find((s) => s.id === props.modelValue.style) ?? null)
 const scheme = computed(() => schemeFor(props.modelValue))
+const selectedScheme = computed(() => (props.modelValue.scheme ? scheme.value : null))
 const isCustom = computed(() => props.modelValue.scheme === CUSTOM_SCHEME_ID)
 const schemeOptions = computed<ColourScheme[]>(() => [...SCHEMES, customScheme(props.modelValue.brandColor)])
 
@@ -160,15 +172,7 @@ const schemeOptions = computed<ColourScheme[]>(() => [...SCHEMES, customScheme(p
 const dotFill = (s: ColourScheme) =>
   `conic-gradient(from 225deg, ${s.primary} 0 50%, ${s.accent} 50% 75%, ${s.background} 75% 100%)`
 
-// The sample screen shows the founder's own words: the first sentence of what
-// the app is, cut short so it stays a one-glance preview.
-const PREVIEW_TEXT_MAX = 110
-const previewText = computed(() => {
-  const text = (props.appDescription ?? '').trim()
-  if (!text) return ''
-  const first = text.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? text
-  return first.length > PREVIEW_TEXT_MAX ? `${first.slice(0, PREVIEW_TEXT_MAX - 1).trimEnd()}…` : first
-})
+const previewText = computed(() => previewTextFor(props.appDescription))
 
 // The note box stays folded until asked for, or while it holds a note.
 const notesOpen = ref(Boolean(props.modelValue.notes.trim()))
@@ -287,6 +291,30 @@ onMounted(() => {
   font-size: 0.75rem;
   line-height: 1.35;
   color: var(--sl-muted);
+}
+
+/* In a narrow column the tiles keep their names; the picked style's line
+   still shows beside the Style label. */
+.design--compact .tiles {
+  gap: 0.6rem;
+}
+
+.design--compact .tile__line {
+  display: none;
+}
+
+.design--compact .swatches {
+  gap: 0.5rem;
+}
+
+.design--compact .swatch {
+  width: auto;
+}
+
+.design--compact .swatch__dot,
+.design--compact .swatch__plus {
+  width: 2.15rem;
+  height: 2.15rem;
 }
 
 /* Colour dots */
