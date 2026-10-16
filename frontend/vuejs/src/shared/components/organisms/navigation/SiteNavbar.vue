@@ -1,17 +1,28 @@
-<!-- The site's main top bar: brand, the Product menu, Pricing, and the session
-     controls. Used by every page that is not sign-in or checkout — home, the
-     project hub, and the three tool workspaces — via DefaultLayout.
+<!-- The site's main top bar. Used by every page that is not sign-in or checkout
+     — home, docs, pricing, the project hub, and the three tool workspaces — via
+     DefaultLayout.
 
-     It lived under apps/home until its consumers outgrew that name: a shared
-     layout was reaching into one app's folder to render chrome that four apps
-     were using. -->
+     The links sit to the left, after the wordmark: the Product menu (Imagi, to
+     the projects page), Docs, Pricing and About, the same for visitors and the
+     signed-in. The page you are on is set in full ink. On the right, visitors
+     get a quiet Sign in and the ink Start building pill; signed in, a quiet Sign
+     out. The coral light stays with the page. Below md the links fold into a
+     Menu sheet.
+
+     The bar sits outside every page's .spotlight root, so the link groups and
+     the sheet carry their own `.spotlight` for the --sl-* tokens, as the
+     Product menu's panel does. -->
 <template>
-  <BaseNavbar fluid>
-    <!-- Center menu -->
-    <template #center>
-      <div class="flex items-center space-x-4">
-        <!-- Products Dropdown - Only shown when authenticated -->
-        <SiteNavbarDropdown v-if="isAuthenticated" v-model="isProductsMenuOpen">
+  <BaseNavbar fluid v-bind="$attrs">
+    <!-- Passed through for layouts that pin a control before the wordmark
+         (the docs' sidebar toggle) -->
+    <template #left-leading>
+      <slot name="left-leading"></slot>
+    </template>
+
+    <template #left>
+      <div class="spotlight site-nav-group hidden md:flex items-center gap-1 ml-7">
+        <SiteNavbarDropdown v-model="isProductsMenuOpen" :active="isActive('/imagi')">
           Product
 
           <template #menu>
@@ -29,126 +40,323 @@
           </template>
         </SiteNavbarDropdown>
 
-        <!-- Pricing link - Only shown when authenticated -->
         <router-link
-          v-if="isAuthenticated"
-          to="/payments/pricing"
+          v-for="link in links"
+          :key="link.to"
+          :to="link.to"
           class="site-nav-link"
+          :class="{ 'is-active': isActive(link.match) }"
+          :aria-current="isActive(link.match) ? 'page' : undefined"
         >
-          Pricing
+          {{ link.label }}
         </router-link>
       </div>
     </template>
 
-    <!-- Right side menu -->
     <template #right>
-      <!-- Auth Buttons -->
-      <div class="flex items-center space-x-3">
-        <template v-if="isAuthenticated">
-          <!-- Sign Out: quiet hairline pill — a non-promoted action -->
-          <button
-            type="button"
-            @click="handleLogout"
-            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm border border-ink/[0.14] text-ink/80 hover:text-ink hover:border-ink/30 hover:bg-ink/[0.03] dark:border-white/[0.16] dark:text-bone/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] transition-colors duration-200 focus-ring"
-          >
-            Sign Out
-          </button>
-        </template>
-        <template v-else>
-          <!-- Sign In: small navy ink pill — the one conversion action in the bar -->
-          <router-link
-            to="/auth/signin"
-            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm bg-ink text-paper hover:bg-blue-900 dark:bg-paper-inverted dark:text-ink dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(19,26,44,0.2),0_3px_8px_-2px_rgba(19,26,44,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-ring"
-          >
-            Sign In
-          </router-link>
-        </template>
+      <div class="spotlight site-nav-group flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-3">
+          <template v-if="isAuthenticated">
+            <button type="button" class="site-nav-link" @click="handleLogout">Sign out</button>
+          </template>
+          <template v-else>
+            <router-link to="/auth/signin" class="site-nav-link">Sign in</router-link>
+            <router-link to="/auth/register" class="site-nav-cta">Start building</router-link>
+          </template>
+        </div>
+
+        <button
+          type="button"
+          class="site-nav-menu-btn md:hidden"
+          :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
+          aria-controls="site-nav-sheet"
+          @click="isMobileMenuOpen = !isMobileMenuOpen"
+        >
+          <i class="fas" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
+          {{ isMobileMenuOpen ? 'Close' : 'Menu' }}
+        </button>
       </div>
     </template>
   </BaseNavbar>
+
+  <!-- Phone menu: a sheet hung under the bar over a soft scrim -->
+  <transition name="site-sheet">
+    <div v-if="isMobileMenuOpen" class="md:hidden">
+      <div class="site-sheet-scrim" @click="isMobileMenuOpen = false"></div>
+      <div id="site-nav-sheet" class="spotlight site-sheet">
+        <div class="site-sheet__group">
+          <p class="site-sheet__label">Product</p>
+          <router-link
+            :to="{ name: 'builder' }"
+            class="site-sheet__link"
+            :class="{ 'is-active': isActive('/imagi') }"
+          >
+            Imagi
+          </router-link>
+          <router-link
+            to="/payments/pricing"
+            class="site-sheet__link"
+            :class="{ 'is-active': isActive('/payments') }"
+          >
+            Pricing
+          </router-link>
+        </div>
+        <div class="site-sheet__group">
+          <p class="site-sheet__label">Learn</p>
+          <router-link to="/docs" class="site-sheet__link" :class="{ 'is-active': isActive('/docs') }">Docs</router-link>
+          <router-link to="/about" class="site-sheet__link" :class="{ 'is-active': isActive('/about') }">About</router-link>
+        </div>
+
+        <div class="site-sheet__actions">
+          <template v-if="isAuthenticated">
+            <button type="button" class="site-sheet__btn" @click="handleLogout">Sign out</button>
+          </template>
+          <template v-else>
+            <router-link to="/auth/register" class="site-nav-cta site-sheet__cta">Start building</router-link>
+            <router-link to="/auth/signin" class="site-sheet__btn">Sign in</router-link>
+          </template>
+        </div>
+      </div>
+    </div>
+  </transition>
 </template>
 
-<script>
-import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAuth } from '@/apps/auth'
 import BaseNavbar from './BaseNavbar.vue'
 import SiteNavbarDropdown from './SiteNavbarDropdown.vue'
 
-export default defineComponent({
-  name: 'SiteNavbar',
-  components: {
-    BaseNavbar,
-    SiteNavbarDropdown
-  },
-  setup() {
-    const router = useRouter()
-    const authStore = useAuthStore()
-    const { logout } = useAuth()
-    const isProductsMenuOpen = ref(false)
+// Two roots (the bar and the phone sheet), so a layout's classes go to the bar
+defineOptions({ name: 'SiteNavbar', inheritAttrs: false })
 
-    const handleLogout = async () => {
-      try {
-        // Pass router to the logout function
-        await logout(router)
-      } catch (error) {
-        console.error('Logout failed:', error)
-      }
-    }
+// Passed through to the bar, for layouts that pin a control before the
+// wordmark (the docs' sidebar toggle)
+defineSlots<{ 'left-leading'?: () => unknown }>()
 
-    // Close dropdown on scroll
-    const handleScroll = () => {
-      if (isProductsMenuOpen.value) {
-        isProductsMenuOpen.value = false
-      }
-    }
+// `match` is the path prefix that marks the link as the current page, so the
+// docs' sub-pages (/docs/building, /docs/models, ...) still light Docs.
+const links = [
+  { label: 'Docs', to: '/docs', match: '/docs' },
+  { label: 'Pricing', to: '/payments/pricing', match: '/payments' },
+  { label: 'About', to: '/about', match: '/about' }
+]
 
-    onMounted(() => {
-      window.addEventListener('scroll', handleScroll)
-    })
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+const { logout } = useAuth()
+const isProductsMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
 
-    onUnmounted(() => {
-      window.removeEventListener('scroll', handleScroll)
-    })
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
-    return {
-      isAuthenticated: computed(() => authStore.isAuthenticated),
-      isProductsMenuOpen,
-      handleLogout
-    }
+const isActive = (prefix: string) => {
+  const path = route?.path || ''
+  return path === prefix || path.startsWith(prefix + '/')
+}
+
+const handleLogout = async () => {
+  isMobileMenuOpen.value = false
+  try {
+    await logout(router)
+  } catch (error) {
+    console.error('Logout failed:', error)
   }
+}
+
+// Any navigation closes both menus
+watch(() => route?.fullPath, () => {
+  isMobileMenuOpen.value = false
+  isProductsMenuOpen.value = false
+})
+
+const handleScroll = () => {
+  if (isProductsMenuOpen.value) {
+    isProductsMenuOpen.value = false
+  }
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    isMobileMenuOpen.value = false
+    isProductsMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
-<!-- Unscoped: the dropdown renders its own <button>, and this is that
-     button's recipe too. HomeNavbar is the dropdown's only caller, so the
-     class is declared here once rather than copied into both components.
-
-     The two centre items used to come from two different components and
-     disagreed by accident — 16px of horizontal padding on one, 12px on the
-     other, 8px of gap against 6px — because each inherited a different half
-     of a gradient-button abstraction that neither of them used. -->
+<!-- Unscoped: the dropdown renders its own <button>, and .site-nav-link is
+     that button's recipe too, so it is declared here once. -->
 <style>
+/* Doubled class so it outranks `.spotlight`'s own page background: these
+   groups only borrow the tokens. */
+.spotlight.site-nav-group {
+  background: transparent;
+}
+
 .site-nav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
   padding: 0.5rem 0.75rem;
+  border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(19, 26, 44);
+  white-space: nowrap;
+  color: var(--sl-muted);
   background: transparent;
-  transition: opacity 0.2s ease;
+  transition: color 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dark .site-nav-link {
-  color: #ffffff;
+.site-nav-link:hover,
+.site-nav-link[aria-expanded='true'] {
+  color: var(--sl-text);
+  background: var(--sl-chip-bg-hover);
 }
 
-.site-nav-link:hover {
-  opacity: 0.7;
+.site-nav-link.is-active {
+  color: var(--sl-text);
+  font-weight: 600;
+}
+
+/* Start building: the ink pill. The bar leaves the coral light to the page. */
+.site-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  padding: 0 1.125rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--sl-bg);
+  background: var(--sl-text);
+  transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-nav-cta:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.site-nav-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.125rem;
+  padding: 0 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid var(--sl-line-strong);
+  background: var(--sl-chip-bg);
+  color: var(--sl-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.site-nav-menu-btn i {
+  font-size: 0.8rem;
+  width: 0.9rem;
+}
+
+/* Phone sheet */
+.site-sheet-scrim {
+  position: fixed;
+  inset: 3.5rem 0 0;
+  z-index: 40;
+  background: rgba(8, 9, 13, 0.35);
+  backdrop-filter: blur(3px);
+}
+
+.spotlight.site-sheet {
+  position: fixed;
+  top: calc(3.5rem + 1px);
+  left: 0;
+  right: 0;
+  z-index: 45;
+  max-height: calc(100dvh - 3.5rem - 1px);
+  overflow-y: auto;
+  display: grid;
+  gap: 0;
+  padding: 0.5rem max(1.25rem, env(safe-area-inset-right, 0px)) 1.4rem max(1.25rem, env(safe-area-inset-left, 0px));
+  background: var(--sl-surface);
+  border-bottom: 1px solid var(--sl-line-strong);
+  box-shadow: 0 24px 50px -22px rgba(0, 0, 0, 0.45);
+}
+
+.site-sheet__group {
+  display: grid;
+  gap: 2px;
+  padding: 0.75rem 0 0.85rem;
+  border-bottom: 1px solid var(--sl-line);
+}
+
+.site-sheet__label {
+  margin: 0 0 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sl-muted);
+}
+
+.site-sheet__link {
+  padding: 0.45rem 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--sl-muted);
+}
+
+.site-sheet__link.is-active,
+.site-sheet__link:hover {
+  color: var(--sl-text);
+}
+
+.site-sheet__actions {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.site-sheet__cta {
+  height: 2.75rem;
+  font-size: 0.9375rem;
+}
+
+.site-sheet__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--sl-line-strong);
+  background: var(--sl-chip-bg);
+  color: var(--sl-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.site-sheet-enter-active,
+.site-sheet-leave-active {
+  transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-sheet-enter-from,
+.site-sheet-leave-to {
+  opacity: 0;
 }
 
 /* Product menu rows. They render inside the dropdown's .spotlight panel, so
@@ -197,5 +405,11 @@ export default defineComponent({
 .nav-menu-item:focus-visible .nav-menu-item__arrow {
   transform: translateX(3px);
   color: var(--sl-coral);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav-cta:hover {
+    transform: none;
+  }
 }
 </style>

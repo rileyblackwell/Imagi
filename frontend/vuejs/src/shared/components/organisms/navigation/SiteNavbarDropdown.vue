@@ -12,6 +12,7 @@
     <button
       type="button"
       class="site-nav-link group relative"
+      :class="{ 'is-active': active }"
       aria-haspopup="true"
       :aria-expanded="isOpen ? 'true' : 'false'"
       @click="toggleDropdown"
@@ -46,8 +47,8 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, computed } from 'vue'
+<script lang="ts">
+import { defineComponent, computed, type SlotsType } from 'vue'
 
 export default defineComponent({
   name: 'SiteNavbarDropdown',
@@ -55,16 +56,23 @@ export default defineComponent({
     modelValue: {
       type: Boolean,
       default: false
+    },
+    // The current page is one of the menu's own (the projects pages), so the
+    // trigger reads as the bar's current link
+    active: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue'],
+  slots: Object as SlotsType<{ default?: () => unknown; trigger?: () => unknown; menu?: () => unknown }>,
   setup(props, { emit }) {
     const isOpen = computed({
       get: () => props.modelValue,
       set: (value) => emit('update:modelValue', value)
     })
 
-    let closeTimer = null
+    let closeTimer: ReturnType<typeof setTimeout> | null = null
 
     const openDropdown = () => {
       if (closeTimer) {

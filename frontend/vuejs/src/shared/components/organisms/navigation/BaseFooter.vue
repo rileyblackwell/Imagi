@@ -1,106 +1,39 @@
+<!-- The site footer, laid out as a colophon: the wordmark and one line on the
+     left, three short columns on the right, and a bottom line with the
+     copyright, the licence and the theme switch.
+
+     It renders outside every page's .spotlight root, so it is its own: that
+     brings the --sl-* tokens and the page floor (--sl-bg) in both themes. -->
 <template>
-  <footer class="crisp-footer crisp-text relative font-body bg-canvas border-t border-ink/[0.08] dark:border-white/[0.14] transition-colors duration-300">
-    <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-      
-      <!-- Main footer content -->
-      <div class="py-10">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-16">
-          
-          <!-- Product section -->
-          <div>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.16em] text-ink/70 dark:text-bone/55 mb-4 transition-colors duration-300">
-              Product
-            </h4>
-            <ul class="space-y-3">
-              <li>
-                <router-link 
-                  to="/imagi/projects" 
-                  class="text-sm rounded-sm text-ink/65 dark:text-bone/65 hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring"
-                >
-                  Imagi
-                </router-link>
-              </li>
-              <li>
-                <router-link 
-                  to="/payments/pricing" 
-                  class="text-sm rounded-sm text-ink/65 dark:text-bone/65 hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring"
-                >
-                  Pricing
-                </router-link>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Resources section -->
-          <div>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.16em] text-ink/70 dark:text-bone/55 mb-4 transition-colors duration-300">
-              Resources
-            </h4>
-            <ul class="space-y-3">
-              <li>
-                <router-link 
-                  to="/docs" 
-                  class="text-sm rounded-sm text-ink/65 dark:text-bone/65 hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring"
-                >
-                  Documentation
-                </router-link>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Company section -->
-          <div>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.16em] text-ink/70 dark:text-bone/55 mb-4 transition-colors duration-300">
-              Company
-            </h4>
-            <ul class="space-y-3">
-              <li>
-                <router-link 
-                  to="/about" 
-                  class="text-sm rounded-sm text-ink/65 dark:text-bone/65 hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring"
-                >
-                  About Us
-                </router-link>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Legal section -->
-          <div>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.16em] text-ink/70 dark:text-bone/55 mb-4 transition-colors duration-300">
-              Legal
-            </h4>
-            <ul class="space-y-3">
-              <li>
-                <router-link 
-                  to="/privacy" 
-                  class="text-sm rounded-sm text-ink/65 dark:text-bone/65 hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring"
-                >
-                  Privacy Policy
-                </router-link>
-              </li>
-              <li>
-                <router-link 
-                  to="/terms" 
-                  class="text-sm rounded-sm text-ink/65 dark:text-bone/65 hover:text-ink dark:hover:text-white transition-colors duration-200 focus-ring"
-                >
-                  Terms of Service
-                </router-link>
-              </li>
-            </ul>
-          </div>
+  <footer class="spotlight site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__top">
+        <div class="site-footer__brand">
+          <ImagiLogo size="lg" />
+          <p>Build and run your business from one place.</p>
         </div>
+
+        <nav class="site-footer__cols" aria-label="Footer">
+          <div v-for="col in columns" :key="col.title" class="site-footer__col">
+            <h2>{{ col.title }}</h2>
+            <ul>
+              <li v-for="link in col.links" :key="link.label">
+                <a
+                  v-if="'href' in link"
+                  :href="link.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >{{ link.label }}</a>
+                <router-link v-else :to="link.to">{{ link.label }}</router-link>
+              </li>
+            </ul>
+          </div>
+        </nav>
       </div>
 
-      <!-- Bottom bar -->
-      <div class="py-5 border-t border-ink/[0.08] dark:border-white/[0.14] transition-colors duration-300">
-        <div class="flex items-center justify-between">
-          <p class="text-ink/60 dark:text-bone/55 text-sm transition-colors duration-300">
-            &copy; {{ currentYear }} Imagi. All rights reserved.
-          </p>
-          
-          <ThemeToggle />
-        </div>
+      <div class="site-footer__bottom">
+        <p>&copy; {{ currentYear }} Imagi. MIT licensed.</p>
+        <ThemeToggle />
       </div>
     </div>
   </footer>
@@ -109,12 +42,142 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ThemeToggle } from '@/shared/components/atoms'
+import { ImagiLogo } from '@/shared/components/molecules'
 
 const currentYear = computed(() => new Date().getFullYear())
+
+type FooterLink = { label: string; to: string } | { label: string; href: string }
+
+const columns: { title: string; links: FooterLink[] }[] = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Projects', to: '/imagi/projects' },
+      { label: 'Pricing', to: '/payments/pricing' },
+      { label: 'Docs', to: '/docs' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { label: 'About', to: '/about' },
+      { label: 'Open source on GitHub', href: 'https://github.com/rileyblackwell/imagi' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Privacy Policy', to: '/privacy' },
+      { label: 'Terms of Service', to: '/terms' },
+    ],
+  },
+]
 </script>
 
 <style scoped>
-/* Crisp, sharp text rendering for the footer */
-.crisp-footer {
+.site-footer {
+  border-top: 1px solid var(--sl-line);
+}
+
+.site-footer__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 0;
+}
+
+@media (min-width: 640px) {
+  .site-footer__inner {
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .site-footer__inner {
+    padding: 4rem 3rem 0;
+  }
+}
+
+.site-footer__top {
+  display: grid;
+  gap: 2.5rem;
+  padding-bottom: 3rem;
+}
+
+@media (min-width: 900px) {
+  .site-footer__top {
+    grid-template-columns: 1.15fr 2fr;
+    gap: 3rem;
+  }
+}
+
+.site-footer__brand {
+  display: grid;
+  gap: 0.875rem;
+  align-content: start;
+  justify-items: start;
+}
+
+.site-footer__brand p {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--sl-muted);
+}
+
+.site-footer__cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+@media (min-width: 560px) {
+  .site-footer__cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.site-footer__col h2 {
+  margin: 0 0 0.875rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sl-muted);
+}
+
+.site-footer__col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.site-footer__col a {
+  font-size: 14.5px;
+  color: var(--sl-text);
+  border-radius: 2px;
+  transition: color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-footer__col a:hover {
+  color: var(--sl-muted);
+}
+
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1.25rem 0 1.6rem;
+  border-top: 1px solid var(--sl-line);
+}
+
+.site-footer__bottom p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--sl-muted);
 }
 </style>

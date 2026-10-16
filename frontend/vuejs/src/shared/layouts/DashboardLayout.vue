@@ -61,13 +61,28 @@
       >
         <!-- Navbar. It anchors itself to the top of the viewport; this only
              restates the surface it wears inside the app shell. -->
+        <SiteNavbar
+          v-if="siteNav"
+          class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]"
+        >
+          <template #left-leading>
+            <SidebarToggle
+              :open="!isSidebarCollapsed"
+              class="mr-1 -ml-3 sm:-ml-5 lg:-ml-9"
+              :class="hideToggleOnMobile ? 'max-md:hidden' : ''"
+              @toggle="toggleSidebar"
+            />
+          </template>
+        </SiteNavbar>
         <BaseNavbar
+          v-else
           class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]"
           fluid
         >
           <!-- The permanent show/hide control, pinned to the far left of the
                top bar (before the wordmark) so collapsing the panel never
-               hides the only way back. -->
+               hides the only way back. Public sections (docs) wear the site
+               bar above, which pins it the same way. -->
           <template #left-leading>
             <SidebarToggle
               :open="!isSidebarCollapsed"
@@ -119,7 +134,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import BaseLayout from './BaseLayout.vue'
-import { BaseNavbar, BaseFooter } from '@/shared/components'
+import { BaseNavbar, BaseFooter, SiteNavbar } from '@/shared/components'
 // Not a public atom: this layout is its only consumer and styles it with :deep().
 import SidebarToggle from '@/shared/components/atoms/buttons/SidebarToggle.vue'
 
@@ -140,6 +155,9 @@ const props = withDefaults(defineProps<{
   // Sections with their own mobile view switcher (the builder) suppress the
   // top-bar toggle on mobile to avoid two competing controls.
   hideToggleOnMobile?: boolean
+  // Public sections (docs) wear the site's full bar, with its links and
+  // session actions; app shells keep the bare wordmark bar.
+  siteNav?: boolean
 }>(), {
   asideWidthClass: 'w-72',
   contentOffsetClass: 'md:ml-72',
