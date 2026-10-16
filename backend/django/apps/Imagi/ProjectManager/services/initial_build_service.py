@@ -622,29 +622,40 @@ def _create_build_task(user, lead, project_id, model, prompt, page):
     return task
 
 
+def _fallback_model(builder):
+    """The model a first-build page is rebuilt on when its GPT run can't go."""
+    return (
+        builder.get('INITIAL_BUILD_FALLBACK_MODEL')
+        or builder.get('DEFAULT_MODEL')
+        or 'claude-opus-5-5'
+    )
+
+
 def _page_model(builder, page):
     """The model and OpenAI service tier one page of the first build runs on.
 
-    The home page races the clock, since the project opens when it lands, so
-    it gets its own model and tier (GPT 6.1 Sol on Ultrafast; Riley,
-    2026-10-12). Every other page builds on INITIAL_BUILD_MODEL at standard
-    speed. Without an OpenAI key the home page falls back to that model too,
-    rather than failing the page the founder is waiting on.
+    Every page runs on INITIAL_BUILD_MODEL (GPT 6 Luna at standard speed;
+    Riley, 2026-10-16), unless INITIAL_BUILD_HOME_MODEL puts the home page,
+    which the project waits on, on a model and tier of its own. Without an
+    OpenAI key a GPT page runs on the fallback model instead, rather than
+    failing the pages the founder is waiting on.
     """
     model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-    home_model = builder.get('INITIAL_BUILD_HOME_MODEL')
-    if page.slug != 'home' or not home_model:
-        return model, None
+    service_tier = None
+    if page.slug == 'home' and builder.get('INITIAL_BUILD_HOME_MODEL'):
+        model = builder['INITIAL_BUILD_HOME_MODEL']
+        service_tier = builder.get('INITIAL_BUILD_HOME_SERVICE_TIER') or None
     from apps.Imagi.Build.services.api_keys import read_api_key
     from apps.Imagi.Build.services.models_service import get_model_provider
 
-    if get_model_provider(home_model) == 'openai' and not read_api_key('OPENAI_KEY'):
+    if get_model_provider(model) == 'openai' and not read_api_key('OPENAI_KEY'):
+        fallback = _fallback_model(builder)
         logger.warning(
-            "OPENAI_KEY is not set, so the first build's home page runs on %s instead of %s",
-            model, home_model,
+            "OPENAI_KEY is not set, so the first build's %s page runs on %s instead of %s",
+            page.slug, fallback, model,
         )
-        return model, None
-    return home_model, builder.get('INITIAL_BUILD_HOME_SERVICE_TIER') or None
+        return fallback, None
+    return model, service_tier
 
 
 def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at,
@@ -671,11 +682,11 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at,
             service.on_page_written = on_page_written
             return service
 
-        # A page on its own model (home, on OpenAI) falls back to the build's
-        # usual model when that run fails outright, e.g. an exhausted OpenAI
-        # balance, rather than leaving the founder on a placeholder.
-        default_model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-        fallback = (lambda: service_on(default_model)) if model != default_model else None
+        # A page on a GPT model is rebuilt on the fallback model when that
+        # run fails outright, e.g. an exhausted OpenAI balance, rather than
+        # leaving the founder on a placeholder.
+        fallback_model = _fallback_model(builder)
+        fallback = (lambda: service_on(fallback_model)) if model != fallback_model else None
         return _build_and_apply(
             service_on(model, service_tier), task, user, project_id, prompt, builder,
             deadline_at, fallback=fallback,
@@ -819,7 +830,8 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
 
             rest_tasks = [
                 _create_build_task(
-                    user, lead, project_id, model, prompt_for(page, plan), page
+                    user, lead, project_id, _page_model(builder, page)[0],
+                    prompt_for(page, plan), page,
                 )
                 for page in rest
             ]

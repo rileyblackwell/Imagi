@@ -648,7 +648,8 @@ class InitialBuildServiceTests(TransactionTestCase):
         # founder keeps working afterwards, so it gets the everyday default.
         from apps.Imagi.Build.models import AgentConversation
 
-        self._run_build(['accept'])
+        with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}):
+            self._run_build(['accept'])
 
         lead = AgentConversation.objects.get(
             user=self.user, project_id=self.project.pk, kind='lead'
@@ -1018,26 +1019,33 @@ class ParallelInitialBuildTests(TransactionTestCase):
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
 
-    def test_home_builds_on_sol_ultrafast_and_the_rest_on_opus(self):
+    def test_every_page_builds_on_luna_at_standard_speed(self):
         from apps.Imagi.Build.models import AgentConversation
 
         with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}):
             calls = self._run()
-        self.assertEqual(self.services['home'], ('gpt-6.1-sol', 'ultrafast'))
-        others = [slug for slug in calls if slug != 'home']
-        self.assertTrue(others)
-        for slug in others:
-            self.assertEqual(self.services[slug], ('claude-opus-5-5', None))
-        home_task = AgentConversation.objects.get(
-            project_id=self.project.pk, kind='task', title__contains='home'
-        )
-        self.assertEqual(home_task.model_name, 'gpt-6.1-sol')
+        self.assertGreater(len(calls), 1)
+        for slug in calls:
+            self.assertEqual(self.services[slug], ('gpt-6-luna', None))
+        tasks = AgentConversation.objects.filter(project_id=self.project.pk, kind='task')
+        self.assertEqual({t.model_name for t in tasks}, {'gpt-6-luna'})
 
-    def test_home_falls_back_to_opus_without_an_openai_key(self):
+    def test_home_can_run_on_its_own_model_and_tier(self):
+        builder = {**settings.IMAGI_BUILDER, 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
+                   'INITIAL_BUILD_HOME_SERVICE_TIER': 'ultrafast'}
+        with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}), self.settings(IMAGI_BUILDER=builder):
+            calls = self._run()
+        self.assertEqual(self.services['home'], ('gpt-6.1-sol', 'ultrafast'))
+        for slug in calls:
+            if slug != 'home':
+                self.assertEqual(self.services[slug], ('gpt-6-luna', None))
+
+    def test_every_page_falls_back_to_opus_without_an_openai_key(self):
         env = {k: v for k, v in os.environ.items() if k != 'OPENAI_KEY'}
         with patch.dict(os.environ, env, clear=True), self.settings(OPENAI_KEY=None):
-            self._run()
-        self.assertEqual(self.services['home'], ('claude-opus-5-5', None))
+            calls = self._run()
+        for slug in calls:
+            self.assertEqual(self.services[slug], ('claude-opus-5-5', None))
 
     def test_the_sign_in_restyle_starts_once_the_home_page_lands(self):
         self._run()
@@ -2052,11 +2060,12 @@ class HomePageModelFallbackTests(SimpleTestCase):
             sol, self._task(), None, 1, 'Build the home page', {},
         ))
 
-    def test_only_a_page_on_its_own_model_gets_a_fallback(self):
+    def test_only_a_page_off_the_fallback_model_gets_a_fallback(self):
         from types import SimpleNamespace
         from apps.Imagi.ProjectManager.services import initial_build_service
 
-        builder = {'INITIAL_BUILD_MODEL': 'claude-opus-5-5', 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol'}
+        builder = {'INITIAL_BUILD_MODEL': 'claude-opus-5-5', 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
+                   'INITIAL_BUILD_FALLBACK_MODEL': 'claude-opus-5-5'}
         seen = {}
 
         def build_and_apply(service, *args, fallback=None, **kwargs):

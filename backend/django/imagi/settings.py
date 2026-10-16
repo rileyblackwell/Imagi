@@ -391,17 +391,17 @@ IMAGI_BUILDER = {
     # them rather than just one. Wall clock is the slowest page; what scales
     # with the list is spend, roughly linearly (three pages ≈ three times the
     # tokens), which is why COST_BUDGET_USD below is per page.
-    # The first build's pages run on Opus 5.5 at standard speed, except the
-    # home page (Riley, 2026-10-12): the project opens when it lands, so it
-    # runs on GPT 6.1 Sol in OpenAI's Ultrafast tier (up to 8x Sol's standard
-    # speed, at six times its price, metered as such in models_service). It
-    # falls back to INITIAL_BUILD_MODEL when OPENAI_KEY isn't set. Claude's
-    # fast mode was dropped earlier the same day: Anthropic doesn't grant it
-    # to every organization yet. The project's main thread still gets
-    # DEFAULT_MODEL — this only picks the page builders.
-    'INITIAL_BUILD_MODEL': 'claude-opus-5-5',
-    'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
-    'INITIAL_BUILD_HOME_SERVICE_TIER': 'ultrafast',
+    # Every page of the first build, home included, runs on GPT 6 Luna at its
+    # top reasoning effort, at standard speed (Riley, 2026-10-16): GPT 6.1 Sol
+    # on Ultrafast for home cost too much. The quick home page's words ride the
+    # same model. A page whose GPT run fails outright (no OPENAI_KEY, an
+    # exhausted OpenAI balance) is built again on INITIAL_BUILD_FALLBACK_MODEL.
+    # INITIAL_BUILD_HOME_MODEL / INITIAL_BUILD_HOME_SERVICE_TIER, when set, put
+    # the home page alone on another model and OpenAI speed tier. The
+    # project's main thread still gets DEFAULT_MODEL; this only picks the page
+    # builders.
+    'INITIAL_BUILD_MODEL': 'gpt-6-luna',
+    'INITIAL_BUILD_FALLBACK_MODEL': 'claude-opus-5-5',
     # GPT runs talk to OpenAI's Responses API over one WebSocket per run, as
     # OpenAI recommends for its fast tiers (Riley, 2026-10-12). 'http' (or the
     # OPENAI_RESPONSES_TRANSPORT environment variable) switches back to HTTPS.
@@ -418,11 +418,9 @@ IMAGI_BUILDER = {
     # each with its own time budget counted from when it starts.
     'INITIAL_BUILD_MAX_PARALLEL_PAGES': 6,
     'INITIAL_BUILD_PAGE_TIME_BUDGET_S': 120,
-    # First builds create UI from a description rather than reasoning about
-    # existing code, so they run at low effort: it roughly halves per-turn
-    # latency, which buys more pages inside the time budget than deeper
-    # reasoning does.
-    'INITIAL_BUILD_REASONING_EFFORT': 'low',
+    # Luna is small, so its pages run at OpenAI's top effort, xhigh (Riley,
+    # 2026-10-16). Claude's 'max' would be capped to xhigh on a GPT model.
+    'INITIAL_BUILD_REASONING_EFFORT': 'xhigh',
     # Cost and turns are runaway backstops now, not the operative limit — the
     # time budget stops a normal build long before either binds. Both are PER
     # PAGE, so the ceiling for a whole build is this times the page count.
