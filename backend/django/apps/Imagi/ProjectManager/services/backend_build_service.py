@@ -74,7 +74,7 @@ Don't change the pages: they are being written right now, and you'll connect the
 
 def build_wiring_brief(pages) -> str:
     """The backend thread's second job, once the pages are in."""
-    return f"""The pages are in. Connect the ones that use what you built to your API, through the clients you wrote: real data in place of made-up examples, forms that save, loading and error states, and sign-in where your API requires it (the auth store is useAuthStore from '{AUTH_STORE}'; send a signed-out visitor to '/auth/signin?redirect=<the page's path>'). Keep each page's design and copy, and change only what connecting it needs. Then try the main flow once in the preview, signed in.
+    return f"""The pages are in. Connect the ones that use what you built to your API, through the clients you wrote: real data in place of made-up examples, forms that save, loading and error states, and sign-in where your API requires it (the auth store is useAuthStore from '{AUTH_STORE}'; send a signed-out visitor to '/auth/signin?redirect=<the page's path>'). Keep each page's design and copy, and change only what connecting it needs.
 
 The pages:
 {_page_lines(pages)}
