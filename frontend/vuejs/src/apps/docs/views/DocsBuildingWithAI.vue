@@ -68,10 +68,11 @@
             say in a few sentences what your app is, who it's for, and what it should help them do. Under How does it
             work?, get into the details: what people can do on it, the steps they go through, and what it needs to keep
             track of. Imagi turns your answer into the plan for your app. Both answers need at least 20 characters. Set
-            the look is your app's starter design: tap a style, a colour palette (or pick your own brand colour), a font
-            style and light or dark, and add anything else in your own words. A small preview shows your app's name and
-            description in that styling, a quick prototype before the build makes the full app. Skip it and Imagi picks
-            a look that fits. Then choose <strong class="ink-strong">Create app</strong>.
+            the look is your app's starter design, and it asks for two things: a style (such as Professional, Friendly
+            or Retro, each shown as a small picture of your app) and a colour scheme (light or dark, or one built around
+            your own brand colour). Fonts and shapes come with the style. A large preview shows your app's name and
+            description in that look, a quick prototype before the build makes the full app, and you can add a note in
+            your own words. Skip it and Imagi picks a look that fits. Then choose <strong class="ink-strong">Create app</strong>.
           </p>
           <div class="callout">
             <h4 class="callout__title">

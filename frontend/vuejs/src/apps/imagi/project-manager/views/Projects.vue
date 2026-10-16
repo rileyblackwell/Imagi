@@ -12,8 +12,9 @@
 
   Design: "Brief" on the Spotlight stage. Starting an app is four numbered
   steps on a lit rail (name it, what the app is, how it works, set the look),
-  written for people who are not technical. Step 4 is a starter design system
-  with a live preview (see components/molecules/brief/StarterDesign.vue), and the
+  written for people who are not technical. Step 4 is the starter design: a style
+  and a colour scheme with a live preview of the app (see
+  components/molecules/brief/StarterDesign.vue), and the
   Create app button sits under it. The copy is app-first: the business tools are mentioned as what the same project
   offers once someone wants to turn the app into a business. The projects you
   already have follow as a numbered list. The editorial
@@ -194,8 +195,8 @@
                       <span class="step__optional">Optional</span>
                     </p>
                     <p class="step__hint">
-                      Your app&rsquo;s starter design. Tap what fits, add your own words, or skip it and
-                      Imagi picks a look.
+                      Pick a style and a colour scheme and see your app take shape. Or
+                      <button type="button" class="step__link" :disabled="isCreating" @click="newProjectDesign = emptyDesign()">let Imagi choose</button>.
                     </p>
                     <StarterDesign
                       v-model="newProjectDesign"
@@ -911,6 +912,28 @@ input[type='search']::-webkit-search-cancel-button {
   font-size: 0.9rem;
   line-height: 1.55;
   color: var(--sl-muted);
+}
+
+/* "let Imagi choose": clears the look, so the build picks one itself. */
+.step__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--sl-text);
+  text-decoration: underline;
+  text-decoration-color: var(--sl-line-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.step__link:hover:not(:disabled) {
+  text-decoration-color: currentColor;
+}
+
+.step__link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Two selectors so these beat `.editorial .field__input`. */
