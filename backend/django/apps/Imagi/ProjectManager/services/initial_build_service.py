@@ -125,9 +125,9 @@ PAGE_BRIEFS = (
         view_path='frontend/vuejs/src/apps/home/views/HomeView.vue',
         route='/',
         summary='the landing page — the first thing anyone sees',
-        requirements="""Build a whole landing page: a header with the business's name, a hero that says plainly what this business does and for whom, two well-differentiated content sections (what it offers, how it works, proof or testimonials — whichever two this business actually needs), a closing call to action, and a footer — five blocks in all.
+        requirements="""Build the landing page's content: a hero that says plainly what this business does and for whom, two well-differentiated content sections (what it offers, how it works, proof or testimonials — whichever two this business actually needs), and a closing call to action.
 
-This page alone carries the sign-in wiring. The auth pages are prebuilt at '/auth/signin' and '/auth/register': keep the scaffold's `import { useAuthStore } from '../../auth/stores/index'` and `const authStore = useAuthStore()` (the only import you need); in the header show the signed-in username with a sign-out button calling `authStore.logout($router)` when `authStore.isAuthenticated`, otherwise a 'Sign in' link to '/auth/signin' and a prominent create-account link to '/auth/register'; and make the hero's primary call to action a <router-link> to '/auth/register' worded for this business ("Start your free trial", "Book a table"). Keep those paths exact. Do NOT open, restyle, or modify anything under 'frontend/vuejs/src/apps/auth/'.""",
+The sign-in pages are prebuilt at '/auth/signin' and '/auth/register', and the shared header already links to both. Make the hero's primary call to action a <router-link> to '/auth/register' worded for this business ("Start your free trial", "Book a table"). Keep that path exact. Do NOT open, restyle, or modify anything under 'frontend/vuejs/src/apps/auth/'.""",
     ),
     PageBrief(
         slug='about',
@@ -135,7 +135,7 @@ This page alone carries the sign-in wiring. The auth pages are prebuilt at '/aut
         view_path='frontend/vuejs/src/apps/home/views/AboutView.vue',
         route='/about',
         summary='the about page — who is behind this business and why it exists',
-        requirements="""Build a whole about page: a header, an opening that states what the business stands for, then the story of why it exists, how it works or what it believes, the people or craft behind it, and a few concrete numbers or milestones if they fit — written as this specific business would, concrete and grounded. Close with a call to action pointing at '/contact' and a footer. Do not add the auth header or sign-in calls to action — the home page owns those. Do not import the auth store.""",
+        requirements="""Build the about page's content: an opening that states what the business stands for, then the story of why it exists, how it works or what it believes, the people or craft behind it, and a few concrete numbers or milestones if they fit — written as this specific business would, concrete and grounded. Close with a call to action pointing at '/contact'. Do not import the auth store.""",
     ),
     PageBrief(
         slug='contact',
@@ -143,7 +143,7 @@ This page alone carries the sign-in wiring. The auth pages are prebuilt at '/aut
         view_path='frontend/vuejs/src/apps/home/views/ContactView.vue',
         route='/contact',
         summary='the contact page — how a customer reaches this business',
-        requirements="""Build a whole contact page: a header, a short line on what to get in touch about, a contact form (name, email, message, plus any field this business needs) laid out properly, and the other ways to reach the business (email, phone, location or hours) alongside it. The form is presentational only: bind it to local `ref`s and on submit show an inline "thanks, we'll be in touch" confirmation; do NOT post it anywhere and do not add a backend endpoint. Do not add the auth header or sign-in calls to action — the home page owns those. Do not import the auth store.""",
+        requirements="""Build the contact page's content: a short line on what to get in touch about, a contact form (name, email, message, plus any field this business needs) laid out properly, and the other ways to reach the business (email, phone, location or hours) alongside it. The form is presentational only: bind it to local `ref`s and on submit show an inline "thanks, we'll be in touch" confirmation; do NOT post it anywhere and do not add a backend endpoint. Do not import the auth store.""",
     ),
 )
 
@@ -218,7 +218,6 @@ def build_initial_prompt(
     app_details: str = "",
     siblings=(),
     current_view: str = "",
-    site_pages: str = "",
 ) -> str:
     """Compose one page subagent's brief from the founder's inputs.
 
@@ -234,9 +233,7 @@ def build_initial_prompt(
     plan when it is known (it is not yet when the home page starts), so a page
     can mention the others by name without linking to them by hand.
     ``current_view`` is the page file as it stands, handed over so the thread
-    can write straight away instead of spending a model turn reading it;
-    ``site_pages`` is the navigation list the page loops over, for the same
-    reason.
+    can write straight away instead of spending a model turn reading it.
     """
     page = page or PAGE_BRIEFS[0]
 
@@ -271,8 +268,6 @@ Rewrite '{page.view_path}' (routed at '{page.route}'), and no other file. Your s
 {page.requirements}"""
     if current_view.strip():
         prompt += f"\n\nThe file as it stands now (no need to read it):\n```vue\n{current_view.strip()}\n```"
-    if site_pages.strip():
-        prompt += f"\n\n'../site-pages' (no need to read it):\n```ts\n{site_pages.strip()}\n```"
     return prompt
 
 
@@ -371,10 +366,7 @@ def start_home_page_early(project) -> bool:
     """
     from apps.Imagi.Build.services import head_start
     from apps.Imagi.Build.services.base_agent import ANTHROPIC_API_KEY
-    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import (
-        HOME_VIEW_VUE,
-        SITE_PAGES_TS,
-    )
+    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
 
     if not ANTHROPIC_API_KEY:
         return False
@@ -386,7 +378,7 @@ def start_home_page_early(project) -> bool:
     prompt = build_initial_prompt(
         project.name, project.description, getattr(project, 'design_preferences', ''), home,
         app_details=getattr(project, 'app_details', ''),
-        current_view=HOME_VIEW_VUE, site_pages=SITE_PAGES_TS,
+        current_view=HOME_VIEW_VUE,
     )
     sent = head_start.begin(project.pk, model, service_tier, prompt)
     if sent and builder.get('INITIAL_BUILD_QUICK_HOME', True):
@@ -400,6 +392,9 @@ def start_home_page_early(project) -> bool:
         )
     return sent
 
+
+# The site's shared look (colours, corners, fonts), which every page uses.
+THEME_PATH = 'frontend/vuejs/src/apps/home/styles/theme.css'
 
 # The quick home page's words, asked for at Create (quick_home), by project.
 _quick_copy = {}
@@ -437,7 +432,7 @@ def _land_quick_home(project_id, project_name, project_path, home_landed, landed
     first. Writes straight into the project the preview serves; the full
     page's merge goes over it.
     """
-    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
+    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE, THEME_CSS
     from apps.Imagi.Build.services.version_control_service import canonical_repo_lock
     from ..models import Project
     from . import quick_home
@@ -446,6 +441,22 @@ def _land_quick_home(project_id, project_name, project_path, home_landed, landed
     if pending is None:
         return
     view = os.path.join(project_path, PAGE_BRIEFS[0].view_path)
+    theme_path = os.path.join(project_path, THEME_PATH)
+
+    def set_theme(copy):
+        """Give the shared theme the business's colours, once, if no one
+        has changed it yet: every page and the header take theirs from it."""
+        with canonical_repo_lock(project_path):
+            try:
+                with open(theme_path, encoding='utf-8') as f:
+                    if f.read() != THEME_CSS:
+                        return
+            except FileNotFoundError:
+                return
+            tmp = f'{theme_path}.imagi-quick'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                f.write(quick_home.theme(copy))
+            os.replace(tmp, theme_path)
 
     def put_up(copy, over):
         """Write the quick page if the view is still ``over`` allows."""
@@ -467,6 +478,7 @@ def _land_quick_home(project_id, project_name, project_path, home_landed, landed
         except Exception as e:
             logger.warning("No quick home page for project %s: %s", project_id, e)
             return
+        set_theme(hero)
         if not put_up(hero, lambda current: current == HOME_VIEW_VUE):
             return
         Project.objects.filter(pk=project_id).update(
@@ -622,29 +634,40 @@ def _create_build_task(user, lead, project_id, model, prompt, page):
     return task
 
 
+def _fallback_model(builder):
+    """The model a first-build page is rebuilt on when its GPT run can't go."""
+    return (
+        builder.get('INITIAL_BUILD_FALLBACK_MODEL')
+        or builder.get('DEFAULT_MODEL')
+        or 'claude-opus-5-5'
+    )
+
+
 def _page_model(builder, page):
     """The model and OpenAI service tier one page of the first build runs on.
 
-    The home page races the clock, since the project opens when it lands, so
-    it gets its own model and tier (GPT 6.1 Sol on Ultrafast; Riley,
-    2026-10-12). Every other page builds on INITIAL_BUILD_MODEL at standard
-    speed. Without an OpenAI key the home page falls back to that model too,
-    rather than failing the page the founder is waiting on.
+    Every page runs on INITIAL_BUILD_MODEL in INITIAL_BUILD_SERVICE_TIER (GPT
+    6 Luna on Fast; Riley, 2026-10-16), unless INITIAL_BUILD_HOME_MODEL puts
+    the home page, which the project waits on, on a model and tier of its
+    own. Without an OpenAI key a GPT page runs on the fallback model instead,
+    rather than failing the pages the founder is waiting on.
     """
     model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-    home_model = builder.get('INITIAL_BUILD_HOME_MODEL')
-    if page.slug != 'home' or not home_model:
-        return model, None
+    service_tier = builder.get('INITIAL_BUILD_SERVICE_TIER') or None
+    if page.slug == 'home' and builder.get('INITIAL_BUILD_HOME_MODEL'):
+        model = builder['INITIAL_BUILD_HOME_MODEL']
+        service_tier = builder.get('INITIAL_BUILD_HOME_SERVICE_TIER') or None
     from apps.Imagi.Build.services.api_keys import read_api_key
     from apps.Imagi.Build.services.models_service import get_model_provider
 
-    if get_model_provider(home_model) == 'openai' and not read_api_key('OPENAI_KEY'):
+    if get_model_provider(model) == 'openai' and not read_api_key('OPENAI_KEY'):
+        fallback = _fallback_model(builder)
         logger.warning(
-            "OPENAI_KEY is not set, so the first build's home page runs on %s instead of %s",
-            model, home_model,
+            "OPENAI_KEY is not set, so the first build's %s page runs on %s instead of %s",
+            page.slug, fallback, model,
         )
-        return model, None
-    return home_model, builder.get('INITIAL_BUILD_HOME_SERVICE_TIER') or None
+        return fallback, None
+    return model, service_tier
 
 
 def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at,
@@ -671,11 +694,11 @@ def _run_one_page(page, task, user_id, project_id, prompt, builder, deadline_at,
             service.on_page_written = on_page_written
             return service
 
-        # A page on its own model (home, on OpenAI) falls back to the build's
-        # usual model when that run fails outright, e.g. an exhausted OpenAI
-        # balance, rather than leaving the founder on a placeholder.
-        default_model = builder.get('INITIAL_BUILD_MODEL') or builder.get('DEFAULT_MODEL')
-        fallback = (lambda: service_on(default_model)) if model != default_model else None
+        # A page on a GPT model is rebuilt on the fallback model when that
+        # run fails outright, e.g. an exhausted OpenAI balance, rather than
+        # leaving the founder on a placeholder.
+        fallback_model = _fallback_model(builder)
+        fallback = (lambda: service_on(fallback_model)) if model != fallback_model else None
         return _build_and_apply(
             service_on(model, service_tier), task, user, project_id, prompt, builder,
             deadline_at, fallback=fallback,
@@ -727,7 +750,6 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 project.name, project.description, design, page,
                 app_details=app_details, siblings=siblings,
                 current_view=_read_view(project.project_path, page.view_path),
-                site_pages=_read_view(project.project_path, initial_page_plan.SITE_PAGES_PATH),
             )
 
         # agent_kind pins the first-build persona (its prompt and design
@@ -819,7 +841,8 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
 
             rest_tasks = [
                 _create_build_task(
-                    user, lead, project_id, model, prompt_for(page, plan), page
+                    user, lead, project_id, _page_model(builder, page)[0],
+                    prompt_for(page, plan), page,
                 )
                 for page in rest
             ]

@@ -192,6 +192,20 @@ def _colour(value, fallback):
     return value if isinstance(value, str) and _HEX.match(value) else fallback
 
 
+def theme(copy: Dict) -> str:
+    """The site's shared theme in the colours the words came with."""
+    from apps.Imagi.Build.services.codegen.prebuilt_apps.home import (
+        DEFAULT_ACCENT,
+        DEFAULT_BACKGROUND,
+        theme_css,
+    )
+
+    return theme_css(
+        _colour(copy.get('accent'), DEFAULT_ACCENT),
+        _colour(copy.get('background'), DEFAULT_BACKGROUND),
+    )
+
+
 def render(name: str, copy: Dict) -> str:
     """The quick home page: the layout with this business's words in it."""
     content = {
@@ -207,62 +221,17 @@ def render(name: str, copy: Dict) -> str:
         'closingBody': copy.get('closing_body') or '',
     }
     accent = _colour(copy.get('accent'), '#2563eb')
-    background = _colour(copy.get('background'), '#f8fafc')
     # json.dumps output is a valid TypeScript literal; '</' is split so the
     # text can never close the SFC's script block.
     literal = json.dumps(content, ensure_ascii=False, indent=2).replace('</', '<\\/')
     return QUICK_HOME_TEMPLATE.replace('__CONTENT__', literal).replace(
         '__ACCENT__', accent
-    ).replace('__BACKGROUND__', background).replace('__MARKER__', QUICK_HOME_MARKER)
+    ).replace('__MARKER__', QUICK_HOME_MARKER)
 
 
 QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full one replaces it. -->
 <template>
-  <div class="min-h-screen flex flex-col text-slate-900" :style="{ backgroundColor: background }">
-    <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        <div class="flex items-center justify-between gap-4">
-          <router-link to="/" class="min-w-0 truncate lg:shrink-0 text-xl font-bold tracking-tight">{{ content.name }}</router-link>
-          <div class="hidden lg:flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
-            <router-link v-for="p in links" :key="p.path" :to="p.path" class="text-sm font-medium text-slate-600 hover:text-slate-900">{{ p.label }}</router-link>
-            <template v-if="authStore.isAuthenticated">
-              <span class="text-sm text-slate-600">{{ authStore.user?.username }}</span>
-              <button class="text-sm font-medium text-slate-700 hover:text-slate-900" @click="authStore.logout($router)">Sign out</button>
-            </template>
-            <template v-else>
-              <router-link to="/auth/signin" class="text-sm font-medium text-slate-700 hover:text-slate-900">Sign in</router-link>
-              <router-link
-                to="/auth/register"
-                class="text-sm font-semibold px-4 py-2 rounded-lg text-white shadow-sm hover:opacity-90"
-                :style="{ backgroundColor: accent }"
-              >Create account</router-link>
-            </template>
-          </div>
-          <button
-            type="button"
-            class="lg:hidden -mr-2 p-2 rounded-lg hover:bg-slate-900/5"
-            :aria-expanded="menuOpen"
-            aria-label="Menu"
-            @click="menuOpen = !menuOpen"
-          >
-            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path v-if="menuOpen" d="M6 6l12 12M18 6L6 18" />
-              <path v-else d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          </button>
-        </div>
-        <div v-if="menuOpen" class="lg:hidden mt-4 flex flex-col gap-1 rounded-xl bg-white p-2 shadow-lg ring-1 ring-slate-900/5" @click="menuOpen = false">
-          <router-link v-for="p in links" :key="p.path" :to="p.path" class="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-50">{{ p.label }}</router-link>
-          <button v-if="authStore.isAuthenticated" class="rounded-lg px-3 py-2 text-left font-medium text-slate-700 hover:bg-slate-50" @click="authStore.logout($router)">Sign out</button>
-          <template v-else>
-            <router-link to="/auth/signin" class="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-50">Sign in</router-link>
-            <router-link to="/auth/register" class="rounded-lg px-3 py-2 text-center font-semibold text-white" :style="{ backgroundColor: accent }">Create account</router-link>
-          </template>
-        </div>
-      </nav>
-    </header>
-
-    <main class="flex-grow">
+  <div>
       <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 text-center">
         <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-balance max-w-4xl mx-auto">{{ content.headline }}</h1>
         <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto">{{ content.subheadline }}</p>
@@ -313,24 +282,13 @@ QUICK_HOME_TEMPLATE = """<!-- __MARKER__: a first version of this page; the full
           </router-link>
         </div>
       </section>
-    </main>
-
-    <footer class="border-t border-slate-200/70">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm text-slate-500">&copy; {{ new Date().getFullYear() }} {{ content.name }}</div>
-    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useAuthStore } from '../../auth/stores/index'
-import { sitePages } from '../site-pages'
+import { onBeforeUnmount, onMounted } from 'vue'
 
-const authStore = useAuthStore()
-const menuOpen = ref(false)
-const links = sitePages.filter((p) => p.path !== '/')
 const accent = '__ACCENT__'
-const background = '__BACKGROUND__'
 const content = __CONTENT__
 
 // Reload once the full page has been written over this one.

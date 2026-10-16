@@ -648,7 +648,8 @@ class InitialBuildServiceTests(TransactionTestCase):
         # founder keeps working afterwards, so it gets the everyday default.
         from apps.Imagi.Build.models import AgentConversation
 
-        self._run_build(['accept'])
+        with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}):
+            self._run_build(['accept'])
 
         lead = AgentConversation.objects.get(
             user=self.user, project_id=self.project.pk, kind='lead'
@@ -1018,26 +1019,33 @@ class ParallelInitialBuildTests(TransactionTestCase):
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
 
-    def test_home_builds_on_sol_ultrafast_and_the_rest_on_opus(self):
+    def test_every_page_builds_on_luna_fast(self):
         from apps.Imagi.Build.models import AgentConversation
 
         with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}):
             calls = self._run()
-        self.assertEqual(self.services['home'], ('gpt-6.1-sol', 'ultrafast'))
-        others = [slug for slug in calls if slug != 'home']
-        self.assertTrue(others)
-        for slug in others:
-            self.assertEqual(self.services[slug], ('claude-opus-5-5', None))
-        home_task = AgentConversation.objects.get(
-            project_id=self.project.pk, kind='task', title__contains='home'
-        )
-        self.assertEqual(home_task.model_name, 'gpt-6.1-sol')
+        self.assertGreater(len(calls), 1)
+        for slug in calls:
+            self.assertEqual(self.services[slug], ('gpt-6-luna', 'fast'))
+        tasks = AgentConversation.objects.filter(project_id=self.project.pk, kind='task')
+        self.assertEqual({t.model_name for t in tasks}, {'gpt-6-luna'})
 
-    def test_home_falls_back_to_opus_without_an_openai_key(self):
+    def test_home_can_run_on_its_own_model_and_tier(self):
+        builder = {**settings.IMAGI_BUILDER, 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
+                   'INITIAL_BUILD_HOME_SERVICE_TIER': 'ultrafast'}
+        with patch.dict(os.environ, {'OPENAI_KEY': 'sk-test'}), self.settings(IMAGI_BUILDER=builder):
+            calls = self._run()
+        self.assertEqual(self.services['home'], ('gpt-6.1-sol', 'ultrafast'))
+        for slug in calls:
+            if slug != 'home':
+                self.assertEqual(self.services[slug], ('gpt-6-luna', 'fast'))
+
+    def test_every_page_falls_back_to_opus_without_an_openai_key(self):
         env = {k: v for k, v in os.environ.items() if k != 'OPENAI_KEY'}
         with patch.dict(os.environ, env, clear=True), self.settings(OPENAI_KEY=None):
-            self._run()
-        self.assertEqual(self.services['home'], ('claude-opus-5-5', None))
+            calls = self._run()
+        for slug in calls:
+            self.assertEqual(self.services[slug], ('claude-opus-5-5', None))
 
     def test_the_sign_in_restyle_starts_once_the_home_page_lands(self):
         self._run()
@@ -1722,6 +1730,10 @@ class InitialPagePlanTests(SimpleTestCase):
         for name in ('HomeView.vue', 'AboutView.vue', 'ContactView.vue'):
             with open(os.path.join(views, name), 'w') as f:
                 f.write('<template><div /></template>\n')
+        layouts = os.path.join(root, initial_page_plan.HOME_APP, 'layouts')
+        os.makedirs(layouts)
+        with open(os.path.join(layouts, 'SiteLayout.vue'), 'w') as f:
+            f.write('<template><router-view /></template>\n')
         subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
         subprocess.run(['git', '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit',
                         '--allow-empty', '-qm', 'init'], cwd=root, check=True)
@@ -1731,6 +1743,8 @@ class InitialPagePlanTests(SimpleTestCase):
         self.assertTrue(initial_page_plan.scaffold_pages(root, plan, [home]))
 
         router = open(os.path.join(root, initial_page_plan.ROUTER_PATH)).read()
+        # Every page nests under the shared layout.
+        self.assertIn("component: SiteLayout", router)
         for page in plan:
             self.assertIn(f'path: "{page.route}"', router)
             self.assertTrue(os.path.isfile(os.path.join(root, page.view_path)))
@@ -1779,14 +1793,14 @@ class PageBriefCarriesItsFileTests(SimpleTestCase):
         self.assertIn('<template><p>Hi</p></template>', prompt)
         self.assertNotIn('no need to read it', build_initial_prompt('Beanline', 'Coffee'))
 
-    def test_the_brief_hands_over_the_navigation_list(self):
-        from apps.Imagi.ProjectManager.services.initial_build_service import build_initial_prompt
+    def test_the_brief_leaves_the_header_to_the_shared_layout(self):
+        from apps.Imagi.Build.services.coding_agent import INITIAL_BUILD_INSTRUCTIONS
+        from apps.Imagi.ProjectManager.services.initial_build_service import PAGE_BRIEFS
 
-        prompt = build_initial_prompt(
-            'Beanline', 'Coffee', site_pages='export const sitePages = [{ path: "/", label: "Home" }]',
-        )
-        self.assertIn("'../site-pages' (no need to read it)", prompt)
-        self.assertIn('label: "Home"', prompt)
+        self.assertIn('shared layout', INITIAL_BUILD_INSTRUCTIONS)
+        self.assertIn('var(--site-accent)', INITIAL_BUILD_INSTRUCTIONS)
+        for page in PAGE_BRIEFS:
+            self.assertNotIn('a header', page.requirements)
 
 
 class QuickHomeTests(TransactionTestCase):
@@ -1803,7 +1817,7 @@ class QuickHomeTests(TransactionTestCase):
 
     def setUp(self):
         import tempfile
-        from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
+        from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE, THEME_CSS
 
         _wait_out_sqlite_table_locks(self)
         self.user = User.objects.create_user(username='owner', password='pw123456')
@@ -1815,6 +1829,10 @@ class QuickHomeTests(TransactionTestCase):
         self.view = os.path.join(src, 'home', 'views', 'HomeView.vue')
         with open(self.view, 'w') as f:
             f.write(HOME_VIEW_VUE)
+        os.makedirs(os.path.join(src, 'home', 'styles'))
+        self.theme = os.path.join(src, 'home', 'styles', 'theme.css')
+        with open(self.theme, 'w') as f:
+            f.write(THEME_CSS)
         self.project = Project.objects.create(
             user=self.user, name='Puddle Lane', description=VALID_DESCRIPTION,
             project_path=self.root, generation_status='generating',
@@ -1843,10 +1861,13 @@ class QuickHomeTests(TransactionTestCase):
             page = f.read()
         self.assertIn('Clean clothes, no trip', page)
         self.assertIn(QUICK_HOME_MARKER, page)
-        # A colour that isn't one falls back to the default.
-        self.assertIn("const background = '#f8fafc'", page)
         self.assertEqual(self.project.generation_status, 'completed')
-        self.assertEqual(find_auth_link_problems(self.root), [])
+        # The shared theme takes the business's colours; a colour that isn't
+        # one falls back to the default.
+        with open(self.theme) as f:
+            theme = f.read()
+        self.assertIn('--site-accent: #0e7490;', theme)
+        self.assertIn('--site-bg: #f8fafc;', theme)
 
     def test_it_stays_down_once_the_full_page_is_there(self):
         with open(self.view, 'w') as f:
@@ -1945,20 +1966,26 @@ class StarterPagesFitAnyScreenTests(SimpleTestCase):
     """The pages a new project starts from fit a phone or a tablet's preview
     pane: the header folds into a menu instead of running off the side."""
 
-    def test_the_starter_homes_fold_their_links_into_a_menu(self):
+    def test_the_shared_header_folds_its_links_into_a_menu(self):
+        from apps.Imagi.Build.services.codegen.prebuilt_apps.home import SITE_LAYOUT_VUE as page
+
+        self.assertIn('aria-label="Menu"', page)
+        self.assertIn('hidden lg:flex', page)
+        self.assertIn('v-if="menuOpen" class="site-menu lg:hidden', page)
+        # Every way in is in the folded menu too.
+        menu = page[page.index('v-if="menuOpen"'):page.index('</nav>')]
+        self.assertIn('/auth/register', menu)
+        self.assertIn('/auth/signin', menu)
+
+    def test_the_starter_homes_leave_the_header_to_the_layout(self):
         from apps.Imagi.Build.services.codegen.prebuilt_apps.home import HOME_VIEW_VUE
         from apps.Imagi.ProjectManager.services import quick_home
 
         quick = quick_home.render('Puddle Lane', {'headline': 'Clean clothes'})
         for name, page in (('scaffold home', HOME_VIEW_VUE), ('quick home', quick)):
             with self.subTest(page=name):
-                self.assertIn('aria-label="Menu"', page)
-                self.assertIn('hidden lg:flex', page)
-                self.assertIn('v-if="menuOpen" class="lg:hidden', page)
-                # Every way in is in the folded menu too.
-                menu = page[page.index('v-if="menuOpen"'):page.index('</nav>')]
-                self.assertIn('/auth/register', menu)
-                self.assertIn('/auth/signin', menu)
+                self.assertNotIn('<header', page)
+                self.assertNotIn('<footer', page)
 
     def test_a_new_app_never_scrolls_sideways(self):
         from apps.Imagi.ProjectManager.services.codegen.templates import vue_main_css
@@ -2052,11 +2079,12 @@ class HomePageModelFallbackTests(SimpleTestCase):
             sol, self._task(), None, 1, 'Build the home page', {},
         ))
 
-    def test_only_a_page_on_its_own_model_gets_a_fallback(self):
+    def test_only_a_page_off_the_fallback_model_gets_a_fallback(self):
         from types import SimpleNamespace
         from apps.Imagi.ProjectManager.services import initial_build_service
 
-        builder = {'INITIAL_BUILD_MODEL': 'claude-opus-5-5', 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol'}
+        builder = {'INITIAL_BUILD_MODEL': 'claude-opus-5-5', 'INITIAL_BUILD_HOME_MODEL': 'gpt-6.1-sol',
+                   'INITIAL_BUILD_FALLBACK_MODEL': 'claude-opus-5-5'}
         seen = {}
 
         def build_and_apply(service, *args, fallback=None, **kwargs):

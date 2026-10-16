@@ -25,39 +25,85 @@ from typing import Dict, List
 from .shared import _frontend_scaffold, _backend_scaffold
 
 
-HOME_VIEW_VUE = """<template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
-    <!-- Header with auth links. It fits any width: the links fold into a
-         menu button below the lg breakpoint, so nothing runs off the side. -->
-    <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        <div class="flex items-center justify-between gap-4">
-          <router-link to="/" class="min-w-0 truncate lg:shrink-0 text-xl font-bold text-gray-900">Home</router-link>
-          <div class="hidden lg:flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
-            <router-link v-for="p in links" :key="p.path" :to="p.path" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-              {{ p.label }}
-            </router-link>
+# The site's look, shared by every page: the layout's header and footer and
+# each page's own content take their colours, corners and fonts from these
+# variables, so pages built at the same time by different threads still read
+# as one site. The first build fills in the business's own colours as soon as
+# it has them (theme_css).
+THEME_CSS_TEMPLATE = """/* The site's look, shared by the header, the footer and every page.
+   Style pages with these variables (for example var(--site-accent)) rather
+   than fixed colours, so the whole site stays consistent. */
+:root {
+  --site-accent: __ACCENT__;
+  --site-on-accent: __ACCENT_TEXT__;
+  --site-bg: __BACKGROUND__;
+  --site-surface: #ffffff;
+  --site-text: #0f172a;
+  --site-muted: #475569;
+  --site-border: #e2e8f0;
+  --site-radius: 14px;
+  --site-font-heading: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --site-font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+"""
+
+DEFAULT_ACCENT = '#2563eb'
+DEFAULT_BACKGROUND = '#f8fafc'
+
+
+def _text_on(hex_colour: str) -> str:
+    """Black or white, whichever reads better on this colour."""
+    r, g, b = (int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+    def lin(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+    return '#0f172a' if luminance > 0.4 else '#ffffff'
+
+
+def theme_css(accent: str = DEFAULT_ACCENT, background: str = DEFAULT_BACKGROUND) -> str:
+    """The shared theme with these colours (each a '#rrggbb' hex)."""
+    return (
+        THEME_CSS_TEMPLATE.replace('__ACCENT__', accent)
+        .replace('__ACCENT_TEXT__', _text_on(accent))
+        .replace('__BACKGROUND__', background)
+    )
+
+
+THEME_CSS = theme_css()
+
+# Every page of the site renders inside this layout (the home router nests
+# its routes under it), so the header, navigation and footer are written once
+# and are the same on every page. The sign-in links live here too. Pages
+# write only their own content. The header shows the first few pages and
+# folds the rest into a More menu, so a long page list never crowds it.
+SITE_LAYOUT_VUE = """<template>
+  <div class="site min-h-screen flex flex-col">
+    <header class="site-header">
+      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4" aria-label="Main">
+        <div class="flex items-center justify-between gap-6">
+          <router-link to="/" class="site-brand min-w-0 truncate lg:shrink-0 text-xl font-bold tracking-tight">{{ brand.name }}</router-link>
+          <div class="hidden lg:flex min-w-0 flex-1 items-center justify-end gap-x-6">
+            <router-link v-for="p in primary" :key="p.path" :to="p.path" class="site-link text-sm font-medium whitespace-nowrap">{{ p.label }}</router-link>
+            <div v-if="more.length" class="relative">
+              <button type="button" class="site-link text-sm font-medium" :aria-expanded="moreOpen" @click="moreOpen = !moreOpen">More</button>
+              <div v-if="moreOpen" class="site-menu absolute right-0 z-30 mt-3 flex w-56 flex-col gap-1 p-2">
+                <router-link v-for="p in more" :key="p.path" :to="p.path" class="site-menu-link px-3 py-2 text-sm font-medium">{{ p.label }}</router-link>
+              </div>
+            </div>
             <template v-if="authStore.isAuthenticated">
-              <span class="text-sm text-gray-600">{{ authStore.user?.username }}</span>
-              <button class="text-sm font-medium text-gray-700 hover:text-gray-900" @click="authStore.logout($router)">
-                Sign out
-              </button>
+              <span class="site-muted text-sm">{{ authStore.user?.username }}</span>
+              <button type="button" class="site-link text-sm font-medium" @click="authStore.logout($router)">Sign out</button>
             </template>
             <template v-else>
-              <router-link to="/auth/signin" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-                Sign in
-              </router-link>
-              <router-link
-                to="/auth/register"
-                class="text-sm font-medium px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors"
-              >
-                Create account
-              </router-link>
+              <router-link to="/auth/signin" class="site-link text-sm font-medium whitespace-nowrap">Sign in</router-link>
+              <router-link to="/auth/register" class="site-button px-4 py-2 text-sm font-semibold whitespace-nowrap">Create account</router-link>
             </template>
           </div>
           <button
             type="button"
-            class="lg:hidden -mr-2 p-2 rounded-lg text-gray-900 hover:bg-gray-900/5"
+            class="lg:hidden -mr-2 p-2 site-link"
             :aria-expanded="menuOpen"
             aria-label="Menu"
             @click="menuOpen = !menuOpen"
@@ -68,93 +114,167 @@ HOME_VIEW_VUE = """<template>
             </svg>
           </button>
         </div>
-        <div v-if="menuOpen" class="lg:hidden mt-4 flex flex-col gap-1 rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5" @click="menuOpen = false">
-          <router-link v-for="p in links" :key="p.path" :to="p.path" class="rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
-            {{ p.label }}
-          </router-link>
-          <template v-if="authStore.isAuthenticated">
-            <button class="rounded-lg px-3 py-2 text-left font-medium text-gray-700 hover:bg-gray-50" @click="authStore.logout($router)">
-              Sign out
-            </button>
-          </template>
+        <div v-if="menuOpen" class="site-menu lg:hidden mt-4 flex flex-col gap-1 p-2">
+          <router-link v-for="p in links" :key="p.path" :to="p.path" class="site-menu-link px-3 py-2 font-medium">{{ p.label }}</router-link>
+          <button v-if="authStore.isAuthenticated" type="button" class="site-menu-link px-3 py-2 text-left font-medium" @click="authStore.logout($router)">Sign out</button>
           <template v-else>
-            <router-link to="/auth/signin" class="rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Sign in</router-link>
-            <router-link to="/auth/register" class="rounded-lg px-3 py-2 text-center font-medium bg-gray-900 text-white hover:bg-gray-700">
-              Create account
-            </router-link>
+            <router-link to="/auth/signin" class="site-menu-link px-3 py-2 font-medium">Sign in</router-link>
+            <router-link to="/auth/register" class="site-button px-3 py-2 text-center font-semibold">Create account</router-link>
           </template>
         </div>
       </nav>
     </header>
 
-    <!-- Hero -->
-    <main class="flex-grow flex items-center">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">Welcome</h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
-          Welcome to your new project. Sign in or create an account to get started.
-        </p>
-        <div class="flex flex-wrap items-center justify-center gap-4">
-          <router-link
-            to="/auth/register"
-            class="px-8 py-4 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-700 transition-colors"
-          >
-            Get started
-          </router-link>
-          <router-link
-            to="/auth/signin"
-            class="px-8 py-4 rounded-xl border border-gray-300 text-gray-900 font-medium hover:bg-gray-100 transition-colors"
-          >
-            Sign in
-          </router-link>
-        </div>
-      </div>
+    <main class="flex-grow">
+      <router-view />
     </main>
+
+    <footer class="site-footer">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div class="site-brand text-lg font-bold">{{ brand.name }}</div>
+        <div class="flex flex-wrap gap-x-6 gap-y-2">
+          <router-link v-for="p in sitePages" :key="p.path" :to="p.path" class="site-muted text-sm hover:underline">{{ p.label }}</router-link>
+        </div>
+        <div class="site-muted text-sm">&copy; {{ year }} {{ brand.name }}</div>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../auth/stores/index'
+import { brand } from '../../auth/brand'
 import { sitePages } from '../site-pages'
+import '../styles/theme.css'
+
+// Pages shown in the header before the rest fold into More.
+const HEADER_LINKS = 6
 
 const authStore = useAuthStore()
+const route = useRoute()
 const menuOpen = ref(false)
-const links = sitePages.filter((p) => p.path !== '/')
+const moreOpen = ref(false)
+const year = new Date().getFullYear()
+const links = computed(() => sitePages.filter((p) => p.path !== '/'))
+const primary = computed(() =>
+  links.value.length > HEADER_LINKS + 1 ? links.value.slice(0, HEADER_LINKS) : links.value
+)
+const more = computed(() => links.value.slice(primary.value.length))
+
+watch(() => route.fullPath, () => {
+  menuOpen.value = false
+  moreOpen.value = false
+})
+</script>
+
+<style scoped>
+.site {
+  background: var(--site-bg);
+  color: var(--site-text);
+  font-family: var(--site-font-body);
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--site-bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--site-border);
+}
+.site-brand {
+  font-family: var(--site-font-heading);
+  color: var(--site-text);
+}
+.site-link {
+  color: var(--site-muted);
+  transition: color 0.15s;
+}
+.site-link:hover,
+.site-link.router-link-exact-active {
+  color: var(--site-text);
+}
+.site-muted {
+  color: var(--site-muted);
+}
+.site-button {
+  background: var(--site-accent);
+  color: var(--site-on-accent);
+  border-radius: var(--site-radius);
+  transition: opacity 0.15s;
+}
+.site-button:hover {
+  opacity: 0.9;
+}
+.site-menu {
+  background: var(--site-surface);
+  border: 1px solid var(--site-border);
+  border-radius: var(--site-radius);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 0.12);
+}
+.site-menu-link {
+  color: var(--site-text);
+  border-radius: calc(var(--site-radius) - 4px);
+}
+.site-menu-link:hover {
+  background: var(--site-bg);
+}
+.site-footer {
+  border-top: 1px solid var(--site-border);
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--site-accent);
+  outline-offset: 2px;
+}
+</style>
+"""
+
+# The home page's starting content. The header, navigation and footer come
+# from the shared layout, so a page is just its own content.
+HOME_VIEW_VUE = """<template>
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+    <h1 class="text-4xl sm:text-5xl font-bold mb-6" style="font-family: var(--site-font-heading)">Welcome</h1>
+    <p class="text-xl max-w-3xl mx-auto mb-10" style="color: var(--site-muted)">
+      Welcome to your new project. Sign in or create an account to get started.
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-4">
+      <router-link
+        to="/auth/register"
+        class="px-8 py-4 font-semibold"
+        style="background: var(--site-accent); color: var(--site-on-accent); border-radius: var(--site-radius)"
+      >
+        Get started
+      </router-link>
+      <router-link
+        to="/auth/signin"
+        class="px-8 py-4 font-semibold"
+        style="border: 1px solid var(--site-border); border-radius: var(--site-radius)"
+      >
+        Sign in
+      </router-link>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
 </script>
 """
 
 
 def _placeholder_view(heading: str, blurb: str) -> str:
-    """A self-contained placeholder page, styled like the home scaffold.
+    """A self-contained placeholder page's content.
 
     Imports nothing: this is what the project serves if the first build never
     runs (no API key configured) or if this page's subagent is discarded, so
-    it has to stand on its own.
+    it has to stand on its own. The shared layout supplies the header.
     """
     return f"""<template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
-    <header class="w-full">
-      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
-        <router-link to="/" class="text-xl font-bold text-gray-900">Home</router-link>
-        <div class="flex items-center gap-4">
-          <router-link to="/about" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-            About
-          </router-link>
-          <router-link to="/contact" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-            Contact
-          </router-link>
-        </div>
-      </nav>
-    </header>
-
-    <main class="flex-grow flex items-center">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <h1 class="text-5xl font-bold text-gray-900 mb-6">{heading}</h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">{blurb}</p>
-      </div>
-    </main>
-  </div>
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+    <h1 class="text-5xl font-bold mb-6" style="font-family: var(--site-font-heading)">{heading}</h1>
+    <p class="text-xl max-w-3xl mx-auto" style="color: var(--site-muted)">{blurb}</p>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -175,28 +295,37 @@ CONTACT_VIEW_VUE = _placeholder_view(
 # patched from the generic scaffold: it is the file that must be correct and
 # complete before any subagent starts.
 HOME_ROUTER_TS = """import type { RouteRecordRaw } from 'vue-router'
+import SiteLayout from '../layouts/SiteLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import AboutView from '../views/AboutView.vue'
 import ContactView from '../views/ContactView.vue'
 
+// Every page renders inside SiteLayout, which holds the shared header,
+// navigation and footer.
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'home-view',
-    component: HomeView,
-    meta: { requiresAuth: false, title: 'Home' }
-  },
-  {
-    path: '/about',
-    name: 'about-view',
-    component: AboutView,
-    meta: { requiresAuth: false, title: 'About' }
-  },
-  {
-    path: '/contact',
-    name: 'contact-view',
-    component: ContactView,
-    meta: { requiresAuth: false, title: 'Contact' }
+    component: SiteLayout,
+    children: [
+      {
+        path: '/',
+        name: 'home-view',
+        component: HomeView,
+        meta: { requiresAuth: false, title: 'Home' }
+      },
+      {
+        path: '/about',
+        name: 'about-view',
+        component: AboutView,
+        meta: { requiresAuth: false, title: 'About' }
+      },
+      {
+        path: '/contact',
+        name: 'contact-view',
+        component: ContactView,
+        meta: { requiresAuth: false, title: 'Contact' }
+      }
+    ]
   }
 ]
 
@@ -243,6 +372,18 @@ def home_app_files() -> List[Dict[str, str]]:
         elif f['name'] == f'{views_dir}/index.ts':
             f['content'] = HOME_VIEWS_INDEX_TS
     files += [
+        {
+            # The header, navigation and footer every page renders inside.
+            'name': f'frontend/vuejs/src/apps/{app_name}/layouts/SiteLayout.vue',
+            'type': 'vue',
+            'content': SITE_LAYOUT_VUE,
+        },
+        {
+            # The site's shared colours, corners and fonts.
+            'name': f'frontend/vuejs/src/apps/{app_name}/styles/theme.css',
+            'type': 'css',
+            'content': THEME_CSS,
+        },
         {
             # The navigation list the first build's pages render; the build
             # rewrites it as pages are planned and finish (initial_page_plan).
