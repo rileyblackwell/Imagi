@@ -138,8 +138,6 @@ FORK_MAX_DEPTH = 3
 # How many times in a row a thread whose work clashed with changes that landed
 # meanwhile is sent back to reconcile them itself before the user is asked.
 MERGE_RETRY_LIMIT = 1
-# A line git writes where two changes met and it could not choose.
-CONFLICT_MARKER_RE = re.compile(r'^(<{7}|>{7})( |$)', re.MULTILINE)
 COMPACTED_SNIPPET_CHARS = 120
 
 # How many pages a capped run's note names before summarizing the rest.
@@ -1960,17 +1958,12 @@ class ImagiAgentService:
         path = getattr(conversation, 'worktree_path', '')
         if not path or not os.path.isdir(path):
             return []
-        marked = []
-        for rel in self._task_files(conversation):
-            full = os.path.join(path, rel)
-            try:
-                with open(full, 'r', encoding='utf-8', errors='ignore') as f:
-                    text = f.read()
-            except OSError:
-                continue
-            if CONFLICT_MARKER_RE.search(text):
-                marked.append(rel)
-        return marked
+        from .version_control_service import has_conflict_markers
+
+        return [
+            rel for rel in self._task_files(conversation)
+            if has_conflict_markers(os.path.join(path, rel))
+        ]
 
     def _send_back_to_reconcile(self, conversation) -> bool:
         """Hand a clashing thread what landed meanwhile, for it to reconcile.

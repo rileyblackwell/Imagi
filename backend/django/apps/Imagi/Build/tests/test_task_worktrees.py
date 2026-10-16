@@ -44,6 +44,7 @@ from apps.Imagi.Build.services.version_control_service import (
     MergeConflict,
     StaleForkPoint,
     VersionControlService,
+    has_conflict_markers,
     task_branch,
     task_worktree_path,
 )
@@ -247,6 +248,32 @@ class WorktreeServiceTests(GitRepoTestMixin, SimpleTestCase):
 
         self.assertTrue(self.service.initialize_repo(worktree))
         self.assertTrue(os.path.isfile(git_pointer))
+
+    def test_a_colliding_rename_is_reconciled_with_every_marked_file_named(self):
+        # The thread moves a page to a new name while the app gains a file of
+        # that name and changes the old one: git nests one conflict inside
+        # another and marks the inner one with eight-character markers.
+        lines = '\n'.join(f'<p>line {i}</p>' for i in range(40)) + '\n'
+        self._write_commit(self.repo, 'View.vue', lines, 'page')
+        worktree = self.service.create_task_worktree(self.repo, 7)['worktree_path']
+        _git(worktree, 'mv', 'View.vue', 'Page.vue')
+        with open(os.path.join(worktree, 'Page.vue'), 'w') as f:
+            f.write(lines.replace('line 20', 'thread line 20'))
+        with open(os.path.join(self.repo, 'Page.vue'), 'w') as f:
+            f.write(lines.replace('line 5', 'app line 5'))
+        self._write_commit(self.repo, 'View.vue', lines.replace('line 20', 'app line 20'), 'app')
+
+        result = self.service.merge_base_into_task(self.repo, 7)
+
+        self.assertIn('Page.vue', result['conflicts'])
+        with open(os.path.join(worktree, 'Page.vue')) as f:
+            text = f.read()
+        self.assertIn('<<<<<<<< ', text)
+        # Settling only the outer, seven-character markers still leaves these.
+        inner = os.path.join(worktree, 'inner.vue')
+        with open(inner, 'w') as f:
+            f.write('<<<<<<<< HEAD:Page.vue\na\n========\nb\n>>>>>>>> 1a2b3c:View.vue\n')
+        self.assertTrue(has_conflict_markers(inner))
 
 
 class BusyGuardMatrixTests(TestCase):

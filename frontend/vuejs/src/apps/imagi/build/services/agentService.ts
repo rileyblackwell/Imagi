@@ -145,6 +145,7 @@ export function labelForTool(name: string, args?: Record<string, string>): strin
     case 'web_search':
     case 'web_search_call': return 'Looked something up online'
     case 'create_app': return 'Set up a new part of your app'
+    case 'check_backend': return "Checked your app's backend"
     case 'create_directory':
     case 'delete_directory': return 'Tidied up your project'
     case 'dispatch_task': return 'Started a thread'

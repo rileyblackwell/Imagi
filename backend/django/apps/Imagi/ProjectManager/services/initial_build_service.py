@@ -57,6 +57,11 @@ prebuilt auth, which the agents cannot change. Once the home page lands, one
 more thread restyles those pages to match it, in the background and outside
 this build's deadline (auth_restyle_service).
 
+The pages are presentational and call no API, so each one lands on its own.
+The server side of the app's first features is built beside them: once the
+pages are planned, one more thread builds the backend, and once every page
+is in, that thread connects the pages to it (backend_build_service).
+
 Build progress is tracked on the existing Project.generation_status field
 ('generating' -> 'completed'/'failed'). Because each page stands alone, this is
 not all-or-nothing: the build counts as completed when at least one page landed,
@@ -74,6 +79,7 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 from .auth_restyle_service import queue_auth_restyle
+from .backend_build_service import queue_backend_build, queue_page_wiring
 
 logger = logging.getLogger(__name__)
 # One line per first build saying where the wait for its home page went.
@@ -851,6 +857,12 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             for task in rest_tasks:
                 futures[submit(task)] = task
 
+            # The app's server side is built while the pages are written,
+            # then connected to them once they are in (backend_build_service).
+            backend_task = None
+            if builder.get('INITIAL_BUILD_BACKEND', True):
+                backend_task = queue_backend_build(project_id, user_id, plan)
+
             for future in as_completed(futures):
                 page = futures[future].page
                 applied[page.slug] = future.result()
@@ -899,6 +911,10 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 missed_pages,
             )
         _resync_project_files(project_id)
+        if backend_task is not None:
+            queue_page_wiring(
+                project_id, user_id, backend_task, [p for p in plan if applied.get(p.slug)],
+            )
 
         landed = [slug for slug, ok in applied.items() if ok]
         missed = [slug for slug, ok in applied.items() if not ok]

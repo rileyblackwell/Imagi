@@ -424,6 +424,10 @@ IMAGI_BUILDER = {
     # Luna is small, so its pages run at OpenAI's top effort, xhigh (Riley,
     # 2026-10-16). Claude's 'max' would be capped to xhigh on a GPT model.
     'INITIAL_BUILD_REASONING_EFFORT': 'xhigh',
+    # One more thread builds the app's backend while the pages are written,
+    # on the same model, tier and effort, then connects the pages to it once
+    # they are in (Riley, 2026-10-16; ProjectManager/services/backend_build_service.py).
+    'INITIAL_BUILD_BACKEND': True,
     # Cost and turns are runaway backstops now, not the operative limit — the
     # time budget stops a normal build long before either binds. Both are PER
     # PAGE, so the ceiling for a whole build is this times the page count.
