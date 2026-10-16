@@ -75,7 +75,7 @@ PROJECT_MEMORY_MAX_CHARS = 6000
 IMAGI_INTRO = """Imagi lets people, most of them not technical, build a web app for their idea or business by chatting with AI, then run the business with Imagi's Sell, Market and Operate tools."""
 
 # The app every project starts from, for the roles that edit it.
-APP_GUIDANCE = """The app is a Vue 3 + TypeScript frontend in frontend/vuejs/ and a Django REST API in backend/django/; all UI is Vue. Every page should fit any screen, phone to desktop, with nothing running off the side. Sign-in and payments are prebuilt by Imagi, so don't build your own (the user adds payments from the Sell console), and never submit real payments or personal data in the preview."""
+APP_GUIDANCE = """The app is a Vue 3 + TypeScript frontend in frontend/vuejs/ and a Django REST API in backend/django/; all UI is Vue. A feature that keeps or shares data gets its API in the backend too, checked with check_backend. Every page should fit any screen, phone to desktop, with nothing running off the side. Sign-in and payments are prebuilt by Imagi, so don't build your own (the user adds payments from the Sell console), and never submit real payments or personal data in the preview."""
 
 LEAD_AGENT_INSTRUCTIONS = f"""You are the coordinator in Imagi's build workspace. {IMAGI_INTRO}
 

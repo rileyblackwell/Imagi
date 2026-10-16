@@ -12,8 +12,10 @@ import type { AgentStreamHandlers } from '../services/agentService'
 
 // Tools that mutate project files. Also drives the interrupted-run cleanup:
 // a stopped/turn-capped run that called any of these still changed the disk.
+// check_backend is one: it writes the migrations for model changes.
 export const FILE_EDIT_TOOLS = new Set([
-  'edit_file', 'update_file', 'create_file', 'delete_file', 'create_directory', 'delete_directory'
+  'edit_file', 'update_file', 'create_file', 'delete_file', 'create_directory', 'delete_directory',
+  'check_backend'
 ])
 
 /** Turn an agent tool name into a transient status line ("Editing project
@@ -23,6 +25,7 @@ export function describeAgentTool(name: string): string {
   if (name === 'update_plan') return 'Planning…'
   if (name === 'web_search' || name === 'web_search_call') return 'Searching the web…'
   if (name === 'browser') return 'Using the preview…'
+  if (name === 'check_backend') return 'Checking the backend…'
   if (['get_project_tree', 'list_project_files', 'glob_files', 'grep_files', 'read_file', 'explore_project'].includes(name)) {
     return 'Reading project files…'
   }

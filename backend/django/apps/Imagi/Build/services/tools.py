@@ -1369,6 +1369,30 @@ def create_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
 
 
 @function_tool
+def check_backend(ctx: RunContextWrapper) -> str:
+    """Check the Django backend in backend/django: make migrations for your model changes (Django writes them, so don't write migrations by hand), run Django's system checks, and apply every migration to a scratch database. Run it after changing models, views, serializers or URLs, and fix what it reports. The project's real database is not touched.
+    """
+    from . import live_apply
+    from .backend_check import check_backend as run_check
+
+    try:
+        with _one_write_at_a_time(ctx.context):
+            project = _get_project(ctx.context)
+            result = run_check(project.project_path)
+            for path in result.get('new_migrations', []):
+                # Like any file the thread writes: into the app the preview
+                # serves, whose migrate picks it up.
+                _sync_db_mirror(project, path, should_exist=True)
+                outcome = live_apply.mirror(ctx.context, path, None)
+                if outcome.get('live') is False:
+                    result.setdefault('held_back', []).append(path)
+            return json.dumps(result)
+    except Exception as e:
+        logger.error(f"Error checking the backend: {e}")
+        return _error_result(str(e))
+
+
+@function_tool
 def delete_file(ctx: RunContextWrapper, file_path: str) -> str:
     """Delete a file from the user's project.
 
@@ -1719,6 +1743,7 @@ CODING_AGENT_TOOLS = [
     delete_file,
     create_directory,
     delete_directory,
+    check_backend,
 ]
 
 # Read-only surface for the lead thread. The lead coordinates but never edits:

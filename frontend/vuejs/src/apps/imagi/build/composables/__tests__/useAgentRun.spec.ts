@@ -564,6 +564,7 @@ describe('describeAgentTool', () => {
     expect(describeAgentTool('delete_file')).toBe('Editing project files…')
     expect(describeAgentTool('web_search')).toBe('Searching the web…')
     expect(describeAgentTool('browser')).toBe('Using the preview…')
+    expect(describeAgentTool('check_backend')).toBe('Checking the backend…')
     expect(describeAgentTool('something_new')).toBe('Working…')
   })
 })

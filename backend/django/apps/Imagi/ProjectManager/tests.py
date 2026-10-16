@@ -587,7 +587,11 @@ class InitialBuildServiceTests(TransactionTestCase):
             return_value=list(unresolved),
         ), patch.object(
             initial_build_service, 'queue_auth_restyle'
-        ) as self.queue_auth_restyle:
+        ) as self.queue_auth_restyle, patch.object(
+            initial_build_service, 'queue_backend_build'
+        ) as self.queue_backend_build, patch.object(
+            initial_build_service, 'queue_page_wiring'
+        ) as self.queue_page_wiring:
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
 
@@ -1015,7 +1019,11 @@ class ParallelInitialBuildTests(TransactionTestCase):
             return_value=[],
         ), patch.object(
             initial_build_service, 'queue_auth_restyle'
-        ) as self.queue_auth_restyle:
+        ) as self.queue_auth_restyle, patch.object(
+            initial_build_service, 'queue_backend_build'
+        ) as self.queue_backend_build, patch.object(
+            initial_build_service, 'queue_page_wiring'
+        ) as self.queue_page_wiring:
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
         return calls
 
@@ -1050,6 +1058,26 @@ class ParallelInitialBuildTests(TransactionTestCase):
     def test_the_sign_in_restyle_starts_once_the_home_page_lands(self):
         self._run()
         self.queue_auth_restyle.assert_called_once_with(self.project.pk, self.user.pk)
+
+    def test_the_backend_is_built_beside_the_pages_then_connected_to_the_ones_that_landed(self):
+        self._run({'contact': 'fail'})
+
+        self.queue_backend_build.assert_called_once()
+        project_id, user_id, plan = self.queue_backend_build.call_args.args
+        self.assertEqual((project_id, user_id), (self.project.pk, self.user.pk))
+        self.assertEqual([p.slug for p in plan], ['home', 'about', 'contact'])
+
+        self.queue_page_wiring.assert_called_once()
+        project_id, user_id, backend_task, landed = self.queue_page_wiring.call_args.args
+        self.assertIs(backend_task, self.queue_backend_build.return_value)
+        self.assertEqual([p.slug for p in landed], ['home', 'about'])
+
+    def test_the_backend_thread_can_be_switched_off(self):
+        builder = {**settings.IMAGI_BUILDER, 'INITIAL_BUILD_BACKEND': False}
+        with self.settings(IMAGI_BUILDER=builder):
+            self._run()
+        self.queue_backend_build.assert_not_called()
+        self.queue_page_wiring.assert_not_called()
 
     def test_home_asks_with_the_prompt_sent_when_create_was_clicked(self):
         from apps.Imagi.Build.services import head_start
@@ -1220,7 +1248,9 @@ class ParallelInitialBuildTests(TransactionTestCase):
         ), patch.object(
             initial_build_service, '_resync_project_files',
             side_effect=lambda _pk: home_opened.set(),
-        ):
+        ), patch.object(initial_build_service, 'queue_auth_restyle'), patch.object(
+            initial_build_service, 'queue_backend_build'
+        ), patch.object(initial_build_service, 'queue_page_wiring'):
             initial_build_service._run_initial_build(self.project.pk, self.user.pk)
 
         self.assertEqual(seen, {'about': True, 'contact': True})

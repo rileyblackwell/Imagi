@@ -319,6 +319,7 @@ describe('labelForTool', () => {
     ['create_app', { app_name: 'shop' }, 'Set up a new part of your app'],
     ['create_directory', { path: 'src/lib' }, 'Tidied up your project'],
     ['delete_directory', { path: 'src/tmp' }, 'Tidied up your project'],
+    ['check_backend', {}, "Checked your app's backend"],
     ['some_future_tool', undefined, 'Worked on your app'],
   ] as const)('%s → %s', (name, args, expected) => {
     expect(labelForTool(name, args as Record<string, string> | undefined)).toBe(expected)
