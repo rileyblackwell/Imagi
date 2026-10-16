@@ -1,71 +1,72 @@
 <!--
   StarterDesign.vue — step 4 of the projects page's brief: the app's first
-  design system.
+  design system, as two choices.
 
-  Four one-tap choices (style, colours, fonts, light or dark), each optional
-  and each undone by tapping it again, then a free-text box for anything the
-  presets don't cover. A small preview underneath shows the choices applied
-  to a sample screen with the app's name and the first sentence of what it is,
-  so a non-technical founder sees what "Forest, classic type" means for their
-  app before the build starts. The colours in the preview are the
-  founder's app colours, not Imagi's, which is why they are inline values
-  rather than Spotlight tokens.
+  Style is a grid of tiles, each a small picture of the founder's own app in
+  that style (StarterPreview), so nobody has to imagine what "Elegant" means.
+  Colours are one row of dots, two of them dark schemes, plus the founder's
+  own brand colour. Fonts, corners and light or dark come with the picks. A
+  large preview below follows both, and a quiet "Add a note" opens a box for
+  anything the presets don't cover. Each pick is undone by tapping it again,
+  and "let Imagi choose" (in the step's hint, see Projects.vue) clears them.
 
   The parent turns the value into text for the build with
   composeDesignPreferences (utils/projectBrief.ts).
 -->
 <template>
   <div class="design">
-    <div class="design__group" role="group" aria-labelledby="design-style-label">
-      <p id="design-style-label" class="design__label">Style</p>
-      <div class="design__chips">
+    <div class="design__group">
+      <p id="design-style-label" class="design__label">
+        Style
+        <span v-if="selectedStyle" class="design__label-note">{{ selectedStyle.line }}</span>
+      </p>
+      <div class="tiles" role="radiogroup" aria-labelledby="design-style-label">
         <button
           v-for="style in STYLES"
           :key="style.id"
           type="button"
-          class="chip"
-          :class="{ 'is-on': modelValue.style === style.id }"
-          :aria-pressed="modelValue.style === style.id"
+          role="radio"
+          class="tile"
+          :aria-checked="modelValue.style === style.id"
           :disabled="disabled"
           @click="toggle('style', style.id)"
         >
-          {{ style.label }}
+          <StarterPreview
+            tile
+            :style-id="style.id"
+            :scheme="scheme"
+            :app-name="appName"
+            :app-text="previewText"
+          />
+          <span class="tile__name">{{ style.label }}</span>
+          <span class="tile__line">{{ style.line }}</span>
         </button>
       </div>
     </div>
 
-    <div class="design__group" role="group" aria-labelledby="design-colour-label">
+    <div class="design__group">
       <p id="design-colour-label" class="design__label">Colours</p>
-      <div class="design__chips">
+      <div class="swatches" role="radiogroup" aria-labelledby="design-colour-label">
         <button
-          v-for="palette in PALETTES"
-          :key="palette.id"
+          v-for="option in schemeOptions"
+          :key="option.id"
           type="button"
-          class="chip chip--palette"
-          :class="{ 'is-on': modelValue.palette === palette.id }"
-          :aria-pressed="modelValue.palette === palette.id"
+          role="radio"
+          class="swatch"
+          :aria-checked="modelValue.scheme === option.id"
+          :title="option.dark ? `${option.label} (dark)` : option.label"
           :disabled="disabled"
-          @click="toggle('palette', palette.id)"
+          @click="toggle('scheme', option.id)"
         >
-          <span class="swatches" aria-hidden="true">
-            <span :style="{ background: palette.primary }"></span>
-            <span :style="{ background: palette.accent }"></span>
-            <span :style="{ background: palette.background }"></span>
+          <span
+            v-if="option.id === CUSTOM_SCHEME_ID && modelValue.scheme !== CUSTOM_SCHEME_ID"
+            class="swatch__plus"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
           </span>
-          {{ palette.label }}
-        </button>
-        <button
-          type="button"
-          class="chip chip--palette"
-          :class="{ 'is-on': isCustom }"
-          :aria-pressed="isCustom"
-          :disabled="disabled"
-          @click="toggle('palette', CUSTOM_PALETTE_ID)"
-        >
-          <span class="swatches" aria-hidden="true">
-            <span :style="{ background: modelValue.brandColor }"></span>
-          </span>
-          My brand colour
+          <span v-else class="swatch__dot" :style="{ background: dotFill(option) }" aria-hidden="true"></span>
+          <span class="swatch__name">{{ option.label }}</span>
         </button>
       </div>
       <label v-if="isCustom" class="brand">
@@ -77,94 +78,55 @@
           aria-label="Brand colour"
           @input="set('brandColor', ($event.target as HTMLInputElement).value)"
         >
-        <span>Pick your brand colour and Imagi builds the palette around it.</span>
+        <span>Pick your brand colour and Imagi builds the scheme around it.</span>
       </label>
     </div>
 
-    <div class="design__row">
-      <div class="design__group" role="group" aria-labelledby="design-font-label">
-        <p id="design-font-label" class="design__label">Fonts</p>
-        <div class="design__chips">
-          <button
-            v-for="font in FONTS"
-            :key="font.id"
-            type="button"
-            class="chip chip--font"
-            :class="{ 'is-on': modelValue.font === font.id }"
-            :aria-pressed="modelValue.font === font.id"
-            :disabled="disabled"
-            @click="toggle('font', font.id)"
-          >
-            <span class="chip__sample" :style="{ fontFamily: font.sample }" aria-hidden="true">Aa</span>
-            {{ font.label }}
-          </button>
-        </div>
-      </div>
-
-      <div class="design__group" role="group" aria-labelledby="design-theme-label">
-        <p id="design-theme-label" class="design__label">Light or dark</p>
-        <div class="design__chips">
-          <button
-            v-for="theme in THEMES"
-            :key="theme.id"
-            type="button"
-            class="chip"
-            :class="{ 'is-on': modelValue.theme === theme.id }"
-            :aria-pressed="modelValue.theme === theme.id"
-            :disabled="disabled"
-            @click="toggle('theme', theme.id)"
-          >
-            {{ theme.label }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- The choices on a sample screen -->
-    <figure class="preview" aria-label="Preview of the starter design">
-      <div class="preview__screen" :style="previewVars">
-        <div class="preview__bar">
-          <span class="preview__brand">{{ appName || 'Your app' }}</span>
-          <span class="preview__links" aria-hidden="true"><i></i><i></i><i></i></span>
-        </div>
-        <div class="preview__body">
-          <p class="preview__title">{{ appName || 'Your app’s name' }}</p>
-          <p class="preview__text">{{ previewText }}</p>
-          <span class="preview__button">Get started</span>
-          <span class="preview__accent" aria-hidden="true"></span>
-        </div>
-      </div>
-      <figcaption class="preview__caption">
-        {{ designIsSet(modelValue) ? 'A quick prototype of the styling. The build takes it from here and makes the full app.' : 'Pick nothing and Imagi chooses a look that fits your app.' }}
-      </figcaption>
+    <figure v-if="modelValue.style || modelValue.scheme" class="design__group preview">
+      <figcaption class="design__label">Your app</figcaption>
+      <StarterPreview
+        :style-id="modelValue.style"
+        :scheme="scheme"
+        :app-name="appName"
+        :app-text="previewText"
+      />
     </figure>
+    <p v-else class="design__auto">Nothing picked yet. Imagi chooses a look that fits your app.</p>
 
-    <div class="design__group">
-      <label class="design__label" for="project-design">Anything else?</label>
+    <div v-if="notesOpen" class="design__group">
+      <label class="design__label" for="project-design">Anything else about the look?</label>
       <textarea
         id="project-design"
+        ref="notesField"
         :value="modelValue.notes"
         rows="2"
         class="field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-        placeholder="Your logo’s colours, a font you love, or a site whose look you like."
+        placeholder="Your logo’s colours, or a site whose look you like."
         :disabled="disabled"
         @input="set('notes', ($event.target as HTMLTextAreaElement).value)"
         @focus="$emit('focus')"
         @blur="$emit('blur')"
       ></textarea>
     </div>
+    <div v-else>
+      <button type="button" class="note-btn" :disabled="disabled" @click="openNotes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" /></svg>
+        Add a note about the look
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import StarterPreview from './StarterPreview.vue'
 import {
   STYLES,
-  PALETTES,
-  FONTS,
-  THEMES,
-  CUSTOM_PALETTE_ID,
-  designIsSet,
+  SCHEMES,
+  CUSTOM_SCHEME_ID,
+  customScheme,
+  schemeFor,
+  type ColourScheme,
   type StarterDesign,
 } from '../../../utils/projectBrief'
 
@@ -182,97 +144,73 @@ const emit = defineEmits<{
   (e: 'blur'): void
 }>()
 
-type Choice = 'style' | 'palette' | 'font' | 'theme'
-
 const set = <K extends keyof StarterDesign>(key: K, value: StarterDesign[K]) =>
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 
-// Each preset is one tap to choose and one tap to undo, so "none" never needs
-// its own button.
-const toggle = (key: Choice, id: string) =>
+// One tap to choose, one tap to undo, so "none" never needs its own button.
+const toggle = (key: 'style' | 'scheme', id: string) =>
   set(key, props.modelValue[key] === id ? null : id)
+
+const selectedStyle = computed(() => STYLES.find((s) => s.id === props.modelValue.style) ?? null)
+const scheme = computed(() => schemeFor(props.modelValue))
+const isCustom = computed(() => props.modelValue.scheme === CUSTOM_SCHEME_ID)
+const schemeOptions = computed<ColourScheme[]>(() => [...SCHEMES, customScheme(props.modelValue.brandColor)])
+
+// A dot shows the scheme as primary, accent and background slices.
+const dotFill = (s: ColourScheme) =>
+  `conic-gradient(from 225deg, ${s.primary} 0 50%, ${s.accent} 50% 75%, ${s.background} 75% 100%)`
 
 // The sample screen shows the founder's own words: the first sentence of what
 // the app is, cut short so it stays a one-glance preview.
 const PREVIEW_TEXT_MAX = 110
 const previewText = computed(() => {
   const text = (props.appDescription ?? '').trim()
-  if (!text) return 'What your app is shows up here, in the font your app will use.'
+  if (!text) return ''
   const first = text.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? text
   return first.length > PREVIEW_TEXT_MAX ? `${first.slice(0, PREVIEW_TEXT_MAX - 1).trimEnd()}…` : first
 })
 
-const isCustom = computed(() => props.modelValue.palette === CUSTOM_PALETTE_ID)
-
-// How each style shapes the sample: corners and heading weight.
-const STYLE_SHAPE: Record<string, { radius: string; button: string; weight: number; tracking: string }> = {
-  minimal: { radius: '6px', button: '6px', weight: 600, tracking: '-0.01em' },
-  friendly: { radius: '14px', button: '999px', weight: 700, tracking: '-0.01em' },
-  bold: { radius: '4px', button: '4px', weight: 800, tracking: '-0.03em' },
-  premium: { radius: '2px', button: '2px', weight: 500, tracking: '0.01em' },
-  playful: { radius: '18px', button: '999px', weight: 800, tracking: '0' },
-  professional: { radius: '8px', button: '6px', weight: 650, tracking: '-0.005em' },
+// The note box stays folded until asked for, or while it holds a note.
+const notesOpen = ref(Boolean(props.modelValue.notes.trim()))
+const notesField = ref<HTMLTextAreaElement | null>(null)
+const openNotes = async () => {
+  notesOpen.value = true
+  await nextTick()
+  notesField.value?.focus()
 }
-const DEFAULT_SHAPE = { radius: '10px', button: '8px', weight: 700, tracking: '-0.01em' }
 
-const previewVars = computed(() => {
-  const d = props.modelValue
-  const palette = PALETTES.find(p => p.id === d.palette)
-  const primary = isCustom.value ? d.brandColor : palette?.primary ?? '#3F3F46'
-  const accent = isCustom.value
-    ? `color-mix(in srgb, ${d.brandColor} 45%, #ffffff)`
-    : palette?.accent ?? '#A1A1AA'
-  const dark = d.theme === 'dark'
-  const background = dark
-    ? `color-mix(in srgb, ${primary} 12%, #0e0f13)`
-    : palette?.background ?? '#F7F7F8'
-  const shape = STYLE_SHAPE[d.style ?? ''] ?? DEFAULT_SHAPE
-  const font = FONTS.find(f => f.id === d.font)?.sample ?? "ui-sans-serif, system-ui, sans-serif"
-  return {
-    '--p-primary': primary,
-    '--p-accent': accent,
-    '--p-bg': background,
-    '--p-text': dark ? '#F4F4F5' : '#18181B',
-    '--p-muted': dark ? 'rgba(244, 244, 245, 0.62)' : 'rgba(24, 24, 27, 0.6)',
-    // On a dark screen the deep primary sinks into the background, so the
-    // lighter accent carries the brand and the button instead.
-    '--p-brand': dark ? accent : primary,
-    '--p-button': dark ? accent : primary,
-    '--p-on-button': dark ? '#0e0f13' : '#ffffff',
-    '--p-radius': shape.radius,
-    '--p-button-radius': shape.button,
-    '--p-weight': String(shape.weight),
-    '--p-tracking': shape.tracking,
-    '--p-font': font,
-  }
+// The styles' own fonts, loaded only on the page that shows them. Imagi's
+// faces (Hanken, Instrument, Bricolage, Fraunces) are already on every page.
+const FONTS_ID = 'starter-design-fonts'
+const FONTS_HREF =
+  'https://fonts.googleapis.com/css2?family=Nunito:wght@500..900&family=Fredoka:wght@500..700&family=DM+Serif+Display&family=Space+Mono:wght@400;700&family=Sora:wght@400..700&family=JetBrains+Mono:wght@500&display=swap'
+onMounted(() => {
+  if (typeof document === 'undefined' || document.getElementById(FONTS_ID)) return
+  const link = document.createElement('link')
+  link.id = FONTS_ID
+  link.rel = 'stylesheet'
+  link.href = FONTS_HREF
+  document.head.appendChild(link)
 })
 </script>
 
 <style scoped>
 .design {
   display: grid;
-  gap: 1.25rem;
-}
-
-.design__row {
-  display: grid;
-  gap: 1.25rem;
-}
-
-@media (min-width: 640px) {
-  .design__row {
-    grid-template-columns: 1fr auto;
-    align-items: start;
-  }
+  gap: 1.5rem;
 }
 
 .design__group {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.65rem;
   min-width: 0;
+  margin: 0;
 }
 
 .design__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -280,79 +218,144 @@ const previewVars = computed(() => {
   color: var(--sl-muted);
 }
 
-.design__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.design__label-note {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sl-faint);
 }
 
-/* Same pill as the sentence starters on the steps above. */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.8rem;
-  border: 1px solid var(--sl-line);
-  border-radius: 999px;
-  background: var(--sl-chip-bg);
-  font-size: 0.8125rem;
+.design__auto {
+  font-size: 0.85rem;
   color: var(--sl-muted);
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-.chip:hover:not(:disabled) {
-  background: var(--sl-chip-bg-hover);
+/* Style tiles: three across, two on a phone */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 560px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.tile {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.375rem 0.375rem 0.65rem;
+  border: 1px solid var(--sl-line);
+  border-radius: 0.9rem;
+  background: var(--sl-surface);
+  text-align: left;
+  transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+}
+
+.tile:hover:not(:disabled) {
   border-color: var(--sl-line-strong);
-  color: var(--sl-text);
+  transform: translateY(-1px);
 }
 
-.chip:focus-visible {
-  outline: 2px solid var(--sl-focus);
-  outline-offset: 2px;
-}
-
-.chip.is-on,
-.chip.is-on:hover:not(:disabled) {
+.tile[aria-checked='true'] {
   border-color: transparent;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent);
-  font-weight: 600;
+  box-shadow: 0 0 0 2px var(--sl-amber), 0 10px 30px -14px var(--sl-glow);
 }
 
-.chip:disabled {
+.tile:focus-visible {
+  outline: 2px solid var(--sl-focus);
+  outline-offset: 3px;
+}
+
+.tile:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.chip--palette {
-  padding-left: 0.4rem;
-}
-
-.swatches {
-  display: inline-flex;
-}
-
-.swatches span {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 1.5px solid var(--sl-surface);
-  box-shadow: 0 0 0 1px var(--sl-line);
-}
-
-.swatches span + span {
-  margin-left: -5px;
-}
-
-.chip__sample {
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1;
+.tile__name {
+  padding: 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--sl-text);
 }
 
-.chip.is-on .chip__sample {
-  color: inherit;
+.tile__line {
+  margin-top: -0.3rem;
+  padding: 0 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--sl-muted);
+}
+
+/* Colour dots */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 0.6rem;
+}
+
+.swatch {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  width: 3.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--sl-muted);
+}
+
+.swatch__dot,
+.swatch__plus {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+}
+
+.swatch__dot {
+  box-shadow: 0 0 0 1px var(--sl-line-strong);
+}
+
+.swatch__plus {
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--sl-line-strong);
+}
+
+.swatch__plus svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.swatch:hover:not(:disabled) .swatch__dot,
+.swatch:hover:not(:disabled) .swatch__plus {
+  transform: translateY(-1px);
+}
+
+.swatch[aria-checked='true'] {
+  font-weight: 600;
+  color: var(--sl-text);
+}
+
+.swatch[aria-checked='true'] .swatch__dot {
+  box-shadow: 0 0 0 2px var(--sl-bg), 0 0 0 4px var(--sl-amber);
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--sl-focus);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+
+.swatch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .brand {
@@ -382,111 +385,41 @@ const previewVars = computed(() => {
   border-radius: 0.4rem;
 }
 
-/* The sample screen, drawn in the founder's colours. */
-.preview {
-  margin: 0;
-}
-
-.preview__screen {
-  overflow: hidden;
-  border: 1px solid var(--sl-line);
-  border-radius: 0.9rem;
-  background: var(--p-bg);
-  font-family: var(--p-font);
-  color: var(--p-text);
-  transition: background 0.25s ease;
-}
-
-.preview__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.65rem 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--p-text) 10%, transparent);
-}
-
-.preview__brand {
-  font-size: 0.85rem;
-  font-weight: var(--p-weight);
-  letter-spacing: var(--p-tracking);
-  color: var(--p-brand);
-}
-
-.preview__links {
+/* The quiet way to add words about the look */
+.note-btn {
   display: inline-flex;
-  gap: 0.45rem;
-}
-
-.preview__links i {
-  width: 1.6rem;
-  height: 0.3rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--sl-line);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--p-text) 18%, transparent);
-}
-
-.preview__body {
-  position: relative;
-  padding: 1.1rem 1rem 1.2rem;
-}
-
-@media (min-width: 480px) {
-  .preview__body {
-    padding-right: 6.5rem;
-  }
-}
-
-.preview__title {
-  max-width: 22ch;
-  font-size: 1.2rem;
-  line-height: 1.15;
-  font-weight: var(--p-weight);
-  letter-spacing: var(--p-tracking);
-}
-
-.preview__text {
-  margin-top: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--p-muted);
-}
-
-.preview__button {
-  display: inline-block;
-  margin-top: 0.85rem;
-  padding: 0.45rem 0.95rem;
-  border-radius: var(--p-button-radius);
-  background: var(--p-button);
-  color: var(--p-on-button);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.preview__accent {
-  position: absolute;
-  right: 1rem;
-  bottom: 1.2rem;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: var(--p-radius);
-  background: var(--p-accent);
-  opacity: 0.85;
-}
-
-/* No room for the accent tile beside the text on a phone. */
-@media (max-width: 479px) {
-  .preview__accent {
-    display: none;
-  }
-}
-
-.preview__caption {
-  margin-top: 0.5rem;
-  font-size: 0.8rem;
+  background: var(--sl-chip-bg);
+  font-size: 0.8125rem;
   color: var(--sl-muted);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.note-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.note-btn:hover:not(:disabled) {
+  border-color: var(--sl-line-strong);
+  background: var(--sl-chip-bg-hover);
+  color: var(--sl-text);
+}
+
+.note-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chip,
-  .preview__screen {
+  .tile,
+  .swatch__dot,
+  .swatch__plus,
+  .note-btn {
     transition: none;
   }
 }

@@ -124,6 +124,7 @@ describe('Projects (Brief)', () => {
     await wrapper.find('#project-name').setValue('  Little Loaf ')
     await wrapper.find('#project-description').setValue(DESCRIPTION)
     await wrapper.find('#project-details').setValue(` ${DETAILS} `)
+    await wrapper.find('.note-btn').trigger('click')
     await wrapper.find('#project-design').setValue('Warm and minimal')
     // The button sits inside the form, under the last step.
     expect(wrapper.find('form#create-project button[type="submit"].create-submit').exists()).toBe(true)
@@ -149,30 +150,35 @@ describe('Projects (Brief)', () => {
 
   it('previews the starter design with the app\'s own name and description', async () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.preview__title').text()).toBe('Your app’s name')
+    const tile = () => wrapper.find('.design .tile')
+    expect(tile().find('.pv-title').text()).toBe('Your app')
     await wrapper.find('#project-name').setValue('Little Loaf')
     await wrapper.find('#project-description').setValue('A pre-order site for my bakery. Customers pick loaves for Saturday.')
-    expect(wrapper.find('.preview__brand').text()).toBe('Little Loaf')
-    expect(wrapper.find('.preview__title').text()).toBe('Little Loaf')
-    expect(wrapper.find('.preview__text').text()).toBe('A pre-order site for my bakery.')
+    expect(tile().find('.pv-brand').text()).toBe('Little Loaf')
+    expect(tile().find('.pv-title').text()).toBe('Little Loaf')
+    expect(tile().find('.pv-text').text()).toBe('A pre-order site for my bakery.')
   })
 
-  it('builds a starter design from the presets and the notes', async () => {
+  it('builds a starter design from a style, a colour scheme and a note', async () => {
     store.createProject.mockResolvedValue({ id: 9, name: 'Little Loaf' })
     const wrapper = mountPage()
-    const chip = (name: string) =>
-      wrapper.find('.design').findAll('button').find((b) => b.text().endsWith(name))!
-    await chip('Warm and friendly').trigger('click')
-    await chip('Forest').trigger('click')
-    await chip('Classic').trigger('click')
-    await chip('Light').trigger('click')
+    const style = (name: string) =>
+      wrapper.findAll('.design .tile').find((b) => b.find('.tile__name').text() === name)!
+    const colour = (name: string) =>
+      wrapper.findAll('.design .swatch').find((b) => b.text() === name)!
+    await style('Friendly').trigger('click')
+    await colour('Forest').trigger('click')
+    await colour('Ocean').trigger('click')
+    await wrapper.find('.note-btn').trigger('click')
     await wrapper.find('#project-design').setValue('Use our green logo')
-    expect(chip('Forest').attributes('aria-pressed')).toBe('true')
+    expect(style('Friendly').attributes('aria-checked')).toBe('true')
+    expect(colour('Ocean').attributes('aria-checked')).toBe('true')
     expect(wrapper.findAll('.step')[3].classes()).toContain('is-done')
 
-    // A second tap undoes a preset.
-    await chip('Light').trigger('click')
-    expect(chip('Light').attributes('aria-pressed')).toBe('false')
+    // A second tap undoes a pick.
+    await colour('Ocean').trigger('click')
+    expect(colour('Ocean').attributes('aria-checked')).toBe('false')
+    await colour('Forest').trigger('click')
 
     await wrapper.find('#project-name').setValue('Little Loaf')
     await wrapper.find('#project-description').setValue(DESCRIPTION)
@@ -180,11 +186,21 @@ describe('Projects (Brief)', () => {
     await wrapper.find('form#create-project').trigger('submit')
     await flushPromises()
     expect(store.createProject.mock.calls[0][0].design_preferences).toBe([
-      'Style: Warm and friendly (soft rounded corners, inviting colour, a conversational tone).',
-      'Colours: Forest palette, primary #1F4D3A, accent #8FB39A, light background #F5F1E6.',
-      'Fonts: serif headings (such as Fraunces or Playfair Display) with a clean sans-serif for body text.',
+      'Style: Friendly (soft rounded corners, pill buttons, gentle shadows, centred welcoming headings).',
+      'Fonts: a rounded sans-serif (such as Nunito or Quicksand).',
+      'Colours: Forest scheme, primary #1F5A40, accent #8DBF96, background #F4F1E8, text #1B2A22.',
+      'Theme: light mode.',
       'Also: Use our green logo',
     ].join('\n'))
+  })
+
+  it('clears the look when Imagi is left to choose', async () => {
+    const wrapper = mountPage()
+    await wrapper.find('.design .tile').trigger('click')
+    expect(wrapper.find('.design .preview').exists()).toBe(true)
+    await wrapper.find('.step__link').trigger('click')
+    expect(wrapper.find('.design .preview').exists()).toBe(false)
+    expect(wrapper.findAll('.step')[3].classes()).not.toContain('is-done')
   })
 
   it('numbers the projects, most recently updated first', async () => {

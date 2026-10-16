@@ -41,16 +41,16 @@
         <div class="look__copy">
           <h3 class="sl-display look__title">See the look before it&rsquo;s built</h3>
           <p class="look__body">
-            Pick a style, colours, fonts and light or dark, and preview them on your app&rsquo;s
-            own name before the first build starts. Skip it and Imagi picks a look that fits.
+            Pick a style and a colour scheme and watch your app take shape, with its own name,
+            before the first build starts. Skip it and Imagi picks a look that fits.
           </p>
         </div>
         <div class="sl-stage look__shot">
           <ProductShot
             src="/product/create-look.webp"
-            alt="The Set the look step: style, colour, font and light or dark choices, with a small preview of Ticker Insights in the chosen styling."
-            :width="1560"
-            :height="1270"
+            alt="The Set the look step: style tiles showing Ticker Insights in each style, a row of colour schemes, and a large preview of the chosen look."
+            :width="1552"
+            :height="1770"
             label="imagi — set the look"
           />
         </div>
