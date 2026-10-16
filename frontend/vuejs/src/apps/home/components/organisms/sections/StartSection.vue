@@ -1,9 +1,9 @@
 <!--
   Step 01 — Create.
-  The first thing anyone does on Imagi: create a project. The four steps of
-  the real create form are named, then shown on stage: the first steps on
-  their rail, and the starter-design step with its live preview of the app's
-  own name.
+  The first thing anyone does on Imagi: create a project. The real create
+  form's three numbered steps are named (the app's name sits above them, so
+  it is not one), then shown on stage: the steps on their rail beside the
+  pinned preview of the app, then the starter-design step's style tiles.
 -->
 <template>
   <section id="how-it-works" class="sl-sec step scroll-mt-14">
@@ -12,8 +12,8 @@
         <p class="sl-eyebrow"><span class="sl-grad-text step-num">01</span><span>Create</span></p>
         <h2 class="sl-display sl-h2">Create a project</h2>
         <p class="sl-lede">
-          Every app on Imagi starts as a project. Answer four questions in your own words,
-          and the first version starts building the moment you create it.
+          Every app on Imagi starts as a project. Name your app, answer three questions in your
+          own words, and the first version starts building the moment you create it.
         </p>
       </div>
 
@@ -29,11 +29,11 @@
       <div v-reveal="{ delay: 120 }" class="sl-stage form-shot">
         <ProductShot
           src="/product/create-brief.webp"
-          alt="The Imagi create form for Ticker Insights: the app's name and what it is filled in, each step checked off on a lit rail, with How does it work? next."
-          :width="1568"
-          :height="1130"
+          alt="The Imagi create form for Ticker Insights: the app's name as the headline, its steps checked off on a lit rail, and a live preview of the app beside them with the Create app button."
+          :width="2312"
+          :height="1718"
           label="imagi — new project"
-          caption="Each step lights up once it has enough to build from. Then choose Create app."
+          caption="Each step lights up once it has enough to build from, and the preview follows what you type. Then choose Create app."
         />
       </div>
 
@@ -48,9 +48,9 @@
         <div class="sl-stage look__shot">
           <ProductShot
             src="/product/create-look.webp"
-            alt="The Set the look step: style tiles showing Ticker Insights in each style, a row of colour schemes, and a large preview of the chosen look."
-            :width="1552"
-            :height="1770"
+            alt="The Set the look step: style tiles showing Ticker Insights in each style, and a row of colour schemes."
+            :width="1124"
+            :height="1466"
             label="imagi — set the look"
           />
         </div>
@@ -72,7 +72,6 @@ export default defineComponent({
     steps: {
       type: Array,
       default: () => [
-        { title: 'Name it', body: 'The name of your app.' },
         { title: 'What is your app?', body: 'A few sentences on what it is, who it’s for, and what it should help them do.' },
         { title: 'How does it work?', body: 'What people can do on it and what it keeps track of. Imagi turns this into the plan.' },
         { title: 'Set the look', body: 'Optional. A starter design, previewed on your app’s own name.' }
@@ -106,10 +105,10 @@ export default defineComponent({
   font-weight: 700;
 }
 
-/* The form's four questions, in a row on a hairline, numbered like the form */
+/* The form's three steps, in a row on a hairline, numbered like the form */
 .brief-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   margin: clamp(48px, 6vw, 72px) 0 0;
   padding: 0;
@@ -152,9 +151,9 @@ export default defineComponent({
   text-wrap: pretty;
 }
 
-/* The form shot is a narrow column, so it is shown near its own size */
+/* The form shot: held to the homepage's 920px, so the words lead */
 .form-shot {
-  max-width: 820px;
+  max-width: 920px;
   margin-inline: auto;
 }
 
@@ -186,16 +185,6 @@ export default defineComponent({
 }
 
 @media (max-width: 900px) {
-  .brief-steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 24px;
-  }
-
-  .brief-step:nth-child(3) {
-    padding-left: 0;
-    border-left: 0;
-  }
-
   .look {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -204,6 +193,7 @@ export default defineComponent({
 @media (max-width: 560px) {
   .brief-steps {
     grid-template-columns: minmax(0, 1fr);
+    row-gap: 24px;
   }
 
   .brief-step + .brief-step {

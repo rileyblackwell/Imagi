@@ -10,15 +10,16 @@
   It should NOT be responsible for:
   - Project file editing (handled by the build workspace)
 
-  Design: "Brief" on the Spotlight stage. Starting an app is four numbered
-  steps on a lit rail (name it, what the app is, how it works, set the look),
-  written for people who are not technical. Step 4 is the starter design: a style
-  and a colour scheme with a live preview of the app (see
-  components/molecules/brief/StarterDesign.vue), and the
-  Create app button sits under it. The copy is app-first: the business tools are mentioned as what the same project
-  offers once someone wants to turn the app into a business. The projects you
-  already have follow as a numbered list. The editorial
-  markup is re-lit by the bridge in shared/styles/spotlight.css.
+  Design: "Studio" on the Spotlight stage. The app's name comes first, typed
+  straight into the page's headline. Under it, three numbered steps on a lit
+  rail (what the app is, how it works, set the look) run down the left, written
+  for people who are not technical, while a live preview of the app stays
+  pinned on the right with the Create app button beneath it. Set the look is
+  the starter design (components/molecules/brief/StarterDesign.vue): a style
+  and a colour scheme, drawn in the pinned preview. The copy is app-first: the
+  business tools come with the same project once someone wants them. The
+  projects you already have follow as a numbered list. The editorial markup is
+  re-lit by the bridge in shared/styles/spotlight.css.
 -->
 <template>
   <div class="spotlight projects-root">
@@ -34,8 +35,8 @@
       <div class="editorial projects-page relative min-h-screen">
         <main class="relative">
 
-          <!-- Opening statement -->
-          <section class="sl-opener projects-opener">
+          <!-- Signed out: the page's own opening statement -->
+          <section v-if="showAuthError" class="sl-opener projects-opener">
             <div class="sl-spot projects-spot" aria-hidden="true"></div>
             <div class="sl-dots" aria-hidden="true"></div>
             <div class="sl-wrap projects-opener__inner">
@@ -43,22 +44,12 @@
                 <span class="sl-pip" aria-hidden="true"></span>
                 <span>Your workspace</span>
               </p>
-              <h1 v-if="showAuthError" class="rise-item sl-display projects-title" style="animation-delay: 60ms">
+              <h1 class="rise-item sl-display projects-title" style="animation-delay: 60ms">
                 Projects
               </h1>
-              <h1 v-else class="rise-item sl-display projects-title" style="animation-delay: 60ms">
-                Brief the agent on a <span class="sl-grad-text">new app</span>
-              </h1>
               <p class="rise-item sl-lede" style="animation-delay: 120ms">
-                <template v-if="showAuthError">
-                  Every app you build on Imagi lives in a project, along with the tools to turn it
-                  into a business when you want to.
-                </template>
-                <template v-else>
-                  Answer a few questions in your own words and Imagi builds the first version of
-                  your app. If you want it to become a business, the same project has the tools to
-                  sell, market and run it. Your projects are further down.
-                </template>
+                Every app you build on Imagi lives in a project, along with the tools to turn it
+                into a business when you want to.
               </p>
             </div>
           </section>
@@ -88,161 +79,190 @@
           </section>
 
           <template v-else>
-            <!-- The brief: four steps on a rail, and the button that sends it -->
-            <section class="relative brief-section">
-              <div class="sl-wrap">
-
-                <form id="create-project" class="steps rise-item" style="animation-delay: 90ms" @submit.prevent="createProject">
-                  <!-- 01 — Name it -->
-                  <div class="step" :class="stepClass(1)">
-                    <span class="step__node" aria-hidden="true">
-                      <svg v-if="nameDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                      <template v-else>01</template>
-                    </span>
-                    <label class="step__title" for="project-name">Name it</label>
-                    <p class="step__hint">The name of your app.</p>
+            <form id="create-project" @submit.prevent="createProject">
+              <!-- The name first: the page's headline, typed into directly,
+                   and not one of the numbered steps. -->
+              <section class="sl-opener projects-opener">
+                <div class="sl-spot projects-spot" aria-hidden="true"></div>
+                <div class="sl-dots" aria-hidden="true"></div>
+                <div class="sl-wrap projects-opener__inner">
+                  <h1 class="sr-only">Start a new app</h1>
+                  <p class="rise-item sl-eyebrow sl-pill">
+                    <span class="sl-pip" aria-hidden="true"></span>
+                    <span>New app</span>
+                  </p>
+                  <div class="rise-item app-name" :class="{ 'is-filled': nameDone }" style="animation-delay: 60ms">
+                    <label class="sr-only" for="project-name">App name</label>
                     <input
                       id="project-name"
                       ref="projectNameInput"
                       v-model="newProjectName"
                       type="text"
-                      class="field__input step__name disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="Ticker Insights"
+                      class="app-name__input disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Name your app"
+                      aria-describedby="project-name-hint"
+                      autocomplete="off"
                       :disabled="isCreating"
-                      @focus="focusedStep = 1"
-                      @blur="focusedStep = null"
                     >
                   </div>
+                  <p id="project-name-hint" class="rise-item app-name__hint" style="animation-delay: 90ms">
+                    The name of your app. You can change it later.
+                  </p>
+                </div>
+              </section>
 
-                  <!-- 02 — What the app is: what, who for, and its goal. -->
-                  <div class="step" :class="stepClass(2)">
-                    <span class="step__node" aria-hidden="true">
-                      <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                      <template v-else>02</template>
-                    </span>
-                    <label class="step__title" for="project-description">What is your app?</label>
-                    <p id="project-description-hint" class="step__hint">
-                      A few sentences: what your app is, who it&rsquo;s for, and what it should help them do.
-                    </p>
-                    <div class="lit-field">
-                      <textarea
-                        id="project-description"
-                        v-model="newProjectDescription"
-                        rows="3"
-                        class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="A stock tracker for everyday investors. It helps them see how their portfolio is doing at a glance, without reading financial reports."
-                        aria-describedby="project-description-hint project-description-meter"
-                        :disabled="isCreating"
-                        @focus="focusedStep = 2"
-                        @blur="focusedStep = null"
-                      ></textarea>
-                    </div>
-                    <div class="meter" :class="{ 'meter--done': descriptionDone }">
-                      <span class="meter__track" aria-hidden="true">
-                        <span class="meter__fill" :style="{ transform: `scaleX(${descriptionProgress})` }"></span>
+              <!-- The steps on the left, the app pinned on the right -->
+              <section class="relative brief-section">
+                <div class="sl-wrap studio rise-item" style="animation-delay: 120ms">
+                  <div class="steps">
+                    <!-- 01 — What the app is: what, who for, and its goal. -->
+                    <div class="step" :class="stepClass(1)">
+                      <span class="step__node" aria-hidden="true">
+                        <svg v-if="descriptionDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                        <template v-else>01</template>
                       </span>
-                      <span id="project-description-meter" class="meter__label" aria-live="polite">
-                        <svg v-if="descriptionDone" class="meter__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                        {{ descriptionMeterLabel }}
-                      </span>
+                      <label class="step__title" for="project-description">What is your app?</label>
+                      <p id="project-description-hint" class="step__hint">
+                        A few sentences: what your app is, who it&rsquo;s for, and what it should help them do.
+                      </p>
+                      <div class="lit-field">
+                        <textarea
+                          id="project-description"
+                          v-model="newProjectDescription"
+                          rows="3"
+                          class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="A stock tracker for everyday investors. It helps them see how their portfolio is doing at a glance, without reading financial reports."
+                          aria-describedby="project-description-hint project-description-meter"
+                          :disabled="isCreating"
+                          @focus="focusedStep = 1"
+                          @blur="focusedStep = null"
+                        ></textarea>
+                      </div>
+                      <div class="meter" :class="{ 'meter--done': descriptionDone }">
+                        <span class="meter__track" aria-hidden="true">
+                          <span class="meter__fill" :style="{ transform: `scaleX(${descriptionProgress})` }"></span>
+                        </span>
+                        <span id="project-description-meter" class="meter__label" aria-live="polite">
+                          <svg v-if="descriptionDone" class="meter__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                          {{ descriptionMeterLabel }}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <!-- 03 — How the app works. Required: it is the functional
-                       spec the first build plans every page from. -->
-                  <div class="step" :class="stepClass(3)">
-                    <span class="step__node" aria-hidden="true">
-                      <svg v-if="detailsDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                      <template v-else>03</template>
-                    </span>
-                    <label class="step__title" for="project-details">How does it work?</label>
-                    <p id="project-details-hint" class="step__hint">
-                      The details of how it works: what people can do on it, the steps they go through,
-                      and what it needs to keep track of. Imagi turns this into the plan for your app.
-                    </p>
-                    <div class="lit-field">
-                      <textarea
-                        id="project-details"
-                        v-model="newProjectDetails"
-                        rows="4"
-                        class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="People add the stocks they own and how many shares. It shows the total value, today's change and a chart for each stock. Each morning it writes a short summary of what moved and why."
-                        aria-describedby="project-details-hint project-details-meter"
+                    <!-- 02 — How the app works. Required: it is the functional
+                         spec the first build plans every page from. -->
+                    <div class="step" :class="stepClass(2)">
+                      <span class="step__node" aria-hidden="true">
+                        <svg v-if="detailsDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                        <template v-else>02</template>
+                      </span>
+                      <label class="step__title" for="project-details">How does it work?</label>
+                      <p id="project-details-hint" class="step__hint">
+                        The details of how it works: what people can do on it, the steps they go through,
+                        and what it needs to keep track of. Imagi turns this into the plan for your app.
+                      </p>
+                      <div class="lit-field">
+                        <textarea
+                          id="project-details"
+                          v-model="newProjectDetails"
+                          rows="4"
+                          class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="People add the stocks they own and how many shares. It shows the total value, today's change and a chart for each stock. Each morning it writes a short summary of what moved and why."
+                          aria-describedby="project-details-hint project-details-meter"
+                          :disabled="isCreating"
+                          @focus="focusedStep = 2"
+                          @blur="focusedStep = null"
+                        ></textarea>
+                      </div>
+                      <div class="meter" :class="{ 'meter--done': detailsDone }">
+                        <span class="meter__track" aria-hidden="true">
+                          <span class="meter__fill" :style="{ transform: `scaleX(${detailsProgress})` }"></span>
+                        </span>
+                        <span id="project-details-meter" class="meter__label" aria-live="polite">
+                          <svg v-if="detailsDone" class="meter__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                          {{ detailsMeterLabel }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- 03 — The starter design: the app's first design system.
+                         Its large preview is the pinned one beside the steps. -->
+                    <div class="step step--last" :class="stepClass(3)">
+                      <span class="step__node" aria-hidden="true">
+                        <svg v-if="designDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                        <template v-else>03</template>
+                      </span>
+                      <p class="step__title">
+                        Set the look
+                        <span class="step__optional">Optional</span>
+                      </p>
+                      <p class="step__hint">
+                        Pick a style and a colour scheme and see your app take shape. Or
+                        <button type="button" class="step__link" :disabled="isCreating" @click="newProjectDesign = emptyDesign()">let Imagi choose</button>.
+                      </p>
+                      <StarterDesign
+                        v-model="newProjectDesign"
+                        :app-name="newProjectName.trim()"
+                        :app-description="newProjectDescription.trim()"
                         :disabled="isCreating"
+                        hide-preview
+                        compact
                         @focus="focusedStep = 3"
                         @blur="focusedStep = null"
-                      ></textarea>
-                    </div>
-                    <div class="meter" :class="{ 'meter--done': detailsDone }">
-                      <span class="meter__track" aria-hidden="true">
-                        <span class="meter__fill" :style="{ transform: `scaleX(${detailsProgress})` }"></span>
-                      </span>
-                      <span id="project-details-meter" class="meter__label" aria-live="polite">
-                        <svg v-if="detailsDone" class="meter__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                        {{ detailsMeterLabel }}
-                      </span>
+                      />
                     </div>
                   </div>
 
-                  <!-- 04 — The starter design: the app's first design system -->
-                  <div class="step step--last" :class="stepClass(4)">
-                    <span class="step__node" aria-hidden="true">
-                      <svg v-if="designDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                      <template v-else>04</template>
-                    </span>
-                    <p class="step__title">
-                      Set the look
-                      <span class="step__optional">Optional</span>
-                    </p>
-                    <p class="step__hint">
-                      Pick a style and a colour scheme and see your app take shape. Or
-                      <button type="button" class="step__link" :disabled="isCreating" @click="newProjectDesign = emptyDesign()">let Imagi choose</button>.
-                    </p>
-                    <StarterDesign
-                      v-model="newProjectDesign"
-                      :app-name="newProjectName.trim()"
-                      :app-description="newProjectDescription.trim()"
-                      :disabled="isCreating"
-                      @focus="focusedStep = 4"
-                      @blur="focusedStep = null"
-                    />
-                  </div>
-                  <!-- The button that sends it, under the last step -->
-                  <div v-if="atProjectLimit" class="create-foot">
-                    <router-link to="/payments/pricing" class="btn-primary group create-submit">
-                      <span>See plans</span>
-                      <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </router-link>
-                    <p class="create-note create-note--limit">
-                      Your {{ usageStore.plan?.name }} plan includes one project. Pro and Max include unlimited projects.
-                    </p>
-                  </div>
-                  <div v-else class="create-foot">
-                    <button
-                      type="submit"
-                      class="btn-primary group create-submit"
-                      :disabled="!canCreate || isCreating"
-                    >
-                      <template v-if="isCreating">
-                        <span class="spinner" aria-hidden="true"></span>
-                        <span>Creating&hellip;</span>
-                      </template>
-                      <template v-else>
-                        <span>Create app</span>
+                  <!-- The app as it's being described, and the button that
+                       creates it -->
+                  <aside class="studio__side">
+                    <figure class="studio__preview">
+                      <figcaption class="studio__label">
+                        Your app, as you answer
+                        <span v-if="!designDone" class="studio__label-note">Imagi picks the look if you skip it</span>
+                      </figcaption>
+                      <StarterPreview
+                        :style-id="newProjectDesign.style"
+                        :scheme="previewScheme"
+                        :app-name="newProjectName.trim()"
+                        :app-text="previewText"
+                      />
+                    </figure>
+
+                    <div v-if="atProjectLimit" class="create-foot">
+                      <router-link to="/payments/pricing" class="btn-primary group create-submit">
+                        <span>See plans</span>
                         <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
-                      </template>
-                    </button>
-                    <p class="create-note">You can change everything later in the workspace.</p>
-                  </div>
-                </form>
-
-
-              </div>
-            </section>
+                      </router-link>
+                      <p class="create-note create-note--limit">
+                        Your {{ usageStore.plan?.name }} plan includes one project. Pro and Max include unlimited projects.
+                      </p>
+                    </div>
+                    <div v-else class="create-foot">
+                      <button
+                        type="submit"
+                        class="btn-primary group create-submit"
+                        :disabled="!canCreate || isCreating"
+                      >
+                        <template v-if="isCreating">
+                          <span class="spinner" aria-hidden="true"></span>
+                          <span>Creating&hellip;</span>
+                        </template>
+                        <template v-else>
+                          <span>Create app</span>
+                          <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                          </svg>
+                        </template>
+                      </button>
+                      <p class="create-note">You can change everything later in the workspace.</p>
+                    </div>
+                  </aside>
+                </div>
+              </section>
+            </form>
 
             <!-- Your projects -->
             <section class="relative library-section">
@@ -372,11 +392,14 @@ import { projectSlug } from '@/apps/imagi/build/utils/slug'
 import { ConfirmModal } from '@/apps/imagi/build/components/organisms/modals'
 import { takePendingIdea } from '@/apps/home/utils/pendingIdea'
 import StarterDesign from '../components/molecules/brief/StarterDesign.vue'
+import StarterPreview from '../components/molecules/brief/StarterPreview.vue'
 import { useUsageStore } from '@/shared/stores/usage'
 import {
   emptyDesign,
   designIsSet,
   composeDesignPreferences,
+  previewTextFor,
+  schemeFor,
   type StarterDesign as StarterDesignValue,
 } from '../utils/projectBrief'
 
@@ -421,21 +444,21 @@ const canCreate = computed(() =>
   newProjectDetails.value.trim().length >= MIN_DETAILS_LENGTH
 )
 
-// The brief's four steps. A step is done once its answer is enough to build
-// from; the current one is the field being typed in, or else the first that
-// still needs an answer.
+// The name sits above the steps; the three steps below it are done once their
+// answer is enough to build from. The current one is the field being typed
+// in, or else the first that still needs an answer.
 const nameDone = computed(() => Boolean(newProjectName.value.trim()))
 const descriptionLength = computed(() => newProjectDescription.value.trim().length)
 const descriptionDone = computed(() => descriptionLength.value >= MIN_DESCRIPTION_LENGTH)
 const detailsLength = computed(() => newProjectDetails.value.trim().length)
 const detailsDone = computed(() => detailsLength.value >= MIN_DETAILS_LENGTH)
 const designDone = computed(() => designIsSet(newProjectDesign.value))
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3
 const focusedStep = ref<Step | null>(null)
 const currentStep = computed(() =>
-  focusedStep.value ?? (!nameDone.value ? 1 : !descriptionDone.value ? 2 : !detailsDone.value ? 3 : 4)
+  focusedStep.value ?? (!descriptionDone.value ? 1 : !detailsDone.value ? 2 : 3)
 )
-const stepDone = { 1: nameDone, 2: descriptionDone, 3: detailsDone, 4: designDone } as const
+const stepDone = { 1: descriptionDone, 2: detailsDone, 3: designDone } as const
 const stepClass = (step: Step) => ({
   'is-done': stepDone[step].value,
   'is-current': currentStep.value === step,
@@ -452,6 +475,11 @@ const meterLabel = (length: number, min: number) => {
 const descriptionMeterLabel = computed(() => meterLabel(descriptionLength.value, MIN_DESCRIPTION_LENGTH))
 const detailsProgress = computed(() => Math.min(1, detailsLength.value / MIN_DETAILS_LENGTH))
 const detailsMeterLabel = computed(() => meterLabel(detailsLength.value, MIN_DETAILS_LENGTH))
+
+// The pinned preview: the app's own name and first sentence, in the picked
+// style and colours (a quiet neutral app until something is picked).
+const previewScheme = computed(() => schemeFor(newProjectDesign.value))
+const previewText = computed(() => previewTextFor(newProjectDescription.value))
 
 const isInitializing = ref(true)
 
@@ -777,7 +805,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 /* --- Opener ---------------------------------------------------------------
-   Left-aligned, so the title reads as the first line of the brief below it. */
+   Left-aligned. Signed in, its headline is the app's name field. */
 
 .sl-opener.projects-opener {
   padding-bottom: clamp(36px, 5vw, 56px);
@@ -807,12 +835,126 @@ input[type='search']::-webkit-search-cancel-button {
   }
 }
 
-/* --- Brief ----------------------------------------------------------------
-   The four steps, then the button that sends them. Kept to a readable
-   measure rather than the full page width. */
+/* The app's name, typed into the headline. One hairline under it, lit from
+   left to right once there is a name. */
+.app-name {
+  position: relative;
+  width: 100%;
+}
+
+.app-name .app-name__input {
+  display: block;
+  width: 100%;
+  padding: 0.1rem 0 0.75rem;
+  border: 0;
+  border-bottom: 1.5px solid var(--sl-line-strong);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--sl-font-display);
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 800;
+  font-variation-settings: 'opsz' 96;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: var(--sl-text);
+  transition: border-color 0.2s ease;
+}
+
+.app-name .app-name__input::placeholder {
+  color: var(--sl-placeholder);
+  opacity: 0.6;
+}
+
+.app-name .app-name__input:hover:not(:disabled) {
+  border-bottom-color: var(--sl-muted);
+}
+
+.app-name .app-name__input:focus {
+  outline: none;
+}
+
+.app-name::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sl-grad);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.app-name.is-filled::after,
+.app-name:focus-within::after {
+  transform: scaleX(1);
+}
+
+.app-name__hint {
+  margin-top: -0.5rem;
+  font-size: 0.9rem;
+  color: var(--sl-muted);
+}
+
+/* --- Studio ---------------------------------------------------------------
+   The three steps on the left; on the right, the app as it is being
+   described, pinned under the navbar while the steps scroll, with the button
+   that creates it. One column below 960px, the preview after the look. */
 
 .brief-section {
   padding-bottom: clamp(72px, 9vw, 112px);
+}
+
+.studio {
+  display: grid;
+  gap: 3rem;
+}
+
+@media (min-width: 960px) {
+  .studio {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  .studio__side {
+    position: sticky;
+    top: calc(57px + 1.5rem);
+  }
+}
+
+.studio__side {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.studio__preview {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.studio__label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sl-muted);
+}
+
+.studio__label-note {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sl-faint);
 }
 
 /* The rail: a line down the left that each step's node sits on. The segment
@@ -820,7 +962,6 @@ input[type='search']::-webkit-search-cancel-button {
 .steps {
   display: grid;
   min-width: 0;
-  max-width: 46rem;
 }
 
 .step {
@@ -936,19 +1077,6 @@ input[type='search']::-webkit-search-cancel-button {
   cursor: not-allowed;
 }
 
-/* Two selectors so these beat `.editorial .field__input`. */
-.step .step__name {
-  font-family: var(--sl-font-display);
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  padding: 0.5rem 0 0.75rem;
-}
-
-.step .field__input:focus {
-  border-bottom-color: var(--sl-amber);
-}
-
 /* The description gets the home page's glowing prompt sheet: it is the answer
    the first build leans on most. */
 .lit-field {
@@ -1030,14 +1158,12 @@ input[type='search']::-webkit-search-cancel-button {
   height: 0.85rem;
 }
 
-/* Under the last step, lined up with the steps' text rather than the rail. */
+/* Under the pinned preview. */
 .create-foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1.25rem;
-  margin-top: 2.5rem;
-  padding-left: 3.5rem;
 }
 
 /* Two selectors so this beats `.editorial .btn-primary`'s padding. */

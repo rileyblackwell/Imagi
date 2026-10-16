@@ -3,8 +3,8 @@
   starter style and colour scheme (utils/projectBrief.ts).
 
   It is laid out at a fixed 760 × 480 and scaled to its box, so the same
-  drawing serves as a style tile's thumbnail and as the large preview under
-  step 4. The colours are the founder's app colours, not Imagi's, which is why
+  drawing serves as a style tile's thumbnail and as the large preview pinned
+  beside the create page's steps. The colours are the founder's app colours, not Imagi's, which is why
   they are inline values rather than Spotlight tokens.
 -->
 <template>

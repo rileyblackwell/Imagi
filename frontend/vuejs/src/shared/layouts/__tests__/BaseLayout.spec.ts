@@ -58,8 +58,15 @@ describe('BaseLayout', () => {
       const { root, inner } = frameOf(false)
       expect(root.classes()).toContain('min-h-dvh')
       expect(root.classes()).not.toContain('fixed')
-      expect(inner.classes()).toContain('overflow-auto')
       expect(inner.classes()).not.toContain('app-shell-frame')
+    })
+
+    it('builds no scroll container, so sticky content pins to the document', () => {
+      const { inner } = frameOf(false)
+      // A scroller here never scrolls (the document does), and it would
+      // capture position: sticky. Clipping sideways overflow builds none.
+      expect(inner.classes()).not.toContain('overflow-auto')
+      expect(inner.classes()).toContain('overflow-x-clip')
     })
 
     it('is the default, so no caller has to opt out of the app shell', () => {

@@ -12,9 +12,9 @@ describe('StartSection (step 01)', () => {
     expect(wrapper().find('section').attributes('id')).toBe('how-it-works')
   })
 
-  it('names the create form’s four steps, in order', () => {
+  it('names the create form’s three numbered steps, in order', () => {
     const titles = wrapper().findAll('.brief-step__title').map((t) => t.text())
-    expect(titles).toEqual(['Name it', 'What is your app?', 'How does it work?', 'Set the look'])
+    expect(titles).toEqual(['What is your app?', 'How does it work?', 'Set the look'])
   })
 
   it('shows the create form and the starter-design step', () => {
