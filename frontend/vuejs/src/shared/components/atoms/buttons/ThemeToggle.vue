@@ -1,58 +1,17 @@
+<!-- The theme switch: a Spotlight segmented control of System, Light and Dark.
+     It reads the --sl-* tokens of the .spotlight root it sits in (the
+     footer's), with fallbacks so it still draws anywhere else. -->
 <template>
-  <div 
-    class="relative inline-flex items-center gap-1 p-1 rounded-full bg-gray-200/80 dark:bg-white/10 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 transition-all duration-300"
-    role="group"
-    aria-label="Theme selector"
-  >
-    <!-- Sliding background indicator -->
-    <div 
-      class="absolute top-1 h-[calc(100%-0.5rem)] rounded-full bg-white dark:bg-white/20 shadow-sm transition-all duration-300 ease-out"
-      :style="indicatorStyle"
-    ></div>
-
-    <!-- System option -->
+  <div class="theme-seg" role="group" aria-label="Theme">
     <button
-      @click="selectTheme('system')"
-      :class="[
-        'relative z-10 flex items-center justify-center px-3 py-1.5 rounded-full transition-all duration-300',
-        currentTheme === 'system' 
-          ? 'text-gray-900 dark:text-white' 
-          : 'text-gray-600 dark:text-white/60 hover:text-gray-800 dark:hover:text-white/80'
-      ]"
-      :title="'System theme' + (currentTheme === 'system' ? ` (${effectiveTheme})` : '')"
-      aria-label="Use system theme"
+      v-for="option in options"
+      :key="option.value"
+      type="button"
+      :aria-pressed="currentTheme === option.value ? 'true' : 'false'"
+      :title="option.value === 'system' ? `Follow your device (${effectiveTheme} now)` : undefined"
+      @click="selectTheme(option.value)"
     >
-      <i class="fas fa-laptop text-sm"></i>
-    </button>
-
-    <!-- Light option -->
-    <button
-      @click="selectTheme('light')"
-      :class="[
-        'relative z-10 flex items-center justify-center px-3 py-1.5 rounded-full transition-all duration-300',
-        currentTheme === 'light' 
-          ? 'text-amber-600 dark:text-amber-400' 
-          : 'text-gray-600 dark:text-white/60 hover:text-amber-500 dark:hover:text-amber-400'
-      ]"
-      title="Light theme"
-      aria-label="Use light theme"
-    >
-      <i class="fas fa-sun text-sm" :class="{ 'animate-pulse-subtle': currentTheme === 'light' }"></i>
-    </button>
-
-    <!-- Dark option -->
-    <button
-      @click="selectTheme('dark')"
-      :class="[
-        'relative z-10 flex items-center justify-center px-3 py-1.5 rounded-full transition-all duration-300',
-        currentTheme === 'dark' 
-          ? 'text-ink dark:text-bone' 
-          : 'text-gray-600 dark:text-white/60 hover:text-ink dark:hover:text-bone'
-      ]"
-      title="Dark theme"
-      aria-label="Use dark theme"
-    >
-      <i class="fas fa-moon text-sm"></i>
+      {{ option.label }}
     </button>
   </div>
 </template>
@@ -61,53 +20,52 @@
 import { computed } from 'vue'
 import { useThemeStore } from '@/shared/stores/theme'
 
+type Theme = 'light' | 'dark' | 'system'
+
 const themeStore = useThemeStore()
 
 const currentTheme = computed(() => themeStore.currentTheme)
 const effectiveTheme = computed(() => themeStore.effectiveTheme)
 
-const indicatorStyle = computed(() => {
-  const buttonWidth = 40 // approximate width in pixels
-  const positions = {
-    system: '0.25rem',
-    light: `calc(0.25rem + ${buttonWidth}px)`,
-    dark: `calc(0.25rem + ${buttonWidth * 2}px)`
-  }
-  
-  return {
-    left: positions[currentTheme.value],
-    width: `${buttonWidth}px`
-  }
-})
+const options: { value: Theme; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
 
-const selectTheme = (theme: 'light' | 'dark' | 'system') => {
+const selectTheme = (theme: Theme) => {
   themeStore.setTheme(theme)
 }
 </script>
 
 <style scoped>
-/* Subtle pulse animation for sun */
-@keyframes pulse-subtle {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
+.theme-seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid var(--sl-line-strong, rgba(127, 127, 127, 0.25));
+  background: var(--sl-chip-bg, rgba(127, 127, 127, 0.06));
 }
 
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s ease-in-out infinite;
+.theme-seg button {
+  padding: 5px 13px;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sl-muted, currentColor);
+  cursor: pointer;
+  transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Smooth hover effects */
-button {
-  position: relative;
+.theme-seg button:hover {
+  color: var(--sl-text, currentColor);
 }
 
-button:active {
-  transform: scale(0.95);
+.theme-seg button[aria-pressed='true'] {
+  background: var(--sl-surface-2, #fff);
+  color: var(--sl-text, currentColor);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--sl-line, rgba(127, 127, 127, 0.15));
 }
 </style>

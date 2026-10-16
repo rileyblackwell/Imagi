@@ -5,6 +5,7 @@
     aside-width-class="w-64"
     content-offset-class="md:ml-64"
     mobile-default-collapsed
+    site-nav
   >
     <!-- Section header: a quiet uppercase eyebrow, aligned with the nav labels
          below it (icon dropped for a cleaner, text-forward panel). -->
