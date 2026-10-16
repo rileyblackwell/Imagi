@@ -1,7 +1,7 @@
 <!--
   What Imagi is — the short answer, straight after the hero.
   Who it is for in one line, then the three facts worth knowing before you
-  start (free to start, how fast your app opens, who it is made for) on one hairline
+  start (free to try, how fast your app is built, who it is made for) on one hairline
   row. The how comes after, in steps 01 to 03.
 -->
 <template>
@@ -40,8 +40,8 @@ export default defineComponent({
     facts: {
       type: Array,
       default: () => [
-        { label: 'Price', value: 'Free', lit: true, caption: 'One open plan, with no usage limit and as many projects as you need.' },
-        { label: 'Your app opens in', value: '5', unit: 'sec', lit: true, caption: 'From Create to your home page on screen. The other pages keep building in the background.' },
+        { label: 'Price', value: 'Free', lit: true, caption: 'Try it in free mode and build your app without paying a thing.' },
+        { label: 'Your app is built in under', value: '10', unit: 'sec', lit: true, caption: 'From Create to your home page on screen. The other pages keep building in the background.' },
         { label: 'Made for', value: 'Founders, small businesses and teams', caption: 'And anyone else with an idea worth trying.' }
       ]
     }
