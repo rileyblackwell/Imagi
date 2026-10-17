@@ -46,8 +46,9 @@ vi.mock('@/apps/home/utils/pendingIdea', () => ({ takePendingIdea: () => null })
 
 import Projects from '../Projects.vue'
 
-const mountPage = () =>
+const mountPage = (options: { attachTo?: HTMLElement } = {}) =>
   mount(Projects, {
+    ...options,
     global: {
       stubs: {
         DefaultLayout: { template: '<div class="layout"><slot /></div>' },
@@ -74,7 +75,7 @@ describe('Projects (Brief)', () => {
     usage.plan = null
   })
 
-  it('starts on the first step with nothing done and the button off', async () => {
+  it('starts on the first step with nothing done and no errors yet', async () => {
     const wrapper = mountPage()
     await flushPromises()
     const steps = wrapper.findAll('.step')
@@ -82,7 +83,10 @@ describe('Projects (Brief)', () => {
     expect(steps[0].classes()).toContain('is-current')
     expect(wrapper.findAll('.step.is-done')).toHaveLength(0)
     expect(wrapper.find('.meter__label').text()).toBe('At least 20 characters')
-    expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
+    // The button stays pressable so it can say what is missing.
+    expect(wrapper.find('.create-submit').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('.field-error').exists()).toBe(false)
+    expect(wrapper.find('.create-errors').exists()).toBe(false)
   })
 
   it('asks for the name first, outside the numbered steps', async () => {
@@ -112,21 +116,18 @@ describe('Projects (Brief)', () => {
 
     await wrapper.find('#project-description').setValue('Sourdough bakery')
     expect(wrapper.find('#project-description-meter').text()).toBe('4 more characters')
-    expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
 
     await wrapper.find('#project-description').setValue(DESCRIPTION)
     expect(wrapper.find('#project-description-meter').text()).toBe('Enough to start')
     expect(wrapper.findAll('.step')[0].classes()).toContain('is-done')
     // What the app does is required too.
     expect(wrapper.findAll('.step')[1].classes()).toContain('is-current')
-    expect(wrapper.find('.create-submit').attributes('disabled')).toBeDefined()
 
     await wrapper.find('#project-details').setValue('People order')
     expect(wrapper.find('#project-details-meter').text()).toBe('8 more characters')
     await wrapper.find('#project-details').setValue(DETAILS)
     expect(wrapper.find('#project-details-meter').text()).toBe('Enough to start')
     expect(wrapper.findAll('.step')[1].classes()).toContain('is-done')
-    expect(wrapper.find('.create-submit').attributes('disabled')).toBeUndefined()
   })
 
   it('sends every answer, trimmed, and opens the new project', async () => {
@@ -157,6 +158,56 @@ describe('Projects (Brief)', () => {
     await wrapper.find('form#create-project').trigger('submit')
     await flushPromises()
     expect(store.createProject).not.toHaveBeenCalled()
+  })
+
+  it('says what is missing beside each field when Create app is pressed too early', async () => {
+    const wrapper = mountPage({ attachTo: document.body })
+    await wrapper.find('form#create-project').trigger('submit')
+    await flushPromises()
+    expect(store.createProject).not.toHaveBeenCalled()
+    expect(wrapper.find('#project-name-error').text()).toBe('Give your app a name.')
+    expect(wrapper.find('#project-description-error').text()).toContain('Say what your app is')
+    expect(wrapper.find('#project-details-error').text()).toContain('Say how your app works')
+    expect(wrapper.find('#project-name').attributes('aria-invalid')).toBe('true')
+    expect(wrapper.find('#project-name').attributes('aria-describedby')).toContain('project-name-error')
+    // Under the button, the list of what to fix, and focus on the first.
+    expect(wrapper.find('.create-errors').attributes('role')).toBe('alert')
+    expect(wrapper.findAll('.create-errors__link').map((b) => b.text()))
+      .toEqual(['App name', 'What is your app?', 'How does it work?'])
+    expect(document.activeElement?.id).toBe('project-name')
+    await wrapper.findAll('.create-errors__link')[2].trigger('click')
+    expect(document.activeElement?.id).toBe('project-details')
+    wrapper.unmount()
+  })
+
+  it('clears each message as its field is fixed, and says how much a short answer needs', async () => {
+    const wrapper = mountPage()
+    await wrapper.find('form#create-project').trigger('submit')
+    await wrapper.find('#project-name').setValue('Little Loaf')
+    expect(wrapper.find('#project-name-error').exists()).toBe(false)
+    await wrapper.find('#project-description').setValue('Sourdough bakery')
+    expect(wrapper.find('#project-description-error').text()).toContain('at least 20 characters, 4 to go')
+    await wrapper.find('#project-description').setValue(DESCRIPTION)
+    await wrapper.find('#project-details').setValue(DETAILS)
+    expect(wrapper.find('.field-error').exists()).toBe(false)
+    expect(wrapper.find('.create-errors').exists()).toBe(false)
+  })
+
+  it('shows a field the server refused beside that field, until it is edited', async () => {
+    store.createProject.mockRejectedValue(Object.assign(new Error('A project with this name already exists.'), {
+      fieldErrors: { name: 'A project with this name already exists.' },
+    }))
+    const wrapper = mountPage()
+    await wrapper.find('#project-name').setValue('Little Loaf')
+    await wrapper.find('#project-description').setValue(DESCRIPTION)
+    await wrapper.find('#project-details').setValue(DETAILS)
+    await wrapper.find('form#create-project').trigger('submit')
+    await flushPromises()
+    expect(wrapper.find('#project-name-error').text()).toBe('A project with this name already exists.')
+    expect(wrapper.findAll('.create-errors__link').map((b) => b.text())).toEqual(['App name'])
+    expect(store.clearError).toHaveBeenCalled()
+    await wrapper.find('#project-name').setValue('Little Loaf Two')
+    expect(wrapper.find('#project-name-error').exists()).toBe(false)
   })
 
   it('previews the starter design with the app\'s own name and description', async () => {

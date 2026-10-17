@@ -223,10 +223,16 @@ export const ProjectService = {
     } catch (error: any) {
       console.error('Project API - createProject error:', error)
       
-      if (error.response?.status === 400 && error.response?.data?.name) {
-        throw new Error(`Name error: ${error.response.data.name}`)
-      } else if (error.response?.status === 400 && error.response?.data?.description) {
-        throw new Error(`Description error: ${error.response.data.description}`)
+      // A field the server refused: say which one, so the form can show the
+      // reason beside it.
+      const data = error.response?.data
+      const fields = ['name', 'description', 'app_details'] as const
+      if (error.response?.status === 400 && data && fields.some((f) => data[f])) {
+        const fieldErrors: Record<string, string> = {}
+        for (const f of fields) {
+          if (data[f]) fieldErrors[f] = String(Array.isArray(data[f]) ? data[f][0] : data[f])
+        }
+        throw Object.assign(new Error(Object.values(fieldErrors)[0]), { fieldErrors })
       } else if (error.response?.status === 401) {
         throw new Error('You must be logged in to create a project')
       } else if (error.response?.status === 429 && error.response?.data?.detail) {
