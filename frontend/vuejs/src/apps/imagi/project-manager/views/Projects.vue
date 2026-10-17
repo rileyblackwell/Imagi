@@ -79,7 +79,7 @@
           </section>
 
           <template v-else>
-            <form id="create-project" @submit.prevent="createProject">
+            <form id="create-project" novalidate @submit.prevent="createProject">
               <!-- The name first: the page's headline, typed into directly,
                    and not one of the numbered steps. -->
               <section class="sl-opener projects-opener">
@@ -91,7 +91,7 @@
                     <span class="sl-pip" aria-hidden="true"></span>
                     <span>New app</span>
                   </p>
-                  <div class="rise-item app-name" :class="{ 'is-filled': nameDone }" style="animation-delay: 60ms">
+                  <div class="rise-item app-name" :class="{ 'is-filled': nameDone, 'is-invalid': fieldErrors.name }" style="animation-delay: 60ms">
                     <label class="sr-only" for="project-name">App name</label>
                     <input
                       id="project-name"
@@ -100,7 +100,8 @@
                       type="text"
                       class="app-name__input disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Name your app"
-                      aria-describedby="project-name-hint"
+                      :aria-describedby="fieldErrors.name ? 'project-name-error project-name-hint' : 'project-name-hint'"
+                      :aria-invalid="fieldErrors.name ? 'true' : undefined"
                       autocomplete="off"
                       :disabled="isCreating"
                     >
@@ -108,6 +109,7 @@
                   <p id="project-name-hint" class="rise-item app-name__hint" style="animation-delay: 90ms">
                     The name of your app. You can change it later.
                   </p>
+                  <p v-if="fieldErrors.name" id="project-name-error" class="field-error">{{ fieldErrors.name }}</p>
                 </div>
               </section>
 
@@ -125,14 +127,16 @@
                       <p id="project-description-hint" class="step__hint">
                         A few sentences: what your app is, who it&rsquo;s for, and what it should help them do.
                       </p>
-                      <div class="lit-field">
+                      <div class="lit-field" :class="{ 'is-invalid': fieldErrors.description }">
                         <textarea
                           id="project-description"
+                          ref="projectDescriptionInput"
                           v-model="newProjectDescription"
                           rows="3"
                           class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                           placeholder="A stock tracker for everyday investors. It helps them see how their portfolio is doing at a glance, without reading financial reports."
-                          aria-describedby="project-description-hint project-description-meter"
+                          :aria-describedby="`project-description-hint project-description-meter${fieldErrors.description ? ' project-description-error' : ''}`"
+                          :aria-invalid="fieldErrors.description ? 'true' : undefined"
                           :disabled="isCreating"
                           @focus="focusedStep = 1"
                           @blur="focusedStep = null"
@@ -147,6 +151,7 @@
                           {{ descriptionMeterLabel }}
                         </span>
                       </div>
+                      <p v-if="fieldErrors.description" id="project-description-error" class="field-error">{{ fieldErrors.description }}</p>
                     </div>
 
                     <!-- 02 — How the app works. Required: it is the functional
@@ -161,14 +166,16 @@
                         The details of how it works: what people can do on it, the steps they go through,
                         and what it needs to keep track of. Imagi turns this into the plan for your app.
                       </p>
-                      <div class="lit-field">
+                      <div class="lit-field" :class="{ 'is-invalid': fieldErrors.app_details }">
                         <textarea
                           id="project-details"
+                          ref="projectDetailsInput"
                           v-model="newProjectDetails"
                           rows="4"
                           class="lit-field__input resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                           placeholder="People add the stocks they own and how many shares. It shows the total value, today's change and a chart for each stock. Each morning it writes a short summary of what moved and why."
-                          aria-describedby="project-details-hint project-details-meter"
+                          :aria-describedby="`project-details-hint project-details-meter${fieldErrors.app_details ? ' project-details-error' : ''}`"
+                          :aria-invalid="fieldErrors.app_details ? 'true' : undefined"
                           :disabled="isCreating"
                           @focus="focusedStep = 2"
                           @blur="focusedStep = null"
@@ -183,6 +190,7 @@
                           {{ detailsMeterLabel }}
                         </span>
                       </div>
+                      <p v-if="fieldErrors.app_details" id="project-details-error" class="field-error">{{ fieldErrors.app_details }}</p>
                     </div>
 
                     <!-- 03 — The starter design: the app's first design system.
@@ -244,7 +252,7 @@
                       <button
                         type="submit"
                         class="btn-primary group create-submit"
-                        :disabled="!canCreate || isCreating"
+                        :disabled="isCreating"
                       >
                         <template v-if="isCreating">
                           <span class="spinner" aria-hidden="true"></span>
@@ -257,6 +265,14 @@
                           </svg>
                         </template>
                       </button>
+                      <div v-if="errorFields.length" class="create-errors" role="alert">
+                        <p class="create-errors__title">Your app can&rsquo;t be created yet. Check:</p>
+                        <ul class="create-errors__list">
+                          <li v-for="field in errorFields" :key="field">
+                            <button type="button" class="create-errors__link" @click="focusField(field)">{{ FIELD_LABELS[field] }}</button>
+                          </li>
+                        </ul>
+                      </div>
                       <p class="create-note">You can change everything later in the workspace.</p>
                     </div>
                   </aside>
@@ -376,7 +392,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, onMounted, onActivated } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, onActivated, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
 import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
@@ -422,6 +438,8 @@ const newProjectDesign = ref<StarterDesignValue>(emptyDesign())
 const newProjectDetails = ref('')
 const isCreating = ref(false)
 const projectNameInput = ref<HTMLInputElement | null>(null)
+const projectDescriptionInput = ref<HTMLTextAreaElement | null>(null)
+const projectDetailsInput = ref<HTMLTextAreaElement | null>(null)
 
 // The description and what the app does seed the initial AI build, so
 // require enough signal to work with. Keep MIN_DESCRIPTION_LENGTH in sync with
@@ -438,11 +456,61 @@ const atProjectLimit = computed(() =>
   !usageStore.canCreateProject(projectStore.projects.length)
 )
 
-const canCreate = computed(() =>
-  Boolean(newProjectName.value.trim()) &&
-  newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH &&
-  newProjectDetails.value.trim().length >= MIN_DETAILS_LENGTH
+// What still stops the app being created, field by field. Nothing shows until
+// the first Create app press; after that the messages follow what is typed and
+// clear as each field is fixed. A field the server refused (a name already in
+// use) keeps its reason until that field is edited.
+type Field = 'name' | 'description' | 'app_details'
+const FIELD_LABELS: Record<Field, string> = {
+  name: 'App name',
+  description: 'What is your app?',
+  app_details: 'How does it work?',
+}
+const showErrors = ref(false)
+const serverErrors = ref<Partial<Record<Field, string>>>({})
+watch(newProjectName, () => { delete serverErrors.value.name })
+watch(newProjectDescription, () => { delete serverErrors.value.description })
+watch(newProjectDetails, () => { delete serverErrors.value.app_details })
+
+const missingText = (length: number, min: number, empty: string, short: string) => {
+  if (!length) return empty
+  if (length < min) return `${short} (at least ${min} characters, ${min - length} to go).`
+  return ''
+}
+const clientErrors = computed<Partial<Record<Field, string>>>(() => {
+  const errors: Partial<Record<Field, string>> = {}
+  if (!newProjectName.value.trim()) errors.name = 'Give your app a name.'
+  const description = missingText(
+    newProjectDescription.value.trim().length, MIN_DESCRIPTION_LENGTH,
+    'Say what your app is and who it\u2019s for. Imagi uses this to build the first version.',
+    'Add a little more about what your app is and who it\u2019s for',
+  )
+  if (description) errors.description = description
+  const details = missingText(
+    newProjectDetails.value.trim().length, MIN_DETAILS_LENGTH,
+    'Say how your app works: what people can do on it and what it keeps track of.',
+    'Add a little more about how your app works',
+  )
+  if (details) errors.app_details = details
+  return errors
+})
+const fieldErrors = computed<Partial<Record<Field, string>>>(() => ({
+  ...(showErrors.value ? clientErrors.value : {}),
+  ...serverErrors.value,
+}))
+const errorFields = computed(() =>
+  (Object.keys(FIELD_LABELS) as Field[]).filter((field) => fieldErrors.value[field])
 )
+const focusField = (field?: Field) => {
+  if (!field) return
+  const input = {
+    name: projectNameInput,
+    description: projectDescriptionInput,
+    app_details: projectDetailsInput,
+  }[field].value
+  input?.focus()
+  input?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+}
 
 // The name sits above the steps; the three steps below it are done once their
 // answer is enough to build from. The current one is the field being typed
@@ -555,30 +623,11 @@ async function createProject() {
     return
   }
 
-  // Validate app name
-  if (!newProjectName.value.trim()) {
-    showNotification({
-      message: 'App name cannot be empty',
-      type: 'error'
-    })
-    return
-  }
-
-  // Validate app description — it seeds the initial AI build
-  if (newProjectDescription.value.trim().length < MIN_DESCRIPTION_LENGTH) {
-    showNotification({
-      message: 'Please say what your app is and who it\'s for. Imagi uses this to build the first version.',
-      type: 'error'
-    })
-    return
-  }
-
-  // Validate how the app works — the first build plans its pages from it
-  if (newProjectDetails.value.trim().length < MIN_DETAILS_LENGTH) {
-    showNotification({
-      message: 'Please say how your app works — what people can do on it and what it keeps track of.',
-      type: 'error'
-    })
+  // The name, what the app is and how it works all seed the first build.
+  // Anything missing is said beside its field, and the first one gets focus.
+  showErrors.value = true
+  if (errorFields.value.length) {
+    focusField(errorFields.value[0])
     return
   }
 
@@ -600,6 +649,7 @@ async function createProject() {
     newProjectDescription.value = ''
     newProjectDetails.value = ''
     newProjectDesign.value = emptyDesign()
+    showErrors.value = false
 
     // Log project information to debug any ID issues
     console.debug('Created project details:', {
@@ -619,10 +669,18 @@ async function createProject() {
     // A refusal may be the plan's project limit; refresh the plan so the
     // brief switches to its upgrade prompt.
     void usageStore.fetchUsage()
-    showNotification({
-      message: error?.message || 'Failed to create project',
-      type: 'error'
-    })
+    // The form reports its own failure; the store's error is for the list,
+    // which would otherwise swap the projects for a load error.
+    projectStore.clearError()
+    if (error?.fieldErrors) {
+      serverErrors.value = { ...error.fieldErrors }
+      if (errorFields.value.length) focusField(errorFields.value[0])
+    } else {
+      showNotification({
+        message: error?.message || 'Failed to create project',
+        type: 'error'
+      })
+    }
   } finally {
     isCreating.value = false
   }
@@ -1170,6 +1228,52 @@ input[type='search']::-webkit-search-cancel-button {
 .create-foot .create-submit {
   padding: 0.8rem 1.6rem;
   font-size: 0.95rem;
+}
+
+/* Why the app can't be created yet: beside each field, and listed under the
+   button. `bad`, not the light, so a problem never reads as a button. */
+.field-error {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--sl-bad);
+}
+
+.app-name.is-invalid .app-name__input {
+  border-bottom-color: var(--sl-bad);
+}
+
+.app-name.is-invalid::after {
+  background: var(--sl-bad);
+}
+
+/* Under the name's hint, in the opener's 20px column gap. */
+.projects-opener__inner .field-error {
+  margin-top: -0.85rem;
+}
+
+.lit-field.is-invalid {
+  background:
+    var(--sl-prompt-bg) padding-box,
+    var(--sl-bad) border-box;
+}
+
+.create-errors {
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--sl-bad);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--sl-text);
+}
+
+.create-errors__list {
+  margin-top: 0.3rem;
+}
+
+.create-errors__link {
+  color: var(--sl-bad);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .create-note {
