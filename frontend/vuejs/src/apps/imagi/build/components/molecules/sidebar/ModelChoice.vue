@@ -55,8 +55,9 @@ const RANK: Record<string, number> = {
   'claude-opus-5-5': 2,
   'claude-fable-5-1': 3,
   'gpt-6-luna': 10,
-  'gpt-6.1-sol': 11,
-  'gpt-6-astra': 12,
+  'gpt-6.1-terra': 11,
+  'gpt-6.1-sol': 12,
+  'gpt-6-astra': 13,
 }
 const TIERS: Record<string, string> = {
   'claude-haiku-5-5': 'Fast',
@@ -64,6 +65,7 @@ const TIERS: Record<string, string> = {
   'claude-opus-5-5': 'Balanced',
   'claude-fable-5-1': 'Frontier',
   'gpt-6-luna': 'Fast',
+  'gpt-6.1-terra': 'Quick',
   'gpt-6.1-sol': 'Balanced',
   'gpt-6-astra': 'Frontier',
 }

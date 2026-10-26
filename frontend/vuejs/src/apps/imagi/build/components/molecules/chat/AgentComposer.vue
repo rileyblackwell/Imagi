@@ -637,8 +637,9 @@ const MODEL_RANK: Record<string, number> = {
   'claude-opus-5-5': 2,
   'claude-fable-5-1': 3,
   'gpt-6-luna': 10,
-  'gpt-6.1-sol': 11,
-  'gpt-6-astra': 12,
+  'gpt-6.1-terra': 11,
+  'gpt-6.1-sol': 12,
+  'gpt-6-astra': 13,
 }
 const orderedModels = computed<AIModel[]>(() =>
   [...modelOptions.value].sort(
@@ -679,6 +680,7 @@ const MODEL_BLURBS: Record<string, string> = {
   'claude-opus-5-5': 'Thoughtful and dependable, with strong judgment on code and design. The default.',
   'claude-fable-5-1': 'Frontier intelligence for the hardest, most complex work.',
   'gpt-6-luna': 'Fast and inexpensive, capable at most everyday edits.',
+  'gpt-6.1-terra': "Quick and capable at half Sol's price, strong at agent work.",
   'gpt-6.1-sol': 'Near-Astra intelligence at a fifth of the price.',
   'gpt-6-astra': "OpenAI's most capable model, for the hardest work.",
 }
@@ -703,6 +705,7 @@ const MODEL_TIERS: Record<string, string> = {
   'claude-opus-5-5': 'Balanced',
   'claude-fable-5-1': 'Frontier',
   'gpt-6-luna': 'Fast',
+  'gpt-6.1-terra': 'Quick',
   'gpt-6.1-sol': 'Balanced',
   'gpt-6-astra': 'Frontier',
 }
