@@ -27,21 +27,9 @@ describe('BaseFooter', () => {
     const w = mountFooter()
     expect(w.findAll('h2').map((h) => h.text())).toEqual(['Product', 'Company', 'Legal'])
     const hrefs = w.findAll('nav a').map((a) => a.attributes('href'))
-    expect(hrefs).toEqual([
-      '/imagi/projects',
-      '/payments/pricing',
-      '/docs',
-      '/about',
-      'https://github.com/rileyblackwell/imagi',
-      '/privacy',
-      '/terms',
-    ])
-  })
-
-  it('opens the source code in a new tab', () => {
-    const gh = mountFooter().find('a[href^="https://github.com"]')
-    expect(gh.attributes('target')).toBe('_blank')
-    expect(gh.attributes('rel')).toContain('noopener')
+    expect(hrefs).toEqual(['/payments/pricing', '/docs', '/about', '/privacy', '/terms'])
+    expect(w.text()).not.toContain('Projects')
+    expect(w.text()).not.toContain('GitHub')
   })
 
   it('names the licence and offers the theme switch', () => {
