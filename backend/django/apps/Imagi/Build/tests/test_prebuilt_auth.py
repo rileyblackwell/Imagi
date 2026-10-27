@@ -113,10 +113,11 @@ class TemplateParityTests(SimpleTestCase):
                 )
 
     def test_backend_tests_cover_what_imagi_tests(self):
-        # The template's suite is Imagi's, minus the dev-account command that
-        # only Imagi has.
+        # The template's suite is Imagi's, minus the dev-account command and
+        # the one-off sign-out migration that only Imagi has.
         imagi = _test_methods(_read(os.path.join(IMAGI_BACKEND_AUTH, 'tests.py')))
         imagi.pop('SeedDevUserCommandTests')
+        imagi.pop('SignEveryoneOutMigrationTests')
         template = _test_methods(self.files[TEMPLATE_BACKEND + 'tests.py'])
         self.assertEqual(template, imagi)
 

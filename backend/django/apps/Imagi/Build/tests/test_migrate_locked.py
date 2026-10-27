@@ -20,7 +20,7 @@ class MigrateLockedTests(SimpleTestCase):
             call_command('migrate_locked', stdout=StringIO())
         return cursor, migrate
 
-    def test_postgres_migrates_inside_the_advisory_lock(self):
+    def test_postgres_migrates_and_reencrypts_inside_the_advisory_lock(self):
         order = []
         cursor = mock.MagicMock()
         cursor.execute.side_effect = lambda sql, params: order.append(sql.split('(')[0])
@@ -28,9 +28,11 @@ class MigrateLockedTests(SimpleTestCase):
         connection.cursor.return_value.__enter__.return_value = cursor
         with mock.patch.object(migrate_locked, 'connections', {'default': connection}), \
                 mock.patch.object(migrate_locked, 'call_command',
-                                  side_effect=lambda *a, **k: order.append('migrate')):
+                                  side_effect=lambda name, **k: order.append(name)):
             call_command('migrate_locked', stdout=StringIO())
-        self.assertEqual(order, ['SELECT pg_advisory_lock', 'migrate', 'SELECT pg_advisory_unlock'])
+        self.assertEqual(order, [
+            'SELECT pg_advisory_lock', 'migrate', 'reencrypt_secrets', 'SELECT pg_advisory_unlock',
+        ])
 
     def test_lock_is_released_when_migrate_fails(self):
         cursor = mock.MagicMock()
@@ -44,5 +46,7 @@ class MigrateLockedTests(SimpleTestCase):
 
     def test_other_backends_just_migrate(self):
         cursor, migrate = self._run('sqlite')
-        migrate.assert_called_once_with('migrate', interactive=False)
+        self.assertEqual(migrate.call_args_list, [
+            mock.call('migrate', interactive=False), mock.call('reencrypt_secrets'),
+        ])
         cursor.execute.assert_not_called()

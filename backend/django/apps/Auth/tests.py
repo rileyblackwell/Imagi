@@ -419,3 +419,26 @@ class SeedDevUserCommandTests(TestCase):
     def test_refuses_to_run_outside_debug(self):
         with self.assertRaises(CommandError):
             self._run(username='kim', password='pw-123')
+
+
+class SignEveryoneOutMigrationTests(TestCase):
+    """After Railway's 2026-10-21 incident the database password may have
+    leaked, and with it every sign-in token; this migration voids them all."""
+
+    def test_deletes_every_token_and_session(self):
+        from importlib import import_module
+
+        from django.apps import apps
+        from django.contrib.sessions.backends.db import SessionStore
+        from django.contrib.sessions.models import Session
+
+        migration = import_module('apps.Auth.migrations.0001_sign_everyone_out')
+        for name in ('ana', 'ben'):
+            Token.objects.create(user=User.objects.create_user(username=name, password='pw-12345'))
+        SessionStore().create()
+
+        migration.sign_everyone_out(apps, None)
+
+        self.assertFalse(Token.objects.exists())
+        self.assertFalse(Session.objects.exists())
+        self.assertEqual(User.objects.count(), 2)

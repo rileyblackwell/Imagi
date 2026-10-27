@@ -15,6 +15,9 @@ PostgreSQL a session advisory lock serializes them: the second tier blocks
 until the first finishes, then finds nothing left to apply. Other backends
 (SQLite in dev and tests) have one process and just migrate.
 
+Under the same lock it then runs reencrypt_secrets, which only does anything
+while DJANGO_SECRET_KEY is being rotated.
+
 Usage:
     python manage.py migrate_locked
 """
@@ -34,6 +37,7 @@ class Command(BaseCommand):
         connection = connections[DEFAULT_DB_ALIAS]
         if connection.vendor != 'postgresql':
             call_command('migrate', interactive=False)
+            call_command('reencrypt_secrets')
             return
 
         with connection.cursor() as cursor:
@@ -41,5 +45,6 @@ class Command(BaseCommand):
             cursor.execute('SELECT pg_advisory_lock(%s)', [MIGRATE_LOCK_KEY])
             try:
                 call_command('migrate', interactive=False)
+                call_command('reencrypt_secrets')
             finally:
                 cursor.execute('SELECT pg_advisory_unlock(%s)', [MIGRATE_LOCK_KEY])
