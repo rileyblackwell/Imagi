@@ -541,6 +541,14 @@ FRONTEND_DEP_STORE_ROOT = os.path.expanduser(
 # forwards input through the API, so the setup is identical in development
 # and production (the Docker image installs Chromium and sets the path).
 # When empty, common Chrome/Chromium install locations are searched.
+# Run a project's preview (its dev servers, npm, and headless browser — all
+# user-controlled code) as this dedicated unprivileged OS user instead of as
+# Imagi's own process user, so it cannot read Imagi's secrets out of
+# /proc/<pid>/environ or reach anything only Imagi's identity is trusted for.
+# Only takes effect when Imagi runs as root and the user exists; unset (the
+# default) leaves spawning unchanged. See apps/Imagi/Build/services/sandbox.py
+# and docs/preview-sandbox.md.
+PREVIEW_SANDBOX_USER = os.environ.get('PREVIEW_SANDBOX_USER', '').strip()
 BROWSER_PREVIEW_EXECUTABLE = os.environ.get('BROWSER_PREVIEW_EXECUTABLE', '')
 
 # Preview sessions (browser + dev servers) idle longer than this many seconds

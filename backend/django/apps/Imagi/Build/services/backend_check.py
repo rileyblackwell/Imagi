@@ -75,6 +75,7 @@ def check_backend(project_root: str) -> dict:
     [paths relative to project_root], 'changed_migrations': [...]}; on a
     project with no Django backend, {'ok': False, 'error': ...}.
     """
+    from . import sandbox
     from .preview_service import child_env
 
     backend_path = os.path.join(project_root, BACKEND_DIR)
@@ -89,6 +90,10 @@ def check_backend(project_root: str) -> dict:
     with tempfile.TemporaryDirectory(prefix='imagi-check-') as scratch:
         with open(os.path.join(scratch, 'imagi_check_settings.py'), 'w') as f:
             f.write(_scratch_settings(settings_module, os.path.join(scratch, 'check.sqlite3')))
+        # The check runs the project's own management commands, so it drops to
+        # the preview user when the sandbox is on; the scratch dir it writes
+        # check.sqlite3 into must then be reachable through the shared group.
+        sandbox.prepare_tree(scratch)
         env = child_env(
             DJANGO_SETTINGS_MODULE='imagi_check_settings',
             PYTHONPATH=scratch,
@@ -104,6 +109,7 @@ def check_backend(project_root: str) -> dict:
                     [sys.executable, 'manage.py', *command],
                     cwd=backend_path, env=env, capture_output=True, text=True,
                     timeout=STEP_TIMEOUT_S,
+                    **sandbox.child_privilege_kwargs(),
                 )
             except subprocess.TimeoutExpired:
                 steps.append({'command': label, 'ok': False,
