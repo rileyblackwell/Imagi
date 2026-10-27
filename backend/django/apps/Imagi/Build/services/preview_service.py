@@ -18,6 +18,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 
+from . import sandbox
 from .safe_paths import UnsafePathError, resolve_within
 
 logger = logging.getLogger(__name__)
@@ -292,6 +293,11 @@ class PreviewService:
         # Ensure the PID file directory exists
         self.pid_dir = os.path.join(settings.PROJECTS_ROOT, str(project.user.id))
         os.makedirs(self.pid_dir, exist_ok=True)
+        # When the preview runs deprivileged, its runtime/profile sidecars and
+        # the project working copy all live under this per-user dir, so it has
+        # to be writable through the shared sandbox group. No-op when off.
+        sandbox.prepare_tree(settings.PROJECTS_ROOT)
+        sandbox.prepare_tree(self.pid_dir)
 
         # Keyed on the project id, so no spelling of project.name can steer any
         # of these paths out of this user's directory (see sidecar_stem).
@@ -655,6 +661,7 @@ class PreviewService:
                 [sys.executable, 'manage.py', 'migrate', '--noinput'],
                 cwd=backend_path, env=env, capture_output=True, text=True,
                 timeout=MIGRATE_TIMEOUT,
+                **sandbox.child_privilege_kwargs(),
             )
         except subprocess.TimeoutExpired:
             return f"migrate timed out after {MIGRATE_TIMEOUT}s"
@@ -723,7 +730,8 @@ class PreviewService:
                     cwd=backend_path,
                     stdout=log_fh,
                     stderr=subprocess.STDOUT,
-                    env=env
+                    env=env,
+                    **sandbox.child_privilege_kwargs(),
                 )
 
             with open(self.backend_pid_file, 'w') as f:
@@ -851,7 +859,8 @@ class PreviewService:
                     cwd=frontend_path,
                     stdout=log_fh,
                     stderr=subprocess.STDOUT,
-                    env=env
+                    env=env,
+                    **sandbox.child_privilege_kwargs(),
                 )
 
             with open(self.frontend_pid_file, 'w') as f:
@@ -924,6 +933,7 @@ class PreviewService:
                     text=True,
                     timeout=NPM_INSTALL_TIMEOUT,
                     env=child_env(),
+                    **sandbox.child_privilege_kwargs(),
                 )
         except subprocess.TimeoutExpired:
             return f"npm install timed out after {NPM_INSTALL_TIMEOUT} seconds"

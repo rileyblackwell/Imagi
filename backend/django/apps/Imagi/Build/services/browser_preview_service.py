@@ -42,10 +42,12 @@ from django.conf import settings
 from django.db import close_old_connections
 from websocket import create_connection, WebSocketException
 
+from . import sandbox
 from .preview_service import (
     BROWSER_PROFILE_SUFFIX,
     BROWSER_STATE_SUFFIX,
     PreviewService,
+    child_env,
     preview_start_lock,
     sidecar_stem,
 )
@@ -1069,6 +1071,9 @@ class BrowserPreviewService:
         # browser that happened to use this port.
         _pool_invalidate(cdp_port)
         os.makedirs(self.profile_dir, exist_ok=True)
+        # The browser runs deprivileged (see sandbox); its profile dir must be
+        # writable through the shared sandbox group. No-op when the sandbox is off.
+        sandbox.prepare_tree(self.profile_dir)
         self._clear_singleton_locks()
 
         # --no-sandbox: the preview renders the user's own generated app, and
@@ -1094,8 +1099,16 @@ class BrowserPreviewService:
         ]
 
         logger.info(f"Launching preview browser for {self.project.name} on CDP port {cdp_port}")
+        # A stripped environment, like the dev servers get: the browser must not
+        # carry Imagi's secrets in its own environ, or — now that it runs as the
+        # shared preview user — a sibling preview process could read them from
+        # /proc/<pid>/environ, undoing the isolation.
         with open(self.log_file, 'w') as log_fh:
-            process = subprocess.Popen(args, stdout=log_fh, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(
+                args, stdout=log_fh, stderr=subprocess.STDOUT,
+                env=child_env(),
+                **sandbox.child_privilege_kwargs(),
+            )
 
         with open(self.pid_file, 'w') as f:
             f.write(str(process.pid))

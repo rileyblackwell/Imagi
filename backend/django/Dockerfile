@@ -27,6 +27,18 @@ RUN apt-get update \
 
 ENV BROWSER_PREVIEW_EXECUTABLE=/usr/bin/chromium
 
+# Dedicated unprivileged user the preview runs as. A generated project's own
+# code — its Vite + Django dev servers, npm lifecycle scripts, and the headless
+# Chromium rendering it — is untrusted, so it must not run as the same user as
+# the Imagi server, or it could read the server's secrets out of
+# /proc/<pid>/environ and reach other projects' files. The server stays root so
+# it can drop to this user for each preview process; activation is the
+# PREVIEW_SANDBOX_USER env var on the workspace tier (see
+# apps/Imagi/Build/services/sandbox.py and docs/preview-sandbox.md). Absent that
+# var the user simply goes unused and nothing changes.
+RUN groupadd --system imagipreview \
+    && useradd --system --no-create-home --gid imagipreview imagipreview
+
 RUN pip install --no-cache-dir pipenv
 
 COPY backend/django/Pipfile backend/django/Pipfile.lock ./
