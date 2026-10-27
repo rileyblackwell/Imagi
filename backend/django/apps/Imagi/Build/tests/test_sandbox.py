@@ -106,6 +106,27 @@ class SandboxActiveTests(SimpleTestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('secret', result.stdout)
 
+    def test_prepare_tree_recursive_fixes_existing_files(self):
+        # A project tree created before the sandbox was on: root-owned, not
+        # group-writable. After the recursive prep the child can overwrite a
+        # file inside it, and node_modules (a symlink) is left untouched.
+        parent = tempfile.mkdtemp()
+        os.chmod(parent, 0o755)
+        self.addCleanup(lambda: subprocess.run(['rm', '-rf', parent]))
+        proj = os.path.join(parent, 'proj')
+        os.makedirs(os.path.join(proj, 'backend'))
+        existing = os.path.join(proj, 'backend', 'app.py')
+        with open(existing, 'w') as f:
+            f.write('x = 1')
+        os.chmod(existing, 0o644)  # root-owned, not group-writable
+        sandbox.prepare_tree_recursive(proj)
+        self.assertEqual(os.stat(existing).st_gid, self.gid)
+        over = subprocess.run(
+            ['sh', '-c', f'echo y > {existing}'],
+            capture_output=True, text=True, **sandbox.child_privilege_kwargs(),
+        )
+        self.assertEqual(over.returncode, 0, over.stderr)
+
     def test_prepare_tree_lets_the_child_write(self):
         parent = tempfile.mkdtemp()
         os.chmod(parent, 0o755)  # traversable by the child

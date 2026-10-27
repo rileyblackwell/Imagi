@@ -38,17 +38,19 @@ tests), every hook is inert and spawning behaves exactly as before.
 1. Deploy an image that contains the `imagipreview` user (this change).
 2. Set `PREVIEW_SANDBOX_USER=imagipreview` on the **workspace** tier (the tier
    that owns `PROJECTS_ROOT` and runs previews). Leave it off the web tier.
-3. Fix the files already on the volume once, as root on the workspace tier:
-
-   ```
-   python manage.py prepare_preview_sandbox        # add --dry-run to preview
-   ```
-
-   New files created after step 2 are already group-writable; this fixes the
-   ones created before it.
-4. Smoke-test: open a project, confirm the preview boots (Vite + Django up,
+3. Smoke-test: open a project, confirm the preview boots (Vite + Django up,
    browser renders), create a file, run a backend check. Check the logs for
    `Permission denied`.
+
+Files that existed before step 2 are fixed automatically the first time each
+project's preview starts (`prepare_tree_recursive`), so no migration step is
+needed. To fix the whole volume up front instead — e.g. to avoid the one-time
+cost landing on the first preview of each project — run this once as root on
+the workspace tier:
+
+```
+python manage.py prepare_preview_sandbox        # add --dry-run to preview
+```
 
 Kill switch: unset `PREVIEW_SANDBOX_USER` and redeploy; previews go back to
 running as the server's user.

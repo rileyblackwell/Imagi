@@ -107,6 +107,41 @@ def child_privilege_kwargs():
     return {'user': uid, 'group': gid, 'umask': SANDBOX_UMASK}
 
 
+# Directories not worth descending into when preparing a project tree: the
+# dependency store is reached through a symlink and is read-only to the preview,
+# git metadata is off limits to the preview anyway, and these are the large ones.
+_PREPARE_SKIP_DIRS = frozenset({'node_modules', '.git', '.vite', '__pycache__'})
+
+
+def prepare_tree_recursive(path):
+    """:func:`prepare_tree` over ``path`` and everything under it.
+
+    Used on a project's working copy at preview start so files created before
+    the sandbox was switched on — root-owned and not group-writable — become
+    readable and writable by the deprivileged preview, without a separate
+    migration step. Symlinks are never followed (so it won't wander into the
+    shared dependency store), and the big/managed directories above are skipped.
+    No-op when the sandbox is off; best-effort, never raises into the preview.
+    """
+    if not is_active() or not path or not os.path.isdir(path):
+        return
+    prepare_tree(path)
+    for current, dirs, files in os.walk(path):
+        dirs[:] = [d for d in dirs if d not in _PREPARE_SKIP_DIRS]
+        for name in dirs:
+            prepare_tree(os.path.join(current, name))
+        for name in files:
+            full = os.path.join(current, name)
+            if os.path.islink(full):
+                continue
+            try:
+                st = os.lstat(full)
+                os.chown(full, -1, sandbox_identity()[1])
+                os.chmod(full, (st.st_mode & 0o7777) | 0o660)
+            except OSError:
+                pass
+
+
 def prepare_tree(path):
     """Make ``path`` writable by the sandbox user through the shared group.
 

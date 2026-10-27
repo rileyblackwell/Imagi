@@ -406,6 +406,13 @@ class PreviewService:
             self.stop_preview()
             self.live = live
 
+            # When the preview runs deprivileged, make this project's working
+            # copy writable by the sandbox user. New projects already inherit
+            # this; a project that existed before the sandbox was switched on
+            # is fixed here, so enabling it never leaves an existing preview
+            # unable to write. No-op when the sandbox is off.
+            sandbox.prepare_tree_recursive(self.project.project_path)
+
             # Check if project has the new dual-stack structure
             frontend_path = os.path.join(self.project.project_path, 'frontend', 'vuejs')
             backend_path = os.path.join(self.project.project_path, 'backend', 'django')
