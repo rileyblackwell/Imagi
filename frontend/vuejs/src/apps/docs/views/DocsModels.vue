@@ -62,6 +62,10 @@
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Fast</span></p>
             GPT 6 Luna: fast and inexpensive, capable at most everyday edits.
           </DocsCard>
+          <DocsCard title="Terra">
+            <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Quick</span></p>
+            GPT 6.1 Terra: quick and capable at half Sol's price, a strong step up from Luna for agent work.
+          </DocsCard>
           <DocsCard title="Sol">
             <p class="mb-3"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">Balanced</span></p>
             GPT 6.1 Sol: close to Astra's intelligence at a fifth of the price. A new project's home page is built on

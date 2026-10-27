@@ -110,9 +110,9 @@ describe('ThreadComposer', () => {
     expect(wrapper.find('[data-testid="speed-options"]').exists()).toBe(false)
 
     await wrapper.find('[data-testid="model-family-openai"]').trigger('click')
-    expect(rows().map(r => r.split(' ')[0])).toEqual(['Luna', 'Sol', 'Astra'])
+    expect(rows().map(r => r.split(' ')[0])).toEqual(['Luna', 'Terra', 'Sol', 'Astra'])
     expect(setModel).not.toHaveBeenCalled()
-    const sol = wrapper.findAll('#tune-panel button.model-row').find(r => r.text().includes('Sol'))!
+    const sol = wrapper.findAll('#tune-panel button.model-row').find(r => r.text().startsWith('Sol'))!
     await sol.trigger('click')
     expect(setModel).toHaveBeenCalledWith('inst-thread', 'gpt-6.1-sol')
   })

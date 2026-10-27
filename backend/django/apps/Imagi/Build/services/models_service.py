@@ -21,6 +21,7 @@ _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 #   Fable 5.1   - Anthropic's most capable model, for the hardest work
 # OpenAI's GPT (Riley, 2026-10-12, mainly for their faster service tiers):
 #   GPT 6 Luna   - fast and inexpensive
+#   GPT 6.1 Terra - quick and capable at half Sol's price (Riley, 2026-10-26)
 #   GPT 6.1 Sol  - near-Astra intelligence at a fifth of the price
 #   GPT 6 Astra  - OpenAI's most capable model
 #
@@ -159,6 +160,11 @@ MODELS.update({
         'gpt-6-luna', 'GPT 6 Luna',
         'OpenAI | GPT 6 Luna — fast and inexpensive, capable at most everyday edits',
         0.1, 0.01, 0.5, {'fast': 2},
+    ),
+    'gpt-6.1-terra': _openai_model(
+        'gpt-6.1-terra', 'GPT 6.1 Terra',
+        "OpenAI | GPT 6.1 Terra — quick and capable at half Sol's price",
+        1, 0.05, 5, {'fast': 2},
     ),
     'gpt-6.1-sol': _openai_model(
         'gpt-6.1-sol', 'GPT 6.1 Sol',

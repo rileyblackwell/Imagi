@@ -1243,12 +1243,12 @@ class ComputeCostTests(SimpleTestCase):
 
 
 class ModelRegistryTests(SimpleTestCase):
-    """Four Claude tiers, Haiku to Fable, and three GPT tiers, Luna to Astra,
+    """Four Claude tiers, Haiku to Fable, and four GPT tiers, Luna to Astra,
     each mapped to its real API id; retired GPT 5.6 ids resolve to the Claude
     model for their tier."""
 
     LINEUP = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1']
-    OPENAI_LINEUP = ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra']
+    OPENAI_LINEUP = ['gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol', 'gpt-6-astra']
 
     def test_each_tier_resolves_to_its_api_id(self):
         for model in self.LINEUP:
@@ -1270,6 +1270,9 @@ class ModelRegistryTests(SimpleTestCase):
         # Billed, named and served as the successor it now runs on.
         self.assertEqual(compute_cost_usd('gpt-5.6-terra', 1_000_000, 0), 4.0)
         self.assertEqual(get_model_display_name('gpt-5.6-terra'), 'Claude Opus 5.5')
+        # GPT 6.1 Terra is its own model, not the retired 5.6 Terra.
+        self.assertEqual(canonical_model_id('gpt-6.1-terra'), 'gpt-6.1-terra')
+        self.assertEqual(get_model_display_name('gpt-6.1-terra'), 'GPT 6.1 Terra')
         self.assertEqual(get_model_provider('gpt-5.6-sol'), 'anthropic')
         # Still valid stored values on the conversation's model_name field.
         ids = [model_id for model_id, _ in get_model_choices()]
@@ -1566,6 +1569,10 @@ class ServiceTierTests(TestCase):
         self.assertEqual(standard, 12.0)
         self.assertEqual(compute_cost_usd(pricing_model_id('gpt-6.1-sol', 'fast'), 1_000_000, 1_000_000), 24.0)
         self.assertEqual(compute_cost_usd(pricing_model_id('gpt-6.1-sol', 'ultrafast'), 1_000_000, 1_000_000), 72.0)
+        # Terra: $1/$5 standard, Fast at twice that, and no Ultrafast.
+        self.assertEqual(compute_cost_usd('gpt-6.1-terra', 1_000_000, 1_000_000), 6.0)
+        self.assertEqual(compute_cost_usd(pricing_model_id('gpt-6.1-terra', 'fast'), 1_000_000, 1_000_000), 12.0)
+        self.assertEqual(pricing_model_id('gpt-6.1-terra', 'ultrafast'), 'gpt-6.1-terra')
         # Luna has no Ultrafast, and Claude has neither.
         self.assertEqual(pricing_model_id('gpt-6-luna', 'ultrafast'), 'gpt-6-luna')
         self.assertEqual(pricing_model_id('claude-opus-5-5', 'fast'), 'claude-opus-5-5')

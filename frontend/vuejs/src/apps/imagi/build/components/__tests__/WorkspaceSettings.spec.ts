@@ -110,7 +110,7 @@ describe('WorkspaceSettings', () => {
     await nextTick()
     const model = groups()[1]!
     expect([...model.querySelectorAll('[role="radio"]')].map(b => b.querySelector('.choice-segments__name')?.textContent))
-      .toEqual(['Luna', 'Sol', 'Astra'])
+      .toEqual(['Luna', 'Terra', 'Sol', 'Astra'])
     option(model, 'Sol').click()
     await nextTick()
     expect(store.threadModelId).toBe('gpt-6.1-sol')

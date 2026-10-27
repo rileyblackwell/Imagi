@@ -72,7 +72,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     capabilities: ['code_generation', 'chat', 'analysis']
   },
   ...Object.fromEntries(
-    ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'].map(id => [id, {
+    ['gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol', 'gpt-6-astra'].map(id => [id, {
       maxTokens: 1000000,
       rateLimits: {
         tokensPerMinute: 60000,
@@ -84,7 +84,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   )
 };
 
-// The models on offer: four Claude, then three GPT, each family ordered
+// The models on offer: four Claude, then four GPT, each family ordered
 // faster → smarter, the order the composer's model menu lists them in.
 // Mirrors the backend registry, including prices (the provider's list price,
 // no markup). Opus 5.5 carries the `default` flag: createInstance prefers it
@@ -164,6 +164,19 @@ export const AI_MODELS: AIModel[] = [
     api_version: 'responses'
   },
   {
+    id: 'gpt-6.1-terra',
+    name: 'GPT 6.1 Terra',
+    provider: 'openai',
+    type: 'openai',
+    features: ['chat', 'code', 'analysis'],
+    default: false,
+    description: "OpenAI | GPT 6.1 Terra — quick and capable at half Sol's price",
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    inputPricePerMTokens: 1,
+    outputPricePerMTokens: 5,
+    api_version: 'responses'
+  },
+  {
     id: 'gpt-6.1-sol',
     name: 'GPT 6.1 Sol',
     provider: 'openai',
@@ -220,6 +233,7 @@ export const SERVICE_TIERS: ServiceTierOption[] = [
 /** The faster tiers each model offers. Claude models have none. */
 const MODEL_SERVICE_TIERS: Record<string, ServiceTier[]> = {
   'gpt-6-luna': ['fast'],
+  'gpt-6.1-terra': ['fast'],
   'gpt-6.1-sol': ['fast', 'ultrafast'],
   'gpt-6-astra': ['fast', 'ultrafast'],
 };

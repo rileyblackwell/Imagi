@@ -17,13 +17,13 @@ import {
 
 describe('the selectable model list', () => {
   it('offers one model per tier, faster to smarter', () => {
-    // Claude's Haiku, Sonnet, Opus, Fable, then OpenAI's Luna, Sol, Astra.
+    // Claude's Haiku, Sonnet, Opus, Fable, then OpenAI's Luna, Terra, Sol, Astra.
     expect(AI_MODELS.map(m => m.id)).toEqual([
       'claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1',
-      'gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra',
+      'gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol', 'gpt-6-astra',
     ])
     expect(AI_MODELS.filter(m => m.provider === 'openai').map(m => m.id)).toEqual([
-      'gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra',
+      'gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol', 'gpt-6-astra',
     ])
     expect(modelProvider('gpt-6.1-sol')).toBe('openai')
     expect(modelProvider('claude-opus-5-5')).toBe('anthropic')
@@ -46,6 +46,7 @@ describe('the selectable model list', () => {
       'claude-opus-5-5': [4, 20],
       'claude-fable-5-1': [10, 50],
       'gpt-6-luna': [0.1, 0.5],
+      'gpt-6.1-terra': [1, 5],
       'gpt-6.1-sol': [2, 10],
       'gpt-6-astra': [10, 50],
     })
@@ -65,6 +66,9 @@ describe('the selectable model list', () => {
     expect(canonicalModelId('gpt-5.6-terra')).toBe('claude-opus-5-5')
     // GPT 6 is offered again, so its ids are themselves.
     expect(canonicalModelId('gpt-6-astra')).toBe('gpt-6-astra')
+    // GPT 6.1 Terra is its own model, not the retired 5.6 Terra.
+    expect(canonicalModelId('gpt-6.1-terra')).toBe('gpt-6.1-terra')
+    expect(modelProvider('gpt-6.1-terra')).toBe('openai')
     expect(canonicalModelId('claude-sonnet-5-5')).toBe('claude-sonnet-5-5')
     expect(canonicalModelId(null)).toBeNull()
     expect(canonicalModelId('constructor')).toBe('constructor')
@@ -145,6 +149,8 @@ describe('the OpenAI speed tiers', () => {
     expect(supportsServiceTier('gpt-6-astra', 'ultrafast')).toBe(true)
     expect(supportsServiceTier('gpt-6-luna', 'ultrafast')).toBe(false)
     expect(supportsServiceTier('gpt-6-luna', 'fast')).toBe(true)
+    expect(supportsServiceTier('gpt-6.1-terra', 'fast')).toBe(true)
+    expect(supportsServiceTier('gpt-6.1-terra', 'ultrafast')).toBe(false)
     expect(supportsServiceTier('claude-opus-5-5', 'fast')).toBe(false)
     expect(serviceTierForModel('gpt-6-luna', 'ultrafast')).toBe('')
     expect(serviceTierForModel('gpt-6.1-sol', 'ultrafast')).toBe('ultrafast')
