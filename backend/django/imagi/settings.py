@@ -59,6 +59,19 @@ if not SECRET_KEY:
             'DJANGO_SECRET_KEY environment variable must be set when DEBUG is False.'
         )
 
+# Rotating the key: set DJANGO_NEW_SECRET_KEY on both tiers and deploy. It
+# becomes SECRET_KEY at once, and the replaced key is kept as OLD_SECRET_KEY,
+# so rotating never needs anyone to read the current value back. OLD_SECRET_KEY
+# is deliberately not in SECRET_KEY_FALLBACKS: a rotated key may have leaked, so
+# nothing it signed (sessions, password resets) may verify. It only decrypts the
+# credentials users saved under it until reencrypt_secrets, run on boot, has
+# moved them to the new key (see imagi.encryption). Then set DJANGO_SECRET_KEY
+# to the new value and DJANGO_NEW_SECRET_KEY to empty.
+OLD_SECRET_KEY = ''
+_NEW_SECRET_KEY = os.environ.get('DJANGO_NEW_SECRET_KEY', '')
+if _NEW_SECRET_KEY and _NEW_SECRET_KEY != SECRET_KEY:
+    OLD_SECRET_KEY, SECRET_KEY = SECRET_KEY, _NEW_SECRET_KEY
+
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')

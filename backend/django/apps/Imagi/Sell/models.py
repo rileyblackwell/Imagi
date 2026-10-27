@@ -10,24 +10,23 @@ hosted sign-up, no keys to copy), or, as an advanced fallback, pastes their
 own API keys.
 """
 
-import base64
-import hashlib
 import logging
 import secrets
 
-from django.conf import settings
 from django.db import models
+
+from imagi import encryption
 
 logger = logging.getLogger(__name__)
 
 
+# Purpose string of this app's credential key (see imagi.encryption).
+ENCRYPTION_PURPOSE = 'imagi.sell.stripe:'
+
+
 def _fernet():
     """Fernet keyed off SECRET_KEY, used to encrypt Stripe credentials at rest."""
-    from cryptography.fernet import Fernet
-    digest = hashlib.sha256(
-        ('imagi.sell.stripe:' + settings.SECRET_KEY).encode()
-    ).digest()
-    return Fernet(base64.urlsafe_b64encode(digest))
+    return encryption.fernet(ENCRYPTION_PURPOSE)
 
 
 def encrypt_secret(value: str) -> str:
