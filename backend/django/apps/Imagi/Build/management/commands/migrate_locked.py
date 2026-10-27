@@ -16,18 +16,31 @@ until the first finishes, then finds nothing left to apply. Other backends
 (SQLite in dev and tests) have one process and just migrate.
 
 Under the same lock it then runs reencrypt_secrets, which only does anything
-while DJANGO_SECRET_KEY is being rotated.
+while DJANGO_SECRET_KEY is being rotated, and, on the workspace tier while
+WIPE_USERS_JOINED_BEFORE is set, delete_all_users (see that command).
 
 Usage:
     python manage.py migrate_locked
 """
 
+import os
+
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import connections, DEFAULT_DB_ALIAS
 
 # Arbitrary, fixed key shared by every tier ("imagi" in ASCII).
 MIGRATE_LOCK_KEY = 0x696D616769
+
+
+def run_boot_commands():
+    call_command('reencrypt_secrets')
+    # Only the workspace tier mounts PROJECTS_ROOT, so only it can remove the
+    # deleted projects' files.
+    wipe_before = os.environ.get('WIPE_USERS_JOINED_BEFORE', '').strip()
+    if wipe_before and settings.IMAGI_ROLE == 'workspace':
+        call_command('delete_all_users', joined_before=wipe_before, yes=True)
 
 
 class Command(BaseCommand):
@@ -37,7 +50,7 @@ class Command(BaseCommand):
         connection = connections[DEFAULT_DB_ALIAS]
         if connection.vendor != 'postgresql':
             call_command('migrate', interactive=False)
-            call_command('reencrypt_secrets')
+            run_boot_commands()
             return
 
         with connection.cursor() as cursor:
@@ -45,6 +58,6 @@ class Command(BaseCommand):
             cursor.execute('SELECT pg_advisory_lock(%s)', [MIGRATE_LOCK_KEY])
             try:
                 call_command('migrate', interactive=False)
-                call_command('reencrypt_secrets')
+                run_boot_commands()
             finally:
                 cursor.execute('SELECT pg_advisory_unlock(%s)', [MIGRATE_LOCK_KEY])
