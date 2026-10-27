@@ -11,7 +11,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .serializers import RegisterSerializer, UserSerializer
-from .throttles import LoginRateThrottle, RegisterRateThrottle
+from .throttles import (
+    GlobalRegisterRateThrottle,
+    LoginRateThrottle,
+    RegisterRateThrottle,
+)
 
 # Per-account failure counter, on top of the per-IP throttle: it bounds a
 # distributed guessing run against one account, which a per-IP limit cannot
@@ -95,10 +99,17 @@ def signin_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([RegisterRateThrottle])
+@throttle_classes([RegisterRateThrottle, GlobalRegisterRateThrottle])
 @csrf_protect
 def register_view(request):
-    """Register an account. See signin_view for why csrf_protect is here."""
+    """Register an account. See signin_view for why csrf_protect is here.
+
+    Two throttles guard this: a per-IP cap (one source) and a site-wide cap
+    (all sources at once), so a registration flood spread across many IPs is
+    still bounded. Neither limits what an account may *do* once created — the
+    plan allowance does that — so the Free tier can stay usage-unlimited while
+    account creation itself is rate-limited.
+    """
     serializer = RegisterSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

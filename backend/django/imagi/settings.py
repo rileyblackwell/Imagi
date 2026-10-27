@@ -263,6 +263,11 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'auth_signin': '10/min',
         'auth_register': '20/hour',
+        # Site-wide ceiling on new accounts, on top of the per-IP cap above, so
+        # a registration flood spread across many IPs is still bounded. Raise
+        # this as genuine sign-up traffic grows: once it trips it refuses every
+        # registration until the window rolls. See apps/Auth/api/throttles.py.
+        'auth_register_global': '120/hour',
         'storefront_checkout': '30/hour',
         'storefront_server': '600/minute',
     },

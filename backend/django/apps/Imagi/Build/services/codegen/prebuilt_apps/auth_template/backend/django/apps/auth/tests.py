@@ -6,10 +6,13 @@ Covers the registration/user serializers, every authentication API endpoint
 the anonymous ones: CSRF, the per-account lockout and the per-IP rate limits.
 """
 
+from types import SimpleNamespace
+
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.test import SimpleTestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -17,7 +20,12 @@ from rest_framework.test import APITestCase
 
 from apps.auth.api import views as auth_views
 from apps.auth.api.serializers import RegisterSerializer, UserSerializer
-from apps.auth.api.throttles import LoginRateThrottle, RegisterRateThrottle
+from apps.auth.api.throttles import (
+    GlobalRegisterRateThrottle,
+    LoginRateThrottle,
+    RegisterRateThrottle,
+    client_ip,
+)
 
 User = get_user_model()
 
@@ -356,4 +364,90 @@ class RateLimitTests(APITestCase):
         # A project whose settings name no rate keeps its limit rather than
         # failing every sign-in with ImproperlyConfigured.
         self.assertEqual(LoginRateThrottle().rate, LoginRateThrottle.default_rate)
+
+    @patch.object(LoginRateThrottle, 'THROTTLE_RATES', {'auth_signin': '3/min'})
+    def test_signin_limit_holds_despite_a_changing_forwarded_prefix(self):
+        # The left of X-Forwarded-For changes every request, as a spoofer (or a
+        # variable-length proxy chain) would make it; the limit must still
+        # accumulate, because the real client is read from the right.
+        url = reverse('auth_api:signin')
+        codes = [
+            self.client.post(
+                url, {'username': f'user{i}', 'password': 'wrong'},
+                HTTP_X_FORWARDED_FOR=f'9.9.9.{i}, 8.8.8.8, 10.0.0.9',
+            ).status_code
+            for i in range(4)
+        ]
+        self.assertEqual(codes[:3], [status.HTTP_401_UNAUTHORIZED] * 3)
+        self.assertEqual(codes[3], status.HTTP_429_TOO_MANY_REQUESTS)
+
+    @patch.object(LoginRateThrottle, 'THROTTLE_RATES', {'auth_signin': '3/min'})
+    def test_signin_limit_is_separate_for_each_client_ip(self):
+        url = reverse('auth_api:signin')
+        for _ in range(3):
+            self.client.post(
+                url, {'username': 'u', 'password': 'wrong'},
+                HTTP_X_FORWARDED_FOR='8.8.8.8, 10.0.0.9',
+            )
+        blocked = self.client.post(
+            url, {'username': 'u', 'password': 'wrong'},
+            HTTP_X_FORWARDED_FOR='8.8.8.8, 10.0.0.9',
+        )
+        fresh = self.client.post(
+            url, {'username': 'u', 'password': 'wrong'},
+            HTTP_X_FORWARDED_FOR='1.1.1.1, 10.0.0.9',
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(fresh.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @patch.object(RegisterRateThrottle, 'THROTTLE_RATES', {'auth_register': '100/hour'})
+    @patch.object(
+        GlobalRegisterRateThrottle, 'THROTTLE_RATES', {'auth_register_global': '1/hour'}
+    )
+    def test_registration_has_a_site_wide_cap_across_ips(self):
+        # The per-IP cap is lifted high so only the global one is under test: a
+        # second account from a different IP is still refused.
+        url = reverse('auth_api:register')
+        payload = {'password': 'sup3rSecret!', 'password_confirmation': 'sup3rSecret!'}
+        first = self.client.post(
+            url, {**payload, 'username': 'a', 'email': 'a@example.com'},
+            HTTP_X_FORWARDED_FOR='8.8.8.1, 10.0.0.9',
+        )
+        second = self.client.post(
+            url, {**payload, 'username': 'b', 'email': 'b@example.com'},
+            HTTP_X_FORWARDED_FOR='1.1.1.1, 10.0.0.9',
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class ClientIPResolutionTests(SimpleTestCase):
+    """client_ip finds the real client at the right of the forwarded chain."""
+
+    def _ip(self, forwarded=None, remote_addr='10.0.0.1'):
+        meta = {'REMOTE_ADDR': remote_addr}
+        if forwarded is not None:
+            meta['HTTP_X_FORWARDED_FOR'] = forwarded
+        return client_ip(SimpleNamespace(META=meta))
+
+    def test_the_rightmost_public_address_is_the_client(self):
+        # <client>, <private proxy hop> resolves to the public client.
+        self.assertEqual(self._ip('8.8.8.8, 10.0.0.9'), '8.8.8.8')
+
+    def test_a_spoofed_leading_address_is_ignored(self):
+        # A caller prepends a fake IP; the edge appends the real one to its
+        # right, so the fake never becomes the identity and both resolve same.
+        spoofed = self._ip('9.9.9.9, 8.8.8.8, 10.0.0.9')
+        other_spoof = self._ip('1.1.1.1, 8.8.8.8, 10.0.0.9')
+        self.assertEqual(spoofed, '8.8.8.8')
+        self.assertEqual(spoofed, other_spoof)
+
+    def test_falls_back_to_remote_addr_without_a_public_hop(self):
+        # An all-private chain (local dev) uses the connecting peer instead.
+        self.assertEqual(
+            self._ip('10.0.0.9, 192.168.1.1', remote_addr='172.16.0.4'), '172.16.0.4'
+        )
+
+    def test_falls_back_to_remote_addr_with_no_forwarded_header(self):
+        self.assertEqual(self._ip(None, remote_addr='172.16.0.4'), '172.16.0.4')
 
