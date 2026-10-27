@@ -2,12 +2,11 @@
      — home, docs, pricing, the project hub, and the three tool workspaces — via
      DefaultLayout.
 
-     The links sit to the left, after the wordmark: the Product menu (Imagi, to
-     the projects page) and Pricing, the same for visitors and the signed-in.
-     Docs and About are in the footer. The page you are on is set in full ink. On the right, visitors
-     get a quiet Sign in and the ink Start building pill; signed in, a quiet Sign
-     out. The coral light stays with the page. Below md the links fold into a
-     Menu sheet.
+     Visitors get the wordmark and one ink Sign in pill, at every width.
+     Signed in, the Product menu (Imagi, to the projects page) and Pricing sit
+     centred in the bar, and a quiet Sign out sits on the right. Docs and About
+     are in the footer. The page you are on is set in full ink. The coral light
+     stays with the page. Below md the signed-in links fold into a Menu sheet.
 
      The bar sits outside every page's .spotlight root, so the link groups and
      the sheet carry their own `.spotlight` for the --sl-* tokens, as the
@@ -20,8 +19,9 @@
       <slot name="left-leading"></slot>
     </template>
 
-    <template #left>
-      <div class="spotlight site-nav-group hidden md:flex items-center gap-1 ml-7">
+    <!-- Product and Pricing are for the signed-in, centred in the bar -->
+    <template #center>
+      <div v-if="isAuthenticated" class="spotlight site-nav-group hidden md:flex items-center gap-1">
         <SiteNavbarDropdown v-model="isProductsMenuOpen" :active="isActive('/imagi')">
           Product
 
@@ -55,33 +55,31 @@
 
     <template #right>
       <div class="spotlight site-nav-group flex items-center gap-3">
-        <div class="hidden md:flex items-center gap-3">
-          <template v-if="isAuthenticated">
+        <template v-if="isAuthenticated">
+          <div class="hidden md:flex">
             <button type="button" class="site-nav-link" @click="handleLogout">Sign out</button>
-          </template>
-          <template v-else>
-            <router-link to="/auth/signin" class="site-nav-link">Sign in</router-link>
-            <router-link to="/auth/register" class="site-nav-cta">Start building</router-link>
-          </template>
-        </div>
+          </div>
 
-        <button
-          type="button"
-          class="site-nav-menu-btn md:hidden"
-          :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
-          aria-controls="site-nav-sheet"
-          @click="isMobileMenuOpen = !isMobileMenuOpen"
-        >
-          <i class="fas" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
-          {{ isMobileMenuOpen ? 'Close' : 'Menu' }}
-        </button>
+          <button
+            type="button"
+            class="site-nav-menu-btn md:hidden"
+            :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
+            aria-controls="site-nav-sheet"
+            @click="isMobileMenuOpen = !isMobileMenuOpen"
+          >
+            <i class="fas" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
+            {{ isMobileMenuOpen ? 'Close' : 'Menu' }}
+          </button>
+        </template>
+        <!-- Visitors have one thing to do here, so it is the bar's one button -->
+        <router-link v-else to="/auth/signin" class="site-nav-cta">Sign in</router-link>
       </div>
     </template>
   </BaseNavbar>
 
-  <!-- Phone menu: a sheet hung under the bar over a soft scrim -->
+  <!-- Phone menu, signed in only: a sheet hung under the bar over a soft scrim -->
   <transition name="site-sheet">
-    <div v-if="isMobileMenuOpen" class="md:hidden">
+    <div v-if="isAuthenticated && isMobileMenuOpen" class="md:hidden">
       <div class="site-sheet-scrim" @click="isMobileMenuOpen = false"></div>
       <div id="site-nav-sheet" class="spotlight site-sheet">
         <div class="site-sheet__group">
@@ -103,13 +101,7 @@
         </div>
 
         <div class="site-sheet__actions">
-          <template v-if="isAuthenticated">
-            <button type="button" class="site-sheet__btn" @click="handleLogout">Sign out</button>
-          </template>
-          <template v-else>
-            <router-link to="/auth/register" class="site-nav-cta site-sheet__cta">Start building</router-link>
-            <router-link to="/auth/signin" class="site-sheet__btn">Sign in</router-link>
-          </template>
+          <button type="button" class="site-sheet__btn" @click="handleLogout">Sign out</button>
         </div>
       </div>
     </div>
@@ -226,7 +218,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* Start building: the ink pill. The bar leaves the coral light to the page. */
+/* Sign in: the ink pill. The bar leaves the coral light to the page. */
 .site-nav-cta {
   display: inline-flex;
   align-items: center;
@@ -323,11 +315,6 @@ onUnmounted(() => {
   display: grid;
   gap: 0.625rem;
   margin-top: 1rem;
-}
-
-.site-sheet__cta {
-  height: 2.75rem;
-  font-size: 0.9375rem;
 }
 
 .site-sheet__btn {

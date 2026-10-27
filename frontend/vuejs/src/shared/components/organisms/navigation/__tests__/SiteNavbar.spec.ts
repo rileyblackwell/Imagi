@@ -21,10 +21,10 @@ const stubs = {
 }
 
 /**
- * The bar is the same for everyone on the left (Product and Pricing; Docs
- * and About live in the footer) and changes only on the right: visitors can sign in or start
- * building, the signed-in can sign out. The current page reads in full ink,
- * and below md everything folds into a Menu sheet.
+ * Visitors get the wordmark and one ink Sign in pill, at every width. Signed
+ * in, the Product menu and Pricing sit centred in the bar (Docs and About live
+ * in the footer) with a quiet Sign out on the right. The current page reads in
+ * full ink, and below md the signed-in links fold into a Menu sheet.
  */
 describe('SiteNavbar', () => {
   const mountBar = () => mount(SiteNavbar, { global: { stubs } })
@@ -36,22 +36,25 @@ describe('SiteNavbar', () => {
     logout.mockReset()
   })
 
-  it('shows visitors the site links, Sign in and Start building', () => {
+  it('shows visitors only the wordmark and the ink Sign in pill', () => {
     const w = mountBar()
-    const desktop = w.find('nav')
-    expect(desktop.text()).toContain('Product')
-    expect(desktop.text()).toContain('Pricing')
-    expect(desktop.text()).not.toContain('Docs')
-    expect(desktop.text()).not.toContain('About')
-    expect(w.find('a[href="/auth/signin"]').text()).toBe('Sign in')
-    expect(w.find('a.site-nav-cta[href="/auth/register"]').text()).toBe('Start building')
-    expect(desktop.text()).not.toContain('Sign out')
+    const bar = w.find('nav')
+    expect(bar.text()).toBe('Sign in')
+    expect(w.find('a.site-nav-cta[href="/auth/signin"]').text()).toBe('Sign in')
+    expect(w.find('a[href="/auth/register"]').exists()).toBe(false)
+    expect(w.find('button[aria-haspopup="true"]').exists()).toBe(false)
+    expect(w.find('button[aria-controls="site-nav-sheet"]').exists()).toBe(false)
   })
 
-  it('swaps the visitor actions for Sign out once signed in', async () => {
+  it('centres Product and Pricing once signed in, with Sign out on the right', async () => {
     auth.isAuthenticated = true
     const w = mountBar()
-    expect(w.find('a[href="/auth/register"]').exists()).toBe(false)
+    const center = w.find('nav .justify-center')
+    expect(center.text()).toContain('Product')
+    expect(center.text()).toContain('Pricing')
+    expect(w.find('nav').text()).not.toContain('Docs')
+    expect(w.find('nav').text()).not.toContain('About')
+    expect(w.find('a[href="/auth/signin"]').exists()).toBe(false)
     const signOut = w.findAll('button').find((b) => b.text() === 'Sign out')
     expect(signOut).toBeTruthy()
     await signOut!.trigger('click')
@@ -59,6 +62,7 @@ describe('SiteNavbar', () => {
   })
 
   it('marks the current page, sub-pages included', () => {
+    auth.isAuthenticated = true
     route.path = '/payments/pricing'
     const w = mountBar()
     const pricing = w.find('a.site-nav-link[href="/payments/pricing"]')
@@ -70,6 +74,7 @@ describe('SiteNavbar', () => {
   })
 
   it('lights Product on the projects pages, and its menu holds Imagi', () => {
+    auth.isAuthenticated = true
     route.path = '/imagi/projects'
     const w = mountBar()
     const trigger = w.find('button[aria-haspopup="true"]')
@@ -78,6 +83,7 @@ describe('SiteNavbar', () => {
   })
 
   it('opens and closes the phone menu, and closes it on navigation', async () => {
+    auth.isAuthenticated = true
     const w = mountBar()
     const menuBtn = w.find('button[aria-controls="site-nav-sheet"]')
     expect(w.find('#site-nav-sheet').exists()).toBe(false)
@@ -85,10 +91,11 @@ describe('SiteNavbar', () => {
     await menuBtn.trigger('click')
     expect(menuBtn.attributes('aria-expanded')).toBe('true')
     const sheet = w.find('#site-nav-sheet')
-    for (const label of ['Imagi', 'Pricing', 'Start building', 'Sign in']) {
+    for (const label of ['Imagi', 'Pricing', 'Sign out']) {
       expect(sheet.text()).toContain(label)
     }
     expect(sheet.text()).not.toContain('Docs')
+    expect(sheet.text()).not.toContain('Sign in')
 
     route.path = '/payments/pricing'
     route.fullPath = '/payments/pricing'

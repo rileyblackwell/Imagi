@@ -18,13 +18,7 @@
             <h2>{{ col.title }}</h2>
             <ul>
               <li v-for="link in col.links" :key="link.label">
-                <a
-                  v-if="'href' in link"
-                  :href="link.href"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >{{ link.label }}</a>
-                <router-link v-else :to="link.to">{{ link.label }}</router-link>
+                <router-link :to="link.to">{{ link.label }}</router-link>
               </li>
             </ul>
           </div>
@@ -46,13 +40,10 @@ import { ImagiLogo } from '@/shared/components/molecules'
 
 const currentYear = computed(() => new Date().getFullYear())
 
-type FooterLink = { label: string; to: string } | { label: string; href: string }
-
-const columns: { title: string; links: FooterLink[] }[] = [
+const columns: { title: string; links: { label: string; to: string }[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Projects', to: '/imagi/projects' },
       { label: 'Pricing', to: '/payments/pricing' },
       { label: 'Docs', to: '/docs' },
     ],
@@ -61,7 +52,6 @@ const columns: { title: string; links: FooterLink[] }[] = [
     title: 'Company',
     links: [
       { label: 'About', to: '/about' },
-      { label: 'Open source on GitHub', href: 'https://github.com/rileyblackwell/imagi' },
     ],
   },
   {
