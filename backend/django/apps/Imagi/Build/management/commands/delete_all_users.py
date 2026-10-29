@@ -13,10 +13,9 @@ Stripe is left alone: customers and subscriptions stay in Stripe.
 The cutoff makes a repeat run harmless: an account registered after it is
 never touched. Without --yes the command only reports what it would delete.
 
-No one can reach a shell on Railway, so migrate_locked runs this on the
-workspace tier (the one that owns the PROJECTS_ROOT volume) whenever
-WIPE_USERS_JOINED_BEFORE is set there to an ISO 8601 time. Unset it after the
-run.
+Nothing runs this on boot any more: the clean start it was written for ran
+on 27 October 2026. Run it by hand on the workspace tier, the one that owns
+the PROJECTS_ROOT volume, if another wipe is ever wanted.
 
 Usage:
     python manage.py delete_all_users --joined-before 2026-10-27T17:00:00Z
