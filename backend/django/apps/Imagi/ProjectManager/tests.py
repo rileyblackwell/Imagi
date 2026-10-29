@@ -249,6 +249,39 @@ class ProjectManagementServiceTests(TestCase):
             self.assertFalse(os.path.exists(path), f'{path} was left behind')
 
 
+    def test_delete_project_directory_leaves_the_shared_dependency_store_alone(self):
+        # node_modules is a symlink into the shared store; deleting a project
+        # must remove the link only, never walk or chmod what it points at.
+        root = tempfile.mkdtemp(dir=_TMP_PROJECTS_ROOT)
+        store_file = os.path.join(root, 'store', 'node_modules', 'vue', 'index.js')
+        os.makedirs(os.path.dirname(store_file))
+        with open(store_file, 'w') as f:
+            f.write('export default {}')
+        os.chmod(store_file, 0o644)
+        frontend = os.path.join(root, 'project', 'frontend', 'vuejs')
+        os.makedirs(os.path.join(frontend, 'src'))
+        os.symlink(os.path.join(root, 'store', 'node_modules'), os.path.join(frontend, 'node_modules'))
+
+        self.service._delete_project_directory(os.path.join(root, 'project'))
+
+        self.assertFalse(os.path.lexists(os.path.join(root, 'project')))
+        self.assertTrue(os.path.isfile(store_file))
+        self.assertEqual(os.stat(store_file).st_mode & 0o777, 0o644)
+
+    def test_delete_project_directory_removes_a_real_read_only_node_modules(self):
+        # The fallback install puts a real node_modules in the project.
+        root = tempfile.mkdtemp(dir=_TMP_PROJECTS_ROOT)
+        package = os.path.join(root, 'project', 'frontend', 'vuejs', 'node_modules', 'vue')
+        os.makedirs(package)
+        locked = os.path.join(package, 'index.js')
+        with open(locked, 'w') as f:
+            f.write('export default {}')
+        os.chmod(locked, 0o444)
+
+        self.service._delete_project_directory(os.path.join(root, 'project'))
+
+        self.assertFalse(os.path.exists(os.path.join(root, 'project')))
+
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
 class ProjectManagerAPITests(APITestCase):
     def setUp(self):

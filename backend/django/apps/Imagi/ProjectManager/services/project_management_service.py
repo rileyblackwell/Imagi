@@ -90,9 +90,9 @@ class ProjectManagementService:
 
     def _delete_project_directory(self, project_path):
         """Delete project directory at the specific path with robust cleanup.
-        
-        Handles common issues like permission problems with node_modules,
-        locked files, and ensures complete cleanup of all project files.
+
+        Handles permission problems and locked files, and ensures complete
+        cleanup of all project files, without following symlinks out of it.
         """
         if not project_path:
             logger.warning("Cannot delete project directory: No path provided")
@@ -125,33 +125,11 @@ class ProjectManagementService:
                 else:
                     logger.warning(f"Error removing {path}: {exc_info[1]}")
             
-            # First, try to handle node_modules specifically (most common problem)
-            node_modules_paths = [
-                os.path.join(project_path, 'frontend', 'vuejs', 'node_modules'),
-                os.path.join(project_path, 'node_modules'),
-            ]
-            
-            for node_modules_path in node_modules_paths:
-                if os.path.exists(node_modules_path):
-                    logger.info(f"Removing node_modules at: {node_modules_path}")
-                    try:
-                        # Make all files in node_modules writable before deletion
-                        for root, dirs, files in os.walk(node_modules_path):
-                            for d in dirs:
-                                try:
-                                    os.chmod(os.path.join(root, d), stat.S_IRWXU)
-                                except Exception:
-                                    pass
-                            for f in files:
-                                try:
-                                    os.chmod(os.path.join(root, f), stat.S_IRWXU)
-                                except Exception:
-                                    pass
-                        shutil.rmtree(node_modules_path, onerror=handle_remove_readonly)
-                    except Exception as e:
-                        logger.warning(f"Error removing node_modules: {e}")
-            
-            # Now delete the entire project directory
+            # Delete the entire project directory. rmtree removes a symlinked
+            # node_modules as a link and never walks into it, so don't touch it
+            # first: it usually points at the shared dependency store (see
+            # Build's frontend_dependencies), and walking it to chmod every file
+            # took minutes on the image layer and left the store owner-only.
             shutil.rmtree(project_path, onerror=handle_remove_readonly)
             
             # Verify deletion succeeded
