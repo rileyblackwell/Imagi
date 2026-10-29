@@ -52,14 +52,7 @@ class MigrateLockedTests(SimpleTestCase):
         cursor.execute.assert_not_called()
 
     @override_settings(IMAGI_ROLE='workspace')
-    def test_workspace_tier_wipes_accounts_while_the_cutoff_is_set(self):
-        with mock.patch.dict('os.environ', {'WIPE_USERS_JOINED_BEFORE': '2026-10-27T17:00:00Z'}):
-            _, migrate = self._run('sqlite')
-        self.assertEqual(migrate.call_args_list[-1], mock.call(
-            'delete_all_users', joined_before='2026-10-27T17:00:00Z', yes=True))
-
-    @override_settings(IMAGI_ROLE='web')
-    def test_web_tier_never_wipes(self):
+    def test_boot_never_wipes_accounts_even_with_the_old_cutoff_set(self):
         with mock.patch.dict('os.environ', {'WIPE_USERS_JOINED_BEFORE': '2026-10-27T17:00:00Z'}):
             _, migrate = self._run('sqlite')
         self.assertNotIn('delete_all_users', [c.args[0] for c in migrate.call_args_list])
