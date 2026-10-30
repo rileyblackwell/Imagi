@@ -2,7 +2,7 @@ from io import StringIO
 from unittest import mock
 
 from django.core.management import call_command
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from apps.Imagi.Build.management.commands import migrate_locked
 
@@ -50,3 +50,9 @@ class MigrateLockedTests(SimpleTestCase):
             mock.call('migrate', interactive=False), mock.call('reencrypt_secrets'),
         ])
         cursor.execute.assert_not_called()
+
+    @override_settings(IMAGI_ROLE='workspace')
+    def test_boot_never_wipes_accounts_even_with_the_old_cutoff_set(self):
+        with mock.patch.dict('os.environ', {'WIPE_USERS_JOINED_BEFORE': '2026-10-27T17:00:00Z'}):
+            _, migrate = self._run('sqlite')
+        self.assertNotIn('delete_all_users', [c.args[0] for c in migrate.call_args_list])

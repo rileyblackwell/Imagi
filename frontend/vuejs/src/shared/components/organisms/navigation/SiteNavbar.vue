@@ -2,12 +2,11 @@
      — home, docs, pricing, the project hub, and the three tool workspaces — via
      DefaultLayout.
 
-     The links sit to the left, after the wordmark: the Product menu (Imagi, to
-     the projects page) and Pricing, the same for visitors and the signed-in.
-     Docs and About are in the footer. The page you are on is set in full ink. On the right, visitors
-     get a quiet Sign in and the ink Start building pill; signed in, a quiet Sign
-     out. The coral light stays with the page. Below md the links fold into a
-     Menu sheet.
+     Visitors get the wordmark and one ink Sign in pill, at every width.
+     Signed in, the Product menu (Imagi, to the projects page) and Pricing sit
+     centred in the bar, and a quiet Sign out sits on the right. Docs and About
+     are in the footer. The page you are on is set in full ink. The coral light
+     stays with the page. Below md the signed-in links fold into a Menu sheet.
 
      The bar sits outside every page's .spotlight root, so the link groups and
      the sheet carry their own `.spotlight` for the --sl-* tokens, as the
@@ -20,10 +19,11 @@
       <slot name="left-leading"></slot>
     </template>
 
-    <template #left>
-      <!-- !bg-transparent outranks `.spotlight`'s own page background: these
-           groups only borrow the tokens. -->
-      <div class="spotlight !bg-transparent hidden md:flex items-center gap-1 ml-7">
+    <!-- Product and Pricing are for the signed-in, centred in the bar.
+         !bg-transparent outranks `.spotlight`'s own page background: these
+         groups only borrow the tokens. -->
+    <template #center>
+      <div v-if="isAuthenticated" class="spotlight !bg-transparent hidden md:flex items-center gap-1">
         <SiteNavbarDropdown v-model="isProductsMenuOpen" :active="isActive('/imagi')">
           Product
 
@@ -64,39 +64,37 @@
 
     <template #right>
       <div class="spotlight !bg-transparent flex items-center gap-3">
-        <div class="hidden md:flex items-center gap-3">
-          <template v-if="isAuthenticated">
+        <template v-if="isAuthenticated">
+          <div class="hidden md:flex">
             <button type="button" :class="[navLink, 'text-sl-muted font-medium']" @click="handleLogout">Sign out</button>
-          </template>
-          <template v-else>
-            <router-link to="/auth/signin" :class="[navLink, 'text-sl-muted font-medium']">Sign in</router-link>
-            <!-- Start building: the ink pill. The bar leaves the coral light to the page. -->
-            <router-link to="/auth/register" :class="[navCta, 'h-9 text-[0.875rem]']">Start building</router-link>
-          </template>
-        </div>
+          </div>
 
-        <button
-          type="button"
-          class="inline-flex md:hidden items-center gap-[0.45rem] h-[2.125rem] px-[0.8rem] rounded-full border border-sl-line-strong bg-sl-chip-bg text-sl-text text-[0.8125rem] font-semibold"
-          :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
-          aria-controls="site-nav-sheet"
-          @click="isMobileMenuOpen = !isMobileMenuOpen"
-        >
-          <i class="fas text-[0.8rem] w-[0.9rem]" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
-          {{ isMobileMenuOpen ? 'Close' : 'Menu' }}
-        </button>
+          <button
+            type="button"
+            class="inline-flex md:hidden items-center gap-[0.45rem] h-[2.125rem] px-[0.8rem] rounded-full border border-sl-line-strong bg-sl-chip-bg text-sl-text text-[0.8125rem] font-semibold"
+            :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
+            aria-controls="site-nav-sheet"
+            @click="isMobileMenuOpen = !isMobileMenuOpen"
+          >
+            <i class="fas text-[0.8rem] w-[0.9rem]" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
+            {{ isMobileMenuOpen ? 'Close' : 'Menu' }}
+          </button>
+        </template>
+        <!-- Visitors have one thing to do here, so it is the bar's one button:
+             the ink pill. The bar leaves the coral light to the page. -->
+        <router-link v-else to="/auth/signin" :class="[navCta, 'h-9 text-[0.875rem]']">Sign in</router-link>
       </div>
     </template>
   </BaseNavbar>
 
-  <!-- Phone menu: a sheet hung under the bar over a soft scrim -->
+  <!-- Phone menu, signed in only: a sheet hung under the bar over a soft scrim -->
   <transition
     enter-active-class="[transition:opacity_0.2s_cubic-bezier(0.22,1,0.36,1)]"
     leave-active-class="[transition:opacity_0.2s_cubic-bezier(0.22,1,0.36,1)]"
     enter-from-class="opacity-0"
     leave-to-class="opacity-0"
   >
-    <div v-if="isMobileMenuOpen" class="md:hidden">
+    <div v-if="isAuthenticated && isMobileMenuOpen" class="md:hidden">
       <div class="fixed inset-x-0 top-14 bottom-0 z-40 bg-[rgba(8,9,13,0.35)] backdrop-blur-[3px]" @click="isMobileMenuOpen = false"></div>
       <div
         id="site-nav-sheet"
@@ -121,13 +119,7 @@
         </div>
 
         <div class="grid gap-[0.625rem] mt-4">
-          <template v-if="isAuthenticated">
-            <button type="button" :class="sheetBtn" @click="handleLogout">Sign out</button>
-          </template>
-          <template v-else>
-            <router-link to="/auth/register" :class="[navCta, 'h-11 text-[0.9375rem]']">Start building</router-link>
-            <router-link to="/auth/signin" :class="sheetBtn">Sign in</router-link>
-          </template>
+          <button type="button" :class="sheetBtn" @click="handleLogout">Sign out</button>
         </div>
       </div>
     </div>

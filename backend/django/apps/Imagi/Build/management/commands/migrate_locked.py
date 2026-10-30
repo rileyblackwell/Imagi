@@ -30,6 +30,10 @@ from django.db import connections, DEFAULT_DB_ALIAS
 MIGRATE_LOCK_KEY = 0x696D616769
 
 
+def run_boot_commands():
+    call_command('reencrypt_secrets')
+
+
 class Command(BaseCommand):
     help = "Run migrate while holding a lock that other tiers' migrate_locked waits on."
 
@@ -37,7 +41,7 @@ class Command(BaseCommand):
         connection = connections[DEFAULT_DB_ALIAS]
         if connection.vendor != 'postgresql':
             call_command('migrate', interactive=False)
-            call_command('reencrypt_secrets')
+            run_boot_commands()
             return
 
         with connection.cursor() as cursor:
@@ -45,6 +49,6 @@ class Command(BaseCommand):
             cursor.execute('SELECT pg_advisory_lock(%s)', [MIGRATE_LOCK_KEY])
             try:
                 call_command('migrate', interactive=False)
-                call_command('reencrypt_secrets')
+                run_boot_commands()
             finally:
                 cursor.execute('SELECT pg_advisory_unlock(%s)', [MIGRATE_LOCK_KEY])

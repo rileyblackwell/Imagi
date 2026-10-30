@@ -18,14 +18,7 @@
             <h2 class="m-0 mb-[0.875rem] text-[11.5px] font-semibold tracking-[0.16em] uppercase text-sl-muted">{{ col.title }}</h2>
             <ul class="m-0 p-0 list-none grid gap-[0.7rem]">
               <li v-for="link in col.links" :key="link.label">
-                <a
-                  v-if="'href' in link"
-                  :href="link.href"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  :class="linkClass"
-                >{{ link.label }}</a>
-                <router-link v-else :to="link.to" :class="linkClass">{{ link.label }}</router-link>
+                <router-link :to="link.to" :class="linkClass">{{ link.label }}</router-link>
               </li>
             </ul>
           </div>
@@ -50,13 +43,10 @@ const currentYear = computed(() => new Date().getFullYear())
 const linkClass =
   'text-[14.5px] text-sl-text rounded-[2px] [transition:color_0.2s_cubic-bezier(0.22,1,0.36,1)] hover:text-sl-muted'
 
-type FooterLink = { label: string; to: string } | { label: string; href: string }
-
-const columns: { title: string; links: FooterLink[] }[] = [
+const columns: { title: string; links: { label: string; to: string }[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Projects', to: '/imagi/projects' },
       { label: 'Pricing', to: '/payments/pricing' },
       { label: 'Docs', to: '/docs' },
     ],
@@ -65,7 +55,6 @@ const columns: { title: string; links: FooterLink[] }[] = [
     title: 'Company',
     links: [
       { label: 'About', to: '/about' },
-      { label: 'Open source on GitHub', href: 'https://github.com/rileyblackwell/imagi' },
     ],
   },
   {
