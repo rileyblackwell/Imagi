@@ -1,30 +1,45 @@
 <template>
-  <div ref="rootRef" class="lp-root" @keydown="onRootKeydown">
+  <!-- Colours come from the --sl-* tokens; motion uses the one Spotlight curve
+       (--lp-ease). The toolbar fits the pane, not the screen, so it is sized
+       by a container query: beside the chat on a tablet the pane is
+       phone-narrow even though the screen isn't. -->
+  <div
+    ref="rootRef"
+    class="[--lp-ease:cubic-bezier(0.22,1,0.36,1)] relative flex flex-col w-full h-full min-h-0 bg-sl-bg text-sl-text [container-name:lp] [container-type:inline-size]"
+    @keydown="onRootKeydown"
+  >
     <!-- Toolbar: one 40px row. Navigation, the address, the servers' health,
          then the tools. Everything else is the app. -->
-    <div class="lp-bar" role="toolbar" aria-label="Preview controls">
+    <div
+      class="relative z-[5] flex items-center gap-1.5 h-10 shrink-0 px-2 border-b border-b-sl-line bg-sl-surface dark:bg-sl-surface-2"
+      role="toolbar"
+      aria-label="Preview controls"
+    >
       <button
         v-if="canReturnToChat"
         type="button"
-        class="lp-switch"
+        class="inline-flex items-center gap-[0.3125rem] h-[1.875rem] px-2.5 rounded-full bg-sl-chip-bg text-sl-muted text-[0.6875rem] shrink-0"
         aria-label="Back to the coordinator"
         @click="emit('return-to-chat')"
       >
-        <i class="fas fa-chevron-left lp-switch-chevron"></i>
+        <i class="fas fa-chevron-left text-[0.5rem] opacity-60"></i>
         <i class="fas fa-comments"></i>
-        <span v-if="returnCount" class="lp-switch-count">{{ returnCount }}</span>
+        <span
+          v-if="returnCount"
+          class="min-w-[1rem] px-1 rounded-full bg-sl-grad text-sl-on-accent text-[0.625rem] font-semibold"
+        >{{ returnCount }}</span>
       </button>
 
-      <div class="lp-nav">
-        <button type="button" class="lp-btn" :disabled="!canGoBack || !appReady" title="Back" aria-label="Back" @click="goBack">
+      <div class="flex items-center gap-px shrink-0">
+        <button type="button" :class="btnClass()" :disabled="!canGoBack || !appReady" title="Back" aria-label="Back" @click="goBack">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <button type="button" class="lp-btn" :disabled="!canGoForward || !appReady" title="Forward" aria-label="Forward" @click="goForward">
+        <button type="button" :class="btnClass()" :disabled="!canGoForward || !appReady" title="Forward" aria-label="Forward" @click="goForward">
           <i class="fas fa-arrow-right"></i>
         </button>
         <button
           type="button"
-          class="lp-btn"
+          :class="btnClass()"
           :disabled="!session"
           title="Reload (Shift-click for a hard reload)"
           aria-label="Reload"
@@ -33,18 +48,36 @@
         >
           <i class="fas fa-rotate-right" :class="{ 'lp-spin': loadingPage }"></i>
         </button>
-        <button type="button" class="lp-btn lp-btn--home" :disabled="!session" title="Home page" aria-label="Home page" @click="navigateTo('/')">
+        <button
+          type="button"
+          :class="[btnClass(), '[@container_lp_(max-width:560px)]:hidden']"
+          :disabled="!session"
+          title="Home page"
+          aria-label="Home page"
+          @click="navigateTo('/')"
+        >
           <i class="fas fa-house"></i>
         </button>
       </div>
 
-      <!-- The address: the app's path, editable; pages to jump to below. -->
-      <div ref="addressRoot" class="lp-address" :class="{ 'is-focused': addressFocused }">
-        <i class="fas fa-lock lp-address-lock" aria-hidden="true"></i>
+      <!-- The address: the app's path, editable; pages to jump to below. One
+           field with a border that deepens, never a ring; the focus ring goes
+           around the whole pill, not the bare input inside it. -->
+      <div
+        ref="addressRoot"
+        class="relative flex-1 min-w-0 flex items-center h-[1.875rem] pl-[0.6875rem] pr-3 rounded-full border
+          [transition:border-color_0.2s_var(--lp-ease),background-color_0.2s_var(--lp-ease)] motion-reduce:[transition:none]
+          has-[.lp-address-input:focus-visible]:outline has-[.lp-address-input:focus-visible]:outline-2
+          has-[.lp-address-input:focus-visible]:outline-sl-focus has-[.lp-address-input:focus-visible]:outline-offset-2"
+        :class="addressFocused
+          ? 'border-sl-muted bg-sl-surface dark:bg-sl-bg-deep'
+          : 'border-sl-line bg-sl-chip-bg hover:border-sl-line-strong'"
+      >
+        <i class="fas fa-lock shrink-0 mr-2 text-[0.5625rem] text-sl-faint" aria-hidden="true"></i>
         <input
           ref="addressInput"
           v-model="addressText"
-          class="lp-address-input"
+          class="lp-address-input flex-1 min-w-0 h-full [border:0] ![outline:none] bg-transparent text-sl-text text-[0.75rem] [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace]"
           type="text"
           spellcheck="false"
           autocomplete="off"
@@ -60,60 +93,76 @@
           @blur="onAddressBlur"
           @keydown="onAddressKeydown"
         />
-        <ul v-if="suggestionsOpen" id="lp-suggestions" class="lp-suggest" role="listbox" @mousedown.prevent>
+        <ul
+          v-if="suggestionsOpen"
+          id="lp-suggestions"
+          :class="['top-[calc(100%+0.375rem)] left-0 right-0 max-h-[60vh] overflow-y-auto p-1.5', POPOVER]"
+          role="listbox"
+          @mousedown.prevent
+        >
           <template v-for="group in suggestionGroups" :key="group.name">
-            <li class="lp-suggest-head" role="presentation">{{ group.name }}</li>
+            <li class="pt-2 px-2.5 pb-1 text-[0.6875rem] font-semibold tracking-[0.14em] uppercase text-sl-muted" role="presentation">{{ group.name }}</li>
             <li
               v-for="item in group.items"
               :id="`lp-sugg-${item.index}`"
               :key="item.path"
               role="option"
               :aria-selected="item.index === activeSuggestion"
-              :class="['lp-suggest-item', item.index === activeSuggestion && 'is-active', item.path === currentPath && 'is-current']"
+              class="flex items-baseline gap-3 py-[0.4375rem] px-2.5 rounded-[0.625rem] cursor-pointer text-[0.8125rem] text-sl-text"
+              :class="item.index === activeSuggestion ? 'bg-sl-chip-bg-hover' : 'hover:bg-sl-chip-bg-hover'"
               @click="chooseSuggestion(item.path)"
             >
-              <span class="lp-suggest-title">{{ item.title }}</span>
-              <span class="lp-suggest-path">{{ item.path }}</span>
+              <span class="flex-1 min-w-0 truncate" :class="item.path === currentPath && 'font-semibold'">{{ item.title }}</span>
+              <span class="shrink-0 max-w-[45%] truncate [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[0.6875rem] text-sl-muted">{{ item.path }}</span>
             </li>
           </template>
         </ul>
       </div>
 
-      <!-- Health of the two dev servers; details and actions on click. -->
-      <div ref="statusRoot" class="lp-status-wrap">
+      <!-- Health of the two dev servers; details and actions on click. A dot
+           with a soft halo, and the word. -->
+      <div ref="statusRoot" class="relative shrink-0">
         <button
           type="button"
-          :class="['lp-status', `is-${overall.tone}`]"
+          class="inline-flex items-center gap-[0.4375rem] h-[1.875rem] pl-2.5 pr-3 rounded-full border border-sl-line
+            text-[0.6875rem] font-semibold text-sl-text whitespace-nowrap
+            transition-[border-color] duration-200 ease-[var(--lp-ease)] motion-reduce:[transition:none] hover:border-sl-line-strong
+            [@container_lp_(max-width:560px)]:px-[0.5625rem]"
           :aria-expanded="statusOpen"
           aria-haspopup="dialog"
           :title="overall.title"
           @click="statusOpen = !statusOpen"
         >
-          <span class="lp-dot" aria-hidden="true"></span>
-          <span class="lp-status-label">{{ overall.label }}</span>
+          <span :class="[DOT, overall.tone === 'idle' ? 'bg-sl-faint' : DOT_TONE[overall.tone]]" aria-hidden="true"></span>
+          <span class="[@container_lp_(max-width:560px)]:hidden">{{ overall.label }}</span>
         </button>
-        <div v-if="statusOpen" class="lp-pop" role="dialog" aria-label="Your app's servers">
-          <p class="lp-pop-head">Your app's servers</p>
-          <div v-for="row in serverRows" :key="row.key" class="lp-pop-row">
-            <span :class="['lp-dot', `is-${row.tone}`]" aria-hidden="true"></span>
-            <span class="lp-pop-name">{{ row.name }}</span>
-            <span class="lp-pop-state">{{ row.label }}</span>
+        <div
+          v-if="statusOpen"
+          :class="['top-[calc(100%+0.375rem)] right-0 w-64 p-3', POPOVER]"
+          role="dialog"
+          aria-label="Your app's servers"
+        >
+          <p class="mb-2 text-[0.6875rem] font-semibold tracking-[0.14em] uppercase text-sl-muted">Your app's servers</p>
+          <div v-for="row in serverRows" :key="row.key" class="flex items-center gap-2 py-[0.3125rem] text-[0.8125rem]">
+            <span :class="[DOT, DOT_TONE[row.tone]]" aria-hidden="true"></span>
+            <span class="flex-1">{{ row.name }}</span>
+            <span class="text-sl-muted text-[0.75rem]">{{ row.label }}</span>
           </div>
-          <p v-if="lastReload" class="lp-pop-note">Last reloaded {{ lastReload }}</p>
-          <div class="lp-pop-actions">
-            <button type="button" class="lp-pop-action" :disabled="!!actionBusy" @click="runAction('restart_frontend')">Restart frontend</button>
-            <button type="button" class="lp-pop-action" :disabled="!!actionBusy" @click="runAction('restart_backend')">Restart backend</button>
-            <button type="button" class="lp-pop-action" :disabled="!!actionBusy" @click="runAction('migrate')">Update the database</button>
-            <button type="button" class="lp-pop-action is-danger" :disabled="!!actionBusy" @click="runAction('reset_database')">Reset test data</button>
+          <p v-if="lastReload" class="mt-1.5 text-[0.75rem] text-sl-muted">Last reloaded {{ lastReload }}</p>
+          <div class="grid gap-1 mt-2.5 pt-2.5 border-t border-t-sl-line">
+            <button type="button" :class="[POP_ACTION, 'text-sl-text']" :disabled="!!actionBusy" @click="runAction('restart_frontend')">Restart frontend</button>
+            <button type="button" :class="[POP_ACTION, 'text-sl-text']" :disabled="!!actionBusy" @click="runAction('restart_backend')">Restart backend</button>
+            <button type="button" :class="[POP_ACTION, 'text-sl-text']" :disabled="!!actionBusy" @click="runAction('migrate')">Update the database</button>
+            <button type="button" :class="[POP_ACTION, 'text-sl-bad']" :disabled="!!actionBusy" @click="runAction('reset_database')">Reset test data</button>
           </div>
-          <p v-if="actionNote" class="lp-pop-note" aria-live="polite">{{ actionNote }}</p>
+          <p v-if="actionNote" class="mt-1.5 text-[0.75rem] text-sl-muted" aria-live="polite">{{ actionNote }}</p>
         </div>
       </div>
 
-      <div class="lp-tools">
+      <div class="flex items-center gap-px shrink-0">
         <button
           type="button"
-          :class="['lp-btn', picking && 'is-on']"
+          :class="btnClass(picking)"
           :disabled="!appReady"
           title="Pick an element to ask the agent about (Ctrl+Shift+C)"
           aria-label="Pick an element"
@@ -125,7 +174,7 @@
         </button>
         <button
           type="button"
-          :class="['lp-btn', drawerOpen && 'is-on']"
+          :class="btnClass(drawerOpen)"
           title="Console, network and server logs (Ctrl+J)"
           aria-label="Console, network and server logs"
           :aria-pressed="drawerOpen"
@@ -133,27 +182,48 @@
           @click="drawerOpen = !drawerOpen"
         >
           <i class="fas fa-terminal"></i>
-          <span v-if="errorCount" class="lp-badge">{{ errorCount > 99 ? '99+' : errorCount }}</span>
+          <span
+            v-if="errorCount"
+            class="absolute top-px -right-px min-w-[0.9375rem] h-[0.9375rem] px-[0.1875rem] rounded-full bg-sl-bad text-white
+              text-[0.5625rem] font-semibold leading-[0.9375rem] tabular-nums"
+          >{{ errorCount > 99 ? '99+' : errorCount }}</span>
         </button>
-        <button type="button" class="lp-btn lp-btn--newtab" :disabled="!session" title="Open in a new tab" aria-label="Open in a new tab" @click="openInNewTab">
+        <button
+          type="button"
+          :class="[btnClass(), '[@container_lp_(max-width:560px)]:hidden']"
+          :disabled="!session"
+          title="Open in a new tab"
+          aria-label="Open in a new tab"
+          @click="openInNewTab"
+        >
           <i class="fas fa-arrow-up-right-from-square"></i>
         </button>
       </div>
 
-      <div v-if="loadingPage" class="lp-progress" aria-hidden="true"></div>
+      <!-- Loading ribbon along the toolbar's lower edge. -->
+      <div
+        v-if="loadingPage"
+        class="lp-slide absolute left-0 right-0 -bottom-px h-0.5 overflow-hidden pointer-events-none
+          after:content-[''] after:absolute after:top-0 after:bottom-0 after:w-[30%] after:bg-sl-work"
+        aria-hidden="true"
+      ></div>
     </div>
 
-    <div class="lp-stage">
+    <!-- The stage: clipped, so nothing the app or its notes do can widen the pane. -->
+    <div class="relative flex-1 min-h-0 overflow-hidden bg-sl-bg-deep">
       <!-- The app itself, rendered by this browser. Sandboxed on its own
            origin: it can run, post forms and open popups, never navigate
            Imagi or read anything of Imagi's. Remounted only by a hard reload
-           or a server restart (iframeKey). -->
+           or a server restart (iframeKey).
+           width 1px + min-width 100%, not width 100%: iOS Safari grows an
+           iframe to its page's width, so an app wider than the pane pushed the
+           frame past it and the page slid sideways under a finger. -->
       <iframe
         v-if="iframeSrc"
         ref="frameRef"
         :key="iframeKey"
         :src="iframeSrc"
-        class="lp-frame"
+        class="block w-px min-w-full h-full [border:0] bg-white"
         title="Your app"
         sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads"
         allow="clipboard-write"
@@ -162,104 +232,125 @@
       ></iframe>
 
       <!-- Edit awareness: a quiet note when an edit lands. -->
-      <transition name="lp-fade">
-        <p v-if="editNote" class="lp-edit-note" role="status">{{ editNote }}</p>
+      <transition v-bind="FADE">
+        <p v-if="editNote" :class="[NOTE, 'text-sl-muted']" role="status">{{ editNote }}</p>
       </transition>
 
       <!-- An agent using the app in its own browser: the frame follows it
            to its page, and this says who it is and what it is doing. -->
-      <transition name="lp-fade">
-        <p v-if="agentNote && !editNote" class="lp-edit-note lp-edit-note--agent" role="status" data-testid="agent-note">
-          <span class="lp-dot is-work" aria-hidden="true"></span>
+      <transition v-bind="FADE">
+        <p v-if="agentNote && !editNote" :class="[NOTE, 'inline-flex items-center gap-2 text-sl-text']" role="status" data-testid="agent-note">
+          <span :class="[DOT, DOT_TONE.work]" aria-hidden="true"></span>
           {{ agentNote }}
         </p>
       </transition>
 
       <!-- Picking: say how to get out of it. -->
-      <p v-if="picking" class="lp-edit-note lp-edit-note--pick" role="status">Click anything in your app to ask the agent about it. Esc cancels.</p>
+      <p v-if="picking" :class="[NOTE, 'text-sl-text']" role="status">Click anything in your app to ask the agent about it. Esc cancels.</p>
 
       <!-- The newest error. It has already gone to the agents (the status
            poll carries it to the coordinator, or to the thread that just
            changed that part of the app), so this only says so. -->
-      <div v-if="bannerVisible && latestError" class="lp-alert" role="alert">
-        <span class="lp-alert-mark" aria-hidden="true"><i class="fas fa-exclamation"></i></span>
-        <div class="lp-alert-body">
-          <p class="lp-alert-title">{{ errorRouting ? 'Imagi is fixing something in your app' : 'Something broke in your app' }}</p>
-          <p class="lp-alert-detail">{{ latestError.text }}</p>
-          <p v-if="errorRoutingNote" class="lp-alert-detail" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
+      <div
+        v-if="bannerVisible && latestError"
+        class="absolute left-3 right-3 bottom-3 z-[6] flex items-center gap-2.5 py-2 pr-2.5 pl-3 rounded-2xl border border-sl-line-strong
+          bg-sl-surface dark:bg-sl-surface-2 [box-shadow:var(--sl-card-shadow),0_16px_36px_-16px_rgba(20,21,30,0.35)]"
+        role="alert"
+      >
+        <span
+          class="grid place-items-center shrink-0 w-6 h-6 rounded-full bg-[color:color-mix(in_srgb,var(--sl-bad)_14%,transparent)] text-sl-bad text-[0.6875rem]"
+          aria-hidden="true"
+        ><i class="fas fa-exclamation"></i></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[0.8125rem] font-semibold">{{ errorRouting ? 'Imagi is fixing something in your app' : 'Something broke in your app' }}</p>
+          <p :class="ALERT_DETAIL">{{ latestError.text }}</p>
+          <p v-if="errorRoutingNote" :class="ALERT_DETAIL" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
         </div>
-        <button type="button" class="lp-alert-close" title="Dismiss" aria-label="Dismiss" @click="dismissBanner">
+        <button
+          type="button"
+          class="grid place-items-center shrink-0 w-[1.625rem] h-[1.625rem] rounded-full text-sl-muted text-[0.6875rem] hover:bg-sl-chip-bg-hover hover:text-sl-text"
+          title="Dismiss"
+          aria-label="Dismiss"
+          @click="dismissBanner"
+        >
           <i class="fas fa-times"></i>
         </button>
       </div>
 
+      <!-- Notices: building, starting, failed, asleep. -->
       <!-- A new project's first build: the app opens here the moment its
            home page lands. The servers start underneath meanwhile. -->
-      <div v-if="buildVeil" class="lp-veil" data-testid="building-veil">
-        <div class="lp-notice">
-          <h3 class="lp-notice-title">Building your home page</h3>
-          <p class="lp-notice-body">Your app opens here as soon as it's ready. The other pages keep building after that.</p>
-          <ol class="lp-stages" aria-live="polite">
-            <li :class="['lp-stage-row', building ? 'is-running' : 'is-done']">
-              <span class="lp-stage-mark" aria-hidden="true">
+      <div v-if="buildVeil" :class="[VEIL, VEIL_LIT]" data-testid="building-veil">
+        <div :class="NOTICE">
+          <h3 :class="NOTICE_TITLE">Building your home page</h3>
+          <p :class="NOTICE_BODY">Your app opens here as soon as it's ready. The other pages keep building after that.</p>
+          <ol :class="STAGES" aria-live="polite">
+            <li :class="stageRowClass(building ? 'running' : 'done')">
+              <span :class="stageMarkClass(building ? 'running' : 'done')" aria-hidden="true">
                 <i v-if="!building" class="fas fa-check"></i>
-                <span v-else class="lp-dot is-work"></span>
+                <span v-else :class="[DOT, DOT_TONE.work]"></span>
               </span>
-              <span class="lp-stage-label">Writing your home page</span>
+              <span class="flex-1">Writing your home page</span>
             </li>
-            <li :class="['lp-stage-row', appStarted ? 'is-done' : phase === 'error' ? 'is-failed' : 'is-running']">
-              <span class="lp-stage-mark" aria-hidden="true">
+            <li :class="stageRowClass(appStarted ? 'done' : phase === 'error' ? 'failed' : 'running')">
+              <span :class="stageMarkClass(appStarted ? 'done' : phase === 'error' ? 'failed' : 'running')" aria-hidden="true">
                 <i v-if="appStarted" class="fas fa-check"></i>
-                <span v-else class="lp-dot is-work"></span>
+                <span v-else :class="[DOT, DOT_TONE.work]"></span>
               </span>
-              <span class="lp-stage-label">Starting your app</span>
+              <span class="flex-1">Starting your app</span>
             </li>
           </ol>
-          <p class="lp-clock">{{ buildElapsedLabel }}</p>
+          <p :class="CLOCK">{{ buildElapsedLabel }}</p>
         </div>
       </div>
 
       <!-- Starting: the real stages, as they happen. -->
-      <div v-else-if="phase === 'starting' || (phase === 'ready' && !appReady && !iframeSrc)" class="lp-veil">
-        <div class="lp-notice">
-          <h3 class="lp-notice-title">Starting your app</h3>
-          <ol class="lp-stages" aria-live="polite">
-            <li v-for="stage in stages" :key="stage.key" :class="['lp-stage-row', `is-${stage.state}`]">
-              <span class="lp-stage-mark" aria-hidden="true">
+      <div v-else-if="phase === 'starting' || (phase === 'ready' && !appReady && !iframeSrc)" :class="[VEIL, VEIL_LIT]">
+        <div :class="NOTICE">
+          <h3 :class="NOTICE_TITLE">Starting your app</h3>
+          <ol :class="STAGES" aria-live="polite">
+            <li v-for="stage in stages" :key="stage.key" :class="stageRowClass(stage.state)">
+              <span :class="stageMarkClass(stage.state)" aria-hidden="true">
                 <i v-if="stage.state === 'done'" class="fas fa-check"></i>
                 <i v-else-if="stage.state === 'failed'" class="fas fa-xmark"></i>
-                <span v-else class="lp-dot" :class="stage.state === 'running' ? 'is-work' : 'is-idle'"></span>
+                <span v-else :class="[DOT, stage.state === 'running' ? DOT_TONE.work : DOT_TONE.idle]"></span>
               </span>
-              <span class="lp-stage-label">{{ stage.label }}</span>
-              <span v-if="stage.ms !== undefined" class="lp-stage-ms">{{ seconds(stage.ms) }}</span>
+              <span class="flex-1">{{ stage.label }}</span>
+              <span v-if="stage.ms !== undefined" class="text-[0.6875rem] tabular-nums text-sl-muted">{{ seconds(stage.ms) }}</span>
             </li>
           </ol>
-          <p class="lp-clock">{{ elapsedLabel }}</p>
+          <p :class="CLOCK">{{ elapsedLabel }}</p>
         </div>
       </div>
 
       <!-- Loading the app's page after the servers are up. -->
-      <div v-else-if="phase === 'ready' && !appReady" class="lp-veil lp-veil--soft" aria-hidden="true">
-        <div class="lp-loader"><span class="lp-dot is-work"></span></div>
+      <div v-else-if="phase === 'ready' && !appReady" :class="[VEIL, 'bg-transparent pointer-events-none']" aria-hidden="true">
+        <div class="grid place-items-center w-9 h-9 rounded-full bg-sl-surface shadow-sl-card">
+          <span :class="[DOT, DOT_TONE.work]"></span>
+        </div>
       </div>
 
-      <div v-if="phase === 'error'" class="lp-veil lp-veil--solid">
-        <div class="lp-notice">
-          <h3 class="lp-notice-title">Your app couldn't start</h3>
-          <p class="lp-notice-body">{{ failedStage ? `It stopped at "${failedStage.label}".` : 'The preview server reported a problem.' }}</p>
-          <pre class="lp-code">{{ failureText }}</pre>
-          <div class="lp-notice-actions">
-            <button type="button" class="lp-cta" @click="startPreview">Try again</button>
+      <div v-if="phase === 'error'" :class="[VEIL, 'bg-sl-bg']">
+        <div :class="NOTICE">
+          <h3 :class="NOTICE_TITLE">Your app couldn't start</h3>
+          <p :class="NOTICE_BODY">{{ failedStage ? `It stopped at "${failedStage.label}".` : 'The preview server reported a problem.' }}</p>
+          <pre
+            class="max-h-36 overflow-auto mt-3 py-2 px-2.5 rounded-[0.625rem] border border-sl-line bg-sl-chip-bg
+              [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[0.6875rem] leading-[1.5]
+              whitespace-pre-wrap [word-break:break-word] text-sl-muted"
+          >{{ failureText }}</pre>
+          <div :class="NOTICE_ACTIONS">
+            <button type="button" :class="CTA" @click="startPreview">Try again</button>
           </div>
         </div>
       </div>
 
-      <div v-if="phase === 'stopped'" class="lp-veil">
-        <div class="lp-notice">
-          <h3 class="lp-notice-title">Your preview went to sleep</h3>
-          <p class="lp-notice-body">It stops after a quiet spell to keep costs down. Everything you built is safe.</p>
-          <div class="lp-notice-actions">
-            <button type="button" class="lp-cta" @click="startPreview">Wake it up</button>
+      <div v-if="phase === 'stopped'" :class="[VEIL, VEIL_LIT]">
+        <div :class="NOTICE">
+          <h3 :class="NOTICE_TITLE">Your preview went to sleep</h3>
+          <p :class="NOTICE_BODY">It stops after a quiet spell to keep costs down. Everything you built is safe.</p>
+          <div :class="NOTICE_ACTIONS">
+            <button type="button" :class="CTA" @click="startPreview">Wake it up</button>
           </div>
         </div>
       </div>
@@ -317,6 +408,77 @@ const emit = defineEmits<{
   /** An element picked in the app, as a line of context for the agent. */
   (e: 'pick-element', text: string): void
 }>()
+
+// ---------------------------------------------------------------------------
+// Class lists shared by several elements. Focus rings come from the
+// Spotlight default (`.spotlight :focus-visible`: 2px --sl-focus, 3px out).
+// ---------------------------------------------------------------------------
+
+/** A toolbar button; `on` while its tool (picker, drawer) is engaged. */
+function btnClass(on = false): string[] {
+  return [
+    'relative inline-grid place-items-center w-[1.875rem] h-[1.875rem] rounded-full text-[0.75rem] [transition:color_0.2s_var(--lp-ease),background-color_0.2s_var(--lp-ease)] motion-reduce:[transition:none] disabled:opacity-50 disabled:cursor-not-allowed',
+    on ? 'text-sl-text bg-sl-chip-bg-hover' : 'text-sl-muted enabled:hover:text-sl-text enabled:hover:bg-sl-chip-bg-hover',
+  ]
+}
+
+/** The suggestions list and the servers popover. */
+const POPOVER =
+  'absolute z-20 rounded-2xl border border-sl-line-strong bg-sl-surface [box-shadow:var(--sl-card-shadow),0_24px_60px_-24px_rgba(0,0,0,0.35)] dark:bg-sl-surface-2 dark:[box-shadow:0_24px_60px_-20px_rgba(0,0,0,0.85)]'
+const POP_ACTION =
+  'h-[1.875rem] px-3 rounded-full text-left text-[0.8125rem] transition-[background-color] duration-200 ease-[var(--lp-ease)] motion-reduce:[transition:none] enabled:hover:bg-sl-chip-bg-hover disabled:opacity-50 disabled:cursor-not-allowed'
+
+/** Status dots. The working one breathes (.lp-breathe, below). */
+const DOT = 'relative inline-block shrink-0 w-[0.4375rem] h-[0.4375rem] rounded-full'
+const DOT_TONE = {
+  ok: 'bg-sl-ok [box-shadow:0_0_0_3px_color-mix(in_srgb,var(--sl-ok)_20%,transparent)]',
+  bad: 'bg-sl-bad [box-shadow:0_0_0_3px_color-mix(in_srgb,var(--sl-bad)_20%,transparent)]',
+  work: 'bg-sl-work lp-breathe',
+  idle: 'bg-sl-line-strong',
+} as const
+
+/** The quiet notes at the top of the stage (edit, agent, picking). */
+const NOTE =
+  'absolute top-3 left-1/2 z-[6] -translate-x-1/2 py-1.5 px-3.5 rounded-full border border-sl-line bg-[color:color-mix(in_srgb,var(--sl-surface)_94%,transparent)] dark:bg-[color:color-mix(in_srgb,var(--sl-surface-2)_94%,transparent)] shadow-sl-card text-[0.75rem] pointer-events-none'
+const FADE = {
+  enterActiveClass: '[transition:opacity_0.2s_var(--lp-ease),transform_0.2s_var(--lp-ease)]',
+  leaveActiveClass: '[transition:opacity_0.2s_var(--lp-ease),transform_0.2s_var(--lp-ease)]',
+  enterFromClass: 'opacity-0 -translate-y-1',
+  leaveToClass: 'opacity-0 -translate-y-1',
+}
+const ALERT_DETAIL =
+  'truncate [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[0.6875rem] text-sl-muted'
+
+/** Notices: building, starting, failed, asleep. */
+const VEIL = 'absolute inset-0 z-[4] flex items-center justify-center p-6'
+const VEIL_LIT = 'bg-sl-bg bg-[radial-gradient(70%_320px_at_50%_-80px,var(--sl-spot-core),transparent_70%)]'
+const NOTICE = 'w-full max-w-sm p-6 rounded-[1.25rem] border border-sl-line bg-sl-surface dark:bg-sl-surface-2 shadow-sl-card'
+const NOTICE_TITLE = 'font-sl-display text-[1.125rem] font-bold tracking-[-0.015em] text-sl-text'
+const NOTICE_BODY = 'mt-1.5 text-[0.8125rem] leading-[1.5] text-sl-muted'
+const NOTICE_ACTIONS = 'flex gap-2 mt-4'
+const STAGES = 'grid gap-0.5 mt-3.5 p-0 list-none'
+const CLOCK = 'mt-3 text-[0.6875rem] tabular-nums text-sl-muted'
+/** The lit button: the one action that matters on each notice. */
+const CTA =
+  'inline-flex items-center gap-1.5 shrink-0 h-[1.875rem] px-3.5 rounded-full bg-sl-grad text-sl-on-accent text-[0.75rem] font-semibold shadow-sl-btn [transition:transform_0.2s_var(--lp-ease),box-shadow_0.2s_var(--lp-ease)] motion-reduce:[transition:none] hover:-translate-y-px hover:shadow-sl-btn-hover'
+
+const STAGE_TONE: Record<string, string> = {
+  running: 'text-sl-text',
+  done: 'text-sl-text',
+  failed: 'text-sl-bad',
+}
+/** A start stage's row; lp-stage-row / is-<state> are kept as hooks. */
+function stageRowClass(state: string): string[] {
+  return [
+    'lp-stage-row',
+    `is-${state}`,
+    'flex items-center gap-2.5 h-7 text-[0.8125rem]',
+    STAGE_TONE[state] ?? 'text-sl-muted',
+  ]
+}
+function stageMarkClass(state: string): string[] {
+  return ['grid place-items-center w-4 shrink-0 text-[0.6875rem]', state === 'done' ? 'text-sl-ok' : '']
+}
 
 type Phase = 'idle' | 'starting' | 'ready' | 'stopped' | 'error'
 
@@ -1101,589 +1263,26 @@ defineExpose({ reload: () => reload(false) })
 </script>
 
 <style scoped>
-/* ---------------------------------------------------------------------------
-   Live preview. A slim browser toolbar over the user's own app, which gets
-   every other pixel. Colours come from the --sl-* tokens
-   (shared/styles/spotlight.css); motion uses the one Spotlight curve.
-   --------------------------------------------------------------------------- */
-
-.lp-root {
-  --lp-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  background: var(--sl-bg, #f8f7f4);
-  color: var(--sl-text, #14151c);
-  /* The toolbar fits the pane, not the screen: beside the chat on a tablet
-     the pane is phone-narrow even though the screen isn't. */
-  container: lp / inline-size;
-}
-
-/* --- Toolbar ------------------------------------------------------------ */
-
-.lp-bar {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  height: 2.5rem;
-  flex-shrink: 0;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  background: var(--sl-surface, #ffffff);
-}
-.dark .lp-bar { background: var(--sl-surface-2, #1a1d28); }
-
-.lp-nav,
-.lp-tools {
-  display: flex;
-  align-items: center;
-  gap: 0.0625rem;
-  flex-shrink: 0;
-}
-
-.lp-btn {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 1.875rem;
-  height: 1.875rem;
-  border-radius: 9999px;
-  color: var(--sl-muted, #5c6172);
-  font-size: 0.75rem;
-  transition: color 0.2s var(--lp-ease), background-color 0.2s var(--lp-ease);
-}
-.lp-btn:hover:not(:disabled) {
-  color: var(--sl-text, #14151c);
-  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
-}
-.lp-btn.is-on {
-  color: var(--sl-text, #14151c);
-  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
-}
-.lp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.lp-btn:focus-visible,
-.lp-status:focus-visible,
-.lp-switch:focus-visible,
-.lp-pop-action:focus-visible,
-.lp-cta:focus-visible,
-.lp-ghost:focus-visible,
-.lp-alert-close:focus-visible {
-  outline: 2px solid var(--sl-focus, #d9730d);
-  outline-offset: 3px;
-}
-
-.lp-badge {
-  position: absolute;
-  top: 0.0625rem;
-  right: -0.0625rem;
-  min-width: 0.9375rem;
-  height: 0.9375rem;
-  padding: 0 0.1875rem;
-  border-radius: 9999px;
-  background: var(--sl-bad, #d7334a);
-  color: #fff;
-  font-size: 0.5625rem;
-  font-weight: 600;
-  line-height: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/* The address: one field with a border that deepens, never a ring. */
-.lp-address {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  height: 1.875rem;
-  padding: 0 0.75rem 0 0.6875rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-  transition: border-color 0.2s var(--lp-ease), background-color 0.2s var(--lp-ease);
-}
-.lp-address:hover { border-color: var(--sl-line-strong, rgba(20, 21, 30, 0.15)); }
-.lp-address.is-focused {
-  border-color: var(--sl-muted, #5c6172);
-  background: var(--sl-surface, #ffffff);
-}
-.dark .lp-address.is-focused { background: var(--sl-bg-deep, #0b0b0d); }
-/* The focus ring goes around the whole pill, not the bare input inside it. */
-.lp-address-input:focus-visible { outline: none; }
-.lp-address:has(.lp-address-input:focus-visible) {
-  outline: 2px solid var(--sl-focus, #4f8cff);
-  outline-offset: 2px;
-}
-
-.lp-address-lock {
-  flex-shrink: 0;
-  margin-right: 0.5rem;
-  font-size: 0.5625rem;
-  color: var(--sl-faint, #8a8fa0);
-}
-
-.lp-address-input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--sl-text, #14151c);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-}
-
-.lp-suggest {
-  position: absolute;
-  top: calc(100% + 0.375rem);
-  left: 0;
-  right: 0;
-  z-index: 20;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 0.375rem;
-  border-radius: 1rem;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: var(--sl-surface, #ffffff);
-  box-shadow: var(--sl-card-shadow), 0 24px 60px -24px rgba(0, 0, 0, 0.35);
-}
-.dark .lp-suggest { background: var(--sl-surface-2, #1a1d28); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85); }
-
-.lp-suggest-head {
-  padding: 0.5rem 0.625rem 0.25rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sl-muted, #5c6172);
-}
-
-.lp-suggest-item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  padding: 0.4375rem 0.625rem;
-  border-radius: 0.625rem;
-  cursor: pointer;
-  font-size: 0.8125rem;
-  color: var(--sl-text, #14151c);
-}
-.lp-suggest-item:hover,
-.lp-suggest-item.is-active { background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
-.lp-suggest-item.is-current .lp-suggest-title { font-weight: 600; }
-.lp-suggest-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-suggest-path {
-  flex-shrink: 0;
-  max-width: 45%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  color: var(--sl-muted, #5c6172);
-}
-
-/* Status pill: a dot with a soft halo, and the word. */
-.lp-status-wrap { position: relative; flex-shrink: 0; }
-
-.lp-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4375rem;
-  height: 1.875rem;
-  padding: 0 0.75rem 0 0.625rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--sl-text, #14151c);
-  white-space: nowrap;
-  transition: border-color 0.2s var(--lp-ease);
-}
-.lp-status:hover { border-color: var(--sl-line-strong, rgba(20, 21, 30, 0.15)); }
-
-.lp-dot {
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-  width: 0.4375rem;
-  height: 0.4375rem;
-  border-radius: 9999px;
-  background: var(--sl-faint, #8a8fa0);
-}
-.is-ok > .lp-dot,
-.lp-dot.is-ok { background: var(--sl-ok, #139a55); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-ok, #139a55) 20%, transparent); }
-.is-bad > .lp-dot,
-.lp-dot.is-bad { background: var(--sl-bad, #d7334a); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-bad, #d7334a) 20%, transparent); }
-.is-work > .lp-dot,
-.lp-dot.is-work { background: var(--sl-work, #3a5fd0); animation: lp-breathe 1.8s var(--lp-ease) infinite; }
-.lp-dot.is-idle { background: var(--sl-line-strong, rgba(20, 21, 30, 0.15)); }
-
+/* Keyframe animations stay here: scoped keyframe names are hashed, so a
+   utility can't reference them. */
+.lp-breathe { animation: lp-breathe 1.8s var(--lp-ease) infinite; }
 @keyframes lp-breathe {
   0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--sl-work, #3a5fd0) 25%, transparent); }
   50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--sl-work, #3a5fd0) 8%, transparent); }
 }
 
-.lp-pop {
-  position: absolute;
-  top: calc(100% + 0.375rem);
-  right: 0;
-  z-index: 20;
-  width: 16rem;
-  padding: 0.75rem;
-  border-radius: 1rem;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: var(--sl-surface, #ffffff);
-  box-shadow: var(--sl-card-shadow), 0 24px 60px -24px rgba(0, 0, 0, 0.35);
-}
-.dark .lp-pop { background: var(--sl-surface-2, #1a1d28); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85); }
-
-.lp-pop-head {
-  margin-bottom: 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sl-muted, #5c6172);
-}
-.lp-pop-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3125rem 0;
-  font-size: 0.8125rem;
-}
-.lp-pop-name { flex: 1; }
-.lp-pop-state { color: var(--sl-muted, #5c6172); font-size: 0.75rem; }
-.lp-pop-note { margin-top: 0.375rem; font-size: 0.75rem; color: var(--sl-muted, #5c6172); }
-.lp-pop-actions {
-  display: grid;
-  gap: 0.25rem;
-  margin-top: 0.625rem;
-  padding-top: 0.625rem;
-  border-top: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-}
-.lp-pop-action {
-  height: 1.875rem;
-  padding: 0 0.75rem;
-  border-radius: 9999px;
-  text-align: left;
-  font-size: 0.8125rem;
-  color: var(--sl-text, #14151c);
-  transition: background-color 0.2s var(--lp-ease);
-}
-.lp-pop-action:hover:not(:disabled) { background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
-.lp-pop-action.is-danger { color: var(--sl-bad, #d7334a); }
-.lp-pop-action:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.lp-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3125rem;
-  height: 1.875rem;
-  padding: 0 0.625rem;
-  border-radius: 9999px;
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-  color: var(--sl-muted, #5c6172);
-  font-size: 0.6875rem;
-  flex-shrink: 0;
-}
-.lp-switch-chevron { font-size: 0.5rem; opacity: 0.6; }
-.lp-switch-count {
-  min-width: 1rem;
-  padding: 0 0.25rem;
-  border-radius: 9999px;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  font-size: 0.625rem;
-  font-weight: 600;
-}
-
-/* Loading ribbon along the toolbar's lower edge. */
-.lp-progress {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  overflow: hidden;
-  pointer-events: none;
-}
-.lp-progress::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 30%;
-  background: var(--sl-work, #3a5fd0);
-  animation: lp-slide 1.1s var(--lp-ease) infinite;
-}
+.lp-slide::after { animation: lp-slide 1.1s var(--lp-ease) infinite; }
 @keyframes lp-slide {
   0% { transform: translateX(-110%); }
   100% { transform: translateX(400%); }
 }
+
 .lp-spin { animation: lp-rotate 0.9s linear infinite; }
 @keyframes lp-rotate { to { transform: rotate(360deg); } }
 
-/* --- Stage ------------------------------------------------------------- */
-
-/* Clipped, so nothing the app or its notes do can widen the pane. */
-.lp-stage {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--sl-bg-deep, #f0eee9);
-}
-
-/* width 1px + min-width 100%, not width 100%: iOS Safari grows an iframe to
-   its page's width, so an app wider than the pane pushed the frame past it
-   and the page slid sideways under a finger. This holds it to the pane. */
-.lp-frame {
-  display: block;
-  width: 1px;
-  min-width: 100%;
-  height: 100%;
-  border: 0;
-  background: #fff;
-}
-
-.lp-edit-note {
-  position: absolute;
-  top: 0.75rem;
-  left: 50%;
-  z-index: 6;
-  transform: translateX(-50%);
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  background: color-mix(in srgb, var(--sl-surface, #ffffff) 94%, transparent);
-  box-shadow: var(--sl-card-shadow, 0 14px 34px -20px rgba(20, 21, 30, 0.2));
-  font-size: 0.75rem;
-  color: var(--sl-muted, #5c6172);
-  pointer-events: none;
-}
-.dark .lp-edit-note { background: color-mix(in srgb, var(--sl-surface-2, #1a1d28) 94%, transparent); }
-.lp-edit-note--pick { color: var(--sl-text, #14151c); }
-.lp-edit-note--agent {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--sl-text, #14151c);
-}
-
-.lp-fade-enter-active,
-.lp-fade-leave-active { transition: opacity 0.2s var(--lp-ease), transform 0.2s var(--lp-ease); }
-.lp-fade-enter-from,
-.lp-fade-leave-to { opacity: 0; transform: translate(-50%, -4px); }
-
-/* Error banner */
-.lp-alert {
-  position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.75rem;
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 0.625rem 0.5rem 0.75rem;
-  border-radius: 1rem;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: var(--sl-surface, #ffffff);
-  box-shadow: var(--sl-card-shadow), 0 16px 36px -16px rgba(20, 21, 30, 0.35);
-}
-.dark .lp-alert { background: var(--sl-surface-2, #1a1d28); }
-.lp-alert-mark {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--sl-bad, #d7334a) 14%, transparent);
-  color: var(--sl-bad, #d7334a);
-  font-size: 0.6875rem;
-}
-.lp-alert-body { flex: 1; min-width: 0; }
-.lp-alert-title { font-size: 0.8125rem; font-weight: 600; }
-.lp-alert-detail {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  color: var(--sl-muted, #5c6172);
-}
-.lp-alert-close {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 1.625rem;
-  height: 1.625rem;
-  border-radius: 9999px;
-  color: var(--sl-muted, #5c6172);
-  font-size: 0.6875rem;
-}
-.lp-alert-close:hover { background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); color: var(--sl-text, #14151c); }
-
-/* The lit button: the one action that matters on each notice. */
-.lp-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  flex-shrink: 0;
-  height: 1.875rem;
-  padding: 0 0.875rem;
-  border-radius: 9999px;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  font-size: 0.75rem;
-  font-weight: 600;
-  box-shadow: var(--sl-btn-shadow, none);
-  transition: transform 0.2s var(--lp-ease), box-shadow 0.2s var(--lp-ease);
-}
-.lp-cta:hover { transform: translateY(-1px); box-shadow: var(--sl-btn-shadow-hover, none); }
-.lp-cta i { font-size: 0.625rem; }
-
-.lp-ghost {
-  height: 1.875rem;
-  padding: 0 0.875rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--sl-text, #14151c);
-  transition: border-color 0.2s var(--lp-ease);
-}
-.lp-ghost:hover { border-color: var(--sl-muted, #5c6172); }
-
-/* Notices: starting, failed, asleep */
-.lp-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: var(--sl-bg, #f8f7f4);
-  background-image: radial-gradient(70% 320px at 50% -80px, var(--sl-spot-core, rgba(255, 170, 110, 0.3)), transparent 70%);
-}
-.lp-veil--solid { background-image: none; }
-.lp-veil--soft { background: transparent; background-image: none; pointer-events: none; }
-
-.lp-loader {
-  display: grid;
-  place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9999px;
-  background: var(--sl-surface, #ffffff);
-  box-shadow: var(--sl-card-shadow, 0 14px 34px -20px rgba(20, 21, 30, 0.2));
-}
-
-.lp-notice {
-  width: 100%;
-  max-width: 24rem;
-  padding: 1.5rem;
-  border-radius: 1.25rem;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  background: var(--sl-surface, #ffffff);
-  box-shadow: var(--sl-card-shadow, 0 14px 34px -20px rgba(20, 21, 30, 0.2));
-}
-.dark .lp-notice { background: var(--sl-surface-2, #1a1d28); }
-
-.lp-notice-title {
-  font-family: var(--sl-font-display, inherit);
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  color: var(--sl-text, #14151c);
-}
-.lp-notice-body {
-  margin-top: 0.375rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--sl-muted, #5c6172);
-}
-.lp-notice-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
-
-.lp-stages {
-  display: grid;
-  gap: 0.125rem;
-  margin-top: 0.875rem;
-  padding: 0;
-  list-style: none;
-}
-.lp-stage-row {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  height: 1.75rem;
-  font-size: 0.8125rem;
-  color: var(--sl-muted, #5c6172);
-}
-.lp-stage-row.is-running,
-.lp-stage-row.is-done { color: var(--sl-text, #14151c); }
-.lp-stage-row.is-failed { color: var(--sl-bad, #d7334a); }
-.lp-stage-mark {
-  display: grid;
-  place-items: center;
-  width: 1rem;
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-}
-.lp-stage-row.is-done .lp-stage-mark { color: var(--sl-ok, #139a55); }
-.lp-stage-label { flex: 1; }
-.lp-stage-ms {
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--sl-muted, #5c6172);
-}
-.lp-clock {
-  margin-top: 0.75rem;
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--sl-muted, #5c6172);
-}
-
-.lp-code {
-  max-height: 9rem;
-  overflow: auto;
-  margin-top: 0.75rem;
-  padding: 0.5rem 0.625rem;
-  border-radius: 0.625rem;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: var(--sl-muted, #5c6172);
-}
-
-/* Narrow panes: fewer controls, same row. */
-@container lp (max-width: 560px) {
-  .lp-btn--home,
-  .lp-btn--newtab,
-  .lp-status-label { display: none; }
-  .lp-status { padding: 0 0.5625rem; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .lp-dot.is-work,
-  .is-work > .lp-dot,
-  .lp-progress::after,
+  .lp-breathe,
+  .lp-slide::after,
   .lp-spin { animation: none; }
-  .lp-btn, .lp-address, .lp-status, .lp-cta, .lp-ghost, .lp-pop-action { transition: none; }
 }
 </style>
