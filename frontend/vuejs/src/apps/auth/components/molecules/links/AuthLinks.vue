@@ -8,7 +8,8 @@
           New to Imagi?
           <router-link
             to="/auth/register"
-            class="auth-link"
+            class="ml-1 pb-px font-medium text-ed-ink border-b border-b-ed-rule-strong [transition:border-color_0.18s_ease] hover:border-b-ed-accent
+                   focus-visible:![outline:2px_solid_var(--accent)] focus-visible:![outline-offset:3px]"
           >
             Create an account
           </router-link>
@@ -17,7 +18,8 @@
           Already have an account?
           <router-link
             to="/auth/signin"
-            class="auth-link"
+            class="ml-1 pb-px font-medium text-ed-ink border-b border-b-ed-rule-strong [transition:border-color_0.18s_ease] hover:border-b-ed-accent
+                   focus-visible:![outline:2px_solid_var(--accent)] focus-visible:![outline-offset:3px]"
           >
             Sign in here
           </router-link>
@@ -34,23 +36,3 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/auth/signin')
 </script>
-
-<style scoped>
-.auth-link {
-  margin-left: 0.25rem;
-  font-weight: 500;
-  color: var(--ink);
-  border-bottom: 1px solid var(--rule-strong);
-  padding-bottom: 1px;
-  transition: border-color 0.18s ease;
-}
-
-.auth-link:hover {
-  border-bottom-color: var(--accent);
-}
-
-.auth-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-</style>

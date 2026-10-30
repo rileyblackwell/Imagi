@@ -21,21 +21,31 @@
     </template>
 
     <template #left>
-      <div class="spotlight site-nav-group hidden md:flex items-center gap-1 ml-7">
+      <!-- !bg-transparent outranks `.spotlight`'s own page background: these
+           groups only borrow the tokens. -->
+      <div class="spotlight !bg-transparent hidden md:flex items-center gap-1 ml-7">
         <SiteNavbarDropdown v-model="isProductsMenuOpen" :active="isActive('/imagi')">
           Product
 
           <template #menu>
+            <!-- Product menu rows. They render inside the dropdown's .spotlight
+                 panel, so every colour is a --sl-* token. -->
             <router-link
               :to="{ name: 'builder' }"
-              class="nav-menu-item group"
+              class="group flex items-center gap-[14px] py-[10px] px-[14px] border border-transparent rounded-[13px] text-left
+                     [transition:background-color_0.2s_ease,border-color_0.2s_ease]
+                     hover:bg-sl-chip-bg-hover hover:border-sl-line focus-visible:bg-sl-chip-bg-hover focus-visible:border-sl-line"
               @click="isProductsMenuOpen = false"
             >
               <span class="min-w-0 flex-1">
-                <span class="nav-menu-item__title">Imagi</span>
-                <span class="nav-menu-item__desc">Build and <em class="sl-run">run</em> your business</span>
+                <span class="block font-sl-display text-[15px] font-semibold tracking-[-0.01em] text-sl-text">Imagi</span>
+                <span class="block mt-px text-[13px] text-sl-muted">Build and <em class="sl-run">run</em> your business</span>
               </span>
-              <i class="fas fa-arrow-right nav-menu-item__arrow" aria-hidden="true"></i>
+              <i
+                class="fas fa-arrow-right ml-2 text-[11px] text-sl-faint [transition:transform_0.2s_ease,color_0.2s_ease]
+                       group-hover:translate-x-[3px] group-hover:text-sl-coral group-focus-visible:translate-x-[3px] group-focus-visible:text-sl-coral"
+                aria-hidden="true"
+              ></i>
             </router-link>
           </template>
         </SiteNavbarDropdown>
@@ -44,8 +54,7 @@
           v-for="link in links"
           :key="link.to"
           :to="link.to"
-          class="site-nav-link"
-          :class="{ 'is-active': isActive(link.match) }"
+          :class="[navLink, isActive(link.match) ? 'is-active text-sl-text font-semibold' : 'text-sl-muted font-medium']"
           :aria-current="isActive(link.match) ? 'page' : undefined"
         >
           {{ link.label }}
@@ -54,25 +63,26 @@
     </template>
 
     <template #right>
-      <div class="spotlight site-nav-group flex items-center gap-3">
+      <div class="spotlight !bg-transparent flex items-center gap-3">
         <div class="hidden md:flex items-center gap-3">
           <template v-if="isAuthenticated">
-            <button type="button" class="site-nav-link" @click="handleLogout">Sign out</button>
+            <button type="button" :class="[navLink, 'text-sl-muted font-medium']" @click="handleLogout">Sign out</button>
           </template>
           <template v-else>
-            <router-link to="/auth/signin" class="site-nav-link">Sign in</router-link>
-            <router-link to="/auth/register" class="site-nav-cta">Start building</router-link>
+            <router-link to="/auth/signin" :class="[navLink, 'text-sl-muted font-medium']">Sign in</router-link>
+            <!-- Start building: the ink pill. The bar leaves the coral light to the page. -->
+            <router-link to="/auth/register" :class="[navCta, 'h-9 text-[0.875rem]']">Start building</router-link>
           </template>
         </div>
 
         <button
           type="button"
-          class="site-nav-menu-btn md:hidden"
+          class="inline-flex md:hidden items-center gap-[0.45rem] h-[2.125rem] px-[0.8rem] rounded-full border border-sl-line-strong bg-sl-chip-bg text-sl-text text-[0.8125rem] font-semibold"
           :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
           aria-controls="site-nav-sheet"
           @click="isMobileMenuOpen = !isMobileMenuOpen"
         >
-          <i class="fas" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
+          <i class="fas text-[0.8rem] w-[0.9rem]" :class="isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'" aria-hidden="true"></i>
           {{ isMobileMenuOpen ? 'Close' : 'Menu' }}
         </button>
       </div>
@@ -80,35 +90,43 @@
   </BaseNavbar>
 
   <!-- Phone menu: a sheet hung under the bar over a soft scrim -->
-  <transition name="site-sheet">
+  <transition
+    enter-active-class="[transition:opacity_0.2s_cubic-bezier(0.22,1,0.36,1)]"
+    leave-active-class="[transition:opacity_0.2s_cubic-bezier(0.22,1,0.36,1)]"
+    enter-from-class="opacity-0"
+    leave-to-class="opacity-0"
+  >
     <div v-if="isMobileMenuOpen" class="md:hidden">
-      <div class="site-sheet-scrim" @click="isMobileMenuOpen = false"></div>
-      <div id="site-nav-sheet" class="spotlight site-sheet">
-        <div class="site-sheet__group">
-          <p class="site-sheet__label">Product</p>
+      <div class="fixed inset-x-0 top-14 bottom-0 z-40 bg-[rgba(8,9,13,0.35)] backdrop-blur-[3px]" @click="isMobileMenuOpen = false"></div>
+      <div
+        id="site-nav-sheet"
+        class="spotlight fixed top-nav left-0 right-0 z-[45] max-h-[calc(100dvh-3.5rem-1px)] overflow-y-auto grid gap-0
+               pt-2 pb-[1.4rem] pr-[max(1.25rem,env(safe-area-inset-right,0px))] pl-[max(1.25rem,env(safe-area-inset-left,0px))]
+               !bg-sl-surface border-b border-b-sl-line-strong [box-shadow:0_24px_50px_-22px_rgba(0,0,0,0.45)]"
+      >
+        <div class="grid gap-[2px] pt-3 pb-[0.85rem] border-b border-b-sl-line">
+          <p class="mb-1 text-[11px] font-semibold tracking-[0.16em] uppercase text-sl-muted">Product</p>
           <router-link
             :to="{ name: 'builder' }"
-            class="site-sheet__link"
-            :class="{ 'is-active': isActive('/imagi') }"
+            :class="[sheetLink, isActive('/imagi') ? 'is-active text-sl-text' : 'text-sl-muted hover:text-sl-text']"
           >
             Imagi
           </router-link>
           <router-link
             to="/payments/pricing"
-            class="site-sheet__link"
-            :class="{ 'is-active': isActive('/payments') }"
+            :class="[sheetLink, isActive('/payments') ? 'is-active text-sl-text' : 'text-sl-muted hover:text-sl-text']"
           >
             Pricing
           </router-link>
         </div>
 
-        <div class="site-sheet__actions">
+        <div class="grid gap-[0.625rem] mt-4">
           <template v-if="isAuthenticated">
-            <button type="button" class="site-sheet__btn" @click="handleLogout">Sign out</button>
+            <button type="button" :class="sheetBtn" @click="handleLogout">Sign out</button>
           </template>
           <template v-else>
-            <router-link to="/auth/register" class="site-nav-cta site-sheet__cta">Start building</router-link>
-            <router-link to="/auth/signin" class="site-sheet__btn">Sign in</router-link>
+            <router-link to="/auth/register" :class="[navCta, 'h-11 text-[0.9375rem]']">Start building</router-link>
+            <router-link to="/auth/signin" :class="sheetBtn">Sign in</router-link>
           </template>
         </div>
       </div>
@@ -137,6 +155,24 @@ defineSlots<{ 'left-leading'?: () => unknown }>()
 const links = [
   { label: 'Pricing', to: '/payments/pricing', match: '/payments' }
 ]
+
+// The bar's quiet link. SiteNavbarDropdown's trigger wears the same recipe.
+// `site-nav-link` / `site-nav-cta` are kept as hooks (the specs find by them).
+const navLink =
+  'site-nav-link inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-[0.875rem] whitespace-nowrap bg-transparent ' +
+  '[transition:color_0.2s_cubic-bezier(0.22,1,0.36,1),background-color_0.2s_cubic-bezier(0.22,1,0.36,1)] ' +
+  'hover:text-sl-text hover:bg-sl-chip-bg-hover'
+
+// The ink pill; each caller adds its height and text size
+const navCta =
+  'site-nav-cta inline-flex items-center justify-center px-[1.125rem] rounded-full font-semibold whitespace-nowrap text-sl-bg bg-sl-text ' +
+  '[transition:opacity_0.2s_cubic-bezier(0.22,1,0.36,1),transform_0.2s_cubic-bezier(0.22,1,0.36,1)] ' +
+  'hover:opacity-[0.88] hover:-translate-y-px motion-reduce:hover:transform-none'
+
+const sheetLink = 'py-[0.45rem] text-[1.0625rem] font-semibold'
+
+const sheetBtn =
+  'inline-flex items-center justify-center h-11 rounded-full border border-sl-line-strong bg-sl-chip-bg text-sl-text text-[0.9375rem] font-semibold'
 
 const router = useRouter()
 const route = useRoute()
@@ -190,220 +226,3 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 </script>
-
-<!-- Unscoped: the dropdown renders its own <button>, and .site-nav-link is
-     that button's recipe too, so it is declared here once. -->
-<style>
-/* Doubled class so it outranks `.spotlight`'s own page background: these
-   groups only borrow the tokens. */
-.spotlight.site-nav-group {
-  background: transparent;
-}
-
-.site-nav-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  white-space: nowrap;
-  color: var(--sl-muted);
-  background: transparent;
-  transition: color 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.site-nav-link:hover,
-.site-nav-link[aria-expanded='true'] {
-  color: var(--sl-text);
-  background: var(--sl-chip-bg-hover);
-}
-
-.site-nav-link.is-active {
-  color: var(--sl-text);
-  font-weight: 600;
-}
-
-/* Start building: the ink pill. The bar leaves the coral light to the page. */
-.site-nav-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 2.25rem;
-  padding: 0 1.125rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--sl-bg);
-  background: var(--sl-text);
-  transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.site-nav-cta:hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
-}
-
-.site-nav-menu-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  height: 2.125rem;
-  padding: 0 0.8rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong);
-  background: var(--sl-chip-bg);
-  color: var(--sl-text);
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.site-nav-menu-btn i {
-  font-size: 0.8rem;
-  width: 0.9rem;
-}
-
-/* Phone sheet */
-.site-sheet-scrim {
-  position: fixed;
-  inset: 3.5rem 0 0;
-  z-index: 40;
-  background: rgba(8, 9, 13, 0.35);
-  backdrop-filter: blur(3px);
-}
-
-.spotlight.site-sheet {
-  position: fixed;
-  top: calc(3.5rem + 1px);
-  left: 0;
-  right: 0;
-  z-index: 45;
-  max-height: calc(100dvh - 3.5rem - 1px);
-  overflow-y: auto;
-  display: grid;
-  gap: 0;
-  padding: 0.5rem max(1.25rem, env(safe-area-inset-right, 0px)) 1.4rem max(1.25rem, env(safe-area-inset-left, 0px));
-  background: var(--sl-surface);
-  border-bottom: 1px solid var(--sl-line-strong);
-  box-shadow: 0 24px 50px -22px rgba(0, 0, 0, 0.45);
-}
-
-.site-sheet__group {
-  display: grid;
-  gap: 2px;
-  padding: 0.75rem 0 0.85rem;
-  border-bottom: 1px solid var(--sl-line);
-}
-
-.site-sheet__label {
-  margin: 0 0 0.25rem;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.site-sheet__link {
-  padding: 0.45rem 0;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: var(--sl-muted);
-}
-
-.site-sheet__link.is-active,
-.site-sheet__link:hover {
-  color: var(--sl-text);
-}
-
-.site-sheet__actions {
-  display: grid;
-  gap: 0.625rem;
-  margin-top: 1rem;
-}
-
-.site-sheet__cta {
-  height: 2.75rem;
-  font-size: 0.9375rem;
-}
-
-.site-sheet__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 2.75rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong);
-  background: var(--sl-chip-bg);
-  color: var(--sl-text);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.site-sheet-enter-active,
-.site-sheet-leave-active {
-  transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.site-sheet-enter-from,
-.site-sheet-leave-to {
-  opacity: 0;
-}
-
-/* Product menu rows. They render inside the dropdown's .spotlight panel, so
-   every colour is a --sl-* token and both themes come from spotlight.css. */
-.nav-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  border: 1px solid transparent;
-  border-radius: 13px;
-  text-align: left;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.nav-menu-item:hover,
-.nav-menu-item:focus-visible {
-  background: var(--sl-chip-bg-hover);
-  border-color: var(--sl-line);
-}
-
-.nav-menu-item__title {
-  display: block;
-  font-family: var(--sl-font-display);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--sl-text);
-}
-
-.nav-menu-item__desc {
-  display: block;
-  margin-top: 1px;
-  font-size: 13px;
-  color: var(--sl-muted);
-}
-
-.nav-menu-item__arrow {
-  margin-left: 8px;
-  font-size: 11px;
-  color: var(--sl-faint);
-  transition: transform 0.2s ease, color 0.2s ease;
-}
-
-.nav-menu-item:hover .nav-menu-item__arrow,
-.nav-menu-item:focus-visible .nav-menu-item__arrow {
-  transform: translateX(3px);
-  color: var(--sl-coral);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .site-nav-cta:hover {
-    transform: none;
-  }
-}
-</style>

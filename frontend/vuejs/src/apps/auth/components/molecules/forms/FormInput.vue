@@ -3,8 +3,13 @@
     <label class="relative block group">
       <span class="sr-only">{{ label }}</span>
       <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10 pointer-events-none">
-        <i :class="[icon, 'text-blue-950/40 dark:text-blue-100/40 transition-colors duration-200']"></i>
+        <i :class="[icon, 'text-sl-faint transition-colors duration-200']"></i>
       </span>
+      <!-- The field wears the auth panel's Spotlight colours (its only home):
+           one chip-coloured fill, a hairline that deepens on hover and turns
+           to the focus colour with a soft amber halo on focus. `!` on the halo
+           so it still replaces the autofill inset below. An error is told by
+           the message under the field; the panel never tinted the field. -->
       <input
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
@@ -15,15 +20,14 @@
         :autocomplete="autocomplete"
         :disabled="disabled"
         :placeholder="placeholder"
-        class="w-full py-4 pl-12 pr-4 rounded-xl
-               text-blue-950 dark:text-white
-               placeholder-blue-950/40 dark:placeholder-blue-100/35
+        class="w-full py-4 pl-12 pr-4 rounded-[14px] appearance-none [&::-moz-focus-inner]:border-0
+               font-sl-body text-sl-text placeholder:text-sl-faint
                disabled:opacity-50 disabled:cursor-not-allowed
-               transition-colors duration-200
-               border bg-white/70 dark:bg-white/[0.04] backdrop-blur-sm"
-        :class="[
-          hasError ? `bg-red-50 dark:bg-red-500/5 ${fieldFocusError}` : `${fieldBorder} ${fieldFocus}`
-        ]"
+               transition-colors duration-200 motion-reduce:[transition:none]
+               border border-sl-line-strong bg-sl-chip-bg backdrop-blur-sm
+               hover:border-[color:color-mix(in_srgb,var(--sl-text)_28%,transparent)]
+               focus:outline-none focus:border-sl-focus
+               focus:![box-shadow:0_0_0_4px_color-mix(in_srgb,var(--sl-amber)_16%,transparent)]"
       >
     </label>
     <ErrorMessage v-if="showError" :name="name" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
@@ -35,7 +39,6 @@
 <script setup>
 import { ErrorMessage } from 'vee-validate'
 import { computed } from 'vue'
-import { fieldBorder, fieldFocus, fieldFocusError } from '@/shared/styles/forms'
 
 const props = defineProps({
   modelValue: {
@@ -88,19 +91,9 @@ const inputType = computed(() => {
 </script>
 
 <style scoped>
-/* Remove browser default appearance; the canonical focus-visible ring takes over */
-input {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-
-/* Remove browser default focus ring */
-input::-moz-focus-inner {
-  border: 0;
-}
-
-/* Autofill styling for light mode (warm porcelain, ink text) */
+/* Stays CSS: autofill is a browser state with its own !important border, and
+   the light/dark pair would be unreadable as arbitrary variants.
+   Autofill styling for light mode (warm porcelain, ink text) */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
@@ -118,11 +111,5 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px rgba(28, 29, 33, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
   border-color: rgba(255, 255, 255, 0.14) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  input {
-    transition: none;
-  }
 }
 </style>

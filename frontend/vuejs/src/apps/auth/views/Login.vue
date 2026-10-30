@@ -37,7 +37,7 @@
 
       <!-- Error message display -->
       <div class="space-y-5 pt-2">
-        <transition name="fade-up">
+        <transition v-bind="fadeUp">
           <div v-if="serverError"
                class="p-4 rounded-xl border border-red-500/20 dark:border-red-400/25 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
             <div class="flex items-center gap-3">
@@ -83,30 +83,12 @@ import {
 } from '@/apps/auth/components'
 
 const { authStore, serverError, isSubmitting, onSubmit } = useSignInForm()
+// Error messages fade up into place. `!` because the server-error box carries
+// its own transition-colors, which the enter/leave transition must replace.
+const fadeUp = {
+  enterActiveClass: '![transition:all_0.4s_cubic-bezier(0.4,0,0.2,1)] motion-reduce:![transition:none]',
+  leaveActiveClass: '![transition:all_0.4s_cubic-bezier(0.4,0,0.2,1)] motion-reduce:![transition:none]',
+  enterFromClass: 'opacity-0 translate-y-[10px] motion-reduce:transform-none',
+  leaveToClass: 'opacity-0 translate-y-[10px] motion-reduce:transform-none',
+}
 </script>
-
-<style scoped>
-/* Fade up transition for error messages */
-.fade-up-enter-active,
-.fade-up-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fade-up-enter-from,
-.fade-up-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fade-up-enter-active,
-  .fade-up-leave-active {
-    transition: none;
-  }
-
-  .fade-up-enter-from,
-  .fade-up-leave-to {
-    transform: none;
-  }
-}
-</style>

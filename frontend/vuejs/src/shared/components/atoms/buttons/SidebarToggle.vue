@@ -9,7 +9,7 @@
 <template>
   <button
     type="button"
-    class="sidebar-toggle group inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink/55 dark:text-bone/55 hover:text-ink dark:hover:text-white hover:bg-ink/[0.05] dark:hover:bg-white/[0.07] transition-colors duration-200 focus-ring"
+    class="sidebar-toggle group inline-flex [-webkit-tap-highlight-color:transparent] items-center justify-center w-9 h-9 rounded-lg text-ink/55 dark:text-bone/55 hover:text-ink dark:hover:text-white hover:bg-ink/[0.05] dark:hover:bg-white/[0.07] transition-colors duration-200 focus-ring"
     :aria-pressed="open"
     :aria-label="open ? 'Hide sidebar' : 'Show sidebar'"
     :title="open ? 'Hide sidebar' : 'Show sidebar'"
@@ -45,7 +45,7 @@
       <path
         d="M6.2 4.5H7.3a2.2 2.2 0 0 1 2.2 2.2v10.6A2.2 2.2 0 0 1 7.3 19.5H6.2A3.2 3.2 0 0 1 3 16.3V7.7A3.2 3.2 0 0 1 6.2 4.5Z"
         fill="currentColor"
-        class="toggle-fill"
+        class="[transition:opacity_0.22s_var(--app-ease)]"
         :class="open ? 'opacity-100' : 'opacity-0'"
       />
     </svg>
@@ -56,13 +56,3 @@
 defineProps<{ open: boolean }>()
 defineEmits<{ (e: 'toggle'): void }>()
 </script>
-
-<style scoped>
-.sidebar-toggle {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.toggle-fill {
-  transition: opacity 0.22s var(--app-ease);
-}
-</style>

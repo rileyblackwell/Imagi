@@ -23,7 +23,7 @@
        of flow removes the pixel instead of hoping it rounds away. -->
   <div
     class="flex flex-col bg-canvas transition-colors duration-300"
-    :class="appShell ? 'app-shell-frame fixed inset-x-0 top-0 h-dvh overscroll-none' : 'min-h-dvh'"
+    :class="appShell ? 'app-shell-frame overflow-hidden supports-[overflow:clip]:overflow-clip fixed inset-x-0 top-0 h-dvh overscroll-none' : 'min-h-dvh'"
   >
     <!-- The scrollbar and the keyboard focus ring both used to live here as
          arbitrary variants, which scoped them to this slot: a modal teleported
@@ -36,7 +36,19 @@
          (the create page's pinned preview) and pin nothing, since this box
          never scrolls. overflow-x: clip still keeps a too-wide child from
          adding page-level sideways scroll, without building a scroller. -->
-    <div class="app-scroll" :class="appShell ? 'app-shell-frame h-full min-h-0' : 'overflow-x-clip'">
+    <!-- app-shell-frame: clip, not hidden. `overflow: hidden` still builds a
+         scroll container — it only refuses to scroll it for the *user*.
+         Anything that scrolls it in code still lands: a focus() on a
+         partially-offscreen control, a scrollIntoView, a browser restoring
+         position. That is enough to slide the whole workspace up under the
+         navbar, toolbar included. `overflow: clip` builds no scroll container
+         at all, so there is nothing left to move. hidden stays as the fallback
+         for browsers without clip. The class itself is kept as the hook the
+         spec asserts on; both boxes wear the pair. -->
+    <div
+      class="app-scroll"
+      :class="appShell ? 'app-shell-frame overflow-hidden supports-[overflow:clip]:overflow-clip h-full min-h-0' : 'overflow-x-clip'"
+    >
       <slot></slot>
     </div>
   </div>
@@ -52,17 +64,3 @@ defineProps<{
   appShell?: boolean
 }>()
 </script>
-
-<style scoped>
-/* clip, not hidden. `overflow: hidden` still builds a scroll container — it
-   only refuses to scroll it for the *user*. Anything that scrolls it in code
-   still lands: a focus() on a partially-offscreen control, a scrollIntoView,
-   a browser restoring position. That is enough to slide the whole workspace
-   up under the navbar, toolbar included. `overflow: clip` builds no scroll
-   container at all, so there is nothing left to move. hidden stays first as
-   the fallback for browsers without clip. */
-.app-shell-frame {
-  overflow: hidden;
-  overflow: clip;
-}
-</style>
