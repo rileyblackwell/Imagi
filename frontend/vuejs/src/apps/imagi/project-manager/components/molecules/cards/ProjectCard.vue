@@ -11,20 +11,45 @@
   <button> inside an <a>.
 -->
 <template>
-  <div v-if="project" class="row group">
-    <span v-if="index" class="row__num" aria-hidden="true">{{ String(index).padStart(2, '0') }}</span>
+  <div
+    v-if="project"
+    class="row group relative flex items-center gap-4 border-b border-b-ed-rule py-5 pl-0 pr-1 [transition:border-color_0.18s_ease] hover:border-b-ed-rule-strong"
+  >
+    <span
+      v-if="index"
+      class="row__num w-10 flex-none font-[ui-monospace,SFMono-Regular,Menlo,monospace] text-[0.8rem] text-ed-ink-40 [transition:color_0.18s_ease] group-hover:text-sl-coral max-[640px]:hidden"
+      aria-hidden="true"
+    >{{ String(index).padStart(2, '0') }}</span>
+    <!-- Stretched over the whole row (::after), so the name, the description
+         and the space between them all open the project. -->
     <router-link
       :to="{ name: 'project-hub', params: { projectName: projectSlug(project) }}"
-      class="row__link"
+      class="row__link block min-w-0 flex-1 after:absolute after:inset-0 after:content-['']
+        focus-visible:![outline:none] focus-visible:after:rounded-[0.25rem] focus-visible:after:outline-offset-2 focus-visible:after:[outline:2px_solid_var(--accent)]"
       :title="`Open ${project.name}`"
     >
-      <span class="row__name">{{ project.name }}</span>
-      <span v-if="project.description" class="row__desc">{{ project.description }}</span>
+      <!-- The name lights on hover, the same gradient as the page's accent words. -->
+      <span
+        class="row__name block overflow-hidden text-ellipsis whitespace-nowrap font-sl-display text-[1.3rem] font-[650] tracking-[-0.015em] text-ed-ink
+          group-hover:bg-sl-grad group-hover:bg-clip-text group-hover:text-transparent"
+      >{{ project.name }}</span>
+      <span
+        v-if="project.description"
+        class="row__desc mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[0.875rem] leading-[1.5] text-ed-ink-55"
+      >{{ project.description }}</span>
     </router-link>
-    <span v-if="updated" class="row__when">{{ updated }}</span>
+    <span
+      v-if="updated"
+      class="row__when min-w-[7rem] flex-none whitespace-nowrap text-right text-[0.8rem] text-ed-ink-40 max-[640px]:hidden"
+    >{{ updated }}</span>
+    <!-- Quiet until the row is pointed at or tabbed to — deleting a business
+         should never be the loudest thing in a list of them. Touch users never
+         hover, so there it is always shown. -->
     <button
       type="button"
-      class="row__delete"
+      class="row__delete relative z-[1] inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg text-ed-ink-40 opacity-0
+        [transition:opacity_0.18s_ease,color_0.18s_ease,background_0.18s_ease] hover:bg-sl-chip-bg-hover hover:text-ed-accent group-hover:opacity-100
+        focus-visible:opacity-100 focus-visible:!outline-ed-accent focus-visible:!outline-offset-2 [@media(hover:none)]:opacity-100"
       :aria-label="`Delete ${project.name}`"
       @click="confirmDelete"
     >
@@ -35,7 +60,10 @@
         <path d="M10 11v6M14 11v6" />
       </svg>
     </button>
-    <svg class="row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg
+      class="h-[1.1rem] w-[1.1rem] flex-none text-ed-ink-40 [transition:transform_0.18s_ease,color_0.18s_ease] group-hover:translate-x-[3px] group-hover:text-sl-amber motion-reduce:group-hover:transform-none"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    >
       <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
   </div>
@@ -65,162 +93,3 @@ function confirmDelete() {
   }
 }
 </script>
-
-<style scoped>
-.row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.25rem 0.25rem 1.25rem 0;
-  border-bottom: 1px solid var(--rule);
-  transition: border-color 0.18s ease;
-}
-
-.row:hover {
-  border-bottom-color: var(--rule-strong);
-}
-
-.row__num {
-  flex: none;
-  width: 2.5rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.8rem;
-  color: var(--ink-40);
-  transition: color 0.18s ease;
-}
-
-.row:hover .row__num {
-  color: var(--sl-coral);
-}
-
-.row__link {
-  min-width: 0;
-  flex: 1;
-  display: block;
-}
-
-/* Stretched over the whole row, so the name, the description and the space
-   between them all open the project. */
-.row__link::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
-
-.row__link:focus-visible {
-  outline: none;
-}
-
-.row__link:focus-visible::after {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 0.25rem;
-}
-
-.row__name {
-  display: block;
-  font-family: var(--sl-font-display);
-  font-size: 1.3rem;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The name lights on hover, the same gradient as the page's accent words. */
-.row:hover .row__name {
-  background: var(--sl-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.row__desc {
-  display: block;
-  margin-top: 0.2rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--ink-55);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.row__when {
-  flex: none;
-  min-width: 7rem;
-  text-align: right;
-  font-size: 0.8rem;
-  color: var(--ink-40);
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .row__num,
-  .row__when {
-    display: none;
-  }
-}
-
-/* Quiet until the row is pointed at or tabbed to — deleting a business should
-   never be the loudest thing in a list of them. */
-.row__delete {
-  position: relative;
-  z-index: 1;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  color: var(--ink-40);
-  opacity: 0;
-  transition: opacity 0.18s ease, color 0.18s ease, background 0.18s ease;
-}
-
-.row:hover .row__delete,
-.row__delete:focus-visible {
-  opacity: 1;
-}
-
-.row__delete:hover {
-  color: var(--accent);
-  background: var(--sl-chip-bg-hover);
-}
-
-.row__delete:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.row__arrow {
-  flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
-  color: var(--ink-40);
-  transition: transform 0.18s ease, color 0.18s ease;
-}
-
-.row:hover .row__arrow {
-  color: var(--sl-amber);
-  transform: translateX(3px);
-}
-
-/* Touch and keyboard users never hover, so the delete button has to be there
-   without one. */
-@media (hover: none) {
-  .row__delete {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .row:hover .row__arrow {
-    transform: none;
-  }
-}
-</style>

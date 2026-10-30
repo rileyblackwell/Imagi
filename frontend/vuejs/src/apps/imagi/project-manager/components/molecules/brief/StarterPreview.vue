@@ -8,34 +8,112 @@
   they are inline values rather than Spotlight tokens.
 -->
 <template>
-  <div class="frame" :class="{ 'frame--tile': tile }" role="img" :aria-label="label">
-    <div v-if="!tile" class="chrome" aria-hidden="true"><i></i><i></i><i></i><span>/</span></div>
-    <div ref="holder" class="holder">
-      <div class="pv" :data-style="style.id" :style="vars" aria-hidden="true">
-        <div class="pv-nav">
-          <span class="pv-brand">{{ name }}</span>
-          <span class="pv-links"><span>Features</span><span>Pricing</span><span>About</span></span>
-          <span class="pv-btn pv-btn--sm">Sign up</span>
+  <div
+    class="w-full overflow-hidden bg-sl-surface"
+    :class="tile
+      ? 'rounded-[0.55rem] [border:0] shadow-[0_0_0_1px_var(--sl-line)]'
+      : 'rounded-[0.9rem] border border-sl-line-strong shadow-sl-card'"
+    role="img"
+    :aria-label="label"
+  >
+    <!-- A tile is a thumbnail: no browser bar, a hairline ring for an edge. -->
+    <div v-if="!tile" class="flex h-[26px] items-center gap-[6px] border-b border-b-sl-line bg-sl-chrome-bg px-[12px]" aria-hidden="true">
+      <i class="h-[8px] w-[8px] rounded-[999px] bg-sl-chrome-dot"></i>
+      <i class="h-[8px] w-[8px] rounded-[999px] bg-sl-chrome-dot"></i>
+      <i class="h-[8px] w-[8px] rounded-[999px] bg-sl-chrome-dot"></i>
+      <span class="ml-[10px] text-[11px] text-sl-faint">/</span>
+    </div>
+    <div ref="holder" class="relative aspect-[760/480] w-full overflow-hidden">
+      <!-- The app's home page, laid out at 760 × 480 and scaled to fit -->
+      <div
+        class="pv absolute left-0 top-0 h-[480px] w-[760px] overflow-hidden text-left text-[color:var(--a-text)] font-[family-name:var(--a-body)]
+          [transform:scale(var(--k))] origin-[0_0] bg-[color:var(--a-bg)] [transition:background_0.3s_ease] motion-reduce:[transition:none]"
+        :class="s === 'techy' && 'bg-[image:linear-gradient(color-mix(in_srgb,var(--a-text)_5%,transparent)_1px,transparent_1px),linear-gradient(90deg,color-mix(in_srgb,var(--a-text)_5%,transparent)_1px,transparent_1px)] bg-[length:28px_28px]'"
+        :data-style="style.id"
+        :style="vars"
+        aria-hidden="true"
+      >
+        <div
+          class="relative z-[2] flex items-center gap-[22px] px-[34px] py-[18px]"
+          :class="s === 'retro'
+            ? 'border-b-2 border-b-[color:var(--a-text)]'
+            : s === 'minimal'
+              ? 'border-b border-b-transparent'
+              : 'border-b border-b-[color:color-mix(in_srgb,var(--a-text)_9%,transparent)]'"
+        >
+          <span class="pv-brand max-w-[260px] overflow-hidden text-ellipsis whitespace-nowrap font-[family-name:var(--a-head)] text-[18px] [font-weight:var(--a-weight)] tracking-[var(--a-tracking)] text-[color:var(--a-brand)]">{{ name }}</span>
+          <span class="ml-auto flex gap-[20px] text-[13px] text-[color:var(--a-muted)]"><span>Features</span><span>Pricing</span><span>About</span></span>
+          <span :class="btnClass(false, false, true)">Sign up</span>
         </div>
-        <div class="pv-hero" :class="{ 'pv-hero--center': look.hero === 'center' }">
-          <template v-if="style.id === 'playful'">
-            <span class="pv-blob" style="width: 120px; height: 120px; left: -30px; top: 30px; background: var(--a-blob-1)"></span>
-            <span class="pv-blob" style="width: 70px; height: 70px; right: 60px; top: 20px; background: var(--a-blob-2)"></span>
-            <span class="pv-blob" style="width: 44px; height: 44px; right: 150px; bottom: 30px; background: var(--a-blob-3)"></span>
+        <div
+          class="relative grid items-center gap-[30px] px-[34px] pb-[24px] pt-[30px]"
+          :class="[
+            center ? 'grid-cols-[1fr] justify-items-center text-center' : 'grid-cols-[1.15fr_1fr]',
+            s === 'colourful'
+              ? 'mx-[18px] mb-0 mt-[12px] h-[226px] rounded-[var(--a-radius)] bg-[image:linear-gradient(120deg,var(--a-primary),color-mix(in_srgb,var(--a-accent)_85%,var(--a-primary)))] text-[color:var(--a-on)]'
+              : 'h-[236px]',
+          ]"
+        >
+          <template v-if="s === 'playful'">
+            <span class="absolute z-[1] rounded-[999px]" style="width: 120px; height: 120px; left: -30px; top: 30px; background: var(--a-blob-1)"></span>
+            <span class="absolute z-[1] rounded-[999px]" style="width: 70px; height: 70px; right: 60px; top: 20px; background: var(--a-blob-2)"></span>
+            <span class="absolute z-[1] rounded-[999px]" style="width: 44px; height: 44px; right: 150px; bottom: 30px; background: var(--a-blob-3)"></span>
           </template>
-          <div class="pv-copy">
-            <span v-if="look.eyebrow" class="pv-eyebrow">{{ look.eyebrow }}</span>
-            <p class="pv-title">{{ name }}</p>
-            <p class="pv-text">{{ text }}</p>
-            <div class="pv-ctas"><span class="pv-btn">Get started</span><span class="pv-btn pv-btn--ghost">Learn more</span></div>
+          <div class="relative z-[2] min-w-0">
+            <span
+              v-if="look.eyebrow"
+              class="mb-[12px] inline-block text-[11px] text-[color:var(--a-accent-ink)]"
+              :class="eyebrowClass"
+            >{{ look.eyebrow }}</span>
+            <p class="pv-title line-clamp-2 text-balance font-[family-name:var(--a-head)] text-[length:var(--a-title)] [font-weight:var(--a-weight)] leading-[1.02] tracking-[var(--a-tracking)]">{{ name }}</p>
+            <p
+              class="pv-text mt-[14px] line-clamp-2 max-w-[40ch] text-[14.5px] leading-[1.55]"
+              :class="[
+                center && 'mx-auto',
+                s === 'colourful' ? 'text-[color:color-mix(in_srgb,var(--a-on)_80%,transparent)]' : 'text-[color:var(--a-muted)]',
+              ]"
+            >{{ text }}</p>
+            <div class="mt-[20px] flex gap-[10px]" :class="center && 'justify-center'">
+              <span :class="btnClass(true, false, false)">Get started</span>
+              <span :class="btnClass(true, true, false)">Learn more</span>
+            </div>
           </div>
-          <div v-if="look.hero === 'left'" class="pv-art">
-            <div class="pv-art__head"><b></b><i></i></div>
-            <div class="pv-bars"><i v-for="h in BARS" :key="h" :style="{ height: `${h}%` }"></i></div>
+          <div
+            v-if="look.hero === 'left'"
+            class="relative z-[2] grid h-[180px] grid-rows-[auto_1fr] gap-[14px] rounded-[var(--a-radius)] bg-[color:var(--a-surface)] p-[18px]"
+            :class="s === 'retro'
+              ? '[border:2px_solid_var(--a-text)] [box-shadow:4px_4px_0_var(--a-text)]'
+              : '[border:var(--a-art-border)] [box-shadow:var(--a-art-shadow)]'"
+          >
+            <div class="flex items-center gap-[8px]">
+              <b class="h-[9px] w-[34%] rounded-[9px] bg-[color:color-mix(in_srgb,var(--a-text)_18%,transparent)]"></b>
+              <i class="ml-auto h-[18px] w-[40px] rounded-[var(--a-button-radius)] bg-[color:color-mix(in_srgb,var(--a-accent)_35%,transparent)]"></i>
+            </div>
+            <div class="flex items-end gap-[10px]">
+              <i
+                v-for="h in BARS"
+                :key="h"
+                class="flex-1 rounded-[calc(var(--a-radius)/2)_calc(var(--a-radius)/2)_2px_2px] bg-[color:var(--a-primary)] even:bg-[color:var(--a-accent)]"
+                :style="{ height: `${h}%` }"
+              ></i>
+            </div>
           </div>
         </div>
-        <div class="pv-cards">
-          <div v-for="t in CARDS" :key="t" class="pv-card"><i class="pv-ico"></i><b>{{ t }}</b><span></span><span></span></div>
+        <div
+          class="relative z-[2] grid grid-cols-[repeat(3,1fr)] gap-[16px] px-[34px]"
+          :class="s === 'colourful' && 'mt-[14px]'"
+        >
+          <div v-for="(t, i) in CARDS" :key="t" :class="cardClass(i)">
+            <i
+              class="h-[28px] w-[28px] rounded-[calc(var(--a-radius)*0.6)]"
+              :class="s === 'bold' && i === 0
+                ? 'bg-[color:color-mix(in_srgb,var(--a-on)_28%,transparent)]'
+                : 'bg-[color:color-mix(in_srgb,var(--a-accent)_32%,transparent)]'"
+            ></i>
+            <b class="font-[family-name:var(--a-head)] text-[15px] [font-weight:var(--a-weight)] tracking-[var(--a-tracking)]">{{ t }}</b>
+            <span class="block h-[7px] rounded-[7px]" :class="cardLine(i)"></span>
+            <span class="block h-[7px] w-[70%] rounded-[7px]" :class="cardLine(i)"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -65,6 +143,8 @@ const NEUTRAL: ColourScheme = {
 
 const style = computed<DesignStyle>(() => STYLES.find((s) => s.id === props.styleId) ?? STYLES[0]!)
 const look = computed(() => style.value.preview)
+const s = computed(() => style.value.id)
+const center = computed(() => look.value.hero === 'center')
 const colours = computed(() => props.scheme ?? NEUTRAL)
 const name = computed(() => props.appName || 'Your app')
 const text = computed(() => props.appText || 'What your app is shows up here.')
@@ -110,6 +190,59 @@ const vars = computed(() => {
   }
 })
 
+// What each style adds beyond fonts and corners, as utility classes: a
+// button (nav or hero, solid or ghost), a feature card, and a card's lines.
+const btnClass = (inHero: boolean, ghost: boolean, small: boolean) => [
+  'inline-flex items-center justify-center whitespace-nowrap rounded-[var(--a-button-radius)] font-[family-name:var(--a-body)]',
+  small ? 'px-[15px] py-[8px]' : 'px-[20px] py-[11px]',
+  s.value === 'elegant'
+    ? 'text-[11.5px] font-semibold uppercase tracking-[0.1em]'
+    : small ? 'text-[12.5px] font-bold' : 'text-[14px] font-bold',
+  s.value === 'retro'
+    ? ghost
+      ? '[border:2px_solid_var(--a-text)] [box-shadow:3px_3px_0_var(--a-text)] bg-[color:var(--a-surface)] text-[color:var(--a-text)]'
+      : '[border:2px_solid_var(--a-text)] [box-shadow:3px_3px_0_var(--a-text)] bg-[color:var(--a-primary)] text-[color:var(--a-on)]'
+    : s.value === 'colourful' && inHero
+      ? ghost
+        ? 'bg-transparent text-[color:var(--a-on)] [box-shadow:inset_0_0_0_1.5px_color-mix(in_srgb,var(--a-on)_55%,transparent)]'
+        : 'bg-[color:var(--a-on)] text-[color:var(--a-primary)]'
+      : ghost
+        ? 'bg-transparent text-[color:var(--a-text)] [box-shadow:inset_0_0_0_1.5px_color-mix(in_srgb,var(--a-text)_22%,transparent)]'
+        : 'bg-[color:var(--a-primary)] text-[color:var(--a-on)]',
+]
+
+const eyebrowClass = computed(() =>
+  s.value === 'elegant'
+    ? 'font-medium uppercase tracking-[0.32em]'
+    : s.value === 'techy'
+      ? "font-bold normal-case tracking-[0.04em] font-['JetBrains_Mono',ui-monospace,monospace] before:content-['●_']"
+      : 'font-bold uppercase tracking-[0.16em]'
+)
+
+const cardClass = (i: number) => [
+  'grid gap-[9px] rounded-[var(--a-radius)]',
+  s.value === 'minimal'
+    ? 'px-0 pb-0 pt-[14px] [border-width:1px_0_0] [border-style:solid_none_none] [border-color:color-mix(in_srgb,var(--a-text)_15%,transparent)_currentcolor_currentcolor]'
+    : 'p-[16px]',
+  s.value === 'retro'
+    ? '[border:2px_solid_var(--a-text)] [box-shadow:4px_4px_0_var(--a-text)]'
+    : s.value === 'minimal' ? '[box-shadow:var(--a-card-shadow)]' : '[border:var(--a-card-border)] [box-shadow:var(--a-card-shadow)]',
+  s.value === 'bold' && i === 0
+    ? 'bg-[color:var(--a-primary)] text-[color:var(--a-on)]'
+    : s.value === 'playful' && i === 0
+      ? 'bg-[color:color-mix(in_srgb,var(--a-primary)_16%,var(--a-surface))]'
+      : s.value === 'playful' && i === 1
+        ? 'bg-[color:color-mix(in_srgb,var(--a-accent)_24%,var(--a-surface))] [transform:rotate(-1.5deg)]'
+        : s.value === 'playful' && i === 2
+          ? 'bg-[color:color-mix(in_srgb,var(--a-accent)_14%,var(--a-surface))] [transform:rotate(1.2deg)]'
+          : 'bg-[color:var(--a-surface)]',
+]
+
+const cardLine = (i: number) =>
+  s.value === 'bold' && i === 0
+    ? 'bg-[color:color-mix(in_srgb,var(--a-on)_28%,transparent)]'
+    : 'bg-[color:color-mix(in_srgb,var(--a-text)_12%,transparent)]'
+
 // Scale the 760px drawing to whatever width the box has.
 const holder = ref<HTMLElement | null>(null)
 const scale = ref(1)
@@ -126,409 +259,3 @@ onMounted(() => {
 })
 onBeforeUnmount(() => observer?.disconnect())
 </script>
-
-<style scoped>
-.frame {
-  overflow: hidden;
-  width: 100%;
-  border: 1px solid var(--sl-line-strong);
-  border-radius: 0.9rem;
-  background: var(--sl-surface);
-  box-shadow: var(--sl-card-shadow);
-}
-
-.frame--tile {
-  border: 0;
-  border-radius: 0.55rem;
-  box-shadow: 0 0 0 1px var(--sl-line);
-}
-
-.chrome {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--sl-line);
-  background: var(--sl-chrome-bg);
-}
-
-.chrome i {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--sl-chrome-dot);
-}
-
-.chrome span {
-  margin-left: 10px;
-  font-size: 11px;
-  color: var(--sl-faint);
-}
-
-.holder {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 760 / 480;
-  overflow: hidden;
-}
-
-/* The app's home page, laid out at 760 × 480 and scaled to fit */
-.pv {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 760px;
-  height: 480px;
-  overflow: hidden;
-  transform: scale(var(--k));
-  transform-origin: 0 0;
-  background: var(--a-bg);
-  color: var(--a-text);
-  font-family: var(--a-body);
-  text-align: left;
-  transition: background 0.3s ease;
-}
-
-.pv-nav {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  padding: 18px 34px;
-  border-bottom: 1px solid color-mix(in srgb, var(--a-text) 9%, transparent);
-}
-
-.pv-brand {
-  max-width: 260px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-family: var(--a-head);
-  font-size: 18px;
-  font-weight: var(--a-weight);
-  letter-spacing: var(--a-tracking);
-  color: var(--a-brand);
-}
-
-.pv-links {
-  display: flex;
-  gap: 20px;
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--a-muted);
-}
-
-.pv-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 11px 20px;
-  border-radius: var(--a-button-radius);
-  background: var(--a-primary);
-  color: var(--a-on);
-  font-family: var(--a-body);
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.pv-btn--sm {
-  padding: 8px 15px;
-  font-size: 12.5px;
-}
-
-.pv-btn--ghost {
-  background: transparent;
-  color: var(--a-text);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--a-text) 22%, transparent);
-}
-
-.pv-hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 30px;
-  align-items: center;
-  height: 236px;
-  padding: 30px 34px 24px;
-}
-
-.pv-hero--center {
-  grid-template-columns: 1fr;
-  justify-items: center;
-  text-align: center;
-}
-
-.pv-copy {
-  position: relative;
-  z-index: 2;
-  min-width: 0;
-}
-
-.pv-eyebrow {
-  display: inline-block;
-  margin-bottom: 12px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--a-accent-ink);
-}
-
-.pv-title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  font-family: var(--a-head);
-  font-size: var(--a-title);
-  font-weight: var(--a-weight);
-  line-height: 1.02;
-  letter-spacing: var(--a-tracking);
-  text-wrap: balance;
-}
-
-.pv-text {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  max-width: 40ch;
-  margin-top: 14px;
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--a-muted);
-}
-
-.pv-hero--center .pv-text {
-  margin-inline: auto;
-}
-
-.pv-ctas {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.pv-hero--center .pv-ctas {
-  justify-content: center;
-}
-
-.pv-art {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 14px;
-  height: 180px;
-  padding: 18px;
-  border: var(--a-art-border);
-  border-radius: var(--a-radius);
-  background: var(--a-surface);
-  box-shadow: var(--a-art-shadow);
-}
-
-.pv-art__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pv-art__head b {
-  width: 34%;
-  height: 9px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--a-text) 18%, transparent);
-}
-
-.pv-art__head i {
-  width: 40px;
-  height: 18px;
-  margin-left: auto;
-  border-radius: var(--a-button-radius);
-  background: color-mix(in srgb, var(--a-accent) 35%, transparent);
-}
-
-.pv-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.pv-bars i {
-  flex: 1;
-  border-radius: calc(var(--a-radius) / 2) calc(var(--a-radius) / 2) 2px 2px;
-  background: var(--a-primary);
-}
-
-.pv-bars i:nth-child(even) {
-  background: var(--a-accent);
-}
-
-.pv-cards {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 0 34px;
-}
-
-.pv-card {
-  display: grid;
-  gap: 9px;
-  padding: 16px;
-  border: var(--a-card-border);
-  border-radius: var(--a-radius);
-  background: var(--a-surface);
-  box-shadow: var(--a-card-shadow);
-}
-
-.pv-card b {
-  font-family: var(--a-head);
-  font-size: 15px;
-  font-weight: var(--a-weight);
-  letter-spacing: var(--a-tracking);
-}
-
-.pv-card span {
-  display: block;
-  height: 7px;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--a-text) 12%, transparent);
-}
-
-.pv-card span + span {
-  width: 70%;
-}
-
-.pv-ico {
-  width: 28px;
-  height: 28px;
-  border-radius: calc(var(--a-radius) * 0.6);
-  background: color-mix(in srgb, var(--a-accent) 32%, transparent);
-}
-
-.pv-blob {
-  position: absolute;
-  z-index: 1;
-  border-radius: 999px;
-}
-
-/* What each style adds beyond fonts and corners */
-.pv[data-style='minimal'] .pv-nav {
-  border-bottom-color: transparent;
-}
-
-.pv[data-style='minimal'] .pv-card {
-  padding: 14px 0 0;
-  border-top: 1px solid color-mix(in srgb, var(--a-text) 15%, transparent);
-}
-
-.pv[data-style='bold'] .pv-card:first-child {
-  background: var(--a-primary);
-  color: var(--a-on);
-}
-
-.pv[data-style='bold'] .pv-card:first-child span,
-.pv[data-style='bold'] .pv-card:first-child .pv-ico {
-  background: color-mix(in srgb, var(--a-on) 28%, transparent);
-}
-
-.pv[data-style='elegant'] .pv-eyebrow {
-  font-weight: 500;
-  letter-spacing: 0.32em;
-}
-
-.pv[data-style='elegant'] .pv-btn {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.pv[data-style='playful'] .pv-card:nth-child(1) {
-  background: color-mix(in srgb, var(--a-primary) 16%, var(--a-surface));
-}
-
-.pv[data-style='playful'] .pv-card:nth-child(2) {
-  background: color-mix(in srgb, var(--a-accent) 24%, var(--a-surface));
-  transform: rotate(-1.5deg);
-}
-
-.pv[data-style='playful'] .pv-card:nth-child(3) {
-  background: color-mix(in srgb, var(--a-accent) 14%, var(--a-surface));
-  transform: rotate(1.2deg);
-}
-
-.pv[data-style='colourful'] .pv-hero {
-  height: 226px;
-  margin: 12px 18px 0;
-  border-radius: var(--a-radius);
-  background: linear-gradient(120deg, var(--a-primary), color-mix(in srgb, var(--a-accent) 85%, var(--a-primary)));
-  color: var(--a-on);
-}
-
-.pv[data-style='colourful'] .pv-text {
-  color: color-mix(in srgb, var(--a-on) 80%, transparent);
-}
-
-.pv[data-style='colourful'] .pv-hero .pv-btn {
-  background: var(--a-on);
-  color: var(--a-primary);
-}
-
-.pv[data-style='colourful'] .pv-hero .pv-btn--ghost {
-  background: transparent;
-  color: var(--a-on);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--a-on) 55%, transparent);
-}
-
-.pv[data-style='colourful'] .pv-cards {
-  margin-top: 14px;
-}
-
-.pv[data-style='retro'] .pv-nav {
-  border-bottom: 2px solid var(--a-text);
-}
-
-.pv[data-style='retro'] .pv-card,
-.pv[data-style='retro'] .pv-art {
-  border: 2px solid var(--a-text);
-  box-shadow: 4px 4px 0 var(--a-text);
-}
-
-.pv[data-style='retro'] .pv-btn {
-  border: 2px solid var(--a-text);
-  box-shadow: 3px 3px 0 var(--a-text);
-}
-
-.pv[data-style='retro'] .pv-btn--ghost {
-  background: var(--a-surface);
-}
-
-.pv[data-style='techy'] {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--a-text) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--a-text) 5%, transparent) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-.pv[data-style='techy'] .pv-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
-
-.pv[data-style='techy'] .pv-eyebrow::before {
-  content: '● ';
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pv {
-    transition: none;
-  }
-}
-</style>

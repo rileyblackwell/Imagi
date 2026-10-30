@@ -16,19 +16,32 @@
   composeDesignPreferences (utils/projectBrief.ts).
 -->
 <template>
-  <div class="design" :class="{ 'design--compact': compact }">
-    <div class="design__group">
-      <p id="design-style-label" class="design__label">
+  <div class="design grid gap-[1.5rem]" :class="{ 'design--compact': compact }">
+    <div class="m-0 grid min-w-0 gap-[0.65rem]">
+      <p id="design-style-label" :class="LABEL">
         Style
-        <span v-if="selectedStyle" class="design__label-note">{{ selectedStyle.line }}</span>
+        <span v-if="selectedStyle" :class="LABEL_NOTE">{{ selectedStyle.line }}</span>
       </p>
-      <div class="tiles" role="radiogroup" aria-labelledby="design-style-label">
+      <!-- Style tiles: three across, two on a phone. In a narrow column the
+           tiles keep their names; the picked style's line still shows beside
+           the Style label. -->
+      <div
+        class="grid grid-cols-3 max-[560px]:grid-cols-2"
+        :class="compact ? 'gap-[0.6rem]' : 'gap-[0.75rem]'"
+        role="radiogroup"
+        aria-labelledby="design-style-label"
+      >
         <button
           v-for="style in STYLES"
           :key="style.id"
           type="button"
           role="radio"
-          class="tile"
+          class="tile grid gap-[0.45rem] rounded-[0.9rem] border bg-sl-surface px-[0.375rem] pb-[0.65rem] pt-[0.375rem] text-left
+            [transition:border-color_0.2s_cubic-bezier(0.22,1,0.36,1),transform_0.2s_cubic-bezier(0.22,1,0.36,1),box-shadow_0.2s_ease]
+            enabled:hover:-translate-y-px enabled:hover:border-sl-line-strong disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:[transition:none]"
+          :class="modelValue.style === style.id
+            ? 'border-transparent shadow-[0_0_0_2px_var(--sl-amber),0_10px_30px_-14px_var(--sl-glow)]'
+            : 'border-sl-line'"
           :aria-checked="modelValue.style === style.id"
           :disabled="disabled"
           @click="toggle('style', style.id)"
@@ -40,24 +53,35 @@
             :app-name="appName"
             :app-text="previewText"
           />
-          <span class="tile__name">{{ style.label }}</span>
-          <span class="tile__line">{{ style.line }}</span>
+          <span class="tile__name px-[0.25rem] text-[0.85rem] font-semibold text-sl-text">{{ style.label }}</span>
+          <span class="-mt-[0.3rem] px-[0.25rem] text-[0.75rem] leading-[1.35] text-sl-muted" :class="compact && 'hidden'">{{ style.line }}</span>
         </button>
       </div>
     </div>
 
-    <div class="design__group">
-      <p id="design-colour-label" class="design__label">
+    <div class="m-0 grid min-w-0 gap-[0.65rem]">
+      <p id="design-colour-label" :class="LABEL">
         Colours
-        <span v-if="compact && selectedScheme" class="design__label-note">{{ selectedScheme.label }}</span>
+        <span v-if="compact && selectedScheme" :class="LABEL_NOTE">{{ selectedScheme.label }}</span>
       </p>
-      <div class="swatches" role="radiogroup" aria-labelledby="design-colour-label">
+      <!-- Colour dots -->
+      <div
+        class="flex flex-wrap"
+        :class="compact ? 'gap-[0.5rem]' : 'gap-x-[0.6rem] gap-y-[0.9rem]'"
+        role="radiogroup"
+        aria-labelledby="design-colour-label"
+      >
         <button
           v-for="option in schemeOptions"
           :key="option.id"
           type="button"
           role="radio"
-          class="swatch"
+          class="swatch group/swatch grid justify-items-center gap-[0.45rem] p-0 [border:0] text-center text-[0.75rem] leading-[1.25]
+            focus-visible:rounded-[0.5rem] disabled:cursor-not-allowed disabled:opacity-50"
+          :class="[
+            compact ? 'w-auto' : 'w-[3.6rem]',
+            modelValue.scheme === option.id ? 'font-semibold text-sl-text' : 'text-sl-muted',
+          ]"
           :aria-checked="modelValue.scheme === option.id"
           :title="option.dark ? `${option.label} (dark)` : option.label"
           :disabled="disabled"
@@ -65,19 +89,32 @@
         >
           <span
             v-if="option.id === CUSTOM_SCHEME_ID && modelValue.scheme !== CUSTOM_SCHEME_ID"
-            class="swatch__plus"
+            class="grid place-items-center border-[1.5px] border-dashed border-sl-line-strong"
+            :class="[DOT, compact ? 'h-[2.15rem] w-[2.15rem]' : 'h-[2.5rem] w-[2.5rem]']"
             aria-hidden="true"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            <svg class="h-[1rem] w-[1rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
           </span>
-          <span v-else class="swatch__dot" :style="{ background: dotFill(option) }" aria-hidden="true"></span>
-          <span class="swatch__name" :class="{ 'sr-only': compact }">{{ option.label }}</span>
+          <span
+            v-else
+            :class="[
+              DOT,
+              compact ? 'h-[2.15rem] w-[2.15rem]' : 'h-[2.5rem] w-[2.5rem]',
+              modelValue.scheme === option.id
+                ? 'shadow-[0_0_0_2px_var(--sl-bg),0_0_0_4px_var(--sl-amber)]'
+                : 'shadow-[0_0_0_1px_var(--sl-line-strong)]',
+            ]"
+            :style="{ background: dotFill(option) }"
+            aria-hidden="true"
+          ></span>
+          <span :class="{ 'sr-only': compact }">{{ option.label }}</span>
         </button>
       </div>
-      <label v-if="isCustom" class="brand">
+      <label v-if="isCustom" class="brand flex items-center gap-[0.75rem] text-[0.85rem] text-sl-muted">
         <input
           type="color"
-          class="brand__picker"
+          class="h-[2.25rem] w-[2.25rem] cursor-pointer rounded-[0.6rem] border border-sl-line-strong bg-transparent bg-none p-0
+            [&::-webkit-color-swatch-wrapper]:p-[3px] [&::-webkit-color-swatch]:rounded-[0.4rem] [&::-webkit-color-swatch]:[border:0]"
           :value="modelValue.brandColor"
           :disabled="disabled"
           aria-label="Brand colour"
@@ -87,8 +124,8 @@
       </label>
     </div>
 
-    <figure v-if="!hidePreview && (modelValue.style || modelValue.scheme)" class="design__group preview">
-      <figcaption class="design__label">Your app</figcaption>
+    <figure v-if="!hidePreview && (modelValue.style || modelValue.scheme)" class="preview m-0 grid min-w-0 gap-[0.65rem]">
+      <figcaption :class="LABEL">Your app</figcaption>
       <StarterPreview
         :style-id="modelValue.style"
         :scheme="scheme"
@@ -96,10 +133,10 @@
         :app-text="previewText"
       />
     </figure>
-    <p v-else-if="!hidePreview" class="design__auto">Nothing picked yet. Imagi chooses a look that fits your app.</p>
+    <p v-else-if="!hidePreview" class="text-[0.85rem] text-sl-muted">Nothing picked yet. Imagi chooses a look that fits your app.</p>
 
-    <div v-if="notesOpen" class="design__group">
-      <label class="design__label" for="project-design">Anything else about the look?</label>
+    <div v-if="notesOpen" class="m-0 grid min-w-0 gap-[0.65rem]">
+      <label :class="LABEL" for="project-design">Anything else about the look?</label>
       <textarea
         id="project-design"
         ref="notesField"
@@ -114,8 +151,16 @@
       ></textarea>
     </div>
     <div v-else>
-      <button type="button" class="note-btn" :disabled="disabled" @click="openNotes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" /></svg>
+      <!-- The quiet way to add words about the look -->
+      <button
+        type="button"
+        class="note-btn inline-flex items-center gap-[0.5rem] rounded-[999px] border border-sl-line bg-sl-chip-bg px-[0.85rem] py-[0.45rem] text-[0.8125rem] text-sl-muted
+          [transition:background_0.2s_ease,border-color_0.2s_ease,color_0.2s_ease] enabled:hover:border-sl-line-strong enabled:hover:bg-sl-chip-bg-hover enabled:hover:text-sl-text
+          disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:[transition:none]"
+        :disabled="disabled"
+        @click="openNotes"
+      >
+        <svg class="h-[0.95rem] w-[0.95rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" /></svg>
         Add a note about the look
       </button>
     </div>
@@ -154,6 +199,11 @@ const emit = defineEmits<{
   (e: 'focus'): void
   (e: 'blur'): void
 }>()
+
+const LABEL = 'flex justify-between gap-[0.75rem] text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-sl-muted'
+const LABEL_NOTE = 'font-medium normal-case tracking-[0] text-sl-faint'
+// A colour dot (or the dashed "your colour" plus): it lifts with its button.
+const DOT = 'rounded-[999px] [transition:transform_0.2s_cubic-bezier(0.22,1,0.36,1),box-shadow_0.2s_ease] group-[:hover:not(:disabled)]/swatch:-translate-y-px motion-reduce:[transition:none]'
 
 const set = <K extends keyof StarterDesign>(key: K, value: StarterDesign[K]) =>
   emit('update:modelValue', { ...props.modelValue, [key]: value })
@@ -197,258 +247,3 @@ onMounted(() => {
   document.head.appendChild(link)
 })
 </script>
-
-<style scoped>
-.design {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.design__group {
-  display: grid;
-  gap: 0.65rem;
-  min-width: 0;
-  margin: 0;
-}
-
-.design__label {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.design__label-note {
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--sl-faint);
-}
-
-.design__auto {
-  font-size: 0.85rem;
-  color: var(--sl-muted);
-}
-
-/* Style tiles: three across, two on a phone */
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-@media (max-width: 560px) {
-  .tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.tile {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.375rem 0.375rem 0.65rem;
-  border: 1px solid var(--sl-line);
-  border-radius: 0.9rem;
-  background: var(--sl-surface);
-  text-align: left;
-  transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-}
-
-.tile:hover:not(:disabled) {
-  border-color: var(--sl-line-strong);
-  transform: translateY(-1px);
-}
-
-.tile[aria-checked='true'] {
-  border-color: transparent;
-  box-shadow: 0 0 0 2px var(--sl-amber), 0 10px 30px -14px var(--sl-glow);
-}
-
-.tile:focus-visible {
-  outline: 2px solid var(--sl-focus);
-  outline-offset: 3px;
-}
-
-.tile:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.tile__name {
-  padding: 0 0.25rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--sl-text);
-}
-
-.tile__line {
-  margin-top: -0.3rem;
-  padding: 0 0.25rem;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  color: var(--sl-muted);
-}
-
-/* In a narrow column the tiles keep their names; the picked style's line
-   still shows beside the Style label. */
-.design--compact .tiles {
-  gap: 0.6rem;
-}
-
-.design--compact .tile__line {
-  display: none;
-}
-
-.design--compact .swatches {
-  gap: 0.5rem;
-}
-
-.design--compact .swatch {
-  width: auto;
-}
-
-.design--compact .swatch__dot,
-.design--compact .swatch__plus {
-  width: 2.15rem;
-  height: 2.15rem;
-}
-
-/* Colour dots */
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.9rem 0.6rem;
-}
-
-.swatch {
-  display: grid;
-  justify-items: center;
-  gap: 0.45rem;
-  width: 3.6rem;
-  padding: 0;
-  border: 0;
-  background: none;
-  font-size: 0.75rem;
-  line-height: 1.25;
-  text-align: center;
-  color: var(--sl-muted);
-}
-
-.swatch__dot,
-.swatch__plus {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 999px;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-}
-
-.swatch__dot {
-  box-shadow: 0 0 0 1px var(--sl-line-strong);
-}
-
-.swatch__plus {
-  display: grid;
-  place-items: center;
-  border: 1.5px dashed var(--sl-line-strong);
-}
-
-.swatch__plus svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.swatch:hover:not(:disabled) .swatch__dot,
-.swatch:hover:not(:disabled) .swatch__plus {
-  transform: translateY(-1px);
-}
-
-.swatch[aria-checked='true'] {
-  font-weight: 600;
-  color: var(--sl-text);
-}
-
-.swatch[aria-checked='true'] .swatch__dot {
-  box-shadow: 0 0 0 2px var(--sl-bg), 0 0 0 4px var(--sl-amber);
-}
-
-.swatch:focus-visible {
-  outline: 2px solid var(--sl-focus);
-  outline-offset: 3px;
-  border-radius: 0.5rem;
-}
-
-.swatch:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--sl-muted);
-}
-
-.brand__picker {
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 1px solid var(--sl-line-strong);
-  border-radius: 0.6rem;
-  background: none;
-  cursor: pointer;
-}
-
-.brand__picker::-webkit-color-swatch-wrapper {
-  padding: 3px;
-}
-
-.brand__picker::-webkit-color-swatch {
-  border: 0;
-  border-radius: 0.4rem;
-}
-
-/* The quiet way to add words about the look */
-.note-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.85rem;
-  border: 1px solid var(--sl-line);
-  border-radius: 999px;
-  background: var(--sl-chip-bg);
-  font-size: 0.8125rem;
-  color: var(--sl-muted);
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.note-btn svg {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-.note-btn:hover:not(:disabled) {
-  border-color: var(--sl-line-strong);
-  background: var(--sl-chip-bg-hover);
-  color: var(--sl-text);
-}
-
-.note-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tile,
-  .swatch__dot,
-  .swatch__plus,
-  .note-btn {
-    transition: none;
-  }
-}
-</style>
