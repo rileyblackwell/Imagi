@@ -6,21 +6,39 @@
   every instance passes intrinsic width/height and the browser reserves the box
   before the image lands (no layout shift on a page that is mostly imagery).
 
-  Inside the home page's .spotlight the frame is lit: a thin gradient edge, a
-  deep shadow, and a warm pool of light underneath, with the caption centered
-  below it.
+  It only renders on Spotlight pages (home, About), so the frame is always the
+  lit one: a thin gradient edge, a deep shadow, and the caption centered below.
 -->
 <template>
-  <figure class="shot">
-    <div class="shot__frame">
-      <div class="shot__bar">
-        <span class="shot__dots" aria-hidden="true">
-          <i></i><i></i><i></i>
+  <figure class="relative z-[1] m-0">
+    <!-- Gradient edge as a border-box background, so one element keeps one radius -->
+    <div
+      class="relative overflow-hidden rounded-2xl border border-transparent shadow-sl-win
+        [background:linear-gradient(var(--sl-surface),var(--sl-surface))_padding-box,var(--sl-win-edge)_border-box]"
+    >
+      <!-- Window chrome: three dots and a quiet label, nothing else -->
+      <div
+        class="flex h-10 items-center gap-3 border-b border-b-sl-line bg-sl-chrome-bg px-4
+          max-[560px]:h-8 max-[560px]:px-[10px]"
+      >
+        <span class="inline-flex shrink-0 gap-[0.4rem]" aria-hidden="true">
+          <i
+            v-for="n in 3"
+            :key="n"
+            class="h-[11px] w-[11px] rounded-[999px] border border-sl-chrome-dot-edge bg-sl-chrome-dot
+              max-[560px]:h-2 max-[560px]:w-2"
+          ></i>
         </span>
-        <span v-if="label" class="shot__chip">{{ label }}</span>
+        <!-- translateX centres the chip on the bar, not on the space after the dots -->
+        <span
+          v-if="label"
+          class="shot__chip mx-auto -translate-x-[23px] truncate rounded-lg border border-sl-line bg-sl-chip-bg
+            px-[14px] py-[6px] text-[12.5px] tracking-[0] text-sl-muted
+            max-[560px]:transform-none max-[560px]:px-[10px] max-[560px]:py-1 max-[560px]:text-[11px]"
+        >{{ label }}</span>
       </div>
       <img
-        class="shot__img"
+        class="block h-auto w-full"
         :src="src"
         :alt="alt"
         :width="width"
@@ -30,7 +48,11 @@
         decoding="async"
       />
     </div>
-    <figcaption v-if="caption" class="shot__caption">{{ caption }}</figcaption>
+    <figcaption
+      v-if="caption"
+      class="mx-auto mb-0 mt-7 max-w-[64ch] text-center text-[15px] leading-[1.5] text-sl-muted text-pretty
+        max-[560px]:mt-5 max-[560px]:text-[14px]"
+    >{{ caption }}</figcaption>
   </figure>
 </template>
 
@@ -51,154 +73,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-.shot {
-  margin: 0;
-}
-
-.shot__frame {
-  position: relative;
-  border-radius: 0.9rem;
-  overflow: hidden;
-  background: #0d0d10;
-  border: 1px solid var(--rule-strong);
-  box-shadow:
-    0 1px 2px rgba(19, 26, 44, 0.08),
-    0 8px 20px -8px rgba(19, 26, 44, 0.16),
-    0 32px 64px -24px rgba(19, 26, 44, 0.26);
-}
-
-/* The screenshots are of a dark UI, so on a near-black page a shadow does
-   nothing to separate them. Dark mode leans on a brighter edge and a faint
-   inner highlight instead. */
-.dark .shot__frame {
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 20px 48px -20px rgba(0, 0, 0, 0.9);
-}
-
-/* Window chrome: three dots and a quiet label, nothing else */
-.shot__bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  height: 2.25rem;
-  padding: 0 0.9rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.shot__dots {
-  display: inline-flex;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-.shot__dots i {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.shot__chip {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.42);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.shot__img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.shot__caption {
-  margin-top: 1rem;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  color: var(--ink-40);
-  text-wrap: pretty;
-}
-
-/* --- Spotlight (home page) ----------------------------------------------- */
-
-.spotlight .shot {
-  position: relative;
-  z-index: 1;
-}
-
-/* Gradient edge as a border-box background, so one element keeps one radius */
-/* .shot in the selector outranks the .dark rule above (the home wrapper is .dark too) */
-.spotlight .shot .shot__frame {
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background:
-    linear-gradient(var(--sl-surface), var(--sl-surface)) padding-box,
-    var(--sl-win-edge) border-box;
-  box-shadow: var(--sl-win-shadow);
-}
-
-.spotlight .shot__bar {
-  height: 40px;
-  padding: 0 16px;
-  background: var(--sl-chrome-bg);
-  border-bottom-color: var(--sl-line);
-}
-
-.spotlight .shot__dots i {
-  width: 11px;
-  height: 11px;
-  background: var(--sl-chrome-dot);
-  border: 1px solid var(--sl-chrome-dot-edge);
-}
-
-.spotlight .shot__chip {
-  padding: 6px 14px;
-  margin-inline: auto;
-  transform: translateX(-23px); /* centre on the bar, not on the space after the dots */
-  border-radius: 8px;
-  border: 1px solid var(--sl-line);
-  background: var(--sl-chip-bg);
-  font-size: 12.5px;
-  letter-spacing: 0;
-  color: var(--sl-muted);
-}
-
-.spotlight .shot__caption {
-  max-width: 64ch;
-  margin: 28px auto 0;
-  text-align: center;
-  font-size: 15px;
-  color: var(--sl-muted);
-}
-
-@media (max-width: 560px) {
-  .spotlight .shot__bar {
-    height: 32px;
-    padding: 0 10px;
-  }
-
-  .spotlight .shot__dots i {
-    width: 8px;
-    height: 8px;
-  }
-
-  .spotlight .shot__chip {
-    transform: none;
-    padding: 4px 10px;
-    font-size: 11px;
-  }
-
-  .spotlight .shot__caption {
-    margin-top: 20px;
-    font-size: 14px;
-  }
-}
-</style>

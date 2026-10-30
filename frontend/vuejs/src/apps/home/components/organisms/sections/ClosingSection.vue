@@ -4,23 +4,40 @@
   stays one quiet link away. Home, About, Terms and Privacy all close here.
 -->
 <template>
-  <section class="closing">
-    <div class="sl-spot closing__spot" aria-hidden="true"></div>
-    <div class="sl-dots closing__dots" aria-hidden="true"></div>
+  <section
+    class="relative isolate overflow-hidden pb-[clamp(90px,11vw,150px)] pt-[clamp(110px,14vw,190px)] text-center"
+  >
+    <!-- The light sits over the headline here, not at the top edge. The !
+         utilities override .sl-spot / .sl-dots, which set the same properties. -->
+    <div
+      class="sl-spot
+        ![background:radial-gradient(ellipse_38%_48%_at_50%_30%,var(--sl-spot-core)_0%,var(--sl-spot-mid)_45%,transparent_75%),radial-gradient(ellipse_30%_25%_at_50%_100%,var(--sl-spot-wide),transparent_70%)]
+        before:!top-0 before:!h-[70%]
+        before:![mask-image:radial-gradient(ellipse_50%_60%_at_50%_40%,#000_20%,transparent_75%)]"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="sl-dots ![mask-image:radial-gradient(ellipse_45%_50%_at_50%_42%,#000_0%,transparent_75%)]"
+      aria-hidden="true"
+    ></div>
 
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
         <p class="sl-eyebrow">Get started</p>
-        <h2 class="sl-display sl-h2 closing__title">{{ title }}</h2>
+        <h2 class="sl-display sl-h2 !text-[length:clamp(42px,6.4vw,88px)]">{{ title }}</h2>
         <p class="sl-lede">{{ description }}</p>
       </div>
 
-      <div v-reveal="{ delay: 80 }" class="closing__prompt">
+      <div v-reveal="{ delay: 80 }" class="mx-auto mb-0 mt-[34px] max-w-[620px] text-left">
         <IdeaPrompt input-id="closing-idea" size="md" :submit-label="primaryButtonText" />
       </div>
 
-      <div v-reveal="{ delay: 120 }" class="closing__links">
-        <router-link :to="secondaryButtonTo" class="closing__link">{{ secondaryButtonText }}</router-link>
+      <div v-reveal="{ delay: 120 }" class="mt-[26px] flex flex-col items-center gap-[14px] text-[15px] text-sl-muted">
+        <router-link
+          :to="secondaryButtonTo"
+          class="border-b border-b-sl-line-strong pb-[2px] font-semibold text-sl-text [text-decoration:none]
+            transition-[border-color] duration-200 ease-[ease] hover:border-b-sl-focus"
+        >{{ secondaryButtonText }}</router-link>
         <span>{{ footnote }}</span>
       </div>
     </div>
@@ -49,65 +66,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-.closing {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding-block: clamp(110px, 14vw, 190px) clamp(90px, 11vw, 150px);
-  text-align: center;
-}
-
-/* The light sits over the headline here, not at the top edge */
-.closing .closing__spot {
-  background:
-    radial-gradient(ellipse 38% 48% at 50% 30%, var(--sl-spot-core) 0%, var(--sl-spot-mid) 45%, transparent 75%),
-    radial-gradient(ellipse 30% 25% at 50% 100%, var(--sl-spot-wide), transparent 70%);
-}
-
-.closing .closing__spot::before {
-  top: 0;
-  height: 70%;
-  -webkit-mask-image: radial-gradient(ellipse 50% 60% at 50% 40%, #000 20%, transparent 75%);
-  mask-image: radial-gradient(ellipse 50% 60% at 50% 40%, #000 20%, transparent 75%);
-}
-
-.closing .closing__dots {
-  -webkit-mask-image: radial-gradient(ellipse 45% 50% at 50% 42%, #000 0%, transparent 75%);
-  mask-image: radial-gradient(ellipse 45% 50% at 50% 42%, #000 0%, transparent 75%);
-}
-
-.closing .closing__title {
-  font-size: clamp(42px, 6.4vw, 88px);
-}
-
-.closing__prompt {
-  max-width: 620px;
-  margin: 34px auto 0;
-  text-align: left;
-}
-
-.closing__links {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  margin-top: 26px;
-  font-size: 15px;
-  color: var(--sl-muted);
-}
-
-.closing__link {
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--sl-line-strong);
-  color: var(--sl-text);
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color 0.2s ease;
-}
-
-.closing__link:hover {
-  border-bottom-color: var(--sl-focus);
-}
-</style>

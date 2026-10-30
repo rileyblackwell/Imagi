@@ -20,7 +20,8 @@
             <span class="sl-pip" aria-hidden="true"></span>
             <span>About Imagi</span>
           </p>
-          <h1 class="about-rise sl-display sl-h1 about-title" style="animation-delay: 60ms">
+          <!-- mt is important: .sl-display zeroes the margin -->
+          <h1 class="about-rise sl-display sl-h1 max-w-[11ch] !mt-[6px]" style="animation-delay: 60ms">
             An idea is <em class="sl-run">enough</em>
           </h1>
           <p class="about-rise sl-lede" style="animation-delay: 120ms">
@@ -32,7 +33,7 @@
       </section>
 
       <!-- Why Imagi exists -->
-      <section class="sl-sec about-step">
+      <section class="sl-sec" :class="stepSection">
         <div class="sl-wrap">
           <div v-reveal class="sl-head">
             <p class="sl-eyebrow">Why Imagi</p>
@@ -44,10 +45,10 @@
             </p>
           </div>
 
-          <ul v-reveal="{ delay: 60 }" class="about-row">
-            <li v-for="item in principles" :key="item.title" class="about-row__item">
-              <h3 class="about-row__title">{{ item.title }}</h3>
-              <p class="about-row__body">{{ item.body }}</p>
+          <ul v-reveal="{ delay: 60 }" :class="[row, 'grid-cols-4 max-[900px]:gap-y-6']">
+            <li v-for="(item, i) in principles" :key="item.title" :class="rowItem(i, 4)">
+              <h3 :class="rowTitle">{{ item.title }}</h3>
+              <p :class="rowBody">{{ item.body }}</p>
             </li>
           </ul>
         </div>
@@ -56,10 +57,10 @@
       <div class="sl-divider" aria-hidden="true"></div>
 
       <!-- 01 Start -->
-      <section class="sl-sec about-step">
+      <section class="sl-sec" :class="stepSection">
         <div class="sl-wrap">
           <div v-reveal class="sl-head">
-            <p class="sl-eyebrow"><span class="sl-grad-text about-num">01</span><span>Start</span></p>
+            <p class="sl-eyebrow"><span class="sl-grad-text font-bold">01</span><span>Start</span></p>
             <h2 class="sl-display sl-h2">From a brief to a first version</h2>
             <p class="sl-lede">
               A project starts with four questions: your app&rsquo;s name, what it is, how it
@@ -68,11 +69,11 @@
             </p>
           </div>
 
-          <ol v-reveal="{ delay: 60 }" class="about-row">
-            <li v-for="item in firstBuild" :key="item.title" class="about-row__item">
-              <span class="about-row__label">{{ item.when }}</span>
-              <h3 class="about-row__title">{{ item.title }}</h3>
-              <p class="about-row__body">{{ item.body }}</p>
+          <ol v-reveal="{ delay: 60 }" :class="[row, 'grid-cols-4 max-[900px]:gap-y-6']">
+            <li v-for="(item, i) in firstBuild" :key="item.title" :class="rowItem(i, 4)">
+              <span :class="label">{{ item.when }}</span>
+              <h3 :class="rowTitle">{{ item.title }}</h3>
+              <p :class="rowBody">{{ item.body }}</p>
             </li>
           </ol>
         </div>
@@ -81,10 +82,10 @@
       <div class="sl-divider" aria-hidden="true"></div>
 
       <!-- 02 Build -->
-      <section class="sl-sec about-step">
+      <section class="sl-sec" :class="stepSection">
         <div class="sl-wrap">
           <div v-reveal class="sl-head">
-            <p class="sl-eyebrow"><span class="sl-grad-text about-num">02</span><span>Build</span></p>
+            <p class="sl-eyebrow"><span class="sl-grad-text font-bold">02</span><span>Build</span></p>
             <h2 class="sl-display sl-h2">How the workspace works</h2>
             <p class="sl-lede">
               Your conversation sits on the left and your running app on the right. Behind
@@ -92,14 +93,15 @@
             </p>
           </div>
 
-          <ul v-reveal="{ delay: 60 }" class="about-row about-row--3">
-            <li v-for="item in workspace" :key="item.title" class="about-row__item">
-              <h3 class="about-row__title">{{ item.title }}</h3>
-              <p class="about-row__body">{{ item.body }}</p>
+          <ul v-reveal="{ delay: 60 }" :class="[row, 'grid-cols-3 gap-y-0']">
+            <li v-for="(item, i) in workspace" :key="item.title" :class="rowItem(i, 3)">
+              <h3 :class="rowTitle">{{ item.title }}</h3>
+              <p :class="rowBody">{{ item.body }}</p>
             </li>
           </ul>
 
-          <div v-reveal="{ delay: 120 }" class="sl-stage about-shot">
+          <!-- One workspace shot, held narrower than the text, as on Home -->
+          <div v-reveal="{ delay: 120 }" class="sl-stage mx-auto max-w-[920px]">
             <ProductShot
               src="/product/build-workspace.webp"
               alt="The Imagi build workspace: the coordinator has split a request into two threads, one finished and one still working, and on the right the live stock-tracking app it wrote."
@@ -114,11 +116,11 @@
       <div class="sl-divider" aria-hidden="true"></div>
 
       <!-- 03 Run -->
-      <section class="sl-sec about-step">
+      <section class="sl-sec" :class="stepSection">
         <div class="sl-wrap">
           <div v-reveal class="sl-head">
             <p class="sl-eyebrow">
-              <span class="sl-grad-text about-num">03</span><span>Run</span><StatusBadge tone="neutral" label="Beta" />
+              <span class="sl-grad-text font-bold">03</span><span>Run</span><StatusBadge tone="neutral" label="Beta" />
             </p>
             <h2 class="sl-display sl-h2">The business side, in the same project</h2>
             <p class="sl-lede">
@@ -149,7 +151,7 @@
       <div class="sl-divider" aria-hidden="true"></div>
 
       <!-- What it costs, and what isn't here yet -->
-      <section class="sl-sec about-step">
+      <section class="sl-sec" :class="stepSection">
         <div class="sl-wrap">
           <div v-reveal class="sl-head">
             <p class="sl-eyebrow">Good to know</p>
@@ -160,16 +162,37 @@
             </p>
           </div>
 
-          <dl v-reveal="{ delay: 60 }" class="about-facts">
-            <div v-for="fact in facts" :key="fact.label" class="about-fact">
-              <dt class="about-fact__label">{{ fact.label }}</dt>
-              <dd class="about-fact__value sl-display sl-grad-text">{{ fact.value }}</dd>
-              <p class="about-fact__caption">{{ fact.caption }}</p>
+          <!-- The homepage's fact row: three centred cells between two hairlines -->
+          <dl
+            v-reveal="{ delay: 60 }"
+            class="mx-0 mb-0 mt-[clamp(48px,6vw,72px)] grid grid-cols-3 border-y border-y-sl-line max-[900px]:grid-cols-1"
+          >
+            <div
+              v-for="(fact, i) in facts"
+              :key="fact.label"
+              class="flex min-w-0 flex-col items-center gap-3 px-[clamp(16px,2.4vw,32px)] py-[clamp(32px,4vw,44px)] text-center"
+              :class="{
+                'border-l border-l-sl-line max-[900px]:border-t max-[900px]:border-t-sl-line max-[900px]:[border-left:0]':
+                  i > 0
+              }"
+            >
+              <dt :class="label">{{ fact.label }}</dt>
+              <!-- m and font-weight are important: .sl-display and .sl-grad-text set them -->
+              <dd
+                class="sl-display sl-grad-text !m-0 text-[length:clamp(44px,5.2vw,72px)] !font-bold leading-none
+                  tracking-[-0.045em] tabular-nums drop-shadow-[0_0_30px_var(--sl-text-glow)]"
+              >{{ fact.value }}</dd>
+              <p class="m-0 max-w-[30ch] text-[15px] text-sl-muted text-pretty">{{ fact.caption }}</p>
             </div>
           </dl>
 
-          <p v-reveal="{ delay: 120 }" class="about-next">
-            <span class="about-row__label">Not yet</span>
+          <!-- What isn't built yet: one quiet line under the facts -->
+          <p
+            v-reveal="{ delay: 120 }"
+            class="mx-auto mb-0 mt-8 flex max-w-[760px] flex-wrap items-baseline justify-center gap-x-4 gap-y-2
+              text-center text-[15px] text-sl-muted text-pretty"
+          >
+            <span :class="label">Not yet</span>
             <span>
               Publishing your app to the web from Imagi isn&rsquo;t available yet. It&rsquo;s
               being built, along with more for Sell, Market and Operate.
@@ -258,13 +281,42 @@ export default defineComponent({
       { label: 'Per run', value: '$10', caption: 'A run that reaches it stops and checks in with you first.' }
     ]
 
-    return { principles, firstBuild, workspace, tools, facts }
+    // A softer pool of light at the top of each section, as on Home's steps
+    const stepSection = `isolate overflow-hidden
+      before:pointer-events-none before:absolute before:left-1/2 before:top-0 before:z-[-1] before:h-[560px]
+      before:w-[min(1100px,140vw)] before:-translate-x-1/2 before:content-['']
+      before:bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,var(--sl-section-glow),transparent_70%)]`
+
+    // The homepage's step row: items on one hairline, divided by vertical
+    // hairlines. Four or three across, two at 900px and below, one at 560px.
+    const row = 'mx-0 mb-0 mt-[clamp(48px,6vw,72px)] grid list-none border-t border-t-sl-line p-0 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1'
+    const label = 'text-[12px] font-semibold uppercase tracking-[0.18em] text-sl-muted'
+    const rowTitle = 'about-row__title m-0 text-[18px] font-semibold tracking-[-0.01em]'
+    const rowBody = 'm-0 text-[15px] text-sl-muted text-pretty'
+
+    // An item that starts a row drops its left hairline and padding. In the
+    // three-across grid every later row gets its own top hairline; the
+    // four-across row only ever has one row of four.
+    const rowItem = (i, across) => [
+      'flex min-w-0 flex-col gap-2 px-[clamp(16px,2vw,28px)] pt-6 max-[560px]:pl-0 max-[560px]:[border-left:0]',
+      across === 3 ? 'pb-7' : 'pb-0',
+      (across === 3 ? i % 3 === 0 : i === 0) ? 'pl-0 [border-left:0]' : 'border-l border-l-sl-line',
+      i % 2 === 0
+        ? 'max-[900px]:pl-0 max-[900px]:[border-left:0]'
+        : 'max-[900px]:pl-[clamp(16px,2vw,28px)] max-[900px]:[border-left:1px_solid_var(--sl-line)]',
+      across === 3 && i >= 3 && 'border-t border-t-sl-line',
+      across === 3 && i === 2 && 'max-[900px]:border-t max-[900px]:border-t-sl-line',
+      across === 3 && i === 1 && 'max-[560px]:border-t max-[560px]:border-t-sl-line'
+    ]
+
+    return { principles, firstBuild, workspace, tools, facts, stepSection, row, label, rowTitle, rowBody, rowItem }
   }
 })
 </script>
 
 <style scoped>
-/* Staggered entrance on load, as on the home hero */
+/* Staggered entrance on load, as on the home hero. Stays CSS: a scoped
+   @keyframes name is hashed, so a utility can't reference it. */
 .about-rise {
   animation: about-rise 0.85s var(--app-ease) both;
 }
@@ -277,225 +329,6 @@ export default defineComponent({
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-.sl-opener .about-title {
-  max-width: 11ch;
-  margin-top: 6px;
-}
-
-.about-num {
-  font-weight: 700;
-}
-
-/* A softer pool of light at the top of each section, as on Home's steps */
-.about-step {
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.about-step::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  z-index: -1;
-  width: min(1100px, 140vw);
-  height: 560px;
-  transform: translateX(-50%);
-  pointer-events: none;
-  background: radial-gradient(ellipse 50% 60% at 50% 0%, var(--sl-section-glow), transparent 70%);
-}
-
-/* The homepage's step row: items on one hairline, divided by vertical
-   hairlines. Four across by default; --3 makes a three-across grid whose
-   second row gets its own hairline. */
-.about-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: clamp(48px, 6vw, 72px) 0 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--sl-line);
-}
-
-.about-row__item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  padding: 24px clamp(16px, 2vw, 28px) 0;
-  border-left: 1px solid var(--sl-line);
-}
-
-.about-row__item:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-
-.about-row--3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  row-gap: 0;
-}
-
-.about-row--3 .about-row__item {
-  padding-bottom: 28px;
-}
-
-.about-row--3 .about-row__item:nth-child(3n + 1) {
-  padding-left: 0;
-  border-left: 0;
-}
-
-.about-row--3 .about-row__item:nth-child(n + 4) {
-  border-top: 1px solid var(--sl-line);
-}
-
-.about-row__label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.about-row .about-row__title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.about-row__body {
-  margin: 0;
-  font-size: 15px;
-  color: var(--sl-muted);
-  text-wrap: pretty;
-}
-
-/* One workspace shot, held narrower than the text, as on Home */
-.about-shot {
-  max-width: 920px;
-  margin-inline: auto;
-}
-
-/* The homepage's fact row: three centred cells between two hairlines */
-.about-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: clamp(48px, 6vw, 72px) 0 0;
-  border-top: 1px solid var(--sl-line);
-  border-bottom: 1px solid var(--sl-line);
-}
-
-.about-fact {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: clamp(32px, 4vw, 44px) clamp(16px, 2.4vw, 32px);
-  text-align: center;
-}
-
-.about-fact + .about-fact {
-  border-left: 1px solid var(--sl-line);
-}
-
-.about-fact__label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.about-fact .about-fact__value {
-  margin: 0;
-  font-size: clamp(44px, 5.2vw, 72px);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  font-variant-numeric: tabular-nums;
-  filter: drop-shadow(0 0 30px var(--sl-text-glow));
-}
-
-.about-fact__caption {
-  margin: 0;
-  max-width: 30ch;
-  font-size: 15px;
-  color: var(--sl-muted);
-  text-wrap: pretty;
-}
-
-/* What isn't built yet: one quiet line under the facts */
-.about-next {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: 8px 16px;
-  max-width: 760px;
-  margin: 32px auto 0;
-  font-size: 15px;
-  color: var(--sl-muted);
-  text-align: center;
-  text-wrap: pretty;
-}
-
-@media (max-width: 900px) {
-  .about-row,
-  .about-row--3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 24px;
-  }
-
-  .about-row--3 {
-    row-gap: 0;
-  }
-
-  .about-row__item:nth-child(odd),
-  .about-row--3 .about-row__item:nth-child(odd) {
-    padding-left: 0;
-    border-left: 0;
-  }
-
-  .about-row__item:nth-child(even),
-  .about-row--3 .about-row__item:nth-child(even) {
-    padding-left: clamp(16px, 2vw, 28px);
-    border-left: 1px solid var(--sl-line);
-  }
-
-  .about-row--3 .about-row__item:nth-child(n + 3) {
-    border-top: 1px solid var(--sl-line);
-  }
-
-  .about-facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .about-fact + .about-fact {
-    border-left: 0;
-    border-top: 1px solid var(--sl-line);
-  }
-}
-
-@media (max-width: 560px) {
-  .about-row,
-  .about-row--3 {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .about-row__item,
-  .about-row__item:nth-child(even),
-  .about-row--3 .about-row__item:nth-child(even) {
-    padding-left: 0;
-    border-left: 0;
-  }
-
-  .about-row--3 .about-row__item:nth-child(n + 2) {
-    border-top: 1px solid var(--sl-line);
   }
 }
 

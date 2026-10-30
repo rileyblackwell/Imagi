@@ -11,17 +11,20 @@
     <div class="editorial relative min-h-screen">
       <main class="relative">
 
-        <!-- Opener -->
-        <section class="sl-opener legal-opener">
+        <!-- Opener (the ! utilities override .sl-opener's padding and .sl-h1's size) -->
+        <section class="sl-opener !pb-[clamp(40px,6vw,72px)]">
           <div class="sl-spot" aria-hidden="true"></div>
           <div class="sl-dots" aria-hidden="true"></div>
           <div class="sl-wrap sl-opener__inner">
             <p class="sl-eyebrow sl-pill legal-rise"><span class="sl-pip" aria-hidden="true"></span>Legal</p>
-            <h1 class="sl-display sl-h1 legal-title legal-rise">Terms of Service</h1>
+            <h1 class="sl-display sl-h1 !text-[length:clamp(44px,7.4vw,96px)] legal-rise">Terms of Service</h1>
             <p class="sl-lede legal-rise">
               The agreement between you and Imagi covering accounts, acceptable use, payment, and the limits of the service.
             </p>
-            <p class="legal-updated legal-rise">Last updated: October 12, 2026</p>
+            <p
+              class="legal-updated legal-rise mx-0 mb-0 mt-1 rounded-[999px] border border-sl-line px-3 py-[6px] text-[13px]
+                text-sl-faint"
+            >Last updated: October 12, 2026</p>
           </div>
         </section>
 
@@ -164,23 +167,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.sl-opener .legal-title {
-  font-size: clamp(44px, 7.4vw, 96px);
-}
-
-.sl-opener.legal-opener {
-  padding-bottom: clamp(40px, 6vw, 72px);
-}
-
-.legal-updated {
-  margin: 4px 0 0;
-  padding: 6px 12px;
-  border: 1px solid var(--sl-line);
-  border-radius: 999px;
-  color: var(--sl-faint);
-  font-size: 13px;
-}
-
+/* Staggered entrance on load. Stays CSS: a scoped @keyframes name is hashed,
+   so a utility can't reference it (and the delays must follow the shorthand). */
 .legal-rise {
   animation: legal-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
