@@ -15,11 +15,22 @@
       <!-- ============================ Your app ============================ -->
       <section aria-labelledby="operate-app-heading" class="min-w-0 flex flex-col">
         <div class="flex items-center justify-between gap-3 mb-3 min-h-[1.75rem]">
-          <h2 id="operate-app-heading" class="half-label">Your app</h2>
-          <p v-if="app.status" class="status-pill" :class="app.status.is_up ? 'status-pill--up' : 'status-pill--down'">
-            <span class="status-pill__dot" aria-hidden="true"></span>
+          <h2 id="operate-app-heading" :class="halfLabel">Your app</h2>
+          <!-- Up / down, in the status colours, never the coral of a button -->
+          <p
+            v-if="app.status"
+            class="status-pill inline-flex items-center gap-[0.4rem] whitespace-nowrap rounded-[999px] border border-sl-line
+              bg-sl-chip-bg px-[0.7rem] py-1 text-[0.6875rem] font-semibold text-sl-text"
+          >
+            <span
+              class="h-[0.45rem] w-[0.45rem] rounded-[999px]"
+              :class="app.status.is_up
+                ? 'bg-sl-ok shadow-[0_0_0_3px_color-mix(in_srgb,var(--sl-ok)_22%,transparent)]'
+                : 'bg-sl-bad shadow-[0_0_0_3px_color-mix(in_srgb,var(--sl-bad)_22%,transparent)]'"
+              aria-hidden="true"
+            ></span>
             <span>{{ app.status.is_up ? 'Up' : 'Down' }}</span>
-            <span class="status-pill__time">· checked {{ timeAgo(app.status.checked_at) }}</span>
+            <span class="font-medium text-sl-muted">· checked {{ timeAgo(app.status.checked_at) }}</span>
           </p>
         </div>
 
@@ -52,21 +63,22 @@
           </form>
 
           <!-- Three numbers -->
-          <dl class="stats">
-            <div class="stat">
-              <dt class="stat__label">Uptime</dt>
-              <dd class="stat__value">{{ app.uptime.percent === null ? '—' : formatPercent(app.uptime.percent) }}</dd>
-              <dd class="stat__caption">{{ uptimeCaption }}</dd>
+          <!-- Three numbers across, split by hairlines rather than boxed -->
+          <dl class="grid grid-cols-3 border-b border-b-sl-line">
+            <div :class="statCell">
+              <dt :class="statLabel">Uptime</dt>
+              <dd :class="statValue">{{ app.uptime.percent === null ? '—' : formatPercent(app.uptime.percent) }}</dd>
+              <dd :class="statCaption">{{ uptimeCaption }}</dd>
             </div>
-            <div class="stat">
-              <dt class="stat__label">Response</dt>
-              <dd class="stat__value">{{ app.response_ms.latest === null ? '—' : formatMs(app.response_ms.latest) }}</dd>
-              <dd class="stat__caption">{{ responseCaption }}</dd>
+            <div :class="[statCell, 'border-l border-l-sl-line']">
+              <dt :class="statLabel">Response</dt>
+              <dd :class="statValue">{{ app.response_ms.latest === null ? '—' : formatMs(app.response_ms.latest) }}</dd>
+              <dd :class="statCaption">{{ responseCaption }}</dd>
             </div>
-            <div class="stat">
-              <dt class="stat__label">Visitors</dt>
-              <dd class="stat__value">{{ app.live_url ? app.traffic.visitors.toLocaleString() : '—' }}</dd>
-              <dd class="stat__caption">
+            <div :class="[statCell, 'border-l border-l-sl-line']">
+              <dt :class="statLabel">Visitors</dt>
+              <dd :class="statValue">{{ app.live_url ? app.traffic.visitors.toLocaleString() : '—' }}</dd>
+              <dd :class="statCaption">
                 {{ app.traffic.page_views ? `${app.traffic.page_views.toLocaleString()} page view${app.traffic.page_views === 1 ? '' : 's'}, 30 days` : 'last 30 days' }}
               </dd>
             </div>
@@ -97,14 +109,21 @@
             </p>
             <p v-if="checkError" class="text-sm text-[color:var(--sl-bad)]">{{ checkError }}</p>
 
-            <details class="tag" :open="!app.traffic.page_views">
-              <summary :class="ui.panelHeading" class="tag__summary text-sm">Page-view tag</summary>
+            <details :open="!app.traffic.page_views">
+              <summary
+                :class="ui.panelHeading"
+                class="tag__summary inline-flex cursor-pointer items-center [list-style:none] gap-2 text-sm
+                  before:h-[0.4rem] before:w-[0.4rem] before:[transform:rotate(45deg)] before:bg-sl-grad before:content-['']"
+              >Page-view tag</summary>
               <p :class="ui.bodyText" class="mt-2">
-                Paste this into your app's <code>index.html</code>, just before <code>&lt;/head&gt;</code>, or ask Build to add it. It sets no cookies and only counts visits to {{ displayHost(app.live_url) }}.
+                Paste this into your app's <code class="text-[0.8125rem]">index.html</code>, just before <code class="text-[0.8125rem]">&lt;/head&gt;</code>, or ask Build to add it. It sets no cookies and only counts visits to {{ displayHost(app.live_url) }}.
               </p>
               <div class="mt-3 relative">
-                <pre class="tag__code"><code>{{ trackingTag }}</code></pre>
-                <button type="button" :class="ui.secondaryBtn" class="tag__copy !px-3 !py-1.5 text-xs" @click="copyTag">
+                <pre
+                  class="tag__code m-0 max-h-36 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-sl-line bg-sl-chip-bg
+                    py-[0.9rem] pl-4 pr-20 text-sl-text"
+                ><code class="text-[0.75rem] leading-[1.55]">{{ trackingTag }}</code></pre>
+                <button type="button" :class="ui.secondaryBtn" class="absolute right-[0.6rem] top-[0.6rem] !px-3 !py-1.5 text-xs" @click="copyTag">
                   {{ copied ? 'Copied' : 'Copy' }}
                 </button>
               </div>
@@ -116,26 +135,27 @@
       <!-- ========================== Your business ========================== -->
       <section aria-labelledby="operate-business-heading" class="min-w-0 flex flex-col">
         <div class="flex items-center justify-between gap-3 mb-3 min-h-[1.75rem]">
-          <h2 id="operate-business-heading" class="half-label">Your business</h2>
+          <h2 id="operate-business-heading" :class="halfLabel">Your business</h2>
           <p :class="ui.hintText">last 30 days</p>
         </div>
 
         <div class="flex-1 flex flex-col" :class="ui.card">
-          <dl class="stats">
-            <div class="stat">
-              <dt class="stat__label">Revenue</dt>
-              <dd class="stat__value">{{ money(business.revenue_30d) }}</dd>
-              <dd class="stat__caption">{{ revenueCaption }}</dd>
+          <!-- Three numbers across, split by hairlines rather than boxed -->
+          <dl class="grid grid-cols-3 border-b border-b-sl-line">
+            <div :class="statCell">
+              <dt :class="statLabel">Revenue</dt>
+              <dd :class="statValue">{{ money(business.revenue_30d) }}</dd>
+              <dd :class="statCaption">{{ revenueCaption }}</dd>
             </div>
-            <div class="stat">
-              <dt class="stat__label">Expenses</dt>
-              <dd class="stat__value">{{ money(business.expenses_30d) }}</dd>
-              <dd class="stat__caption">from your ledger</dd>
+            <div :class="[statCell, 'border-l border-l-sl-line']">
+              <dt :class="statLabel">Expenses</dt>
+              <dd :class="statValue">{{ money(business.expenses_30d) }}</dd>
+              <dd :class="statCaption">from your ledger</dd>
             </div>
-            <div class="stat">
-              <dt class="stat__label">Profit</dt>
-              <dd class="stat__value" :class="business.profit_30d < 0 ? 'text-[color:var(--sl-bad)]' : ''">{{ money(business.profit_30d) }}</dd>
-              <dd class="stat__caption">revenue minus expenses</dd>
+            <div :class="[statCell, 'border-l border-l-sl-line']">
+              <dt :class="statLabel">Profit</dt>
+              <dd :class="statValue">{{ money(business.profit_30d) }}</dd>
+              <dd :class="statCaption">revenue minus expenses</dd>
             </div>
           </dl>
 
@@ -182,6 +202,16 @@ import { formatMoney, ui } from '../utils/ui'
 
 const route = useRoute()
 const store = useOperateStore()
+
+// Each half is titled like the hub's eyebrows: small, tracked, uppercase.
+const halfLabel = 'text-[0.75rem] font-semibold uppercase tracking-[0.18em] text-sl-muted'
+
+// One of the three numbers across a half (`stat__value` is a test hook).
+const statCell = 'min-w-0 px-6 pb-[1.35rem] pt-5 max-[520px]:px-[0.9rem] max-[520px]:pb-[1.1rem] max-[520px]:pt-4'
+const statLabel = 'text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-sl-muted'
+const statValue =
+  'stat__value mt-2 truncate text-[1.625rem] font-semibold leading-[1.15] tabular-nums text-sl-text max-[520px]:text-[1.25rem]'
+const statCaption = 'mt-[0.3rem] text-[0.75rem] leading-[1.4] text-sl-muted'
 const loadError = ref('')
 
 const dashboard = computed(() => store.dashboard)
@@ -320,150 +350,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Each half is titled like the hub's eyebrows: small, tracked, uppercase. */
-.half-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-/* Three numbers across, split by hairlines rather than boxed. */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-bottom: 1px solid var(--sl-line);
-}
-
-.stat {
-  min-width: 0;
-  padding: 1.25rem 1.5rem 1.35rem;
-}
-
-.stat + .stat {
-  border-left: 1px solid var(--sl-line);
-}
-
-.stat__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.stat__value {
-  margin-top: 0.5rem;
-  font-size: 1.625rem;
-  line-height: 1.15;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--sl-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stat__caption {
-  margin-top: 0.3rem;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--sl-muted);
-}
-
-@media (max-width: 520px) {
-  .stat {
-    padding: 1rem 0.9rem 1.1rem;
-  }
-
-  .stat__value {
-    font-size: 1.25rem;
-  }
-}
-
-/* Up / down, in the status colours, never the coral of a button. */
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--sl-line);
-  background: var(--sl-chip-bg);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--sl-text);
-  white-space: nowrap;
-}
-
-.status-pill__dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.status-pill--up .status-pill__dot {
-  background: var(--sl-ok);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-ok) 22%, transparent);
-}
-
-.status-pill--down .status-pill__dot {
-  background: var(--sl-bad);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-bad) 22%, transparent);
-}
-
-.status-pill__time {
-  font-weight: 500;
-  color: var(--sl-muted);
-}
-
-.tag__summary {
-  cursor: pointer;
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
+/* WebKit draws the summary's disclosure triangle unless it is hidden here. */
 .tag__summary::-webkit-details-marker {
   display: none;
-}
-
-.tag__summary::before {
-  content: '';
-  width: 0.4rem;
-  height: 0.4rem;
-  transform: rotate(45deg);
-  background: var(--sl-grad);
-}
-
-.tag code {
-  font-size: 0.8125rem;
-}
-
-.tag__code {
-  margin: 0;
-  padding: 0.9rem 5rem 0.9rem 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--sl-line);
-  background: var(--sl-chip-bg);
-  color: var(--sl-text);
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 9rem;
-  overflow: auto;
-}
-
-.tag__code code {
-  font-size: 0.75rem;
-  line-height: 1.55;
-}
-
-.tag__copy {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
 }
 </style>

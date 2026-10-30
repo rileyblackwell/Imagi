@@ -10,7 +10,7 @@
   next to the sections that explain them.
 -->
 <template>
-  <section class="hero sl-opener">
+  <section class="sl-opener">
     <div class="sl-spot" aria-hidden="true"></div>
     <div class="sl-dots" aria-hidden="true"></div>
 
@@ -20,7 +20,8 @@
         <span>The all-in-one business platform</span>
       </p>
 
-      <h1 class="hero-item sl-display sl-h1 hero-title" style="animation-delay: 60ms">
+      <!-- mt is important: .sl-display zeroes the margin -->
+      <h1 class="hero-item sl-display sl-h1 max-w-[11ch] !mt-[6px]" style="animation-delay: 60ms">
         Build and <em class="hero-accent sl-run">run</em> your business
       </h1>
 
@@ -29,7 +30,7 @@
         while you watch.
       </p>
 
-      <div class="hero-item hero-prompt" style="animation-delay: 180ms">
+      <div class="hero-item mt-[18px] w-full max-w-[760px] text-left" style="animation-delay: 180ms">
         <IdeaPrompt
           input-id="hero-idea"
           :placeholder="placeholder"
@@ -39,12 +40,25 @@
         />
       </div>
 
-      <div class="hero-item hero-meta" style="animation-delay: 240ms">
+      <div
+        class="hero-item mt-[6px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-[10px] text-[15px]
+          text-sl-muted max-[560px]:flex-col max-[560px]:gap-3"
+        style="animation-delay: 240ms"
+      >
         <span>Free to use. No card needed.</span>
-        <span class="hero-meta__sep" aria-hidden="true"></span>
-        <button type="button" class="hero-meta__link" @click="scrollToHowItWorks">
+        <span class="h-1 w-1 rounded-[50%] bg-sl-faint max-[560px]:hidden" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="group inline-flex cursor-pointer items-center gap-[6px] border-0 border-b px-0 pb-[2px] pt-0
+            font-semibold text-sl-text transition-[border-color] duration-200 ease-[ease]
+            [border-color:currentColor_currentColor_var(--sl-line-strong)] [border-style:none_none_solid]
+            hover:border-b-sl-focus"
+          @click="scrollToHowItWorks"
+        >
           <span>See how it works</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            class="w-4 h-4 transition-transform duration-300 ease-[ease] group-hover:translate-y-[2px]"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </button>
@@ -140,7 +154,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Staggered entrance on load */
+/* Staggered entrance on load. Stays CSS: a scoped @keyframes name is hashed,
+   so a utility can't reference it. */
 .hero-item {
   animation: hero-rise 0.85s var(--app-ease) both;
 }
@@ -153,74 +168,6 @@ export default defineComponent({
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-.hero .hero-title {
-  max-width: 11ch;
-  margin-top: 6px;
-}
-
-.hero-prompt {
-  width: 100%;
-  max-width: 760px;
-  margin-top: 18px;
-  text-align: left;
-}
-
-.hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 10px 22px;
-  margin-top: 6px;
-  font-size: 15px;
-  color: var(--sl-muted);
-}
-
-.hero-meta__sep {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--sl-faint);
-}
-
-.hero-meta__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 0 2px;
-  border: 0;
-  border-bottom: 1px solid var(--sl-line-strong);
-  background: none;
-  color: var(--sl-text);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-
-.hero-meta__link:hover {
-  border-bottom-color: var(--sl-focus);
-}
-
-.hero-meta__link svg {
-  transition: transform 0.3s ease;
-}
-
-.hero-meta__link:hover svg {
-  transform: translateY(2px);
-}
-
-@media (max-width: 560px) {
-  .hero-meta {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .hero-meta__sep {
-    display: none;
   }
 }
 

@@ -36,66 +36,148 @@
   it stopped — so a run of these can be scanned by colour alone.
 -->
 <template>
-  <article :class="['dispatch-card', `dispatch-card--${state.tone}`, { 'dispatch-card--question': isQuestion }]">
-    <!-- The card's node on the rail. Working wears the workspace's live dot,
-         the same one as the status row under the chat. -->
-    <span v-if="state.tone === 'working'" class="dispatch-card__chip dispatch-card__chip--live iw-live-node" aria-hidden="true">
+  <article
+    class="relative flex w-full flex-col gap-[0.3125rem] rounded-[0.875rem] border px-[0.8125rem] pb-[0.625rem] pt-[0.6875rem] text-left
+      [transition:border-color_var(--iw-dur-3)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out)]
+      before:pointer-events-none before:absolute before:-left-3 before:top-5 before:h-px before:w-3
+      before:bg-[color:color-mix(in_srgb,var(--st)_45%,transparent)] before:content-['']"
+    :class="[
+      'dispatch-card', `dispatch-card--${state.tone}`, { 'dispatch-card--question': isQuestion },
+      isQuestion ? QUESTION_CARD : CARD_TONE[state.tone],
+    ]"
+  >
+    <!-- Every state colour on the card comes from --st, so a state change is
+         one class rather than a rule per element. The surface itself stays
+         neutral — the Spotlight card — and the state lives in the node and the
+         eyebrow. The ::before is a short branch from the rail to the card, so
+         it reads as a step hanging off the line like everything else in the
+         log. -->
+    <!-- The card's node on the rail: a filled circle in the state's colour,
+         punched out of the rail by a ring of the floor, placed back across
+         the rail's 2rem gutter. Working wears the workspace's live dot, the
+         same one as the status row under the chat (its disc, ring and grid
+         come from .iw-live-node). -->
+    <span
+      v-if="state.tone === 'working'"
+      class="iw-live-node !absolute -left-8 top-[0.625rem] h-5 w-5 items-center justify-center !rounded-[50%] text-[0.5625rem] text-[color:rgb(var(--app-canvas,255_255_255))]
+        [box-shadow:0_0_0_4px_rgb(var(--app-canvas,255_255_255))] [transition:background-color_var(--iw-dur-3)_var(--iw-ease-out)]"
+      aria-hidden="true"
+    >
       <span class="iw-live"></span>
     </span>
-    <span v-else class="dispatch-card__chip" aria-hidden="true">
+    <span
+      v-else
+      :class="[
+        'absolute -left-8 top-[0.625rem] flex h-5 w-5 items-center justify-center rounded-[50%] text-[0.5625rem]',
+        '[transition:background-color_var(--iw-dur-3)_var(--iw-ease-out)]',
+        DRAWN_TONES.has(state.tone)
+          ? 'border-[1.5px] border-dashed border-sl-line-strong bg-[color:rgb(var(--app-canvas,255_255_255))] text-sl-faint [box-shadow:0_0_0_4px_rgb(var(--app-canvas,255_255_255))]'
+          : 'bg-[color:var(--st)] text-[color:rgb(var(--app-canvas,255_255_255))] [box-shadow:0_0_0_4px_rgb(var(--app-canvas,255_255_255)),0_0_14px_-3px_var(--st)]',
+      ]"
+      aria-hidden="true"
+    >
       <i :class="state.icon"></i>
     </span>
 
-    <!-- Where it stands, as the marquee eyebrow -->
-    <p class="dispatch-card__eyebrow">
-      <span class="dispatch-card__status">{{ state.label }}</span>
-      <span class="dispatch-card__rule" aria-hidden="true"></span>
+    <!-- Where it stands, as the marquee eyebrow: a diamond, the state, a
+         hairline fading to the edge — the site's page eyebrow, in the
+         state's colour. -->
+    <p
+      class="flex min-h-[1rem] items-center gap-2
+        before:h-[0.3125rem] before:w-[0.3125rem] before:shrink-0 before:rotate-45 before:bg-[color:var(--st)] before:content-['']"
+    >
+      <span
+        class="dispatch-card__status text-[0.625rem] font-medium uppercase leading-[1.3] tracking-[0.08em] text-[color:var(--st)]
+          [font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace]"
+      >{{ state.label }}</span>
+      <span
+        class="h-px min-w-[1rem] flex-1 bg-[image:linear-gradient(90deg,color-mix(in_srgb,var(--st)_55%,transparent),transparent)]"
+        aria-hidden="true"
+      ></span>
     </p>
 
-    <!-- Which job, in the user's language. Present in every state, since a
-         result means nothing without the job it answers. -->
-    <p class="dispatch-card__job">{{ state.job }}</p>
+    <!-- Which job, in the user's language, in the display face: what is being
+         done to the app is the subject of the card. Present in every state,
+         since a result means nothing without the job it answers. It wraps:
+         no clamp, no ellipsis. -->
+    <p
+      class="dispatch-card__job font-sl-display text-[0.9375rem] font-semibold leading-[1.35] tracking-[-0.012em] text-sl-text [overflow-wrap:anywhere]"
+    >{{ state.job }}</p>
 
     <!-- How the coordinator placed it, when that is more than "alongside
          everything else": what it starts after, what it is on hold for, or
-         the thread it was forked from — with the coordinator's reason. -->
-    <p v-if="plan" :class="['dispatch-card__plan', `dispatch-card__plan--${plan.kind}`]">
-      <i :class="[plan.icon, 'dispatch-card__plan-icon']" aria-hidden="true"></i>
+         the thread it was forked from — with the coordinator's reason. Small
+         and muted; on hold takes the card's state colour, since that is what
+         the user has to act on. -->
+    <p
+      v-if="plan"
+      :class="[
+        'dispatch-card__plan -mt-px flex items-baseline gap-1.5 text-[0.75rem] leading-[1.45] [overflow-wrap:anywhere]',
+        plan.kind === 'blocked' ? 'text-[color:var(--st)]' : 'text-sl-muted',
+      ]"
+    >
+      <i
+        :class="[plan.icon, 'shrink-0 text-[0.625rem]', plan.kind === 'blocked' ? 'text-[color:var(--st)]' : 'text-sl-faint']"
+        aria-hidden="true"
+      ></i>
       <span>
-        {{ plan.text }}<span v-if="planReason" class="dispatch-card__why"> · {{ planReason }}</span>
+        {{ plan.text }}<span v-if="planReason"> · {{ planReason }}</span>
       </span>
     </p>
 
     <!-- A question in full. It is answered in the queue above the
          composer, which is where every open question waits. -->
-    <div v-if="isQuestion" class="dispatch-card__ask">
-      <p class="dispatch-card__question">{{ state.result }}</p>
-      <p class="dispatch-card__hint">Answer it in the queue below.</p>
+    <div v-if="isQuestion" class="flex flex-col gap-1">
+      <!-- The question is the point of its card, so it reads in full ink. -->
+      <p
+        class="dispatch-card__question whitespace-pre-wrap text-[0.8125rem] leading-[1.55] text-sl-text [overflow-wrap:anywhere]"
+      >{{ state.result }}</p>
+      <!-- Where to answer it, quietly, in the needs-you colour. -->
+      <p class="dispatch-card__hint text-[0.75rem] leading-[1.4] text-sl-wait">Answer it in the queue below.</p>
     </div>
 
     <template v-else>
       <!-- The paragraph under the job: what it is doing while it runs, what
            came of it once it has. A stopped card shows it unfolded — it is
-           short, and it is the part that says what did and did not land. -->
-      <Transition name="dispatch-reveal">
-        <p v-if="showResult" :id="bodyId" class="dispatch-card__result">{{ state.result }}</p>
+           short, and it is the part that says what did and did not land.
+           Sized as prose: it is the part of the card the owner reads. -->
+      <Transition
+        enter-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none] motion-reduce:[transform:none]"
+        enter-from-class="-translate-y-[3px] opacity-0"
+        leave-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none] motion-reduce:[transform:none]"
+        leave-to-class="-translate-y-[3px] opacity-0"
+      >
+        <p
+          v-if="showResult"
+          :id="bodyId"
+          class="dispatch-card__result whitespace-pre-wrap text-[0.8125rem] leading-[1.55] text-sl-muted [overflow-wrap:anywhere]"
+        >{{ state.result }}</p>
       </Transition>
     </template>
 
-    <div class="dispatch-card__foot">
+    <div class="mt-[0.1875rem] flex items-center justify-between gap-2">
+      <!-- The retry, on a stopped card: the workspace's lit pill, because it
+           is the one thing on the card the reader most needs to reach. -->
       <button
         v-if="retryable"
         type="button"
-        class="dispatch-card__retry"
+        class="dispatch-card__retry group/retry inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-sl-grad px-3 py-1 text-[0.75rem] font-semibold text-sl-on-accent shadow-sl-btn [border:none]
+          [transition:box-shadow_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]
+          hover:shadow-sl-btn-hover focus-visible:shadow-iw-focus focus-visible:![outline:none] active:scale-[0.97] motion-reduce:[transition:none]"
         @click="emit('retry')"
       >
-        <i class="fas fa-rotate-right" aria-hidden="true"></i>
+        <i
+          class="fas fa-rotate-right text-[0.625rem] [transition:transform_var(--iw-dur-3)_var(--iw-ease-out)] group-hover/retry:rotate-90 motion-reduce:[transition:none]"
+          aria-hidden="true"
+        ></i>
         Try again
       </button>
+      <!-- The fold, named (and Discard beside a retry). Small and quiet — it
+           is an offer, not the news. -->
       <button
         v-if="retryable"
         type="button"
-        class="dispatch-card__discard"
+        :class="['dispatch-card__discard', FOLD_BUTTON]"
         @click="emit('dismiss')"
       >
         Discard
@@ -103,18 +185,37 @@
       <button
         v-else-if="expandable"
         type="button"
-        class="dispatch-card__toggle"
+        :class="['dispatch-card__toggle', FOLD_BUTTON]"
         :aria-expanded="expanded"
         :aria-controls="bodyId"
         @click="expanded = !expanded"
       >
         {{ expanded ? 'Hide details' : 'Details' }}
-        <i class="fas fa-chevron-down dispatch-card__caret" aria-hidden="true"></i>
+        <i
+          class="fas fa-chevron-down dispatch-card__caret text-[0.5rem] [transition:transform_var(--iw-dur-3)_var(--iw-ease-out)] motion-reduce:[transition:none]"
+          :class="{ 'rotate-180': expanded }"
+          aria-hidden="true"
+        ></i>
       </button>
 
-      <button type="button" class="dispatch-card__go" @click="emit('open')">
+      <!-- The way into the thread: a quiet pill ending on the lit arrow.
+           Always at the right of the foot, so it is in the same place on
+           every card. -->
+      <button
+        type="button"
+        class="dispatch-card__go group/go ml-auto inline-flex cursor-pointer items-center gap-2 rounded-full border border-sl-line-strong py-0.5 pl-2.5 pr-0.5 text-[0.75rem] font-semibold text-sl-text
+          [transition:border-color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out)]
+          hover:border-[color:color-mix(in_srgb,var(--sl-amber,#ee8c10)_50%,transparent)] hover:[box-shadow:0_0_18px_-6px_var(--sl-glow,rgba(255,120,80,0.3))]
+          focus-visible:shadow-iw-focus focus-visible:![outline:none]"
+        @click="emit('open')"
+      >
         Go to thread
-        <span class="dispatch-card__orb" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+        <span
+          class="grid h-[1.375rem] w-[1.375rem] place-items-center rounded-full bg-sl-grad text-[0.625rem] text-sl-on-accent [box-shadow:0_4px_12px_-4px_rgba(236,90,50,0.6)]"
+          aria-hidden="true"
+        ><i
+          class="fas fa-arrow-right [transition:transform_var(--iw-dur-2)_var(--iw-ease-out)] group-hover/go:translate-x-px motion-reduce:[transition:none]"
+        ></i></span>
       </button>
     </div>
   </article>
@@ -125,6 +226,35 @@ import { computed, ref } from 'vue'
 import type { AgentInstance } from '../../../types/services'
 import { isHeldThread } from '../../../stores/agentStore'
 import { scheduleLine } from '../../../utils/threadSchedule'
+
+/** The card per tone: its --st colour and its surface. Starting and
+ *  scheduled work is drawn but not lit (dashed, on the chip ground); working
+ *  has a faint blue light falling on its top edge, the stage lit for the work
+ *  in progress; discarded work recedes — it is a record, not news. */
+const LIT = 'border-sl-line-strong bg-sl-card-bg shadow-sl-card'
+const DRAWN = '[--st:var(--sl-faint)] border-dashed border-sl-line-strong bg-sl-chip-bg'
+const CARD_TONE: Record<string, string> = {
+  starting: DRAWN,
+  scheduled: DRAWN,
+  working:
+    '[--st:var(--sl-work)] border-sl-line-strong shadow-sl-card bg-[image:radial-gradient(90%_3.75rem_at_30%_0,color-mix(in_srgb,var(--sl-work)_13%,transparent),transparent_80%),var(--sl-card-bg)]',
+  asking: `[--st:var(--sl-wait)] ${LIT}`,
+  done: `[--st:var(--sl-ok)] ${LIT}`,
+  stopped: `[--st:var(--sl-bad)] ${LIT}`,
+  settled: `[--st:var(--sl-faint)] ${LIT} opacity-70 hover:opacity-100`,
+}
+
+/** A question waiting on the user: the card that asks rather than reports,
+ *  so its edge warms to amber to be found in a scroll of quiet cards. */
+const QUESTION_CARD =
+  '[--st:var(--sl-wait)] border-[color:color-mix(in_srgb,var(--sl-wait)_45%,transparent)] shadow-sl-card bg-[image:radial-gradient(90%_3.75rem_at_30%_0,color-mix(in_srgb,var(--sl-wait)_12%,transparent),transparent_80%),var(--sl-card-bg)]'
+
+/** Tones whose rail node is drawn rather than filled. */
+const DRAWN_TONES = new Set(['starting', 'scheduled', 'settled'])
+
+/** The fold toggle and Discard: small, quiet text buttons. */
+const FOLD_BUTTON =
+  'inline-flex cursor-pointer items-center gap-[0.3125rem] rounded-iw-sm py-1 text-[0.6875rem] font-[550] text-sl-faint [border:none] [transition:color_var(--iw-dur-2)_var(--iw-ease-out)] hover:text-sl-text focus-visible:shadow-iw-focus focus-visible:![outline:none]'
 
 /** Ties each card's toggle to the paragraph it opens (aria-controls needs a
  *  document-unique id, and a chat holds many of these). */
@@ -300,374 +430,13 @@ const showResult = computed(() => !!state.value.result && (retryable.value || ex
 </script>
 
 <style scoped>
-/* ── The card ───────────────────────────────────────────────────────────── */
-
-/* Every state colour on the card comes from --st, so a state change is one
-   line rather than a rule per element. The surface itself stays neutral —
-   the Spotlight card — and the state lives in the node and the eyebrow. */
-.dispatch-card {
-  --st: var(--sl-faint, rgba(19, 26, 44, 0.5));
-
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3125rem;
-  width: 100%;
-  padding: 0.6875rem 0.8125rem 0.625rem;
-  border-radius: 0.875rem;
-  border: 1px solid var(--sl-line-strong, rgba(19, 26, 44, 0.15));
-  background: var(--sl-card-bg, #ffffff);
-  box-shadow: var(--sl-card-shadow, none);
-  text-align: left;
-  transition:
-    border-color var(--iw-dur-3) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-/* A short branch from the rail to the card, so the card reads as a step
-   hanging off the line like everything else in the log. */
-.dispatch-card::before {
-  content: '';
-  position: absolute;
-  left: -0.75rem;
-  top: 1.25rem;
-  width: 0.75rem;
-  height: 1px;
-  background: color-mix(in srgb, var(--st) 45%, transparent);
-  pointer-events: none;
-}
-
-/* ── States ─────────────────────────────────────────────────────────────── */
-
-/* Dispatched, run not yet fired: drawn but not lit. Scheduled work (held
-   until other threads land) is drawn the same way. */
-.dispatch-card--scheduled,
-.dispatch-card--starting {
-  border-style: dashed;
-  background: var(--sl-chip-bg, rgba(19, 26, 44, 0.035));
-  box-shadow: none;
-}
-
-/* Working: a faint blue light falling on the top edge, the stage lit for
-   the work in progress. */
-.dispatch-card--working {
-  --st: var(--sl-work);
-  background:
-    radial-gradient(90% 3.75rem at 30% 0, color-mix(in srgb, var(--sl-work) 13%, transparent), transparent 80%),
-    var(--sl-card-bg, #ffffff);
-}
-
-.dispatch-card--asking {
-  --st: var(--sl-wait);
-}
-
-/* A question waiting on the user: the card that asks rather than reports,
-   so its edge warms to amber to be found in a scroll of quiet cards. */
-.dispatch-card--question {
-  border-color: color-mix(in srgb, var(--sl-wait) 45%, transparent);
-  background:
-    radial-gradient(90% 3.75rem at 30% 0, color-mix(in srgb, var(--sl-wait) 12%, transparent), transparent 80%),
-    var(--sl-card-bg, #ffffff);
-}
-
 /* Done. The flip from "working" to "complete" is the single moment this card
    exists to report, so it plays a one-shot settle rather than simply being
-   repainted. */
+   repainted. Stays CSS: a scoped @keyframes name is hashed, so no utility can
+   reference it. */
 .dispatch-card--done {
-  --st: var(--sl-ok);
   animation: done-settle var(--iw-dur-4) var(--iw-ease-spring) both;
 }
-
-.dispatch-card--stopped {
-  --st: var(--sl-bad);
-}
-
-/* Discarded work recedes — it is a record, not news. */
-.dispatch-card--settled {
-  opacity: 0.7;
-}
-
-.dispatch-card--settled:hover {
-  opacity: 1;
-}
-
-/* ── The rail node ──────────────────────────────────────────────────────── */
-
-/* A filled circle in the state's colour, punched out of the rail by a ring
-   of the floor. Placed back across the rail's gutter (the 2rem every rail
-   entry is indented). */
-.dispatch-card__chip {
-  position: absolute;
-  left: -2rem;
-  top: 0.625rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 50%;
-  background: var(--st);
-  color: rgb(var(--app-canvas, 255 255 255));
-  font-size: 0.5625rem;
-  box-shadow:
-    0 0 0 4px rgb(var(--app-canvas, 255 255 255)),
-    0 0 14px -3px var(--st);
-  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-/* Working: the workspace's live dot in its node (styles/workspace.css). */
-.dispatch-card__chip--live {
-  display: grid;
-  border: 1.5px solid color-mix(in srgb, var(--sl-work) 55%, transparent);
-  background: color-mix(in srgb, var(--sl-work) 10%, rgb(var(--app-canvas, 255 255 255)));
-  box-shadow: 0 0 0 4px rgb(var(--app-canvas, 255 255 255));
-}
-
-.dispatch-card--scheduled .dispatch-card__chip,
-.dispatch-card--starting .dispatch-card__chip,
-.dispatch-card--settled .dispatch-card__chip {
-  background: rgb(var(--app-canvas, 255 255 255));
-  border: 1.5px dashed var(--sl-line-strong, rgba(19, 26, 44, 0.15));
-  color: var(--sl-faint);
-  box-shadow: 0 0 0 4px rgb(var(--app-canvas, 255 255 255));
-}
-
-/* ── Parts ──────────────────────────────────────────────────────────────── */
-
-/* The marquee eyebrow: a diamond, the state, a hairline fading to the edge —
-   the site's page eyebrow, in the state's colour. */
-.dispatch-card__eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 1rem;
-}
-
-.dispatch-card__eyebrow::before {
-  content: '';
-  flex-shrink: 0;
-  width: 0.3125rem;
-  height: 0.3125rem;
-  transform: rotate(45deg);
-  background: var(--st);
-}
-
-.dispatch-card__status {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.625rem;
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--st);
-}
-
-.dispatch-card__rule {
-  flex: 1;
-  min-width: 1rem;
-  height: 1px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--st) 55%, transparent), transparent);
-}
-
-/* The job, in the display face: what is being done to the app is the
-   subject of the card. It wraps: no clamp, no ellipsis. */
-.dispatch-card__job {
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: -0.012em;
-  color: var(--sl-text);
-  overflow-wrap: anywhere;
-}
-
-/* The schedule line: small, muted, a glyph for how it was placed. On hold
-   takes the card's state colour, since that is what the user has to act on. */
-.dispatch-card__plan {
-  display: flex;
-  align-items: baseline;
-  gap: 0.375rem;
-  margin-top: -0.0625rem;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--sl-muted);
-  overflow-wrap: anywhere;
-}
-
-.dispatch-card__plan-icon {
-  flex-shrink: 0;
-  font-size: 0.625rem;
-  color: var(--sl-faint);
-}
-
-.dispatch-card__plan--blocked,
-.dispatch-card__plan--blocked .dispatch-card__plan-icon {
-  color: var(--st);
-}
-
-/* The paragraph under the job, sized as prose: it is the part of the card
-   the owner actually reads. */
-.dispatch-card__result,
-.dispatch-card__question {
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: var(--sl-muted);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-/* The question is the point of its card, so it reads in full ink. */
-.dispatch-card__question {
-  color: var(--sl-text);
-}
-
-.dispatch-card__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 0.1875rem;
-}
-
-/* The fold, named. Small and quiet — it is an offer, not the news. */
-.dispatch-card__toggle,
-.dispatch-card__discard {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3125rem;
-  padding: 0.25rem 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: 0.6875rem;
-  font-weight: 550;
-  color: var(--sl-faint);
-  cursor: pointer;
-  border-radius: var(--iw-r-sm);
-  transition: color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card__toggle:hover,
-.dispatch-card__discard:hover {
-  color: var(--sl-text);
-}
-
-.dispatch-card__caret {
-  font-size: 0.5rem;
-  transition: transform var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.dispatch-card__toggle[aria-expanded='true'] .dispatch-card__caret {
-  transform: rotate(180deg);
-}
-
-/* The way into the thread: a quiet pill ending on the lit arrow. Always at
-   the right of the foot, so it is in the same place on every card. */
-.dispatch-card__go {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-  padding: 0.125rem 0.125rem 0.125rem 0.625rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong, rgba(19, 26, 44, 0.15));
-  background: none;
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--sl-text);
-  cursor: pointer;
-  transition:
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card__orb {
-  display: grid;
-  place-items: center;
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: 9999px;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  font-size: 0.625rem;
-  box-shadow: 0 4px 12px -4px rgba(236, 90, 50, 0.6);
-}
-
-.dispatch-card__orb i {
-  transition: transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-card__go:hover {
-  border-color: color-mix(in srgb, var(--sl-amber, #ee8c10) 50%, transparent);
-  box-shadow: 0 0 18px -6px var(--sl-glow, rgba(255, 120, 80, 0.3));
-}
-
-.dispatch-card__go:hover .dispatch-card__orb i {
-  transform: translateX(1px);
-}
-
-/* The retry, on a stopped card: the workspace's lit pill, because it is the
-   one thing on the card the reader most needs to reach. */
-.dispatch-card__retry {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  border: none;
-  background: var(--sl-grad);
-  box-shadow: var(--sl-btn-shadow);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--sl-on-accent, #1a0e08);
-  cursor: pointer;
-  transition:
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.dispatch-card__retry i {
-  font-size: 0.625rem;
-  transition: transform var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.dispatch-card__retry:hover {
-  box-shadow: var(--sl-btn-shadow-hover);
-}
-
-.dispatch-card__retry:hover i {
-  transform: rotate(90deg);
-}
-
-.dispatch-card__retry:active {
-  transform: scale(0.97);
-}
-
-/* ── The question ───────────────────────────────────────────────────────── */
-
-.dispatch-card__ask {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* Where to answer it, quietly, in the needs-you colour. */
-.dispatch-card__hint {
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--sl-wait);
-}
-
-.dispatch-card__toggle:focus-visible,
-.dispatch-card__discard:focus-visible,
-.dispatch-card__go:focus-visible,
-.dispatch-card__retry:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-/* ── Motion ─────────────────────────────────────────────────────────────── */
 
 @keyframes done-settle {
   0% { transform: scale(0.985); }
@@ -675,32 +444,9 @@ const showResult = computed(() => !!state.value.result && (retryable.value || ex
   100% { transform: none; }
 }
 
-.dispatch-reveal-enter-active,
-.dispatch-reveal-leave-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dispatch-reveal-enter-from,
-.dispatch-reveal-leave-to {
-  opacity: 0;
-  transform: translateY(-3px);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .dispatch-card--done {
     animation: none;
-  }
-
-  .dispatch-card__caret,
-  .dispatch-card__orb i,
-  .dispatch-card__retry,
-  .dispatch-card__retry i,
-  .dispatch-reveal-enter-active,
-  .dispatch-reveal-leave-active {
-    transition: none;
-    transform: none;
   }
 }
 </style>

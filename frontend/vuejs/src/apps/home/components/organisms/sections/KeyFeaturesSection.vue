@@ -5,10 +5,16 @@
   than asserted. Sell, Market and Operate are in beta, and say so.
 -->
 <template>
-  <section class="sl-sec step">
+  <section
+    class="sl-sec isolate overflow-hidden
+      before:pointer-events-none before:absolute before:left-1/2 before:top-0 before:z-[-1] before:h-[560px]
+      before:w-[min(1100px,140vw)] before:-translate-x-1/2 before:content-['']
+      before:bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,var(--sl-section-glow),transparent_70%)]"
+  >
+    <!-- A softer pool of light at the top of each step -->
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
-        <p class="sl-eyebrow"><span class="sl-grad-text step-num">03</span><span>Run</span><StatusBadge tone="neutral" label="Beta" /></p>
+        <p class="sl-eyebrow"><span class="sl-grad-text font-bold">03</span><span>Run</span><StatusBadge tone="neutral" label="Beta" /></p>
         <h2 class="sl-display sl-h2">Run it as a business</h2>
         <p class="sl-lede">
           When the app is ready for customers, the business tools are already in the project.
@@ -33,7 +39,8 @@
       </div>
 
       <!-- One crop of the real tooling: starting a campaign -->
-      <div v-reveal="{ delay: 120 }" class="sl-stage">
+      <!-- Held narrower than the text measure, so the words lead -->
+      <div v-reveal="{ delay: 120 }" class="sl-stage mx-auto max-w-[920px]">
         <ProductShot
           src="/product/run-marketing.webp"
           alt="The Marketing workspace for Ticker Insights, with two ways to start a campaign: a text message sent through Twilio, or a Google search ad."
@@ -84,29 +91,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-/* A softer pool of light at the top of each step */
-.step {
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.step::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  z-index: -1;
-  width: min(1100px, 140vw);
-  height: 560px;
-  transform: translateX(-50%);
-  pointer-events: none;
-  background: radial-gradient(ellipse 50% 60% at 50% 0%, var(--sl-section-glow), transparent 70%);
-}
-
-.step-num {
-  font-weight: 700;
-}
-
-</style>

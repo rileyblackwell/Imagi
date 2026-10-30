@@ -4,8 +4,19 @@
   when it's started but waiting on the founder.
 -->
 <template>
-  <span class="step-node" :class="`step-node--${state}`" :aria-label="label">
-    <svg v-if="state === 'done'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- Sits on the rail, outside its step's left edge -->
+  <span
+    class="absolute left-[-2.75rem] top-6 inline-flex h-7 w-7 items-center justify-center rounded-full border bg-sl-bg
+      text-[12px] font-semibold tabular-nums
+      max-[640px]:left-[-2.25rem] max-[640px]:h-6 max-[640px]:w-6 max-[640px]:text-[11px]"
+    :class="{
+      done: 'border-sl-ok text-sl-ok',
+      wait: 'border-sl-wait text-sl-wait shadow-[0_0_0_4px_color-mix(in_srgb,var(--sl-wait)_18%,transparent)]',
+      todo: 'border-sl-line-strong text-sl-muted',
+    }[state]"
+    :aria-label="label"
+  >
+    <svg v-if="state === 'done'" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M5 12.5l4.5 4.5L19 7.5" />
     </svg>
     <span v-else aria-hidden="true">{{ index }}</span>
@@ -25,48 +36,3 @@ const label = computed(() => {
   return `Step ${props.index}, ${status}`
 })
 </script>
-
-<style scoped>
-.step-node {
-  position: absolute;
-  left: -2.75rem;
-  top: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong);
-  background: var(--sl-bg);
-  color: var(--sl-muted);
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.step-node svg {
-  width: 0.875rem;
-  height: 0.875rem;
-}
-
-.step-node--done {
-  border-color: var(--sl-ok);
-  color: var(--sl-ok);
-}
-
-.step-node--wait {
-  border-color: var(--sl-wait);
-  color: var(--sl-wait);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sl-wait) 18%, transparent);
-}
-
-@media (max-width: 640px) {
-  .step-node {
-    left: -2.25rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    font-size: 11px;
-  }
-}
-</style>

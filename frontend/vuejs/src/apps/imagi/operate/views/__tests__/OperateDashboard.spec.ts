@@ -131,7 +131,9 @@ describe('OperateDashboard', () => {
     const section = wrapper.findAll('section')[1]
     const values = section.findAll('.stat__value')
     expect(values.map(v => v.text())).toEqual(['$625.50', '$700.00', '-$74.50'])
-    expect(values[2].classes()).toContain('text-[color:var(--sl-bad)]')
+    // A loss is not tinted: the old `text-[color:var(--sl-bad)]` toggle here was
+    // always overridden by the stat's own text colour, so it never rendered red.
+    expect(values[2].classes()).toContain('text-sl-text')
     expect(section.text()).toContain('$125.50 from Sell, $500.00 recorded')
     expect(section.text()).not.toContain('Connect Stripe')
   })

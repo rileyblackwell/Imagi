@@ -13,7 +13,7 @@
     <div class="editorial pricing-page relative min-h-screen">
 
       <!-- Opener -->
-      <section class="sl-opener pricing-opener">
+      <section class="sl-opener !pb-[clamp(36px,5vw,56px)]">
         <div class="sl-spot" aria-hidden="true"></div>
         <div class="sl-dots" aria-hidden="true"></div>
         <div class="sl-wrap sl-opener__inner">
@@ -21,7 +21,7 @@
             <span class="sl-pip" aria-hidden="true"></span>
             <span>Pricing</span>
           </p>
-          <h1 class="sl-display sl-h1 pricing-title pricing-rise">
+          <h1 class="sl-display sl-h1 pricing-rise !text-[clamp(44px,7.4vw,96px)]">
             {{ PAID_PLANS_ENABLED ? 'Choose your plan' : 'Imagi is free' }}
           </h1>
           <p v-if="PAID_PLANS_ENABLED" class="sl-lede pricing-rise">
@@ -34,27 +34,36 @@
           </p>
 
           <!-- Subscribers manage billing (card, invoices, cancelling) in Stripe's portal -->
-          <p v-if="currentPlanKey" class="pricing-current pricing-rise">
+          <p
+            v-if="currentPlanKey"
+            class="pricing-rise mt-1 rounded-[999px] border border-sl-line bg-[var(--sl-pill-bg)] px-3.5 py-[7px] text-[14px] text-sl-muted"
+          >
             You're on the {{ currentPlanName }} plan.
-            <button type="button" class="link-inline" :disabled="portalLoading" @click="openPortal">
+            <button
+              type="button"
+              class="ml-1 font-semibold text-sl-text underline decoration-sl-coral underline-offset-[3px] disabled:opacity-60"
+              :disabled="portalLoading"
+              @click="openPortal"
+            >
               {{ portalLoading ? 'Opening…' : 'Manage billing' }}
             </button>
           </p>
         </div>
       </section>
 
-      <div class="sl-wrap pricing-body">
+      <div class="sl-wrap pb-[clamp(72px,9vw,120px)]">
         <!-- Confirm a plan switch: it charges or credits the card on file -->
         <div
           v-if="pendingSwitch"
-          class="pricing-note pricing-note--confirm"
+          :class="pricingNote"
+          class="border-l-sl-coral"
           role="alertdialog"
           aria-labelledby="switch-title"
         >
-          <p id="switch-title" class="pricing-note__title">
+          <p id="switch-title" class="m-0 font-sl-display text-[19px] font-bold tracking-[-0.015em] text-sl-text">
             Switch to {{ pendingSwitch.label }} for ${{ pendingSwitch.price }}/month?
           </p>
-          <p class="pricing-note__body">
+          <p class="mt-[0.4rem]">
             The change is prorated on your current subscription:
             {{ pendingSwitch.upgrade
               ? 'the difference for the rest of this billing period is charged to your card now'
@@ -72,17 +81,21 @@
         </div>
 
         <!-- Success -->
-        <p v-if="notice" class="pricing-note pricing-note--ok" role="status">
+        <p v-if="notice" :class="pricingNote" class="border-l-sl-ok" role="status">
           {{ notice }}
         </p>
 
         <!-- Error -->
-        <p v-if="error" class="pricing-note pricing-note--error" role="alert">
+        <p v-if="error" :class="pricingNote" class="border-l-sl-bad" role="alert">
           {{ error }}
         </p>
 
         <!-- Plans -->
-        <div class="tiers" :class="{ 'tiers--single': tiers.length === 1 }">
+        <!-- One open plan: a single card, centred at a card's width -->
+        <div
+          class="tiers mt-[clamp(16px,3vw,32px)] grid grid-cols-1 gap-[18px] min-[900px]:items-stretch"
+          :class="tiers.length === 1 ? 'mx-auto max-w-[26rem]' : 'min-[900px]:grid-cols-3'"
+        >
           <SubscriptionTierCard
             v-for="tier in tiers"
             :key="tier.name"
@@ -100,28 +113,31 @@
             @subscribe="(lookupKey) => handleSubscribe(tier, lookupKey)"
           />
         </div>
-        <p v-if="PAID_PLANS_ENABLED" class="pricing-stripe">
-          <i class="fas fa-lock" aria-hidden="true"></i>
+        <p
+          v-if="PAID_PLANS_ENABLED"
+          class="pricing-stripe mt-7 flex items-center justify-center gap-2 text-[13.5px] text-sl-faint"
+        >
+          <i class="fas fa-lock text-[11px]" aria-hidden="true"></i>
           Payments are processed by Stripe. Secure and encrypted.
         </p>
       </div>
 
       <!-- How usage is metered -->
-      <section class="sl-sec pricing-usage">
+      <section class="sl-sec !pt-0">
         <div class="sl-divider" aria-hidden="true"></div>
-        <div class="sl-wrap pricing-usage__inner">
-          <div class="pricing-usage__head">
+        <div class="sl-wrap grid gap-5 pt-[clamp(64px,8vw,110px)] min-[900px]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] min-[900px]:[align-items:start] min-[900px]:gap-16">
+          <div class="flex flex-col gap-4">
             <p class="sl-eyebrow"><span class="sl-grad-text">01</span><span>Usage</span></p>
-            <h2 class="sl-display pricing-usage__title">
+            <h2 class="sl-display text-[clamp(34px,4.4vw,54px)] leading-[1.02] tracking-[-0.03em]">
               {{ PAID_PLANS_ENABLED ? 'How usage is measured' : 'One safeguard' }}
             </h2>
           </div>
-          <p v-if="!PAID_PLANS_ENABLED" class="sl-lede pricing-usage__lede">
+          <p v-if="!PAID_PLANS_ENABLED" class="sl-lede pt-1.5">
             There's no weekly limit. The one check is per run: a single run that reaches
             $10 of AI work stops and asks you before it carries on, so a request that goes
             in circles never runs away. The Usage panel in the builder shows your plan.
           </p>
-          <p v-else class="sl-lede pricing-usage__lede">
+          <p v-else class="sl-lede pt-1.5">
             Your allowance is spent as you build, priced by the model you pick and how hard
             you ask it to think. Lighter models and lower reasoning effort go further; the
             flagship model at high effort goes fastest. The Usage panel in the builder shows
@@ -147,6 +163,11 @@ const authStore = useAuthStore()
 const paymentService = new PaymentService()
 
 const usageStore = useUsageStore()
+
+// Notices above the plans: a quiet card with a lit left edge (each notice adds
+// its own edge colour).
+const pricingNote =
+  'mx-auto mb-6 max-w-[44rem] rounded-[14px] border border-l-[3px] border-sl-line bg-sl-card-bg px-5 py-4 text-[15px] leading-[1.6] text-sl-muted shadow-sl-card'
 
 const loadingTier = ref<string | null>(null)
 const portalLoading = ref(false)
@@ -405,146 +426,7 @@ const handleSubscribe = async (tier: Tier, lookupKey: string | null) => {
 </script>
 
 <style scoped>
-.sl-opener.pricing-opener {
-  padding-bottom: clamp(36px, 5vw, 56px);
-}
-
-.sl-opener .pricing-title {
-  font-size: clamp(44px, 7.4vw, 96px);
-}
-
-.pricing-current {
-  margin: 4px 0 0;
-  padding: 7px 14px;
-  border: 1px solid var(--sl-line);
-  border-radius: 999px;
-  background: var(--sl-pill-bg);
-  color: var(--sl-muted);
-  font-size: 14px;
-}
-
-.link-inline {
-  margin-left: 0.25rem;
-  color: var(--sl-text);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--sl-coral);
-  text-underline-offset: 3px;
-}
-
-.link-inline:disabled {
-  opacity: 0.6;
-}
-
-.pricing-body {
-  padding-bottom: clamp(72px, 9vw, 120px);
-}
-
-/* Notices above the plans: a quiet card with a lit left edge */
-.pricing-note {
-  max-width: 44rem;
-  margin: 0 auto 1.5rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--sl-line);
-  border-left: 3px solid var(--sl-coral);
-  border-radius: 14px;
-  background: var(--sl-card-bg);
-  box-shadow: var(--sl-card-shadow);
-  color: var(--sl-muted);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.pricing-note--ok {
-  border-left-color: var(--sl-ok);
-}
-
-.pricing-note--error {
-  border-left-color: var(--sl-bad);
-}
-
-.pricing-note__title {
-  margin: 0;
-  color: var(--sl-text);
-  font-family: var(--sl-font-display);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-}
-
-.pricing-note__body {
-  margin: 0.4rem 0 0;
-}
-
-.tiers {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
-  margin-top: clamp(16px, 3vw, 32px);
-}
-
-@media (min-width: 900px) {
-  .tiers {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
-  }
-}
-
-/* One open plan: a single card, centred at a card's width */
-.tiers.tiers--single {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 26rem;
-  margin-inline: auto;
-}
-
-.pricing-stripe {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 28px 0 0;
-  color: var(--sl-faint);
-  font-size: 13.5px;
-}
-
-.pricing-stripe i {
-  font-size: 11px;
-}
-
-.sl-sec.pricing-usage {
-  padding-top: 0;
-}
-
-.pricing-usage__inner {
-  display: grid;
-  gap: 20px;
-  padding-top: clamp(64px, 8vw, 110px);
-}
-
-@media (min-width: 900px) {
-  .pricing-usage__inner {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: 64px;
-    align-items: start;
-  }
-}
-
-.pricing-usage__head {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.pricing-usage__title {
-  font-size: clamp(34px, 4.4vw, 54px);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-}
-
-.pricing-usage__lede {
-  padding-top: 6px;
-}
-
+/* The opener's staggered rise: keyframes stay in CSS (scoped names are hashed). */
 .pricing-rise {
   animation: pricing-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

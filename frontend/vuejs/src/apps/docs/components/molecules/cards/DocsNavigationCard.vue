@@ -3,13 +3,24 @@
   footer matches the hairline language of the rest of the site.
 -->
 <template>
-  <router-link :to="to" class="docs-next group">
-    <span class="docs-next__body">
-      <span class="docs-next__title">{{ title }}</span>
-      <span class="docs-next__desc">{{ description }}</span>
+  <!-- These sit two-up in a `rule-cols--2` grid, which has no column gap of its
+       own (its columns pad themselves) — the md: odd/even margins keep the left
+       card's arrow from butting into the right card's title. The focus ring
+       needs `!` to beat `.spotlight :focus-visible`. -->
+  <router-link
+    :to="to"
+    class="group/next flex h-full items-start justify-between gap-6 border-t border-t-ed-rule pt-6
+      transition-[border-color] duration-[180ms] ease-[ease] hover:border-t-ed-accent
+      md:odd:mr-6 md:even:ml-6
+      focus-visible:outline focus-visible:outline-2 focus-visible:!outline-ed-accent focus-visible:!outline-offset-4"
+  >
+    <span class="block">
+      <span class="block text-[1.0625rem] font-semibold tracking-[-0.01em] text-ed-ink">{{ title }}</span>
+      <span class="mt-2 block text-[0.9375rem] leading-[1.6] text-ed-ink-55 text-pretty">{{ description }}</span>
     </span>
     <svg
-      class="docs-next__arrow"
+      class="mt-[0.2rem] h-[1.1rem] w-[1.1rem] flex-none text-ed-ink-40 [transition:transform_0.3s_ease,color_0.18s_ease]
+        group-hover/next:translate-x-[3px] group-hover/next:text-ed-accent"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -29,73 +40,3 @@ defineProps<{
   description: string
 }>()
 </script>
-
-<style scoped>
-.docs-next {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  height: 100%;
-  padding: 1.5rem 0 0;
-  border-top: 1px solid var(--rule);
-  transition: border-color 0.18s ease;
-}
-
-.docs-next:hover {
-  border-top-color: var(--accent);
-}
-
-/* These sit two-up in a `rule-cols--2` grid, which has no column gap of its
-   own (its columns pad themselves) — without this the left card's arrow butts
-   into the right card's title. */
-@media (min-width: 768px) {
-  .docs-next:nth-child(odd) {
-    margin-right: 1.5rem;
-  }
-
-  .docs-next:nth-child(even) {
-    margin-left: 1.5rem;
-  }
-}
-
-.docs-next:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
-}
-
-.docs-next__body {
-  display: block;
-}
-
-.docs-next__title {
-  display: block;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.docs-next__desc {
-  display: block;
-  margin-top: 0.5rem;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--ink-55);
-  text-wrap: pretty;
-}
-
-.docs-next__arrow {
-  flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
-  margin-top: 0.2rem;
-  color: var(--ink-40);
-  transition: transform 0.3s ease, color 0.18s ease;
-}
-
-.docs-next:hover .docs-next__arrow {
-  transform: translateX(3px);
-  color: var(--accent);
-}
-</style>

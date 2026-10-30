@@ -46,9 +46,14 @@
         </span>
       </div>
 
-      <ol class="console-rail">
+      <!-- The rail: a hairline behind the step nodes -->
+      <ol
+        class="relative grid gap-4 pl-11 max-[640px]:pl-9
+          before:absolute before:bottom-6 before:left-[0.875rem] before:top-6 before:w-px before:bg-sl-line-strong before:content-['']
+          max-[640px]:before:left-3"
+      >
         <!-- 1. Connect Stripe -->
-        <li class="console-step">
+        <li class="relative">
           <StepNode :index="1" :state="connectState" />
           <div class="p-6" :class="ui.card">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -66,10 +71,10 @@
                   </template>
                 </p>
                 <div v-if="settings?.connection_type === 'connect'" class="flex flex-wrap gap-2 mt-3">
-                  <span class="console-chip" :class="settings.connect_charges_enabled ? statusTones.success : statusTones.neutral">
+                  <span :class="[chip, settings.connect_charges_enabled ? statusTones.success : statusTones.neutral]">
                     {{ settings.connect_charges_enabled ? 'Payments on' : 'Payments off' }}
                   </span>
-                  <span class="console-chip" :class="settings.connect_payouts_enabled ? statusTones.success : statusTones.neutral">
+                  <span :class="[chip, settings.connect_payouts_enabled ? statusTones.success : statusTones.neutral]">
                     {{ settings.connect_payouts_enabled ? 'Payouts on' : 'Payouts off' }}
                   </span>
                 </div>
@@ -116,7 +121,7 @@
         </li>
 
         <!-- 2. Choose how you charge -->
-        <li class="console-step">
+        <li class="relative">
           <StepNode :index="2" :state="chooseState" />
           <div class="p-6" :class="ui.card">
             <h3 :class="ui.panelHeading">Choose how you charge</h3>
@@ -126,13 +131,19 @@
                 v-for="model in paymentModels"
                 :key="model.key"
                 type="button"
-                class="console-option focus-ring"
-                :class="{ 'console-option--on': chosen.includes(model.key) }"
+                class="focus-ring relative rounded-[0.875rem] border p-4 pr-11 text-left
+                  [transition:border-color_200ms_cubic-bezier(0.22,1,0.36,1),background-color_200ms_cubic-bezier(0.22,1,0.36,1)]
+                  hover:border-sl-line-strong disabled:cursor-progress"
+                :class="chosen.includes(model.key) ? 'border-sl-warm-line bg-sl-chip-bg-hover' : 'border-sl-line bg-sl-chip-bg'"
                 :aria-pressed="chosen.includes(model.key)"
                 :disabled="savingModels"
                 @click="toggleModel(model.key)"
               >
-                <span class="console-option__check" aria-hidden="true">
+                <span
+                  class="absolute right-4 top-4 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] text-sl-on-accent"
+                  :class="chosen.includes(model.key) ? 'border-transparent bg-sl-grad' : 'border-sl-line-strong'"
+                  aria-hidden="true"
+                >
                   <i v-if="chosen.includes(model.key)" class="fas fa-check"></i>
                 </span>
                 <span class="block text-sm font-semibold text-ink dark:text-bone">{{ model.title }}</span>
@@ -145,7 +156,7 @@
         </li>
 
         <!-- 3. Set your prices -->
-        <li class="console-step">
+        <li class="relative">
           <StepNode :index="3" :state="pricesState" />
           <div class="p-6" :class="ui.card">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -182,7 +193,7 @@
         </li>
 
         <!-- 4. Add payments to your app -->
-        <li class="console-step">
+        <li class="relative">
           <StepNode :index="4" :state="appState" />
           <div class="p-6" :class="ui.card">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -215,7 +226,7 @@
                   <p class="text-sm font-medium text-ink dark:text-bone">{{ page.name }}</p>
                   <p :class="ui.hintText" class="mt-0.5">{{ page.description }}</p>
                 </div>
-                <span v-if="page.installed" class="console-chip" :class="statusTones.success">In app</span>
+                <span v-if="page.installed" :class="[chip, statusTones.success]">In app</span>
               </div>
             </div>
 
@@ -226,8 +237,8 @@
               to see them.
             </div>
 
-            <details v-if="chosen.includes('usage')" class="console-details mt-5">
-              <summary class="text-sm font-medium text-ink dark:text-bone cursor-pointer">How pay as you go is counted</summary>
+            <details v-if="chosen.includes('usage')" class="mt-5">
+              <summary class="text-sm font-medium text-ink dark:text-bone cursor-pointer marker:text-sl-muted">How pay as you go is counted</summary>
               <p :class="ui.bodyText" class="mt-3">
                 Your app tells Imagi each time a customer uses something you charge for, and Stripe adds it up and bills them monthly.
                 Ask Imagi's agent in Build, for example "charge for each message sent", and it wires this in with one line:
@@ -287,6 +298,10 @@ import type { Order, PaymentModel, Product } from '../types'
 import { describePrice, formatDateTime, formatMoney, paymentModels, ui } from '../utils/ui'
 
 type StepState = 'done' | 'wait' | 'todo'
+
+/** A small status chip on a step (its tone comes from statusTones). */
+const chip =
+  'inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]'
 
 const route = useRoute()
 const router = useRouter()
@@ -455,96 +470,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.console-rail {
-  position: relative;
-  display: grid;
-  gap: 1rem;
-  padding-left: 2.75rem;
-}
-
-/* The rail: a hairline behind the step nodes. */
-.console-rail::before {
-  content: '';
-  position: absolute;
-  left: 0.875rem;
-  top: 1.5rem;
-  bottom: 1.5rem;
-  width: 1px;
-  background: var(--sl-line-strong);
-}
-
-.console-step {
-  position: relative;
-}
-
-.console-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.625rem;
-  border-width: 1px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.console-option {
-  position: relative;
-  text-align: left;
-  padding: 1rem 2.75rem 1rem 1rem;
-  border-radius: 0.875rem;
-  border: 1px solid var(--sl-line);
-  background: var(--sl-chip-bg);
-  transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.console-option:hover {
-  border-color: var(--sl-line-strong);
-}
-
-.console-option--on {
-  border-color: var(--sl-warm-line);
-  background: var(--sl-chip-bg-hover);
-}
-
-.console-option:disabled {
-  cursor: progress;
-}
-
-.console-option__check {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong);
-  font-size: 10px;
-  color: var(--sl-on-accent);
-}
-
-.console-option--on .console-option__check {
-  border-color: transparent;
-  background: var(--sl-grad);
-}
-
-.console-details summary::marker {
-  color: var(--sl-muted);
-}
-
-@media (max-width: 640px) {
-  .console-rail {
-    padding-left: 2.25rem;
-  }
-  .console-rail::before {
-    left: 0.75rem;
-  }
-}
-</style>

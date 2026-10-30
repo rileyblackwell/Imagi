@@ -1,40 +1,40 @@
-<!-- Checkout success — on the Spotlight stage (see PaymentLayout's
-     .pay-* classes). -->
+<!-- Checkout success — on the Spotlight stage (class lists in
+     ../layouts/payStage.ts). -->
 <template>
   <PaymentLayout>
     <div class="editorial payment-success-view">
-      <section class="pay-stage">
+      <section :class="pay.stage">
         <div class="sl-spot" aria-hidden="true"></div>
         <div class="sl-dots" aria-hidden="true"></div>
 
-        <div class="pay-stage__inner">
+        <div :class="pay.inner">
           <div v-if="isLoading" class="pay-rise">
-            <div class="pay-card">
-              <div class="pay-spinner" aria-hidden="true"></div>
+            <div :class="pay.card">
+              <div :class="pay.spinner" aria-hidden="true"></div>
               <p class="mt-5">Processing your payment…</p>
             </div>
           </div>
 
           <div v-else-if="paymentProcessed" class="pay-rise">
-            <div class="pay-mark pay-mark--ok"><i class="fas fa-check" aria-hidden="true"></i></div>
-            <h1 class="sl-display pay-title">Subscription <span class="sl-run">activated</span></h1>
-            <p class="sl-lede pay-lede">
+            <div class="text-sl-ok" :class="pay.mark"><i class="fas fa-check" aria-hidden="true"></i></div>
+            <h1 class="sl-display" :class="pay.title">Subscription <span class="sl-run">activated</span></h1>
+            <p class="sl-lede" :class="pay.lede">
               Your subscription is now active. Welcome aboard!
             </p>
 
-            <div class="pay-card">
+            <div :class="pay.card">
               <p class="m-0">
                 Your plan is now active. You can manage your subscription at any time.
               </p>
               <!-- The webhook grants the plan, so it may land a moment after
                    this page does; show the allowance only once it has. -->
               <template v-if="planSummary">
-                <p class="pay-card__label">Your plan</p>
-                <p class="pay-card__value">{{ planSummary }}</p>
+                <p :class="pay.cardLabel">Your plan</p>
+                <p :class="pay.cardValue">{{ planSummary }}</p>
               </template>
             </div>
 
-            <div class="pay-actions">
+            <div :class="pay.actions">
               <router-link to="/imagi/projects" class="btn-primary">
                 <i class="fas fa-rocket"></i>
                 <span>Start building</span>
@@ -52,14 +52,14 @@
           </div>
 
           <div v-else-if="error" class="pay-rise">
-            <div class="pay-mark pay-mark--bad"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>
-            <h1 class="sl-display pay-title">Payment processing error</h1>
+            <div class="text-sl-bad" :class="pay.mark"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>
+            <h1 class="sl-display" :class="pay.title">Payment processing error</h1>
 
-            <div class="pay-card pay-card--error">
+            <div :class="pay.cardError">
               <p class="m-0">{{ error }}</p>
             </div>
 
-            <div class="pay-actions">
+            <div :class="pay.actions">
               <router-link to="/payments/pricing" class="btn-primary">
                 <i class="fas fa-arrow-left"></i>
                 <span>Back to pricing</span>
@@ -79,6 +79,7 @@ import { usePaymentStore } from '../stores/payments'
 import { useUsageStore, formatUsd } from '@/shared/stores/usage'
 import PaymentService from '../services/payment_service'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
+import { pay } from '../layouts/payStage'
 
 const paymentStore = usePaymentStore()
 const usageStore = useUsageStore()

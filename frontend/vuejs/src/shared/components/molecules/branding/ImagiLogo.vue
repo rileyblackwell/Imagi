@@ -13,8 +13,15 @@
 -->
 <template>
   <router-link :to="to" class="flex items-center" aria-label="Imagi">
+    <!-- Each i is a dotless ı with its dot drawn on, sized and placed in em so
+         it tracks every size variant. The last dot is the light: the Spotlight
+         gradient with a soft glow. It is the light theme's gradient in both
+         themes: the dark pair (#ff6b5a → #ffb547, glow at 0.55) was written as
+         `:global(.dark) .wordmark__i--lit .wordmark__dot`, which Vue compiles to
+         a bare `.dark` rule, so it never reached the dot. -->
     <span
-      class="wordmark leading-none text-ink dark:text-white transition-colors duration-300"
+      class="wordmark font-['Bricolage_Grotesque','Hanken_Grotesk',ui-sans-serif,system-ui,sans-serif] font-[760] [font-variation-settings:'opsz'_72] tracking-[-0.04em] whitespace-nowrap
+             leading-none text-ink dark:text-white transition-colors duration-300"
       :class="[
         size === 'sm' ? 'text-lg' :
         size === 'md' ? 'text-[1.4rem]' :
@@ -23,11 +30,16 @@
         'text-[1.4rem]'
       ]"
       aria-hidden="true"
-    ><span class="wordmark__i">ı<i class="wordmark__dot"></i></span>mag<span class="wordmark__i wordmark__i--lit">ı<i class="wordmark__dot"></i></span></span>
+    ><span class="wordmark__i relative inline-block">ı<i :class="dot" class="bg-current"></i></span>mag<span class="wordmark__i wordmark__i--lit relative inline-block">ı<i
+      :class="dot"
+      class="bg-transparent bg-[linear-gradient(100deg,#ec4a33,#ee8c10)] [box-shadow:0_0_0.22em_0.02em_rgba(255,120,80,0.35)]"
+    ></i></span></span>
   </router-link>
 </template>
 
 <script setup lang="ts">
+const dot = 'wordmark__dot absolute top-[0.035em] left-[52%] w-[0.205em] h-[0.205em] rounded-[50%] -translate-x-1/2'
+
 defineProps({
   /**
    * Link destination
@@ -46,41 +58,3 @@ defineProps({
   }
 })
 </script>
-
-<style scoped>
-.wordmark {
-  font-family: 'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
-  font-weight: 760;
-  font-variation-settings: 'opsz' 72;
-  letter-spacing: -0.04em;
-  white-space: nowrap;
-}
-
-/* A dotless i with its dot drawn on, sized and placed in em so it tracks
-   every size variant */
-.wordmark__i {
-  position: relative;
-  display: inline-block;
-}
-
-.wordmark__dot {
-  position: absolute;
-  top: 0.035em;
-  left: 52%;
-  width: 0.205em;
-  height: 0.205em;
-  border-radius: 50%;
-  background: currentColor;
-  transform: translateX(-50%);
-}
-
-.wordmark__i--lit .wordmark__dot {
-  background: linear-gradient(100deg, #ec4a33, #ee8c10);
-  box-shadow: 0 0 0.22em 0.02em rgba(255, 120, 80, 0.35);
-}
-
-:global(.dark) .wordmark__i--lit .wordmark__dot {
-  background: linear-gradient(100deg, #ff6b5a, #ffb547);
-  box-shadow: 0 0 0.22em 0.02em rgba(255, 120, 80, 0.55);
-}
-</style>

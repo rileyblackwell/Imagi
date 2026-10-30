@@ -63,19 +63,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-/* Everything else lives in shared/styles/spotlight.css — this page only
-   needs smooth in-page scrolling for the hero's "see how it works" jump. */
-:deep(html) {
-  scroll-behavior: smooth;
-}
-
-/* Product shots sit narrower than the text measure, so the words lead and the
-   screenshots support them. The Set the look shot lives in a split and keeps
-   its column. */
-.home-page :deep(.sl-stage:not(.look__shot)) {
-  max-width: 920px;
-  margin-inline: auto;
-}
-</style>

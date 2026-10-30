@@ -20,9 +20,13 @@
       <p class="text-[11px] leading-snug text-ink/60 dark:text-white/55">
         {{ lockedNote }}
       </p>
+      <!-- Navy ink primary, the composer's send recipe -->
       <button
         type="button"
-        class="thread-btn iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
+        class="iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink
+          bg-blue-950 hover:bg-blue-900 dark:bg-[#f3ede2] dark:hover:bg-white
+          [box-shadow:var(--iw-shadow-2),inset_0_1px_0_rgba(255,255,255,0.12)]
+          focus-visible:![outline:none] focus-visible:[box-shadow:var(--iw-focus-ring)]"
         @click="emit('back')"
       >
         {{ backLabel }}
@@ -43,18 +47,26 @@
     @stop="store.abortInstanceRun(instance.id)"
   >
     <!-- A run that died: the one-tap way to pick the job back up, from where
-         it stopped. Typing instead also works, and says how to carry on. -->
+         it stopped. Typing instead also works, and says how to carry on.
+         The chat rail's red, with the workspace's lit pill as the way back. -->
     <div
       v-if="instance.reviewStatus === 'failed' && !instance.isProcessing"
-      class="retry-row flex items-center gap-2 rounded-xl px-2.5 py-1.5 mb-1.5"
+      class="flex items-center gap-2 rounded-xl px-2.5 py-1.5 mb-1.5 border border-[color:color-mix(in_srgb,var(--sl-bad)_24%,transparent)] bg-[color:color-mix(in_srgb,var(--sl-bad)_7%,transparent)]"
     >
-      <span class="retry-row__mark shrink-0" aria-hidden="true"><i class="fas fa-xmark"></i></span>
+      <span
+        class="shrink-0 grid place-items-center w-4 h-4 rounded-[50%] bg-sl-bad text-[color:rgb(var(--app-canvas,255_255_255))] text-[0.5rem] [box-shadow:0_0_12px_-2px_var(--sl-bad)]"
+        aria-hidden="true"
+      ><i class="fas fa-xmark"></i></span>
       <p class="flex-1 min-w-0 text-[11px] font-medium text-ink/75 dark:text-white/70">
         This thread stopped before finishing.
       </p>
       <button
         type="button"
-        class="retry-btn thread-btn iw-press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold"
+        class="iw-press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold
+          bg-sl-grad text-sl-on-accent
+          [box-shadow:var(--sl-btn-shadow)] hover:[box-shadow:var(--sl-btn-shadow-hover)]
+          focus-visible:![outline:none] focus-visible:[box-shadow:var(--iw-focus-ring)] focus-visible:hover:[box-shadow:var(--sl-btn-shadow-hover)]
+          dark:[box-shadow:var(--sl-btn-shadow)] dark:hover:[box-shadow:var(--sl-btn-shadow-hover)]"
         @click="retry"
       >
         <i class="fas fa-rotate-right text-[9px]" aria-hidden="true"></i>
@@ -112,60 +124,3 @@ function send(text: string) {
   store.steerThread(props.instance.id, text)
 }
 </script>
-
-<style scoped>
-.thread-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-/* Navy ink primary, the composer's send recipe */
-.thread-btn {
-  background: theme('colors.blue.950');
-  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.thread-btn:hover {
-  background: theme('colors.blue.900');
-}
-
-.dark .thread-btn {
-  background: #f3ede2;
-}
-
-.dark .thread-btn:hover {
-  background: #ffffff;
-}
-
-/* A stopped thread: the chat rail's red, with the workspace's lit pill as
-   the way back. */
-.retry-row {
-  border: 1px solid color-mix(in srgb, var(--sl-bad) 24%, transparent);
-  background: color-mix(in srgb, var(--sl-bad) 7%, transparent);
-}
-
-.retry-row__mark {
-  display: grid;
-  place-items: center;
-  width: 1rem;
-  height: 1rem;
-  border-radius: 50%;
-  background: var(--sl-bad);
-  color: rgb(var(--app-canvas, 255 255 255));
-  font-size: 0.5rem;
-  box-shadow: 0 0 12px -2px var(--sl-bad);
-}
-
-.retry-btn,
-.dark .retry-btn {
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  box-shadow: var(--sl-btn-shadow);
-}
-
-.retry-btn:hover,
-.dark .retry-btn:hover {
-  background: var(--sl-grad);
-  box-shadow: var(--sl-btn-shadow-hover);
-}
-</style>

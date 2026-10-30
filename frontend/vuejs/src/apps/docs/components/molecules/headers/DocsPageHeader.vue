@@ -4,17 +4,18 @@
   is carried by the pill's pip alone.
 -->
 <template>
-  <header class="docs-header">
+  <header class="docs-header mb-12 md:mb-14">
     <p class="sl-eyebrow sl-pill">
       <span class="sl-pip" aria-hidden="true"></span>
       <span>{{ badgeText }}</span>
     </p>
 
-    <h1 class="sl-display docs-header__title">
+    <!-- `!` beats .sl-display / .sl-lede's `margin: 0` -->
+    <h1 class="sl-display !mt-6 text-[clamp(40px,5.6vw,68px)] leading-none tracking-[-0.035em] text-sl-text">
       {{ title }}
     </h1>
 
-    <p class="sl-lede docs-header__lede">
+    <p class="sl-lede !mt-5">
       {{ description }}
     </p>
 
@@ -34,27 +35,9 @@ withDefaults(
 </script>
 
 <style scoped>
-.docs-header .docs-header__title {
-  margin-top: 1.5rem;
-  color: var(--sl-text);
-  font-size: clamp(40px, 5.6vw, 68px);
-  line-height: 1;
-  letter-spacing: -0.035em;
-}
-
-.docs-header .docs-header__lede {
-  margin-top: 1.25rem;
-}
-
+/* The masthead's rise: keyframes stay in CSS (scoped names are hashed). */
 .docs-header {
-  margin-bottom: 3rem;
   animation: docs-header-rise 0.8s var(--app-ease) both;
-}
-
-@media (min-width: 768px) {
-  .docs-header {
-    margin-bottom: 3.5rem;
-  }
 }
 
 @keyframes docs-header-rise {

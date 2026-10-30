@@ -14,13 +14,28 @@
              down the left, a node per step coloured by how it went, so the
              transcript reads like a log of the work. The user's messages
              stay as bubbles on the right, off the rail — the rail is the
-             agent's story, the bubbles are the user's. -->
-        <div class="rail-feed max-w-3xl mx-auto">
+             agent's story, the bubbles are the user's. The line is the
+             ::before; nodes are punched out of it by a ring of the floor
+             colour, so it reads as running between them, not through them. -->
+        <div
+          class="relative mx-auto max-w-3xl
+            before:pointer-events-none before:absolute before:bottom-[0.625rem] before:left-[0.5625rem] before:top-[0.625rem] before:w-0.5 before:rounded-[2px] before:content-['']
+            before:bg-[image:linear-gradient(180deg,var(--sl-line-strong),var(--sl-line)_85%,transparent)]"
+        >
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
             <!-- When a sitting started: before the first message, and again
-                 whenever the user comes back after a break. -->
-            <div v-if="sessionStarts.has(index)" class="session-break" role="separator">
-              <span class="session-break__label">
+                 whenever the user comes back after a break. Centred between
+                 two hairlines, on the canvas over the rail, so the rail breaks
+                 where the user stepped away; a new sitting gets more room than
+                 a new turn. The time is in `faint`, the token kept for
+                 timestamps. -->
+            <div
+              v-if="sessionStarts.has(index)"
+              class="session-break relative z-[1] flex items-center gap-3 bg-canvas py-1.5 [.msg-row+&]:mt-8
+                before:h-px before:flex-1 before:bg-sl-line before:content-[''] after:h-px after:flex-1 after:bg-sl-line after:content-['']"
+              role="separator"
+            >
+              <span class="shrink-0 text-[0.6875rem] font-semibold uppercase tabular-nums tracking-[0.06em] text-sl-faint">
                 <time :datetime="sessionIso(message.timestamp)">{{ formatSessionStart(message.timestamp) }}</time>
               </span>
             </div>
@@ -29,31 +44,37 @@
                  the user typed, so it hangs on the rail as the brief rather
                  than sitting in a user bubble. -->
             <div v-if="isBrief(message, index)"
-              class="msg-row rail-entry brief-row"
-              :class="{ 'animate-message-in': message.isNew }">
-              <span class="rail-node rail-node--brief" aria-hidden="true"><i class="fas fa-share"></i></span>
-              <p class="rail-who"><span class="rail-name">From the coordinator</span></p>
-              <p class="brief-text whitespace-pre-wrap break-words">{{ message.content }}</p>
+              :class="['msg-row rail-entry brief-row', ROW, { 'animate-message-in': message.isNew }]">
+              <span :class="['rail-node rail-node--brief', NODE.brief]" aria-hidden="true"><i class="fas fa-share"></i></span>
+              <p :class="WHO"><span :class="['rail-name', NAME_QUIET]">From the coordinator</span></p>
+              <p :class="['brief-text whitespace-pre-wrap break-words', BRIEF_TEXT]">{{ message.content }}</p>
             </div>
 
             <!-- Errors the running app reported, which the server handed to
                  the coordinator: on the rail as the app speaking, with a red
                  node, not in a bubble as if the user had typed them. -->
             <div v-else-if="message.role === 'user' && message.appError"
-              class="msg-row rail-entry brief-row app-error-row"
               data-testid="app-error-message"
-              :class="{ 'animate-message-in': message.isNew }">
-              <span class="rail-node rail-node--error" aria-hidden="true"><i class="fas fa-exclamation"></i></span>
-              <p class="rail-who"><span class="rail-name">Your app reported an error</span></p>
-              <p class="brief-text whitespace-pre-wrap break-words">{{ appErrorText(message.content) }}</p>
+              :class="['msg-row rail-entry brief-row', ROW, { 'animate-message-in': message.isNew }]">
+              <span :class="['rail-node rail-node--error', NODE.error]" aria-hidden="true"><i class="fas fa-exclamation"></i></span>
+              <p :class="WHO"><span :class="['rail-name', NAME_QUIET]">Your app reported an error</span></p>
+              <p :class="['brief-text whitespace-pre-wrap break-words', BRIEF_TEXT]">{{ appErrorText(message.content) }}</p>
             </div>
 
-            <!-- User Message: a single compact bubble that opens the turn -->
+            <!-- User Message: a single compact bubble that opens the turn, with
+                 extra breathing room above it. -->
             <div v-else-if="message.role === 'user'"
-              class="msg-row user-row group flex flex-col items-end"
+              class="msg-row group flex flex-col items-end [.msg-row+&]:mt-8 [.session-break+&]:mt-3"
               :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <div class="user-bubble">
+              <!-- The one element that gets a bubble: solid, off the rail on
+                   the right, ink on the daylight floor and a raised surface
+                   on the dark one. Long unbroken strings (paths, URLs) wrap
+                   instead of widening the chat. -->
+              <div
+                class="user-bubble min-w-0 max-w-[85%] rounded-[1rem_1rem_0.25rem_1rem] border border-transparent bg-[#1c1d26] px-3.5 py-2.5 text-[#f2f2f6] shadow-sl-card [overflow-wrap:anywhere]
+                  dark:border-sl-line-strong dark:bg-sl-surface-2 dark:text-sl-text"
+              >
                 <p class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ message.content }}</p>
               </div>
               <!-- Checkpoint: rewind files + conversation to just before this
@@ -65,7 +86,9 @@
               <button
                 v-if="message.checkpoint && message.dbId && restoreAllowed"
                 type="button"
-                class="restore-chip mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-ink/40 dark:text-white/35 hover:text-ink/75 dark:hover:text-white/75 hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                class="mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-ink/40 dark:text-white/35 hover:text-ink/75 dark:hover:text-white/75 hover:bg-ink/[0.03] dark:hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 focus-visible:opacity-100
+                  [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out)]
+                  focus-visible:shadow-iw-focus focus-visible:![outline:none] [@media(hover:none)]:!opacity-[0.55]"
                 title="Restore your app and this conversation to the moment before this message"
                 @click="emit('restore-checkpoint', message)"
               >
@@ -74,21 +97,34 @@
               </button>
             </div>
 
-            <!-- Assistant Message: the agent's work flows plainly below the bubble -->
+            <!-- Assistant Message: the agent's work flows directly on the panel
+                 background — no box, no label. A question still waiting on the user steps off
+                 the rail into an amber tinted box, so it is the one thing in
+                 the log that asks to be read. -->
             <div v-else-if="message.role === 'assistant'"
-              class="msg-row rail-entry assistant-response"
-              :class="{ 'animate-message-in': message.isNew, 'rail-entry--asking': message.question && isAnswerable(index) }"
+              class="msg-row rail-entry assistant-response min-w-0 text-[0.875rem] leading-[1.6] [overflow-wrap:anywhere] [.msg-row+&]:mt-4 [.session-break+&]:mt-3"
+              :class="[
+                { 'animate-message-in': message.isNew },
+                message.question && isAnswerable(index)
+                  ? 'rail-entry--asking relative -ml-3 rounded-[0.875rem] border border-[color:color-mix(in_srgb,var(--sl-wait)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--sl-wait)_7%,transparent)] py-3 pl-11 pr-3'
+                  : 'relative pl-8',
+              ]"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
               <!-- Who is speaking, as the node on the rail: the coordinator's
                    lit mark, or a thread's blue ring. A question still waiting
                    on the user lights its node amber instead. -->
-              <span v-if="message.question && isAnswerable(index)" class="rail-node rail-node--wait" aria-hidden="true">
+              <span v-if="message.question && isAnswerable(index)" :class="['rail-node rail-node--wait', NODE.wait]" aria-hidden="true">
                 <i class="fas fa-question"></i>
               </span>
-              <span v-else :class="['rail-node', `rail-node--${agentKind}`]" aria-hidden="true">{{ agentKind === 'coordinator' ? 'i' : '' }}</span>
-              <p class="rail-who">
-                <span class="rail-name">{{ speakerName }}</span>
-                <span v-if="message.question && isAnswerable(index)" class="rail-tag">Needs your answer</span>
+              <span v-else :class="['rail-node', `rail-node--${agentKind}`, NODE[agentKind]]" aria-hidden="true">{{ agentKind === 'coordinator' ? 'i' : '' }}</span>
+              <p :class="WHO">
+                <span :class="['rail-name', NAME]">{{ speakerName }}</span>
+                <!-- A small mono label in the state's colour, the rail's way
+                     of saying how a step went (dispatch cards wear the same). -->
+                <span
+                  v-if="message.question && isAnswerable(index)"
+                  class="rail-tag whitespace-nowrap text-[0.625rem] uppercase tracking-[0.08em] text-sl-wait [font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace]"
+                >Needs your answer</span>
               </p>
               <AgentActivityFeed
                 v-if="activityVisible && message.activity?.length"
@@ -101,8 +137,14 @@
                 :steps="message.plan"
                 class="mb-2.5"
               />
+              <!-- The reply in Spotlight ink, with ink-tinted list markers
+                   instead of the typography plugin's gray. Markdown inside
+                   is styled in <style> (it arrives via v-html). -->
               <div
-                class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm"
+                class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 text-[0.875rem] leading-[1.6] text-sl-text
+                  [--tw-prose-body:var(--sl-text)] [--tw-prose-invert-body:var(--sl-text)] [--tw-prose-bold:var(--sl-text)]
+                  [--tw-prose-invert-bold:var(--sl-text)] [--tw-prose-headings:var(--sl-text)] [--tw-prose-invert-headings:var(--sl-text)]
+                  marker:text-ink/40 dark:marker:text-blue-100/40"
                 v-if="message.content && message.content.trim().length> 0"
                 v-html="formatMessage(message, index)"
               />
@@ -143,8 +185,17 @@
                    flight, and goes when that work lands — so it is never a
                    stale invitation sitting under a finished card, and never
                    repeats down a thread full of them. -->
-              <Transition name="handback">
-                <p v-if="index === handbackIndex" class="handback">
+              <!-- Deliberately the quietest thing in the turn: caption-sized
+                   muted text rather than the 14px ink the reply is set in. It
+                   fades as it leaves, rather than blinking out from under the
+                   card that just turned green. -->
+              <Transition
+                enter-active-class="[transition:opacity_var(--iw-dur-3)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-out)] motion-reduce:[transition:none]"
+                enter-from-class="-translate-y-0.5 opacity-0"
+                leave-active-class="[transition:opacity_var(--iw-dur-3)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-out)] motion-reduce:[transition:none]"
+                leave-to-class="-translate-y-0.5 opacity-0"
+              >
+                <p v-if="index === handbackIndex" class="handback mt-[0.4375rem] pl-px text-[0.6875rem] leading-[1.5] text-ink/45 dark:text-white/40">
                   Running in the background — go ahead and send your next message.
                 </p>
               </Transition>
@@ -159,15 +210,13 @@
               </div>
             </div>
 
-            <!-- System Message -->
-            <!-- System notes hang on the rail as a small quiet node: part of
+            <!-- System Message: system notes hang on the rail as a small quiet node: part of
                  the log, but nobody speaking. -->
             <div v-else
-              class="msg-row rail-entry system-row"
-              :class="{ 'animate-fade-in': message.isNew }"
+              :class="['msg-row rail-entry', ROW, { 'animate-fade-in': message.isNew }]"
               :style="message.isNew ? { 'animation-delay': `${message.enterDelay}ms` } : {}">
-              <span class="rail-node rail-node--note" aria-hidden="true"></span>
-              <p class="system-text">{{ message.content }}</p>
+              <span :class="['rail-node', NODE.note]" aria-hidden="true"></span>
+              <p class="flex min-h-[1.25rem] items-center text-[0.75rem] leading-[1.45] text-sl-muted">{{ message.content }}</p>
             </div>
           </template>
 
@@ -175,13 +224,27 @@
                streaming in — the growing message already shows progress.
                It fades both ways: when the reply starts arriving this hands
                over to the text rather than vanishing out from under it. -->
-          <Transition name="status">
-            <div v-if="showActivityIndicator" class="msg-row rail-entry status-row">
-              <span class="rail-node rail-node--live iw-live-node" aria-hidden="true"><span class="iw-live"></span></span>
-              <div class="agent-status flex items-center gap-2.5">
+          <Transition
+            enter-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-out)]"
+            enter-from-class="translate-y-1 opacity-0"
+            leave-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-out)]"
+            leave-to-class="translate-y-1 opacity-0"
+          >
+            <div v-if="showActivityIndicator" :class="['msg-row rail-entry', ROW]">
+              <!-- The live node: the workspace's working dot, whose disc, ring
+                   and grid come from .iw-live-node (styles/workspace.css). -->
+              <span :class="['rail-node iw-live-node', NODE.live]" aria-hidden="true"><span class="iw-live"></span></span>
+              <div class="agent-status flex min-h-[1.25rem] items-center gap-2.5">
                 <!-- Keyed on the reading so each new step cross-fades in
                      place, the same way the pane masthead's status does. -->
-                <Transition name="status-text" mode="out-in" type="transition">
+                <Transition
+                  mode="out-in"
+                  type="transition"
+                  enter-active-class="[transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+                  enter-from-class="translate-y-[3px] opacity-0"
+                  leave-active-class="[transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+                  leave-to-class="-translate-y-[3px] opacity-0"
+                >
                   <span :key="statusLabel" class="iw-live-text text-sm font-medium">{{ statusLabel }}</span>
                 </Transition>
               </div>
@@ -244,6 +307,41 @@ const props = withDefaults(defineProps<{
   /** The name over the agent's replies: "Coordinator", or the thread's job. */
   agentName?: string
 }>(), { showActivity: true, agentKind: 'coordinator', agentName: '' })
+
+/* ── The rail ─────────────────────────────────────────────────────────────
+   One line down the left edge, and a node on it for every step the agent
+   takes. Every rail entry is indented by the 2rem gutter the nodes sit in;
+   messages within a turn sit 1rem apart, and the first message of a sitting
+   sits just under its time. */
+const ROW = 'relative pl-8 [.msg-row+&]:mt-4 [.session-break+&]:mt-3'
+
+/** A node: 1.25rem, punched out of the line by a 4px ring of the floor. */
+const NODE_AT = 'absolute left-0 top-0 grid h-5 w-5 place-items-center rounded-[50%]'
+const RING = '[box-shadow:0_0_0_4px_rgb(var(--app-canvas))]'
+const NODE: Record<string, string> = {
+  // The coordinator's mark: the Spotlight light, lit.
+  coordinator: `${NODE_AT} bg-sl-grad font-sl-display text-[0.6875rem] font-bold text-sl-on-accent [box-shadow:0_0_0_4px_rgb(var(--app-canvas)),0_0_14px_-2px_var(--sl-glow,rgba(255,120,80,0.3))]`,
+  // A thread: a blue ring, the colour of work in progress.
+  thread: `${NODE_AT} ${RING} border-[1.5px] border-sl-work bg-canvas text-[0.5625rem]`,
+  // Waiting on the user: amber and glowing, the one node asking for a hand —
+  // set into the asking box's padding rather than on the rail.
+  wait: 'absolute left-3 top-3 grid h-5 w-5 place-items-center rounded-[50%] bg-sl-wait text-[0.5625rem] text-canvas [box-shadow:0_0_16px_-2px_var(--sl-wait)]',
+  // The app reporting an error: the stopped colour, quiet.
+  error: `${NODE_AT} ${RING} border-[1.5px] border-sl-bad bg-canvas text-[0.5rem] text-sl-bad`,
+  brief: `${NODE_AT} ${RING} border-[1.5px] border-sl-line-strong bg-canvas text-[0.5rem] text-sl-muted`,
+  // A system note: a small quiet dot centred on the line.
+  note: `${RING} absolute left-[calc(0.5625rem-3px)] top-[0.4375rem] grid h-2 w-2 place-items-center rounded-[50%] bg-sl-faint text-[0.5625rem]`,
+  // Placement over .iw-live-node, which would make it relative and round.
+  live: `${RING} !absolute left-0 top-0 h-5 w-5 !rounded-[50%] text-[0.5625rem]`,
+}
+
+/** The speaker, on the node's line. */
+const WHO = 'mb-[0.1875rem] flex min-h-[1.25rem] items-center gap-2 text-[0.75rem] leading-[1.3]'
+const NAME = 'font-semibold text-sl-text [overflow-wrap:anywhere]'
+/** The coordinator's brief and the app's errors are quoted, not spoken. */
+const NAME_QUIET = 'font-medium text-sl-faint [overflow-wrap:anywhere]'
+/** The brief a thread opens on: the coordinator's words, quietly boxed. */
+const BRIEF_TEXT = 'rounded-[0.625rem] bg-sl-chip-bg px-3 py-2 text-[0.8125rem] leading-[1.55] text-sl-muted'
 
 const speakerName = computed(() =>
   props.agentName || (props.agentKind === 'thread' ? 'Thread' : 'Coordinator')
@@ -535,338 +633,9 @@ const formatMessage = (message: AIMessage, index: number): string => {
 </script>
 
 <style scoped>
-/* Vertical rhythm: messages within a turn sit close together, and each new
-   user bubble opens a turn with extra breathing room above it. */
-.msg-row + .msg-row {
-  margin-top: 1rem;
-}
-
-.msg-row + .user-row {
-  margin-top: 2rem;
-}
-
-/* A new sitting gets more room than a new turn, and its first message sits
-   just under the time. */
-.msg-row + .session-break {
-  margin-top: 2rem;
-}
-
-.session-break + .msg-row {
-  margin-top: 0.75rem;
-}
-
-/* Quiet until the turn is hovered, then it fades up in place. */
-.restore-chip {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.restore-chip:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-/* Touch screens have no hover: keep the restore chip faintly visible so the
-   affordance is discoverable without a pointer. */
-@media (hover: none) {
-  .restore-chip {
-    opacity: 0.55;
-  }
-}
-
-/* The user's prompt is the one element that gets a bubble: solid, off the
-   rail on the right, so it reads as the user's side of the conversation.
-   Ink on the daylight floor, a raised surface on the dark one. */
-.user-bubble {
-  max-width: 85%;
-  padding: 0.625rem 0.875rem;
-  border-radius: 1rem 1rem 0.25rem 1rem;
-  background-color: #1c1d26;
-  border: 1px solid transparent;
-  box-shadow: var(--sl-card-shadow, var(--iw-shadow-1));
-  color: #f2f2f6;
-  /* Long unbroken strings (paths, URLs) wrap instead of widening the chat
-     and dragging in a horizontal scrollbar. */
-  overflow-wrap: anywhere;
-  min-width: 0;
-}
-
-.dark .user-bubble {
-  background-color: var(--sl-surface-2, #1a1d28);
-  border-color: var(--sl-line-strong, rgba(255, 255, 255, 0.14));
-  color: var(--sl-text, #eef0f6);
-}
-
-/* ── Session breaks ─────────────────────────────────────────────────────
-   When a sitting started, centred between two hairlines. It sits on the
-   canvas over the rail, so the rail breaks where the user stepped away and
-   picks up again with the next sitting. The time is in `faint`, the token
-   kept for timestamps. */
-.session-break {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.375rem 0;
-  background: rgb(var(--app-canvas));
-}
-
-.session-break::before,
-.session-break::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--sl-line, rgba(19, 26, 44, 0.09));
-}
-
-.session-break__label {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-variant-numeric: tabular-nums;
-  color: var(--sl-faint, rgba(19, 26, 44, 0.45));
-}
-
-/* ── The rail ───────────────────────────────────────────────────────────
-   One line down the left edge, and a node on it for every step the agent
-   takes. Nodes are punched out of the line by a ring of the floor colour,
-   so the line reads as running between them rather than through them. */
-.rail-feed {
-  position: relative;
-  --rail-x: 0.5625rem;
-  --node: 1.25rem;
-  --node-ring: 0 0 0 4px rgb(var(--app-canvas));
-}
-
-.rail-feed::before {
-  content: '';
-  position: absolute;
-  left: var(--rail-x);
-  top: 0.625rem;
-  bottom: 0.625rem;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(
-    180deg,
-    var(--sl-line-strong, rgba(19, 26, 44, 0.15)),
-    var(--sl-line, rgba(19, 26, 44, 0.09)) 85%,
-    transparent
-  );
-  pointer-events: none;
-}
-
-.rail-entry {
-  position: relative;
-  padding-left: 2rem;
-}
-
-.rail-node {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: var(--node);
-  height: var(--node);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 0.5625rem;
-  background: rgb(var(--app-canvas));
-  box-shadow: var(--node-ring);
-}
-
-/* The coordinator's mark: the Spotlight light, lit. */
-.rail-node--coordinator {
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  font-family: var(--sl-font-display, inherit);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  box-shadow: var(--node-ring), 0 0 14px -2px var(--sl-glow, rgba(255, 120, 80, 0.3));
-}
-
-/* A thread: a blue ring, the colour of work in progress. */
-.rail-node--thread {
-  border: 1.5px solid var(--sl-work);
-}
-
-/* Waiting on the user: amber and glowing, the one node asking for a hand. */
-.rail-node--wait {
-  background: var(--sl-wait);
-  color: rgb(var(--app-canvas));
-  box-shadow: var(--node-ring), 0 0 16px -2px var(--sl-wait);
-}
-
-/* The app reporting an error: the stopped colour, quiet. */
-.rail-node--error {
-  border: 1.5px solid var(--sl-bad);
-  color: var(--sl-bad);
-  font-size: 0.5rem;
-}
-
-.rail-node--brief {
-  border: 1.5px solid var(--sl-line-strong);
-  color: var(--sl-muted);
-  font-size: 0.5rem;
-}
-
-.rail-node--note {
-  left: calc(var(--rail-x) - 3px);
-  top: 0.4375rem;
-  width: 0.5rem;
-  height: 0.5rem;
-  background: var(--sl-faint);
-}
-
-/* The live node: the workspace's working dot (styles/workspace.css). */
-.rail-node--live {
-  position: absolute;
-  background: color-mix(in srgb, var(--sl-work) 10%, rgb(var(--app-canvas)));
-  box-shadow: var(--node-ring);
-}
-
-/* The speaker, on the node's line. */
-.rail-who {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: var(--node);
-  margin-bottom: 0.1875rem;
-  font-size: 0.75rem;
-  line-height: 1.3;
-}
-
-.rail-name {
-  font-weight: 600;
-  color: var(--sl-text);
-  overflow-wrap: anywhere;
-}
-
-/* A small mono label in the state's colour, the rail's way of saying how a
-   step went (dispatch cards wear the same). */
-.rail-tag {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sl-wait);
-  white-space: nowrap;
-}
-
-/* A question still waiting on the user steps off the rail into an amber
-   tinted box, so it is the one thing in the log that asks to be read. */
-.rail-entry--asking {
-  margin-left: -0.75rem;
-  padding: 0.75rem 0.75rem 0.75rem 2.75rem;
-  border-radius: 0.875rem;
-  background: color-mix(in srgb, var(--sl-wait) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--sl-wait) 22%, transparent);
-}
-
-.rail-entry--asking > .rail-node {
-  left: 0.75rem;
-  top: 0.75rem;
-  box-shadow: 0 0 16px -2px var(--sl-wait);
-}
-
-/* The brief a thread opens on: the coordinator's words, quietly boxed. */
-.brief-text {
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.625rem;
-  background: var(--sl-chip-bg, rgba(19, 26, 44, 0.035));
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: var(--sl-muted);
-}
-
-.brief-row .rail-name {
-  font-weight: 500;
-  color: var(--sl-faint);
-}
-
-.system-text {
-  min-height: var(--node);
-  display: flex;
-  align-items: center;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--sl-muted);
-}
-
-.status-row .agent-status {
-  min-height: var(--node);
-}
-
-/* The agent's work flows directly on the panel background — no box, no label */
-.assistant-response {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  /* Code blocks keep their own overflow-x so they scroll within their box,
-     not the page. */
-  overflow-wrap: anywhere;
-  min-width: 0;
-}
-
-/* The hand-back line under a live dispatch. Deliberately the quietest thing
-   in the turn: it is read once, the first time someone wonders whether they
-   have to sit and wait, and it must never compete with the card above it or
-   pass for the agent speaking — hence caption-sized muted text rather than
-   the 14px ink the reply is set in. */
-.handback {
-  margin-top: 0.4375rem;
-  padding-left: 0.0625rem;
-  font-size: 0.6875rem;
-  line-height: 1.5;
-  color: rgba(19, 26, 44, 0.45);
-}
-
-.dark .handback {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-/* It leaves when the work lands, which is a small piece of news of its own —
-   so it fades rather than blinking out from under the card that just turned
-   green. */
-.handback-enter-active,
-.handback-leave-active {
-  transition:
-    opacity var(--iw-dur-3) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.handback-enter-from,
-.handback-leave-to {
-  opacity: 0;
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .handback-enter-active,
-  .handback-leave-active {
-    transition: none;
-  }
-}
-
-/* Prose styling */
-.prose {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--sl-text);
-  --tw-prose-body: var(--sl-text);
-  --tw-prose-invert-body: var(--sl-text);
-  --tw-prose-bold: var(--sl-text);
-  --tw-prose-invert-bold: var(--sl-text);
-  --tw-prose-headings: var(--sl-text);
-  --tw-prose-invert-headings: var(--sl-text);
-}
-
-/* Markdown children arrive via v-html and never get the scope attribute,
-   so anything targeting them needs :deep. Fenced code renders as a quiet
-   navy-ink chip that scrolls within its own box. */
+/* Markdown arrives via v-html and never gets the scope attribute, so styling
+   it needs :deep. Fenced code renders as a quiet navy-ink chip that scrolls
+   within its own box. */
 .prose :deep(pre) {
   background: rgba(239, 246, 255, 0.6);
   border: 1px solid theme('colors.blue.100');
@@ -927,54 +696,9 @@ const formatMessage = (message: AIMessage, index: number): string => {
   overflow-x: auto;
 }
 
-.prose p {
-  margin-bottom: 0.75rem;
-}
-
-.prose p:last-child {
-  margin-bottom: 0;
-}
-
-.prose h1, .prose h2, .prose h3, .prose h4 {
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  color: theme('colors.blue.950');
-}
-
-.dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 {
-  color: theme('colors.white');
-}
-
-.prose ul, .prose ol {
-  margin-left: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-/* Ink-tinted links instead of the typography plugin's gray */
-.prose a {
-  color: theme('colors.blue.700');
-}
-
-.dark .prose a {
-  color: theme('colors.blue.300');
-}
-
-/* Ink-tinted list markers instead of the typography plugin's gray */
-.prose ::marker {
-  color: rgba(19, 26, 44, 0.4);
-}
-
-.dark .prose ::marker {
-  color: rgba(219, 234, 254, 0.4);
-}
-
-.prose li {
-  margin-bottom: 0.5rem;
-}
-
 /* Message animations. A message settles up into place with a trace of
-   overshoot — closer to something being set down than to a fade. */
+   overshoot — closer to something being set down than to a fade. These stay
+   CSS: a scoped @keyframes name is hashed, so no utility can reference it. */
 @keyframes message-in {
   from {
     opacity: 0;
@@ -1003,111 +727,10 @@ const formatMessage = (message: AIMessage, index: number): string => {
   animation: fade-in var(--iw-dur-3) var(--iw-ease-out) both;
 }
 
-/* The indicator hands over to the streaming reply rather than blinking out */
-.status-enter-active,
-.status-leave-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.status-enter-from,
-.status-leave-to {
-  opacity: 0;
-  transform: translateY(4px);
-}
-
-/* And each reading of it cross-fades in place */
-.status-text-enter-active,
-.status-text-leave-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.status-text-enter-from {
-  opacity: 0;
-  transform: translateY(3px);
-}
-
-.status-text-leave-to {
-  opacity: 0;
-  transform: translateY(-3px);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-message-in,
   .animate-fade-in {
     animation: none;
   }
 }
-
-/* Prose styling for dark mode */
-.prose-invert h1,
-.prose-invert h2,
-.prose-invert h3,
-.prose-invert h4,
-.prose-invert h5,
-.prose-invert h6 {
-  color: theme('colors.white');
-  font-weight: 600;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.prose-invert p {
-  color: rgba(219, 234, 254, 0.8);
-  line-height: 1.6;
-  margin-bottom: 0.75rem;
-}
-
-.prose-invert p:last-child {
-  margin-bottom: 0;
-}
-
-.prose-invert strong {
-  color: theme('colors.white');
-  font-weight: 600;
-}
-
-.prose-invert code {
-  color: theme('colors.orange.300');
-  background-color: rgba(251, 146, 60, 0.1);
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  border: 1px solid rgba(251, 146, 60, 0.2);
-}
-
-.prose-invert blockquote {
-  color: rgba(191, 219, 254, 0.7);
-  border-left-color: rgba(59, 130, 246, 0.5);
-  border-left-width: 4px;
-  padding-left: 1rem;
-  font-style: italic;
-  margin: 1rem 0;
-}
-
-.prose-invert ul,
-.prose-invert ol {
-  color: rgba(219, 234, 254, 0.8);
-  margin-left: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.prose-invert li {
-  margin: 0.375rem 0;
-  line-height: 1.5;
-}
-
-.prose-invert a {
-  color: theme('colors.blue.300');
-  text-decoration: underline;
-  text-decoration-color: rgba(147, 197, 253, 0.4);
-}
-
-.prose-invert a:hover {
-  color: theme('colors.blue.200');
-  text-decoration-color: rgba(191, 219, 254, 0.6);
-}
-</style> 
+</style>

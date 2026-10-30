@@ -177,7 +177,8 @@ const closeNotification = (id) => {
 </script>
 
 <style scoped>
-/* Custom progress bar animation */
+/* The progress bar drains over each toast's duration (set inline). Stays CSS:
+   a utility cannot name a scoped @keyframes. */
 @keyframes progress-bar {
   from {
     width: 100%;
@@ -189,14 +190,5 @@ const closeNotification = (id) => {
 
 .animate-progress-bar {
   animation: progress-bar linear forwards;
-}
-
-/* Ensure proper stacking and interactivity */
-.pointer-events-none {
-  pointer-events: none;
-}
-
-.pointer-events-auto {
-  pointer-events: auto;
 }
 </style>

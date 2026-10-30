@@ -1,6 +1,15 @@
 <template>
   <Teleport to="body">
-    <Transition name="modal">
+    <!-- The overlay fades; its two layers (backdrop and panel) also scale
+         up from 95%. Reduced motion keeps only the end states. -->
+    <Transition
+      enter-active-class="[transition:opacity_0.2s_ease] [&>div]:[transition:transform_0.2s_ease,opacity_0.2s_ease] motion-reduce:[transition:none] motion-reduce:[&>div]:[transition:none]"
+      leave-active-class="[transition:opacity_0.2s_ease] [&>div]:[transition:transform_0.2s_ease,opacity_0.2s_ease] motion-reduce:[transition:none] motion-reduce:[&>div]:[transition:none]"
+      enter-from-class="opacity-0 [&>div]:[transform:scale(0.95)] [&>div]:opacity-0 motion-reduce:[&>div]:[transform:none]"
+      leave-to-class="opacity-0 [&>div]:[transform:scale(0.95)] [&>div]:opacity-0 motion-reduce:[&>div]:[transform:none]"
+      enter-to-class="opacity-100 [&>div]:[transform:scale(1)] [&>div]:opacity-100"
+      leave-from-class="opacity-100 [&>div]:[transform:scale(1)] [&>div]:opacity-100"
+    >
       <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <!-- Backdrop -->
         <div 
@@ -218,51 +227,3 @@ function handleCancel() {
 }
 </script>
 
-<style scoped>
-/* Modal transition animations */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-active > div,
-.modal-leave-active > div {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-from > div,
-.modal-leave-to > div {
-  transform: scale(0.95);
-  opacity: 0;
-}
-
-.modal-enter-to,
-.modal-leave-from {
-  opacity: 1;
-}
-
-.modal-enter-to > div,
-.modal-leave-from > div {
-  transform: scale(1);
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .modal-enter-active,
-  .modal-leave-active,
-  .modal-enter-active > div,
-  .modal-leave-active > div {
-    transition: none;
-  }
-
-  .modal-enter-from > div,
-  .modal-leave-to > div {
-    transform: none;
-  }
-}
-</style>

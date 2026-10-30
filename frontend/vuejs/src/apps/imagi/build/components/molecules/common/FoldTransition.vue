@@ -18,8 +18,12 @@
     </FoldTransition>
 -->
 <template>
+  <!-- Height takes the entrance's length, opacity the shorter state change. -->
   <Transition
-    name="fold"
+    enter-active-class="[transition:height_var(--iw-dur-3)_var(--iw-ease-out),opacity_var(--iw-dur-2)_var(--iw-ease-out)]"
+    leave-active-class="[transition:height_var(--iw-dur-3)_var(--iw-ease-out),opacity_var(--iw-dur-2)_var(--iw-ease-out)]"
+    enter-from-class="opacity-0"
+    leave-to-class="opacity-0"
     @enter="onEnter"
     @after-enter="onAfterEnter"
     @enter-cancelled="onAfterEnter"
@@ -62,16 +66,3 @@ function onLeave(el: Element) {
 }
 </script>
 
-<style scoped>
-.fold-enter-active,
-.fold-leave-active {
-  transition:
-    height var(--iw-dur-3) var(--iw-ease-out),
-    opacity var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.fold-enter-from,
-.fold-leave-to {
-  opacity: 0;
-}
-</style>

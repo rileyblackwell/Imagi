@@ -14,36 +14,46 @@
   as the tools that run the business.
 -->
 <template>
-  <div class="spotlight hub-root">
+  <div class="spotlight">
   <DefaultLayout>
-    <div class="editorial hub-page relative min-h-screen">
+    <div class="editorial relative min-h-screen">
       <main class="relative">
-        <section class="sl-opener hub-stage">
+        <!-- The stage starts a little higher than a marketing opener: the back
+             link sits above the pill. -->
+        <section class="sl-opener !pb-[clamp(72px,9vw,120px)] !pt-[calc(3.5rem+clamp(32px,4vw,56px))]">
           <div class="sl-spot" aria-hidden="true"></div>
           <div class="sl-dots" aria-hidden="true"></div>
           <div class="sl-wrap">
 
-            <!-- Back link -->
-            <router-link :to="{ name: 'projects' }" class="back">
-              <svg class="back__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- Back link: the one step back up the hierarchy. Quieter than a
+                 button, because it is a trail rather than an action. -->
+            <router-link
+              :to="{ name: 'projects' }"
+              class="group inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-sl-faint [transition:color_0.18s_ease]
+                hover:text-ed-ink focus-visible:!outline-ed-accent"
+            >
+              <svg
+                class="h-[0.9rem] w-[0.9rem] [transition:transform_0.18s_ease] group-hover:-translate-x-[3px] motion-reduce:group-hover:transform-none"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+              >
                 <path d="M19 12H5M11 18l-6-6 6-6" />
               </svg>
               <span>All projects</span>
             </router-link>
 
             <!-- Loading -->
-            <p v-if="isLoading" class="state">
-              <span class="spinner" aria-hidden="true"></span>
+            <p v-if="isLoading" class="mt-20 flex items-center justify-center gap-[0.7rem] text-[0.9375rem] text-ed-ink-55">
+              <span class="spinner h-4 w-4 flex-none rounded-[999px] border-[1.5px] border-ed-accent border-t-transparent" aria-hidden="true"></span>
               <span>Loading project&hellip;</span>
             </p>
 
             <!-- Not found -->
-            <div v-else-if="!project" class="sl-opener__inner hub-head">
+            <div v-else-if="!project" :class="HEAD">
               <p class="sl-eyebrow sl-pill">
                 <span class="sl-pip" aria-hidden="true"></span>
                 <span>Not found</span>
               </p>
-              <h1 class="sl-display hub-missing">This project isn't here</h1>
+              <h1 class="sl-display text-[clamp(36px,5vw,60px)] leading-none tracking-[-0.03em]">This project isn't here</h1>
               <p class="sl-lede">
                 We couldn't find it. It may have been deleted, or the link may be out of date.
               </p>
@@ -55,25 +65,28 @@
             <!-- Hub -->
             <template v-else>
               <!-- Project header -->
-              <div class="sl-opener__inner hub-head">
+              <div :class="HEAD">
                 <p class="rise-item sl-eyebrow sl-pill">
                   <span class="sl-pip" aria-hidden="true"></span>
                   <span>Project</span>
                 </p>
-                <h1 class="rise-item sl-display sl-h1 hub-title" style="animation-delay: 60ms">
+                <h1 class="rise-item sl-display sl-h1 max-w-[16ch] !text-[clamp(44px,6.4vw,84px)] [overflow-wrap:anywhere]" style="animation-delay: 60ms">
                   {{ project.name }}
                 </h1>
-                <p class="rise-item sl-lede hub-lede" style="animation-delay: 120ms">
+                <p class="rise-item sl-lede !ml-0 !max-w-[620px] !text-[18px]" style="animation-delay: 120ms">
                   {{ project.description || 'Build your app, and when you want it to become a business, run it from the same project. Pick a module to get started.' }}
                 </p>
               </div>
 
               <!-- Modules, in the product's two halves: Build the product on
                    the left, the tools that run the business on the right. -->
-              <div class="rise-item hub-halves" style="animation-delay: 180ms">
-                <section v-if="buildTool" class="hub-half" aria-labelledby="hub-half-build">
-                  <h2 id="hub-half-build" class="hub-half__label">
-                    <b>Build</b><span>the app</span>
+              <div
+                class="rise-item mt-[clamp(40px,5vw,64px)] grid grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] gap-[22px] text-left max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:gap-[36px]"
+                style="animation-delay: 180ms"
+              >
+                <section v-if="buildTool" class="hub-half flex min-w-0 flex-col" aria-labelledby="hub-half-build">
+                  <h2 id="hub-half-build" :class="HALF_LABEL">
+                    <b :class="HALF_NAME">Build</b><span>the app</span>
                   </h2>
                   <ToolCategoryCard
                     :tool="buildTool"
@@ -82,11 +95,11 @@
                     layout="feature"
                   />
                 </section>
-                <section class="hub-half" aria-labelledby="hub-half-run">
-                  <h2 id="hub-half-run" class="hub-half__label">
-                    <b>Run</b><span>it as a business</span>
+                <section class="hub-half flex min-w-0 flex-col" aria-labelledby="hub-half-run">
+                  <h2 id="hub-half-run" :class="HALF_LABEL">
+                    <b :class="HALF_NAME">Run</b><span>it as a business</span>
                   </h2>
-                  <div class="hub-run">
+                  <div class="flex flex-1 flex-col gap-[14px]">
                     <ToolCategoryCard
                       v-for="tool in runTools"
                       :key="tool.id"
@@ -121,6 +134,14 @@ const props = defineProps<{
 }>()
 
 const projectSlug = computed(() => props.projectName)
+
+// The opener's header, left-aligned rather than .sl-opener__inner's centre.
+const HEAD = 'sl-opener__inner mt-[clamp(28px,4vw,48px)] !items-start !text-left'
+// "Build — the app", "Run — it as a business": the homepage's two halves,
+// named on a hairline (::after) above each column.
+const HALF_LABEL =
+  "hub-half__label mb-[14px] ml-[4px] flex items-center gap-[12px] text-[13px] font-normal text-sl-faint after:h-px after:flex-1 after:bg-sl-line after:content-['']"
+const HALF_NAME = 'font-sl-display text-[15px] font-semibold tracking-[-0.01em] text-sl-text'
 
 // Build is the half that makes the product; every other module runs the business.
 const buildTool = businessTools.find(tool => tool.id === 'build')
@@ -181,142 +202,9 @@ onBeforeUnmount(stopBuildStatusPolling)
 </script>
 
 <style scoped>
-/* The stage starts a little higher than a marketing opener: the back link
-   sits above the pill. */
-.sl-opener.hub-stage {
-  padding-top: calc(3.5rem + clamp(32px, 4vw, 56px));
-  padding-bottom: clamp(72px, 9vw, 120px);
-}
-
-.spotlight .hub-head {
-  margin-top: clamp(28px, 4vw, 48px);
-  text-align: left;
-  align-items: flex-start;
-}
-
-.sl-opener .hub-title {
-  max-width: 16ch;
-  font-size: clamp(44px, 6.4vw, 84px);
-  overflow-wrap: anywhere;
-}
-
-.spotlight .hub-lede {
-  max-width: 620px;
-  margin-left: 0;
-  font-size: 18px;
-}
-
-.hub-missing {
-  font-size: clamp(36px, 5vw, 60px);
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.hub-halves {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-  gap: 22px;
-  margin-top: clamp(40px, 5vw, 64px);
-  text-align: left;
-}
-
-.hub-half {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* "Build — the product", "Run — the business": the homepage's two halves,
-   named on a hairline above each column. */
-.hub-half__label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 14px 4px;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--sl-faint);
-}
-
-.hub-half__label b {
-  font-family: var(--sl-font-display);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--sl-text);
-}
-
-.hub-half__label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--sl-line);
-}
-
-.hub-run {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-@media (max-width: 900px) {
-  .hub-halves {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 36px;
-  }
-}
-
-/* The one step back up the hierarchy. Quieter than a button, because it is a
-   trail rather than an action. */
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sl-faint);
-  transition: color 0.18s ease;
-}
-
-.back:hover {
-  color: var(--ink);
-}
-
-.back:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-
-.back__arrow {
-  width: 0.9rem;
-  height: 0.9rem;
-  transition: transform 0.18s ease;
-}
-
-.back:hover .back__arrow {
-  transform: translateX(-3px);
-}
-
-.state {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  justify-content: center;
-  margin-top: 5rem;
-  font-size: 0.9375rem;
-  color: var(--ink-55);
-}
-
+/* The spinner's turn. Keyframes stay CSS: scoped keyframe names are hashed,
+   so a utility can't reference them. */
 .spinner {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-  border: 1.5px solid var(--accent);
-  border-top-color: transparent;
-  border-radius: 999px;
   animation: spin 0.8s linear infinite;
 }
 
@@ -329,10 +217,6 @@ onBeforeUnmount(stopBuildStatusPolling)
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
-  }
-
-  .back:hover .back__arrow {
-    transform: none;
   }
 }
 </style>

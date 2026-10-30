@@ -3,11 +3,14 @@
   rather than in a tinted tile, matching the step eyebrows on the home page.
 -->
 <template>
-  <section class="step">
-    <p class="step__num">{{ number }}</p>
-    <div class="step__body">
-      <h3 class="step__title">{{ title }}</h3>
-      <div class="step__text">
+  <section class="mt-7 flex items-baseline gap-6 border-t border-t-ed-rule pt-7">
+    <p
+      class="w-8 flex-none bg-sl-grad bg-clip-text font-[family-name:var(--font-display)] text-[1.25rem] font-extrabold
+        tabular-nums text-transparent"
+    >{{ number }}</p>
+    <div class="flex-1">
+      <h3 class="text-[1.25rem] font-semibold tracking-[-0.01em] text-ed-ink">{{ title }}</h3>
+      <div class="mt-[0.65rem] leading-[1.7] text-ed-ink-55 text-pretty">
         <slot></slot>
       </div>
     </div>
@@ -20,45 +23,3 @@ defineProps<{
   title: string
 }>()
 </script>
-
-<style scoped>
-.step {
-  display: flex;
-  align-items: baseline;
-  gap: 1.5rem;
-  padding-top: 1.75rem;
-  margin-top: 1.75rem;
-  border-top: 1px solid var(--rule);
-}
-
-.step__num {
-  flex: none;
-  width: 2rem;
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  background: var(--sl-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.step__body {
-  flex: 1;
-}
-
-.step__title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.step__text {
-  margin-top: 0.65rem;
-  line-height: 1.7;
-  color: var(--ink-55);
-  text-wrap: pretty;
-}
-</style>

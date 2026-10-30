@@ -5,28 +5,28 @@
      It renders outside every page's .spotlight root, so it is its own: that
      brings the --sl-* tokens and the page floor (--sl-bg) in both themes. -->
 <template>
-  <footer class="spotlight site-footer">
-    <div class="site-footer__inner">
-      <div class="site-footer__top">
-        <div class="site-footer__brand">
+  <footer class="spotlight border-t border-t-sl-line">
+    <div class="max-w-7xl mx-auto px-6 pt-14 sm:px-8 lg:px-12 lg:pt-16">
+      <div class="grid gap-10 pb-12 min-[900px]:grid-cols-[1.15fr_2fr] min-[900px]:gap-12">
+        <div class="grid gap-[0.875rem] [align-content:start] justify-items-start">
           <ImagiLogo size="lg" />
-          <p>Build and run your business from one place.</p>
+          <p class="m-0 max-w-[30ch] text-[15.5px] leading-[1.55] text-sl-muted">Build and run your business from one place.</p>
         </div>
 
-        <nav class="site-footer__cols" aria-label="Footer">
-          <div v-for="col in columns" :key="col.title" class="site-footer__col">
-            <h2>{{ col.title }}</h2>
-            <ul>
+        <nav class="grid grid-cols-2 gap-8 min-[560px]:grid-cols-3" aria-label="Footer">
+          <div v-for="col in columns" :key="col.title">
+            <h2 class="m-0 mb-[0.875rem] text-[11.5px] font-semibold tracking-[0.16em] uppercase text-sl-muted">{{ col.title }}</h2>
+            <ul class="m-0 p-0 list-none grid gap-[0.7rem]">
               <li v-for="link in col.links" :key="link.label">
-                <router-link :to="link.to">{{ link.label }}</router-link>
+                <router-link :to="link.to" :class="linkClass">{{ link.label }}</router-link>
               </li>
             </ul>
           </div>
         </nav>
       </div>
 
-      <div class="site-footer__bottom">
-        <p>&copy; {{ currentYear }} Imagi. MIT licensed.</p>
+      <div class="flex flex-wrap items-center justify-between gap-y-3 gap-x-6 pt-5 pb-[1.6rem] border-t border-t-sl-line">
+        <p class="m-0 text-[13.5px] text-sl-muted">&copy; {{ currentYear }} Imagi. MIT licensed.</p>
         <ThemeToggle />
       </div>
     </div>
@@ -39,6 +39,9 @@ import { ThemeToggle } from '@/shared/components/atoms'
 import { ImagiLogo } from '@/shared/components/molecules'
 
 const currentYear = computed(() => new Date().getFullYear())
+
+const linkClass =
+  'text-[14.5px] text-sl-text rounded-[2px] [transition:color_0.2s_cubic-bezier(0.22,1,0.36,1)] hover:text-sl-muted'
 
 const columns: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -63,111 +66,3 @@ const columns: { title: string; links: { label: string; to: string }[] }[] = [
   },
 ]
 </script>
-
-<style scoped>
-.site-footer {
-  border-top: 1px solid var(--sl-line);
-}
-
-.site-footer__inner {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 3.5rem 1.5rem 0;
-}
-
-@media (min-width: 640px) {
-  .site-footer__inner {
-    padding-inline: 2rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .site-footer__inner {
-    padding: 4rem 3rem 0;
-  }
-}
-
-.site-footer__top {
-  display: grid;
-  gap: 2.5rem;
-  padding-bottom: 3rem;
-}
-
-@media (min-width: 900px) {
-  .site-footer__top {
-    grid-template-columns: 1.15fr 2fr;
-    gap: 3rem;
-  }
-}
-
-.site-footer__brand {
-  display: grid;
-  gap: 0.875rem;
-  align-content: start;
-  justify-items: start;
-}
-
-.site-footer__brand p {
-  margin: 0;
-  max-width: 30ch;
-  font-size: 15.5px;
-  line-height: 1.55;
-  color: var(--sl-muted);
-}
-
-.site-footer__cols {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2rem;
-}
-
-@media (min-width: 560px) {
-  .site-footer__cols {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.site-footer__col h2 {
-  margin: 0 0 0.875rem;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.site-footer__col ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.7rem;
-}
-
-.site-footer__col a {
-  font-size: 14.5px;
-  color: var(--sl-text);
-  border-radius: 2px;
-  transition: color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.site-footer__col a:hover {
-  color: var(--sl-muted);
-}
-
-.site-footer__bottom {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-  padding: 1.25rem 0 1.6rem;
-  border-top: 1px solid var(--sl-line);
-}
-
-.site-footer__bottom p {
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--sl-muted);
-}
-</style>

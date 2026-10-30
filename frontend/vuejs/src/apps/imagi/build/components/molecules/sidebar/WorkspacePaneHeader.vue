@@ -45,62 +45,153 @@
   ground; the name and its reading take what is left and truncate.
 -->
 <template>
-  <div class="pane-header-shell shrink-0">
-    <!-- The shell around this plate exists to be measured: it declares the
-         size container every rule below queries. Nothing is drawn there — the
-         material, the hairline and the padding all still belong here. -->
-    <div class="pane-header iw-surface">
+  <div class="pane-header-shell shrink-0 [container-type:inline-size] relative z-20">
+    <!-- The size container, and the reason this component has a wrapper at
+         all. The plate has to arrange itself by how much room the *pane* gives
+         it: the sidebar is a fixed 22rem at every window width, so a viewport
+         media query read "desktop" and laid out a plate twice as wide as the one
+         it had. An element can't query itself, hence the shell — nothing is
+         drawn here; the material, the hairline and the padding all belong to the
+         plate.
+
+         It also carries the stacking: `container-type` brings layout
+         containment with it, which makes this element the stacking context the
+         plate's z-index would otherwise have escaped into. Lifting the pane above
+         the transcript scrolling under it is the shell's job now. -->
+    <!-- The plate: a translucent material rather than a painted strip. The
+         pane scrolls beneath it, so the masthead takes its colour from
+         whatever is passing underneath — saturated and blurred past
+         legibility — and closes with a true hairline (::after: at 1px a
+         border rounds up to a full device pixel on retina; a scaled
+         pseudo-element stays a true hairline at any density). Its metrics
+         are the preview toolbar's (.pv-bar), to the pixel: the two sit
+         shoulder to shoulder at the top of the workspace.
+
+         Three columns: the gutter that mirrors the switches, the identity,
+         and the switches — which is what centres the name on the plate rather
+         than in the space left over. The sizing is a priority order: the
+         switch cluster is `auto` against a track that can't be talked below
+         its content, so the pills always get their full width; the gutter is
+         `minmax(0, auto)` and gives its width back, quietly, when the plate
+         can't afford the symmetry; the identity keeps a floor and truncates.
+         The gap is tight because the two reserved columns spend this plate's
+         width twice over.
+
+         Below 28rem of pane the plate stops spending the switch cluster's
+         width twice: the ghost goes, and with it true centring. The identity
+         reads from the left — the app-bar arrangement — and the switches keep
+         the right. 28rem because the widest cluster is a shade over 7rem: two
+         of those plus a name worth reading is about where a centred plate
+         stops being a good trade. It catches the 22rem sidebar at every window
+         size and every phone. -->
+    <div
+      class="pane-header iw-surface relative grid grid-cols-[minmax(0,auto)_minmax(3.5rem,1fr)_auto] items-center gap-1 min-h-[3.0625rem] py-[0.4375rem] px-2
+        bg-iw-material-bg [backdrop-filter:var(--iw-material-filter)]
+        after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-px after:bg-[color:var(--iw-hairline)] after:[transform:scaleY(0.5)] after:origin-bottom
+        [@container(max-width:28rem)]:grid-cols-[minmax(0,1fr)_auto]"
+    >
       <!-- Left column: a ghost of the switch cluster, and load-bearing. Reserving
            the same width the real controls take on the right is what puts the
            identity at the true centre of the plate — an empty gutter gets
            squeezed by a long title and the name drifts left of centre. It is
-           inert in every sense: invisible, unhittable, and skipped by
-           assistive tech.
+           inert in every sense: invisible (`visibility: hidden` rather than
+           `display: none`, because the box still has to be measured),
+           unhittable, and skipped by assistive tech.
 
            Only on a wide pane. Centring costs the plate the switch cluster's
            width twice over, and a 22rem sidebar does not have it to spend: the
            identity gives up true centring below that and reads from the left
-           instead (see the compact block in the styles). -->
-      <div class="pane-header-gutter" aria-hidden="true">
-        <div class="pane-switches pane-switches--ghost">
+           instead. -->
+      <div class="pane-header-gutter flex overflow-hidden [@container(max-width:28rem)]:hidden" aria-hidden="true">
+        <div :class="[CLUSTER, 'invisible pointer-events-none']">
           <span
             v-for="s in switches"
             :key="s.id"
-            :class="['pane-switch', s.mobileOnly && 'pane-switch--mobile', s.iconOnly && 'pane-switch--icon']"
+            :class="switchClass(s)"
           >
-            <i v-if="s.direction === 'back' && !s.iconOnly" class="fas fa-chevron-left pane-switch-chevron"></i>
-            <span class="pane-switch-icon-wrap">
-              <i :class="[s.icon, 'pane-switch-icon']"></i>
+            <i v-if="s.direction === 'back' && !s.iconOnly" :class="['fas fa-chevron-left', CHEVRON]"></i>
+            <span class="relative inline-flex items-center">
+              <i :class="[s.icon, ICON]"></i>
             </span>
-            <span v-if="!s.iconOnly" class="pane-switch-label">{{ s.label }}</span>
-            <span v-if="s.count" class="pane-switch-count">{{ s.count }}</span>
-            <i v-if="s.direction !== 'back' && !s.iconOnly" class="fas fa-chevron-right pane-switch-chevron"></i>
+            <span v-if="!s.iconOnly" :class="LABEL">{{ s.label }}</span>
+            <span v-if="s.count" :class="COUNT">{{ s.count }}</span>
+            <i v-if="s.direction !== 'back' && !s.iconOnly" :class="['fas fa-chevron-right', CHEVRON]"></i>
           </span>
         </div>
       </div>
 
-      <div class="pane-identity">
+      <!-- The identity block: name over reading, centred as one object. It
+           takes only the width it needs and truncates rather than pushing the
+           switch off the plate. -->
+      <div class="pane-identity min-w-0 text-center [@container(max-width:28rem)]:text-left">
         <!-- Only panes that need naming carry a name. A pane you arrived at by
              stepping into it — a subagent's thread, the roster — says which one
              you are in; the main thread doesn't, because there is nothing to
-             tell it apart from. -->
-        <h2 v-if="title" class="pane-title truncate">{{ title }}</h2>
+             tell it apart from.
+
+             The name carries the display face (Bricolage under Spotlight) — so
+             the workspace chrome speaks in the product's own voice instead of
+             another line of bold UI sans. Set at the preview nameplate's size
+             and optical axis: the two are the same thing on opposite sides of
+             the divider. -->
+        <h2
+          v-if="title"
+          class="pane-title truncate font-sl-display [font-variation-settings:'opsz'_18,'SOFT'_24,'WONK'_1] text-[0.875rem] font-semibold leading-[1.2] tracking-[-0.008em] text-blue-950 dark:text-white/[0.94]"
+        >{{ title }}</h2>
 
         <!-- Where this pane stands: a state dot, then the reading. The dot is
              the pane's only status marker — it replaced a filled identity badge
              that carried the navy-ink recipe reserved for actions, and a
              separate live pulse. One object, one job.
 
+             The line reserves its own height so the masthead never resizes
+             underneath a cross-fade, and its gap from the name belongs to the
+             pair: on an unnamed pane the reading sits on the plate's
+             centreline, where a hanging top margin would push it a hair low.
+
              The reading changes under its own feet ("3 agents are waiting on
              you" → "1 agent is waiting on you"). Swapping it in place reads as
              a flicker; cross-fading reads as the same line being updated,
              which is what it is. Keyed on the text so each new reading gets
-             its own fade — the dot sits outside, because state outlives any
-             one wording of it. -->
-        <div v-if="status" class="pane-status-line">
-          <span :class="['pane-dot', `pane-dot--${state}`]" aria-hidden="true"></span>
-          <Transition name="pane-status" mode="out-in">
-            <p :key="status" :class="['pane-status', `pane-status--${state}`]">{{ status }}</p>
+             its own fade — down and out, up and in — the dot sits outside,
+             because state outlives any one wording of it. -->
+        <div
+          v-if="status"
+          :class="[
+            'pane-status-line flex items-center justify-center gap-[0.3125rem] min-h-[0.9375rem] [@container(max-width:28rem)]:justify-start',
+            title && 'mt-0.5'
+          ]"
+        >
+          <!-- State as a dot, in the preview's dot family and the crew
+               ledger's colours: blue for a live run, amber for something that
+               wants you, faint ink at rest. A live run's dot holds steady — a
+               marker that flickers looks like a rendering fault — and a halo
+               breathes outward from under it (see the styles). -->
+          <span
+            :class="[
+              'pane-dot shrink-0 w-[0.4375rem] h-[0.4375rem] rounded-full [transition:background-color_var(--iw-dur-3)_var(--iw-ease-out)]',
+              `pane-dot--${state}`,
+              DOT[state]
+            ]"
+            aria-hidden="true"
+          ></span>
+          <Transition
+            mode="out-in"
+            enter-active-class="![transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+            leave-active-class="![transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+            enter-from-class="opacity-0 [transform:translateY(3px)]"
+            leave-to-class="opacity-0 [transform:translateY(-3px)]"
+          >
+            <!-- The reading takes the state's ink, exactly as a card's status
+                 line does. -->
+            <p
+              :key="status"
+              :class="[
+                'pane-status min-w-0 truncate text-[0.625rem] leading-[1.35] [transition:color_var(--iw-dur-3)_var(--iw-ease-out)]',
+                `pane-status--${state}`,
+                STATUS[state]
+              ]"
+            >{{ status }}</p>
           </Transition>
         </div>
       </div>
@@ -108,41 +199,54 @@
       <!-- Pane switches — the only way across the workspace, at every width. The
            cluster is ordered the way the workspace nests: the pane you'd step
            into first sits nearest the identity. -->
-      <div class="pane-switches">
+      <div :class="CLUSTER">
         <button
           v-for="s in switches"
           :key="s.id"
           type="button"
-          :class="['pane-switch', 'iw-press', 'group', s.mobileOnly && 'pane-switch--mobile', s.iconOnly && 'pane-switch--icon']"
+          :class="['iw-press group group/switch', switchClass(s)]"
           :aria-label="s.iconOnly ? s.label : `Switch to ${s.label}`"
           :title="s.iconOnly ? s.label : undefined"
           @click="emit('switch', s.id)"
         >
           <i
             v-if="s.direction === 'back' && !s.iconOnly"
-            class="fas fa-chevron-left pane-switch-chevron"
+            :class="['fas fa-chevron-left group-hover:-translate-x-0.5', CHEVRON]"
           ></i>
           <!-- The destination has a live run (a subagent working over there): the
                icon carries the same dot the status line uses, so the link to the
-               working subagent is always visible from the thread you're in. -->
-          <span class="pane-switch-icon-wrap">
-            <i :class="[s.icon, 'pane-switch-icon']"></i>
-            <span v-if="s.live" class="pane-switch-pulse" aria-hidden="true"></span>
-            <span v-else-if="s.fresh" class="pane-switch-fresh" aria-hidden="true"></span>
+               working subagent is always visible from the thread you're in.
+               Something new since it was last opened gets the info tone,
+               still, so it never reads as work. -->
+          <span class="relative inline-flex items-center">
+            <i :class="[s.icon, ICON]"></i>
+            <span
+              v-if="s.live"
+              class="pane-switch-pulse bg-sl-work after:content-[''] after:absolute after:inset-0 after:rounded-full after:[background:inherit]"
+              :class="BADGE_DOT"
+              aria-hidden="true"
+            ></span>
+            <span v-else-if="s.fresh" :class="[BADGE_DOT, 'bg-sl-cool']" aria-hidden="true"></span>
           </span>
           <!-- The word is the first thing to go when the pane runs out of room
-               (see the narrow rungs in the styles), which is what the icon and
+               (see the narrow rungs on the label), which is what the icon and
                the aria-label are there for. -->
-          <span v-if="!s.iconOnly" class="pane-switch-label">{{ s.label }}</span>
+          <span v-if="!s.iconOnly" :class="LABEL">{{ s.label }}</span>
           <!-- Ambient count of what is waiting on the other side. Keyed on the
                number so it springs when the fleet grows instead of silently
                becoming a different digit. -->
-          <Transition name="pane-count" mode="out-in">
-            <span v-if="s.count" :key="s.count" class="pane-switch-count">{{ s.count }}</span>
+          <Transition
+            mode="out-in"
+            enter-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-spring)]"
+            leave-active-class="[transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+            enter-from-class="opacity-0 [transform:scale(0.5)]"
+            leave-to-class="opacity-0 [transform:scale(0.7)]"
+          >
+            <span v-if="s.count" :key="s.count" :class="COUNT">{{ s.count }}</span>
           </Transition>
           <i
             v-if="s.direction !== 'back' && !s.iconOnly"
-            class="fas fa-chevron-right pane-switch-chevron"
+            :class="['fas fa-chevron-right group-hover:translate-x-0.5', CHEVRON]"
           ></i>
         </button>
       </div>
@@ -151,7 +255,7 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** What this pane is, when that isn't already obvious from being in it. */
     title?: string
@@ -197,77 +301,83 @@ withDefaults(
 )
 
 const emit = defineEmits<{ (e: 'switch', id: string): void }>()
+
+type PaneSwitch = NonNullable<typeof props.switches>[number]
+
+/* The cluster: however many destinations this pane offers, seated as one
+   object on the right so the plate reads as identity-then-exits rather than a
+   row of loose buttons. No `min-w-0`, deliberately: an explicit zero minimum
+   overrides a grid item's automatic minimum size, so the track was free to
+   shrink to nothing under a cluster of pills that never shrink — and the
+   overflow landed on the title. The automatic minimum makes the track's floor
+   the cluster's real width, so the identity beside it gives way instead. */
+const CLUSTER = 'pane-switches flex items-center justify-self-end gap-[0.3125rem] [@container(max-width:28rem)]:gap-1'
+
+/*
+  Switch: names its destination instead of hiding behind a tooltip. Wears the
+  preview plate's bordered material at the height of the preview's nav
+  buttons, so the two panes' chrome uses one elevation model. It still gives
+  under the press (.iw-press; its transition is overridden here, so `!`).
+
+  On a narrow pane everything tightens by a couple of pixels to buy the title
+  back some room (28rem); below 20rem the chevrons go — the icon and the word
+  already say where the button leads; below 15rem the words go too and the
+  switches stand as icons, still the full 26px target and still named by
+  their aria-label. A pane that narrow shouldn't happen; the plate holds
+  together if it does.
+*/
+const SWITCH = [
+  'pane-switch inline-flex items-center gap-[0.3125rem] shrink-0 h-7 rounded-full border cursor-pointer text-[0.6875rem] font-medium',
+  '[@container(max-width:28rem)]:h-[1.625rem] [@container(max-width:28rem)]:gap-1',
+  '[transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),border-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out)]',
+  'border-ink/10 bg-white/85 text-ink/[0.72] [box-shadow:inset_0_1px_0_#ffffff]',
+  'hover:bg-white hover:border-ink/[0.22] hover:text-blue-950 hover:[box-shadow:inset_0_1px_0_#ffffff,0_1px_3px_rgba(19,26,44,0.08)]',
+  'focus-visible:![outline:none] focus-visible:[box-shadow:var(--iw-focus-ring)]',
+  'dark:border-white/[0.14] dark:bg-white/[0.045] dark:text-blue-100/[0.72] dark:[box-shadow:inset_0_1px_0_rgba(255,255,255,0.05)]',
+  'dark:hover:bg-white/[0.08] dark:hover:border-white/[0.26] dark:hover:text-white dark:hover:[box-shadow:inset_0_1px_0_rgba(255,255,255,0.05)]',
+]
+/* A destination: the pill. */
+const SWITCH_PILL = 'px-[0.5625rem] [@container(max-width:28rem)]:px-2 [@container(max-width:15rem)]:!px-[0.4375rem]'
+/* A control rather than a destination: a round button around its icon. */
+const SWITCH_ICON = 'justify-center w-7 p-0 [@container(max-width:28rem)]:w-[1.625rem]'
+
+function switchClass(s: PaneSwitch) {
+  return [
+    SWITCH,
+    s.iconOnly ? SWITCH_ICON : SWITCH_PILL,
+    // A destination that is already on screen on desktop (the preview, which
+    // sits beside the panes there) — offered only where it replaces this pane.
+    s.mobileOnly && 'pane-switch--mobile md:hidden',
+  ]
+}
+
+const ICON = 'text-[0.625rem] opacity-70 [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out)] group-hover/switch:opacity-95'
+const CHEVRON = 'pane-switch-chevron text-[0.5rem] opacity-[0.45] [transition:transform_var(--iw-dur-2)_var(--iw-ease-out),opacity_var(--iw-dur-2)_var(--iw-ease-out)] group-hover/switch:opacity-80 [@container(max-width:20rem)]:hidden'
+const LABEL = 'pane-switch-label whitespace-nowrap [@container(max-width:15rem)]:hidden'
+/* Count of what is waiting on the other side — navy ink, the recipe this
+   workspace keeps for things you act on. It is the one element in the
+   masthead that earns it. */
+const COUNT = 'pane-switch-count inline-flex items-center justify-center min-w-[1.0625rem] h-[1.0625rem] px-1 rounded-full bg-blue-950 text-[#fbfaf7] text-[0.625rem] font-semibold tabular-nums leading-none dark:bg-[#f3ede2] dark:text-blue-950'
+/* The status line's dot, sized down for the switch icon: the link to a
+   working subagent reads as live without stealing attention. */
+const BADGE_DOT = 'absolute -top-0.5 -right-[3px] w-1.5 h-1.5 rounded-full [box-shadow:0_0_0_2px_rgba(var(--iw-surface),0.9)]'
+
+const DOT = {
+  idle: 'bg-ink/[0.22] dark:bg-white/[0.22]',
+  waiting: 'bg-sl-wait [box-shadow:0_0_8px_-1px_var(--sl-wait)]',
+  working: "relative bg-sl-work after:content-[''] after:absolute after:inset-0 after:rounded-full after:[background:inherit]",
+}
+const STATUS = {
+  idle: 'text-ink/[0.42] dark:text-blue-100/40',
+  waiting: 'text-sl-wait',
+  working: 'text-sl-work',
+}
 </script>
 
 <style scoped>
-/* The plate: a translucent material rather than a painted strip. The pane
-   scrolls beneath it, so the masthead takes its colour from whatever is
-   passing underneath — saturated and blurred past legibility — and closes
-   with a true hairline. This is what keeps the header feeling like a layer
-   above the transcript instead of its first row.
-
-   Its metrics are the preview toolbar's (.pv-bar), to the pixel: the two sit
-   shoulder to shoulder at the top of the workspace, and a four-pixel
-   difference in height put a visible step in the hairline running between
-   them. */
-/* The size container, and the reason this component has a wrapper at all. The
-   plate has to arrange itself by how much room the *pane* gives it: the
-   sidebar is a fixed 22rem at every window width, so a viewport media query
-   read "desktop" and laid out a plate twice as wide as the one it had. An
-   element can't query itself, hence the shell.
-
-   It also carries the stacking: `container-type` brings layout containment
-   with it, which makes this element the stacking context the plate's z-index
-   would otherwise have escaped into. Lifting the pane above the transcript
-   scrolling under it is the shell's job now. */
-.pane-header-shell {
-  container-type: inline-size;
-  position: relative;
-  z-index: 20;
-}
-
-.pane-header {
-  position: relative;
-  /* Three columns: the switches, the gutter that mirrors them, and the
-     identity between the two — which is what centres the name on the plate
-     rather than in the space left over.
-
-     The sizing is a priority order, and it is the whole fix. The switch
-     cluster is `auto` against a track that can no longer be talked below its
-     content (see .pane-switches), so the pills always get their full width.
-     The gutter is `minmax(0, auto)`: it takes the same width when the plate
-     can afford the symmetry and gives it back, quietly, when it cannot. The
-     identity keeps a floor and truncates. Nothing here can overflow its track
-     onto its neighbour, which is exactly what used to happen — a `1fr` track
-     that could shrink to nothing, holding pills that could not shrink at all,
-     so they spilled out of it and printed themselves over the title. */
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(3.5rem, 1fr) auto;
-  align-items: center;
-  /* Tight, because the two reserved columns spend this plate's width twice
-     over: every pixel here comes off the status line in the middle. */
-  gap: 0.25rem;
-  min-height: 3.0625rem;
-  padding: 0.4375rem 0.5rem;
-  background: var(--iw-material-bg);
-  -webkit-backdrop-filter: var(--iw-material-filter);
-  backdrop-filter: var(--iw-material-filter);
-}
-
-/* The separator is drawn rather than bordered: at 1px a border rounds up to a
-   full device pixel on retina and reads as a line; a scaled pseudo-element
-   stays a true hairline at any density. */
-.pane-header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: var(--iw-hairline);
-  transform: scaleY(0.5);
-  transform-origin: bottom;
-}
+/* What stays here: keyframed motion (scoped keyframe names can't be reached
+   from a utility) and the no-backdrop-filter fallback, whose @supports
+   condition is unreadable as a variant. */
 
 /* No backdrop-filter (older Firefox, some Linux GPUs): fall back to the
    opaque wash the header used to carry, so it never turns see-through. */
@@ -281,112 +391,18 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
   }
 }
 
-/* The name carries the display face (Bricolage under Spotlight, Fraunces
-   outside it) — so the workspace chrome speaks in the product's own voice instead of
-   another line of bold UI sans. Set at the preview nameplate's size and optical
-   axis, because the two are the same thing on opposite sides of the divider:
-   what you are looking at, named. */
-/* The gutter holds the switch's ghost: it occupies the width, paints nothing,
-   and takes no clicks. `visibility: hidden` rather than `display: none`
-   precisely because the box still has to be measured.
-
-   It is the one thing on the plate that yields quietly. Its track is
-   `minmax(0, auto)`, so on a pane wide enough it mirrors the cluster exactly
-   and the name sits at true centre; on a tighter one it hands its width to
-   the identity a pixel at a time. Off-centre by a hair beats a title with
-   nowhere to go — and below 28rem it stops pretending altogether. */
-.pane-header-gutter {
-  display: flex;
-  overflow: hidden;
-}
-
-.pane-switches--ghost {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* The identity block: name over reading, centred as one object. It takes only
-   the width it needs (the grid's `auto` column) and truncates rather than
-   pushing the switch off the plate. */
-.pane-identity {
-  min-width: 0;
-  text-align: center;
-}
-
-.pane-title {
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-variation-settings: 'opsz' 18, 'SOFT' 24, 'WONK' 1;
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.008em;
-  color: theme('colors.blue.950');
-}
-
-.dark .pane-title {
-  color: rgba(255, 255, 255, 0.94);
-}
-
-/* Marker + reading, on the crew card's status-line metrics. Reserves its own
-   height so the masthead never resizes underneath a cross-fade — the two
-   readings swap inside a box that does not move. */
-.pane-status-line {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3125rem;
-  min-height: 0.9375rem;
-}
-
-/* The gap belongs to the pair, not to the line: on an unnamed pane the reading
-   is the whole identity and sits on the plate's centreline, where a hanging
-   top margin would push it a hair low. */
-.pane-title + .pane-status-line {
-  margin-top: 0.125rem;
-}
-
-/* State as a dot, in the preview's dot family and the crew ledger's colours:
-   blue for a live run, navy ink for something that wants you, faint ink at
-   rest. Sized and seated so it reads as punctuation on the line rather than
-   as a badge beside it. */
-.pane-dot {
-  flex-shrink: 0;
-  width: 0.4375rem;
-  height: 0.4375rem;
-  border-radius: 9999px;
-  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.pane-dot--idle {
-  background: rgba(19, 26, 44, 0.22);
-}
-
-.pane-dot--waiting {
-  background: var(--sl-wait, theme('colors.blue.950'));
-  box-shadow: 0 0 8px -1px var(--sl-wait, transparent);
-}
-
-/* A live run: the dot itself holds steady — a marker that flickers looks like
-   a rendering fault — and a halo breathes outward from under it. Reads as a
-   signal radiating rather than a light being switched. */
-.pane-dot--working {
-  position: relative;
-  background: var(--sl-work, theme('colors.blue.500'));
+/* A live run: the dot itself holds steady-ish and a halo breathes outward
+   from under it. Reads as a signal radiating rather than a light being
+   switched. The switch icon's pulse is the same dot. */
+.pane-dot--working,
+.pane-switch-pulse {
   animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
 }
 
-.pane-dot--working::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: inherit;
+.pane-dot--working::after,
+.pane-switch-pulse::after {
   animation: pane-pulse-halo 2.4s var(--iw-ease-ambient) infinite;
 }
-
-.dark .pane-dot--idle { background: rgba(255, 255, 255, 0.22); }
-.dark .pane-dot--waiting { background: var(--sl-wait, #f3ede2); }
-.dark .pane-dot--working { background: var(--sl-work, theme('colors.blue.300')); }
 
 @keyframes pane-pulse-core {
   0%, 100% { opacity: 1; }
@@ -406,328 +422,5 @@ const emit = defineEmits<{ (e: 'switch', id: string): void }>()
 
   .pane-dot--working::after,
   .pane-switch-pulse::after { opacity: 0; }
-}
-
-/* The reading itself takes the state's ink, exactly as a card's status line
-   does — a header that stayed uniformly grey while every row beneath it
-   coloured its own status was the loudest thing out of step here. */
-.pane-status {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.625rem;
-  line-height: 1.35;
-  transition: color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.pane-status--idle { color: rgba(19, 26, 44, 0.42); }
-.pane-status--waiting { color: var(--sl-wait, rgba(19, 26, 44, 0.78)); }
-.pane-status--working { color: var(--sl-work, theme('colors.blue.600')); }
-
-.dark .pane-status--idle { color: rgba(219, 234, 254, 0.4); }
-.dark .pane-status--waiting { color: var(--sl-wait, rgba(243, 237, 226, 0.85)); }
-.dark .pane-status--working { color: var(--sl-work, theme('colors.blue.300')); }
-
-/* One reading giving way to the next: down and out, up and in — the direction
-   of a line being replaced from below. */
-.pane-status-enter-active,
-.pane-status-leave-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.pane-status-enter-from {
-  opacity: 0;
-  transform: translateY(3px);
-}
-
-.pane-status-leave-to {
-  opacity: 0;
-  transform: translateY(-3px);
-}
-
-/* Switch: names its destination instead of hiding behind a tooltip. Wears the
-   preview plate's bordered material and sits at the height of the preview's
-   nav buttons, so the two panes' chrome uses one elevation model — the button
-   used to lift off the plate on hover while everything opposite it stayed
-   seated. It still gives under the press (.iw-press). */
-/* The cluster: however many destinations this pane offers, seated as one
-   object on the right so the plate reads as identity-then-exits rather than a
-   row of loose buttons. */
-/* No `min-width: 0` here, and that is deliberate rather than an omission. It
-   was the bug: an explicit zero minimum overrides a grid item's automatic
-   minimum size, so the track was free to shrink to nothing under a cluster of
-   pills that never shrink — and the overflow landed on the title. Leaving the
-   automatic minimum alone makes the track's floor the cluster's real width,
-   so the identity beside it gives way instead. */
-.pane-switches {
-  display: flex;
-  align-items: center;
-  justify-self: end;
-  gap: 0.3125rem;
-}
-
-.pane-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3125rem;
-  flex-shrink: 0;
-  height: 1.75rem;
-  padding: 0 0.5625rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(19, 26, 44, 0.1);
-  background: rgba(255, 255, 255, 0.85);
-  color: rgba(19, 26, 44, 0.72);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 #ffffff;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-/* A control rather than a destination: a round button around its icon. */
-.pane-switch.pane-switch--icon {
-  justify-content: center;
-  width: 1.75rem;
-  padding: 0;
-}
-
-/* A destination that is already on screen on desktop (the preview, which sits
-   beside the panes there) — offered only where it actually replaces this pane.
-   Stated here rather than with a `md:hidden` utility: the scoped
-   `.pane-switch[data-v-…]` rule above outranks a single-class Tailwind
-   utility, so the utility would have been silently ignored. */
-@media (min-width: 768px) {
-  .pane-switch--mobile {
-    display: none;
-  }
-}
-
-/* Below this the plate cannot afford to spend the switch cluster's width
-   twice, so it stops trying: the ghost goes, and with it true centring. The
-   identity reads from the left — the app-bar arrangement — and the switches
-   keep the right. Everything tightens by a couple of pixels to buy the title
-   back some room.
-
-   28rem, because the widest cluster this masthead carries is a shade over
-   7rem: two of those plus a name worth reading is about where a centred plate
-   stops being a good trade. It catches the 22rem sidebar at every window size
-   and every phone — which is to say, the whole app as it stands today — and
-   hands centring back automatically if a pane ever gets wide enough to wear
-   it. This is the rule the old `max-width: 767px` was reaching for; it just
-   asked the window instead of the pane, and the window never knew. */
-@container (max-width: 28rem) {
-  .pane-header {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .pane-header-gutter {
-    display: none;
-  }
-
-  .pane-identity {
-    text-align: left;
-  }
-
-  .pane-status-line {
-    justify-content: flex-start;
-  }
-
-  .pane-switches {
-    gap: 0.25rem;
-  }
-
-  .pane-switch {
-    height: 1.625rem;
-    gap: 0.25rem;
-    padding: 0 0.5rem;
-  }
-
-  .pane-switch.pane-switch--icon {
-    width: 1.625rem;
-  }
-}
-
-/* Narrow panes — a small phone, or an iPad running the app in Slide Over. The
-   chevrons are the first thing to go: the icon and the word already say where
-   the button leads, and dropping them hands the pane's own name ~24px back. */
-@container (max-width: 20rem) {
-  .pane-switch-chevron {
-    display: none;
-  }
-}
-
-/* The last rung. Narrower than this the words on the pills would leave the
-   pane nameless, so the words go instead and the switches stand as icons —
-   still the full 26px target, still named to a screen reader by the
-   aria-label. A pane this narrow shouldn't happen; the plate holds together
-   if it does. */
-@container (max-width: 15rem) {
-  .pane-switch {
-    padding: 0 0.4375rem;
-  }
-
-  .pane-switch-label {
-    display: none;
-  }
-}
-
-.pane-switch:hover {
-  background: #ffffff;
-  border-color: rgba(19, 26, 44, 0.22);
-  color: theme('colors.blue.950');
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(19, 26, 44, 0.08);
-}
-
-.pane-switch:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .pane-switch {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(219, 234, 254, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.dark .pane-switch:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.26);
-  color: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.pane-switch-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.pane-switch-icon {
-  font-size: 0.625rem;
-  opacity: 0.7;
-  transition: opacity var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.pane-switch:hover .pane-switch-icon {
-  opacity: 0.95;
-}
-
-/* Same dot as the status line, sized down for the switch icon — the link to a
-   working subagent reads as live without stealing attention. */
-/* New since last opened: the info tone, still, so it never reads as work. */
-.pane-switch-fresh {
-  position: absolute;
-  top: -2px;
-  right: -3px;
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: 9999px;
-  background: var(--sl-cool);
-  box-shadow: 0 0 0 2px rgba(var(--iw-surface), 0.9);
-}
-
-.pane-switch-pulse {
-  position: absolute;
-  top: -2px;
-  right: -3px;
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: 9999px;
-  background: var(--sl-work, theme('colors.blue.500'));
-  box-shadow: 0 0 0 2px rgba(var(--iw-surface), 0.9);
-  animation: pane-pulse-core 2.4s var(--iw-ease-ambient) infinite;
-}
-
-.pane-switch-pulse::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: inherit;
-  animation: pane-pulse-halo 2.4s var(--iw-ease-ambient) infinite;
-}
-
-.dark .pane-switch-pulse {
-  background: var(--sl-work, theme('colors.blue.300'));
-}
-
-.pane-switch-chevron {
-  font-size: 0.5rem;
-  opacity: 0.45;
-  transition:
-    transform var(--iw-dur-2) var(--iw-ease-out),
-    opacity var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.pane-switch:hover .pane-switch-chevron {
-  opacity: 0.8;
-}
-
-.group:hover .fa-chevron-right.pane-switch-chevron {
-  transform: translateX(2px);
-}
-
-.group:hover .fa-chevron-left.pane-switch-chevron {
-  transform: translateX(-2px);
-}
-
-.pane-switch-label {
-  white-space: nowrap;
-}
-
-/* Count of what is waiting on the other side — navy ink, the recipe this
-   workspace keeps for things you act on. It is the one element in the
-   masthead that earns it. */
-.pane-switch-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.0625rem;
-  height: 1.0625rem;
-  padding: 0 0.25rem;
-  border-radius: 9999px;
-  background: theme('colors.blue.950');
-  color: #fbfaf7;
-  font-size: 0.625rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.dark .pane-switch-count {
-  background: #f3ede2;
-  color: theme('colors.blue.950');
-}
-
-/* The badge springs in rather than appearing already there — the one place in
-   the masthead where a change in the number is itself the news. */
-.pane-count-enter-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-spring);
-}
-
-.pane-count-leave-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.pane-count-enter-from {
-  opacity: 0;
-  transform: scale(0.5);
-}
-
-.pane-count-leave-to {
-  opacity: 0;
-  transform: scale(0.7);
 }
 </style>

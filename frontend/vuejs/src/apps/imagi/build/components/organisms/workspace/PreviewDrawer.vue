@@ -1,8 +1,12 @@
 <template>
-  <section class="pd-root" :style="{ height: `${height}px` }" aria-label="Preview tools">
+  <section
+    class="relative flex flex-col shrink-0 min-h-[7rem] border-t border-t-sl-line-strong bg-sl-surface dark:bg-sl-surface-2 text-sl-text text-[0.75rem]"
+    :style="{ height: `${height}px` }"
+    aria-label="Preview tools"
+  >
     <!-- Drag the top edge to resize. -->
     <div
-      class="pd-grip"
+      class="absolute -top-1 left-0 right-0 h-2 cursor-ns-resize z-[2] focus-visible:!outline-offset-[-3px]"
       role="separator"
       aria-orientation="horizontal"
       aria-label="Resize the tools panel"
@@ -12,67 +16,88 @@
       @keydown.down.prevent="emit('update:height', height - 24)"
     ></div>
 
-    <header class="pd-head">
-      <div class="pd-tabs" role="tablist">
+    <header class="flex items-center gap-1.5 h-9 px-2 border-b border-b-sl-line">
+      <div class="flex gap-0.5 mr-auto" role="tablist">
         <button
           v-for="t in tabs"
           :key="t.key"
           type="button"
           role="tab"
           :aria-selected="tab === t.key"
-          :class="['pd-tab', tab === t.key && 'is-on']"
+          class="inline-flex items-center gap-1.5 h-[1.625rem] px-2.5 rounded-full font-semibold
+            [transition:background-color_0.2s_cubic-bezier(0.22,1,0.36,1),color_0.2s_cubic-bezier(0.22,1,0.36,1)] motion-reduce:[transition:none]
+            focus-visible:!outline-offset-2"
+          :class="tab === t.key
+            ? 'text-sl-text bg-sl-chip-bg-hover'
+            : 'text-sl-muted hover:text-sl-text hover:bg-sl-chip-bg'"
           @click="emit('update:tab', t.key)"
         >
           {{ t.label }}
-          <span v-if="t.count" :class="['pd-count', t.key === 'console' && errorCount && 'is-bad']">{{ t.count }}</span>
+          <span
+            v-if="t.count"
+            class="min-w-[1.125rem] px-[0.3125rem] rounded-full text-[0.625rem] tabular-nums text-center"
+            :class="t.key === 'console' && errorCount ? 'bg-sl-bad text-white' : 'bg-sl-chip-bg-hover text-sl-muted'"
+          >{{ t.count }}</span>
         </button>
       </div>
+      <!-- No ! on the outline: `.spotlight :focus-visible` has always won
+           here, so the field takes the Spotlight ring when focused. -->
       <input
         v-model="filter"
         type="search"
-        class="pd-filter"
+        class="w-36 h-[1.625rem] px-2.5 rounded-full border border-sl-line bg-transparent text-sl-text text-[0.75rem] [outline:none]
+          transition-[border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:[transition:none]
+          hover:border-sl-line-strong focus:border-sl-line-strong placeholder:text-sl-faint"
         :placeholder="tab === 'network' ? 'Filter requests' : 'Filter'"
         aria-label="Filter"
       />
-      <button type="button" class="pd-icon" title="Clear" aria-label="Clear" @click="emit('clear', tab)">
+      <button type="button" :class="ICON_BTN" title="Clear" aria-label="Clear" @click="emit('clear', tab)">
         <i class="fas fa-ban"></i>
       </button>
-      <button type="button" class="pd-icon" title="Close (Ctrl+J)" aria-label="Close the tools panel" @click="emit('close')">
+      <button type="button" :class="ICON_BTN" title="Close (Ctrl+J)" aria-label="Close the tools panel" @click="emit('close')">
         <i class="fas fa-xmark"></i>
       </button>
     </header>
 
-    <div ref="bodyRef" class="pd-body" role="tabpanel">
+    <div
+      ref="bodyRef"
+      class="flex-1 min-h-0 overflow-auto [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace]"
+      role="tabpanel"
+    >
       <!-- Console: errors pinned on top, then everything in order. -->
       <template v-if="tab === 'console'">
-        <div v-if="pinnedErrors.length" class="pd-pinned">
-          <div v-for="err in pinnedErrors" :key="err.text" class="pd-row pd-row--error">
-            <i class="fas fa-circle-exclamation pd-lvl"></i>
-            <span class="pd-text">{{ err.text }}</span>
-            <span v-if="err.count > 1" class="pd-times">×{{ err.count }}</span>
+        <div
+          v-if="pinnedErrors.length"
+          class="sticky top-0 z-[1] border-b border-b-sl-line-strong bg-sl-surface dark:bg-sl-surface-2"
+        >
+          <div v-for="err in pinnedErrors" :key="err.text" :class="[ROW, ROW_TONE.error]">
+            <i :class="['fas fa-circle-exclamation', LVL]"></i>
+            <span :class="TEXT">{{ err.text }}</span>
+            <span v-if="err.count > 1" class="shrink-0 text-sl-faint">×{{ err.count }}</span>
           </div>
         </div>
-        <p v-if="!filteredConsole.length" class="pd-empty">Nothing logged yet. Your app's console messages show up here.</p>
-        <div v-for="(entry, i) in filteredConsole" :key="i" :class="['pd-row', `pd-row--${entry.level}`]">
-          <span class="pd-time">{{ clock(entry.ts) }}</span>
-          <i :class="['fas', levelIcon(entry.level), 'pd-lvl']"></i>
-          <span class="pd-text">{{ entry.text }}</span>
+        <p v-if="!filteredConsole.length" :class="EMPTY">Nothing logged yet. Your app's console messages show up here.</p>
+        <div v-for="(entry, i) in filteredConsole" :key="i" :class="[ROW, ROW_TONE[entry.level]]">
+          <span class="shrink-0 text-sl-faint tabular-nums">{{ clock(entry.ts) }}</span>
+          <i :class="['fas', levelIcon(entry.level), LVL]"></i>
+          <span :class="TEXT">{{ entry.text }}</span>
         </div>
       </template>
 
       <!-- Network: the app's own fetch/XHR calls; failures stand out. -->
       <template v-else-if="tab === 'network'">
-        <p v-if="!filteredNetwork.length" class="pd-empty">No requests yet. Calls your app makes to its backend show up here.</p>
-        <table v-else class="pd-table">
+        <p v-if="!filteredNetwork.length" :class="EMPTY">No requests yet. Calls your app makes to its backend show up here.</p>
+        <table v-else class="w-full border-collapse">
           <thead>
-            <tr><th>Method</th><th>Path</th><th>Status</th><th class="pd-num">Time</th></tr>
+            <!-- Time stays left-aligned like the other headings. -->
+            <tr><th :class="TH">Method</th><th :class="TH">Path</th><th :class="TH">Status</th><th :class="[TH, 'tabular-nums']">Time</th></tr>
           </thead>
           <tbody>
-            <tr v-for="req in filteredNetwork" :key="req.id" :class="{ 'is-failed': failed(req) }">
-              <td class="pd-mono">{{ req.method }}</td>
-              <td class="pd-mono pd-path" :title="req.url">{{ req.url }}</td>
-              <td class="pd-mono">{{ req.status || 'failed' }}</td>
-              <td class="pd-mono pd-num">{{ req.ms }} ms</td>
+            <tr v-for="req in filteredNetwork" :key="req.id" :class="failed(req) && '[&>td]:text-sl-bad'">
+              <td :class="TD">{{ req.method }}</td>
+              <td :class="[TD, 'max-w-0 w-[60%] truncate']" :title="req.url">{{ req.url }}</td>
+              <td :class="TD">{{ req.status || 'failed' }}</td>
+              <td :class="[TD, 'text-right tabular-nums']">{{ req.ms }} ms</td>
             </tr>
           </tbody>
         </table>
@@ -80,24 +105,27 @@
 
       <!-- Server logs: Django and Vite as they write them. -->
       <template v-else>
-        <div class="pd-sources" role="group" aria-label="Which server">
+        <div class="flex gap-1 px-3 py-1.5 border-b border-b-sl-line font-sl-body" role="group" aria-label="Which server">
           <button
             v-for="s in sources"
             :key="s.key"
             type="button"
             :aria-pressed="source === s.key"
-            :class="['pd-chip', source === s.key && 'is-on']"
+            class="h-[1.375rem] px-2.5 rounded-full border text-[0.6875rem] focus-visible:!outline-offset-2"
+            :class="source === s.key
+              ? 'text-sl-text border-sl-line-strong bg-sl-chip-bg-hover'
+              : 'text-sl-muted border-sl-line'"
             @click="source = s.key"
           >{{ s.label }}</button>
         </div>
-        <p v-if="!filteredLogs.length" class="pd-empty">No server output yet.</p>
+        <p v-if="!filteredLogs.length" :class="EMPTY">No server output yet.</p>
         <div
           v-for="(line, i) in filteredLogs"
           :key="i"
-          :class="['pd-row', 'pd-log', isErrorLine(line.text) && 'pd-row--error']"
+          :class="[ROW, isErrorLine(line.text) && ROW_TONE.error]"
         >
-          <span class="pd-src">{{ line.source === 'backend' ? 'Backend' : 'Frontend' }}</span>
-          <span class="pd-text">{{ line.text }}</span>
+          <span class="shrink-0 w-[4.25rem] text-sl-faint tabular-nums">{{ line.source === 'backend' ? 'Backend' : 'Frontend' }}</span>
+          <span :class="TEXT">{{ line.text }}</span>
         </div>
       </template>
     </div>
@@ -128,6 +156,24 @@ const emit = defineEmits<{
   (e: 'clear', tab: DrawerTab): void
   (e: 'close'): void
 }>()
+
+// Shared class lists. The focus ring is the Spotlight one (2px --sl-focus);
+// the ! offsets beat `.spotlight :focus-visible`, which sets 3px.
+const ICON_BTN =
+  'inline-grid place-items-center w-[1.625rem] h-[1.625rem] rounded-full text-sl-muted text-[0.6875rem] hover:text-sl-text hover:bg-sl-chip-bg-hover focus-visible:!outline-offset-2'
+const ROW = 'flex items-start gap-2 px-3 py-1 border-b border-b-sl-line leading-[1.45]'
+const ROW_TONE: Record<ConsoleEntry['level'], string> = {
+  error: 'text-sl-bad bg-[color:color-mix(in_srgb,var(--sl-bad)_6%,transparent)]',
+  warn: 'text-sl-wait bg-[color:color-mix(in_srgb,var(--sl-wait)_6%,transparent)]',
+  info: '',
+  log: '',
+}
+const LVL = 'shrink-0 w-3 mt-[0.2rem] text-[0.625rem] opacity-80'
+const TEXT = 'flex-1 min-w-0 whitespace-pre-wrap [word-break:break-word]'
+const EMPTY = 'px-3 py-4 font-sl-body text-sl-muted'
+const TH =
+  'sticky top-0 px-3 py-[0.3125rem] border-b border-b-sl-line-strong bg-sl-surface dark:bg-sl-surface-2 font-sl-body text-[0.6875rem] font-semibold tracking-[0.14em] text-left uppercase text-sl-muted'
+const TD = 'px-3 py-1 border-b border-b-sl-line'
 
 const filter = ref('')
 const source = ref<'all' | 'backend' | 'frontend'>('all')
@@ -226,195 +272,3 @@ function onGripDown(e: PointerEvent) {
   target.addEventListener('pointercancel', up)
 }
 </script>
-
-<style scoped>
-.pd-root {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  min-height: 7rem;
-  border-top: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: var(--sl-surface, #ffffff);
-  color: var(--sl-text, #14151c);
-  font-size: 0.75rem;
-}
-.dark .pd-root { background: var(--sl-surface-2, #1a1d28); }
-
-.pd-grip {
-  position: absolute;
-  top: -4px;
-  left: 0;
-  right: 0;
-  height: 8px;
-  cursor: ns-resize;
-  z-index: 2;
-}
-.pd-grip:focus-visible {
-  outline: 2px solid var(--sl-focus, #d9730d);
-  outline-offset: -3px;
-}
-
-.pd-head {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  height: 2.25rem;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-}
-
-.pd-tabs {
-  display: flex;
-  gap: 0.125rem;
-  margin-right: auto;
-}
-
-.pd-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  height: 1.625rem;
-  padding: 0 0.625rem;
-  border-radius: 9999px;
-  font-weight: 600;
-  color: var(--sl-muted, #5c6172);
-  transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.pd-tab:hover { color: var(--sl-text, #14151c); background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035)); }
-.pd-tab.is-on { color: var(--sl-text, #14151c); background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
-
-.pd-count {
-  min-width: 1.125rem;
-  padding: 0 0.3125rem;
-  border-radius: 9999px;
-  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
-  font-size: 0.625rem;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  color: var(--sl-muted, #5c6172);
-}
-.pd-count.is-bad { background: var(--sl-bad, #d7334a); color: #fff; }
-
-.pd-filter {
-  width: 9rem;
-  height: 1.625rem;
-  padding: 0 0.625rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  background: transparent;
-  color: var(--sl-text, #14151c);
-  font-size: 0.75rem;
-  outline: none;
-  transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.pd-filter:hover,
-.pd-filter:focus { border-color: var(--sl-line-strong, rgba(20, 21, 30, 0.15)); }
-.pd-filter::placeholder { color: var(--sl-faint, #8a8fa0); }
-
-.pd-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 1.625rem;
-  height: 1.625rem;
-  border-radius: 9999px;
-  color: var(--sl-muted, #5c6172);
-  font-size: 0.6875rem;
-}
-.pd-icon:hover { color: var(--sl-text, #14151c); background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
-
-.pd-tab:focus-visible,
-.pd-icon:focus-visible,
-.pd-chip:focus-visible {
-  outline: 2px solid var(--sl-focus, #d9730d);
-  outline-offset: 2px;
-}
-
-.pd-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.pd-pinned {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  border-bottom: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: inherit;
-  background: var(--sl-surface, #ffffff);
-}
-.dark .pd-pinned { background: var(--sl-surface-2, #1a1d28); }
-
-.pd-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  line-height: 1.45;
-}
-.pd-row--error { color: var(--sl-bad, #d7334a); background: color-mix(in srgb, var(--sl-bad, #d7334a) 6%, transparent); }
-.pd-row--warn { color: var(--sl-wait, #c46f00); background: color-mix(in srgb, var(--sl-wait, #c46f00) 6%, transparent); }
-
-.pd-time,
-.pd-src {
-  flex-shrink: 0;
-  color: var(--sl-faint, #8a8fa0);
-  font-variant-numeric: tabular-nums;
-}
-.pd-src { width: 4.25rem; }
-.pd-lvl { flex-shrink: 0; width: 0.75rem; margin-top: 0.2rem; font-size: 0.625rem; opacity: 0.8; }
-.pd-text { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
-.pd-times { flex-shrink: 0; color: var(--sl-faint, #8a8fa0); }
-
-
-.pd-empty {
-  padding: 1rem 0.75rem;
-  font-family: var(--sl-font-body, inherit);
-  color: var(--sl-muted, #5c6172);
-}
-
-.pd-sources {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  font-family: var(--sl-font-body, inherit);
-}
-.pd-chip {
-  height: 1.375rem;
-  padding: 0 0.625rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  color: var(--sl-muted, #5c6172);
-  font-size: 0.6875rem;
-}
-.pd-chip.is-on { color: var(--sl-text, #14151c); border-color: var(--sl-line-strong, rgba(20, 21, 30, 0.15)); background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
-
-.pd-table { width: 100%; border-collapse: collapse; }
-.pd-table th {
-  position: sticky;
-  top: 0;
-  padding: 0.3125rem 0.75rem;
-  border-bottom: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: var(--sl-surface, #ffffff);
-  font-family: var(--sl-font-body, inherit);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-align: left;
-  text-transform: uppercase;
-  color: var(--sl-muted, #5c6172);
-}
-.dark .pd-table th { background: var(--sl-surface-2, #1a1d28); }
-.pd-table td { padding: 0.25rem 0.75rem; border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09)); }
-.pd-table tr.is-failed td { color: var(--sl-bad, #d7334a); }
-.pd-path { max-width: 0; width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pd-num { text-align: right; font-variant-numeric: tabular-nums; }
-
-@media (prefers-reduced-motion: reduce) {
-  .pd-tab, .pd-filter { transition: none; }
-}
-</style>

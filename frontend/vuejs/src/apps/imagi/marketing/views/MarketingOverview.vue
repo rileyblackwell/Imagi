@@ -71,7 +71,8 @@
     <section v-if="stats" class="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-4" aria-label="Last 30 days">
       <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
         <p :class="ui.label" class="!mb-2">{{ stat.label }}</p>
-        <p class="stat-number text-2xl font-semibold tabular-nums">{{ stat.value }}</p>
+        <!-- Stat numerals carry the light, as the design system asks -->
+        <p class="bg-sl-grad bg-clip-text text-2xl font-semibold tabular-nums text-transparent">{{ stat.value }}</p>
         <p :class="ui.hintText" class="mt-1">{{ stat.caption }}</p>
       </div>
     </section>
@@ -363,13 +364,3 @@ onMounted(async () => {
   loading.value = false
 })
 </script>
-
-<style scoped>
-/* Stat numerals carry the light, as the design system asks. */
-.stat-number {
-  background: var(--sl-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-</style>

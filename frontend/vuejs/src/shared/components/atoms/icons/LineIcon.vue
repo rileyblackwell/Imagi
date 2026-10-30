@@ -9,7 +9,7 @@
 -->
 <template>
   <svg
-    class="line-icon"
+    class="line-icon block w-[1.375rem] h-[1.375rem]"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -102,11 +102,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-.line-icon {
-  width: 1.375rem;
-  height: 1.375rem;
-  display: block;
-}
-</style>

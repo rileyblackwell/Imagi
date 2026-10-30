@@ -5,7 +5,13 @@
   own routes.
 -->
 <template>
-  <article class="channel group flex flex-col p-6" :class="ui.card">
+  <!-- The lift on hover is motion-safe only; its transition replaces ui.card's colour one. -->
+  <article
+    class="channel group flex min-h-[15.5rem] flex-col p-6
+      motion-safe:[transition:transform_200ms_cubic-bezier(0.22,1,0.36,1),border-color_200ms_cubic-bezier(0.22,1,0.36,1)]
+      motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-sl-line-strong"
+    :class="ui.card"
+  >
     <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
       <div class="flex items-center gap-3.5 min-w-[13rem] flex-1">
         <div class="w-12 h-12 shrink-0 text-lg" :class="ui.iconTile">
@@ -48,20 +54,3 @@ defineProps<{
   detail?: string
 }>()
 </script>
-
-<style scoped>
-.channel {
-  min-height: 15.5rem;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .channel {
-    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .channel:hover {
-    transform: translateY(-2px);
-    border-color: var(--sl-line-strong);
-  }
-}
-</style>

@@ -4,21 +4,33 @@
   <div class="spotlight auth-root">
   <DefaultLayout minimal-nav>
     <div class="editorial auth-page min-h-screen relative isolate overflow-hidden">
-      <div class="sl-spot auth-spot" aria-hidden="true"></div>
+      <!-- The light sits over the card rather than the top edge of the page
+           (`!` over .sl-spot's own pool) -->
+      <div
+        class="sl-spot !bg-[radial-gradient(ellipse_42%_50%_at_50%_12%,var(--sl-spot-core)_0%,var(--sl-spot-mid)_45%,transparent_75%),radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--sl-spot-wide),transparent_65%)]"
+        aria-hidden="true"
+      ></div>
       <div class="sl-dots" aria-hidden="true"></div>
 
       <div class="relative z-10 flex min-h-screen w-full items-center justify-center px-6 py-16 pt-28 sm:pt-32">
         <div class="w-full max-w-[30rem] auth-rise">
-          <div class="auth-panel">
+          <!-- One card in the light, edged with the same glowing gradient as
+               the home page's prompt bar: the fill on the padding box, the
+               edge on the border box. -->
+          <div
+            class="auth-panel relative py-10 px-8 sm:py-12 sm:px-11 border border-transparent rounded-[22px]
+                   [background:var(--sl-prompt-bg)_padding-box,var(--sl-prompt-edge)_border-box] shadow-sl-prompt"
+          >
             <div class="text-center">
               <!-- ImagiLogo's root is a block, so it needs an inline-flex
                    wrapper to sit under text-center. -->
               <span class="inline-flex"><ImagiLogo size="lg" to="/" /></span>
 
-              <h1 class="sl-display auth-title">
+              <!-- `!mt-7`: .sl-display zeroes the margin -->
+              <h1 class="sl-display !mt-7 text-[clamp(32px,4.4vw,42px)] leading-[1.02] tracking-[-0.03em]">
                 {{ route.meta.title }}
               </h1>
-              <p class="sl-lede auth-lede">
+              <p class="sl-lede !mt-3 !mx-auto !text-[16px]">
                 {{ route.meta.subtitle }}
               </p>
             </div>
@@ -26,7 +38,13 @@
             <div class="section-rule my-9" aria-hidden="true"></div>
 
             <router-view v-slot="{ Component }">
-              <transition name="fade" mode="out-in">
+              <transition
+                mode="out-in"
+                enter-active-class="[transition:opacity_0.2s_ease]"
+                leave-active-class="[transition:opacity_0.2s_ease]"
+                enter-from-class="opacity-0"
+                leave-to-class="opacity-0"
+              >
                 <component :is="Component" />
               </transition>
             </router-view>
@@ -47,70 +65,12 @@ const route = useRoute()
 </script>
 
 <style scoped>
-/* The light sits over the card rather than the top edge of the page */
-.auth-page .auth-spot {
-  background:
-    radial-gradient(ellipse 42% 50% at 50% 12%, var(--sl-spot-core) 0%, var(--sl-spot-mid) 45%, transparent 75%),
-    radial-gradient(ellipse 80% 60% at 50% -10%, var(--sl-spot-wide), transparent 65%);
-}
-
-.auth-title {
-  margin-top: 1.75rem;
-  font-size: clamp(32px, 4.4vw, 42px);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-}
-
-.auth-lede {
-  margin: 0.75rem auto 0;
-  font-size: 16px;
-}
-
-/* One card in the light, edged with the same glowing gradient as the home
-   page's prompt bar. */
-.auth-panel {
-  position: relative;
-  padding: 2.5rem 2rem;
-  border: 1px solid transparent;
-  border-radius: 22px;
-  background:
-    var(--sl-prompt-bg) padding-box,
-    var(--sl-prompt-edge) border-box;
-  box-shadow: var(--sl-prompt-shadow);
-}
-
-/* The form controls take the stage's colours. Their Tailwind classes are
-   shared with the signed-in app, so they are re-lit here rather than at the
-   source. */
-.auth-panel :deep(input:not([type='checkbox'])) {
-  border-color: var(--sl-line-strong);
-  border-radius: 14px;
-  background: var(--sl-chip-bg);
-  color: var(--sl-text);
-  font-family: var(--sl-font-body);
-}
-
-.auth-panel :deep(input:not([type='checkbox'])::placeholder) {
+/* The form controls take the stage's colours. FormInput and PasswordInput
+   carry theirs on their own templates; these three reach into components
+   this layout does not own (GradientButton's icon, FormCheckbox's box and
+   label), so they stay :deep() rules. */
+.auth-panel :deep(button.group > span > i) {
   color: var(--sl-faint);
-}
-
-.auth-panel :deep(input:not([type='checkbox']):hover) {
-  border-color: color-mix(in srgb, var(--sl-text) 28%, transparent);
-}
-
-.auth-panel :deep(input:not([type='checkbox']):focus) {
-  border-color: var(--sl-focus);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sl-amber) 16%, transparent);
-}
-
-.auth-panel :deep(.group > span > i),
-.auth-panel :deep(label > span > i),
-.auth-panel :deep(input ~ button) {
-  color: var(--sl-faint);
-}
-
-.auth-panel :deep(input ~ button:hover) {
-  color: var(--sl-text);
 }
 
 .auth-panel :deep(input[type='checkbox']) {
@@ -121,26 +81,7 @@ const route = useRoute()
   color: var(--sl-muted);
 }
 
-.auth-panel :deep(.ml-3 a) {
-  color: var(--sl-text);
-  border-color: var(--sl-line-strong);
-}
-
-.auth-panel :deep(.ml-3 a:hover) {
-  border-color: var(--sl-focus);
-}
-
-.auth-panel :deep(.bg-paper\/80) {
-  border-color: var(--sl-line);
-  background: var(--sl-chip-bg);
-}
-
-@media (min-width: 640px) {
-  .auth-panel {
-    padding: 3rem 2.75rem;
-  }
-}
-
+/* Stays CSS: a utility cannot name a scoped @keyframes */
 .auth-rise {
   animation: auth-rise 0.7s var(--app-ease) both;
 }
@@ -160,15 +101,5 @@ const route = useRoute()
   .auth-rise {
     animation: none;
   }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

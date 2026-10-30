@@ -16,13 +16,38 @@
         </p>
       </div>
 
-      <dl v-reveal="{ delay: 60 }" class="facts">
-        <div v-for="fact in facts" :key="fact.label" class="fact">
-          <dt class="fact__label">{{ fact.label }}</dt>
-          <dd class="fact__value sl-display" :class="{ 'sl-grad-text': fact.lit }">
-            {{ fact.value }}<span v-if="fact.unit" class="fact__unit">&nbsp;{{ fact.unit }}</span>
+      <!-- Three facts between two hairlines: two lit numbers and who it's for -->
+      <dl
+        v-reveal="{ delay: 60 }"
+        class="mx-0 mb-0 mt-[clamp(48px,6vw,72px)] grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)]
+          border-y border-y-sl-line max-[900px]:grid-cols-[minmax(0,1fr)]"
+      >
+        <div
+          v-for="(fact, index) in facts"
+          :key="fact.label"
+          class="flex min-w-0 flex-col items-center gap-3 px-[clamp(16px,2.4vw,32px)] py-[clamp(32px,4vw,44px)] text-center"
+          :class="{
+            'border-l border-l-sl-line max-[900px]:border-t max-[900px]:border-t-sl-line max-[900px]:[border-left:0]':
+              index > 0
+          }"
+        >
+          <dt class="fact__label text-[12px] font-semibold uppercase tracking-[0.18em] text-sl-muted">{{ fact.label }}</dt>
+          <!-- m and font-weight are important: .sl-display and .sl-grad-text set them.
+               The audience (last) is words, not a number, so it sits smaller on
+               the same baseline. -->
+          <dd
+            class="fact__value sl-display flex min-h-[clamp(56px,6.4vw,84px)] items-end justify-center !m-0 !font-bold
+              tabular-nums"
+            :class="[
+              { 'sl-grad-text': fact.lit },
+              index === facts.length - 1
+                ? 'text-[length:clamp(22px,2.2vw,28px)] leading-[1.2] tracking-[-0.02em]'
+                : 'text-[length:clamp(56px,6.4vw,84px)] leading-none tracking-[-0.045em] drop-shadow-[0_0_30px_var(--sl-text-glow)]'
+            ]"
+          >
+            {{ fact.value }}<span v-if="fact.unit" class="pb-[0.14em] text-[0.45em] tracking-[-0.02em]">&nbsp;{{ fact.unit }}</span>
           </dd>
-          <p class="fact__caption">{{ fact.caption }}</p>
+          <p class="m-0 max-w-[30ch] text-[15px] text-sl-muted text-pretty">{{ fact.caption }}</p>
         </div>
       </dl>
     </div>
@@ -48,84 +73,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-/* Three facts between two hairlines: two lit numbers and who it's for */
-.facts {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr);
-  margin: clamp(48px, 6vw, 72px) 0 0;
-  border-top: 1px solid var(--sl-line);
-  border-bottom: 1px solid var(--sl-line);
-}
-
-.fact {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: clamp(32px, 4vw, 44px) clamp(16px, 2.4vw, 32px);
-  text-align: center;
-}
-
-.fact + .fact {
-  border-left: 1px solid var(--sl-line);
-}
-
-.fact__label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--sl-muted);
-}
-
-.fact .fact__value {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  min-height: clamp(56px, 6.4vw, 84px);
-  margin: 0;
-  font-size: clamp(56px, 6.4vw, 84px);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  font-variant-numeric: tabular-nums;
-  filter: drop-shadow(0 0 30px var(--sl-text-glow));
-}
-
-.fact__unit {
-  font-size: 0.45em;
-  letter-spacing: -0.02em;
-  padding-bottom: 0.14em;
-}
-
-/* The audience is words, not a number, so it sits smaller on the same baseline */
-.fact:last-child .fact__value {
-  font-size: clamp(22px, 2.2vw, 28px);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  text-wrap: balance;
-  filter: none;
-}
-
-.fact__caption {
-  margin: 0;
-  max-width: 30ch;
-  font-size: 15px;
-  color: var(--sl-muted);
-  text-wrap: pretty;
-}
-
-@media (max-width: 900px) {
-  .facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .fact + .fact {
-    border-left: 0;
-    border-top: 1px solid var(--sl-line);
-  }
-}
-</style>

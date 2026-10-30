@@ -35,7 +35,17 @@
           <!-- KeepAlive keeps the hidden pane's component state alive across
                swaps — most importantly the composer's typed-but-unsent draft,
                which a plain v-if unmount would silently destroy. -->
-          <Transition name="sidebar-view" mode="out-in">
+          <!-- out-in, so the two panes never overlap in the sidebar's clipped
+               column. The leave is kept short and the enter carries the
+               weight: the outgoing pane slips away, the incoming one settles.
+               The ! beats the panes' own transition-colors. -->
+          <Transition
+            mode="out-in"
+            enter-active-class="![transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-out)]"
+            leave-active-class="![transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+            enter-from-class="opacity-0 [transform:translateX(12px)_scale(0.995)]"
+            leave-to-class="opacity-0 [transform:translateX(-10px)_scale(0.995)]"
+          >
             <KeepAlive>
               <AgentManagerPanel
                 v-if="sidebarView === 'manager'"
@@ -763,37 +773,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Manager <-> chat pane swap. The preview lives in the main content area and
-   is untouched by this transition.
-
-   out-in, so the two panes never overlap in the sidebar's clipped column —
-   which means the user waits through both halves. The leave is therefore
-   kept short and the enter carries the weight: the outgoing pane slips away
-   quickly, the incoming one settles. Both ride the workspace's shared easing
-   so this swap decays at the same rate as everything inside the panes. */
-.sidebar-view-enter-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.sidebar-view-leave-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.sidebar-view-enter-from {
-  opacity: 0;
-  transform: translateX(12px) scale(0.995);
-}
-
-.sidebar-view-leave-to {
-  opacity: 0;
-  transform: translateX(-10px) scale(0.995);
-}
-
-/* Refined minimal scrollbar - Matching Homepage */
+/* Scrollbar pseudo-elements have no utility form. */
 :deep(::-webkit-scrollbar) {
   width: 8px;
 }

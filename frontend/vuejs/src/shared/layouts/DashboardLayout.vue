@@ -18,9 +18,14 @@
       <!-- Sidebar: the same glass as the navbar (bg-white/80 blur + hairline),
            so the top bar and the panel read as one continuous frame around the
            page. On mobile it drops below the navbar and becomes an off-canvas
-           drawer that floats over the content. -->
+           drawer that floats over the content.
+
+           One coordinated glide for the whole shell: the panel slides on
+           transform, the content margin and navbar offset animate in lockstep
+           on the same curve (the home page's reveal easing), so nothing tears
+           or lags. -->
       <aside
-        class="sidebar-panel fixed bottom-0 left-0 z-30 flex flex-col top-nav border-r border-ink/[0.08] dark:border-white/[0.08] bg-canvas/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
+        class="[transition:transform_0.32s_var(--app-ease)] will-change-transform motion-reduce:[transition:none] fixed bottom-0 left-0 z-30 flex flex-col top-nav border-r border-ink/[0.08] dark:border-white/[0.08] bg-canvas/80 backdrop-blur-xl max-md:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] dark:max-md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)]"
         :class="[
           asideWidthClass,
           isSidebarCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
@@ -53,7 +58,7 @@
            when the panel is collapsed (or on mobile, where the panel overlays
            rather than pushes). -->
       <div
-        class="content-shell flex-1 flex flex-col ml-0"
+        class="[transition:margin_0.32s_var(--app-ease),left_0.32s_var(--app-ease)] motion-reduce:[transition:none] flex-1 flex flex-col ml-0"
         :class="[
           appShell ? 'h-full min-h-0 overflow-hidden' : 'min-h-screen',
           isSidebarCollapsed ? '' : contentOffsetClass
@@ -63,7 +68,7 @@
              restates the surface it wears inside the app shell. -->
         <SiteNavbar
           v-if="siteNav"
-          class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]"
+          class="z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]"
         >
           <template #left-leading>
             <SidebarToggle
@@ -74,9 +79,14 @@
             />
           </template>
         </SiteNavbar>
+        <!-- The glide's curve again; `!` because the bar's own
+             transition-colors would otherwise win. (The site bar above never
+             took this: its root is a fragment, so the old scoped rule did not
+             reach it, and it keeps the bar's own colour transition.) -->
         <BaseNavbar
           v-else
-          class="navbar-shell z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]"
+          class="z-20 bg-canvas/80 backdrop-blur-md border-b border-ink/[0.08] dark:border-white/[0.08]
+                 ![transition:margin_0.32s_var(--app-ease),left_0.32s_var(--app-ease)] motion-reduce:![transition:none]"
           fluid
         >
           <!-- The permanent show/hide control, pinned to the far left of the
@@ -135,7 +145,7 @@
 import { ref } from 'vue'
 import BaseLayout from './BaseLayout.vue'
 import { BaseNavbar, BaseFooter, SiteNavbar } from '@/shared/components'
-// Not a public atom: this layout is its only consumer and styles it with :deep().
+// Not a public atom: this layout is its only consumer.
 import SidebarToggle from '@/shared/components/atoms/buttons/SidebarToggle.vue'
 
 const props = withDefaults(defineProps<{
@@ -190,38 +200,3 @@ const setSidebarCollapsed = (collapsed: boolean) => {
   }
 }
 </script>
-
-<style scoped>
-/* Note: never redefine Tailwind utilities (.w-72, .ml-72, ...) in here. Scoped
-   rules compile with a [data-v-*] attribute selector, so they out-rank
-   responsive variants like md:ml-72 and silently break them. Sizing is passed
-   in as utility classes precisely to keep it out of here. */
-
-/* One coordinated glide for the whole shell: the panel slides on transform,
-   the content margin and navbar offset animate in lockstep on the same curve
-   (matching the home page's reveal easing), so nothing tears or lags. */
-.sidebar-panel {
-  transition: transform 0.32s var(--app-ease);
-  will-change: transform;
-}
-
-.content-shell,
-.navbar-shell {
-  transition: margin 0.32s var(--app-ease),
-    left 0.32s var(--app-ease);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-panel,
-  .content-shell,
-  .navbar-shell {
-    transition: none;
-  }
-}
-
-/* No tap flash on the toggle; keyboard focus shows the canonical ring via
-   the focus-visible utilities on the button itself. */
-:deep(.sidebar-toggle) {
-  -webkit-tap-highlight-color: transparent;
-}
-</style>

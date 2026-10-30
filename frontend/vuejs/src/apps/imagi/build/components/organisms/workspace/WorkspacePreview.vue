@@ -1,18 +1,28 @@
 <template>
-  <div class="pv-root relative w-full h-full flex flex-col">
+  <!-- Glass Dock. The preview pane is a Spotlight stage: the user's app sits on
+       it as a lit card, and the controls float above it in one frosted pill.
+       The chrome stays quiet so the app is the brightest thing here. Colours
+       come from the --sl-* tokens, so the themes differ only there. -->
+  <div
+    class="relative w-full h-full flex flex-col bg-sl-bg bg-[radial-gradient(70%_320px_at_50%_-80px,var(--sl-spot-core),transparent_70%)]"
+  >
     <!-- The dock: one frosted pill floating on the stage above the app —
          navigation, and where you are (also the page menu). It sits in its own band rather than over the app,
-         because anything laid over the frame would hide the app's own header. -->
-    <div class="pv-dockbar">
-      <div class="pv-dock">
-        <div class="pv-rail shrink-0">
+         because anything laid over the frame would hide the app's own header.
+         Phones: the preview already fills a phone, so the band tightens. -->
+    <div class="relative z-[3] flex shrink-0 justify-center pt-3 px-4 pb-2.5 max-[767px]:p-2">
+      <div
+        class="relative flex items-center gap-1 max-[767px]:gap-0.5 w-full max-w-[44rem] p-1 rounded-full border border-sl-line-strong
+          bg-[color:color-mix(in_srgb,var(--sl-surface)_72%,transparent)] [backdrop-filter:blur(16px)_saturate(1.4)] shadow-sl-card"
+      >
+        <div class="flex items-center gap-px shrink-0">
           <button
             type="button"
             @click="goBack"
             :disabled="!canGoBack || phase !== 'ready'"
             title="Back"
             aria-label="Back"
-            class="pv-nav"
+            :class="NAV"
           >
             <i class="fas fa-arrow-left"></i>
           </button>
@@ -23,7 +33,7 @@
             :disabled="!canGoForward || phase !== 'ready'"
             title="Forward"
             aria-label="Forward"
-            class="pv-nav"
+            :class="NAV"
           >
             <i class="fas fa-arrow-right"></i>
           </button>
@@ -33,7 +43,7 @@
             @click="reload"
             title="Refresh page"
             aria-label="Refresh page"
-            class="pv-nav"
+            :class="NAV"
           >
             <i class="fas fa-rotate-right" :class="{ 'fa-spin': busy }"></i>
           </button>
@@ -45,16 +55,17 @@
             @click="goHome"
             title="Go to home page"
             aria-label="Go to home page"
-            class="pv-nav pv-nav--home"
+            :class="[NAV, 'max-[359px]:hidden']"
           >
             <i class="fas fa-house"></i>
           </button>
         </div>
 
-        <span class="pv-dock-sep" aria-hidden="true"></span>
+        <span class="shrink-0 w-px h-[1.125rem] mx-0.5 bg-sl-line-strong max-[359px]:hidden" aria-hidden="true"></span>
 
         <!-- The nameplate: the section of the app this page lives in, then the
-             page itself ("home / About"). Also opens the page menu. -->
+             page itself ("home / About"). Also opens the page menu. Narrow
+             panes drop the section before the page name ever truncates. -->
         <div class="relative flex-1 min-w-0" ref="menuRoot">
           <button
             type="button"
@@ -62,54 +73,84 @@
             :disabled="apps.length === 0"
             :aria-expanded="menuOpen"
             aria-haspopup="true"
-            class="pv-plate"
+            class="pv-plate relative flex items-center gap-1.5 w-full h-8 pl-3.5 pr-8 rounded-full text-left bg-sl-chip-bg cursor-pointer
+              transition-[background-color] duration-[160ms] ease-[ease] enabled:hover:bg-sl-chip-bg-hover
+              disabled:opacity-[0.55] disabled:cursor-not-allowed
+              focus-visible:![outline:none] focus-visible:[box-shadow:0_0_0_2px_var(--sl-focus)]"
           >
-            <span v-if="location.dir" class="pv-plate-dir">{{ location.dir }}</span>
-            <span v-if="location.dir" class="pv-plate-sep" aria-hidden="true">/</span>
-            <span class="pv-plate-page">{{ location.page }}</span>
-            <i class="fas fa-chevron-down pv-plate-chevron" :class="{ 'rotate-180': menuOpen }"></i>
+            <span
+              v-if="location.dir"
+              class="shrink-0 max-w-[10rem] truncate text-[0.8125rem] text-sl-faint max-[640px]:hidden"
+            >{{ location.dir }}</span>
+            <span
+              v-if="location.dir"
+              class="shrink-0 text-[0.8125rem] text-sl-faint opacity-60 max-[640px]:hidden"
+              aria-hidden="true"
+            >/</span>
+            <span class="flex-1 min-w-0 truncate font-sl-display text-[0.875rem] font-semibold tracking-[-0.01em] text-sl-text">{{ location.page }}</span>
+            <i
+              class="fas fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-[0.5625rem] text-sl-faint pointer-events-none
+                transition-transform duration-200 ease-[ease]"
+              :class="{ 'rotate-180': menuOpen }"
+            ></i>
           </button>
 
           <!-- Every page in the project, grouped by the section it belongs to:
                folders, then the pages inside them. Names only — the menu is a
                map of the app, not of its source tree. -->
-          <div v-if="menuOpen && apps.length > 0" class="pv-menu">
-            <p class="pv-menu-head">
+          <div
+            v-if="menuOpen && apps.length > 0"
+            class="pv-menu absolute z-20 left-1/2 -translate-x-1/2 origin-top mt-2.5 w-80 max-w-[calc(100vw-1.5rem)] max-h-[60vh] overflow-y-auto p-1.5
+              rounded-2xl border border-sl-line-strong bg-sl-surface [box-shadow:var(--sl-card-shadow),0_24px_60px_-24px_rgba(0,0,0,0.35)]
+              dark:bg-sl-surface-2 dark:[box-shadow:0_24px_60px_-20px_rgba(0,0,0,0.85)]"
+          >
+            <p
+              class="flex items-center justify-between pt-1.5 px-2.5 pb-2 mb-1 border-b border-b-sl-line
+                text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-sl-faint"
+            >
               Pages in your app
-              <span class="pv-menu-count">{{ pageCount }}</span>
+              <span :class="['pv-menu-count', COUNT]">{{ pageCount }}</span>
             </p>
             <div v-for="(app, i) in apps" :key="app.name" class="pv-row" :style="{ '--pv-i': i }">
               <button
                 type="button"
                 @click="toggleApp(app.name)"
                 :aria-expanded="isExpanded(app.name)"
-                class="pv-folder"
+                class="flex items-center gap-2 w-full py-[0.4375rem] px-2.5 rounded-[0.625rem] text-[0.8125rem] font-semibold text-sl-text cursor-pointer
+                  transition-[background-color] duration-[140ms] ease-[ease] hover:bg-sl-chip-bg
+                  focus-visible:![outline:none] focus-visible:[box-shadow:inset_0_0_0_2px_var(--sl-focus)]"
               >
                 <i
-                  class="fas fa-chevron-right pv-folder-chevron"
+                  class="fas fa-chevron-right w-2.5 shrink-0 text-[0.5rem] text-sl-faint transition-transform duration-200 ease-[ease]"
                   :class="{ 'rotate-90': isExpanded(app.name) }"
                 ></i>
                 <i
-                  class="fas pv-folder-icon"
+                  class="fas shrink-0 w-3.5 text-[0.75rem] text-sl-amber"
                   :class="isExpanded(app.name) ? 'fa-folder-open' : 'fa-folder'"
                 ></i>
                 <span class="truncate flex-1 text-left">{{ app.name }}</span>
-                <span class="pv-folder-count">{{ app.pages.length }}</span>
+                <span :class="COUNT">{{ app.pages.length }}</span>
               </button>
 
-              <div v-if="isExpanded(app.name)" class="pv-files">
-                <p v-if="!app.pages.length" class="pv-files-empty">No pages yet</p>
+              <div v-if="isExpanded(app.name)" class="mt-px mb-1 ml-[1.3125rem] pl-2 border-l border-l-sl-line">
+                <p v-if="!app.pages.length" class="py-1.5 px-2.5 text-[0.75rem] italic text-sl-faint">No pages yet</p>
                 <button
                   v-for="page in app.pages"
                   :key="page.path"
                   type="button"
                   @click="onSelectPage(page.path)"
                   :aria-current="page.path === currentPath ? 'page' : undefined"
-                  :class="['pv-file', page.path === currentPath && 'pv-file--current']"
+                  class="pv-file flex items-center gap-2 w-full py-[0.4375rem] px-2.5 rounded-[0.625rem] text-[0.8125rem] text-left cursor-pointer
+                    [transition:background-color_0.14s_ease,color_0.14s_ease] hover:bg-sl-chip-bg hover:text-sl-text
+                    focus-visible:![outline:none] focus-visible:[box-shadow:inset_0_0_0_2px_var(--sl-focus)]"
+                  :class="page.path === currentPath ? 'bg-sl-chip-bg-hover font-semibold text-sl-text' : 'text-sl-muted'"
                 >
-                  <i class="fas fa-file-lines pv-file-icon"></i>
+                  <i
+                    class="fas fa-file-lines w-3.5 shrink-0 text-[0.6875rem]"
+                    :class="page.path === currentPath ? 'text-sl-coral' : 'text-sl-faint'"
+                  ></i>
                   <span class="truncate flex-1">{{ page.title }}</span>
-                  <span v-if="page.path === currentPath" class="pv-file-here">Viewing</span>
+                  <span v-if="page.path === currentPath" class="shrink-0 text-[0.6875rem] font-medium text-sl-coral">Viewing</span>
                 </button>
               </div>
             </div>
@@ -117,40 +158,64 @@
         </div>
 
         <!-- Back to the main agent: phones only, where the preview has
-             replaced the chat (see canReturnToChat). -->
+             replaced the chat (see canReturnToChat). On the narrowest phones
+             it drops its chevron, so the page name keeps a readable share. -->
         <button
           v-if="canReturnToChat"
           type="button"
           @click="emit('return-to-chat')"
-          class="pv-switch shrink-0"
+          class="shrink-0 inline-flex items-center gap-[0.3125rem] h-8 px-3 rounded-full bg-sl-chip-bg text-sl-muted text-[0.75rem] font-medium whitespace-nowrap cursor-pointer
+            [transition:background-color_0.16s_ease,color_0.16s_ease] hover:bg-sl-chip-bg-hover hover:text-sl-text
+            max-[767px]:h-7 max-[767px]:gap-1 max-[767px]:px-2
+            focus-visible:![outline:none] focus-visible:[box-shadow:0_0_0_2px_var(--sl-focus)]"
           aria-label="Back to the coordinator"
         >
-          <i class="fas fa-chevron-left pv-switch-chevron"></i>
-          <i class="fas fa-comments pv-switch-icon"></i>
-          <span class="pv-switch-label">Coordinator</span>
-          <span v-if="returnCount" class="pv-switch-count">{{ returnCount }}</span>
+          <!-- !: Font Awesome's .fas sets display too. -->
+          <i class="fas fa-chevron-left text-[0.5rem] opacity-[0.55] max-[359px]:!hidden"></i>
+          <i class="fas fa-comments text-[0.625rem] opacity-75"></i>
+          <span>Coordinator</span>
+          <span
+            v-if="returnCount"
+            class="inline-flex items-center justify-center min-w-[1.0625rem] h-[1.0625rem] px-1 rounded-full bg-sl-grad text-sl-on-accent
+              text-[0.625rem] font-semibold tabular-nums leading-none"
+          >{{ returnCount }}</span>
         </button>
 
-        <!-- Loading ribbon along the dock's lower edge while the session is
-             starting or a navigation is in flight. -->
-        <div v-if="busy" class="pv-progress" aria-hidden="true"></div>
+        <!-- Loading ribbon: a travelling sliver of the coral-to-amber light
+             along the dock's lower edge while the session is starting or a
+             navigation is in flight. -->
+        <div
+          v-if="busy"
+          class="pv-progress absolute left-5 right-5 -bottom-px h-0.5 overflow-hidden rounded-sm pointer-events-none
+            after:content-[''] after:absolute after:top-0 after:bottom-0 after:w-[34%] after:rounded-sm after:bg-sl-grad"
+          aria-hidden="true"
+        ></div>
       </div>
     </div>
 
-    <!-- The frame: the app as a lit card on the stage. -->
-    <div class="pv-stagewrap">
-      <div class="pv-frame">
+    <!-- The frame: the app as a lit card on the stage — rounded, edged with a
+         hairline, and set on the stage's light. Decoration lives here, never
+         on .pv-stage (see the note on the screen element). Phones: no stage
+         margins and no card, just a hairline on top. -->
+    <div class="relative flex flex-1 min-h-0 justify-center px-4 pb-4 max-[767px]:p-0">
+      <div
+        class="relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden rounded-2xl border border-sl-line-strong shadow-sl-win
+          max-[767px]:rounded-none max-[767px]:shadow-none
+          max-[767px]:[border-width:1px_0_0] max-[767px]:[border-style:solid_none_none] max-[767px]:[border-color:var(--sl-line)_currentcolor_currentcolor]"
+      >
 
         <!-- Screen: frames from the remote browser, input forwarded back.
              NOTE for future edits: this element's box IS the remote viewport —
              paneSize() measures it and pageCoords() maps client coords through it
               1:1. Never give it padding, a border, or anything else that makes its
              rect disagree with the <img> inside; decoration goes on the background
-             or in pointer-events-none overlays. -->
+             or in pointer-events-none overlays. Its matte (bg-sl-bg-deep) is
+             what shows through when the frame and remote viewport briefly
+             disagree, or an optimistic scroll opens a gap. -->
         <div
           ref="screenRef"
           tabindex="0"
-          class="pv-stage relative flex-1 min-h-0 outline-none overflow-hidden touch-none"
+          class="pv-stage group/stage relative flex-1 min-h-0 outline-none overflow-hidden touch-none bg-sl-bg-deep"
           :style="stageStyle"
           @pointerdown="onPointerDown"
           @pointermove="onPointerMove"
@@ -172,10 +237,13 @@
                container bg. -->
           <!-- The rest of the page, captured ahead of time (see Backdrop). It
                sits behind the frame and scrolls with the page, so a scroll
-               shows real content straight away instead of an empty strip. -->
+               shows real content straight away instead of an empty strip.
+               Slices stack at their page offsets in one layer that the scroll
+               moves; the frame on top hides while the backdrop carries a
+               scroll, and the fixed-elements overlay pins over both. -->
           <div
             v-if="backdropUsable && backdrop"
-            class="pv-backdrop"
+            class="pv-backdrop absolute top-0 left-0 w-full pointer-events-none will-change-transform"
             :style="backdropStyle"
             aria-hidden="true"
           >
@@ -185,18 +253,21 @@
               :src="slice.src"
               alt=""
               draggable="false"
-              class="pv-backdrop-slice"
+              class="pv-backdrop-slice absolute left-0 max-w-none select-none"
               :style="sliceStyle(slice.y)"
             />
           </div>
+          <!-- Sized inline to the remote viewport; max-w-none keeps the base
+               img rule from squeezing it into a narrower pane (which would
+               resample it). -->
           <img
             v-if="frameSrc"
             :src="frameSrc"
             alt=""
             draggable="false"
             decoding="async"
-            class="pv-live select-none pointer-events-none"
-            :class="{ 'is-covered': backdropCarries }"
+            class="pv-live absolute top-0 left-0 max-w-none select-none pointer-events-none"
+            :class="{ 'is-covered invisible': backdropCarries }"
             :style="frameStyle"
           />
           <!-- While the backdrop carries a scroll, the page's fixed header (and
@@ -206,7 +277,7 @@
             :src="backdrop.overlay"
             alt=""
             draggable="false"
-            class="pv-backdrop-overlay"
+            class="pv-backdrop-overlay absolute top-0 left-0 max-w-none pointer-events-none select-none"
             :style="viewportBox"
             aria-hidden="true"
           />
@@ -214,19 +285,36 @@
           <!-- The page's scrollbar, drawn here so it moves with the page the
                moment it scrolls (the remote page's own is hidden). Its pointer
                input stays here, never forwarded to the page underneath; wheel
-               input passes through and scrolls the page as usual. -->
+               input passes through and scrolls the page as usual.
+               A slim ink pill that shows while the page moves and on hover,
+               then gets out of the way. It sits over whatever the previewed
+               app draws, light or dark, so the pill carries a faint light rim
+               to stay visible on both. Touch (hover: none): only while
+               scrolling, and too slim to aim at, so it is a position
+               indicator there, as on a phone's own browser. -->
           <div
             v-if="scrollbar && phase === 'ready'"
             ref="scrollbarRef"
-            class="pv-scrollbar"
-            :class="{ 'is-active': scrollbarActive || thumbDragging, 'is-dragging': thumbDragging }"
+            class="pv-scrollbar group/bar absolute top-1 right-0.5 bottom-1 z-[2] w-3.5 cursor-default touch-none
+              transition-opacity duration-[260ms] ease-[ease] motion-reduce:[transition:none] [@media(hover:none)]:pointer-events-none"
+            :class="scrollbarActive || thumbDragging
+              ? 'opacity-100'
+              : 'opacity-0 group-hover/stage:opacity-100 [@media(hover:none)]:group-hover/stage:opacity-0'"
             aria-hidden="true"
             @pointerdown.stop.prevent="onScrollbarPointerDown"
             @pointermove.stop="onScrollbarPointerMove"
             @pointerup.stop="onScrollbarPointerUp"
             @pointercancel.stop="onScrollbarPointerUp"
           >
-            <div class="pv-scrollbar-thumb" :style="thumbStyle"></div>
+            <div
+              class="pv-scrollbar-thumb absolute right-[0.1875rem] rounded-full [box-shadow:0_0_0_1px_rgba(255,255,255,0.55)]
+                h-[max(2rem,var(--pv-thumb-size,100%))] top-[calc((100%-max(2rem,var(--pv-thumb-size,100%)))*var(--pv-thumb-at,0))]
+                [transition:width_160ms_ease,background-color_160ms_ease] motion-reduce:[transition:none]"
+              :class="thumbDragging
+                ? 'w-2 bg-[rgba(20,21,30,0.55)]'
+                : 'w-1.5 bg-[rgba(20,21,30,0.38)] group-hover/bar:w-2 group-hover/bar:bg-[rgba(20,21,30,0.55)]'"
+              :style="thumbStyle"
+            ></div>
           </div>
 
           <!-- Console-error banner: recent JS errors reported by the previewed
@@ -234,29 +322,42 @@
                input forwarding underneath. -->
           <div
             v-if="consoleBannerVisible && latestConsoleError"
-            class="pv-alert"
+            class="pv-alert absolute z-10 left-3 right-3 bottom-3 flex items-center gap-2.5 overflow-hidden py-2 pr-2.5 pl-3.5 rounded-[0.875rem]
+              border border-ink/[0.08] bg-[rgba(253,249,242,0.96)] [backdrop-filter:blur(8px)]
+              [box-shadow:inset_0_1px_0_rgba(255,255,255,0.8),0_16px_36px_-16px_rgba(19,26,44,0.4)]
+              dark:border-white/10 dark:bg-[rgba(18,18,20,0.96)]
+              dark:[box-shadow:inset_0_1px_0_rgba(255,255,255,0.04),0_16px_36px_-16px_rgba(0,0,0,0.9)]"
             @pointerdown.stop
             @pointermove.stop
             @pointerup.stop
             @wheel.stop
           >
-            <span class="pv-alert-edge" aria-hidden="true"></span>
-            <div class="pv-alert-mark">
+            <!-- A stripe of alarm down the edge — enough to read as "wrong"
+                 from the corner of the eye without turning the card red. -->
+            <span class="absolute left-0 top-0 bottom-0 w-[3px] bg-[linear-gradient(180deg,#f87171,#dc2626)]" aria-hidden="true"></span>
+            <div
+              class="grid place-items-center shrink-0 w-6 h-6 rounded-full bg-red-500/10 text-red-600 text-[0.625rem]
+                [box-shadow:inset_0_0_0_1px_rgba(239,68,68,0.2)] dark:bg-red-500/[0.14] dark:text-red-400"
+            >
               <i class="fas fa-exclamation"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="pv-alert-title">
+              <p class="text-[0.8125rem] font-medium leading-tight text-blue-950 dark:text-white/[0.92]">
                 {{ errorRouting ? 'Imagi is fixing something in your app' : 'Something broke in your app' }}
               </p>
-              <p class="pv-alert-detail">{{ latestConsoleError.text }}</p>
-              <p v-if="errorRoutingNote" class="pv-alert-detail" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
+              <p :class="ALERT_DETAIL">{{ latestConsoleError.text }}</p>
+              <p v-if="errorRoutingNote" :class="ALERT_DETAIL" data-testid="error-routing-note">{{ errorRoutingNote }}</p>
             </div>
             <button
               type="button"
               @click="dismissConsoleBanner"
               title="Dismiss"
               aria-label="Dismiss"
-              class="pv-alert-dismiss"
+              class="inline-flex items-center justify-center shrink-0 w-7 h-7 rounded-full text-[0.6875rem] cursor-pointer
+                [transition:background-color_0.14s_ease,color_0.14s_ease]
+                text-ink/40 hover:bg-ink/[0.06] hover:text-ink/70
+                dark:text-white/40 dark:hover:bg-white/[0.07] dark:hover:text-white/75
+                focus-visible:![outline:none] focus-visible:[box-shadow:0_0_0_2px_#fbfaf7,0_0_0_4px_rgba(194,65,12,0.4)]"
             >
               <i class="fas fa-times"></i>
             </button>
@@ -265,25 +366,39 @@
           <!-- Starting: the wait is long enough (first start installs the whole
                dependency tree) that it gets a real progress story — an elapsed
                clock and copy that tracks which stage the wait is in. -->
-          <div v-if="phase === 'starting'" class="pv-veil">
-            <div class="pv-notice">
-              <div class="pv-orbit" aria-hidden="true"><span class="pv-orbit-core"></span></div>
-              <h3 class="pv-notice-title">Bringing your app to life</h3>
-              <p class="pv-notice-body" aria-live="polite">{{ startingStage }}</p>
-              <p class="pv-clock">{{ elapsedLabel }}</p>
+          <div v-if="phase === 'starting'" :class="[VEIL, VEIL_GLASS]">
+            <div :class="['pv-notice', NOTICE]">
+              <!-- A ring of ink drawn once around, with a heartbeat at the centre. -->
+              <div class="pv-orbit relative grid place-items-center w-[3.25rem] h-[3.25rem] mb-1.5" aria-hidden="true">
+                <span class="pv-orbit-core w-2 h-2 rounded-full bg-blue-950 dark:bg-[#f3ede2]"></span>
+              </div>
+              <h3 :class="NOTICE_TITLE">Bringing your app to life</h3>
+              <p :class="NOTICE_BODY" aria-live="polite">{{ startingStage }}</p>
+              <!-- Elapsed clock: proof of life while a cold start installs a dependency tree -->
+              <p
+                class="mt-0.5 [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[0.6875rem] tabular-nums tracking-[0.04em]
+                  text-ink/[0.35] dark:text-blue-100/[0.35]"
+              >{{ elapsedLabel }}</p>
             </div>
           </div>
 
           <!-- Error overlay -->
-          <div v-else-if="phase === 'error'" class="pv-veil pv-veil--solid">
-            <div class="pv-notice">
-              <div class="pv-mark pv-mark--alert" aria-hidden="true">
+          <div v-else-if="phase === 'error'" :class="[VEIL, 'bg-sl-bg-deep']">
+            <div :class="['pv-notice', NOTICE]">
+              <div :class="[MARK, MARK_ALERT]" aria-hidden="true">
                 <i class="fas fa-triangle-exclamation"></i>
               </div>
-              <h3 class="pv-notice-title">The preview couldn't start</h3>
-              <p class="pv-notice-body">This is the preview server, not your app's code — a retry usually clears it.</p>
-              <pre class="pv-code">{{ error }}</pre>
-              <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
+              <h3 :class="NOTICE_TITLE">The preview couldn't start</h3>
+              <p :class="NOTICE_BODY">This is the preview server, not your app's code — a retry usually clears it.</p>
+              <!-- Raw server text stays raw — mono, boxed, and scrollable
+                   rather than dressed up as prose. -->
+              <pre
+                class="w-full max-h-28 overflow-auto mt-1.5 mb-1 py-2 px-2.5 rounded-[0.625rem] border border-ink/[0.08] bg-ink/[0.035]
+                  [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[0.6875rem] leading-[1.5] text-left
+                  whitespace-pre-wrap [word-break:break-word] text-ink/[0.65]
+                  dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-blue-100/[0.65]"
+              >{{ error }}</pre>
+              <button @click="startPreview" :class="BTN">
                 <i class="fas fa-sync-alt"></i>
                 Try again
               </button>
@@ -291,14 +406,14 @@
           </div>
 
           <!-- Stopped overlay (session ended, e.g. idle shutdown or restart) -->
-          <div v-else-if="phase === 'stopped'" class="pv-veil">
-            <div class="pv-notice">
-              <div class="pv-mark" aria-hidden="true">
+          <div v-else-if="phase === 'stopped'" :class="[VEIL, VEIL_GLASS]">
+            <div :class="['pv-notice', NOTICE]">
+              <div :class="[MARK, MARK_QUIET]" aria-hidden="true">
                 <i class="fas fa-moon"></i>
               </div>
-              <h3 class="pv-notice-title">Your preview dozed off</h3>
-              <p class="pv-notice-body">The session shuts down after a quiet spell to save you money. Everything you built is safe.</p>
-              <button @click="startPreview" class="pv-btn pv-btn--ink pv-btn--lg">
+              <h3 :class="NOTICE_TITLE">Your preview dozed off</h3>
+              <p :class="NOTICE_BODY">The session shuts down after a quiet spell to save you money. Everything you built is safe.</p>
+              <button @click="startPreview" :class="BTN">
                 <i class="fas fa-play"></i>
                 Wake it up
               </button>
@@ -346,6 +461,38 @@ const emit = defineEmits<{
   /** Take me back to the main agent (the toolbar's return pill). */
   (e: 'return-to-chat'): void
 }>()
+
+// ---------------------------------------------------------------------------
+// Class lists shared by several elements of the template
+// ---------------------------------------------------------------------------
+
+/** A dock button (back, forward, refresh, home). Phones get a tighter one. */
+const NAV =
+  'inline-flex items-center justify-center w-8 h-8 max-[767px]:w-7 max-[767px]:h-7 rounded-full text-[0.75rem] text-sl-muted cursor-pointer [transition:color_0.15s_ease,background-color_0.15s_ease,transform_0.15s_ease] enabled:hover:text-sl-text enabled:hover:bg-sl-chip-bg-hover enabled:active:scale-[0.92] disabled:opacity-30 disabled:cursor-not-allowed focus-visible:![outline:none] focus-visible:[box-shadow:0_0_0_2px_var(--sl-focus)]'
+/** Page counts in the page menu. */
+const COUNT = 'text-[0.6875rem] font-medium tabular-nums tracking-[0] text-sl-faint'
+const ALERT_DETAIL =
+  'truncate [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[0.6875rem] text-ink/50 dark:text-blue-100/[0.45]'
+
+// Notices (starting / stopped / error): a veil over the stage holding one card.
+const VEIL = 'absolute inset-0 flex items-center justify-center p-6 [backdrop-filter:blur(6px)]'
+const VEIL_GLASS =
+  'bg-[color:color-mix(in_srgb,var(--sl-bg-deep)_86%,transparent)] dark:bg-[color:color-mix(in_srgb,var(--sl-bg-deep)_88%,transparent)]'
+const NOTICE =
+  'flex flex-col items-center gap-2 w-full max-w-[23rem] pt-7 px-6 pb-6 rounded-[1.25rem] border border-ink/[0.08] bg-[#fbfaf7] text-center [box-shadow:inset_0_1px_0_rgba(255,255,255,0.8),0_24px_60px_-24px_rgba(19,26,44,0.3)] dark:border-white/10 dark:bg-[#121214] dark:[box-shadow:inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_-24px_rgba(0,0,0,0.9)]'
+const NOTICE_TITLE =
+  "font-sl-display [font-variation-settings:'opsz'_24,'SOFT'_30,'WONK'_1] text-[1.0625rem] font-semibold tracking-[-0.012em] text-blue-950 dark:text-white/[0.94]"
+const NOTICE_BODY = 'max-w-[19rem] text-[0.8125rem] leading-[1.5] text-ink/[0.55] dark:text-blue-100/[0.55]'
+/** Notice marks: the same rounded plaque as the pane header's mark. */
+const MARK = 'grid place-items-center w-11 h-11 mb-2 rounded-[0.875rem] text-[0.9375rem]'
+const MARK_QUIET =
+  'bg-ink/[0.06] text-ink/60 [box-shadow:inset_0_0_0_1px_rgba(19,26,44,0.06)] dark:bg-[rgba(243,237,226,0.09)] dark:text-[rgba(243,237,226,0.75)] dark:[box-shadow:inset_0_0_0_1px_rgba(255,255,255,0.07)]'
+const MARK_ALERT =
+  'bg-red-500/[0.08] text-red-600 [box-shadow:inset_0_0_0_1px_rgba(239,68,68,0.18)] dark:bg-red-500/[0.12] dark:text-red-400 dark:[box-shadow:inset_0_0_0_1px_rgba(239,68,68,0.25)]'
+/** The notices' one button, in navy ink (bone in dark). In dark the hover
+ *  keeps the resting shadow; the focus ring wins over both. */
+const BTN =
+  'inline-flex items-center gap-1.5 h-[2.125rem] mt-2.5 px-[1.125rem] rounded-full text-[0.8125rem] font-medium cursor-pointer [&_i]:text-[0.625rem] [transition:background-color_0.18s_ease,box-shadow_0.18s_ease,transform_0.18s_ease] bg-blue-950 text-[#fbfaf7] [box-shadow:0_1px_2px_rgba(19,26,44,0.2),0_3px_8px_-2px_rgba(19,26,44,0.25)] hover:bg-blue-900 hover:-translate-y-px hover:[box-shadow:0_2px_3px_rgba(19,26,44,0.2),0_6px_14px_-4px_rgba(19,26,44,0.3)] active:translate-y-0 motion-reduce:hover:[transform:none] focus-visible:![outline:none] focus-visible:[box-shadow:0_0_0_2px_#fbfaf7,0_0_0_4px_rgba(194,65,12,0.4)] dark:bg-[#f3ede2] dark:text-blue-950 dark:[box-shadow:0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] dark:hover:bg-white dark:focus-visible:[box-shadow:0_0_0_2px_#121214,0_0_0_4px_rgba(251,191,36,0.5)]'
 
 type Phase = 'idle' | 'starting' | 'ready' | 'stopped' | 'error'
 
@@ -1708,228 +1855,12 @@ defineExpose({ reload })
 </script>
 
 <style scoped>
-/* ---------------------------------------------------------------------------
-   Glass Dock. The preview pane is a Spotlight stage: the user's app sits on it
-   as a lit card, and the controls float above it in one
-   frosted pill. The chrome stays quiet so the app is the brightest thing here.
-   Colours come from the --sl-* tokens (shared/styles/spotlight.css), so the
-   light and dark themes differ only there.
-   --------------------------------------------------------------------------- */
+/* What stays here: the entrance and loading animations (scoped keyframe names
+   are hashed, so a utility can't reference them) and the orbit's masked
+   conic ring, which has no readable utility form. */
 
-.pv-root {
-  background-color: var(--sl-bg, #f8f7f4);
-  background-image: radial-gradient(70% 320px at 50% -80px, var(--sl-spot-core, rgba(255, 170, 110, 0.3)), transparent 70%);
-}
-
-/* --- The dock ------------------------------------------------------------ */
-
-.pv-dockbar {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-shrink: 0;
-  justify-content: center;
-  padding: 0.75rem 1rem 0.625rem;
-}
-
-.pv-dock {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  width: 100%;
-  max-width: 44rem;
-  padding: 0.25rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: color-mix(in srgb, var(--sl-surface, #ffffff) 72%, transparent);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  box-shadow: var(--sl-card-shadow, 0 14px 34px -20px rgba(20, 21, 30, 0.2));
-}
-
-.pv-dock-sep {
-  flex-shrink: 0;
-  width: 1px;
-  height: 1.125rem;
-  margin: 0 0.125rem;
-  background: var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-}
-
-.pv-rail {
-  display: flex;
-  align-items: center;
-  gap: 0.0625rem;
-}
-
-.pv-nav {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  color: var(--sl-muted, #5c6172);
-  cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
-}
-
-.pv-nav:hover:not(:disabled) {
-  color: var(--sl-text, #14151c);
-  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
-}
-
-.pv-nav:active:not(:disabled) { transform: scale(0.92); }
-
-.pv-nav:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.pv-nav:focus-visible,
-.pv-plate:focus-visible,
-.pv-switch:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--sl-focus, #d9730d);
-}
-
-/* --- The nameplate ------------------------------------------------------- */
-
-.pv-plate {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  width: 100%;
-  height: 2rem;
-  padding: 0 2rem 0 0.875rem;
-  border-radius: 9999px;
-  text-align: left;
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-  cursor: pointer;
-  transition: background-color 0.16s ease;
-}
-
-.pv-plate:hover:not(:disabled) { background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065)); }
-
-.pv-plate:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.pv-plate-dir {
-  flex-shrink: 0;
-  max-width: 10rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8125rem;
-  color: var(--sl-faint, #8a8fa0);
-}
-
-.pv-plate-sep {
-  flex-shrink: 0;
-  font-size: 0.8125rem;
-  color: var(--sl-faint, #8a8fa0);
-  opacity: 0.6;
-}
-
-.pv-plate-page {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--sl-font-display);
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--sl-text, #14151c);
-}
-
-/* Narrow panes drop the section before the page name ever truncates. */
-@media (max-width: 640px) {
-  .pv-plate-dir,
-  .pv-plate-sep { display: none; }
-}
-
-.pv-plate-chevron {
-  position: absolute;
-  right: 0.875rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.5625rem;
-  color: var(--sl-faint, #8a8fa0);
-  pointer-events: none;
-  transition: transform 0.2s ease;
-}
-
-.pv-plate-chevron.rotate-180 { transform: translateY(-50%) rotate(180deg); }
-
-/* --- Back to the main agent (phones) ------------------------------------- */
-
-.pv-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3125rem;
-  height: 2rem;
-  padding: 0 0.75rem;
-  border-radius: 9999px;
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-  color: var(--sl-muted, #5c6172);
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.16s ease, color 0.16s ease;
-}
-
-.pv-switch:hover {
-  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
-  color: var(--sl-text, #14151c);
-}
-
-.pv-switch-chevron { font-size: 0.5rem; opacity: 0.55; }
-.pv-switch-icon { font-size: 0.625rem; opacity: 0.75; }
-
-.pv-switch-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.0625rem;
-  height: 1.0625rem;
-  padding: 0 0.25rem;
-  border-radius: 9999px;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent, #1a0e08);
-  font-size: 0.625rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-/* Loading ribbon: a travelling sliver of the coral-to-amber light along the
-   dock's lower edge. */
-.pv-progress {
-  position: absolute;
-  left: 1.25rem;
-  right: 1.25rem;
-  bottom: -1px;
-  height: 2px;
-  overflow: hidden;
-  border-radius: 2px;
-  pointer-events: none;
-}
-
+/* Loading ribbon: a travelling sliver along the dock's lower edge. */
 .pv-progress::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 34%;
-  border-radius: 2px;
-  background: var(--sl-grad);
   animation: pv-slide 1.2s ease-in-out infinite;
 }
 
@@ -1938,58 +1869,13 @@ defineExpose({ reload })
   100% { transform: translateX(400%); }
 }
 
-/* --- The page menu ------------------------------------------------------- */
-
 .pv-menu {
-  position: absolute;
-  z-index: 20;
-  left: 50%;
-  margin-top: 0.625rem;
-  width: 20rem;
-  max-width: calc(100vw - 1.5rem);
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 0.375rem;
-  border-radius: 1rem;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  background: var(--sl-surface, #ffffff);
-  box-shadow: var(--sl-card-shadow), 0 24px 60px -24px rgba(0, 0, 0, 0.35);
-  transform: translateX(-50%);
-  transform-origin: top center;
   animation: pv-menu-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1) both;
-}
-
-.dark .pv-menu {
-  background: var(--sl-surface-2, #1a1d28);
-  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
 }
 
 @keyframes pv-menu-in {
   from { opacity: 0; transform: translate(-50%, -4px) scale(0.98); }
   to { opacity: 1; transform: translateX(-50%); }
-}
-
-.pv-menu-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.375rem 0.625rem 0.5rem;
-  margin-bottom: 0.25rem;
-  border-bottom: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sl-faint, #8a8fa0);
-}
-
-.pv-menu-count,
-.pv-folder-count {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  color: var(--sl-faint, #8a8fa0);
 }
 
 .pv-row {
@@ -2002,307 +1888,8 @@ defineExpose({ reload })
   to { opacity: 1; transform: none; }
 }
 
-.pv-folder {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.4375rem 0.625rem;
-  border-radius: 0.625rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--sl-text, #14151c);
-  cursor: pointer;
-  transition: background-color 0.14s ease;
-}
-
-.pv-folder:hover { background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035)); }
-
-.pv-folder:focus-visible,
-.pv-file:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--sl-focus, #d9730d);
-}
-
-.pv-folder-chevron {
-  width: 0.625rem;
-  flex-shrink: 0;
-  font-size: 0.5rem;
-  color: var(--sl-faint, #8a8fa0);
-  transition: transform 0.2s ease;
-}
-
-.pv-folder-chevron.rotate-90 { transform: rotate(90deg); }
-
-.pv-folder-icon {
-  flex-shrink: 0;
-  width: 0.875rem;
-  font-size: 0.75rem;
-  color: var(--sl-amber, #ee8c10);
-}
-
-.pv-files {
-  margin: 0.0625rem 0 0.25rem 1.3125rem;
-  padding-left: 0.5rem;
-  border-left: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-}
-
-.pv-files-empty {
-  padding: 0.375rem 0.625rem;
-  font-size: 0.75rem;
-  font-style: italic;
-  color: var(--sl-faint, #8a8fa0);
-}
-
-.pv-file {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.4375rem 0.625rem;
-  border-radius: 0.625rem;
-  font-size: 0.8125rem;
-  text-align: left;
-  color: var(--sl-muted, #5c6172);
-  cursor: pointer;
-  transition: background-color 0.14s ease, color 0.14s ease;
-}
-
-.pv-file:hover {
-  background: var(--sl-chip-bg, rgba(20, 21, 30, 0.035));
-  color: var(--sl-text, #14151c);
-}
-
-.pv-file--current {
-  background: var(--sl-chip-bg-hover, rgba(20, 21, 30, 0.065));
-  font-weight: 600;
-  color: var(--sl-text, #14151c);
-}
-
-.pv-file-icon {
-  width: 0.875rem;
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  color: var(--sl-faint, #8a8fa0);
-}
-
-.pv-file--current .pv-file-icon { color: var(--sl-coral, #ec4a33); }
-
-.pv-file-here {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--sl-coral, #ec4a33);
-}
-
-/* --- The stage and the frame --------------------------------------------- */
-
-.pv-stagewrap {
-  position: relative;
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  justify-content: center;
-  padding: 0 1rem 1rem;
-}
-
-/* The app as a lit card: rounded, edged with a hairline, and set on the
-   stage's light. Decoration lives here, never on .pv-stage (see the note on
-   the screen element in the template). */
-.pv-frame {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 1rem;
-  border: 1px solid var(--sl-line-strong, rgba(20, 21, 30, 0.15));
-  box-shadow: var(--sl-win-shadow, 0 40px 90px -40px rgba(20, 21, 30, 0.45));
-}
-
-/* What shows through when the frame and remote viewport briefly disagree, or
-   an optimistic scroll opens a gap: a quiet matte, not a glitch. */
-.pv-stage {
-  background-color: var(--sl-bg-deep, #f0eee9);
-}
-
-/* The backdrop: slices stacked at their page offsets in one layer that the
-   scroll moves (compositor-only). The frame on top hides while the backdrop
-   carries a scroll, and the fixed-elements overlay pins over both. */
-.pv-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  pointer-events: none;
-  will-change: transform;
-}
-
-.pv-backdrop-slice {
-  position: absolute;
-  left: 0;
-  max-width: none;
-  user-select: none;
-}
-
-/* Sized inline to the remote viewport; max-width: none keeps the base img
-   rule from squeezing it into a narrower pane (which would resample it). */
-.pv-live {
-  position: absolute;
-  top: 0;
-  left: 0;
-  max-width: none;
-}
-
-.pv-live.is-covered {
-  visibility: hidden;
-}
-
-.pv-backdrop-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  max-width: none;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* The page's scrollbar (see the template): a slim ink pill that shows while
-   the page moves and on hover, then gets out of the way — the same overlay
-   treatment as the workspace's own scrolling panels. It sits over whatever
-   the previewed app draws, light or dark, so the pill carries a faint light
-   rim to stay visible on both. */
-.pv-scrollbar {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.125rem;
-  bottom: 0.25rem;
-  z-index: 2;
-  width: 0.875rem;
-  cursor: default;
-  opacity: 0;
-  transition: opacity 260ms ease;
-  touch-action: none;
-}
-
-.pv-stage:hover .pv-scrollbar,
-.pv-scrollbar.is-active {
-  opacity: 1;
-}
-
-.pv-scrollbar-thumb {
-  position: absolute;
-  right: 0.1875rem;
-  width: 0.375rem;
-  height: max(2rem, var(--pv-thumb-size, 100%));
-  top: calc((100% - max(2rem, var(--pv-thumb-size, 100%))) * var(--pv-thumb-at, 0));
-  border-radius: 9999px;
-  background-color: rgba(20, 21, 30, 0.38);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
-  transition: width 160ms ease, background-color 160ms ease;
-}
-
-.pv-scrollbar:hover .pv-scrollbar-thumb,
-.pv-scrollbar.is-dragging .pv-scrollbar-thumb {
-  width: 0.5rem;
-  background-color: rgba(20, 21, 30, 0.55);
-}
-
-@media (hover: none) {
-  /* Touch: no hover, so only while scrolling; too slim to aim at, so it is
-     a position indicator there, as on a phone's own browser. */
-  .pv-stage:hover .pv-scrollbar:not(.is-active) { opacity: 0; }
-  .pv-scrollbar { pointer-events: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pv-scrollbar,
-  .pv-scrollbar-thumb { transition: none; }
-}
-
-/* Phones: the preview already fills a phone, so no stage margins and no
-   card. */
-@media (max-width: 767px) {
-  .pv-dockbar { padding: 0.5rem; }
-
-  .pv-dock { gap: 0.125rem; }
-
-  .pv-nav {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
-  .pv-stagewrap {
-    padding: 0;
-    background-image: none;
-  }
-
-  .pv-frame {
-    border: 0;
-    border-top: 1px solid var(--sl-line, rgba(20, 21, 30, 0.09));
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .pv-switch {
-    height: 1.75rem;
-    gap: 0.25rem;
-    padding: 0 0.5rem;
-  }
-}
-
-/* The narrowest phones (320px): Home goes (the page menu has it) and the
-   switch drops its chevron, so the page name keeps a readable share. */
-@media (max-width: 359px) {
-  .pv-switch-chevron,
-  .pv-nav--home,
-  .pv-dock-sep { display: none; }
-}
-
-/* --- Notices (starting / stopped / error) -------------------------------- */
-
-.pv-veil {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: color-mix(in srgb, var(--sl-bg-deep, #f5f0e7) 86%, transparent);
-  backdrop-filter: blur(6px);
-}
-
-.pv-veil--solid { background: var(--sl-bg-deep, #f5f0e7); }
-
-.dark .pv-veil { background: color-mix(in srgb, var(--sl-bg-deep, #0b0b0d) 88%, transparent); }
-.dark .pv-veil--solid { background: var(--sl-bg-deep, #0b0b0d); }
-
 .pv-notice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  max-width: 23rem;
-  padding: 1.75rem 1.5rem 1.5rem;
-  border-radius: 1.25rem;
-  border: 1px solid rgba(19, 26, 44, 0.08);
-  background: #fbfaf7;
-  text-align: center;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 24px 60px -24px rgba(19, 26, 44, 0.3);
   animation: pv-notice-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
-}
-
-.dark .pv-notice {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: #121214;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 24px 60px -24px rgba(0, 0, 0, 0.9);
 }
 
 @keyframes pv-notice-in {
@@ -2310,48 +1897,16 @@ defineExpose({ reload })
   to { opacity: 1; transform: none; }
 }
 
-.pv-notice-title {
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-variation-settings: 'opsz' 24, 'SOFT' 30, 'WONK' 1;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.012em;
-  color: theme('colors.blue.950');
+.pv-alert {
+  animation: pv-alert-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
-.dark .pv-notice-title { color: rgba(255, 255, 255, 0.94); }
-
-.pv-notice-body {
-  max-width: 19rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: rgba(19, 26, 44, 0.55);
+@keyframes pv-alert-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
-
-.dark .pv-notice-body { color: rgba(219, 234, 254, 0.55); }
-
-/* Elapsed clock: proof of life while a cold start installs a dependency tree */
-.pv-clock {
-  margin-top: 0.125rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  color: rgba(19, 26, 44, 0.35);
-}
-
-.dark .pv-clock { color: rgba(219, 234, 254, 0.35); }
 
 /* A ring of ink drawn once around, with a heartbeat at the centre. */
-.pv-orbit {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 3.25rem;
-  height: 3.25rem;
-  margin-bottom: 0.375rem;
-}
-
 .pv-orbit::before {
   content: '';
   position: absolute;
@@ -2377,253 +1932,14 @@ defineExpose({ reload })
   );
 }
 
+/* No pv-breathe keyframes are defined, so this names an animation that never
+   plays; kept as it was. */
 .pv-orbit-core {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: theme('colors.blue.950');
   animation: pv-breathe 1.8s ease-in-out infinite;
 }
 
-.dark .pv-orbit-core { background: #f3ede2; }
-
 @keyframes pv-rotate {
   to { transform: rotate(360deg); }
-}
-
-/* Notice marks: the same rounded plaque as the pane header's mark */
-.pv-mark {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.875rem;
-  background: rgba(19, 26, 44, 0.06);
-  color: rgba(19, 26, 44, 0.6);
-  font-size: 0.9375rem;
-  box-shadow: inset 0 0 0 1px rgba(19, 26, 44, 0.06);
-}
-
-.pv-mark--alert {
-  background: rgba(239, 68, 68, 0.08);
-  color: #dc2626;
-  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.18);
-}
-
-.dark .pv-mark {
-  background: rgba(243, 237, 226, 0.09);
-  color: rgba(243, 237, 226, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
-}
-
-.dark .pv-mark--alert {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
-  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.25);
-}
-
-/* Raw server text stays raw — mono, boxed, and scrollable rather than
-   dressed up as prose. */
-.pv-code {
-  width: 100%;
-  max-height: 7rem;
-  overflow: auto;
-  margin: 0.375rem 0 0.25rem;
-  padding: 0.5rem 0.625rem;
-  border-radius: 0.625rem;
-  border: 1px solid rgba(19, 26, 44, 0.08);
-  background: rgba(19, 26, 44, 0.035);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  line-height: 1.5;
-  text-align: left;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: rgba(19, 26, 44, 0.65);
-}
-
-.dark .pv-code {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(219, 234, 254, 0.65);
-}
-
-/* --- Buttons (navy ink) --------------------------------------------------- */
-
-.pv-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  height: 1.75rem;
-  padding: 0 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
-}
-
-.pv-btn i { font-size: 0.625rem; }
-
-.pv-btn--lg {
-  height: 2.125rem;
-  margin-top: 0.625rem;
-  padding: 0 1.125rem;
-  font-size: 0.8125rem;
-}
-
-.pv-btn--ink {
-  background: theme('colors.blue.950');
-  color: #fbfaf7;
-  box-shadow:
-    0 1px 2px rgba(19, 26, 44, 0.2),
-    0 3px 8px -2px rgba(19, 26, 44, 0.25);
-}
-
-.pv-btn--ink:hover {
-  background: theme('colors.blue.900');
-  transform: translateY(-1px);
-  box-shadow:
-    0 2px 3px rgba(19, 26, 44, 0.2),
-    0 6px 14px -4px rgba(19, 26, 44, 0.3);
-}
-
-.pv-btn--ink:active { transform: translateY(0); }
-
-.pv-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
-}
-
-.dark .pv-btn--ink {
-  background: #f3ede2;
-  color: theme('colors.blue.950');
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 3px 8px -2px rgba(0, 0, 0, 0.45);
-}
-
-.dark .pv-btn--ink:hover { background: #ffffff; }
-
-.dark .pv-btn:focus-visible {
-  box-shadow: 0 0 0 2px #121214, 0 0 0 4px rgba(251, 191, 36, 0.5);
-}
-
-/* --- Console-error banner ------------------------------------------------- */
-
-.pv-alert {
-  position: absolute;
-  z-index: 10;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  overflow: hidden;
-  padding: 0.5rem 0.625rem 0.5rem 0.875rem;
-  border-radius: 0.875rem;
-  border: 1px solid rgba(19, 26, 44, 0.08);
-  background: rgba(253, 249, 242, 0.96);
-  backdrop-filter: blur(8px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 16px 36px -16px rgba(19, 26, 44, 0.4);
-  animation: pv-alert-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
-}
-
-.dark .pv-alert {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(18, 18, 20, 0.96);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 16px 36px -16px rgba(0, 0, 0, 0.9);
-}
-
-@keyframes pv-alert-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
-}
-
-/* A stripe of alarm down the edge — enough to read as "wrong" from the corner
-   of the eye without turning the whole card red. */
-.pv-alert-edge {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #f87171, #dc2626);
-}
-
-.pv-alert-mark {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 9999px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  font-size: 0.625rem;
-  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.2);
-}
-
-.dark .pv-alert-mark {
-  background: rgba(239, 68, 68, 0.14);
-  color: #f87171;
-}
-
-.pv-alert-title {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.25;
-  color: theme('colors.blue.950');
-}
-
-.dark .pv-alert-title { color: rgba(255, 255, 255, 0.92); }
-
-.pv-alert-detail {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  color: rgba(19, 26, 44, 0.5);
-}
-
-.dark .pv-alert-detail { color: rgba(219, 234, 254, 0.45); }
-
-.pv-alert-dismiss {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  color: rgba(19, 26, 44, 0.4);
-  cursor: pointer;
-  transition: background-color 0.14s ease, color 0.14s ease;
-}
-
-.pv-alert-dismiss:hover {
-  background: rgba(19, 26, 44, 0.06);
-  color: rgba(19, 26, 44, 0.7);
-}
-
-.pv-alert-dismiss:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px #fbfaf7, 0 0 0 4px rgba(194, 65, 12, 0.4);
-}
-
-.dark .pv-alert-dismiss { color: rgba(255, 255, 255, 0.4); }
-
-.dark .pv-alert-dismiss:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.75);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2639,7 +1955,5 @@ defineExpose({ reload })
   .pv-alert {
     animation-duration: 0.01ms;
   }
-
-  .pv-btn--ink:hover { transform: none; }
 }
 </style>

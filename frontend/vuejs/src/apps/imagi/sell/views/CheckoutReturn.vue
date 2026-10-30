@@ -7,55 +7,71 @@
   Cancel route:  /checkout/:projectId/cancel
 -->
 <template>
-  <div class="spotlight checkout-return">
-    <div class="sl-spot checkout-return__spot" aria-hidden="true"></div>
+  <!-- The Spotlight stage, kept minimal: this page is seen by the business's
+       own customers, so no Imagi navbar or footer — just one card standing in
+       the light. -->
+  <div class="spotlight relative isolate flex min-h-screen items-center justify-center overflow-hidden px-5 py-12">
+    <!-- `!` beats .sl-spot's own background -->
+    <div
+      class="sl-spot ![background:radial-gradient(ellipse_42%_50%_at_50%_18%,var(--sl-spot-core)_0%,var(--sl-spot-mid)_45%,transparent_75%),radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--sl-spot-wide),transparent_65%)]"
+      aria-hidden="true"
+    ></div>
     <div class="sl-dots" aria-hidden="true"></div>
 
-    <div class="checkout-return__card">
+    <div
+      class="w-full max-w-md rounded-[22px] border border-transparent px-8 py-10 text-center shadow-sl-prompt
+        [background:var(--sl-prompt-bg)_padding-box,var(--sl-prompt-edge)_border-box]"
+    >
       <!-- Canceled -->
       <template v-if="canceled">
-        <div class="checkout-return__mark checkout-return__mark--muted">
+        <div :class="mark" class="text-sl-muted">
           <i class="fas fa-arrow-rotate-left"></i>
         </div>
-        <h1 class="sl-display checkout-return__title">Checkout canceled</h1>
-        <p class="checkout-return__body">
+        <h1 :class="title">Checkout canceled</h1>
+        <p :class="body">
           No charge was made. You can close this page, or go back and try again.
         </p>
       </template>
 
       <!-- Checking -->
       <template v-else-if="checking">
-        <div class="checkout-return__mark">
-          <div class="checkout-return__spinner"></div>
+        <div :class="mark" class="text-sl-coral">
+          <div class="checkout-return__spinner h-6 w-6 rounded-[50%] border-2 border-sl-line-strong border-t-sl-coral"></div>
         </div>
-        <h1 class="sl-display checkout-return__title">Confirming your payment…</h1>
-        <p class="checkout-return__body">This usually takes a moment.</p>
+        <h1 :class="title">Confirming your payment…</h1>
+        <p :class="body">This usually takes a moment.</p>
       </template>
 
       <!-- Paid -->
       <template v-else-if="paid">
-        <div class="checkout-return__mark checkout-return__mark--ok">
+        <div :class="mark" class="text-sl-ok">
           <i class="fas fa-check"></i>
         </div>
-        <h1 class="sl-display checkout-return__title">Payment received</h1>
-        <p class="checkout-return__body">
+        <h1 :class="title">Payment received</h1>
+        <p :class="body">
           Thanks! Your payment of
-          <span class="checkout-return__amount">{{ formatMoney(amount, currency) }}</span>
+          <span class="font-[650] text-sl-text">{{ formatMoney(amount, currency) }}</span>
           went through. A receipt is on its way from Stripe.
         </p>
       </template>
 
       <!-- Unknown / not yet confirmed -->
       <template v-else>
-        <div class="checkout-return__mark checkout-return__mark--wait">
+        <div :class="mark" class="text-sl-wait">
           <i class="fas fa-hourglass-half"></i>
         </div>
-        <h1 class="sl-display checkout-return__title">Payment processing</h1>
-        <p class="checkout-return__body mb-6">
+        <h1 :class="title">Payment processing</h1>
+        <p :class="body">
           We haven't seen the confirmation yet. If you completed the payment, it will be
           recorded shortly.
         </p>
-        <button type="button" class="checkout-return__btn" @click="check">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-[999px] border border-sl-line-strong bg-sl-chip-bg px-[18px] py-2.5
+            text-[14px] font-semibold text-sl-text [transition:background_0.18s_ease,border-color_0.18s_ease]
+            hover:border-sl-text hover:bg-sl-chip-bg-hover"
+          @click="check"
+        >
           <i class="fas fa-rotate text-xs"></i>
           Check again
         </button>
@@ -104,107 +120,22 @@ async function check() {
 onMounted(() => {
   if (!props.canceled) check()
 })
+
+// Shared by every state: the status mark (each adds its colour), the
+// headline (`!` beats .sl-display's `margin: 0`) and the line under it.
+const mark =
+  'mx-auto mb-[22px] grid h-14 w-14 place-items-center rounded-[18px] border border-sl-line-strong bg-sl-chip-bg text-[20px]'
+const title = 'sl-display !mb-2.5 text-[30px] leading-[1.05] tracking-[-0.03em]'
+const body = 'm-0 text-[15px] leading-[1.6] text-sl-muted'
 </script>
 
 <style scoped>
-/* The Spotlight stage (shared/styles/spotlight.css), kept minimal: this page
-   is seen by the business's own customers, so no Imagi navbar or footer —
-   just one card standing in the light. */
-.checkout-return {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 48px 20px;
-}
-
-.checkout-return .checkout-return__spot {
-  background:
-    radial-gradient(ellipse 42% 50% at 50% 18%, var(--sl-spot-core) 0%, var(--sl-spot-mid) 45%, transparent 75%),
-    radial-gradient(ellipse 80% 60% at 50% -10%, var(--sl-spot-wide), transparent 65%);
-}
-
-.checkout-return__card {
-  width: 100%;
-  max-width: 28rem;
-  padding: 40px 32px;
-  border: 1px solid transparent;
-  border-radius: 22px;
-  background:
-    var(--sl-prompt-bg) padding-box,
-    var(--sl-prompt-edge) border-box;
-  box-shadow: var(--sl-prompt-shadow);
-  text-align: center;
-}
-
-.checkout-return__mark {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 22px;
-  border-radius: 18px;
-  border: 1px solid var(--sl-line-strong);
-  background: var(--sl-chip-bg);
-  font-size: 20px;
-  color: var(--sl-coral);
-}
-
-.checkout-return__mark--muted { color: var(--sl-muted); }
-.checkout-return__mark--ok { color: var(--sl-ok); }
-.checkout-return__mark--wait { color: var(--sl-wait); }
-
+/* The checking spinner's turn: keyframes stay in CSS (scoped names are hashed). */
 .checkout-return__spinner {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid var(--sl-line-strong);
-  border-top-color: var(--sl-coral);
   animation: checkout-return-spin 0.9s linear infinite;
 }
 
 @keyframes checkout-return-spin {
   to { transform: rotate(360deg); }
-}
-
-.checkout-return .checkout-return__title {
-  margin-bottom: 10px;
-  font-size: 30px;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-}
-
-.checkout-return__body {
-  margin: 0;
-  color: var(--sl-muted);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.checkout-return__amount {
-  font-weight: 650;
-  color: var(--sl-text);
-}
-
-.checkout-return__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1px solid var(--sl-line-strong);
-  border-radius: 999px;
-  background: var(--sl-chip-bg);
-  color: var(--sl-text);
-  font-size: 14px;
-  font-weight: 600;
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-
-.checkout-return__btn:hover {
-  background: var(--sl-chip-bg-hover);
-  border-color: var(--sl-text);
 }
 </style>

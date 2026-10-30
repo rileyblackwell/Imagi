@@ -26,7 +26,12 @@ themeStore.initializeTheme()
 </script>
 
 <style scoped>
-/* Crossfade between routed pages. Without mode="out-in" both pages are in the
+/* Stays CSS rather than <transition> class props: these land on the routed
+   page's root, which carries its own utilities (BaseLayout's
+   transition-colors, an app shell's `fixed`). As scoped rules they outrank
+   those; as utilities they would lose to them on stylesheet order.
+
+   Crossfade between routed pages. Without mode="out-in" both pages are in the
    DOM together for the duration, so the outgoing one is taken out of flow —
    otherwise it stacks above the incoming page and the document height (and
    scrollbar) visibly jumps on every navigation. */

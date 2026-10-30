@@ -14,9 +14,9 @@
   to the threads: it is the one thing they all share.
 -->
 <template>
-  <div class="memory">
-    <div class="memory__top">
-      <p class="memory__lede">
+  <div class="flex flex-col gap-2.5 pt-3 px-2.5 pb-4">
+    <div class="flex items-start gap-3">
+      <p class="flex-1 px-0.5 text-[0.75rem] leading-[1.5] text-sl-muted">
         What the coordinator and every thread know about your app. It saves
         what matters from your chats and finished threads on its own, and you
         can change anything here.
@@ -24,81 +24,107 @@
       <button
         v-if="!editing && memory"
         type="button"
-        class="memory__quiet iw-press"
+        :class="QUIET_BTN"
         @click="startEdit"
       >
-        <i class="fas fa-pen" aria-hidden="true"></i>
+        <i class="fas fa-pen text-[0.5625rem]" aria-hidden="true"></i>
         Edit
       </button>
     </div>
 
-    <p v-if="!memory" class="memory__loading">Loading memory…</p>
+    <p v-if="!memory" class="py-2 px-1 text-[0.6875rem] text-sl-muted">Loading memory…</p>
 
-    <!-- Editing: the whole document as plain markdown -->
-    <form v-else-if="editing" class="memory__edit" @submit.prevent="save">
+    <!-- Editing: the whole document as plain markdown. One border that
+         deepens on hover and focus, never a ring — a text field takes no
+         focus ring, whatever the page's :focus-visible says. -->
+    <form v-else-if="editing" class="flex flex-col gap-1.5" @submit.prevent="save">
       <textarea
         ref="editor"
         v-model="draft"
-        class="memory__field"
+        class="w-full min-h-[22rem] py-2.5 px-3 border border-sl-line rounded-[0.625rem] bg-transparent bg-sl-card-bg text-sl-text text-[0.8125rem] leading-[1.55] resize-y
+          ![outline:none] [transition:border-color_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none]
+          hover:border-sl-line-strong focus:border-[color:color-mix(in_srgb,var(--sl-text)_45%,transparent)]"
         aria-label="Project memory"
         spellcheck="true"
         @keydown.meta.enter.prevent="save"
         @keydown.ctrl.enter.prevent="save"
       ></textarea>
-      <p class="memory__hint">
-        <span>One fact per line, under its <code>##</code> section.</span>
-        <span :class="draft.length > memory.max_chars && 'memory__hint--over'">
+      <p class="flex flex-wrap justify-between gap-y-1 gap-x-3 px-0.5 text-[0.6875rem] text-sl-muted">
+        <span>One fact per line, under its <code class="text-[0.625rem] px-[0.1875rem] rounded bg-sl-chip-bg">##</code> section.</span>
+        <span :class="draft.length > memory.max_chars && 'text-sl-wait'">
           {{ draft.length.toLocaleString() }} / {{ memory.max_chars.toLocaleString() }} characters
         </span>
       </p>
-      <div class="memory__foot">
-        <p v-if="error" class="memory__error" role="alert">{{ error }}</p>
-        <button type="button" class="memory__quiet iw-press" @click="cancelEdit">Cancel</button>
-        <button type="submit" class="memory__save iw-press" :disabled="saving">Save</button>
+      <div class="flex items-center justify-end gap-2">
+        <p v-if="error" class="flex-1 text-[0.6875rem] text-sl-bad" role="alert">{{ error }}</p>
+        <button type="button" :class="QUIET_BTN" @click="cancelEdit">Cancel</button>
+        <!-- The view's one lit button. -->
+        <button
+          type="submit"
+          :class="['iw-press py-[0.3125rem] px-3.5 rounded-full bg-sl-grad text-sl-on-accent text-[0.75rem] font-semibold [box-shadow:var(--sl-btn-shadow)] disabled:opacity-50 disabled:cursor-not-allowed', FOCUS]"
+          :disabled="saving"
+        >Save</button>
       </div>
     </form>
 
     <!-- Reading: the document by section -->
     <template v-else>
-      <p v-for="(line, i) in doc.preamble" :key="`p${i}`" class="memory__line memory__line--plain" v-html="inline(line)"></p>
+      <p
+        v-for="(line, i) in doc.preamble"
+        :key="`p${i}`"
+        :class="[LINE, 'pl-1.5 text-sl-muted before:bg-sl-line-strong before:hidden']"
+        v-html="inline(line)"
+      ></p>
 
-      <section v-for="section in doc.sections" :key="section.title" class="memory__section">
-        <div class="memory__head">
-          <span class="memory__head-label">{{ section.title }}</span>
-          <span v-if="section.lines.length" class="memory__head-count">{{ section.lines.length }}</span>
-          <span class="memory__head-rule"></span>
+      <section v-for="section in doc.sections" :key="section.title" class="flex flex-col gap-1">
+        <div :class="[HEAD, 'pt-2']">
+          <span :class="HEAD_LABEL">{{ section.title }}</span>
+          <span
+            v-if="section.lines.length"
+            class="text-[0.5625rem] font-semibold tabular-nums px-1 rounded bg-sl-chip-bg text-sl-muted leading-[0.9375rem]"
+          >{{ section.lines.length }}</span>
+          <span :class="HEAD_RULE"></span>
         </div>
-        <ul v-if="section.lines.length" class="memory__lines">
+        <ul v-if="section.lines.length" class="flex flex-col">
+          <!-- A fact: a diamond tick, then the line. Saved since the user
+               last looked: the info tone, quietly. -->
           <li
             v-for="(line, i) in section.lines"
             :key="i"
-            :class="['memory__line', isNew(line) && 'memory__line--new']"
+            :class="[
+              LINE, 'pl-[1.125rem] text-sl-text',
+              isNew(line) ? 'bg-[color:color-mix(in_srgb,var(--sl-cool)_9%,transparent)] before:bg-sl-cool' : 'before:bg-sl-line-strong'
+            ]"
             v-html="inline(line)"
           ></li>
         </ul>
-        <p v-else class="memory__none">Nothing yet</p>
+        <p v-else class="pt-0.5 px-1.5 pb-1 text-[0.6875rem] text-sl-faint">Nothing yet</p>
       </section>
 
-      <div v-if="lineCount === 0" class="memory__empty">
-        <p class="memory__empty-title">Nothing saved yet</p>
-        <p class="memory__empty-body">
+      <div
+        v-if="lineCount === 0"
+        class="mt-1 pt-4 px-3.5 pb-[1.125rem] border border-dashed border-sl-line-strong rounded-[0.875rem] text-center"
+      >
+        <p class="font-sl-display text-[0.8125rem] font-semibold text-sl-text">Nothing saved yet</p>
+        <p class="mt-1 text-[0.6875rem] leading-[1.45] text-sl-muted">
           As you chat with the coordinator and threads finish, what later work
           should know is saved here, so every new thread starts knowing it.
         </p>
       </div>
     </template>
 
-    <!-- Threads' notes: saved when each thread's work lands -->
+    <!-- Threads' notes: saved when each thread's work lands. Not saved yet:
+         drawn but not filled, like a thread that has not started. -->
     <template v-if="memory && memory.pending.length">
-      <div class="memory__head">
-        <span class="memory__head-label">Saves when its thread lands</span>
-        <span class="memory__head-rule"></span>
+      <div :class="[HEAD, 'pt-2']">
+        <span :class="HEAD_LABEL">Saves when its thread lands</span>
+        <span :class="HEAD_RULE"></span>
       </div>
-      <ul class="memory__changes">
-        <li v-for="item in memory.pending" :key="item.thread.id" class="memory__change memory__change--pending">
-          <p class="memory__by">{{ item.thread.title || 'A thread' }}</p>
-          <p v-for="(note, i) in item.notes" :key="i" class="memory__diff memory__diff--add">
-            <span class="memory__diff-mark" aria-hidden="true">+</span><span>{{ note.text }}</span>
+      <ul class="flex flex-col gap-1">
+        <li v-for="item in memory.pending" :key="item.thread.id" :class="[CHANGE, 'border-dashed bg-sl-chip-bg']">
+          <p :class="BYLINE">{{ item.thread.title || 'A thread' }}</p>
+          <p v-for="(note, i) in item.notes" :key="i" :class="[DIFF, 'text-sl-text']">
+            <span :class="[DIFF_MARK, 'text-sl-ok']" aria-hidden="true">+</span><span>{{ note.text }}</span>
           </p>
         </li>
       </ul>
@@ -106,26 +132,30 @@
 
     <!-- Where each line came from, newest first, each one undoable -->
     <template v-if="memory && memory.changes.length && !editing">
-      <div class="memory__head memory__head--changes">
-        <span class="memory__head-label">Recent changes</span>
-        <span class="memory__head-rule"></span>
+      <div :class="[HEAD, 'pt-4']">
+        <span :class="HEAD_LABEL">Recent changes</span>
+        <span :class="HEAD_RULE"></span>
       </div>
-      <ul class="memory__changes">
+      <ul class="flex flex-col gap-1">
         <li
           v-for="change in memory.changes"
           :key="change.id"
-          :class="['memory__change', change.undone && 'memory__change--undone']"
+          :class="[CHANGE, 'bg-sl-card-bg', change.undone && 'opacity-60']"
         >
-          <div class="memory__change-top">
-            <p class="memory__by">
+          <div class="flex items-center gap-2">
+            <p :class="BYLINE">
               {{ changeByline(change) }}
-              <span class="memory__when">· {{ timeAgo(change.created_at) }}</span>
+              <span class="font-normal text-sl-muted">· {{ timeAgo(change.created_at) }}</span>
             </p>
-            <span v-if="change.undone" class="memory__undone">Undone</span>
+            <span v-if="change.undone" class="shrink-0 text-[0.625rem] text-sl-faint">Undone</span>
             <button
               v-else
               type="button"
-              class="memory__undo iw-press"
+              :class="[
+                'iw-press shrink-0 text-[0.6875rem] font-semibold text-sl-muted rounded-full hover:text-sl-text disabled:opacity-50 disabled:cursor-not-allowed',
+                '[transition:color_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none]',
+                FOCUS
+              ]"
               :disabled="undoing === change.id"
               @click="undo(change.id)"
             >
@@ -135,10 +165,14 @@
           <p
             v-for="(line, i) in change.lines"
             :key="i"
-            :class="['memory__diff', `memory__diff--${line.op}`]"
+            :class="[DIFF, line.op === 'remove' ? 'text-sl-muted' : 'text-sl-text']"
           >
-            <span class="memory__diff-mark" aria-hidden="true">{{ line.op === 'add' ? '+' : '−' }}</span>
-            <span class="memory__diff-text">{{ line.text }}</span>
+            <span :class="[DIFF_MARK, line.op === 'add' ? 'text-sl-ok' : 'text-sl-muted']" aria-hidden="true">{{ line.op === 'add' ? '+' : '−' }}</span>
+            <span
+              :class="line.op === 'remove'
+                ? 'line-through decoration-[color:color-mix(in_srgb,var(--sl-muted)_60%,transparent)]'
+                : change.undone && 'line-through'"
+            >{{ line.text }}</span>
           </p>
         </li>
       </ul>
@@ -154,6 +188,37 @@ import { useAgentStore } from '../../../stores/agentStore'
 import { changeByline, memoryLineCount, parseMemory, timeAgo } from '../../../utils/projectMemory'
 
 const store = useAgentStore()
+
+/* Spotlight's own ring, stated at the call site. */
+const FOCUS = 'focus-visible:[outline:2px_solid_var(--sl-focus)] focus-visible:[outline-offset:3px]'
+
+const QUIET_BTN = [
+  'iw-press inline-flex items-center gap-1.5 shrink-0 py-[0.3125rem] px-3 rounded-full border border-sl-line',
+  'text-sl-muted text-[0.75rem] font-semibold hover:border-sl-line-strong hover:text-sl-text',
+  '[transition:border-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none]',
+  FOCUS,
+]
+
+/* Section heads: the workspace's label convention — label, count, then a
+   hairline running to the edge. */
+const HEAD = 'flex items-center gap-1.5 px-1 pb-0'
+const HEAD_LABEL = 'text-[0.625rem] font-semibold uppercase tracking-[0.09em] text-sl-muted'
+const HEAD_RULE = 'flex-1 h-px bg-[linear-gradient(90deg,var(--sl-line-strong)_0%,transparent_100%)]'
+
+/* One line of the document, with its diamond tick (::before) and the inline
+   markdown it may carry (v-html). */
+const LINE = [
+  'relative py-1 pr-1.5 rounded-lg text-[0.78125rem] leading-[1.5] [overflow-wrap:anywhere]',
+  '[transition:background-color_var(--iw-dur-3)_var(--iw-ease-out)] motion-reduce:[transition:none]',
+  "before:content-[''] before:absolute before:left-[0.4375rem] before:top-[0.6875rem] before:w-[0.3125rem] before:h-[0.3125rem] before:[transform:rotate(45deg)]",
+  '[&_code]:text-[0.6875rem] [&_code]:px-[0.1875rem] [&_code]:rounded [&_code]:bg-sl-chip-bg [&_a]:underline [&_a]:underline-offset-2',
+]
+
+/* Pending notes and recent changes */
+const CHANGE = 'pt-[0.4375rem] px-2.5 pb-2 border border-sl-line rounded-xl'
+const BYLINE = 'flex-1 min-w-0 truncate text-[0.6875rem] font-semibold text-sl-text'
+const DIFF = 'flex gap-1.5 mt-[0.1875rem] text-[0.71875rem] leading-[1.45] [overflow-wrap:anywhere]'
+const DIFF_MARK = 'shrink-0 w-2 font-semibold'
 
 const editing = ref(false)
 const draft = ref('')
@@ -252,393 +317,3 @@ async function undo(changeId: number) {
   }
 }
 </script>
-
-<style scoped>
-.memory {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  padding: 0.75rem 0.625rem 1rem;
-}
-
-.memory__top {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.memory__lede {
-  flex: 1;
-  padding: 0 0.125rem;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--sl-muted);
-}
-
-/* ── Editing: one border that deepens on hover and focus, never a ring ── */
-
-.memory__edit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.memory__field {
-  width: 100%;
-  min-height: 22rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--sl-line);
-  border-radius: 0.625rem;
-  background: var(--sl-card-bg);
-  color: var(--sl-text);
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  outline: none;
-  resize: vertical;
-  transition: border-color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.memory__field:hover {
-  border-color: var(--sl-line-strong);
-}
-
-.memory__field:focus {
-  border-color: color-mix(in srgb, var(--sl-text) 45%, transparent);
-}
-
-/* A text field takes no focus ring, whatever the page's :focus-visible says. */
-.memory__field:focus-visible {
-  outline: none;
-}
-
-.memory__hint {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.25rem 0.75rem;
-  padding: 0 0.125rem;
-  font-size: 0.6875rem;
-  color: var(--sl-muted);
-}
-
-.memory__hint code {
-  font-size: 0.625rem;
-  padding: 0 0.1875rem;
-  border-radius: 0.25rem;
-  background: var(--sl-chip-bg);
-}
-
-.memory__hint--over {
-  color: var(--sl-wait);
-}
-
-.memory__foot {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.memory__error {
-  flex: 1;
-  font-size: 0.6875rem;
-  color: var(--sl-bad);
-}
-
-/* The view's one lit button. */
-.memory__save {
-  padding: 0.3125rem 0.875rem;
-  border-radius: 9999px;
-  background: var(--sl-grad);
-  color: var(--sl-on-accent);
-  font-size: 0.75rem;
-  font-weight: 600;
-  box-shadow: var(--sl-btn-shadow);
-}
-
-.memory__save:disabled,
-.memory__undo:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.memory__quiet {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  flex-shrink: 0;
-  padding: 0.3125rem 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid var(--sl-line);
-  color: var(--sl-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: border-color var(--iw-dur-2) var(--iw-ease-out), color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.memory__quiet i {
-  font-size: 0.5625rem;
-}
-
-.memory__quiet:hover {
-  border-color: var(--sl-line-strong);
-  color: var(--sl-text);
-}
-
-.memory__save:focus-visible,
-.memory__quiet:focus-visible,
-.memory__undo:focus-visible {
-  outline: 2px solid var(--sl-focus);
-  outline-offset: 3px;
-}
-
-/* ── Sections ─────────────────────────────────────────────────────────── */
-
-.memory__section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.memory__head {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.25rem 0;
-}
-
-.memory__head--changes {
-  padding-top: 1rem;
-}
-
-.memory__head-label {
-  font-size: 0.625rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--sl-muted);
-}
-
-.memory__head-count {
-  font-size: 0.5625rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  background: var(--sl-chip-bg);
-  color: var(--sl-muted);
-  line-height: 0.9375rem;
-}
-
-.memory__head-rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--sl-line-strong) 0%, transparent 100%);
-}
-
-.memory__lines {
-  display: flex;
-  flex-direction: column;
-}
-
-/* A fact: a diamond tick, then the line. */
-.memory__line {
-  position: relative;
-  padding: 0.25rem 0.375rem 0.25rem 1.125rem;
-  border-radius: 0.5rem;
-  font-size: 0.78125rem;
-  line-height: 1.5;
-  color: var(--sl-text);
-  overflow-wrap: anywhere;
-  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.memory__line::before {
-  content: '';
-  position: absolute;
-  left: 0.4375rem;
-  top: 0.6875rem;
-  width: 0.3125rem;
-  height: 0.3125rem;
-  background: var(--sl-line-strong);
-  transform: rotate(45deg);
-}
-
-.memory__line--plain::before {
-  display: none;
-}
-
-.memory__line--plain {
-  padding-left: 0.375rem;
-  color: var(--sl-muted);
-}
-
-/* Saved since the user last looked: the info tone, quietly. */
-.memory__line--new {
-  background: color-mix(in srgb, var(--sl-cool) 9%, transparent);
-}
-
-.memory__line--new::before {
-  background: var(--sl-cool);
-}
-
-.memory__line :deep(code) {
-  font-size: 0.6875rem;
-  padding: 0 0.1875rem;
-  border-radius: 0.25rem;
-  background: var(--sl-chip-bg);
-}
-
-.memory__line :deep(a) {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.memory__none {
-  padding: 0.125rem 0.375rem 0.25rem;
-  font-size: 0.6875rem;
-  color: var(--sl-faint);
-}
-
-/* ── Pending notes and recent changes ─────────────────────────────────── */
-
-.memory__changes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.memory__change {
-  padding: 0.4375rem 0.625rem 0.5rem;
-  border: 1px solid var(--sl-line);
-  border-radius: 0.75rem;
-  background: var(--sl-card-bg);
-}
-
-/* Not saved yet: drawn but not filled, like a thread that has not started. */
-.memory__change--pending {
-  border-style: dashed;
-  background: var(--sl-chip-bg);
-}
-
-.memory__change--undone {
-  opacity: 0.6;
-}
-
-.memory__change--undone .memory__diff-text {
-  text-decoration: line-through;
-}
-
-.memory__change-top {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.memory__by {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--sl-text);
-}
-
-.memory__when {
-  font-weight: 400;
-  color: var(--sl-muted);
-}
-
-.memory__undo {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--sl-muted);
-  border-radius: 9999px;
-  transition: color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.memory__undo:hover {
-  color: var(--sl-text);
-}
-
-.memory__undone {
-  flex-shrink: 0;
-  font-size: 0.625rem;
-  color: var(--sl-faint);
-}
-
-.memory__diff {
-  display: flex;
-  gap: 0.375rem;
-  margin-top: 0.1875rem;
-  font-size: 0.71875rem;
-  line-height: 1.45;
-  color: var(--sl-text);
-  overflow-wrap: anywhere;
-}
-
-.memory__diff--remove {
-  color: var(--sl-muted);
-}
-
-.memory__diff--remove .memory__diff-text {
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, var(--sl-muted) 60%, transparent);
-}
-
-.memory__diff-mark {
-  flex-shrink: 0;
-  width: 0.5rem;
-  font-weight: 600;
-}
-
-.memory__diff--add .memory__diff-mark {
-  color: var(--sl-ok);
-}
-
-.memory__diff--remove .memory__diff-mark {
-  color: var(--sl-muted);
-}
-
-/* ── Loading and empty ───────────────────────────────────────────────── */
-
-.memory__loading {
-  padding: 0.5rem 0.25rem;
-  font-size: 0.6875rem;
-  color: var(--sl-muted);
-}
-
-.memory__empty {
-  margin-top: 0.25rem;
-  padding: 1rem 0.875rem 1.125rem;
-  border: 1px dashed var(--sl-line-strong);
-  border-radius: 0.875rem;
-  text-align: center;
-}
-
-.memory__empty-title {
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--sl-text);
-}
-
-.memory__empty-body {
-  margin-top: 0.25rem;
-  font-size: 0.6875rem;
-  line-height: 1.45;
-  color: var(--sl-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .memory__line,
-  .memory__field,
-  .memory__quiet,
-  .memory__undo {
-    transition: none;
-  }
-}
-</style>
