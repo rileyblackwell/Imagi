@@ -25,21 +25,27 @@
        The panels share one popover treatment: a translucent material
        that grows out of the chip that opened it (transform-origin sits
        at the bottom edge), so opening reads as the control unfolding
-       rather than a card being dealt onto the pane. -->
-  <Transition name="popover">
+       rather than a card being dealt onto the pane. Closing is faster than
+       opening: dismissals should feel immediate, arrivals deliberate. -->
+  <Transition
+    enter-active-class="origin-bottom [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-spring)]"
+    enter-from-class="translate-y-2 scale-[0.96] opacity-0"
+    leave-active-class="origin-bottom [transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+    leave-to-class="translate-y-1 scale-[0.98] opacity-0"
+  >
   <div
     v-if="tuneOpen"
     id="tune-panel"
     ref="tunePanel"
     role="group"
     aria-label="Model and reasoning"
-    class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
+    :class="['absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden', POPOVER]"
     @keydown.escape.stop.prevent="closeTune"
   >
     <!-- Body scrolls on short viewports so the panel never grows past the
          top of the sidebar (the usage panel's recipe). -->
     <div class="iw-scroll max-h-[min(26rem,calc(100vh-19rem))] overflow-y-auto">
-      <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
+      <div class="flex items-center justify-between gap-2 border-b border-b-iw-hairline px-3 py-2">
         <span id="tune-model-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
           Model
         </span>
@@ -48,7 +54,7 @@
         <div
           role="radiogroup"
           aria-label="Model family"
-          class="family-toggle"
+          class="inline-flex rounded-full bg-ink/[0.06] p-0.5 dark:bg-white/[0.07]"
           data-testid="model-family-toggle"
           @keydown="onFamilyKeydown"
         >
@@ -60,8 +66,14 @@
             role="radio"
             :aria-checked="f.id === family"
             :tabindex="f.id === family ? 0 : -1"
-            class="family-toggle__opt"
-            :class="{ 'family-toggle__opt--on': f.id === family }"
+            :class="[
+              'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold leading-[1.125rem] [border:0] ![outline:none]',
+              '[transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none]',
+              'hover:text-ink focus-visible:shadow-iw-focus dark:hover:text-white/[0.92] dark:focus-visible:shadow-iw-focus',
+              f.id === family
+                ? 'bg-white text-ink [box-shadow:0_1px_2px_rgba(19,26,44,0.12)] dark:bg-white/[0.14] dark:text-white/95 dark:[box-shadow:none]'
+                : 'bg-transparent text-ink/60 dark:text-white/55',
+            ]"
             :data-testid="`model-family-${f.id}`"
             @click="family = f.id"
           >{{ f.name }}</button>
@@ -82,26 +94,25 @@
           :aria-checked="i === modelIndex"
           :tabindex="i === Math.max(modelIndex, 0) ? 0 : -1"
           :disabled="!instance"
-          class="model-row"
-          :class="{ 'model-row--on': i === modelIndex }"
+          :class="['model-row', MENU_ROW, i === modelIndex ? MENU_ROW_ON : 'bg-transparent']"
           @click="pickModel(m.id)"
         >
           <span class="min-w-0 flex-1">
-            <span class="model-row__name">
+            <span :class="['model-row__name', ROW_NAME]">
               {{ modelShortName(m.id) }}
-              <span class="model-row__tier">{{ modelTier(m.id) }}</span>
+              <span :class="ROW_TIER">{{ modelTier(m.id) }}</span>
             </span>
-            <span class="model-row__blurb">{{ modelBlurb(m.id) }}</span>
+            <span :class="['model-row__blurb', ROW_BLURB]">{{ modelBlurb(m.id) }}</span>
           </span>
           <i
-            class="fas fa-check model-row__check"
+            class="fas fa-check shrink-0 text-[0.6875rem] text-ink dark:text-[#f3ede2]"
             :class="{ 'opacity-0': i !== modelIndex }"
             aria-hidden="true"
           ></i>
         </button>
       </div>
 
-      <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
+      <div class="flex items-center justify-between gap-2 border-y border-y-iw-hairline px-3 py-2">
         <span id="tune-effort-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
           Reasoning effort
         </span>
@@ -114,7 +125,7 @@
           role="radiogroup"
           aria-labelledby="tune-effort-heading"
           aria-describedby="tune-effort-note"
-          class="effort-bars"
+          class="flex shrink-0 items-end gap-[0.1875rem]"
           @mouseleave="effortPreview = null"
           @keydown="onEffortKeydown"
         >
@@ -128,7 +139,8 @@
             :aria-label="`${o.name}: ${o.description}`"
             :tabindex="i === effortIndex ? 0 : -1"
             :disabled="!instance"
-            class="effort-bar"
+            class="effort-bar flex h-7 w-4 cursor-pointer items-end rounded bg-transparent px-0.5 [border:0] ![outline:none]
+              focus-visible:shadow-iw-focus disabled:cursor-not-allowed disabled:opacity-50"
             :class="{
               'effort-bar--on': i <= (effortPreview ?? effortIndex),
               'effort-bar--preview': effortPreview !== null && i <= effortPreview && i > effortIndex,
@@ -136,14 +148,16 @@
             :style="{ '--rung': i }"
             @mouseenter="effortPreview = i"
             @click="pickEffort(o.id)"
-          ><span class="effort-bar__fill" aria-hidden="true"></span></button>
+          ><span :class="effortFillClass(i)" aria-hidden="true"></span></button>
         </div>
         <div class="min-w-0 flex-1" aria-hidden="true">
-          <p class="effort-readout__name">{{ shownEffort?.name }}</p>
-          <p class="effort-readout__desc">{{ shownEffort?.description }}</p>
+          <p class="effort-readout__name text-[0.8125rem] font-medium leading-5 text-ink dark:text-white/[0.92]">{{ shownEffort?.name }}</p>
+          <p :class="ROW_BLURB">{{ shownEffort?.description }}</p>
         </div>
       </div>
-      <p id="tune-effort-note" class="tune-note px-3 pt-1 pb-3">
+      <!-- What more reasoning costs. The opacities here clear 4.5:1 for 10px
+           text over the glass. -->
+      <p id="tune-effort-note" :class="['px-3 pt-1 pb-3', TUNE_NOTE, 'text-ink/55 dark:text-white/50']">
         More reasoning helps with difficult problems but costs more per run. Medium is the default.
       </p>
 
@@ -151,7 +165,7 @@
            section appears once one is picked. Each says its price beside
            its name, and the note under them says what that does to usage. -->
       <template v-if="currentProvider === 'openai'">
-        <div class="popover__head popover__head--mid flex items-center justify-between gap-2 px-3 py-2">
+        <div class="flex items-center justify-between gap-2 border-y border-y-iw-hairline px-3 py-2">
           <span id="tune-speed-heading" class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
             Speed
           </span>
@@ -173,22 +187,21 @@
             :aria-checked="t.id === currentTier"
             :tabindex="t.id === currentTier ? 0 : -1"
             :disabled="!instance || !tierOffered(t.id)"
-            class="model-row"
-            :class="{ 'model-row--on': t.id === currentTier }"
+            :class="['model-row', MENU_ROW, t.id === currentTier ? MENU_ROW_ON : 'bg-transparent']"
             :data-testid="`speed-${t.id || 'standard'}`"
             @click="pickTier(t.id)"
           >
             <span class="min-w-0 flex-1">
-              <span class="model-row__name">
+              <span :class="['model-row__name', ROW_NAME]">
                 {{ t.name }}
-                <span class="model-row__tier">{{ t.multiplier === 1 ? 'Standard price' : `${t.multiplier}x price` }}</span>
+                <span :class="ROW_TIER">{{ t.multiplier === 1 ? 'Standard price' : `${t.multiplier}x price` }}</span>
               </span>
-              <span class="model-row__blurb">
+              <span :class="['model-row__blurb', ROW_BLURB]">
                 {{ tierOffered(t.id) ? t.description : `On ${tierModelsText(t.id)}` }}
               </span>
             </span>
             <i
-              class="fas fa-check model-row__check"
+              class="fas fa-check shrink-0 text-[0.6875rem] text-ink dark:text-[#f3ede2]"
               :class="{ 'opacity-0': t.id !== currentTier }"
               aria-hidden="true"
             ></i>
@@ -196,8 +209,10 @@
         </div>
         <p
           id="tune-speed-note"
-          class="tune-note px-3 pt-1 pb-3"
-          :class="{ 'tune-note--cost': currentTier !== '' }"
+          :class="[
+            'px-3 pt-1 pb-3', TUNE_NOTE,
+            currentTier !== '' ? 'tune-note--cost text-sl-wait' : 'text-ink/55 dark:text-white/50',
+          ]"
           data-testid="speed-cost-note"
         >
           Fast costs twice the standard price and Ultrafast six times, so each run costs that much more.
@@ -208,13 +223,18 @@
   </Transition>
 
   <!-- Usage limits panel (opens upward above the composer) -->
-  <Transition name="popover">
+  <Transition
+    enter-active-class="origin-bottom [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-spring)]"
+    enter-from-class="translate-y-2 scale-[0.96] opacity-0"
+    leave-active-class="origin-bottom [transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+    leave-to-class="translate-y-1 scale-[0.98] opacity-0"
+  >
   <div
     v-if="usageOpen"
     ref="usagePanel"
-    class="popover absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
+    :class="['absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden', POPOVER]"
   >
-    <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
+    <div class="flex items-center justify-between gap-2 border-b border-b-iw-hairline px-3 py-2">
       <span class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
         Usage
       </span>
@@ -237,8 +257,16 @@
               {{ meter.usedText }}
             </span>
           </div>
-          <div v-if="meter.percent !== null" class="usage-meter mt-1.5">
-            <div class="usage-meter-fill" :style="{ width: `${meter.percent}%` }"></div>
+          <!-- Quiet navy ink bar (cream in dark mode, matching the primary
+               button system) -->
+          <div
+            v-if="meter.percent !== null"
+            class="relative mt-1.5 h-1 overflow-hidden rounded-full bg-ink/10 dark:bg-white/[0.12]"
+          >
+            <div
+              class="absolute inset-y-0 left-0 rounded-full bg-blue-950 [transition:width_var(--iw-dur-4)_var(--iw-ease-out)] dark:bg-[#f3ede2]"
+              :style="{ width: `${meter.percent}%` }"
+            ></div>
           </div>
           <p v-if="meter.resetsAt" class="mt-1 text-[10px] text-ink/40 dark:text-white/35">
             Resets {{ meter.resetsAt }}
@@ -251,13 +279,18 @@
 
   <!-- Microphone picker (opens upward above the composer). The computer's
        own mic is the default; a headset is a choice, never a surprise. -->
-  <Transition name="popover">
+  <Transition
+    enter-active-class="origin-bottom [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-spring)]"
+    enter-from-class="translate-y-2 scale-[0.96] opacity-0"
+    leave-active-class="origin-bottom [transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+    leave-to-class="translate-y-1 scale-[0.98] opacity-0"
+  >
   <div
     v-if="micOpen"
     ref="micPanel"
-    class="popover mic-panel absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden"
+    :class="['mic-panel absolute bottom-full left-2 right-2 mb-1.5 z-50 overflow-hidden', POPOVER]"
   >
-    <div class="popover__head flex items-center justify-between gap-2 px-3 py-2">
+    <div class="flex items-center justify-between gap-2 border-b border-b-iw-hairline px-3 py-2">
       <span class="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
         Microphone
       </span>
@@ -272,7 +305,10 @@
       </p>
       <button
         type="button"
-        class="mic-allow iw-press mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-paper dark:text-ink"
+        class="mic-allow iw-press mt-2 w-full rounded-full bg-blue-950 px-3 py-1.5 text-[11px] font-semibold text-paper
+          [box-shadow:var(--iw-shadow-2),inset_0_1px_0_rgba(255,255,255,0.12)]
+          ![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]
+          hover:bg-blue-900 focus-visible:shadow-iw-focus focus-visible:![outline:none] dark:bg-[#f3ede2] dark:text-ink dark:hover:bg-white"
         @click="unlockMicInputs"
       >
         Allow microphone access
@@ -285,13 +321,25 @@
         type="button"
         role="menuitemradio"
         :aria-checked="input.id === micActive?.id"
-        class="mic-option iw-press"
-        :class="{ 'mic-option--active': input.id === micActive?.id }"
+        :class="[
+          'mic-option iw-press flex w-full items-center gap-2 bg-transparent px-3 py-[0.45rem] text-left text-[0.75rem] font-medium ![outline:none]',
+          '![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out)]',
+          'hover:bg-blue-100/50 hover:text-ink focus-visible:bg-blue-100/50 focus-visible:text-ink',
+          'dark:hover:bg-white/[0.07] dark:hover:text-white/95 dark:focus-visible:bg-white/[0.07] dark:focus-visible:text-white/95',
+          input.id === micActive?.id ? 'text-ink dark:text-white/95' : 'text-ink/75 dark:text-[rgba(219,234,254,0.7)]',
+        ]"
         @click="chooseMicInput(input.id)"
       >
-        <i class="fas fa-check mic-option-mark" :class="{ 'mic-option-mark--on': input.id === micActive?.id }"></i>
+        <i
+          class="fas fa-check w-3 shrink-0 text-[0.625rem]"
+          :class="input.id === micActive?.id ? 'opacity-[0.85]' : 'opacity-0'"
+        ></i>
         <span class="truncate">{{ input.label || 'Microphone' }}</span>
-        <span v-if="isBuiltInInput(input)" class="mic-option-tag">Built-in</span>
+        <span
+          v-if="isBuiltInInput(input)"
+          class="mic-option-tag ml-auto shrink-0 rounded-[999px] bg-blue-100/70 px-[0.4rem] py-[0.1rem] text-[0.5625rem] font-semibold uppercase tracking-[0.06em] text-ink/60
+            dark:bg-white/10 dark:text-white/70"
+        >Built-in</span>
       </button>
       <p class="px-3 pb-2 pt-1.5 text-[10px] leading-snug text-ink/45 dark:text-white/40">
         Your computer's built-in microphone is used unless you pick another.
@@ -308,10 +356,17 @@
     <!-- Queued prompt: one message held while the agent works. It slides
          in above the composer and slides back out when it fires, so the
          hand-off from "held" to "sent" is something you watch happen. -->
-    <Transition name="queued">
+    <!-- It opens and closes its own space (the negative margin) so the
+         composer glides down and back rather than jumping. -->
+    <Transition
+      enter-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-out),margin-bottom_var(--iw-dur-3)_var(--iw-ease-out)]"
+      enter-from-class="translate-y-2 scale-[0.98] opacity-0 !-mb-9"
+      leave-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-out),margin-bottom_var(--iw-dur-3)_var(--iw-ease-out)]"
+      leave-to-class="translate-y-2 scale-[0.98] opacity-0 !-mb-9"
+    >
     <div
       v-if="instance?.queuedPrompt"
-      class="queued-row flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-ink/[0.03] dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
+      class="flex items-center gap-2 rounded-xl border border-blue-100 dark:border-white/[0.08] bg-ink/[0.03] dark:bg-white/[0.04] px-2.5 py-1.5 mb-1.5"
     >
       <i class="fas fa-hourglass-half text-[10px] text-ink/40 dark:text-white/40 shrink-0"></i>
       <div class="flex-1 min-w-0">
@@ -324,7 +379,9 @@
         type="button"
         title="Cancel queued message"
         aria-label="Cancel queued message"
-        class="queued-cancel iw-press shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-ink/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-ink/70 dark:hover:text-white/70"
+        class="iw-press shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-ink/40 dark:text-white/40 hover:bg-blue-100/70 dark:hover:bg-white/[0.08] hover:text-ink/70 dark:hover:text-white/70
+          ![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]
+          focus-visible:shadow-iw-focus focus-visible:![outline:none]"
         @click="cancelQueuedPrompt"
       >
         <i class="fas fa-times text-[10px]"></i>
@@ -332,8 +389,15 @@
     </div>
     </Transition>
 
-    <!-- Input shell: textarea on top, controls toolbar below -->
-    <div class="chat-input-shell rounded-2xl bg-ink/[0.03] dark:bg-white/[0.03] border border-ink/[0.08] dark:border-white/[0.14] shadow-sm">
+    <!-- Input shell: textarea on top, controls toolbar below, as one field.
+         Focus adds a soft halo outside the existing edge rather than
+         thickening the border, so the field never changes size as you click
+         into it. -->
+    <div
+      class="rounded-2xl bg-ink/[0.03] dark:bg-white/[0.03] border border-ink/[0.08] dark:border-white/[0.14] shadow-sm
+        [transition:border-color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out)]
+        focus-within:border-ink/40 focus-within:[box-shadow:0_0_0_3px_rgba(var(--iw-accent),0.13)] dark:focus-within:border-white/40"
+    >
       <textarea
         ref="promptTextarea"
         v-model="prompt"
@@ -343,7 +407,8 @@
         @input="autoResizeTextarea"
         :disabled="!instance"
         rows="4"
-        class="chat-textarea w-full bg-transparent text-ink dark:text-white/90 placeholder-ink/40 dark:placeholder-bone/40 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
+        class="w-full bg-transparent text-ink dark:text-white/90 placeholder-ink/40 dark:placeholder-bone/40 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed
+          ![border:none] ![box-shadow:none] ![outline:0_none_transparent] ![outline-offset:0] ![transition:none] ![-webkit-tap-highlight-color:transparent]"
         style="min-height: 92px; max-height: 240px;"
       ></textarea>
 
@@ -371,13 +436,15 @@
               aria-controls="tune-panel"
               :aria-expanded="tuneOpen"
               :disabled="!instance"
-              class="control-chip iw-press"
-              :class="{ 'control-chip--active': tuneOpen }"
+              :class="['control-chip iw-press', CHIP, tuneOpen ? CHIP_OPEN : CHIP_SHUT]"
               @click="toggleTune"
             >
-              <i class="fas fa-microchip control-chip-icon"></i>
-              <span class="control-chip-label">{{ tuneLabel }}</span>
-              <i class="fas fa-chevron-down control-chip-caret" :class="{ 'rotate-180': tuneOpen }"></i>
+              <i class="fas fa-microchip shrink-0 text-[0.6875rem] opacity-75"></i>
+              <span class="truncate">{{ tuneLabel }}</span>
+              <i
+                class="fas fa-chevron-down shrink-0 text-[0.5rem] opacity-60 [transition:transform_var(--iw-dur-3)_var(--iw-ease-inout)]"
+                :class="{ 'rotate-180': tuneOpen }"
+              ></i>
             </button>
           </div>
 
@@ -388,12 +455,11 @@
               title="Plan usage limits"
               aria-label="Usage limits"
               :aria-expanded="usageOpen"
-              class="control-chip iw-press"
-              :class="{ 'control-chip--active': usageOpen }"
+              :class="['control-chip iw-press', CHIP, usageOpen ? CHIP_OPEN : CHIP_SHUT]"
               @click="toggleUsage"
             >
-              <i class="fas fa-gauge-high control-chip-icon"></i>
-              <span class="control-chip-label">Usage</span>
+              <i class="fas fa-gauge-high shrink-0 text-[0.6875rem] opacity-75"></i>
+              <span class="truncate">Usage</span>
             </button>
           </div>
         </div>
@@ -422,7 +488,8 @@
           :aria-pressed="isRecording"
           :aria-expanded="dictationSupported ? micOpen : undefined"
           :disabled="!instance || isTranscribing"
-          class="btn-send iw-press relative flex shrink-0 items-center justify-center w-9 h-9 rounded-full"
+          class="btn-send iw-press relative flex shrink-0 items-center justify-center w-9 h-9 rounded-full border
+            [-webkit-touch-callout:none] [transform:translateZ(0)] touch-none select-none focus-visible:![outline:none] disabled:cursor-not-allowed"
           :class="sendClass"
           :style="isRecording ? micRingStyle : undefined"
           @pointerdown="onSendPointerDown"
@@ -433,7 +500,12 @@
         >
           <!-- One glyph at a time; a change cross-fades the old one out
                as the new one turns in, rather than snapping. -->
-          <Transition name="send-glyph">
+          <Transition
+            enter-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-spring)] motion-reduce:[transition:opacity_var(--iw-dur-1)_linear]"
+            enter-from-class="translate-y-1.5 scale-[0.6] opacity-0 motion-reduce:[transform:none]"
+            leave-active-class="absolute [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-spring)] motion-reduce:[transition:opacity_var(--iw-dur-1)_linear]"
+            leave-to-class="scale-[0.6] opacity-0 motion-reduce:[transform:none]"
+          >
             <i :key="sendGlyph" :class="sendGlyphClass" aria-hidden="true"></i>
           </Transition>
         </button>
@@ -485,6 +557,60 @@ const emit = defineEmits<{ (e: 'stop'): void }>()
 
 const store = useAgentStore()
 const instance = toRef(props, 'instance')
+/* ── Panel and menu classes ──────────────────────────────────────────────
+   Model, reasoning, usage and the mic picker share one surface: a
+   translucent material lifted off the composer, so the transcript behind it
+   stays present as colour (opaque where the browser has no backdrop blur). */
+const POPOVER =
+  'rounded-iw-lg border border-iw-material-border bg-iw-material-bg shadow-iw-3 [backdrop-filter:var(--iw-material-filter)] ' +
+  '[@supports_not_((backdrop-filter:blur(1px))_or_(-webkit-backdrop-filter:blur(1px)))]:bg-white ' +
+  'dark:[@supports_not_((backdrop-filter:blur(1px))_or_(-webkit-backdrop-filter:blur(1px)))]:bg-[#0f0f0f]'
+
+/** Control chip: the compact model / reasoning / usage buttons. Ghost until
+ *  hovered or open, so the input shell stays the focal point. */
+const CHIP =
+  'inline-flex max-w-full cursor-pointer items-center gap-[0.3rem] rounded-iw-sm border border-transparent px-[0.55rem] py-[0.3rem] ' +
+  'text-[0.75rem] font-medium tracking-[0.01em] ![outline:none] ' +
+  '![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)] ' +
+  'focus-visible:shadow-iw-focus disabled:cursor-not-allowed disabled:opacity-50 ' +
+  'enabled:hover:bg-blue-100/50 enabled:hover:text-ink dark:enabled:hover:bg-white/[0.07] dark:enabled:hover:text-white/95'
+const CHIP_SHUT = 'bg-transparent text-ink/75 dark:text-[rgba(219,234,254,0.7)]'
+const CHIP_OPEN = 'control-chip--active bg-blue-100/70 text-ink dark:bg-white/10 dark:text-white'
+
+/** Menu rows: name, tier tag and what it is for, with a check on the one in
+ *  use. Ghost rows that tint on hover, like the chip. */
+const MENU_ROW =
+  'flex w-full cursor-pointer items-center gap-3 rounded-iw-sm px-2.5 py-2 text-left [border:0] ![outline:none] ' +
+  '[transition:background-color_var(--iw-dur-2)_var(--iw-ease-out)] motion-reduce:[transition:none] ' +
+  'focus-visible:shadow-iw-focus disabled:cursor-not-allowed disabled:opacity-50 ' +
+  'enabled:hover:bg-blue-100/50 dark:enabled:hover:bg-white/[0.07]'
+const MENU_ROW_ON = 'model-row--on bg-blue-100/[0.35] dark:bg-white/5'
+const ROW_NAME = 'flex items-baseline gap-[0.4rem] text-[0.8125rem] font-medium leading-5 text-ink dark:text-white/[0.92]'
+const ROW_TIER = 'text-[0.6875rem] font-medium text-ink/55 dark:text-white/45'
+const ROW_BLURB = 'block text-[0.6875rem] leading-4 text-ink/70 dark:text-white/55'
+const TUNE_NOTE = 'tune-note text-[0.625rem] leading-[0.875rem]'
+
+/**
+ * One reasoning-effort bar's fill. Bars rise with the rung and fill up to the
+ * chosen one in the send button's navy (cream in dark); the rest are
+ * hairline outlines. A hovered rung above the chosen one previews at half
+ * strength.
+ */
+function effortFillClass(i: number): string {
+  const base =
+    'block h-[calc(0.5rem+var(--rung)*0.375rem)] w-full rounded-[0.1875rem] motion-reduce:[transition:none] ' +
+    '[transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out)] ' +
+    'dark:[box-shadow:inset_0_0_0_1px_rgba(243,237,226,0.3)]'
+  const preview = effortPreview.value
+  if (preview !== null && i <= preview && i > effortIndex.value) {
+    return `${base} bg-ink/35 [box-shadow:none] dark:bg-[rgba(243,237,226,0.4)]`
+  }
+  if (i <= (preview ?? effortIndex.value)) {
+    return `${base} bg-ink [box-shadow:none] dark:bg-[#f3ede2]`
+  }
+  return `${base} [box-shadow:inset_0_0_0_1px_rgba(19,26,44,0.25)]`
+}
+
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 
@@ -941,15 +1067,51 @@ const sendGlyphClass = computed(() => {
  *  send (still the record button, since a hold adds to them); navy ink when
  *  a click stops a run, or sends where the browser cannot record; a ghost
  *  otherwise — still pressable, because a hold records into an empty box. */
-const sendClass = computed(() => {
-  if (isRecording.value) return 'btn-send--recording'
-  if (isReadyToSend.value) return 'btn-send--ready'
-  if (instance.value && (hasPromptText.value || instance.value.isProcessing)) {
-    return 'btn-send--active text-paper dark:text-ink'
-  }
-  return 'btn-send--idle'
-})
+/* The send button's states. Send, stop and the mic are the same button in
+   different states, so the swap between them is a colour and shadow change on
+   one shape rather than controls trading places. Each state carries its whole
+   transition and its focus ring, since a hovered ready or recording button
+   keeps its own shadow over the ring. */
+const SEND_TRANSITION =
+  '![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),border-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]'
 
+/** Nothing to send yet: a quiet shape in the control chips' ghost register.
+ *  Still pressable, because a hold records into an empty box. */
+const SEND_IDLE = `btn-send--idle ${SEND_TRANSITION} border-blue-200/70 bg-blue-100/60 text-ink/45 shadow-iw-1 focus-visible:shadow-iw-focus
+  enabled:hover:bg-blue-100/90 enabled:hover:text-ink/70 disabled:opacity-60
+  dark:border-white/[0.12] dark:bg-white/5 dark:text-[rgba(219,234,254,0.5)] dark:enabled:hover:bg-white/[0.09] dark:enabled:hover:text-white/85`
+
+/** A click stops the run (or sends, where the browser cannot record): navy
+ *  ink, the site's primary button. */
+const SEND_ACTIVE = `btn-send--active ${SEND_TRANSITION} border-transparent bg-blue-950 text-paper
+  [box-shadow:var(--iw-shadow-2),inset_0_1px_0_rgba(255,255,255,0.12)] focus-visible:shadow-iw-focus
+  hover:bg-blue-900 hover:[box-shadow:var(--iw-shadow-3),inset_0_1px_0_rgba(255,255,255,0.12)]
+  hover:focus-visible:[box-shadow:var(--iw-shadow-3),inset_0_1px_0_rgba(255,255,255,0.12)]
+  dark:bg-[#f3ede2] dark:text-ink dark:hover:bg-white`
+
+/** Live: red, with a ring whose width is the voice level (set inline as
+ *  --dictate-ring). It sits still on silence and swells as you speak. */
+const SEND_RECORDING = `btn-send--recording border-transparent bg-red-600 text-white
+  ![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_80ms_linear]
+  [box-shadow:0_0_0_var(--dictate-ring,2px)_rgba(220,38,38,0.35)] focus-visible:shadow-iw-focus
+  enabled:hover:focus-visible:[box-shadow:0_0_0_var(--dictate-ring,2px)_rgba(220,38,38,0.35)] dark:bg-red-500`
+
+/** Words to send: the record button, red, wearing a send arrow. Calmer than
+ *  live recording — no ring — so the two never read as the same state. */
+const SEND_READY = `btn-send--ready ${SEND_TRANSITION} border-transparent bg-red-600 text-white
+  [box-shadow:var(--iw-shadow-2),inset_0_1px_0_rgba(255,255,255,0.18)] focus-visible:shadow-iw-focus
+  enabled:hover:bg-red-700 enabled:hover:[box-shadow:var(--iw-shadow-3),inset_0_1px_0_rgba(255,255,255,0.18)]
+  enabled:hover:focus-visible:[box-shadow:var(--iw-shadow-3),inset_0_1px_0_rgba(255,255,255,0.18)]
+  dark:bg-red-500 dark:enabled:hover:bg-red-400`
+
+const sendClass = computed(() => {
+  if (isRecording.value) return SEND_RECORDING
+  if (isReadyToSend.value) return SEND_READY
+  if (instance.value && (hasPromptText.value || instance.value.isProcessing)) {
+    return SEND_ACTIVE
+  }
+  return SEND_IDLE
+})
 // --- Tap versus hold on the send button ---
 //
 // A press that lasts HOLD_TO_TALK_MS becomes a hold: the mic opens, and
@@ -1236,750 +1398,3 @@ function handleEffortSelect(effort: ReasoningEffort) {
   if (instance.value) store.setInstanceEffort(instance.value.id, effort)
 }
 </script>
-
-<style scoped>
-/* ── Popovers ───────────────────────────────────────────────────────────── */
-
-/* Model, reasoning and usage share one surface: a translucent material lifted
-   off the composer, so the transcript behind it stays present as colour. */
-.popover {
-  border-radius: var(--iw-r-lg);
-  border: 1px solid var(--iw-material-border);
-  background: var(--iw-material-bg);
-  -webkit-backdrop-filter: var(--iw-material-filter);
-  backdrop-filter: var(--iw-material-filter);
-  box-shadow: var(--iw-shadow-3);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .popover {
-    background: #ffffff;
-  }
-
-  .dark .popover {
-    background: #0f0f0f;
-  }
-}
-
-.popover__head {
-  border-bottom: 1px solid var(--iw-hairline);
-}
-
-/* A second head partway down a panel rules itself off from the section
-   above as well as the one below. */
-.popover__head--mid {
-  border-top: 1px solid var(--iw-hairline);
-}
-
-/* Grows from its bottom edge — the edge nearest the chip that opened it — so
-   the panel reads as unfolding out of the control rather than arriving from
-   somewhere off-screen. Closing is faster than opening: dismissals should
-   feel immediate, arrivals deliberate. */
-.popover-enter-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-spring);
-  transform-origin: bottom center;
-}
-
-.popover-leave-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-  transform-origin: bottom center;
-}
-
-.popover-enter-from {
-  opacity: 0;
-  transform: translateY(8px) scale(0.96);
-}
-
-.popover-leave-to {
-  opacity: 0;
-  transform: translateY(4px) scale(0.98);
-}
-
-/* ── Composer ───────────────────────────────────────────────────────────── */
-
-/* Input shell wraps the textarea + controls toolbar as one field. Focus adds
-   a soft halo outside the existing edge rather than thickening the border,
-   so the field never changes size as you click into it. */
-.chat-input-shell {
-  transition:
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.chat-input-shell:focus-within {
-  border-color: rgba(19, 26, 44, 0.4);
-  box-shadow: 0 0 0 3px rgba(var(--iw-accent), 0.13);
-}
-
-.dark .chat-input-shell:focus-within {
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* ── Queued prompt ──────────────────────────────────────────────────────── */
-
-/* Held above the composer while the agent works. It opens and closes its own
-   space (grid rows) so the composer glides down and back rather than jumping
-   when a message is queued or fires. */
-.queued-enter-active,
-.queued-leave-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-out),
-    margin-bottom var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.queued-enter-from,
-.queued-leave-to {
-  opacity: 0;
-  transform: translateY(8px) scale(0.98);
-  margin-bottom: -2.25rem;
-}
-
-.queued-cancel {
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.queued-cancel:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-/* Control chip: the compact model / reasoning / usage buttons. Ghost until
-   hovered or open, so the input shell stays the focal point. */
-.control-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  max-width: 100%;
-  padding: 0.3rem 0.55rem;
-  border-radius: var(--iw-r-sm);
-  border: 1px solid transparent;
-  background-color: transparent;
-  color: rgba(19, 26, 44, 0.75);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-  outline: none;
-}
-
-.control-chip:hover:not(:disabled) {
-  background-color: rgba(219, 234, 254, 0.5);
-  color: rgb(19, 26, 44);
-}
-
-.control-chip--active {
-  background-color: rgba(219, 234, 254, 0.7);
-  color: rgb(19, 26, 44);
-}
-
-.control-chip:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.control-chip:focus-visible {
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .control-chip {
-  color: rgba(219, 234, 254, 0.7);
-}
-
-.dark .control-chip:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.dark .control-chip--active {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-
-.control-chip-icon {
-  font-size: 0.6875rem;
-  opacity: 0.75;
-  flex-shrink: 0;
-}
-
-.control-chip-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.control-chip-caret {
-  font-size: 0.5rem;
-  opacity: 0.6;
-  flex-shrink: 0;
-  transition: transform var(--iw-dur-3) var(--iw-ease-inout);
-}
-
-/* Model menu rows: name, tier tag and what the tier is for, with a check on
-   the model in use. Ghost rows that tint on hover, like the chip. */
-.model-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.5rem 0.625rem;
-  border: 0;
-  border-radius: var(--iw-r-sm);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  outline: none;
-  transition: background-color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.model-row:hover:not(:disabled) {
-  background-color: rgba(219, 234, 254, 0.5);
-}
-
-.model-row--on {
-  background-color: rgba(219, 234, 254, 0.35);
-}
-
-.model-row:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.model-row:focus-visible {
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .model-row:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.07);
-}
-
-.dark .model-row--on {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.model-row__name {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.25rem;
-  color: rgb(19, 26, 44);
-}
-
-.dark .model-row__name {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.model-row__tier {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: rgba(19, 26, 44, 0.55);
-}
-
-.dark .model-row__tier {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.model-row__blurb {
-  display: block;
-  font-size: 0.6875rem;
-  line-height: 1rem;
-  color: rgba(19, 26, 44, 0.7);
-}
-
-.dark .model-row__blurb {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.model-row__check {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  color: rgb(19, 26, 44);
-}
-
-.dark .model-row__check {
-  color: #f3ede2;
-}
-
-/* Reasoning effort meter: bars that rise with the rung, filled up to the
-   chosen one in the send button's navy (cream in dark); the rest are hairline
-   outlines. A hovered rung above the chosen one previews at half strength.
-   Each bar's hit target is the full column, not just the ink. */
-.effort-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.1875rem;
-  flex-shrink: 0;
-}
-
-.effort-bar {
-  display: flex;
-  align-items: flex-end;
-  width: 1rem;
-  height: 1.75rem;
-  padding: 0 0.125rem;
-  border: 0;
-  border-radius: 0.25rem;
-  background: transparent;
-  cursor: pointer;
-  outline: none;
-}
-
-.effort-bar:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.effort-bar:focus-visible {
-  box-shadow: var(--iw-focus-ring);
-}
-
-.effort-bar__fill {
-  display: block;
-  width: 100%;
-  height: calc(0.5rem + var(--rung) * 0.375rem);
-  border-radius: 0.1875rem;
-  box-shadow: inset 0 0 0 1px rgba(19, 26, 44, 0.25);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.effort-bar--on .effort-bar__fill {
-  background-color: rgb(19, 26, 44);
-  box-shadow: none;
-}
-
-.effort-bar--preview .effort-bar__fill {
-  background-color: rgba(19, 26, 44, 0.35);
-}
-
-.dark .effort-bar__fill {
-  box-shadow: inset 0 0 0 1px rgba(243, 237, 226, 0.3);
-}
-
-.dark .effort-bar--on .effort-bar__fill {
-  background-color: #f3ede2;
-}
-
-.dark .effort-bar--preview .effort-bar__fill {
-  background-color: rgba(243, 237, 226, 0.4);
-}
-
-.effort-readout__name {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.25rem;
-  color: rgb(19, 26, 44);
-}
-
-.dark .effort-readout__name {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.effort-readout__desc {
-  font-size: 0.6875rem;
-  line-height: 1rem;
-  color: rgba(19, 26, 44, 0.7);
-}
-
-.dark .effort-readout__desc {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* What more reasoning costs. The opacities here clear 4.5:1 for 10px text
-   over the glass. */
-.tune-note {
-  font-size: 0.625rem;
-  line-height: 0.875rem;
-  color: rgba(19, 26, 44, 0.55);
-}
-
-.dark .tune-note {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* With a faster tier picked, the price note takes the "needs you" amber so
-   the higher cost can't be missed. */
-.tune-note--cost,
-.dark .tune-note--cost {
-  color: var(--sl-wait);
-}
-
-/* Model family toggle: a small two-way segmented control in the menu's
-   head. The chosen family is lifted onto a white chip (glass in dark). */
-.family-toggle {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 9999px;
-  background: rgba(19, 26, 44, 0.06);
-}
-
-.dark .family-toggle {
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.family-toggle__opt {
-  padding: 0.125rem 0.625rem;
-  border: 0;
-  border-radius: 9999px;
-  background: transparent;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.125rem;
-  color: rgba(19, 26, 44, 0.6);
-  cursor: pointer;
-  outline: none;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dark .family-toggle__opt {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.family-toggle__opt:hover {
-  color: rgb(19, 26, 44);
-}
-
-.dark .family-toggle__opt:hover {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.family-toggle__opt--on {
-  background: #fff;
-  color: rgb(19, 26, 44);
-  box-shadow: 0 1px 2px rgba(19, 26, 44, 0.12);
-}
-
-.dark .family-toggle__opt--on {
-  background: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.95);
-  box-shadow: none;
-}
-
-.family-toggle__opt:focus-visible {
-  box-shadow: var(--iw-focus-ring);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .model-row,
-  .family-toggle__opt,
-  .effort-bar__fill {
-    transition: none;
-  }
-}
-
-/* Usage-window meter: quiet navy ink bar (cream in dark mode, matching the
-   primary button system) */
-.usage-meter {
-  position: relative;
-  height: 0.25rem;
-  border-radius: 9999px;
-  background: rgba(19, 26, 44, 0.1);
-  overflow: hidden;
-}
-
-.dark .usage-meter {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.usage-meter-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: 9999px;
-  background: theme('colors.blue.950');
-  transition: width var(--iw-dur-4) var(--iw-ease-out);
-}
-
-.dark .usage-meter-fill {
-  background: #f3ede2;
-}
-
-/* Textarea sits inside the input shell, which owns the border/focus ring */
-textarea,
-textarea:hover,
-textarea:focus,
-textarea:focus-visible,
-textarea:active {
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-  -webkit-box-shadow: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-  border: none !important;
-  transition: none !important;
-}
-
-/* Navy ink send button - matching the site's primary "Start Building" button.
-   Send, stop, and the mic are the same button in different states, so the
-   swap between them is a colour and shadow change on one shape rather than
-   controls trading places. Hold-to-talk on touch means no text selection,
-   callout, or scroll may start from a long press on it. */
-.btn-send {
-  border: 1px solid transparent;
-  transform: translateZ(0);
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  touch-action: none;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.btn-send:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.btn-send:disabled {
-  cursor: not-allowed;
-}
-
-/* Nothing to send yet: a quiet shape in the control chips' ghost register.
-   Still pressable, because a hold records into an empty box. */
-.btn-send--idle {
-  background-color: rgba(219, 234, 254, 0.6);
-  border-color: rgba(191, 219, 254, 0.7);
-  color: rgba(19, 26, 44, 0.45);
-  box-shadow: var(--iw-shadow-1);
-}
-
-.btn-send--idle:hover:not(:disabled) {
-  background-color: rgba(219, 234, 254, 0.9);
-  color: rgba(19, 26, 44, 0.7);
-}
-
-.btn-send--idle:disabled {
-  opacity: 0.6;
-}
-
-.btn-send--active {
-  background: theme('colors.blue.950');
-  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.btn-send--active:hover {
-  background: theme('colors.blue.900');
-  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-/* Live: red, with a ring whose width is the voice level (set inline as
-   --dictate-ring). It sits still on silence and swells as you speak, which
-   is the whole point — a mic that hears nothing looks like one. */
-.btn-send--recording,
-.btn-send--recording:hover:not(:disabled) {
-  background-color: #dc2626;
-  color: #ffffff;
-  box-shadow: 0 0 0 var(--dictate-ring, 2px) rgba(220, 38, 38, 0.35);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow 80ms linear;
-}
-
-/* Words to send: the record button, red, wearing a send arrow. Calmer than
-   live recording — no ring — so the two never read as the same state. */
-.btn-send--ready {
-  background-color: #dc2626;
-  color: #ffffff;
-  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-.btn-send--ready:hover:not(:disabled) {
-  background-color: #b91c1c;
-  box-shadow: var(--iw-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-/* The glyph swap: the old one fades and shrinks out on the spot while the
-   new one turns up into place. The leaving glyph is taken out of flow so the
-   two overlap in the middle of the button instead of sitting side by side. */
-.send-glyph-enter-active,
-.send-glyph-leave-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-spring);
-}
-
-.send-glyph-leave-active {
-  position: absolute;
-}
-
-.send-glyph-enter-from {
-  opacity: 0;
-  transform: translateY(6px) scale(0.6);
-}
-
-.send-glyph-leave-to {
-  opacity: 0;
-  transform: scale(0.6);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .send-glyph-enter-active,
-  .send-glyph-leave-active {
-    transition: opacity var(--iw-dur-1) linear;
-  }
-
-  .send-glyph-enter-from,
-  .send-glyph-leave-to {
-    transform: none;
-  }
-}
-
-.dark .btn-send--ready {
-  background-color: #ef4444;
-  color: #ffffff;
-}
-
-.dark .btn-send--ready:hover:not(:disabled) {
-  background-color: #f87171;
-}
-
-.dark .btn-send--idle {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(219, 234, 254, 0.5);
-}
-
-.dark .btn-send--idle:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.dark .btn-send--active {
-  background: #f3ede2;
-}
-
-.dark .btn-send--active:hover {
-  background: #ffffff;
-}
-
-.dark .btn-send--recording,
-.dark .btn-send--recording:hover:not(:disabled) {
-  background-color: #ef4444;
-  color: #ffffff;
-}
-
-/* One microphone per row; the chosen one carries a check. */
-.mic-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.45rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-align: left;
-  color: rgba(19, 26, 44, 0.75);
-  background-color: transparent;
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out);
-  outline: none;
-}
-
-.mic-option:hover,
-.mic-option:focus-visible {
-  background-color: rgba(219, 234, 254, 0.5);
-  color: rgb(19, 26, 44);
-}
-
-.mic-option--active {
-  color: rgb(19, 26, 44);
-}
-
-.mic-option-mark {
-  flex-shrink: 0;
-  width: 0.75rem;
-  font-size: 0.625rem;
-  opacity: 0;
-}
-
-.mic-option-mark--on {
-  opacity: 0.85;
-}
-
-.mic-option-tag {
-  flex-shrink: 0;
-  margin-left: auto;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  font-size: 0.5625rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(19, 26, 44, 0.6);
-  background-color: rgba(219, 234, 254, 0.7);
-}
-
-.dark .mic-option {
-  color: rgba(219, 234, 254, 0.7);
-}
-
-.dark .mic-option:hover,
-.dark .mic-option:focus-visible,
-.dark .mic-option--active {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.dark .mic-option:hover,
-.dark .mic-option:focus-visible {
-  background-color: rgba(255, 255, 255, 0.07);
-}
-
-.dark .mic-option-tag {
-  color: rgba(255, 255, 255, 0.7);
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* "Allow microphone access" — the same navy ink as the composer's send button */
-.mic-allow {
-  background: theme('colors.blue.950');
-  box-shadow: var(--iw-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.mic-allow:hover {
-  background: theme('colors.blue.900');
-}
-
-.mic-allow:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .mic-allow {
-  background: #f3ede2;
-}
-
-.dark .mic-allow:hover {
-  background: #ffffff;
-}
-</style>

@@ -21,48 +21,56 @@
     <button
       v-if="!streaming"
       type="button"
-      class="feed-toggle inline-flex items-center gap-1.5 rounded text-ink/50 dark:text-white/45 hover:text-ink/80 dark:hover:text-white/75"
+      class="inline-flex items-center gap-1.5 rounded text-ink/50 dark:text-white/45 hover:text-ink/80 dark:hover:text-white/75
+        [transition:color_var(--iw-dur-2)_var(--iw-ease-out)] focus-visible:shadow-iw-focus focus-visible:![outline:none]"
       :aria-expanded="expanded"
       @click="expanded = !expanded"
     >
       <i
-        class="fas fa-chevron-right feed-chevron text-[8px]"
-        :class="{ 'is-open': expanded }"
+        class="fas fa-chevron-right text-[8px] [transition:transform_var(--iw-dur-3)_var(--iw-ease-inout)]"
+        :class="{ 'rotate-90': expanded }"
       ></i>
       <span>{{ foldLabel }}</span>
     </button>
 
     <!-- Streaming: the list is simply there, growing. Settled: it lives in a
          fold that opens to whatever height it needs. -->
+    <!-- A step lands from below as the agent reports it, so the ticker reads
+         as work accumulating rather than as text being rewritten. -->
     <TransitionGroup
       v-if="streaming"
-      name="feed-step"
       tag="ul"
-      class="feed-list"
+      class="flex flex-col gap-1"
       aria-label="Agent activity"
+      enter-active-class="[transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-3)_var(--iw-ease-out)]"
+      enter-from-class="translate-y-1 opacity-0"
+      move-class="[transition:transform_var(--iw-dur-3)_var(--iw-ease-out)]"
     >
       <li
         v-for="(step, index) in steps"
         :key="`${index}-${step.label}`"
-        class="feed-step flex items-start gap-2 min-w-0 leading-relaxed"
+        class="flex items-start gap-2 min-w-0 leading-relaxed"
       >
         <span class="flex w-3.5 shrink-0 items-center justify-center mt-[3px]">
-          <span v-if="index === steps.length - 1" class="iw-live feed-live"></span>
-          <i v-else class="fas fa-check text-[9px] step-done"></i>
+          <!-- The step in progress wears the workspace's live dot
+               (styles/workspace.css), sized to the check marks beside it. -->
+          <span v-if="index === steps.length - 1" class="iw-live !h-1.5 !w-1.5"></span>
+          <!-- Steps done take the rail's green, like the plan's ticks. -->
+          <i v-else class="fas fa-check text-[9px] text-sl-ok"></i>
         </span>
         <span class="min-w-0 text-ink/70 dark:text-white/65">{{ step.label }}</span>
       </li>
     </TransitionGroup>
 
     <FoldTransition v-else>
-      <ul v-if="expanded" class="feed-list mt-1.5" aria-label="Agent activity">
+      <ul v-if="expanded" class="mt-1.5 flex flex-col gap-1" aria-label="Agent activity">
         <li
           v-for="(step, index) in steps"
           :key="index"
           class="flex items-start gap-2 min-w-0 leading-relaxed"
         >
           <span class="flex w-3.5 shrink-0 items-center justify-center mt-[3px]">
-            <i class="fas fa-check text-[9px] step-done"></i>
+            <i class="fas fa-check text-[9px] text-sl-ok"></i>
           </span>
           <span class="min-w-0 text-ink/70 dark:text-white/65">{{ step.label }}</span>
         </li>
@@ -96,57 +104,3 @@ const foldLabel = computed(() => {
   return `Finished — see the ${count} ${count === 1 ? 'step' : 'steps'} it took`
 })
 </script>
-
-<style scoped>
-/* The step in progress wears the workspace's live dot (styles/workspace.css),
-   sized to the check marks beside it. */
-.feed-live {
-  width: 0.375rem;
-  height: 0.375rem;
-}
-
-.feed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* Steps done take the rail's green, like the plan's ticks. */
-.step-done {
-  color: var(--sl-ok);
-}
-
-.feed-toggle {
-  transition: color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.feed-toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.feed-chevron {
-  transition: transform var(--iw-dur-3) var(--iw-ease-inout);
-}
-
-.feed-chevron.is-open {
-  transform: rotate(90deg);
-}
-
-/* A step lands from below as the agent reports it, so the ticker reads as
-   work accumulating rather than as text being rewritten. */
-.feed-step-enter-active {
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.feed-step-enter-from {
-  opacity: 0;
-  transform: translateY(4px);
-}
-
-.feed-step-move {
-  transition: transform var(--iw-dur-3) var(--iw-ease-out);
-}
-</style>

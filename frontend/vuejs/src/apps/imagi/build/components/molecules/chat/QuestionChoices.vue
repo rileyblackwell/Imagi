@@ -8,16 +8,37 @@
   choices are a shortcut, not the only way.
 -->
 <template>
-  <div class="question-choices">
+  <div class="mt-2 flex flex-col gap-2">
     <!-- eslint-disable-next-line vue/no-v-html -- sanitized to SVG shapes only -->
-    <div v-if="safeVisual" class="question-visual" role="img" aria-label="Sketch for this question" v-html="safeVisual"></div>
-    <div v-if="options.length" class="question-options" role="group" aria-label="Answers">
+    <div
+      v-if="safeVisual"
+      class="question-visual overflow-hidden rounded-iw-md border border-ink/[0.08] bg-white/70 p-2 text-ink/80
+        dark:border-white/10 dark:bg-white/[0.04] dark:text-white/[0.82]
+        [&_svg]:block [&_svg]:h-auto [&_svg]:max-h-56 [&_svg]:w-full"
+      role="img"
+      aria-label="Sketch for this question"
+      v-html="safeVisual"
+    ></div>
+    <!-- Stacked rows, one answer each — the rail's list of choices. Hovering
+         one warms it toward the amber of a question waiting; the one picked
+         turns the green of something settled, with a check. -->
+    <div v-if="options.length" class="flex flex-col gap-1.5" role="group" aria-label="Answers">
       <button
         v-for="option in options"
         :key="option"
         type="button"
-        class="question-option iw-press"
-        :class="{ 'question-option--picked': option === picked }"
+        class="question-option iw-press flex w-full items-center gap-2 rounded-[0.625rem] border
+          bg-sl-surface px-3 py-2 text-left text-[0.8125rem] text-sl-text
+          ![transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),border-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out)]
+          enabled:hover:border-[color:color-mix(in_srgb,var(--sl-wait)_55%,transparent)]
+          enabled:hover:bg-[color:color-mix(in_srgb,var(--sl-wait)_8%,var(--sl-surface))]
+          focus-visible:shadow-iw-focus focus-visible:![outline:none] disabled:cursor-default
+          data-[picked]:before:font-black data-[picked]:before:text-[0.625rem] data-[picked]:before:text-sl-ok
+          data-[picked]:before:content-['\f00c'] data-[picked]:before:[font-family:'Font_Awesome_6_Free']"
+        :class="option === picked
+          ? 'question-option--picked border-[color:color-mix(in_srgb,var(--sl-ok)_55%,transparent)] bg-[color:color-mix(in_srgb,var(--sl-ok)_12%,var(--sl-surface))] font-semibold'
+          : 'border-sl-line-strong font-medium disabled:opacity-[0.45]'"
+        :data-picked="option === picked || undefined"
         :disabled="disabled"
         @click="emit('pick', option)"
       >
@@ -58,94 +79,3 @@ const safeVisual = computed(() => {
   })
 })
 </script>
-
-<style scoped>
-.question-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.question-visual {
-  border-radius: var(--iw-r-md, 0.75rem);
-  border: 1px solid rgba(19, 26, 44, 0.08);
-  background: rgba(255, 255, 255, 0.7);
-  padding: 0.5rem;
-  color: rgba(19, 26, 44, 0.8);
-  overflow: hidden;
-}
-
-.dark .question-visual {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.question-visual :deep(svg) {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 14rem;
-}
-
-/* Stacked rows, one answer each — the rail's list of choices. Hovering one
-   warms it toward the amber of a question waiting; the one picked turns the
-   green of something settled, with a check. */
-.question-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.question-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.625rem;
-  border: 1px solid var(--sl-line-strong, rgba(19, 26, 44, 0.15));
-  background: var(--sl-surface, #ffffff);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  text-align: left;
-  color: var(--sl-text);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.question-option:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--sl-wait) 55%, transparent);
-  background: color-mix(in srgb, var(--sl-wait) 8%, var(--sl-surface, #ffffff));
-}
-
-.question-option:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.question-option:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.question-option--picked,
-.question-option--picked:disabled {
-  opacity: 1;
-  font-weight: 600;
-  border-color: color-mix(in srgb, var(--sl-ok) 55%, transparent);
-  background: color-mix(in srgb, var(--sl-ok) 12%, var(--sl-surface, #ffffff));
-  color: var(--sl-text);
-}
-
-.question-option--picked::before {
-  content: '\f00c';
-  font-family: 'Font Awesome 6 Free';
-  font-weight: 900;
-  font-size: 0.625rem;
-  color: var(--sl-ok);
-}
-</style>

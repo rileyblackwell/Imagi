@@ -8,7 +8,7 @@
   weight rather than switching between two different-looking rows.
 -->
 <template>
-  <ul class="plan-list" aria-label="Agent plan">
+  <ul class="flex flex-col gap-1" aria-label="Agent plan">
     <li
       v-for="(step, index) in steps"
       :key="index"
@@ -17,11 +17,18 @@
       <span class="flex w-3.5 shrink-0 items-center justify-center mt-[3px]">
         <!-- Keyed on the status so each grade change plays its own pop
              instead of one icon silently becoming another. -->
-        <Transition name="plan-mark" mode="out-in">
+        <Transition
+          mode="out-in"
+          enter-active-class="[transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-spring)]"
+          enter-from-class="scale-[0.4] opacity-0"
+          leave-active-class="[transition:opacity_var(--iw-dur-1)_var(--iw-ease-out),transform_var(--iw-dur-1)_var(--iw-ease-out)]"
+          leave-to-class="scale-[0.6] opacity-0"
+        >
+          <!-- A finished step: the rail's green, a filled tick. -->
           <i
             v-if="step.status === 'completed'"
             key="done"
-            class="fas fa-check plan-done"
+            class="fas fa-check grid h-3.5 w-3.5 place-items-center rounded-[50%] bg-sl-ok text-[0.4375rem] text-[color:rgb(var(--app-canvas,255_255_255))]"
           ></i>
           <i
             v-else-if="step.status === 'in_progress'"
@@ -35,7 +42,13 @@
           ></span>
         </Transition>
       </span>
-      <span class="plan-step min-w-0 break-words" :class="stepTextClass(step)">{{ step.step }}</span>
+      <!-- The row the agent is on brightens, and finished rows recede — both
+           over the same interval, so the plan reads as one thing being
+           re-graded. -->
+      <span
+        class="min-w-0 break-words [transition:color_var(--iw-dur-3)_var(--iw-ease-out)]"
+        :class="stepTextClass(step)"
+      >{{ step.step }}</span>
     </li>
   </ul>
 </template>
@@ -53,51 +66,3 @@ function stepTextClass(step: AgentPlanStep): string {
   return 'text-ink/65 dark:text-white/60'
 }
 </script>
-
-<style scoped>
-.plan-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* The row the agent is on brightens, and finished rows recede — both over the
-   same interval, so the plan reads as one thing being re-graded. */
-.plan-step {
-  transition: color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-/* A finished step: the rail's green, a filled tick. */
-.plan-done {
-  display: grid;
-  place-items: center;
-  width: 0.875rem;
-  height: 0.875rem;
-  border-radius: 50%;
-  background: var(--sl-ok);
-  color: rgb(var(--app-canvas, 255 255 255));
-  font-size: 0.4375rem;
-}
-
-.plan-mark-enter-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-spring);
-}
-
-.plan-mark-leave-active {
-  transition:
-    opacity var(--iw-dur-1) var(--iw-ease-out),
-    transform var(--iw-dur-1) var(--iw-ease-out);
-}
-
-.plan-mark-enter-from {
-  opacity: 0;
-  transform: scale(0.4);
-}
-
-.plan-mark-leave-to {
-  opacity: 0;
-  transform: scale(0.6);
-}
-</style>
