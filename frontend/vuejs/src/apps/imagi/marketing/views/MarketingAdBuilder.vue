@@ -37,8 +37,8 @@
         </div>
 
         <!-- Campaign -->
-        <fieldset class="step">
-          <legend class="step__title">Campaign</legend>
+        <fieldset :class="step">
+          <legend :class="stepTitle">Campaign</legend>
           <div>
             <label :class="ui.label" for="ad-name">Campaign name</label>
             <input id="ad-name" v-model="form.name" type="text" required maxlength="255" placeholder="e.g. Fall espresso promo" :class="ui.input" />
@@ -77,8 +77,8 @@
         </fieldset>
 
         <!-- The ad -->
-        <fieldset class="step">
-          <legend class="step__title">The ad</legend>
+        <fieldset :class="step">
+          <legend :class="stepTitle">The ad</legend>
           <div>
             <span :class="ui.label">Headlines</span>
             <div class="space-y-2.5">
@@ -92,7 +92,10 @@
                   class="pr-14"
                   :class="ui.input"
                 />
-                <span class="counter" :class="{ 'counter--full': headline.length >= HEADLINE_MAX }">
+                <span
+                  class="pointer-events-none absolute right-[0.875rem] top-1/2 -translate-y-1/2 text-[0.6875rem] tabular-nums"
+                  :class="headline.length >= HEADLINE_MAX ? 'text-sl-coral' : 'text-sl-muted'"
+                >
                   {{ headline.length }}/{{ HEADLINE_MAX }}
                 </span>
               </div>
@@ -121,7 +124,10 @@
                   class="pr-14 resize-none"
                   :class="ui.input"
                 ></textarea>
-                <span class="counter counter--area" :class="{ 'counter--full': description.length >= DESCRIPTION_MAX }">
+                <span
+                  class="pointer-events-none absolute bottom-[0.625rem] right-[0.875rem] text-[0.6875rem] tabular-nums"
+                  :class="description.length >= DESCRIPTION_MAX ? 'text-sl-coral' : 'text-sl-muted'"
+                >
                   {{ description.length }}/{{ DESCRIPTION_MAX }}
                 </span>
               </div>
@@ -130,8 +136,8 @@
         </fieldset>
 
         <!-- Who sees it -->
-        <fieldset class="step">
-          <legend class="step__title">Who sees it</legend>
+        <fieldset :class="step">
+          <legend :class="stepTitle">Who sees it</legend>
           <div>
             <label :class="ui.label" for="ad-keywords">Searches to show up for</label>
             <div class="flex flex-wrap items-center gap-2 px-2.5 py-2 min-h-[2.75rem]" :class="ui.input">
@@ -165,8 +171,8 @@
         </fieldset>
 
         <!-- Budget -->
-        <fieldset class="step">
-          <legend class="step__title">Budget</legend>
+        <fieldset :class="step">
+          <legend :class="stepTitle">Budget</legend>
           <div class="sm:max-w-xs">
             <label :class="ui.label" for="ad-budget">Daily budget (USD)</label>
             <div class="relative">
@@ -215,7 +221,12 @@
           </div>
           <ul class="mt-4 space-y-2 text-sm">
             <li v-for="check in checklist" :key="check.label" class="flex items-center gap-2.5" :class="check.done ? 'text-ink/80 dark:text-bone/80' : 'text-ink/50 dark:text-bone/50'">
-              <span class="tick" :class="{ 'tick--done': check.done }" aria-hidden="true"></span>
+              <!-- The design system's diamond tick: hollow until the step is done, then lit -->
+              <span
+                class="h-[7px] w-[7px] shrink-0 [transform:rotate(45deg)] border"
+                :class="check.done ? 'border-transparent [background:var(--sl-grad)]' : 'border-sl-line-strong'"
+                aria-hidden="true"
+              ></span>
               {{ check.label }}
             </li>
           </ul>
@@ -245,6 +256,11 @@ import { formatCurrency, ui } from '../utils/ui'
 
 const HEADLINE_MAX = 30
 const DESCRIPTION_MAX = 90
+
+// Each section of the plan: a hairline-topped grid. Its legend is floated so
+// it lays out as an ordinary grid row, not on the fieldset's border.
+const step = 'mt-7 grid gap-5 border-t border-t-sl-line pt-6'
+const stepTitle = 'float-left w-full p-0 text-[1rem] font-semibold text-sl-text'
 
 const route = useRoute()
 const router = useRouter()
@@ -380,58 +396,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.step {
-  margin-top: 1.75rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--sl-line);
-  display: grid;
-  gap: 1.25rem;
-}
-
-.step__title {
-  /* Floated so it lays out as an ordinary grid row, not on the border. */
-  float: left;
-  width: 100%;
-  padding: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--sl-text);
-}
-
-.counter {
-  position: absolute;
-  right: 0.875rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--sl-muted);
-  pointer-events: none;
-}
-
-.counter--area {
-  top: auto;
-  bottom: 0.625rem;
-  transform: none;
-}
-
-.counter--full {
-  color: var(--sl-coral);
-}
-
-/* The design system's diamond tick: hollow until the step is done, then lit. */
-.tick {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-  transform: rotate(45deg);
-  border: 1px solid var(--sl-line-strong);
-}
-
-.tick--done {
-  border-color: transparent;
-  background: var(--sl-grad);
-}
-</style>

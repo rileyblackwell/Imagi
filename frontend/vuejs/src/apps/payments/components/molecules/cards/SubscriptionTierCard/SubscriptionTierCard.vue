@@ -1,20 +1,39 @@
 <template>
-  <div class="tier" :class="{ 'tier--featured': isPopular }">
+  <!-- A plan card on the Spotlight stage. The plans are quiet cards; the
+       recommended one stands in the light, edged with the glowing gradient of
+       the home page's prompt bar. -->
+  <div
+    class="tier relative flex min-w-0 flex-col rounded-[22px] border pt-[30px] px-7 pb-7
+      [transition:border-color_0.25s_ease,transform_0.25s_ease] hover:-translate-y-0.5
+      max-[560px]:pt-6 max-[560px]:px-[22px] max-[560px]:pb-[22px]
+      motion-reduce:[transition:none] motion-reduce:hover:transform-none"
+    :class="isPopular
+      ? 'tier--featured border-transparent [background:var(--sl-prompt-bg)_padding-box,var(--sl-prompt-edge)_border-box] shadow-sl-prompt'
+      : 'border-sl-line hover:border-sl-line-strong bg-sl-card-bg shadow-sl-card'"
+  >
     <!-- Name, and the one mark that distinguishes the recommended plan -->
-    <div class="tier__head">
-      <h3 class="tier__name">{{ name }}</h3>
-      <span v-if="isPopular" class="tier__flag">{{ flag ?? 'Most popular' }}</span>
+    <div class="flex min-h-7 items-center justify-between gap-4">
+      <h3 class="tier__name m-0 font-sl-display text-[22px] font-bold tracking-[-0.02em] text-sl-text">{{ name }}</h3>
+      <span
+        v-if="isPopular"
+        class="whitespace-nowrap rounded-[999px] border border-sl-warm-line bg-sl-grad bg-clip-text px-2.5 py-1
+          text-[10.5px] font-[650] uppercase tracking-[0.14em] text-transparent"
+      >{{ flag ?? 'Most popular' }}</span>
     </div>
 
     <!-- Price -->
-    <p class="tier__price">
-      ${{ active.price }}<span class="tier__period">/month</span>
+    <p
+      class="mt-[18px] font-sl-display text-[clamp(44px,4.6vw,56px)] font-extrabold leading-none tracking-[-0.04em]
+        tabular-nums text-sl-text [font-variation-settings:'opsz'_96]"
+      :class="{ '[filter:drop-shadow(0_0_26px_var(--sl-text-glow))]': isPopular }"
+    >
+      ${{ active.price }}<span class="ml-[0.4rem] font-sl-body text-[15px] font-medium tracking-normal text-sl-faint">/month</span>
     </p>
 
     <!-- Usage option selector (Max-style tiers pick between 5× and 10×) -->
     <div
       v-if="options && options.length> 1"
-      class="tier__options"
+      class="mt-[22px] flex gap-1 rounded-[999px] border border-sl-line bg-sl-chip-bg p-1"
       role="tablist"
       aria-label="Usage amount"
     >
@@ -24,8 +43,12 @@
         type="button"
         role="tab"
         :aria-selected="selected === i"
-        class="tier__option"
-        :class="{ 'is-selected': selected === i }"
+        class="tier__option flex-1 rounded-[999px] px-2 py-[0.45rem] text-[13px] font-semibold
+          [transition:color_0.18s_ease,background_0.18s_ease,box-shadow_0.18s_ease]
+          focus-visible:outline focus-visible:outline-2 focus-visible:outline-sl-focus focus-visible:!outline-offset-2"
+        :class="selected === i
+          ? 'is-selected bg-sl-surface text-sl-text shadow-[0_0_0_1px_var(--sl-line-strong),0_4px_14px_-6px_var(--sl-glow)]'
+          : 'text-sl-muted hover:text-sl-text'"
         @click="selected = i"
       >
         {{ opt.label }}
@@ -33,14 +56,17 @@
     </div>
 
     <!-- How the allowance is actually delivered -->
-    <dl class="tier__limits">
+    <dl class="tier__limits mt-[22px] rounded-[14px] border border-sl-line bg-sl-chip-bg px-4 py-3.5">
       <div>
-        <dt>Per week</dt>
-        <dd>{{ active.weeklyLimit }}</dd>
+        <dt class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sl-faint">Per week</dt>
+        <dd class="mt-1 text-[15.5px] font-semibold text-sl-text">{{ active.weeklyLimit }}</dd>
       </div>
     </dl>
 
-    <ul class="checklist tier__features">
+    <!-- `!mt-6` beats `.editorial .checklist`'s `margin-top: auto`: the CTA
+         below owns the auto margin, so the buttons line up across plans
+         regardless of how many features each one lists. -->
+    <ul class="checklist !mt-6 mb-7 text-sl-muted">
       <li v-for="feature in active.features" :key="feature">
         <span class="checklist__tick" aria-hidden="true"></span>
         <span>{{ feature }}</span>
@@ -48,7 +74,7 @@
     </ul>
 
     <button
-      class="tier__cta"
+      class="tier__cta mt-auto w-full justify-center"
       :class="isPopular ? 'btn-primary' : 'btn-outline'"
       :disabled="loading || isCurrent"
       @click="$emit('subscribe', active.lookupKey)"
@@ -127,181 +153,3 @@ const ctaLabel = computed(() => {
   return props.cta ?? 'Get started'
 })
 </script>
-
-<style scoped>
-/* A plan card on the Spotlight stage (shared/styles/spotlight.css). The plans
-   are quiet cards; the recommended one stands in the light, edged with the
-   glowing gradient of the home page's prompt bar. Every colour is a --sl-*
-   token, so both themes come from spotlight.css. */
-.tier {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding: 30px 28px 28px;
-  border: 1px solid var(--sl-line);
-  border-radius: 22px;
-  background: var(--sl-card-bg);
-  box-shadow: var(--sl-card-shadow);
-  transition: border-color 0.25s ease, transform 0.25s ease;
-}
-
-.tier:hover {
-  border-color: var(--sl-line-strong);
-  transform: translateY(-2px);
-}
-
-.tier--featured,
-.tier--featured:hover {
-  border-color: transparent;
-  background:
-    var(--sl-prompt-bg) padding-box,
-    var(--sl-prompt-edge) border-box;
-  box-shadow: var(--sl-prompt-shadow);
-}
-
-.tier__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 1.75rem;
-}
-
-.tier__name {
-  margin: 0;
-  font-family: var(--sl-font-display);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--sl-text);
-}
-
-.tier__flag {
-  padding: 4px 10px;
-  border: 1px solid var(--sl-warm-line);
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  background: var(--sl-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.tier__price {
-  margin: 18px 0 0;
-  font-family: var(--sl-font-display);
-  font-size: clamp(44px, 4.6vw, 56px);
-  font-weight: 800;
-  font-variation-settings: 'opsz' 96;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--sl-text);
-}
-
-.tier--featured .tier__price {
-  filter: drop-shadow(0 0 26px var(--sl-text-glow));
-}
-
-.tier__period {
-  margin-left: 0.4rem;
-  font-family: var(--sl-font-body);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--sl-faint);
-}
-
-.tier__options {
-  display: flex;
-  gap: 4px;
-  margin-top: 22px;
-  padding: 4px;
-  border: 1px solid var(--sl-line);
-  border-radius: 999px;
-  background: var(--sl-chip-bg);
-}
-
-.tier__option {
-  flex: 1;
-  padding: 0.45rem 0.5rem;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--sl-muted);
-  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.tier__option:hover {
-  color: var(--sl-text);
-}
-
-.tier__option.is-selected {
-  background: var(--sl-surface);
-  color: var(--sl-text);
-  box-shadow: 0 0 0 1px var(--sl-line-strong), 0 4px 14px -6px var(--sl-glow);
-}
-
-.tier__option:focus-visible {
-  outline: 2px solid var(--sl-focus);
-  outline-offset: 2px;
-}
-
-.tier__limits {
-  margin: 22px 0 0;
-  padding: 14px 16px;
-  border: 1px solid var(--sl-line);
-  border-radius: 14px;
-  background: var(--sl-chip-bg);
-}
-
-.tier__limits dt {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sl-faint);
-}
-
-.tier__limits dd {
-  margin: 0.25rem 0 0;
-  font-size: 15.5px;
-  font-weight: 600;
-  color: var(--sl-text);
-}
-
-/* Two-selector form so this beats `.editorial .checklist`'s `margin-top: auto`
-   — the CTA below owns the auto margin, so the buttons line up across plans
-   regardless of how many features each one lists. */
-.tier .tier__features {
-  margin-top: 24px;
-  margin-bottom: 28px;
-  color: var(--sl-muted);
-}
-
-.tier__cta {
-  width: 100%;
-  margin-top: auto;
-  justify-content: center;
-}
-
-@media (max-width: 560px) {
-  .tier {
-    padding: 24px 22px 22px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tier {
-    transition: none;
-  }
-  .tier:hover {
-    transform: none;
-  }
-}
-</style>

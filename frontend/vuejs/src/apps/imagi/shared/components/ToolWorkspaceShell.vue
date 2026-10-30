@@ -14,25 +14,40 @@
   and still uses the denser app vocabulary from shared/styles/ui.ts.
 -->
 <template>
-  <div class="spotlight tool-root">
+  <div class="spotlight">
   <DefaultLayout>
-    <div class="editorial tool-page relative min-h-screen">
+    <div class="editorial relative min-h-screen">
       <main class="relative">
         <section class="relative isolate overflow-hidden pt-24 sm:pt-28 pb-20 md:pb-24">
-          <div class="sl-spot tool-spot" aria-hidden="true"></div>
-          <div class="tool-shell">
+          <!-- A low pool of light over the header only — the tool's own content
+               below is dense and wants an even floor. (`!` beats .sl-spot's inset.) -->
+          <div class="sl-spot h-[560px] !bottom-auto opacity-80" aria-hidden="true"></div>
+          <!-- A touch wider than the editorial 68rem measure: these pages carry
+               tables and four-across stat rows, not prose. -->
+          <div class="mx-auto max-w-6xl px-6 sm:px-8">
 
-            <!-- Back link -->
-            <router-link :to="{ name: 'project-hub', params: { projectName } }" class="back">
-              <svg class="back__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- Back link: the one step back up the hierarchy — the hub's, verbatim -->
+            <router-link
+              :to="{ name: 'project-hub', params: { projectName } }"
+              class="group/back inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.16em]
+                text-ed-ink-40 transition-[color] duration-[180ms] ease-[ease] hover:text-ed-ink
+                focus-visible:!outline-ed-accent"
+            >
+              <svg
+                class="h-[0.9rem] w-[0.9rem] transition-transform duration-[180ms] ease-[ease]
+                  group-hover/back:translate-x-[-3px] motion-reduce:group-hover/back:transform-none"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M19 12H5M11 18l-6-6 6-6" />
               </svg>
               <span>Project workspace</span>
             </router-link>
 
             <!-- Loading -->
-            <p v-if="isLoading" class="state">
-              <span class="spinner" aria-hidden="true"></span>
+            <p v-if="isLoading" class="mt-20 flex items-center gap-[0.7rem] text-[0.9375rem] text-ed-ink-55">
+              <span
+                class="spinner h-4 w-4 flex-none rounded-[999px] border-[1.5px] border-ed-accent border-t-transparent"
+                aria-hidden="true"
+              ></span>
               <span>{{ loadingLabel }}</span>
             </p>
 
@@ -71,9 +86,14 @@
 
               <!-- Connect banner: an aside, not an alarm — a hairline panel
                    with the accent diamond, like the editorial callout. -->
-              <div v-if="showBanner" class="rise-item banner" style="animation-delay: 60ms">
-                <span class="banner__mark" aria-hidden="true"></span>
-                <div class="banner__body">
+              <div
+                v-if="showBanner"
+                class="rise-item banner mt-10 flex flex-col gap-4 rounded-2xl border border-ed-rule bg-ed-paper-raised
+                  px-5 py-[1.1rem] text-[0.9375rem] leading-[1.55] text-ed-ink-70 sm:flex-row sm:items-center sm:gap-[1.1rem]"
+                style="animation-delay: 60ms"
+              >
+                <span class="ml-1 hidden h-[0.4rem] w-[0.4rem] flex-none [transform:rotate(45deg)] bg-ed-accent sm:block" aria-hidden="true"></span>
+                <div class="min-w-0 flex-1">
                   <slot name="banner"></slot>
                 </div>
                 <div class="shrink-0">
@@ -81,17 +101,27 @@
                 </div>
               </div>
 
-              <!-- Tabs -->
-              <nav class="rise-item tabs" style="animation-delay: 90ms" :aria-label="`${title} sections`">
+              <!-- Tabs: a hairline strip; the active tab is underlined in ink,
+                   like the rules everywhere else on the surface. -->
+              <nav
+                class="rise-item tabs mb-8 mt-11 flex items-center gap-1 overflow-x-auto border-b border-b-ed-rule [scrollbar-width:none]"
+                style="animation-delay: 90ms"
+                :aria-label="`${title} sections`"
+              >
                 <router-link
                   v-for="tab in tabs"
                   :key="tab.name"
                   :to="{ name: tab.name, params: { projectName } }"
-                  class="tab focus-ring-inset"
-                  :class="{ 'tab--active': isActiveTab(tab) }"
+                  class="focus-ring-inset mb-[-1px] inline-flex items-center gap-2 whitespace-nowrap border-b-[1.5px] px-[0.9rem] py-3
+                    text-[0.875rem] font-medium [transition:color_0.18s_ease,border-color_0.18s_ease] first:pl-[0.15rem]"
+                  :class="isActiveTab(tab) ? 'tab--active border-b-ed-ink text-ed-ink' : 'border-b-transparent text-ed-ink-55 hover:text-ed-ink'"
                   :aria-current="isActiveTab(tab) ? 'page' : undefined"
                 >
-                  <i :class="['fas', tab.icon]" class="tab__icon" aria-hidden="true"></i>
+                  <i
+                    :class="['fas', tab.icon, isActiveTab(tab) ? 'text-ed-accent opacity-100' : 'opacity-[0.55]']"
+                    class="text-[0.7rem]"
+                    aria-hidden="true"
+                  ></i>
                   {{ tab.label }}
                 </router-link>
               </nav>
@@ -144,78 +174,8 @@ function isActiveTab(tab: ToolTab): boolean {
 </script>
 
 <style scoped>
-/* A low pool of light over the header only — the tool's own content below
-   is dense and wants an even floor. */
-.tool-page .tool-spot {
-  height: 560px;
-  bottom: auto;
-  opacity: 0.8;
-}
-
-/* A touch wider than the editorial 68rem measure: these pages carry tables
-   and four-across stat rows, not prose. */
-.tool-shell {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .tool-shell {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
-/* The one step back up the hierarchy — the hub's back link, verbatim. */
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-40);
-  transition: color 0.18s ease;
-}
-
-.back:hover {
-  color: var(--ink);
-}
-
-.back:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-
-.back__arrow {
-  width: 0.9rem;
-  height: 0.9rem;
-  transition: transform 0.18s ease;
-}
-
-.back:hover .back__arrow {
-  transform: translateX(-3px);
-}
-
-.state {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-top: 5rem;
-  font-size: 0.9375rem;
-  color: var(--ink-55);
-}
-
+/* The loading spinner's turn: keyframes stay in CSS (scoped names are hashed). */
 .spinner {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-  border: 1.5px solid var(--accent);
-  border-top-color: transparent;
-  border-radius: 999px;
   animation: spin 0.8s linear infinite;
 }
 
@@ -225,110 +185,14 @@ function isActiveTab(tab: ToolTab): boolean {
   }
 }
 
-.banner {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 2.5rem;
-  padding: 1.1rem 1.25rem;
-  border: 1px solid var(--rule);
-  border-radius: 1rem;
-  background: var(--paper-raised);
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: var(--ink-70);
-}
-
-@media (min-width: 640px) {
-  .banner {
-    flex-direction: row;
-    align-items: center;
-    gap: 1.1rem;
-  }
-}
-
-.banner__mark {
-  display: none;
-  flex: none;
-  width: 0.4rem;
-  height: 0.4rem;
-  margin-left: 0.25rem;
-  transform: rotate(45deg);
-  background: var(--accent);
-}
-
-@media (min-width: 640px) {
-  .banner__mark {
-    display: block;
-  }
-}
-
-.banner__body {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Hairline tab strip; the active tab is underlined in ink, like the rules
-   everywhere else on the surface. */
-.tabs {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 2.75rem;
-  margin-bottom: 2rem;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--rule);
-  scrollbar-width: none;
-}
-
+/* The tab strip scrolls sideways on a phone without showing a scrollbar. */
 .tabs::-webkit-scrollbar {
   display: none;
-}
-
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.9rem;
-  margin-bottom: -1px;
-  border-bottom: 1.5px solid transparent;
-  white-space: nowrap;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--ink-55);
-  transition: color 0.18s ease, border-color 0.18s ease;
-}
-
-.tab:first-child {
-  padding-left: 0.15rem;
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tab--active {
-  color: var(--ink);
-  border-bottom-color: var(--ink);
-}
-
-.tab__icon {
-  font-size: 0.7rem;
-  opacity: 0.55;
-}
-
-.tab--active .tab__icon {
-  color: var(--accent);
-  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
-  }
-
-  .back:hover .back__arrow {
-    transform: none;
   }
 }
 </style>
