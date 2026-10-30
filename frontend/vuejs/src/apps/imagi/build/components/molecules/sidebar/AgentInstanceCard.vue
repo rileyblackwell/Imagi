@@ -11,10 +11,16 @@
 <template>
   <article
     :class="[
-      'agent-card iw-surface group',
-      `agent-card--${status.state}`,
-      isActive ? 'agent-card--active' : '',
-      isArchived ? 'agent-card--archived' : ''
+      'iw-surface group relative flex items-start gap-1.5 pt-[0.4375rem] pr-2 pb-[0.4375rem] pl-3 rounded-iw-md border cursor-pointer overflow-hidden',
+      'hover:[transform:translateY(-1px)] active:[transform:translateY(0)_scale(0.985)] active:[transition-duration:var(--iw-dur-1)]',
+      'motion-reduce:hover:[transform:none] motion-reduce:active:[transform:none]',
+      'focus-visible:![outline:none]',
+      isArchived
+        ? 'opacity-[0.72] hover:opacity-100 [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out)]'
+        : '[transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),border-color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-out)]',
+      isActive ? CARD_SELECTED : CARD,
+      RAIL_TONE[status.state],
+      status.state === 'working' && WORKING_GLOW
     ]"
     :style="{ '--stagger': `${Math.min(index, 8) * 45}ms` }"
     role="button"
@@ -24,42 +30,68 @@
     @keydown.enter.prevent="emit('select')"
     @keydown.space.prevent="emit('select')"
   >
-    <!-- The spine: state as a vertical rail, animated while a run is live -->
-    <span class="agent-card__rail" aria-hidden="true"></span>
+    <!-- Hover lifts the card off the column rather than nudging it sideways: a
+         sideways shift re-lays the text out by a pixel, which reads as a wobble
+         in a list this dense. Rising is silent. The press puts it back down,
+         slightly compressed — the whole row behaves like one physical control.
+         Selected wears the soft baby-blue wash the workspace uses for "you are
+         here". -->
+    <!-- The spine: state as a vertical rail, animated while a run is live —
+         ink travels down it (::after, see the styles). -->
+    <span
+      :class="[
+        'agent-card__rail absolute left-0 top-0 bottom-0 w-[0.1875rem] [background:var(--rail)] [transition:background-color_var(--iw-dur-3)_var(--iw-ease-out)]',
+        status.state === 'working' && RAIL_LIVE
+      ]"
+      aria-hidden="true"
+    ></span>
 
-    <div class="agent-card__body">
-      <!-- Name + the two markers that can sit beside it -->
+    <!-- Above the working card's edge glow, which is absolutely positioned
+         and would otherwise paint over this static content. -->
+    <div class="relative z-[1] flex-1 min-w-0">
+      <!-- Name + the two markers that can sit beside it. The name carries the
+           display face, the same face as the pane masthead — a subagent gets a
+           byline, not a filename. -->
       <div class="flex items-start gap-1.5">
-        <h3 class="agent-card__title">{{ instance.title || 'Untitled thread' }}</h3>
+        <h3
+          :class="[
+            TITLE,
+            isActive
+              ? 'font-[650] text-blue-950 dark:text-white'
+              : 'font-[550] text-ink/[0.86] group-hover:text-blue-950 dark:text-white/[0.82] dark:group-hover:text-white'
+          ]"
+        >{{ instance.title || 'Untitled thread' }}</h3>
 
         <!-- One of several parallel takes on the same brief -->
         <span
           v-if="variantCount && variantCount> 1"
-          class="agent-card__take"
+          class="shrink-0 mt-px px-1 rounded bg-ink/[0.07] text-ink/55 text-[0.5625rem] font-semibold leading-[1.05rem] tabular-nums dark:bg-white/[0.08] dark:text-blue-100/60"
           :title="`Take ${variantIndex} of ${variantCount} on the same brief`"
         >{{ variantIndex }}/{{ variantCount }}</span>
 
-        <!-- A run finished while this instance was off-screen -->
+        <!-- A run finished while this instance was off-screen. It arrives
+             with a small pop, so a card that gains one while you are looking
+             at the list actually announces itself. -->
         <span
           v-if="instance.hasUnread"
-          class="agent-card__unread"
+          class="agent-card__unread shrink-0 w-1.5 h-1.5 mt-[0.3125rem] rounded-full bg-blue-950 [box-shadow:0_0_0_2px_rgba(219,238,255,0.9)] dark:bg-[#f3ede2] dark:[box-shadow:0_0_0_2px_rgba(10,10,10,0.9)]"
           title="Agent finished while you were away"
         ></span>
       </div>
 
       <!-- Where this agent stands. While a run is live this carries the
            agent's own words for what it is doing right now. -->
-      <div class="agent-card__status">
-        <i :class="[status.icon, 'agent-card__status-icon']"></i>
+      <div class="flex items-center gap-[0.3125rem] mt-[0.1875rem] text-[0.625rem] leading-[1.35] text-[color:var(--status)] [transition:color_var(--iw-dur-3)_var(--iw-ease-out)]">
+        <i :class="[status.icon, 'shrink-0 text-[0.5625rem]']"></i>
         <span class="truncate">{{ status.label }}</span>
       </div>
 
       <!-- Ledger line: where it came from on the schedule, what is lined up
            behind it, and when it last moved -->
-      <div class="agent-card__meta">
+      <div class="flex items-center gap-[0.3125rem] min-w-0 mt-0.5 text-[0.625rem] tracking-[0.004em] tabular-nums text-ink/[0.38] dark:text-blue-100/35">
         <template v-if="forkedFrom">
-          <span class="agent-card__fork" :title="`Started from the conversation of ${forkedFrom}`">
-            <i class="fas fa-code-branch" aria-hidden="true"></i>
+          <span class="inline-flex items-center gap-1 min-w-0" :title="`Started from the conversation of ${forkedFrom}`">
+            <i class="fas fa-code-branch shrink-0 text-[0.5rem]" aria-hidden="true"></i>
             <span class="truncate">{{ forkedFrom }}</span>
           </span>
           <span aria-hidden="true">·</span>
@@ -74,8 +106,17 @@
 
     <!-- Open affordance: no per-card actions, because an agent's work ends by
          being added to the app or discarded from the main thread's queue —
-         this only says the thread is readable. -->
-    <i class="fas fa-chevron-right agent-card__chevron" aria-hidden="true"></i>
+         this only says the thread is readable. Quiet until hover: the row is
+         clickable, but it does not advertise it. -->
+    <i
+      :class="[
+        'fas fa-chevron-right relative z-[1] shrink-0 self-center text-[0.5rem] text-ink/30 dark:text-white/35 [transition:opacity_var(--iw-dur-2)_var(--iw-ease-out),transform_var(--iw-dur-2)_var(--iw-ease-out)]',
+        isActive
+          ? 'opacity-100 [transform:translateX(0)]'
+          : 'opacity-0 [transform:translateX(-4px)] group-hover:opacity-100 group-hover:[transform:translateX(0)] group-focus-visible:opacity-100 group-focus-visible:[transform:translateX(0)]'
+      ]"
+      aria-hidden="true"
+    ></i>
   </article>
 </template>
 
@@ -151,6 +192,65 @@ const status = computed(() => {
   }
 })
 
+/* The card's surface, at rest / hovered / focused. */
+const CARD = [
+  'border-ink/[0.07] bg-blue-50/40 hover:bg-blue-50/95 hover:border-ink/[0.13] hover:[box-shadow:var(--iw-shadow-2)]',
+  'active:[box-shadow:var(--iw-shadow-1)] focus-visible:[box-shadow:var(--iw-focus-ring)]',
+  'dark:border-white/[0.09] dark:bg-white/[0.02] dark:hover:bg-white/5 dark:hover:border-white/[0.17]',
+]
+/* Selected: the soft baby-blue wash for "you are here". Its own hover keeps
+   the wash (and outranks the focus ring), and dark mode holds one look. */
+const CARD_SELECTED = [
+  'border-blue-300/85 [background:linear-gradient(155deg,rgba(219,238,255,0.9)_0%,rgba(183,221,247,0.45)_100%)]',
+  '[box-shadow:0_1px_2px_rgba(30,58,138,0.08),0_4px_12px_-5px_rgba(30,58,138,0.16),inset_0_1px_0_rgba(255,255,255,0.6)]',
+  'hover:border-blue-300 hover:[background:linear-gradient(155deg,rgba(219,238,255,1)_0%,rgba(183,221,247,0.55)_100%)]',
+  'hover:[box-shadow:0_2px_4px_rgba(30,58,138,0.1),0_10px_24px_-10px_rgba(30,58,138,0.28),inset_0_1px_0_rgba(255,255,255,0.6)]',
+  'focus-visible:[box-shadow:var(--iw-focus-ring)]',
+  'focus-visible:hover:[box-shadow:0_2px_4px_rgba(30,58,138,0.1),0_10px_24px_-10px_rgba(30,58,138,0.28),inset_0_1px_0_rgba(255,255,255,0.6)]',
+  'dark:border-blue-400/[0.42] dark:[background:linear-gradient(155deg,rgba(96,165,250,0.14)_0%,rgba(96,165,250,0.05)_100%)]',
+  'dark:[box-shadow:0_1px_2px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]',
+  'dark:hover:[box-shadow:0_1px_2px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]',
+]
+
+/*
+  The rail and the status line read their colour from --rail / --status, one
+  pair per state. Live work is the working blue; waiting on you is solid navy
+  ink — a full-height mark you can spot from the top of the list without
+  reading a word; a run that died is warm ink, the one non-navy note in the
+  pane (the work never reached the app, so it is something to clear rather
+  than an alarm); dispatched-but-not-running and scheduled work get a rail
+  that is drawn but not yet filled (it has a place in the line, not a run);
+  settled work recedes to a hairline. In dark, a working card keeps the
+  default rail.
+*/
+const RAIL_TONE = {
+  working:
+    '[--rail:color-mix(in_srgb,var(--sl-work)_32%,transparent)] [--status:var(--sl-work)] dark:[--rail:rgba(255,255,255,0.16)] dark:[--status:rgba(219,234,254,0.6)]',
+  waiting: '[--rail:#172554] [--status:rgba(19,26,44,0.78)] dark:[--rail:#f3ede2] dark:[--status:rgba(243,237,226,0.85)]',
+  stopped: '[--rail:#f59e0b] [--status:#b45309] dark:[--rail:#fcd34d] dark:[--status:#fde68a]',
+  scheduled:
+    '[--rail:repeating-linear-gradient(180deg,rgba(19,26,44,0.3)_0_3px,transparent_3px_7px)] [--status:rgba(19,26,44,0.5)] dark:[--rail:repeating-linear-gradient(180deg,rgba(255,255,255,0.3)_0_3px,transparent_3px_7px)] dark:[--status:rgba(219,234,254,0.5)]',
+  starting:
+    '[--rail:repeating-linear-gradient(180deg,rgba(19,26,44,0.3)_0_3px,transparent_3px_7px)] [--status:rgba(19,26,44,0.5)] dark:[--rail:repeating-linear-gradient(180deg,rgba(255,255,255,0.3)_0_3px,transparent_3px_7px)] dark:[--status:rgba(219,234,254,0.5)]',
+  settled: '[--rail:rgba(19,26,44,0.1)] [--status:rgba(19,26,44,0.42)] dark:[--rail:rgba(255,255,255,0.1)] dark:[--status:rgba(219,234,254,0.4)]',
+} as const
+
+/* Ink travelling down a working card's rail (animated in the styles) */
+const RAIL_LIVE =
+  "after:content-[''] after:absolute after:inset-0 " +
+  'after:bg-[linear-gradient(180deg,transparent_0%,var(--sl-work)_40%,color-mix(in_srgb,var(--sl-work)_70%,transparent)_60%,transparent_100%)]'
+
+const TITLE =
+  "flex-1 min-w-0 truncate font-sl-display [font-variation-settings:'opsz'_11,'SOFT'_30,'WONK'_1] " +
+  'text-[0.8125rem] leading-[1.25] tracking-[-0.006em] [transition:color_var(--iw-dur-2)_var(--iw-ease-out)]'
+
+/* The glow the rail casts into a working card — light bleeding off a lit
+   edge, so a working agent is legible from the corner of the eye without the
+   row having to shout. It breathes (see the styles). */
+const WORKING_GLOW =
+  "agent-card--working before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[40%] before:pointer-events-none " +
+  'before:bg-[linear-gradient(90deg,color-mix(in_srgb,var(--sl-work)_10%,transparent)_0%,transparent_100%)]'
+
 /** The thread this one was forked from, by its job. */
 const forkedFrom = computed(() => props.instance.schedule?.forked_from?.title || '')
 
@@ -175,371 +275,19 @@ function relativeTime(iso: string): string {
 </script>
 
 <style scoped>
-/* ── The card ───────────────────────────────────────────────────────────── */
-
-.agent-card {
-  --rail: rgba(19, 26, 44, 0.14);
-  --status: rgba(19, 26, 44, 0.55);
-
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.375rem;
-  padding: 0.4375rem 0.5rem 0.4375rem 0.75rem;
-  border-radius: var(--iw-r-md);
-  border: 1px solid rgba(19, 26, 44, 0.07);
-  background: rgba(239, 246, 255, 0.4);
-  box-shadow: none;
-  cursor: pointer;
-  overflow: hidden;
-  /* Transform is animated on its own line: hover raises the card and the
-     press pushes it back down, and both need to compose without fighting the
-     colour fade's timing. */
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    border-color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dark .agent-card {
-  --rail: rgba(255, 255, 255, 0.16);
-  --status: rgba(219, 234, 254, 0.6);
-  border-color: rgba(255, 255, 255, 0.09);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-/* Hover lifts the card off the column rather than nudging it sideways: a
-   sideways shift re-lays the text out by a pixel, which reads as a wobble in
-   a list this dense. Rising is silent. */
-.agent-card:hover {
-  background: rgba(239, 246, 255, 0.95);
-  border-color: rgba(19, 26, 44, 0.13);
-  box-shadow: var(--iw-shadow-2);
-  transform: translateY(-1px);
-}
-
-.dark .agent-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.17);
-}
-
-/* And the press puts it back down, slightly compressed — the whole row
-   behaves like one physical control. */
-.agent-card:active {
-  transform: translateY(0) scale(0.985);
-  box-shadow: var(--iw-shadow-1);
-  transition-duration: var(--iw-dur-1);
-}
-
-.agent-card:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-/* Selected — the soft baby-blue wash the workspace uses for "you are here" */
-.agent-card--active {
-  border-color: rgba(147, 197, 253, 0.85);
-  background: linear-gradient(155deg, rgba(219, 238, 255, 0.9) 0%, rgba(183, 221, 247, 0.45) 100%);
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.08),
-    0 4px 12px -5px rgba(30, 58, 138, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.agent-card--active:hover {
-  background: linear-gradient(155deg, rgba(219, 238, 255, 1) 0%, rgba(183, 221, 247, 0.55) 100%);
-  border-color: rgba(147, 197, 253, 1);
-  box-shadow:
-    0 2px 4px rgba(30, 58, 138, 0.1),
-    0 10px 24px -10px rgba(30, 58, 138, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.dark .agent-card--active,
-.dark .agent-card--active:hover {
-  border-color: rgba(96, 165, 250, 0.42);
-  background: linear-gradient(155deg, rgba(96, 165, 250, 0.14) 0%, rgba(96, 165, 250, 0.05) 100%);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.agent-card--archived {
-  opacity: 0.72;
-  transition: opacity var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.agent-card--archived:hover {
-  opacity: 1;
-}
-
-/* ── The spine ──────────────────────────────────────────────────────────── */
-
-.agent-card__rail {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 0.1875rem;
-  background: var(--rail);
-  transition: background-color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-/* Live run: ink travels down the rail, and the card breathes with the faintest
-   left-edge glow. This is the one moving thing in the list. */
-.agent-card--working {
-  --rail: color-mix(in srgb, var(--sl-work) 32%, transparent);
-  --status: var(--sl-work);
-}
-
-/* The glow the rail casts into the card — light bleeding off a lit edge, so a
-   working agent is legible from the corner of the eye without the row having
-   to shout. Sits under the content (::before on the card itself). */
+/* Live run: ink travels down the rail and the card breathes with the faintest
+   left-edge glow — the one moving thing in the list. Keyframed, so CSS. */
 .agent-card--working::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  pointer-events: none;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--sl-work) 10%, transparent) 0%, transparent 100%);
   animation: rail-breathe 3.2s var(--iw-ease-ambient) infinite;
 }
 
 .agent-card--working .agent-card__rail::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    var(--sl-work) 40%,
-    color-mix(in srgb, var(--sl-work) 70%, transparent) 60%,
-    transparent 100%
-  );
   animation: rail-travel 2.6s var(--iw-ease-ambient) infinite;
 }
 
-/* Waiting on you: solid navy ink — a full-height mark you can spot from the
-   top of the list without reading a word. */
-.agent-card--waiting {
-  --rail: theme('colors.blue.950');
-  --status: rgba(19, 26, 44, 0.78);
-}
-
-.dark .agent-card--waiting {
-  --rail: #f3ede2;
-  --status: rgba(243, 237, 226, 0.85);
-}
-
-/* A run that died: warm ink, the one non-navy note in the pane. The work
-   never reached the app, so this is something to clear rather than an alarm. */
-.agent-card--stopped {
-  --rail: theme('colors.amber.500');
-  --status: theme('colors.amber.700');
-}
-
-.dark .agent-card--stopped {
-  --rail: theme('colors.amber.300');
-  --status: theme('colors.amber.200');
-}
-
-/* Dispatched but not yet running — the rail is drawn but not yet filled.
-   Scheduled work (waiting for other threads to land) wears the same drawn
-   rail: it has a place in the line, not a run. */
-.agent-card--scheduled,
-.agent-card--starting {
-  --rail: repeating-linear-gradient(
-    180deg,
-    rgba(19, 26, 44, 0.3) 0 3px,
-    transparent 3px 7px
-  );
-  --status: rgba(19, 26, 44, 0.5);
-}
-
-.dark .agent-card--scheduled,
-.dark .agent-card--starting {
-  --rail: repeating-linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.3) 0 3px,
-    transparent 3px 7px
-  );
-  --status: rgba(219, 234, 254, 0.5);
-}
-
-/* Settled work recedes to a hairline */
-.agent-card--settled {
-  --rail: rgba(19, 26, 44, 0.1);
-  --status: rgba(19, 26, 44, 0.42);
-}
-
-.dark .agent-card--settled {
-  --rail: rgba(255, 255, 255, 0.1);
-  --status: rgba(219, 234, 254, 0.4);
-}
-
-/* ── Contents ───────────────────────────────────────────────────────────── */
-
-/* Above the working card's edge glow, which is absolutely positioned and
-   would otherwise paint over this static content. */
-.agent-card__body {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  min-width: 0;
-}
-
-/* The name carries the display face, the same face as the pane
-   masthead — a subagent gets a byline, not a filename. */
-.agent-card__title {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--sl-font-display, theme('fontFamily.display'));
-  font-variation-settings: 'opsz' 11, 'SOFT' 30, 'WONK' 1;
-  font-size: 0.8125rem;
-  font-weight: 550;
-  line-height: 1.25;
-  letter-spacing: -0.006em;
-  color: rgba(19, 26, 44, 0.86);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: color var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dark .agent-card__title {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.agent-card:hover .agent-card__title,
-.agent-card--active .agent-card__title {
-  color: theme('colors.blue.950');
-}
-
-.dark .agent-card:hover .agent-card__title,
-.dark .agent-card--active .agent-card__title {
-  color: #ffffff;
-}
-
-.agent-card--active .agent-card__title {
-  font-weight: 650;
-}
-
-/* Take marker for parallel attempts at one brief */
-.agent-card__take {
-  flex-shrink: 0;
-  margin-top: 0.0625rem;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  background: rgba(19, 26, 44, 0.07);
-  color: rgba(19, 26, 44, 0.55);
-  font-size: 0.5625rem;
-  font-weight: 600;
-  line-height: 1.05rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.dark .agent-card__take {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(219, 234, 254, 0.6);
-}
-
-/* "Finished while you were away" — it arrives with a small pop so a card that
-   gains one while you are looking at the list actually announces itself. */
 .agent-card__unread {
-  flex-shrink: 0;
-  width: 0.375rem;
-  height: 0.375rem;
-  margin-top: 0.3125rem;
-  border-radius: 9999px;
-  background: theme('colors.blue.950');
-  box-shadow: 0 0 0 2px rgba(219, 238, 255, 0.9);
   animation: unread-in var(--iw-dur-3) var(--iw-ease-spring) both;
 }
-
-.dark .agent-card__unread {
-  background: #f3ede2;
-  box-shadow: 0 0 0 2px rgba(10, 10, 10, 0.9);
-}
-
-@keyframes unread-in {
-  from { opacity: 0; transform: scale(0.2); }
-  to { opacity: 1; transform: none; }
-}
-
-.agent-card__status {
-  display: flex;
-  align-items: center;
-  gap: 0.3125rem;
-  margin-top: 0.1875rem;
-  font-size: 0.625rem;
-  line-height: 1.35;
-  color: var(--status);
-  transition: color var(--iw-dur-3) var(--iw-ease-out);
-}
-
-.agent-card__status-icon {
-  flex-shrink: 0;
-  font-size: 0.5625rem;
-}
-
-.agent-card__meta {
-  display: flex;
-  align-items: center;
-  gap: 0.3125rem;
-  min-width: 0;
-  margin-top: 0.125rem;
-  font-size: 0.625rem;
-  letter-spacing: 0.004em;
-  font-variant-numeric: tabular-nums;
-  color: rgba(19, 26, 44, 0.38);
-}
-
-.dark .agent-card__meta {
-  color: rgba(219, 234, 254, 0.35);
-}
-
-.agent-card__fork {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.agent-card__fork i {
-  flex-shrink: 0;
-  font-size: 0.5rem;
-}
-
-/* Quiet until hover — the row is clickable, but it does not advertise it */
-.agent-card__chevron {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  align-self: center;
-  font-size: 0.5rem;
-  color: rgba(19, 26, 44, 0.3);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition:
-    opacity var(--iw-dur-2) var(--iw-ease-out),
-    transform var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.dark .agent-card__chevron {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.agent-card:hover .agent-card__chevron,
-.agent-card:focus-visible .agent-card__chevron,
-.agent-card--active .agent-card__chevron {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* ── Motion ─────────────────────────────────────────────────────────────── */
 
 @keyframes rail-travel {
   0% { transform: translateY(-100%); }
@@ -551,6 +299,11 @@ function relativeTime(iso: string): string {
   50% { opacity: 1; }
 }
 
+@keyframes unread-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agent-card--working::before {
     animation: none;
@@ -560,11 +313,6 @@ function relativeTime(iso: string): string {
   .agent-card--working .agent-card__rail::after {
     animation: none;
     background: var(--sl-work);
-  }
-
-  .agent-card:hover,
-  .agent-card:active {
-    transform: none;
   }
 }
 </style>

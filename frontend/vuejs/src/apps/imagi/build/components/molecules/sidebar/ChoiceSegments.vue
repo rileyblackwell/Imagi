@@ -8,9 +8,11 @@
   <div
     role="radiogroup"
     :aria-label="label"
-    class="choice-segments"
+    class="grid gap-1 p-1 rounded-[0.875rem] bg-ink/5 dark:bg-white/5"
     :style="{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }"
   >
+    <!-- The chosen option is lifted onto a white chip. (Teleported with the
+         settings panel to <body>, outside .spotlight.) -->
     <button
       v-for="o in options"
       :key="o.id"
@@ -18,12 +20,16 @@
       role="radio"
       :aria-checked="o.id === modelValue"
       :title="o.title"
-      class="choice-segments__option iw-press"
-      :class="{ 'choice-segments__option--on': o.id === modelValue }"
+      class="iw-press flex flex-col items-center justify-center gap-px py-2 px-1 rounded-[0.625rem]
+        [transition:background-color_var(--iw-dur-2)_var(--iw-ease-out),color_var(--iw-dur-2)_var(--iw-ease-out),box-shadow_var(--iw-dur-2)_var(--iw-ease-out)]
+        focus-visible:[outline:none] focus-visible:shadow-iw-focus"
+      :class="o.id === modelValue
+        ? 'bg-white text-ink/95 shadow-[0_1px_2px_rgba(19,26,44,0.12),0_0_0_1px_rgba(19,26,44,0.06)] dark:bg-white/[0.12] dark:text-white dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1)]'
+        : 'text-ink/65 hover:text-ink/90 dark:text-white/60 dark:hover:text-white/90'"
       @click="o.id !== modelValue && emit('update:modelValue', o.id)"
     >
-      <span class="choice-segments__name">{{ o.name }}</span>
-      <span v-if="o.sub" class="choice-segments__sub">{{ o.sub }}</span>
+      <span class="choice-segments__name text-[12px] font-semibold whitespace-nowrap">{{ o.name }}</span>
+      <span v-if="o.sub" class="text-[10px] opacity-70">{{ o.sub }}</span>
     </button>
   </div>
 </template>
@@ -47,72 +53,3 @@ defineProps<{
 
 const emit = defineEmits<{ (e: 'update:modelValue', id: string): void }>()
 </script>
-
-<style scoped>
-.choice-segments {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 0.875rem;
-  background: rgba(19, 26, 44, 0.05);
-}
-
-.dark .choice-segments {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.choice-segments__option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.0625rem;
-  padding: 0.5rem 0.25rem;
-  border-radius: 0.625rem;
-  color: rgba(19, 26, 44, 0.65);
-  transition:
-    background-color var(--iw-dur-2) var(--iw-ease-out),
-    color var(--iw-dur-2) var(--iw-ease-out),
-    box-shadow var(--iw-dur-2) var(--iw-ease-out);
-}
-
-.choice-segments__option:hover:not(.choice-segments__option--on) {
-  color: rgba(19, 26, 44, 0.9);
-}
-
-.choice-segments__option--on {
-  background: #ffffff;
-  color: rgba(19, 26, 44, 0.95);
-  box-shadow: 0 1px 2px rgba(19, 26, 44, 0.12), 0 0 0 1px rgba(19, 26, 44, 0.06);
-}
-
-.choice-segments__option:focus-visible {
-  outline: none;
-  box-shadow: var(--iw-focus-ring);
-}
-
-.dark .choice-segments__option {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.dark .choice-segments__option:hover:not(.choice-segments__option--on) {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.dark .choice-segments__option--on {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.choice-segments__name {
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.choice-segments__sub {
-  font-size: 10px;
-  opacity: 0.7;
-}
-</style>
