@@ -5,9 +5,7 @@
   row. The how comes after, in steps 01 to 03.
 -->
 <template>
-  <!-- pt is important: .sl-sec sets a full section's worth, but this one
-       follows the hero directly and reads as its second half -->
-  <section id="what-is-imagi" class="sl-sec scroll-mt-14 !pt-[clamp(56px,7vw,96px)]">
+  <section id="what-is-imagi" class="sl-sec scroll-mt-14">
     <div class="sl-wrap">
       <div v-reveal class="sl-head">
         <p class="sl-eyebrow">What Imagi is</p>

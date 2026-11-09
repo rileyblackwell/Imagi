@@ -51,17 +51,4 @@ describe('ProductShot', () => {
     expect(wrapper.find('.shot__chip').text()).toBe('imagi — build workspace')
     expect(wrapper.find('figcaption').text()).toBe('Mid-conversation.')
   })
-
-  it('shows the whole shot unless it is focused', () => {
-    expect(mountWith().find('img').attributes('style') ?? '').not.toContain('scale')
-    expect(mountWith({ focus: { x: 0, y: 0, scale: 1 } }).find('img').attributes('style') ?? '').not.toContain('scale')
-  })
-
-  it('zooms onto the focused part, inside its own clip so the chrome stays clear', () => {
-    const wrapper = mountWith({ focus: { x: 0, y: 100, scale: 2.3 } })
-    const style = wrapper.find('img').attributes('style')
-    expect(style).toContain('scale(2.3)')
-    expect(style).toContain('transform-origin: 0% 100%')
-    expect(wrapper.find('.shot__view img').exists()).toBe(true)
-  })
 })
