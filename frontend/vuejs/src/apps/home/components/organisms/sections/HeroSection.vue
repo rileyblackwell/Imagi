@@ -10,7 +10,9 @@
   next to the sections that explain them.
 -->
 <template>
-  <section class="sl-opener">
+  <!-- pb is important: .sl-opener sets a deeper one, which with the next
+       section's own padding left a dead band under the prompt -->
+  <section class="sl-opener !pb-[clamp(40px,5vw,64px)]">
     <div class="sl-spot" aria-hidden="true"></div>
     <div class="sl-dots" aria-hidden="true"></div>
 
