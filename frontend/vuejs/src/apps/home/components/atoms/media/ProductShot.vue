@@ -8,6 +8,10 @@
 
   It only renders on Spotlight pages (home, About), so the frame is always the
   lit one: a thin gradient edge, a deep shadow, and the caption centered below.
+
+  A shot can be focused on one part of itself (the `focus` prop), which zooms
+  the image inside the frame: the homepage's Build tour uses it to point at
+  the part of the workspace each feature describes.
 -->
 <template>
   <figure class="relative z-[1] m-0">
@@ -37,16 +41,22 @@
             max-[560px]:transform-none max-[560px]:px-[10px] max-[560px]:py-1 max-[560px]:text-[11px]"
         >{{ label }}</span>
       </div>
-      <img
-        class="block h-auto w-full"
-        :src="src"
-        :alt="alt"
-        :width="width"
-        :height="height"
-        :loading="eager ? 'eager' : 'lazy'"
-        :fetchpriority="eager ? 'high' : 'auto'"
-        decoding="async"
-      />
+      <!-- The image sits in its own clip, so a focused (zoomed) shot never
+           paints over the chrome bar above it. -->
+      <div class="shot__view overflow-hidden">
+        <img
+          class="block h-auto w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]
+            will-change-transform motion-reduce:transition-none"
+          :style="focusStyle"
+          :src="src"
+          :alt="alt"
+          :width="width"
+          :height="height"
+          :loading="eager ? 'eager' : 'lazy'"
+          :fetchpriority="eager ? 'high' : 'auto'"
+          decoding="async"
+        />
+      </div>
     </div>
     <figcaption
       v-if="caption"
@@ -57,7 +67,7 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, computed } from 'vue'
 
 export default defineComponent({
   name: 'ProductShot',
@@ -69,7 +79,19 @@ export default defineComponent({
     label: { type: String, default: '' },
     caption: { type: String, default: '' },
     // Above-the-fold shots should not be lazy — they are the hero visual.
-    eager: { type: Boolean, default: false }
+    eager: { type: Boolean, default: false },
+    // Zoom the shot onto one part of itself: { x, y, scale }, x and y being
+    // the point (in % of the image) that stays put while it scales. Null
+    // shows the whole shot. The frame keeps its size either way.
+    focus: { type: Object, default: null }
+  },
+  setup(props) {
+    const focusStyle = computed(() => {
+      const f = props.focus
+      if (!f || !f.scale || f.scale === 1) return { transform: 'none' }
+      return { transform: `scale(${f.scale})`, transformOrigin: `${f.x ?? 50}% ${f.y ?? 50}%` }
+    })
+    return { focusStyle }
   }
 })
 </script>
