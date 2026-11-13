@@ -1,0 +1,8 @@
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.swiftpm/
+*.ipa
+*.dSYM.zip
+*.dSYM
