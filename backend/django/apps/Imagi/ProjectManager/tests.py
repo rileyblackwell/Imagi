@@ -2167,3 +2167,52 @@ class HomePageModelFallbackTests(SimpleTestCase):
 
         self.assertEqual(seen['gpt-6.1-sol']().model, 'claude-opus-5-5')
         self.assertIsNone(seen['claude-opus-5-5'])
+
+
+class DeleteAccountViewTests(APITestCase):
+    """The in-app "Delete account" (the iOS app needs it for the App Store):
+    the password is asked for again, and the account goes with its projects
+    and files, and nobody else's."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.root = tempfile.mkdtemp(prefix='imagi_delete_account_')
+        self.addCleanup(shutil.rmtree, self.root, True)
+        override = override_settings(PROJECTS_ROOT=self.root)
+        override.enable()
+        self.addCleanup(override.disable)
+
+        self.url = reverse('account-delete')
+        self.user = User.objects.create_user(username='judy', password='correct-horse-9')
+        self.token = Token.objects.create(user=self.user)
+        self.other = User.objects.create_user(username='kim', password='correct-horse-9')
+        os.makedirs(os.path.join(self.root, str(self.user.id), 'shop'))
+        Project.objects.create(user=self.user, name='Shop', project_dir=f'{self.user.id}/shop')
+        self.other_project = Project.objects.create(user=self.other, name='Blog')
+
+    def test_is_served_under_auth(self):
+        self.assertEqual(self.url, '/api/v1/auth/account/delete/')
+
+    def test_requires_authentication(self):
+        resp = self.client.post(self.url, {'password': 'correct-horse-9'}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_wrong_password_deletes_nothing(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+        resp = self.client.post(self.url, {'password': 'nope'}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_deletes_the_account_its_projects_and_files_only(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+        resp = self.client.post(self.url, {'password': 'correct-horse-9'}, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertFalse(Token.objects.filter(key=self.token.key).exists())
+        self.assertFalse(Project.objects.filter(user_id=self.user.pk).exists())
+        self.assertFalse(os.path.exists(os.path.join(self.root, str(self.user.id))))
+        self.assertTrue(Project.objects.filter(pk=self.other_project.pk).exists())
