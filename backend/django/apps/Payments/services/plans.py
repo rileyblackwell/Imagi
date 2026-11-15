@@ -25,9 +25,12 @@ There was previously a second, 5-hour burst window layered on top of the weekly
 one. It was removed: two windows meant two numbers a user had to hold in their
 head to predict whether a run would be refused, and the weekly allowance alone
 is what actually bounds spend.
-"""
 
-from django.conf import settings
+Every account has a plan, and every plan has a weekly allowance: there is no
+unlimited plan. A user with no Subscription row is on Free. (Free used to be
+unlimited during testing behind a FREE_TIER_UNLIMITED setting; that switch is
+gone, so no environment variable can lift the allowance.)
+"""
 
 DEFAULT_PLAN_ID = 'free'
 
@@ -60,11 +63,13 @@ UNLIMITED_PROJECTS = None
 # allowance is real API spend: a user who uses all of it every week costs
 # about 4.3x the weekly figure a month. Price allowances with that in mind.
 PLANS = {
+    # Free's weekly allowance is its only limit: no project limit, no burst
+    # window. $20 a week of combined Anthropic and OpenAI spend at list price.
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(3),
-        'max_active_projects': 1,
+        **_windows(20),
+        'max_active_projects': UNLIMITED_PROJECTS,
         'early_access': False,
     },
     'pro': {
@@ -143,12 +148,7 @@ def get_plan_for_user(user):
     from ..models import Subscription
 
     subscription = Subscription.objects.filter(user=user).first()
-    plan = get_plan(subscription.plan if subscription else DEFAULT_PLAN_ID)
-    if plan['id'] == DEFAULT_PLAN_ID and getattr(settings, 'FREE_TIER_UNLIMITED', False):
-        # Testing period (settings.FREE_TIER_UNLIMITED): Free gets no weekly
-        # allowance and no project limit. None means unlimited for both.
-        plan = {**plan, 'weekly_usd': None, 'max_active_projects': UNLIMITED_PROJECTS}
-    return plan
+    return get_plan(subscription.plan if subscription else DEFAULT_PLAN_ID)
 
 
 def check_project_limit(user):

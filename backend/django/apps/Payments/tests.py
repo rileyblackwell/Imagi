@@ -164,14 +164,17 @@ class PlanRegistryTests(APITestCase):
         self.assertEqual(get_plan_for_user(self.user)['id'], 'free')
 
     def test_weekly_allowances_are_the_advertised_dollar_figures(self):
-        self.assertEqual(PLANS['free']['weekly_usd'], 3)
+        self.assertEqual(PLANS['free']['weekly_usd'], 20)
         self.assertEqual(PLANS['pro']['weekly_usd'], 10)
         self.assertEqual(PLANS['max_5x']['weekly_usd'], 50)
         self.assertEqual(PLANS['max_10x']['weekly_usd'], 100)
 
-    def test_allowances_rise_with_the_tier(self):
-        # A pricier plan must never buy a smaller allowance.
-        weekly = [PLANS[p]['weekly_usd'] for p in ('free', 'pro', 'max_5x', 'max_10x')]
+    def test_paid_allowances_rise_with_the_tier(self):
+        # A pricier plan must never buy a smaller allowance. Free is left out
+        # while paid plans are switched off (PricingView's PAID_PLANS_ENABLED):
+        # its $20 sits above Pro's $10, and the paid tiers get repriced before
+        # they come back.
+        weekly = [PLANS[p]['weekly_usd'] for p in ('pro', 'max_5x', 'max_10x')]
         self.assertEqual(weekly, sorted(weekly))
         self.assertEqual(len(set(weekly)), len(weekly))
 
@@ -195,9 +198,9 @@ class PlanRegistryTests(APITestCase):
                 set(plan), {'id', 'name', 'weekly_usd', 'max_active_projects', 'early_access'}
             )
 
-    def test_only_free_limits_projects(self):
-        self.assertEqual(PLANS['free']['max_active_projects'], 1)
-        for plan_id in ('pro', 'max_5x', 'max_10x'):
+    def test_no_plan_limits_projects(self):
+        # Free's weekly allowance is its only limit.
+        for plan_id in ('free', 'pro', 'max_5x', 'max_10x'):
             self.assertIsNone(PLANS[plan_id]['max_active_projects'])
 
     def test_only_max_gets_early_access(self):
@@ -255,7 +258,6 @@ class RecordUsageTests(APITestCase):
         self.assertEqual(event.cost_usd, Decimal('0.000150'))
 
 
-@override_settings(FREE_TIER_UNLIMITED=False)
 class UsageWindowTests(APITestCase):
     def setUp(self):
         self.user = make_user()
@@ -281,7 +283,7 @@ class UsageWindowTests(APITestCase):
 
     def test_status_reports_what_the_plan_includes(self):
         plan = get_usage_status(self.user)['plan']
-        self.assertEqual(plan['max_active_projects'], 1)
+        self.assertIsNone(plan['max_active_projects'])
         self.assertFalse(plan['early_access'])
         Subscription.objects.create(user=self.user, plan='max_10x')
         plan = get_usage_status(self.user)['plan']
@@ -329,7 +331,6 @@ class FallbackRateTests(APITestCase):
         self.assertEqual(FALLBACK_OUTPUT_PRICE_PER_M, Decimal('50'))
 
 
-@override_settings(FREE_TIER_UNLIMITED=False)
 class CheckUsageAllowedTests(APITestCase):
     def setUp(self):
         self.user = make_user()
@@ -356,7 +357,7 @@ class CheckUsageAllowedTests(APITestCase):
         self.assertIn('detail', payload)
 
     def test_higher_plan_raises_the_allowance(self):
-        Subscription.objects.create(user=self.user, plan='pro')
+        Subscription.objects.create(user=self.user, plan='max_5x')
         record_usage(
             self.user, 'gpt-5.6-terra', 1_000, 0,
             cost_usd=PLANS['free']['weekly_usd'],
@@ -381,37 +382,77 @@ class CheckUsageAllowedTests(APITestCase):
         self.assertGreater(weekly['limit_usd'], PLANS['pro']['weekly_usd'])
 
 
-@override_settings(FREE_TIER_UNLIMITED=True)
-class FreeTierUnlimitedTests(APITestCase):
-    """While FREE_TIER_UNLIMITED is on, Free has no allowance or project limit."""
+class FreeTierWeeklyCapTests(APITestCase):
+    """Free: $20 a week of combined Anthropic and OpenAI spend, nothing else."""
 
     def setUp(self):
         self.user = make_user()
 
-    def test_free_usage_past_the_allowance_is_still_allowed(self):
-        record_usage(
-            self.user, 'gpt-5.6-terra', 1_000, 0,
-            cost_usd=PLANS['free']['weekly_usd'] * 10,
-        )
+    def test_free_allowance_is_twenty_dollars_a_week(self):
+        self.assertEqual(PLANS['free']['weekly_usd'], 20)
+        weekly = get_usage_status(self.user)['windows']['weekly']
+        self.assertEqual(weekly['limit_usd'], 20)
+
+    def test_the_weekly_allowance_is_free_s_only_limit(self):
+        self.assertIsNone(PLANS['free']['max_active_projects'])
+        self.assertEqual(set(get_usage_status(self.user)['windows']), {'weekly'})
+
+    def test_every_plan_has_a_weekly_allowance(self):
+        # No plan may be unlimited: a missing allowance would let any
+        # account run up unbounded API spend.
+        for plan in PLANS.values():
+            self.assertIsInstance(plan['weekly_usd'], (int, float), plan['id'])
+            self.assertGreater(plan['weekly_usd'], 0, plan['id'])
+
+    def test_anthropic_and_openai_spend_share_one_allowance(self):
+        record_usage(self.user, 'claude-sonnet-5-5', 1_000, 0, cost_usd=12)
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0, cost_usd=7)
         allowed, payload = check_usage_allowed(self.user)
         self.assertTrue(allowed)
-        weekly = payload['windows']['weekly']
-        self.assertIsNone(weekly['limit_usd'])
-        self.assertGreater(weekly['used_usd'], 0)  # still metered
-        self.assertIsNone(payload['plan']['max_active_projects'])
+        self.assertEqual(payload['windows']['weekly']['used_usd'], 19)
 
-    def test_paid_plans_keep_their_allowance(self):
-        Subscription.objects.create(user=self.user, plan='pro')
-        record_usage(
-            self.user, 'gpt-5.6-terra', 1_000, 0,
-            cost_usd=PLANS['pro']['weekly_usd'],
-        )
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0, cost_usd=1)
+        allowed, payload = check_usage_allowed(self.user)
+        self.assertFalse(allowed)
+        self.assertEqual(payload['error'], 'usage_limit_exceeded')
+
+    @override_settings(FREE_TIER_UNLIMITED=True)
+    def test_the_old_unlimited_switch_no_longer_lifts_the_cap(self):
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0, cost_usd=25)
         allowed, _ = check_usage_allowed(self.user)
         self.assertFalse(allowed)
 
-    def test_registry_keeps_free_limits_for_turning_them_back_on(self):
-        self.assertEqual(PLANS['free']['weekly_usd'], 3)
-        self.assertEqual(PLANS['free']['max_active_projects'], 1)
+    def test_spend_older_than_a_week_frees_up(self):
+        event = record_usage(self.user, 'gpt-5.6-terra', 1_000, 0, cost_usd=20)
+        UsageEvent.objects.filter(pk=event.pk).update(
+            created_at=timezone.now() - timedelta(days=7, minutes=1)
+        )
+        allowed, _ = check_usage_allowed(self.user)
+        self.assertTrue(allowed)
+
+
+class MoveExistingAccountsToFreeMigrationTests(APITestCase):
+    """Migration 0006 puts every existing account on the Free plan."""
+
+    def test_stored_paid_plans_move_to_free(self):
+        import importlib
+        from django.apps import apps as django_apps
+
+        migration = importlib.import_module(
+            'apps.Payments.migrations.0006_move_existing_accounts_to_free'
+        )
+        for name, plan in (('a', 'pro'), ('b', 'max_5x'), ('c', 'max_10x'), ('d', 'free')):
+            Subscription.objects.create(user=make_user(name), plan=plan)
+        no_row = make_user('e')
+
+        migration.forwards(django_apps, None)
+
+        self.assertEqual(
+            set(Subscription.objects.values_list('plan', flat=True)), {'free'}
+        )
+        for user in User.objects.all():
+            self.assertEqual(get_plan_for_user(user)['id'], 'free')
+        self.assertEqual(get_usage_status(no_row)['windows']['weekly']['limit_usd'], 20)
 
 
 # --------------------------------------------------------------------------- #

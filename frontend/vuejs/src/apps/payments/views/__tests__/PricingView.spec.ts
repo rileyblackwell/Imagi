@@ -16,11 +16,11 @@ describe('PricingView (one open Free plan)', () => {
 
   const wrapper = () => mount(PricingView, { global: { stubs } })
 
-  it('shows only the Free plan, with no usage or project limit', () => {
+  it('shows only the Free plan, with its $20 weekly allowance and no project limit', () => {
     const w = wrapper()
     const names = w.findAll('.tier__name').map((n) => n.text())
     expect(names).toEqual(['Free'])
-    expect(w.find('.tier__limits dd').text()).toBe('Unlimited usage')
+    expect(w.find('.tier__limits dd').text()).toBe('$20 of usage per week')
     expect(w.text()).toContain('Unlimited projects')
     expect(w.text()).not.toContain('Pro')
     expect(w.text()).not.toContain('Max')

@@ -237,6 +237,53 @@ class CostCeilingTests(_TaskRunTestCase):
         self.assertEqual(budgets[:3], [10.0, 6.0, 2.0])
 
 
+class WeeklyAllowanceBudgetTests(_TaskRunTestCase):
+    """A run may spend no more than what is left of the weekly allowance."""
+
+    def _spend(self, cost):
+        from apps.Payments.services.usage_service import record_usage
+        record_usage(self.user, 'claude-opus-5-5', 1_000, 0, cost_usd=cost)
+
+    def _budgets(self, fake_run):
+        seen = []
+        original = self.service._stream_once
+
+        def spy(**kwargs):
+            seen.append((kwargs['cost_budget_usd'], kwargs.get('budget_is_allowance')))
+            return original(**kwargs)
+
+        with patch.object(self.service, '_stream_once', side_effect=spy), \
+                patch('apps.Imagi.Build.services.base_agent.RUN_COST_CEILING_USD', 10.0):
+            events = self._collect(fake_run)
+        return seen, events
+
+    def test_a_run_near_the_cap_gets_only_what_is_left(self):
+        self._spend(18.5)  # of Free's $20
+        seen, _ = self._budgets(_RaisingStreamedRun(RunBudgetExceeded(1.6, 1.5)))
+        budget, capped = seen[0]
+        self.assertAlmostEqual(budget, 1.5)
+        self.assertTrue(capped)
+
+    def test_a_run_well_under_the_cap_keeps_its_own_ceiling(self):
+        self._spend(1.0)
+        seen, _ = self._budgets(_RaisingStreamedRun(RunBudgetExceeded(10.2, 10.0)))
+        self.assertEqual(seen[0], (10.0, False))
+
+    def test_a_run_stopped_by_the_allowance_says_the_week_is_used_up(self):
+        self._spend(18.5)
+        _, events = self._budgets(_RaisingStreamedRun(RunBudgetExceeded(1.6, 1.5)))
+        self.assertEqual(events[-1]['type'], 'error')
+        self.assertEqual(events[-1]['code'], 'usage_limit_exceeded')
+        self.assertIn('weekly usage allowance', events[-1]['error'])
+
+    def test_non_streamed_runs_are_capped_too(self):
+        self._spend(19.0)
+        self.assertEqual(self.service._allowance_budget(self.user, 1.5)[0], 1.0)
+        self.assertEqual(self.service._allowance_budget(self.user, 0.5), (0.5, False))
+        self._spend(5.0)  # past the cap: the budget never reads as "none"
+        self.assertEqual(self.service._allowance_budget(self.user, 1.5), (0.01, True))
+
+
 def _anthropic_error(cls, status, message, body):
     request = httpx.Request('POST', 'https://api.anthropic.com/v1/messages')
     return cls(message, response=httpx.Response(status, request=request), body=body)

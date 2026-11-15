@@ -143,11 +143,14 @@ def _clean(raw_pages, page_brief_cls) -> list:
 
 
 def plan_pages(name, description, app_details='', design_preferences='', builder=None,
-               page_brief_cls=None) -> Optional[list]:
+               page_brief_cls=None, meter=None) -> Optional[list]:
     """The pages after home for this business, or None if no plan could be made.
 
     None means "use the fixed fallback pages": no API key, the call failed, or
     the answer had no usable page in it.
+
+    ``meter(model, usage)`` is called with the answer's usage, so the planning
+    call draws on the user's weekly allowance like every other model call.
     """
     from apps.Imagi.Build.services import base_agent
     from apps.Imagi.Build.services.models_service import get_backend_model_id
@@ -176,6 +179,11 @@ def plan_pages(name, description, app_details='', design_preferences='', builder
                 'format': {'type': 'json_schema', 'schema': PLAN_SCHEMA},
             },
         )
+        if meter is not None and getattr(response, 'usage', None) is not None:
+            try:
+                meter(model, response.usage)
+            except Exception as e:  # metering must never fail the plan
+                logger.warning("Could not meter the first build's page plan: %s", e)
         if response.stop_reason in ('refusal', 'max_tokens'):
             logger.warning("First-build page plan stopped early (%s)", response.stop_reason)
             return None

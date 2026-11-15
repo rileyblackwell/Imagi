@@ -1758,6 +1758,26 @@ class ImagiAgentService:
             return TASK_MAX_TURNS
         return MAX_AGENT_TURNS
 
+    def _allowance_budget(self, user, budget_usd: Optional[float]):
+        """A run's cost budget, capped at what is left of the weekly allowance.
+
+        Returns (budget_usd, capped_by_allowance). The entrypoints refuse a
+        run once the allowance is spent, but a run started just under it could
+        otherwise spend its whole cost ceiling on top. When the allowance
+        cannot be read the run keeps its own budget: the entrypoint check has
+        already passed, and the per-run ceiling still bounds it.
+        """
+        try:
+            from .usage_limits import remaining_allowance_usd
+            remaining = remaining_allowance_usd(user)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not read the usage allowance for a run budget: {e}")
+            return budget_usd, False
+        if remaining is None or (budget_usd and budget_usd <= remaining):
+            return budget_usd, False
+        # Never zero: a 0 budget reads as "no budget" to make_run_bounds_hook.
+        return max(remaining, 0.01), True
+
     def _continuation_allowed(self, user) -> bool:
         """Whether a capped task may spend another run continuing itself.
 
@@ -2305,6 +2325,9 @@ class ImagiAgentService:
                 max(RUN_COST_CEILING_USD - spent_usd, 0.01)
                 if RUN_COST_CEILING_USD else None
             )
+            budget, allowance_capped = await sync_to_async(self._allowance_budget)(
+                user, budget
+            )
             run = self._stream_once(
                 user_input=prompt,
                 user=user,
@@ -2315,6 +2338,7 @@ class ImagiAgentService:
                 reasoning_effort=reasoning_effort,
                 cap_state=cap_state,
                 cost_budget_usd=budget,
+                budget_is_allowance=allowance_capped,
             )
             try:
                 async for event in run:
@@ -2431,6 +2455,7 @@ class ImagiAgentService:
         reasoning_effort: Optional[str] = None,
         cap_state: Optional[Dict[str, Any]] = None,
         cost_budget_usd: Optional[float] = None,
+        budget_is_allowance: bool = False,
     ):
         """One agent run, surfaced incrementally.
 
@@ -2451,6 +2476,8 @@ class ImagiAgentService:
 
         cost_budget_usd stops the run once it has spent that much; unlike a
         turn cap that is not continued automatically — the user decides.
+        budget_is_allowance says that budget is what was left of the user's
+        weekly allowance, so a stop is reported as the allowance running out.
         """
         conversation = None
         context = None
@@ -2665,6 +2692,21 @@ class ImagiAgentService:
             )
             if conversation is not None and getattr(conversation, 'kind', 'chat') == 'task':
                 await sync_to_async(self._park_capped_task)(conversation.id)
+            if budget_is_allowance:
+                # Same code and wording the entrypoints use when they refuse
+                # a run, so the client shows one message for one limit.
+                yield {
+                    "type": "error",
+                    "code": "usage_limit_exceeded",
+                    "error": (
+                        "This run stopped because it used the rest of your "
+                        "weekly usage allowance. Progress so far is saved. "
+                        "Allowance frees up as older activity ages out of the "
+                        "7-day window."
+                    ),
+                    "conversation_id": conversation.id if conversation else None,
+                }
+                return
             yield {
                 "type": "error",
                 "code": "run_limit",
@@ -2829,6 +2871,7 @@ class ImagiAgentService:
             self.last_run_timing['prepared'] = time.monotonic()
 
             run_kwargs: Dict[str, Any] = {}
+            cost_budget_usd, _ = self._allowance_budget(user, cost_budget_usd)
             bounds_hook = make_run_bounds_hook(
                 self._pricing_model(model), cost_budget_usd, deadline_at
             )

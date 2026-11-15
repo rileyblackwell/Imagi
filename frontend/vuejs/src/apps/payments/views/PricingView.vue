@@ -176,8 +176,8 @@ const notice = ref('')
 
 // Paid plans are off for now: Imagi is free and the page shows the one open
 // Free plan. Turning this on brings back Pro and Max (and their Stripe
-// checkout, still in test mode) as they were; pair it with
-// FREE_TIER_UNLIMITED=0 on the server so Free's limits return too.
+// checkout, still in test mode) as they were. Reprice the paid allowances
+// in services/plans.py first: Free's $20 a week is above Pro's $10.
 const PAID_PLANS_ENABLED = false
 
 // The Stripe lookup key of each paid plan, keyed by the backend plan id
@@ -219,15 +219,16 @@ const pendingSwitch = ref<PendingSwitch | null>(null)
 // confusion that removing the 5-hour session window was meant to end.
 // `price` is the Stripe subscription price, separate from the allowance.
 // The project limit and early access mirror the registry's
-// max_active_projects (Free holds one) and early_access (both Max tiers).
-// The Free plan while it's the only one: no weekly limit, no project limit
-// (the server's FREE_TIER_UNLIMITED).
+// max_active_projects (no plan caps projects today) and early_access
+// (both Max tiers).
+// The Free plan while it's the only one: $20 a week of usage and no project
+// limit, mirroring the registry's free plan.
 const openFreeTier: Tier = {
   name: 'Free',
   price: 0,
   lookupKey: null,
   cta: 'Start building',
-  weeklyLimit: 'Unlimited usage',
+  weeklyLimit: '$20 of usage per week',
   features: [
     'The full AI builder',
     'Unlimited projects',
@@ -243,10 +244,10 @@ const paidPlanTiers: Tier[] = [
     price: 0,
     lookupKey: null,
     cta: 'Start for free',
-    weeklyLimit: '$3 of usage per week',
+    weeklyLimit: '$20 of usage per week',
     features: [
       'Access to the core AI builder',
-      '1 project',
+      'Unlimited projects',
       'Community support',
     ],
     isPopular: false,
