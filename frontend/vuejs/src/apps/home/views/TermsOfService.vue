@@ -24,7 +24,7 @@
             <p
               class="legal-updated legal-rise mx-0 mb-0 mt-1 rounded-[999px] border border-sl-line px-3 py-[6px] text-[13px]
                 text-sl-faint"
-            >Last updated: October 12, 2026</p>
+            >Last updated: November 15, 2026</p>
           </div>
         </section>
 
