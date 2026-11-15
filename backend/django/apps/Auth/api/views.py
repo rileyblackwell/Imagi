@@ -106,9 +106,9 @@ def register_view(request):
 
     Two throttles guard this: a per-IP cap (one source) and a site-wide cap
     (all sources at once), so a registration flood spread across many IPs is
-    still bounded. Neither limits what an account may *do* once created — the
-    plan allowance does that — so the Free tier can stay usage-unlimited while
-    account creation itself is rate-limited.
+    still bounded. Neither limits what an account may *do* once created; the
+    plan's weekly allowance ($20 on Free) does that, while account creation
+    itself is rate-limited.
     """
     serializer = RegisterSerializer(data=request.data)
     if not serializer.is_valid():

@@ -118,7 +118,7 @@ describe('usage store plan limits', () => {
     expect(store.canCreateProject(5)).toBe(true)
   })
 
-  it('lets an unlimited Free plan create projects and never reports exhaustion', async () => {
+  it('treats a missing weekly limit as unknown, never as exhausted', async () => {
     apiMock.get.mockResolvedValue({
       data: {
         plan: { id: 'free', name: 'Free', max_active_projects: null },
