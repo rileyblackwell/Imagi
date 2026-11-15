@@ -442,8 +442,8 @@ export function useAgentRun(projectId: Ref<string>) {
           store.addMessageToInstance(instanceId, {
             role: 'assistant',
             content: resetsAt
-              ? `Usage allowance spent — frees up ${resetsAt}. A lighter model or lower reasoning effort goes further, or upgrade your plan for more.`
-              : 'Usage allowance spent — it frees up as older activity ages out of the window. A lighter model or lower reasoning effort goes further, or upgrade your plan for more.',
+              ? `Usage allowance spent — frees up ${resetsAt}. A lighter model or lower reasoning effort goes further.`
+              : 'Usage allowance spent — it frees up as older activity ages out of the window. A lighter model or lower reasoning effort goes further.',
             timestamp: new Date().toISOString(),
             id: `system-limit-${Date.now()}`
           })

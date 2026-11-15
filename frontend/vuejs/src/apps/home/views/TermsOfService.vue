@@ -128,7 +128,7 @@ export default defineComponent({
         items: [
           {
             title: '7.1 Free Plan',
-            text: 'Imagi currently has one plan, Free, and charges nothing to use it. It has no weekly limit on AI usage, but a single run that reaches a set amount of AI work stops and asks you before it continues. We may add usage limits to it later.'
+            text: 'Imagi currently has one plan, Free, and charges nothing to use it. It includes a set amount of AI usage each week, measured over a rolling 7 days; once that is used up, runs stop until some of it frees up. We may change this allowance later.'
           },
           {
             title: '7.2 Paid Plans',

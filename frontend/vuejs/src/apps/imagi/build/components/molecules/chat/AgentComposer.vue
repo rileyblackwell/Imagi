@@ -698,7 +698,7 @@ function toggleTune() {
   tuneOpen.value = next
 }
 
-/** "Pro plan" — em-dash while the plan is unknown. The allowances belong to
+/** "Free plan" — em-dash while the plan is unknown. The allowances belong to
  *  the weekly meter below, not here. */
 const planSummary = computed(() =>
   usageStore.plan ? `${usageStore.plan.name} plan` : '—'

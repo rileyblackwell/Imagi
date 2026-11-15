@@ -272,16 +272,10 @@
 
                     <!-- Under the pinned preview. The button's size beats .btn-primary's. -->
                     <div v-if="atProjectLimit" :class="CREATE_FOOT">
-                      <router-link to="/payments/pricing" class="btn-primary group create-submit !px-[1.6rem] !py-[0.8rem] !text-[0.95rem]">
-                        <span>See plans</span>
-                        <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                      </router-link>
-                      <!-- The upgrade prompt is something to read, not a footnote: `faint`
+                      <!-- The limit note is something to read, not a footnote: `faint`
                            misses 4.5:1, so it takes `muted`. -->
                       <p class="create-note--limit max-w-[34ch] text-[0.82rem] leading-[1.5] text-sl-muted">
-                        Your {{ usageStore.plan?.name }} plan includes one project. Pro and Max include unlimited projects.
+                        You're at your plan's project limit. Delete a project to make room for a new one.
                       </p>
                     </div>
                     <div v-else :class="CREATE_FOOT">
@@ -490,8 +484,8 @@ const projectDetailsInput = ref<HTMLTextAreaElement | null>(null)
 // the backend (ProjectManager/api/serializers.py).
 const MIN_DESCRIPTION_LENGTH = 20
 const MIN_DETAILS_LENGTH = 20
-// The plan's project limit (Free holds one). Once the projects list has
-// loaded and the plan is full, the Create app button becomes a way to upgrade
+// The plan's project limit (Free has none today). Once the projects list has
+// loaded and the plan is full, the Create app button gives way to a note
 // instead of a create that the server would refuse. The server still enforces
 // the limit; this only says so before the form is sent.
 const usageStore = useUsageStore()
@@ -748,7 +742,7 @@ async function createProject() {
 
   } catch (error: any) {
     // A refusal may be the plan's project limit; refresh the plan so the
-    // brief switches to its upgrade prompt.
+    // brief switches to its limit note.
     void usageStore.fetchUsage()
     // The form reports its own failure; the store's error is for the list,
     // which would otherwise swap the projects for a load error.

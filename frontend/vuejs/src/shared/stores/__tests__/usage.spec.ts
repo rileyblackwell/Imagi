@@ -53,7 +53,7 @@ describe('usage store fetchUsage', () => {
   it('maps the dollar-denominated payload', async () => {
     apiMock.get.mockResolvedValue({
       data: {
-        plan: { id: 'pro', name: 'Pro', max_active_projects: null, early_access: false },
+        plan: { id: 'free', name: 'Free', max_active_projects: null },
         windows: {
           weekly: { used_usd: 2.5, limit_usd: 5, resets_at: '2026-07-25T12:00:00Z' },
         },
@@ -67,7 +67,7 @@ describe('usage store fetchUsage', () => {
     await store.fetchUsage()
 
     expect(store.plan).toEqual({
-      id: 'pro', name: 'Pro', maxActiveProjects: null, earlyAccess: false,
+      id: 'free', name: 'Free', maxActiveProjects: null,
     })
     expect(store.weekly).toEqual({
       usedUsd: 2.5, limitUsd: 5, resetsAt: '2026-07-25T12:00:00Z',
@@ -96,25 +96,15 @@ describe('usage store fetchUsage', () => {
   })
 })
 
-describe('usage store plan perks', () => {
+describe('usage store plan limits', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     apiMock.get.mockReset()
   })
 
-  it('maps the project limit and early access', async () => {
-    apiMock.get.mockResolvedValue({
-      data: { plan: { id: 'max_5x', name: 'Max (5x)', max_active_projects: null, early_access: true } },
-    })
-    const store = useUsageStore()
-    await store.fetchUsage()
-    expect(store.plan?.earlyAccess).toBe(true)
-    expect(store.plan?.maxActiveProjects).toBeNull()
-  })
-
   it('stops Free at one project', async () => {
     apiMock.get.mockResolvedValue({
-      data: { plan: { id: 'free', name: 'Free', max_active_projects: 1, early_access: false } },
+      data: { plan: { id: 'free', name: 'Free', max_active_projects: 1 } },
     })
     const store = useUsageStore()
     await store.fetchUsage()
@@ -131,7 +121,7 @@ describe('usage store plan perks', () => {
   it('lets an unlimited Free plan create projects and never reports exhaustion', async () => {
     apiMock.get.mockResolvedValue({
       data: {
-        plan: { id: 'free', name: 'Free', max_active_projects: null, early_access: false },
+        plan: { id: 'free', name: 'Free', max_active_projects: null },
         windows: { weekly: { used_usd: 30, limit_usd: null, resets_at: null } },
       },
     })
@@ -142,12 +132,13 @@ describe('usage store plan perks', () => {
     expect(store.exceededWindow).toBeNull()
   })
 
-  it('reads a missing early_access as no early access', async () => {
-    apiMock.get.mockResolvedValue({ data: { plan: { id: 'pro', name: 'Pro' } } })
+  it('ignores an early_access flag a backend may still send', async () => {
+    apiMock.get.mockResolvedValue({
+      data: { plan: { id: 'free', name: 'Free', max_active_projects: null, early_access: true } },
+    })
     const store = useUsageStore()
     await store.fetchUsage()
-    expect(store.plan?.earlyAccess).toBe(false)
-    expect(store.canCreateProject(10)).toBe(true)
+    expect(store.plan).toEqual({ id: 'free', name: 'Free', maxActiveProjects: null })
   })
 })
 

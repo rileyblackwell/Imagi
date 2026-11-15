@@ -27,39 +27,14 @@
         tabular-nums text-sl-text [font-variation-settings:'opsz'_96]"
       :class="{ '[filter:drop-shadow(0_0_26px_var(--sl-text-glow))]': isPopular }"
     >
-      ${{ active.price }}<span class="ml-[0.4rem] font-sl-body text-[15px] font-medium tracking-normal text-sl-faint">/month</span>
+      ${{ price }}<span class="ml-[0.4rem] font-sl-body text-[15px] font-medium tracking-normal text-sl-faint">/month</span>
     </p>
-
-    <!-- Usage option selector (Max-style tiers pick between 5× and 10×) -->
-    <div
-      v-if="options && options.length> 1"
-      class="mt-[22px] flex gap-1 rounded-[999px] border border-sl-line bg-sl-chip-bg p-1"
-      role="tablist"
-      aria-label="Usage amount"
-    >
-      <button
-        v-for="(opt, i) in options"
-        :key="opt.lookupKey"
-        type="button"
-        role="tab"
-        :aria-selected="selected === i"
-        class="tier__option flex-1 rounded-[999px] px-2 py-[0.45rem] text-[13px] font-semibold
-          [transition:color_0.18s_ease,background_0.18s_ease,box-shadow_0.18s_ease]
-          focus-visible:outline focus-visible:outline-2 focus-visible:outline-sl-focus focus-visible:!outline-offset-2"
-        :class="selected === i
-          ? 'is-selected bg-sl-surface text-sl-text shadow-[0_0_0_1px_var(--sl-line-strong),0_4px_14px_-6px_var(--sl-glow)]'
-          : 'text-sl-muted hover:text-sl-text'"
-        @click="selected = i"
-      >
-        {{ opt.label }}
-      </button>
-    </div>
 
     <!-- How the allowance is actually delivered -->
     <dl class="tier__limits mt-[22px] rounded-[14px] border border-sl-line bg-sl-chip-bg px-4 py-3.5">
       <div>
         <dt class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sl-faint">Per week</dt>
-        <dd class="mt-1 text-[15.5px] font-semibold text-sl-text">{{ active.weeklyLimit }}</dd>
+        <dd class="mt-1 text-[15.5px] font-semibold text-sl-text">{{ weeklyLimit }}</dd>
       </div>
     </dl>
 
@@ -67,7 +42,7 @@
          below owns the auto margin, so the buttons line up across plans
          regardless of how many features each one lists. -->
     <ul class="checklist !mt-6 mb-7 text-sl-muted">
-      <li v-for="feature in active.features" :key="feature">
+      <li v-for="feature in features" :key="feature">
         <span class="checklist__tick" aria-hidden="true"></span>
         <span>{{ feature }}</span>
       </li>
@@ -76,80 +51,29 @@
     <button
       class="tier__cta mt-auto w-full justify-center"
       :class="isPopular ? 'btn-primary' : 'btn-outline'"
-      :disabled="loading || isCurrent"
-      @click="$emit('subscribe', active.lookupKey)"
+      @click="$emit('start')"
     >
-      <span v-if="loading" class="inline-flex items-center gap-2">
-        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-        Processing…
-      </span>
-      <span v-else>{{ ctaLabel }}</span>
+      {{ cta ?? 'Get started' }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-
-interface TierOption {
-  label: string
+// A plan card. Free is the only plan, so the card just shows it and starts
+// building; the paid plans' option selector and checkout states went with
+// them.
+defineProps<{
+  name: string
   price: number
-  lookupKey: string
   weeklyLimit: string
   features: string[]
-}
-
-const props = defineProps<{
-  name: string
   cta?: string
   isPopular?: boolean
   // The featured card's flag; "Most popular" unless the page names it.
   flag?: string
-  loading?: boolean
-  // Single-option tiers pass these directly…
-  price?: number
-  lookupKey?: string | null
-  weeklyLimit?: string
-  features?: string[]
-  // …multi-option tiers (e.g. Max) pass these instead.
-  options?: TierOption[]
-  // The signed-in user's plan, as its lookup key: null is Free, undefined is
-  // unknown (signed out, or not loaded yet). A subscriber switches plans
-  // rather than starting a new one, so the buttons say so.
-  currentPlanKey?: string | null
 }>()
 
 defineEmits<{
-  subscribe: [lookupKey: string | null]
+  start: []
 }>()
-
-const selected = ref(0)
-
-// What's currently shown: the selected option for multi-option tiers,
-// otherwise the tier's own props.
-const active = computed(() => {
-  const opt = props.options?.[selected.value]
-  if (opt) return opt
-  return {
-    price: props.price ?? 0,
-    lookupKey: props.lookupKey ?? null,
-    weeklyLimit: props.weeklyLimit ?? '',
-    features: props.features ?? [],
-  }
-})
-
-const isCurrent = computed(
-  () => props.currentPlanKey !== undefined && active.value.lookupKey === props.currentPlanKey
-)
-
-const ctaLabel = computed(() => {
-  if (isCurrent.value) return 'Current plan'
-  // A paying subscriber changes plan on their subscription; going to Free is
-  // cancelling it, which happens in the billing portal.
-  if (props.currentPlanKey) return active.value.lookupKey ? 'Switch to this plan' : 'Manage billing'
-  return props.cta ?? 'Get started'
-})
 </script>

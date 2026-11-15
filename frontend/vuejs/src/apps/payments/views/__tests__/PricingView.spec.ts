@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
-vi.mock('../../services/payment_service', () => ({ default: class {} }))
+const push = vi.fn()
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
 
 import PricingView from '../PricingView.vue'
 
@@ -11,8 +11,11 @@ const stubs = {
   PaymentLayout: { template: '<div class="layout"><slot /></div>' },
 }
 
-describe('PricingView (one open Free plan)', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+describe('PricingView (Free is the only plan)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    push.mockClear()
+  })
 
   const wrapper = () => mount(PricingView, { global: { stubs } })
 
@@ -26,9 +29,16 @@ describe('PricingView (one open Free plan)', () => {
     expect(w.text()).not.toContain('Max')
   })
 
-  it('drops the Stripe checkout line while nothing is for sale', () => {
+  it('sells nothing and says how the weekly allowance works', () => {
     const w = wrapper()
     expect(w.find('h1').text()).toBe('Imagi is free')
-    expect(w.find('.pricing-stripe').exists()).toBe(false)
+    expect(w.text()).not.toContain('Stripe')
+    expect(w.text()).not.toContain('no weekly limit')
+    expect(w.text()).toContain('rolling 7 days')
+  })
+
+  it('sends a signed-out visitor to sign up', async () => {
+    await wrapper().find('button.tier__cta').trigger('click')
+    expect(push).toHaveBeenCalledWith({ path: '/auth/register' })
   })
 })

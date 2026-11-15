@@ -1,146 +1,56 @@
 """
-Subscription plan definitions for usage metering.
+The plan registry for usage metering.
 
-The single registry of plans and their rolling-window usage allowances. Plans
-are code-defined (like Build's models_service.MODELS) so allowances ship with
-the code; the database only stores which plan a user is on (models.Subscription).
+Imagi has one plan, Free, and nothing is sold. The paid plans (Pro and the two
+Max tiers) and their Stripe subscription flow were removed; if paid plans come
+back, they are added here as new entries alongside Free, with the checkout and
+webhook that grant them.
 
-Allowances are denominated in **US dollars of metered model spend**, not in
+Plans are code-defined (like Build's models_service.MODELS) so the allowance
+ships with the code. The database's Subscription row stores which plan a user
+is on, and a user with no row is on Free; any stored id that is not a plan here
+also resolves to Free, so a leftover value can never disable metering.
+
+The allowance is denominated in **US dollars of metered model spend**, not in
 tokens. A run consumes its computed cost (see Build's models_service.
 compute_cost_usd), so a pricier model or a heavier reasoning effort — which
-produces more billed reasoning tokens — draws down the allowance faster. That
-is the whole point of metering by cost: one allowance covers every model
-instead of each needing its own token budget.
+produces more billed reasoning tokens — draws down the allowance faster. One
+allowance covers every model, Anthropic and OpenAI alike.
 
 The allowance is *metered* spend, not a wallet: nothing is charged per run and
 the numbers are approximate by design.
 
-A plan is defined by a single **weekly** allowance, and that one rolling window
-is all that is tracked, enforced, or shown. There is deliberately no monthly
-figure here: no window enforces one, so carrying it would mean publishing a
-number the meter never checks. What a plan costs per month is a Stripe price,
-not a limit.
-
-There was previously a second, 5-hour burst window layered on top of the weekly
-one. It was removed: two windows meant two numbers a user had to hold in their
-head to predict whether a run would be refused, and the weekly allowance alone
-is what actually bounds spend.
-
-Every account has a plan, and every plan has a weekly allowance: there is no
-unlimited plan. A user with no Subscription row is on Free. (Free used to be
-unlimited during testing behind a FREE_TIER_UNLIMITED setting; that switch is
-gone, so no environment variable can lift the allowance.)
+The plan is defined by a single **weekly** allowance over a rolling 7 days, and
+that one window is all that is tracked, enforced, or shown. There was once a
+second, 5-hour burst window; it was removed, and the weekly allowance alone is
+what bounds spend. Every plan must have one: there is no unlimited plan.
 """
 
 DEFAULT_PLAN_ID = 'free'
 
-
-def _windows(weekly_usd):
-    """The rolling-window allowance for a plan. Weekly is the only window."""
-    return {'weekly_usd': round(weekly_usd, 2)}
-
-
 # How many active projects a plan may hold at once; None means no limit.
-# Enforced when a project is created (ProjectCreateView). Deleting a project
-# frees its slot. A subscriber who drops back to Free keeps the projects they
-# already have, but cannot create another until they're under the limit.
+# Enforced when a project is created (ProjectCreateView). Free has none: its
+# weekly allowance is its only limit.
 UNLIMITED_PROJECTS = None
 
-# Early access: new features ship to the Max tiers first. A feature in early
-# access gates on has_early_access(user) and opens to everyone else when it
-# graduates. Pro and Free don't get it.
-
-
-# Names mirror the purchasable tiers on the pricing page (Free, Pro, Max), and
-# the two Max tiers are named for what they actually give you: 5x and 10x Pro's
-# weekly allowance. The ids are stored on every Subscription row and mapped from
-# a Stripe lookup_key, so renaming one needs a data migration for the stored
-# rows and an entry in LEGACY_PLAN_IDS: otherwise existing subscribers go
-# through get_plan()'s unknown-id fallback and silently drop to the free
-# allowance. (max_20x became max_10x this way; see migration 0005.)
-#
-# Usage is metered at the providers' list prices with no markup, so an
-# allowance is real API spend: a user who uses all of it every week costs
-# about 4.3x the weekly figure a month. Price allowances with that in mind.
 PLANS = {
-    # Free's weekly allowance is its only limit: no project limit, no burst
-    # window. $20 a week of combined Anthropic and OpenAI spend at list price.
+    # $20 a week of combined Anthropic and OpenAI spend at list price.
     'free': {
         'id': 'free',
         'name': 'Free',
-        **_windows(20),
+        'weekly_usd': 20.0,
         'max_active_projects': UNLIMITED_PROJECTS,
-        'early_access': False,
-    },
-    'pro': {
-        'id': 'pro',
-        'name': 'Pro',
-        **_windows(10),
-        'max_active_projects': UNLIMITED_PROJECTS,
-        'early_access': False,
-    },
-    # Max is sold at two usage points (mirroring Claude's Max tier). They are
-    # distinct plans, not one collapsed tier, so the higher price really does
-    # buy a larger allowance.
-    'max_5x': {
-        'id': 'max_5x',
-        'name': 'Max (5x)',
-        **_windows(50),
-        'max_active_projects': UNLIMITED_PROJECTS,
-        'early_access': True,
-    },
-    'max_10x': {
-        'id': 'max_10x',
-        'name': 'Max (10x)',
-        **_windows(100),
-        'max_active_projects': UNLIMITED_PROJECTS,
-        'early_access': True,
     },
 }
-
-# Stripe price lookup_key -> registry plan id. The frontend pricing page
-# (PricingView.vue) checks out by these lookup_keys, and the subscription
-# webhook resolves them back to a plan through this map. The two Max price
-# points map to their own tiers so they don't collapse to one allowance.
-LOOKUP_KEY_TO_PLAN = {
-    'pro_monthly': 'pro',
-    'max_5x_monthly': 'max_5x',
-    'max_10x_monthly': 'max_10x',
-    # The $200 price was sold as max_20x_monthly before the tier became 10x.
-    # Kept so a subscription still on that Stripe price resolves to the tier
-    # it now is instead of being left unrecognized by the webhook.
-    'max_20x_monthly': 'max_10x',
-}
-
-# Retired plan id -> the id that replaced it. Migration 0005 rewrote the stored
-# rows; this covers anything written by code still running the old id.
-LEGACY_PLAN_IDS = {
-    'max_20x': 'max_10x',
-}
-
-
-def plan_id_for_lookup_key(lookup_key):
-    """Resolve a Stripe price lookup_key to a registry plan id, or None.
-
-    Prefers the explicit lookup_key map; falls back to treating a lookup_key
-    that is itself a plan id as that plan (so a price configured directly with
-    a plan-id lookup_key still resolves).
-    """
-    if lookup_key in LOOKUP_KEY_TO_PLAN:
-        return LOOKUP_KEY_TO_PLAN[lookup_key]
-    if lookup_key in PLANS:
-        return lookup_key
-    return None
 
 
 def get_plan(plan_id):
     """Return the plan definition for an id, falling back to the default plan.
 
-    Unknown ids resolve to 'free' so a stale/renamed plan value in the
-    database can never disable metering.
+    Unknown ids (including the retired pro/max ids) resolve to 'free' so a
+    stale plan value in the database can never disable metering.
     """
-    plan = PLANS.get(LEGACY_PLAN_IDS.get(plan_id, plan_id))
-    return plan if plan else PLANS[DEFAULT_PLAN_ID]
+    return PLANS.get(plan_id) or PLANS[DEFAULT_PLAN_ID]
 
 
 def get_plan_for_user(user):
@@ -170,8 +80,8 @@ def check_project_limit(user):
     included = 'one project' if limit == 1 else f'{limit} projects'
     return False, {
         'error': (
-            f"The {plan['name']} plan includes {included}. Upgrade to Pro or "
-            "Max for unlimited projects."
+            f"The {plan['name']} plan includes {included}. Delete a project "
+            "to make room for a new one."
         ),
         'code': 'project_limit',
         'plan': {'id': plan['id'], 'name': plan['name']},
@@ -180,11 +90,6 @@ def check_project_limit(user):
     }
 
 
-def has_early_access(user):
-    """Whether the user's plan gets features that are still in early access."""
-    return bool(get_plan_for_user(user).get('early_access'))
-
-
 def list_plans():
-    """All plans (id, name, allowances) for the frontend's plan picker."""
+    """All plans (id, name, allowance) for the frontend."""
     return list(PLANS.values())
