@@ -712,8 +712,8 @@ const usageMeters = computed(() => {
     { key: 'week', label: 'Weekly limit', win: usageStore.weekly, percent: usageStore.weeklyPercent },
   ]
   return rows.map(({ key, label, win, percent }) => {
-    // Known usage with no limit is an unlimited plan (Free while the
-    // server's FREE_TIER_UNLIMITED is on): nothing to fill or reset.
+    // Known usage with no limit would be an unlimited plan (none exists
+    // today; every plan has a weekly allowance): nothing to fill or reset.
     const unlimited = !!win && win.usedUsd !== null && win.limitUsd === null
     return {
       key,

@@ -8,8 +8,8 @@ vi.mock('@/shared/services/api', () => ({
 
 import { useUsageStore, formatUsd } from '@/shared/stores/usage'
 
-// Free-plan allowance: $3/week. Weekly is the only window.
-const WEEKLY = 3
+// Free-plan allowance: $20/week. Weekly is the only window.
+const WEEKLY = 20
 
 describe('usage store exceededWindow', () => {
   beforeEach(() => {

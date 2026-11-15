@@ -1622,7 +1622,7 @@ class ProjectNameValidationTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT, FREE_TIER_UNLIMITED=False)
+@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
 @patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
 @patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
 @patch(
@@ -1630,7 +1630,11 @@ class ProjectNameValidationTests(APITestCase):
     side_effect=_scaffolded,
 )
 class ProjectLimitTests(APITestCase):
-    """The plan's active-project limit is enforced when a project is created."""
+    """Free's weekly allowance is its only limit; project limits stay possible.
+
+    No plan caps projects today, but the enforcement in ProjectCreateView is
+    kept, so a limit added to a plan in services/plans.py takes effect.
+    """
 
     def setUp(self):
         self.user = User.objects.create_user(username='owner', password='pw123456')
@@ -1642,14 +1646,16 @@ class ProjectLimitTests(APITestCase):
             {'name': name, 'description': VALID_DESCRIPTION},
         )
 
-    def _subscribe(self, plan):
-        from apps.Payments.models import Subscription
-        Subscription.objects.update_or_create(user=self.user, defaults={'plan': plan})
+    def test_free_plan_has_no_project_limit(self, *_):
+        for name in ('Shop One', 'Shop Two', 'Shop Three'):
+            self.assertEqual(self._create(name).status_code, status.HTTP_201_CREATED)
 
-    def test_free_plan_allows_one_active_project(self, _create, mock_build, _warmup):
-        self.assertEqual(self._create('First Shop').status_code, status.HTTP_201_CREATED)
+    def test_a_plan_project_limit_is_still_enforced(self, _create, mock_build, _warmup):
+        from apps.Payments.services.plans import PLANS
 
-        resp = self._create('Second Shop')
+        with patch.dict(PLANS['free'], {'max_active_projects': 1}):
+            self.assertEqual(self._create('First Shop').status_code, status.HTTP_201_CREATED)
+            resp = self._create('Second Shop')
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(resp.data['code'], 'project_limit')
@@ -1658,49 +1664,21 @@ class ProjectLimitTests(APITestCase):
         # Refused before any build work starts (and before it is metered).
         self.assertEqual(mock_build.call_count, 1)
 
-    def test_deleting_a_project_frees_the_slot(self, *_):
-        existing = Project.objects.create(user=self.user, name='Old Shop')
-        existing.delete()  # soft delete: no longer active
-        self.assertEqual(self._create('New Shop').status_code, status.HTTP_201_CREATED)
+    def test_creating_is_refused_once_the_weekly_allowance_is_spent(
+        self, _create, mock_build, _warmup
+    ):
+        # Creating a project starts a metered build, so it shares the cap.
+        from apps.Payments.services.plans import PLANS
+        from apps.Payments.services.usage_service import record_usage
 
-    def test_paid_plans_have_no_project_limit(self, *_):
-        self._subscribe('pro')
-        for name in ('Shop One', 'Shop Two', 'Shop Three'):
-            self.assertEqual(self._create(name).status_code, status.HTTP_201_CREATED)
+        record_usage(self.user, 'gpt-5.6-terra', 1_000, 0, cost_usd=PLANS['free']['weekly_usd'])
 
-    def test_dropping_to_free_keeps_projects_but_blocks_new_ones(self, *_):
-        self._subscribe('pro')
-        self._create('Shop One')
-        self._create('Shop Two')
-        self._subscribe('free')
+        resp = self._create('Shop One')
 
-        resp = self._create('Shop Three')
-
-        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(Project.objects.filter(user=self.user, is_active=True).count(), 2)
-
-
-@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT, FREE_TIER_UNLIMITED=True)
-@patch('apps.Imagi.ProjectManager.api.views.start_preview_warmup')
-@patch('apps.Imagi.ProjectManager.api.views.start_initial_build')
-@patch(
-    'apps.Imagi.ProjectManager.api.views.ProjectCreationService.create_project',
-    side_effect=_scaffolded,
-)
-class FreeTierUnlimitedProjectTests(APITestCase):
-    """While FREE_TIER_UNLIMITED is on, Free has no project limit."""
-
-    def setUp(self):
-        self.user = User.objects.create_user(username='owner', password='pw123456')
-        self.client.force_authenticate(user=self.user)
-
-    def test_free_plan_creates_more_than_one_project(self, *_):
-        for name in ('Shop One', 'Shop Two', 'Shop Three'):
-            resp = self.client.post(
-                reverse('project_manager:project-create'),
-                {'name': name, 'description': VALID_DESCRIPTION},
-            )
-            self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(resp.data['error'], 'usage_limit_exceeded')
+        self.assertFalse(Project.objects.filter(name='Shop One').exists())
+        mock_build.assert_not_called()
 
 
 class FounderBriefTests(SimpleTestCase):
@@ -1776,6 +1754,26 @@ class InitialPagePlanTests(SimpleTestCase):
                 patch('anthropic.Anthropic', return_value=client):
             pages = initial_page_plan.plan_pages('Beanline', 'Coffee', page_brief_cls=PageBrief)
         self.assertEqual([p.slug for p in pages], ['menu'])
+
+    def test_the_planning_call_is_metered(self):
+        from types import SimpleNamespace
+        from apps.Imagi.ProjectManager.services import initial_page_plan
+        from apps.Imagi.ProjectManager.services.initial_build_service import PageBrief
+
+        usage = SimpleNamespace(input_tokens=1200, output_tokens=800)
+        answer = SimpleNamespace(
+            stop_reason='end_turn', usage=usage,
+            content=[SimpleNamespace(type='text', text=json.dumps({'pages': [self._raw('menu')]}))],
+        )
+        client = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: answer))
+        metered = []
+        with patch('apps.Imagi.Build.services.base_agent.ANTHROPIC_API_KEY', 'k'), \
+                patch('anthropic.Anthropic', return_value=client):
+            initial_page_plan.plan_pages(
+                'Beanline', 'Coffee', page_brief_cls=PageBrief,
+                meter=lambda model, u: metered.append((model, u)),
+            )
+        self.assertEqual(metered, [('claude-sonnet-5-5', usage)])
 
     def test_scaffold_routes_every_page_and_lists_the_ones_given(self):
         import subprocess

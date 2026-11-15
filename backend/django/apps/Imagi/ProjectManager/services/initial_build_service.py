@@ -429,6 +429,27 @@ def _meter_quick_home(user_id, model, service_tier, usage):
         close_old_connections()
 
 
+def _meter_page_plan(user, model, usage):
+    """The first build's page plan draws on the plan allowance like any run.
+
+    Runs on the build's own thread, so unlike _meter_quick_home it leaves the
+    thread's database connection alone.
+    """
+    from apps.Imagi.Build.services.base_agent import usage_payload
+    from apps.Imagi.Build.services.usage_limits import record_usage
+
+    payload = usage_payload(usage, model)
+    if not payload:
+        return
+    try:
+        record_usage(
+            user, model, payload['input_tokens'], payload['output_tokens'],
+            cost_usd=payload.get('cost_usd'),
+        )
+    except Exception as e:
+        logger.warning("Could not meter the first build's page plan: %s", e)
+
+
 def _land_quick_home(project_id, project_name, project_path, home_landed, landed_at):
     """Put the quick home page up while the full one is still being written.
 
@@ -838,6 +859,7 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
                 rest = initial_page_plan.plan_pages(
                     project.name, project.description, app_details, design,
                     builder=builder, page_brief_cls=PageBrief,
+                    meter=lambda m, usage: _meter_page_plan(user, m, usage),
                 ) or list(PAGE_BRIEFS[1:])
             plan = [home] + rest
             if not fixed:

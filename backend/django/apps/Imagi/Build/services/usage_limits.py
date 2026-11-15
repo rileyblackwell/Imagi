@@ -15,6 +15,12 @@ def check_usage_allowed(user):
     return check(user)
 
 
+def remaining_allowance_usd(user):
+    """Dollars left this week, or None if unlimited — see usage_service."""
+    from apps.Payments.services.usage_service import remaining_allowance_usd as remaining
+    return remaining(user)
+
+
 def record_usage(
     user,
     model_name,

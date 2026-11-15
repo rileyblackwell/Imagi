@@ -148,7 +148,7 @@ def check_usage_allowed(user):
     status = get_usage_status(user)
     plan_name = status['plan']['name']
     window = status['windows']['weekly']
-    # A None limit is an unlimited allowance (Free while FREE_TIER_UNLIMITED).
+    # A None limit would be an unlimited allowance; no plan has one today.
     if window['limit_usd'] is not None and window['used_usd'] >= window['limit_usd']:
         return False, {
             'error': 'usage_limit_exceeded',
@@ -163,3 +163,16 @@ def check_usage_allowed(user):
             'resets_at': window['resets_at'],
         }
     return True, status
+
+
+def remaining_allowance_usd(user):
+    """Dollars left in the user's weekly allowance, or None if it is unlimited.
+
+    Build caps each run's spend at this, so a run started just under the
+    allowance stops when the allowance runs out instead of overshooting it by
+    up to a whole run's cost ceiling.
+    """
+    window = get_usage_status(user)['windows']['weekly']
+    if window['limit_usd'] is None:
+        return None
+    return max(window['limit_usd'] - window['used_usd'], 0.0)

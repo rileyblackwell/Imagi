@@ -459,9 +459,14 @@ export function useAgentRun(projectId: Ref<string>) {
             id: `system-error-${Date.now()}`
           })
           await finalizeInterruptedEdits('(turn limit)')
-        } else if (errorCode === 'run_limit' || errorCode === 'out_of_credit') {
+        } else if (
+          errorCode === 'run_limit' ||
+          errorCode === 'out_of_credit' ||
+          errorCode === 'usage_limit_exceeded'
+        ) {
           // Deliberate stops with their own plain-language explanation — the
-          // spend ceiling, or a provider account with no credit left.
+          // spend ceiling, the weekly allowance running out mid-run, or a
+          // provider account with no credit left.
           store.addMessageToInstance(instanceId, {
             role: 'assistant',
             content: agentError instanceof Error ? agentError.message : 'This run stopped early.',
