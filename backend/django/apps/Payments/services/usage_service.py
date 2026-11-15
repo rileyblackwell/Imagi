@@ -126,7 +126,6 @@ def get_usage_status(user):
             # What the plan includes beyond its allowance, so the frontend can
             # say so before a request is refused.
             'max_active_projects': plan.get('max_active_projects'),
-            'early_access': bool(plan.get('early_access')),
         },
         'windows': {
             'weekly': _window_status(
@@ -155,9 +154,8 @@ def check_usage_allowed(user):
             'detail': (
                 f"You've used the weekly usage allowance of the {plan_name} "
                 "plan. Allowance frees up as older activity ages out of the "
-                "window — or upgrade your plan for more. Choosing a lighter "
-                "model or lower reasoning effort also makes your allowance go "
-                "further."
+                "7-day window. Choosing a lighter model or lower reasoning "
+                "effort makes your allowance go further."
             ),
             'window': 'week',
             'resets_at': window['resets_at'],

@@ -117,11 +117,14 @@ class StripeCustomer(models.Model):
 
 class Subscription(models.Model):
     """
-    A user's subscription plan, kept in sync with Stripe by the webhook.
+    Which plan a user is on.
 
-    Plan definitions (names, dollar allowances) live in services/plans.py;
-    this row stores only which plan the user is on. Users without a row are on
-    the default 'free' plan.
+    Plan definitions (names, dollar allowances) live in services/plans.py.
+    Free is the only plan today and nothing writes these rows: the Stripe
+    webhook that synced paid plans was removed with them (migration 0006 moved
+    every stored row to 'free'). The table is kept so paid plans can come back
+    without a schema change. Users without a row are on the default 'free'
+    plan.
     """
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

@@ -157,8 +157,8 @@
             <p class="sl-eyebrow">Good to know</p>
             <h2 class="sl-display sl-h2">What it costs, and what&rsquo;s next</h2>
             <p class="sl-lede">
-              Imagi is free, with no weekly limit on AI usage. One safeguard stays: a single
-              run that gets expensive checks in with you before it goes further.
+              Imagi is free, with $20 of AI usage a week on every account. It&rsquo;s a rolling
+              7 days, so spend frees up as it ages out.
             </p>
           </div>
 
@@ -276,9 +276,9 @@ export default defineComponent({
     ]
 
     const facts = [
-      { label: 'Price', value: 'Free', caption: 'One open plan: no usage limit, as many projects as you need.' },
+      { label: 'Price', value: 'Free', caption: 'One plan for everyone, with as many projects as you need.' },
       { label: 'Markup on AI usage', value: '0%', caption: 'Usage is metered at the AI providers’ own prices.' },
-      { label: 'Per run', value: '$10', caption: 'A run that reaches it stops and checks in with you first.' }
+      { label: 'AI usage a week', value: '$20', caption: 'Across every model, over a rolling 7 days.' }
     ]
 
     // A softer pool of light at the top of each section, as on Home's steps

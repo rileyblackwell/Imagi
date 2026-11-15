@@ -34,7 +34,7 @@ vi.mock('@/apps/imagi/build/composables/useConfirm', () => ({
 // The plan as the usage endpoint reports it; null until loaded. The limit
 // check mirrors the real store's canCreateProject.
 const usage = reactive({
-  plan: null as null | { id: string; name: string; maxActiveProjects: number | null; earlyAccess: boolean },
+  plan: null as null | { id: string; name: string; maxActiveProjects: number | null },
   fetchUsage: vi.fn().mockResolvedValue(undefined),
   canCreateProject(active: number) {
     const limit = usage.plan?.maxActiveProjects ?? null
@@ -297,29 +297,22 @@ describe('Projects (Brief)', () => {
     expect(rows.map((r) => r.find('.row__num').text())).toEqual(['01', '02'])
   })
 
-  it('offers an upgrade instead of a create once Free holds its one project', async () => {
-    usage.plan = { id: 'free', name: 'Free', maxActiveProjects: 1, earlyAccess: false }
+  it('swaps the create for a limit note once a limited plan is full', async () => {
+    usage.plan = { id: 'free', name: 'Free', maxActiveProjects: 1 }
     store.projects = [{ id: 1, name: 'Little Loaf', updated_at: '2026-10-01T00:00:00Z' }]
     const wrapper = mountPage()
     await flushPromises()
     expect(wrapper.find('button.create-submit').exists()).toBe(false)
-    const link = wrapper.findComponent(RouterLinkStub)
-    expect(link.props('to')).toBe('/payments/pricing')
-    expect(link.text()).toBe('See plans')
+    expect(wrapper.text()).not.toContain('See plans')
     expect(wrapper.find('.create-note--limit').text()).toBe(
-      'Your Free plan includes one project. Pro and Max include unlimited projects.',
+      "You're at your plan's project limit. Delete a project to make room for a new one.",
     )
   })
 
-  it('lets Free create its first project, and paid plans create any number', async () => {
-    usage.plan = { id: 'free', name: 'Free', maxActiveProjects: 1, earlyAccess: false }
-    let wrapper = mountPage()
-    await flushPromises()
-    expect(wrapper.find('button.create-submit').exists()).toBe(true)
-
-    usage.plan = { id: 'pro', name: 'Pro', maxActiveProjects: null, earlyAccess: false }
+  it('lets Free create any number of projects', async () => {
+    usage.plan = { id: 'free', name: 'Free', maxActiveProjects: null }
     store.projects = [1, 2, 3].map((id) => ({ id, name: `App ${id}`, updated_at: '2026-10-01T00:00:00Z' }))
-    wrapper = mountPage()
+    const wrapper = mountPage()
     await flushPromises()
     expect(wrapper.find('button.create-submit').exists()).toBe(true)
     expect(wrapper.find('.create-note--limit').exists()).toBe(false)

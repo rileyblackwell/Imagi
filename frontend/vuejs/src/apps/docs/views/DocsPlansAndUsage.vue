@@ -4,7 +4,7 @@
       <DocsPageHeader
         badge-text="PRICING"
         title="Plans & Usage"
-        description="Imagi is free. Here's what the one open plan includes and how AI usage works."
+        description="Imagi is free. Here's what the one plan includes and how its weekly AI usage allowance works."
       />
 
       <!-- The plan -->
@@ -13,21 +13,22 @@
           One Free Plan
         </h2>
         <p class="lede lede--section">
-          There is one plan right now, Free, and it's open to everyone. There are no paid plans and nothing to pay.
+          There is one plan, Free, and every account is on it. There are no paid plans and nothing to pay.
         </p>
         <div class="rule-cols rule-cols--2">
           <DocsCard title="Free — $0">
             <ul class="space-y-2 mt-1">
-              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>No weekly limit on AI usage</span></li>
+              <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>$20 of AI usage a week, across every model</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>The full AI builder, with every model</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Unlimited projects</span></li>
               <li class="flex items-start gap-2.5"><span class="checklist__tick mt-2" aria-hidden="true"></span><span>Sell, Market and Operate (beta)</span></li>
             </ul>
           </DocsCard>
-          <DocsCard title="A ceiling on every run">
-            No single run spends more than $10 of AI work without checking in. A run that reaches it stops with its
-            progress saved and tells you so—send a message to keep going. Agents keep working on Imagi's servers after you
-            close the workspace, and the ceiling applies there too.
+          <DocsCard title="A weekly allowance">
+            Each account gets $20 of AI work a week, shared between the Anthropic and OpenAI models. It's a rolling
+            7 days: spend frees up as it ages past a week, so there's no fixed reset day. When the allowance runs out, a run
+            in progress stops with its progress saved, and new runs wait until some of it frees up. Agents keep working on
+            Imagi's servers after you close the workspace, and the allowance applies there too.
           </DocsCard>
         </div>
       </section>
@@ -55,8 +56,8 @@
             The Usage panel
           </h4>
           <p class="callout__body">
-            In the Build workspace, the Usage button in the chat toolbar shows your plan. On Free it reads "Unlimited",
-            since there's no weekly limit to count down.
+            In the Build workspace, the Usage button in the chat toolbar shows how much of your weekly allowance is
+            used and when the oldest usage frees up. A lighter model or lower reasoning effort makes it go further.
           </p>
         </div>
       </section>

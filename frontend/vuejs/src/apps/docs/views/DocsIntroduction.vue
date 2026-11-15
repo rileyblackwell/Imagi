@@ -120,7 +120,7 @@
             together a dozen separate subscriptions to keep your business running.
           </DocsCard>
           <DocsCard title="Free to Use">
-            Imagi is free, with one open plan and no weekly limit on AI usage. Usage is metered at the AI providers'
+            Imagi is free, with one plan that includes $20 of AI usage a week. Usage is metered at the AI providers'
             own list prices with no markup, so you can see what your work actually costs.
           </DocsCard>
           <DocsCard title="Built to Move Fast">

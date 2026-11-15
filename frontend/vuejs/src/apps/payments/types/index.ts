@@ -1,7 +1,7 @@
 // Billing types.
 //
-// Access is sold as subscriptions with a metered dollar allowance, so there is
-// no balance, no credit package, and no one-time purchase flow here. Plan and
+// Imagi has one plan, Free, with a metered weekly dollar allowance, and sells
+// nothing: no balance, no credit package, no subscription checkout. Plan and
 // usage types live with the usage store (@/shared/stores/usage).
 
 /** A historical credit purchase. Nothing writes these any more. */
@@ -34,27 +34,9 @@ export interface PaymentMethod {
   is_default: boolean;
 }
 
-/** A subscription checkout, identified by the plan's Stripe price lookup_key. */
-export interface PaymentData {
-  lookup_key: string;
-  success_url?: string;
-  cancel_url?: string;
-}
-
 export interface TransactionsResponse {
   transactions: Transaction[];
   total_count: number;
-}
-
-export interface SessionResponse {
-  session_id: string;
-  checkout_url: string;
-}
-
-export interface SessionStatus {
-  status: 'complete' | 'pending';
-  payment_status: string;
-  mode?: 'subscription';
 }
 
 export interface ErrorMessages {

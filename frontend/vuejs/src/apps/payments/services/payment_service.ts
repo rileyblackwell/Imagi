@@ -4,23 +4,19 @@ import type {
   TransactionsResponse,
   TransactionFilter,
   PaymentMethod,
-  PaymentData,
-  SessionResponse,
-  SessionStatus,
   ErrorMessages
 } from '../types'
 
 /**
  * Billing API client.
  *
- * Only subscriptions are sold, so there is no balance to read, no credits to
- * check or deduct, and no one-time purchase flow. Usage is metered against
- * the plan allowance and read from GET /v1/payments/usage/ by the usage store.
+ * Imagi sells nothing: Free is the only plan, so there is no balance, no
+ * credits and no subscription checkout. Usage is metered against Free's
+ * weekly allowance and read from GET /v1/payments/usage/ by the usage store.
  */
 interface IPaymentService {
   apiUrl: string;
   getTransactions(filters?: TransactionFilter): Promise<TransactionsResponse>;
-  createCheckoutSession(data: PaymentData): Promise<SessionResponse>;
 }
 
 class PaymentService implements IPaymentService {
@@ -93,64 +89,6 @@ class PaymentService implements IPaymentService {
 
   /**
    * Create a subscription checkout session for a plan's Stripe lookup_key
-   */
-  async createCheckoutSession(data: PaymentData): Promise<SessionResponse> {
-    try {
-      const response = await api.post('/v1/payments/create-checkout-session/', {
-        lookup_key: data.lookup_key,
-        success_url: data.success_url || window.location.origin + '/payments/success',
-        cancel_url: data.cancel_url || window.location.origin + '/payments/cancel'
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Move an existing subscriber to another paid plan. The subscription they
-   * already have is changed in place (never a second checkout), and Stripe
-   * charges or credits the prorated difference.
-   */
-  async changePlan(lookupKey: string): Promise<{ status: string; plan: string }> {
-    try {
-      const response = await api.post('/v1/payments/change-plan/', { lookup_key: lookupKey })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Create a Stripe Billing Portal session for subscription management
-   */
-  async createPortalSession(returnUrl?: string): Promise<{ url: string }> {
-    try {
-      const response = await api.post('/v1/payments/create-portal-session/', {
-        return_url: returnUrl || window.location.origin + '/payments/pricing'
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Get checkout session status
-   */
-  async getSessionStatus(sessionId: string): Promise<SessionStatus> {
-    try {
-      const response = await api.get('/v1/payments/session-status/', {
-        params: { session_id: sessionId }
-      })
-      return response.data
-    } catch (error) {
-      throw this.handleError(error as Error)
-    }
-  }
-
-  /**
-   * Handle API errors with better messaging
    */
   handleError(error: AxiosError | Error): Error {
     // If it's an axios error with a response

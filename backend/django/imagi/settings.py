@@ -320,10 +320,6 @@ CSRF_COOKIE_SECURE = not DEBUG
 
 # Stripe / Payments
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
-# Empty means "not configured", never "verify with an empty key": the webhook
-# view and StripeService.verify_webhook_event both refuse to run without it,
-# and apps.Payments.apps.stripe_webhook_secret_check reports it at deploy time.
-STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 # Signing secret of the platform webhook endpoint that receives events from
 # Sell's connected accounts (/api/v1/sell/webhooks/connect/).
 STRIPE_CONNECT_WEBHOOK_SECRET = os.environ.get('STRIPE_CONNECT_WEBHOOK_SECRET', '')
