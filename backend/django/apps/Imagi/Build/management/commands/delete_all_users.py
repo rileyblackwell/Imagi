@@ -24,17 +24,14 @@ Usage:
 
 import datetime
 import logging
-import os
-import shutil
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from apps.Imagi.ProjectManager.models import Project
-from apps.Imagi.ProjectManager.services.project_management_service import ProjectManagementService
+from apps.Imagi.ProjectManager.services.account_deletion import delete_account
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +51,7 @@ def delete_users_joined_before(cutoff):
     users = list(get_user_model().objects.filter(date_joined__lt=cutoff).order_by('id'))
     projects = 0
     for user in users:
-        service = ProjectManagementService(user)
-        # Soft-deleted projects too: their rows and files go the same way.
-        for project in Project.objects.filter(user=user):
-            service.delete_project(project)
-            projects += 1
-        user_root = os.path.join(settings.PROJECTS_ROOT, str(user.id))
-        shutil.rmtree(user_root, ignore_errors=True)
-        user.delete()
+        projects += delete_account(user)
     return len(users), projects
 
 
